@@ -1,0 +1,239 @@
+#ifndef PROTO_H_
+#define PROTO_H_
+#include "core/siril.h"
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+#include <fftw3.h>
+#include <gsl/gsl_histogram.h>
+#include <stdint.h>
+
+#ifdef HAVE_LIBTIFF
+#define uint64 uint64_hack_
+#define int64 int64_hack_
+#include <tiffio.h>
+#undef uint64
+#undef int64
+#endif
+
+/****************** image_format_fits.h ******************/
+int	readfits(const char *filename, fits *fit, char *realname);
+char*	list_header(fits *fit);
+void	clearfits(fits *);
+int	readfits_partial(const char *filename, int layer, fits *fit, const rectangle *area, gboolean read_date);
+int	read_opened_fits_partial(sequence *seq, int layer, int index, WORD *buffer, const rectangle *area);
+int	fits_get_date_obs(const char *name, fits *f);
+int 	savefits(const char *, fits *);
+void 	save_fits_header(fits *);
+int	copyfits(fits *from, fits *to, unsigned char oper, int layer);
+int	copy_header(fits *from, fits *to);
+int	save1fits16(const char *filename, fits *fit, int layer);
+
+void	rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
+void	rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);
+void	rgb48bit_to_fits48bit(WORD *rgbbuf, fits *fit, gboolean inverted, gboolean change_endian);
+
+void	fits_flip_top_to_bottom(fits *fit);
+void	extract_region_from_fits(fits *from, int layer, fits *to, const rectangle *area);
+int 	new_fit_image(fits **fit, int width, int height, int nblayer);
+void	keep_first_channel_from_fits(fits *fit);
+
+/****************** image_formats_internal.h ******************/
+/* BMP */
+int 	readbmp(const char *, fits *);
+int 	savebmp(const char *, fits *);
+int	bmp32tofits48(unsigned char *rvb, int rx, int ry, fits *fitr, gboolean inverted);
+int	bmp24tofits48(unsigned char *rvb, int rx, int ry, fits *fitr);
+int	bmp8tofits(unsigned char *rvb, int rx, int ry, fits *fitr);
+
+/* PNM */
+int 	import_pnm_to_fits(const char *filename, fits *fit);
+int	saveNetPBM(const char *name, fits *fit);
+
+/* PIC */
+struct pic_struct {
+	unsigned short magic[2];
+	unsigned short width;
+	unsigned short height;
+	unsigned short bin[6];
+	unsigned short nbplane;
+	unsigned short hi;
+	unsigned short lo;
+	char *date;			
+	char *time;		
+
+	// internal stuff
+	int fd;
+};
+int	readpic(const char *name, fits *fit);
+
+/****************** image_formats_libraries.h ******************/
+#ifdef HAVE_LIBTIFF
+int readtif(const char *name, fits *fit);
+int savetif(const char *name, fits *fit, uint16 bitspersample);
+#endif
+
+#ifdef HAVE_LIBJPEG
+int readjpg(const char*, fits *);
+int savejpg(char *, fits *, int);
+#endif
+
+#ifdef HAVE_LIBPNG
+int readpng(const char*, fits *);
+int savepng(const char *filename, fits *fit, uint32_t bytes_per_sample,
+		gboolean is_colour);
+#endif
+
+#ifdef HAVE_LIBRAW
+int open_raw_files(const char *, fits *, int);
+#endif
+
+/****************** utils.h ******************/
+int	round_to_int(double x);
+int	roundf_to_int(float x);
+WORD	round_to_WORD(double x);
+BYTE	round_to_BYTE(double x);
+BYTE	conv_to_BYTE(double x);
+gboolean isrgb(fits *fit);
+char *f2utf8(const char *filename);
+gboolean ends_with(const char *str, const char *ending);
+int	get_extension_index(const char *filename);
+int	is_readable_file(const char *filename);
+int	stat_file(const char *filename2, image_type *type, char **realname);
+const char *get_filename_ext(const char *filename);
+
+gchar *siril_get_startup_dir();
+int	changedir(const char *dir, gchar **err);
+int	update_sequences_list(const char *sequence_name_to_select);
+void	update_used_memory();
+double test_available_space(double seq_size);
+int	get_available_memory_in_MB();
+void	expand_home_in_filename(char *filename, int size);
+WORD	get_normalized_value(fits*);
+void	read_and_show_textfile(char*, char*);
+void	swap_param(double *, double *);
+void	quicksort_d (double *a, int n);
+void	quicksort_s (WORD *a, int n);
+char*	remove_ext_from_filename(const char *basename);
+char*	str_append(char** data, const char* newdata);
+char*	format_basename(char *root);
+float	computePente(WORD *lo, WORD *hi);
+void	load_css_style_sheet (char *path);
+double	encodeJD(dateTime dt);
+
+/****************** quantize.h ***************/
+int fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
+		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,
+		double *mean, double *sigma, double *noise1, double *noise2, double *noise3,
+		double *noise5, int *status);
+
+/****************** siril.h ******************/
+/* crop sequence data from GUI */
+struct crop_sequence_data {
+	sequence *seq;
+	rectangle *area;
+	const char *prefix;
+	int retvalue;
+};
+
+/* median filter data from GUI */
+struct median_filter_data {
+	fits *fit;
+	int ksize;
+	double amount;
+	int iterations;
+};
+
+/* Banding data from GUI */
+struct banding_data {
+	fits *fit;
+	double sigma;
+	double amount;
+	gboolean protect_highlights;
+	gboolean applyRotation;
+	const gchar *seqEntry;
+};
+
+/* Noise data from GUI */
+struct noise_data {
+	gboolean verbose;
+	fits *fit;
+	double bgnoise[3];
+	struct timeval t_start;
+};
+
+/* Lucy-Richardson data from GUI */
+struct RL_data {
+	fits *fit;
+	double sigma;
+	int iter;
+};
+
+
+int 	threshlo(fits *fit, int level);
+int 	threshhi(fits *fit, int level);
+int 	nozero(fits *fit, int level);
+int	soper(fits *a, double scalar, char oper);
+int	imoper(fits *a, fits *b, char oper);
+int sub_background(fits* image, fits* background, int layer);
+int 	addmax(fits *a, fits *b);
+int	fdiv(fits *a, fits *b, float scalar);
+int ndiv(fits *a, fits *b);
+int fmul(fits *a, float coeff);
+double 	gaussienne(double sigma, int size, double *gauss);
+int 	unsharp(fits *,double sigma, double mult, gboolean verbose);
+int	crop(fits *fit, rectangle *bounds);
+int 	shift(int sx, int sy);
+double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
+double contrast(fits* fit, int layer) ;
+int 	loglut(fits *fit, int dir);
+int	ddp(fits *a, int lev, float coef, float sig);
+int	visu(fits *fit, int low, int high);
+int	fill(fits *fit, int level, rectangle *arearg);
+int 	off(fits *a, int level);
+void 	mirrorx(fits *fit, gboolean verbose);
+void 	mirrory(fits *fit, gboolean verbose);
+void 	fits_rotate_pi(fits *fit);
+int	lrgb(fits *l, fits *r, fits *g, fits *b, fits *lrgb);
+gpointer seqpreprocess(gpointer empty);
+void	initialize_preprocessing();
+double	background(fits* fit, int reqlayer, rectangle *selection);
+int backgroundnoise(fits* fit, double sigma[]);
+imstats* statistics(fits *, int, rectangle *, int, int);
+void	show_FITS_header(fits *);
+int	verbose_resize_gaussian(fits *, int, int, int);
+int	verbose_rotate_image(fits *, double, int, int);
+double gauss_cvf(double p);
+int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
+gpointer median_filter(gpointer p);
+void apply_banding_to_sequence(struct banding_data *banding_args);
+gpointer BandingEngineThreaded(gpointer p);
+int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation);
+gpointer noise(gpointer p);
+gpointer LRdeconv(gpointer p);
+
+/****************** seqfile.h ******************/
+sequence * readseqfile(const char *name);
+int	writeseqfile(sequence *seq);
+gboolean existseq(const char *name);
+int	buildseqfile(sequence *seq, int force_recompute);
+
+/****************** registration_preview.h ******************/
+void	redraw_previews();
+void	set_preview_area(int preview_area, int centerX, int centerY);
+void	init_mouse();
+void	adjust_reginfo();
+void	on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data);
+
+/****************** sequence_list.h ******************/
+void	sequence_list_change_selection(gchar *path, gboolean new_value);
+void	sequence_list_change_selection_index(int index);
+void	sequence_list_change_current();
+void	sequence_list_change_reference();
+void	fill_sequence_list(sequence *seq, int layer);
+void	clear_sequence_list();
+
+/****************** statistics_list.h ******************/
+void computeStat();
+
+#endif
