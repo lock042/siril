@@ -7,5 +7,6 @@ int debayer(fits*, interpolation_method);
 void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 		const rectangle *image_area, int *debayer_offset_x,
 		int *debayer_offset_y);
+int get_bayer_color(sensor_pattern pattern, int x, int y);
 
 #endif

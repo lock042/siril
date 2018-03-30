@@ -24,8 +24,10 @@ struct generic_seq_args {
 	int layer_for_partial;
 	/** in case of partial, we may use registration data to move the area */
 	gboolean regdata_for_partial;
-	/** flag to get photometry data */
+	/** in case of partial, get exposure information from FITS */
 	gboolean get_photometry_data_for_partial;
+	/** in case of partial, debayer the CFA image and get the green channel */
+	gboolean simple_debayer;
 
 	/** filtering the images from the sequence, maybe we don't want them all */
 	seq_image_filter filtering_criterion;

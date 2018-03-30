@@ -46,6 +46,7 @@
 #include "gui/histogram.h"	// update_gfit_histogram_if_needed();
 #include "io/ser.h"
 #include "sum.h"
+#include "bayer.h"
 #include "opencv/opencv.h"
 
 #define TMP_UPSCALED_PREFIX "tmp_upscaled_"
@@ -57,7 +58,7 @@ static struct stacking_args stackparam = {	// parameters passed to stacking
 };
 
 static stack_method stacking_methods[] = {
-	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
+	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_bayer_generic, stack_addmax, stack_addmin
 };
 
 static gboolean end_stacking(gpointer p);
@@ -2014,7 +2015,7 @@ double compute_highest_accepted_roundness(double percent) {
 void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststackspin
 	static GtkAdjustment *stackadj = NULL;
 	static GtkWidget *go_stack = NULL, *stack[] = {NULL, NULL},
-			 *widgetnormalize = NULL, *force_norm = NULL;
+			 *widgetnormalize = NULL, *force_norm = NULL, *cfa = NULL;
 	static GtkComboBox *stack_type = NULL, *method_combo = NULL;
 	double percent;
 	int channel, ref_image;
@@ -2029,6 +2030,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		method_combo = GTK_COMBO_BOX(lookup_widget("comboboxstack_methods"));
 		widgetnormalize = lookup_widget("combonormalize");
 		force_norm = lookup_widget("checkforcenorm");
+		cfa = lookup_widget("stacking_debayer_checkbox");
 	}
 	if (!sequence_is_loaded()) return;
 	stackparam.seq = &com.seq;
@@ -2036,11 +2038,14 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 	if (!dont_change_stack_type && stackparam.seq->selnum < stackparam.seq->number)
 		gtk_combo_box_set_active(stack_type, SELECTED_IMAGES);
 
+	gtk_widget_set_visible(cfa, sequence_is_loaded() && com.seq.nb_layers == 1);
+
 	switch (gtk_combo_box_get_active(method_combo)) {
 	default:
 	case 0:
 	case 3:
 	case 4:
+	case 5:
 		gtk_widget_set_sensitive(widgetnormalize, FALSE);
 		gtk_widget_set_sensitive(force_norm, FALSE);
 		break;

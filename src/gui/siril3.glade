@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.2 
+<!-- Generated with glade 3.22.0 
 
 Copyright (C) The free-astro development team, 2018
 
@@ -12442,7 +12442,7 @@ The next action for DSLR images would be to debayer the preprocessed images, go 
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="padding">5</property>
+                    <property name="padding">7</property>
                     <property name="position">5</property>
                   </packing>
                 </child>
@@ -12669,17 +12669,18 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="labelregisterinfo">
+                      <object class="GtkCheckButton" id="register_debayer_checkbox">
+                        <property name="label" translatable="yes">CFA images</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">end</property>
-                        <property name="label" translatable="yes">Load a sequence first.</property>
-                        <attributes>
-                          <attribute name="foreground" value="#bfb200000000"/>
-                        </attributes>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">If images are taken with a color filter array (bayer matrix) and are still used in monochrome mode, check this box to have a proper registration.
+
+If bayer drizzle is not used, debayer should be made before registering the sequence. The color mode can be activated by checking the 'debayer' check box in the conversion tab.</property>
+                        <property name="draw_indicator">True</property>
                       </object>
                       <packing>
-                        <property name="expand">True</property>
+                        <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">2</property>
                       </packing>
@@ -12703,6 +12704,22 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                         <property name="position">3</property>
                       </packing>
                     </child>
+                    <child>
+                      <object class="GtkLabel" id="labelregisterinfo">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Load a sequence first.</property>
+                        <attributes>
+                          <attribute name="foreground" value="#bfb200000000"/>
+                        </attributes>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -12719,7 +12736,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="padding">5</property>
+                    <property name="padding">7</property>
                     <property name="position">9</property>
                   </packing>
                 </child>
@@ -13250,6 +13267,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                           <item translatable="yes">Sum stacking</item>
                           <item translatable="yes">Average stacking with rejection</item>
                           <item translatable="yes">Median stacking</item>
+                          <item translatable="yes">Bayer drizzle stacking</item>
                           <item translatable="yes">Pixel maximum stacking</item>
                           <item translatable="yes">Pixel minimum stacking</item>
                         </items>
@@ -13731,7 +13749,19 @@ However, multiplicative normalisation must be used with flat-field frames.</prop
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkCheckButton" id="stacking_debayer_checkbox">
+                        <property name="label" translatable="yes">Bayer drizzle</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">Use the sub-pixel registration information to generate color images from a CFA images sequence without interpolation between colors. This requires many images in the sequence and imprecise alignment between each image.</property>
+                        <property name="halign">end</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">1</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>

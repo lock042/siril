@@ -135,10 +135,11 @@ gpointer generic_sequence_worker(gpointer p) {
 
 				// args->area may be modified in hooks
 				enforce_area_in_image(&area, args->seq);
-				if (seq_read_frame_part(args->seq,
+				if (seq_read_frame_part_simple_debayer(args->seq,
 							args->layer_for_partial,
 							input_idx, &fit, &area,
-							args->get_photometry_data_for_partial))
+							args->get_photometry_data_for_partial,
+							args->simple_debayer))
 				{
 					abort = 1;
 					clearfits(&fit);

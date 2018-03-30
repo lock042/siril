@@ -900,7 +900,7 @@ int debayer(fits* fit, interpolation_method interpolation) {
 }
 
 /* From an area, get the area corresponding to the debayer data for all colors,
- * the dashed area below.
+ * the dashed area below. ONLY WORKS FOR 4-COLOUR FILTER ARRAYS
  * 0 1 2 3 4 5
  * - - - - - -
  * - - - - - -
@@ -971,5 +971,35 @@ void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 	assert(debayer_area->y < image_area->h);
 	assert(debayer_area->h > 2);
 	assert(debayer_area->w > 2);
+}
+
+/* returns the channel number based on the sensor's bayer pattern and image
+ * position */
+int get_bayer_color(sensor_pattern pattern, int x, int y) {
+	int channel = -1;
+	int xodd = x & 1, yodd = y & 1;
+	switch (pattern) {
+		case BAYER_FILTER_RGGB:
+			channel = (xodd || yodd) + (xodd && yodd);
+			break;
+		case BAYER_FILTER_BGGR:
+			channel = (xodd || yodd) + (!xodd && !yodd);
+			break;
+		case BAYER_FILTER_GBRG:
+			if ((!xodd && !yodd) || (xodd && yodd)) channel = 1;
+			else if (xodd && !yodd) channel = 2;
+			else channel = 0;
+			break;
+		case BAYER_FILTER_GRBG:
+			if ((!xodd && !yodd) || (xodd && yodd)) channel = 1;
+			else if (xodd && !yodd) channel = 0;
+			else channel = 2;
+			break;
+		case XTRANS_FILTER:
+		case BAYER_FILTER_NONE:
+			break;
+
+	}
+	return channel;
 }
 

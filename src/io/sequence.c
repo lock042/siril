@@ -54,6 +54,7 @@
 #include "algos/PSF.h"
 #include "algos/quality.h"
 #include "algos/statistics.h"
+#include "algos/demosaicing.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 
@@ -699,7 +700,9 @@ int seq_read_frame(sequence *seq, int index, fits *dest) {
  * have a partial RGB image. */
 int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry) {
 	char filename[256];
+#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
 	fits tmp_fit;
+#endif
 	switch (seq->type) {
 		case SEQ_REGULAR:
 			fit_sequence_get_image_filename(seq, index, filename, TRUE);
@@ -738,6 +741,98 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 	return 0;
 }
 
+/* get or interpolate green value based on com.debayer.bayer_pattern, the
+ * source CFA image and the offsets of this image compared to the destination
+ * one (the original has to be aligned on the start of the array and also it's
+ * better if there are some borders to interpolate the inner pixels) */
+static WORD get_green_value(fits *fit, int off_x, int off_y, int x, int y) {
+	int cfa_x = x + off_x, cfa_y = y + off_y;
+	if (get_bayer_color(com.debayer.bayer_pattern, cfa_x, cfa_y) == 1)
+		return fit->pdata[0][cfa_x + cfa_y * fit->rx];
+
+	// let's interpolate bilinearly
+	int nb_neighbours = 0;
+	int sum = 0;
+	if (cfa_x > 0 && get_bayer_color(com.debayer.bayer_pattern, cfa_x-1, cfa_y) == 1) {
+		sum += fit->pdata[0][cfa_x-1  + cfa_y * fit->rx];
+		nb_neighbours++;
+	}
+	if (cfa_y > 0 && get_bayer_color(com.debayer.bayer_pattern, cfa_x, cfa_y-1) == 1) {
+		sum += fit->pdata[0][cfa_x  + (cfa_y-1) * fit->rx];
+		nb_neighbours++;
+	}
+
+	if (cfa_x < fit->rx - 1 && get_bayer_color(com.debayer.bayer_pattern, cfa_x+1, cfa_y) == 1) {
+		sum += fit->pdata[0][cfa_x+1  + cfa_y * fit->rx];
+		nb_neighbours++;
+	}
+	if (cfa_y < fit->ry - 1 && get_bayer_color(com.debayer.bayer_pattern, cfa_x, cfa_y+1) == 1) {
+		sum += fit->pdata[0][cfa_x  + (cfa_y+1) * fit->rx];
+		nb_neighbours++;
+	}
+	return (WORD)(sum/nb_neighbours);
+}
+
+/* same as the above seq_read_frame_part, but debayer the image part,
+ * interpolates the green layer and returns it instead of the CFA image part.
+ * This code is similar to ser_read_opened_partial() which also has a
+ * transparent demosaicing, while FITS reading doesn't. */
+int seq_read_frame_part_simple_debayer(sequence *seq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int debayer) {
+	int retval, x, y;
+
+	if (!debayer)
+		return seq_read_frame_part(seq, layer, index, dest, area, do_photometry);
+	if (com.debayer.bayer_pattern == XTRANS_FILTER) {
+		siril_log_color_message(_("The configured filter array is not yet supported for this operation\n"), "red");
+		return -1;
+	}
+	if (com.debayer.bayer_pattern == BAYER_FILTER_NONE) {
+		siril_log_color_message(_("The filter array pattern is not configured for the demosaicing operation\n"), "red");
+		return -1;
+	}
+
+	if (seq->nb_layers != 1 || layer != 0) {
+		siril_log_color_message(_("This sequence is not detected as CFA images, cannot demosaic\n"), "red");
+		return -1;
+	}
+
+	if (seq->type == SEQ_SER) {
+		/* This is already implemented in ser_read_opened_partial(), we
+		 * just need to set this and set it back at the end */
+		com.debayer.open_debayer = TRUE;
+		retval = seq_read_frame_part(seq, 1, index, dest, area, do_photometry);
+		com.debayer.open_debayer = FALSE;
+		return retval;
+	}
+
+	rectangle debayer_area, image_size = { .w = seq->rx, .h = seq->ry };
+	int debayer_off_x, debayer_off_y;
+	fits cfa_fit;
+	memset(&cfa_fit, 0, sizeof(fits));
+
+	get_debayer_area(area, &debayer_area, &image_size, &debayer_off_x, &debayer_off_y);
+
+	retval = seq_read_frame_part(seq, 0, index, &cfa_fit, &debayer_area, do_photometry);
+	if (retval)
+		return retval;
+
+	// allocate the result green image (dest)
+	if (new_fit_image(&dest, area->w, area->h, 1)) {
+		fprintf(stderr, "Failed to create the extracted green image\n");
+		return -1;
+	}
+
+	// interpolate the image linearly: must be done on the wider image actually
+	// we assume that the correct filter pattern is in com.debayer.bayer_pattern
+	for (x = 0; x < area->w; x++) {
+		for (y = 0; y < area->h; y++) {
+			dest->data[x + y*area->w] = get_green_value(&cfa_fit, debayer_off_x, debayer_off_y, x, y);
+		}
+	}
+	
+	clearfits(&cfa_fit);
+	return 0;
+}
 /*****************************************************************************
  *                 SEQUENCE FUNCTIONS FOR OPENED SEQUENCES                   *
  * **************************************************************************/
@@ -1488,7 +1583,7 @@ proper_ending:
  * image selection (com.selection), as a threaded operation or not.
  */
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
-		framing_mode framing, gboolean run_in_thread) {
+		framing_mode framing, gboolean run_in_thread, gboolean simple_debayer) {
 
 	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
 		framing = ORIGINAL_FRAME;
@@ -1515,6 +1610,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	args->layer_for_partial = layer;
 	args->regdata_for_partial = framing == REGISTERED_FRAME;
 	args->get_photometry_data_for_partial = !for_registration;
+	args->simple_debayer = simple_debayer;
 	args->filtering_criterion = (regall == TRUE) ? seq_filter_all : seq_filter_included;
 	args->nb_filtered_images = (regall == TRUE) ? seq->number : seq->selnum;
 	args->prepare_hook = NULL;

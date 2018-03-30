@@ -21,6 +21,7 @@ siril_SOURCES = \
 	registration/registration.c registration/registration.h \
 	registration/matching/match.c registration/matching/atpmatch.c registration/matching/misc.c \
 	stacking/stacking.c stacking/stacking.h stacking/sum.c stacking/sum.h stacking/normalization.c \
+	stacking/bayer.c stacking/bayer.h \
 	algos/gradient.c algos/gradient.h algos/quality.c algos/quality.h \
 	algos/statistics.c \
 	algos/fft.c algos/fft.h \

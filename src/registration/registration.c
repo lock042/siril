@@ -220,8 +220,8 @@ int register_shift_dft(struct registration_args *args) {
 			_("Register DFT: loading and processing reference frame"),
 			PROGRESS_NONE);
 	memset(&fit_ref, 0, sizeof(fits));
-	ret = seq_read_frame_part(args->seq, args->layer, ref_image, &fit_ref,
-			&args->selection, FALSE);
+	ret = seq_read_frame_part_simple_debayer(args->seq, args->layer, ref_image, &fit_ref,
+			&args->selection, FALSE, args->bayer_drizzle);
 
 	if (ret) {
 		siril_log_message(
@@ -413,7 +413,8 @@ int register_shift_fwhm(struct registration_args *args) {
 	if (args->follow_star)
 		framing = FOLLOW_STAR_FRAME;
 
-	if (seqpsf(args->seq, args->layer, TRUE, args->process_all_frames, framing, FALSE))
+	if (seqpsf(args->seq, args->layer, TRUE, args->process_all_frames,
+				framing, FALSE, args->bayer_drizzle))
 		return 1;
 
 	current_regdata = args->seq->regparam[args->layer];
@@ -986,7 +987,7 @@ int get_registration_layer() {
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *newSequence = NULL, *follow = NULL;
+	static GtkWidget *go_register = NULL, *newSequence = NULL, *follow = NULL, *cfa = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkToggleButton *reg_all = NULL, *reg_sel = NULL;
 	int nb_images_reg; /* the number of images to register */
@@ -996,6 +997,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		go_register = lookup_widget("goregister_button");
 		newSequence = lookup_widget("box29");
 		follow = lookup_widget("followStarCheckButton");
+		cfa = lookup_widget("register_debayer_checkbox");
 		reg_all = GTK_TOGGLE_BUTTON(
 				gtk_builder_get_object(builder, "regallbutton"));
 		reg_sel = GTK_TOGGLE_BUTTON(
@@ -1018,6 +1020,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		nb_images_reg = com.seq.number;
 	else
 		nb_images_reg = com.seq.selnum;
+
+	gtk_widget_set_visible(cfa, sequence_is_loaded() && com.seq.nb_layers == 1);
 
 	if (method && method->sel != REQUIRES_NO_SELECTION && com.seq.current == SCALED_IMAGE) {
 		gtk_widget_set_sensitive(go_register, FALSE);
@@ -1142,7 +1146,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
 	struct registration_method *method;
 	char *msg;
-	GtkToggleButton *regall, *follow, *matchSel, *no_translate, *x2upscale;
+	GtkToggleButton *regall, *follow, *matchSel, *no_translate, *x2upscale, *cfa;
 	GtkComboBox *cbbt_layers;
 	GtkComboBoxText *ComboBoxRegInter;
 
@@ -1171,6 +1175,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	/* filling the arguments for registration */
 	regall = GTK_TOGGLE_BUTTON(lookup_widget("regallbutton"));
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	cfa = GTK_TOGGLE_BUTTON(lookup_widget("register_debayer_checkbox"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
 	no_translate = GTK_TOGGLE_BUTTON(lookup_widget("regTranslationOnly"));
 	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
@@ -1186,6 +1191,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
 	reg_args->translation_only = gtk_toggle_button_get_active(no_translate);
 	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
+	reg_args->bayer_drizzle = gtk_toggle_button_get_active(cfa);
 	/* Here we should test available free disk space for Drizzle operation */
 	if (reg_args->x2upscale) {
 		double size = seq_compute_size(reg_args->seq);
