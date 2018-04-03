@@ -134,7 +134,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 		free(realname);
 	set_GUI_CAMERA();
 	set_GUI_photometry();
-	com.filter = (int) imagetype;
+	com.filter = (int)imagetype;
 	return retval;
 }
 
@@ -210,7 +210,7 @@ void open_single_image_from_gfit(char *realname) {
 		show_rgb_window();
 	else
 		hide_rgb_window();
-	close_tab();
+	show_hide_grey_tabs();
 }
 
 /* searches the image for minimum and maximum pixel value, on each layer
@@ -219,14 +219,10 @@ int image_find_minmax(fits *fit) {
 	int layer;
 	if (fit->maxi > 0.0)
 		return 0;
-	if (!fit->stats) {
-		fit->stats = calloc(fit->naxes[2], sizeof(imstats *));
-		if (!fit->stats)
-			return -1;
-	}
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		if (!fit->stats[layer])
-			fit->stats[layer] = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX);
+		// calling statistics() saves stats in the fit already, we don't need
+		// to use the returned handle
+		free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX));
 		if (!fit->stats[layer])
 			return -1;
 		fit->maxi = max(fit->maxi, fit->stats[layer]->max);
@@ -236,13 +232,9 @@ int image_find_minmax(fits *fit) {
 }
 
 static int fit_get_minmax(fits *fit, int layer) {
-	if (!fit->stats) {
-		fit->stats = calloc(fit->naxes[2], sizeof(imstats *));
-		if (!fit->stats)
-			return -1;
-	}
-	if (!fit->stats[layer])
-		fit->stats[layer] = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX);
+	// calling statistics() saves stats in the fit already, we don't need
+	// to use the returned handle
+	free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX));
 	if (!fit->stats[layer])
 		return -1;
 	return 0;
@@ -308,7 +300,7 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 
 /* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
 void adjust_cutoff_from_updated_gfit() {
-	invalidate_stats_from_fit(&gfit);	// needed?
+	invalidate_stats_from_fit(&gfit);
 	update_gfit_histogram_if_needed();
 	init_layers_hi_and_lo_values(com.sliders);
 	set_cutoff_sliders_values();

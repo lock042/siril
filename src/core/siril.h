@@ -164,6 +164,8 @@ typedef enum {
 #define UNRELATED_IMAGE -2	// image loaded while a sequence was loaded too
 #define SCALED_IMAGE -3		// the single image has a different size than
 				// the loaded sequence
+#define DEBAYER_IMAGE -4	// the image is a result but with more channels
+				// than the original image
 
 #define MAX_STARS 50000		// maximum length of com.stars
 
@@ -622,7 +624,6 @@ struct image_layer_struct {
 extern GtkBuilder *builder;	// get widget references anywhere
 extern cominfo com;		// the main data struct
 extern fits gfit;		// currently loaded image
-extern fits wfit[5];		// used for temp files, can probably be replaced by local variables
 extern char **supported_extensions;
 extern char *filter_pattern[];
 #endif

@@ -489,13 +489,15 @@ double contrast(fits* fit, int layer) {
 }
 
 int ddp(fits *a, int level, float coeff, float sigma) {
-	copyfits(a, &wfit[0], CP_ALLOC | CP_COPYA | CP_FORMAT, 0);
-	unsharp(&wfit[0], sigma, 0, FALSE);
-	soper(&wfit[0], (double) level, OPER_ADD);
-	nozero(&wfit[0], 1);
-	fdiv(a, &wfit[0], level);
+	fits fit;
+	memset(&fit, 0, sizeof(fits));
+	copyfits(a, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT, 0);
+	unsharp(&fit, sigma, 0, FALSE);
+	soper(&fit, (double) level, OPER_ADD);
+	nozero(&fit, 1);
+	fdiv(a, &fit, level);
 	soper(a, (double) coeff, OPER_MUL);
-	clearfits(&wfit[0]);
+	clearfits(&fit);
 	return 0;
 }
 
@@ -759,7 +761,7 @@ static double evaluateNoiseOfCalibratedImage(fits *fit, fits *dark, double k) {
 	imoper(fit_tmp, dark_tmp, OPER_SUB);
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, fit_tmp, chan, NULL, STATS_BASIC);
+		imstats *stat = statistics(NULL, -1, fit_tmp, chan, NULL, STATS_NOISE);
 		if (!stat) {
 			siril_log_message(_("Error: no data computed.\n"));
 			return 0.0;
@@ -780,10 +782,12 @@ static double goldenSectionSearch(fits *brut, fits *dark, double a, double b,
 		double tol) {
 	double c, d;
 	double fc, fd;
+	int iter = 0;
 
 	c = b - GR * (b - a);
 	d = a + GR * (b - a);
 	do {
+		fprintf(stdout, "Iter: %d\n", ++iter);
 		fc = evaluateNoiseOfCalibratedImage(brut, dark, c);
 		fd = evaluateNoiseOfCalibratedImage(brut, dark, d);
 		if (fc < 0.0 || fd < 0.0)
@@ -1614,7 +1618,7 @@ gpointer noise(gpointer p) {
 	}
 
 	for (chan = 0; chan < args->fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, args->fit, chan, NULL, STATS_BASIC);
+		imstats *stat = statistics(NULL, -1, args->fit, chan, NULL, STATS_NOISE);
 		if (!stat) {
 			args->retval = 1;
 			siril_log_message(_("Error: no data computed.\n"));

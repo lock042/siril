@@ -486,7 +486,7 @@ int set_seq(const char *name){
 
 	/* redraw and display image */
 	show_main_gray_window();
-	close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
+	show_hide_grey_tabs();
 	adjust_vport_size_to_image();	// resize viewports to the displayed image size
 	redraw(com.cvport, REMAP_ALL);
 	drawPlot();
@@ -690,6 +690,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest) {
 			dest->pdata[2] = seq->internal_fits[index]->pdata[2];
 			break;
 	}
+	invalidate_stats_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
 	return 0;
 }
@@ -1121,7 +1122,9 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 #endif
 
 	if (seq->internal_fits) {
-		/* the fits in internal_fits should still be referenced somewhere */
+		// Compositing still uses references to the images in the sequence
+		//for (i=0; i<seq->number; i++)
+		//	clearfits(seq->internal_fits[i]);
 		free(seq->internal_fits);
 	}
 	/* Here this is a bit tricky. An internal sequence is a single image. So some
@@ -1288,6 +1291,12 @@ void internal_sequence_set(sequence *seq, int index, fits *fit) {
 	seq->internal_fits[index] = fit;
 }
 
+fits *internal_sequence_get(sequence *seq, int index) {
+	if (index > seq->number)
+		return NULL;
+	return seq->internal_fits[index];
+}
+
 // find index of the fit argument in the sequence
 int internal_sequence_find_index(sequence *seq, fits *fit) {
 	int i;
@@ -1349,23 +1358,25 @@ gpointer crop_sequence(gpointer p) {
 	for (frame = 0, cur_nb = 0.f; frame < args->seq->number; frame++) {
 		if (!get_thread_run())
 			break;
-		ret = seq_read_frame(args->seq, frame, &(wfit[0]));
+		fits fit;
+		memset(&fit, 0, sizeof(fits));
+		ret = seq_read_frame(args->seq, frame, &fit);
 		if (!ret) {
 			char dest[256], filename[256];
 
-			crop(&(wfit[0]), args->area);
+			crop(&fit, args->area);
 			switch (args->seq->type) {
 			case SEQ_REGULAR:
 				fit_sequence_get_image_filename(args->seq, frame, filename,
 				TRUE);
 				sprintf(dest, "%s%s", args->prefix, filename);
-				savefits(dest, &wfit[0]);
+				savefits(dest, &fit);
 				break;
 			case SEQ_SER:
 				if (ser_file) {
-					ser_file->image_width = wfit[0].rx;
-					ser_file->image_height = wfit[0].ry;
-					if (ser_write_frame_from_fit(ser_file, &wfit[0], frame)) {
+					ser_file->image_width = fit.rx;
+					ser_file->image_height = fit.ry;
+					if (ser_write_frame_from_fit(ser_file, &fit, frame)) {
 						siril_log_message(_("Error while converting to SER (no space left?)\n"));
 					}
 				}
@@ -1377,6 +1388,7 @@ gpointer crop_sequence(gpointer p) {
 			cur_nb += 1.f;
 			set_progress_bar_data(NULL, cur_nb / args->seq->number);
 		}
+		clearfits(&fit);
 	}
 	if (args->seq->type == SEQ_SER) {
 		ser_write_and_close(ser_file);

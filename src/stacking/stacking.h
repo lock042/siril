@@ -64,6 +64,8 @@ struct stacking_args {
 	norm_coeff coeff;		/* normalization data */
 	gboolean force_norm;		/* TRUE = force normalization */
 	int reglayer;		/* layer used for registration data */
+	gboolean debayer;	/* make debayer drizzle */
+	sensor_pattern pattern;	/* color filter array pattern for the debayer drizzle */
 };
 
 void initialize_stacking_methods();

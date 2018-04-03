@@ -22,27 +22,40 @@
 #include "core/processing.h"
 #include "core/proto.h"		// FITS functions
 #include "stacking.h"
+#include "algos/demosaicing.h"
 
 struct sum_stacking_data {
 	unsigned long *sum[3];	// the new image's channels
+	unsigned int *contributions[3];	// number of actual values per pixel
 	double exposure;	// sum of the exposures
 	int reglayer;		// layer used for registration data
+	int debayer;		// debayer drizzle
+	sensor_pattern pattern;	// color filter array pattern
 };
 
 static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
+	int nb_layers;
 	unsigned int nbdata = args->seq->ry * args->seq->rx;
-	ssdata->sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
-	if (ssdata->sum[0] == NULL){
+
+	nb_layers = ssdata->debayer ? 3 : args->seq->nb_layers;
+	ssdata->sum[0] = calloc(nb_layers, nbdata * sizeof(unsigned long));
+
+	if (ssdata->sum[0] == NULL) {
 		printf("Stacking: memory allocation failure\n");
 		return -1;
 	}
-	if(args->seq->nb_layers == 3){
-		ssdata->sum[1] = ssdata->sum[0] + nbdata;	// index of green layer in sum[0]
-		ssdata->sum[2] = ssdata->sum[0] + nbdata*2;	// index of blue layer in sum[0]
+	if (ssdata->debayer || args->seq->nb_layers == 3) {
+		ssdata->sum[1] = ssdata->sum[0] + nbdata; // index of green layer in sum[0]
+		ssdata->sum[2] = ssdata->sum[1] + nbdata; // index of blue layer in sum[0]
 	} else {
 		ssdata->sum[1] = NULL;
 		ssdata->sum[2] = NULL;
+	}
+	if (ssdata->debayer) {
+		ssdata->contributions[0] = calloc(3, nbdata * sizeof(unsigned int));
+		ssdata->contributions[1] = ssdata->contributions[0] + nbdata;
+		ssdata->contributions[2] = ssdata->contributions[1] + nbdata;
 	}
 
 	ssdata->exposure = 0.0;
@@ -74,11 +87,23 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int i, fits *f
 			if (nx >= 0 && nx < fit->rx && ny >= 0 && ny < fit->ry) {
 				// we have data for this pixel
 				ii = ny * fit->rx + nx;		// index in source image
-				for(layer=0; layer<args->seq->nb_layers; ++layer) {
+				if (ssdata->debayer) {
+					int color = get_bayer_color(ssdata->pattern, nx, ny);
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-					ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
+					ssdata->sum[color][pixel] += fit->pdata[0][ii];
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+					ssdata->contributions[color][pixel]++;
+				} else {
+					for(layer=0; layer<args->seq->nb_layers; ++layer) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+						ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
+					}
 				}
 			}
 			++pixel;
@@ -92,18 +117,36 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
 	unsigned long max = 0L;	// max value of the image's channels
 	unsigned int i, nbdata;
-	int layer;
+	int layer, nb_layers;
 
-	nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
-	// find the max first
-	#pragma omp parallel for reduction(max:max)
+	nb_layers = ssdata->debayer ? 3 : args->seq->nb_layers;
+	nbdata = args->seq->ry * args->seq->rx * nb_layers;
+	
+	if (ssdata->debayer) {
+		/* normalize each pixel with the number of contributions */
+#ifdef _OPENMP
+#pragma omp parallel for reduction(max:max) schedule(static)
+#endif
+		for (i=0; i < nbdata; ++i)
+			if (ssdata->contributions[0][i] > 1)
+				ssdata->sum[0][i] /= ssdata->contributions[0][i];
+
+		free(ssdata->contributions[0]);
+
+		/* TODO: interpolate the holes with standard debayer algorithms */
+	}
+
+	// find the max for normalization
+#ifdef _OPENMP
+#pragma omp parallel for reduction(max:max) schedule(static)
+#endif
 	for (i=0; i < nbdata; ++i)
 		if (ssdata->sum[0][i] > max)
 			max = ssdata->sum[0][i];
 
 	clearfits(&gfit);
 	fits *fit = &gfit;
-	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers))
+	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, nb_layers))
 		return -1;
 	gfit.hi = round_to_WORD(max);
 	gfit.exposure = ssdata->exposure;
@@ -113,7 +156,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		ratio = USHRT_MAX_DOUBLE / (double)max;
 
 	nbdata = args->seq->ry * args->seq->rx;
-	for (layer=0; layer<args->seq->nb_layers; ++layer){
+	for (layer=0; layer<nb_layers; ++layer){
 		unsigned long* from = ssdata->sum[layer];
 		WORD *to = gfit.pdata[layer];
 		for (i=0; i < nbdata; ++i) {
@@ -147,6 +190,8 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 
 	struct sum_stacking_data *ssdata = malloc(sizeof(struct sum_stacking_data));
 	ssdata->reglayer = stackargs->reglayer;
+	ssdata->debayer = stackargs->debayer;
+	ssdata->pattern = stackargs->pattern;
 	args->user = ssdata;
 
 	//start_in_new_thread(generic_sequence_worker, args);

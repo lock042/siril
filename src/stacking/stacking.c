@@ -1433,7 +1433,7 @@ gpointer stack_function_handler(gpointer p) {
 void start_stacking() {
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *cfa = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 
 	if (method_combo == NULL) {
@@ -1445,6 +1445,7 @@ void start_stacking() {
 		rejec_combo = GTK_COMBO_BOX(lookup_widget("comborejection"));
 		norm_combo = GTK_COMBO_BOX(lookup_widget("combonormalize"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
+		cfa = GTK_TOGGLE_BUTTON(lookup_widget("stacking_debayer_checkbox"));
 	}
 
 	if (get_thread_run()) {
@@ -1469,6 +1470,18 @@ void start_stacking() {
 	stackparam.reglayer = get_registration_layer();
 	siril_log_color_message(_("Stacking will use registration data of layer %d if some exist.\n"), "salmon", stackparam.reglayer);
 	stackparam.max_number_of_rows = stack_get_max_number_of_rows(&com.seq, stackparam.nb_images_to_stack);
+	stackparam.debayer = gtk_toggle_button_get_active(cfa);
+	if (stackparam.debayer) {
+		if (com.debayer.bayer_pattern == XTRANS_FILTER) {
+			siril_log_color_message(_("The configured filter array is not yet supported for this operation\n"), "red");
+			stackparam.debayer = FALSE;
+		}
+		else if (com.debayer.bayer_pattern == BAYER_FILTER_NONE) {
+			siril_log_color_message(_("The filter array pattern is not configured for the demosaicing operation\n"), "red");
+			stackparam.debayer = FALSE;
+		}
+		else stackparam.pattern = com.debayer.bayer_pattern;
+	}
 
 	siril_log_color_message(_("Stacking: processing...\n"), "red");
 	gettimeofday(&stackparam.t_start, NULL);
@@ -1632,6 +1645,8 @@ static gboolean end_stacking(gpointer p) {
 		/* check in com.seq, because args->seq may have been replaced */
 		if (com.seq.upscale_at_stacking > 1.05)
 			com.seq.current = SCALED_IMAGE;
+		else if (args->debayer)
+			com.seq.current = DEBAYER_IMAGE;
 		else com.seq.current = RESULT_IMAGE;
 		/* Warning: the previous com.uniq is not freed, but calling
 		 * close_single_image() will close everything before reopening it,
@@ -1688,6 +1703,10 @@ static gboolean end_stacking(gpointer p) {
 		if (com.seq.current == SCALED_IMAGE)
 			adjust_vport_size_to_image();
 		redraw(com.cvport, REMAP_ALL);
+		if (args->debayer) {
+			show_hide_grey_tabs();
+			show_rgb_window();
+		}
 		redraw_previews();
 		sequence_list_change_current();
 		update_stack_interface(TRUE);

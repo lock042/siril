@@ -61,7 +61,7 @@ void adjust_vport_size_to_image();
 void scrollbars_hadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void scrollbars_vadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void set_output_filename_to_sequence_name();
-void close_tab();
+void show_hide_grey_tabs();
 void activate_tab(int vport);
 void control_window_switch_to_tab(main_tabs tab);
 void on_comboboxreglayer_changed(GtkComboBox *widget, gpointer user_data);
