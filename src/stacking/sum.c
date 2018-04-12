@@ -23,6 +23,7 @@
 #include "core/proto.h"		// FITS functions
 #include "stacking.h"
 #include "algos/demosaicing.h"
+#include "gui/progress_and_log.h"
 
 struct sum_stacking_data {
 	unsigned long *sum[3];	// the new image's channels
@@ -115,54 +116,87 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int i, fits *f
 // convert the result and store it into gfit
 static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
-	unsigned long max = 0L;	// max value of the image's channels
 	unsigned int i, nbdata;
-	int layer, nb_layers;
+	int nb_layers;
 
 	nb_layers = ssdata->debayer ? 3 : args->seq->nb_layers;
 	nbdata = args->seq->ry * args->seq->rx * nb_layers;
-	
-	if (ssdata->debayer) {
-		/* normalize each pixel with the number of contributions */
-#ifdef _OPENMP
-#pragma omp parallel for reduction(max:max) schedule(static)
-#endif
-		for (i=0; i < nbdata; ++i)
-			if (ssdata->contributions[0][i] > 1)
-				ssdata->sum[0][i] /= ssdata->contributions[0][i];
-
-		free(ssdata->contributions[0]);
-
-		/* TODO: interpolate the holes with standard debayer algorithms */
-	}
-
-	// find the max for normalization
-#ifdef _OPENMP
-#pragma omp parallel for reduction(max:max) schedule(static)
-#endif
-	for (i=0; i < nbdata; ++i)
-		if (ssdata->sum[0][i] > max)
-			max = ssdata->sum[0][i];
 
 	clearfits(&gfit);
 	fits *fit = &gfit;
 	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, nb_layers))
 		return -1;
-	gfit.hi = round_to_WORD(max);
 	gfit.exposure = ssdata->exposure;
+	
+	if (ssdata->debayer) {
+		/* normalize each pixel with the number of contributions */
+		double *normalized_image = malloc(nbdata * sizeof(double));
+		if (!normalized_image) {
+			siril_log_color_message(_("Stacking result normalization failed because it reached the memory limit, using a less accurate version\n"), "red");
+			for (i=0; i < nbdata; ++i)
+				if (ssdata->contributions[0][i] > 1)
+					ssdata->sum[0][i] /= ssdata->contributions[0][i];
+		} else {
+			double dmax = 0.0;
 
-	double ratio = 1.0;
-	if (max > USHRT_MAX)
-		ratio = USHRT_MAX_DOUBLE / (double)max;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+			for (i=0; i < nbdata; ++i)
+				if (ssdata->contributions[0][i] > 1)
+					normalized_image[i] = (double)ssdata->sum[0][i] / (double)ssdata->contributions[0][i];
 
-	nbdata = args->seq->ry * args->seq->rx;
-	for (layer=0; layer<nb_layers; ++layer){
-		unsigned long* from = ssdata->sum[layer];
-		WORD *to = gfit.pdata[layer];
-		for (i=0; i < nbdata; ++i) {
-			if (ratio == 1.0)
+			// find the max for normalization
+#ifdef _OPENMP
+#pragma omp parallel for reduction(max:dmax) schedule(static)
+#endif
+			for (i=0; i < nbdata; ++i)
+				if (normalized_image[i] > dmax)
+					dmax = normalized_image[i];
+
+			double ratio = USHRT_MAX_DOUBLE / dmax;
+
+			WORD *to = gfit.data;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+			for (i=0; i < nbdata; ++i)
+				to[i] = round_to_WORD(normalized_image[i] * ratio);
+
+			free(normalized_image);
+		}
+
+		free(ssdata->contributions[0]);
+		gfit.hi = 65535;
+	} else {
+		unsigned long max = 0L;	// max value of the image's channels
+		// find the max for normalization
+#ifdef _OPENMP
+#pragma omp parallel for reduction(max:max) schedule(static)
+#endif
+		for (i=0; i < nbdata; ++i)
+			if (ssdata->sum[0][i] > max)
+				max = ssdata->sum[0][i];
+		double ratio = 1.0;
+		if (max > USHRT_MAX)
+			ratio = USHRT_MAX_DOUBLE / (double)max;
+
+		unsigned long* from = ssdata->sum[0];
+		WORD *to = gfit.data;
+		if (ratio == 1.0) {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+			for (i=0; i < nbdata; ++i)
 				*to++ = round_to_WORD(*from++);
-			else	*to++ = round_to_WORD((double)(*from++) * ratio);
+			gfit.hi = round_to_WORD(max);	// wrong!
+		} else {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+			for (i=0; i < nbdata; ++i)
+				*to++ = round_to_WORD((double)(*from++) * ratio);
+			gfit.hi = 65535;	// wrong!
 		}
 	}
 
