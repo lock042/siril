@@ -18,7 +18,8 @@
 
 /****************** image_format_fits.h ******************/
 int	readfits(const char *filename, fits *fit, char *realname);
-char*	list_header(fits *fit);
+double get_exposure_from_fitsfile(fitsfile *fptr);
+int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void	clearfits(fits *);
 int	readfits_partial(const char *filename, int layer, fits *fit, const rectangle *area, gboolean read_date);
 int	read_opened_fits_partial(sequence *seq, int layer, int index, WORD *buffer, const rectangle *area);
@@ -26,8 +27,9 @@ int	fits_get_date_obs(const char *name, fits *f);
 int 	savefits(const char *, fits *);
 void 	save_fits_header(fits *);
 int	copyfits(fits *from, fits *to, unsigned char oper, int layer);
-int	copy_header(fits *from, fits *to);
+int	copy_fits_metadata(fits *from, fits *to);
 int	save1fits16(const char *filename, fits *fit, int layer);
+int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status);
 
 void	rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
 void	rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);
@@ -42,9 +44,6 @@ void	keep_first_channel_from_fits(fits *fit);
 /* BMP */
 int 	readbmp(const char *, fits *);
 int 	savebmp(const char *, fits *);
-int	bmp32tofits48(unsigned char *rvb, int rx, int ry, fits *fitr, gboolean inverted);
-int	bmp24tofits48(unsigned char *rvb, int rx, int ry, fits *fitr);
-int	bmp8tofits(unsigned char *rvb, int rx, int ry, fits *fitr);
 
 /* PNM */
 int 	import_pnm_to_fits(const char *filename, fits *fit);
@@ -52,7 +51,7 @@ int	saveNetPBM(const char *name, fits *fit);
 
 /* PIC */
 struct pic_struct {
-	unsigned short magic[2];
+	unsigned long magic;
 	unsigned short width;
 	unsigned short height;
 	unsigned short bin[6];
@@ -63,7 +62,7 @@ struct pic_struct {
 	char *time;		
 
 	// internal stuff
-	int fd;
+	FILE *file;
 };
 int	readpic(const char *name, fits *fit);
 
@@ -108,6 +107,9 @@ int	update_sequences_list(const char *sequence_name_to_select);
 void	update_used_memory();
 double test_available_space(double seq_size);
 int	get_available_memory_in_MB();
+#ifdef _WIN32
+gchar *get_special_folder(int csidl);
+#endif
 void	expand_home_in_filename(char *filename, int size);
 WORD	get_normalized_value(fits*);
 void	read_and_show_textfile(char*, char*);
@@ -120,6 +122,7 @@ char*	format_basename(char *root);
 float	computePente(WORD *lo, WORD *hi);
 void	load_css_style_sheet (char *path);
 double	encodeJD(dateTime dt);
+gint strcompare(gconstpointer *a, gconstpointer *b);
 
 /****************** quantize.h ***************/
 int fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -160,6 +163,7 @@ struct noise_data {
 	fits *fit;
 	double bgnoise[3];
 	struct timeval t_start;
+	int retval;
 };
 
 /* Lucy-Richardson data from GUI */
@@ -185,7 +189,6 @@ int 	unsharp(fits *,double sigma, double mult, gboolean verbose);
 int	crop(fits *fit, rectangle *bounds);
 int 	shift(int sx, int sy);
 double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
-double contrast(fits* fit, int layer) ;
 int 	loglut(fits *fit, int dir);
 int	ddp(fits *a, int lev, float coef, float sig);
 int	visu(fits *fit, int low, int high);
@@ -199,12 +202,12 @@ gpointer seqpreprocess(gpointer empty);
 void	initialize_preprocessing();
 double	background(fits* fit, int reqlayer, rectangle *selection);
 int backgroundnoise(fits* fit, double sigma[]);
-imstats* statistics(fits *, int, rectangle *, int, int);
 void	show_FITS_header(fits *);
 int	verbose_resize_gaussian(fits *, int, int, int);
 int	verbose_rotate_image(fits *, double, int, int);
 double gauss_cvf(double p);
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
+int extract_plans(fits *fit, int Nbr_Plan, int Type);
 gpointer median_filter(gpointer p);
 void apply_banding_to_sequence(struct banding_data *banding_args);
 gpointer BandingEngineThreaded(gpointer p);
@@ -230,7 +233,7 @@ void	sequence_list_change_selection(gchar *path, gboolean new_value);
 void	sequence_list_change_selection_index(int index);
 void	sequence_list_change_current();
 void	sequence_list_change_reference();
-void	fill_sequence_list(sequence *seq, int layer);
+void	fill_sequence_list(sequence *seq, int layer, gboolean as_idle);
 void	clear_sequence_list();
 
 /****************** statistics_list.h ******************/

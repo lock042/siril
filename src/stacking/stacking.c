@@ -56,13 +56,13 @@ static struct stacking_args stackparam = {	// parameters passed to stacking
 		NULL, NULL, NULL, -1.0, 0, NULL, { '\0' }, NULL, FALSE, { 0, 0 }, -1, 0, { 0, 0 }, NO_REJEC, NO_NORM, { NULL, NULL, NULL}, FALSE, -1
 };
 
-static stack_method stacking_methods[] = {
+stack_method stacking_methods[] = {
 	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
 };
 
 static gboolean end_stacking(gpointer p);
 static int stack_addminmax(struct stacking_args *args, gboolean ismax);
-static int upscale_sequence(struct stacking_args *stackargs);
+static void start_stacking();
 
 struct image_block {
 	unsigned long channel, start_row, end_row, height;
@@ -104,15 +104,15 @@ int stack_median(struct stacking_args *args) {
 	int retval = 0;
 	struct _data_block *data_pool = NULL;
 	int pool_size = 1;
-	fits *fit = &wfit[0];
+	fits fit;
 	struct image_block *blocks = NULL;
 
 	nb_frames = args->nb_images_to_stack;
-	memset(fit, 0, sizeof(fits));
+	memset(&fit, 0, sizeof(fits));
 
 	if (args->seq->type != SEQ_REGULAR && args->seq->type != SEQ_SER) {
 		char *msg = siril_log_message(_("Median stacking is only supported for FITS images and SER sequences.\n"));
-		show_dialog(msg, _("Error"), "gtk-dialog-error");
+		show_dialog(msg, _("Error"), "dialog-error-symbolic");
 		return -1;
 	}
 	if (nb_frames < 2) {
@@ -226,28 +226,28 @@ int stack_median(struct stacking_args *args) {
 
 	/* initialize result image */
 	nbdata = naxes[0] * naxes[1];
-	fit->data = malloc(nbdata * naxes[2] * sizeof(WORD));
-	if (!fit->data) {
+	fit.data = malloc(nbdata * naxes[2] * sizeof(WORD));
+	if (!fit.data) {
 		fprintf(stderr, "Memory allocation error for result\n");
 		retval = -1;
 		goto free_and_close;
 	}
-	fit->bitpix = USHORT_IMG;
-	fit->naxes[0] = naxes[0];
-	fit->naxes[1] = naxes[1];
-	fit->naxes[2] = naxes[2];
-	fit->rx = naxes[0];
-	fit->ry = naxes[1];
-	fit->naxis = naxis;
-	fit->maxi = 0;
-	if(fit->naxis == 3) {
-		fit->pdata[RLAYER]=fit->data;
-		fit->pdata[GLAYER]=fit->data + nbdata;
-		fit->pdata[BLAYER]=fit->data + nbdata * 2;
+	fit.bitpix = USHORT_IMG;
+	fit.naxes[0] = naxes[0];
+	fit.naxes[1] = naxes[1];
+	fit.naxes[2] = naxes[2];
+	fit.rx = naxes[0];
+	fit.ry = naxes[1];
+	fit.naxis = naxis;
+	fit.maxi = 0;
+	if(fit.naxis == 3) {
+		fit.pdata[RLAYER] = fit.data;
+		fit.pdata[GLAYER] = fit.data + nbdata;
+		fit.pdata[BLAYER] = fit.data + nbdata * 2;
 	} else {
-		fit->pdata[RLAYER]=fit->data;
-		fit->pdata[GLAYER]=fit->data;
-		fit->pdata[BLAYER]=fit->data;
+		fit.pdata[RLAYER] = fit.data;
+		fit.pdata[GLAYER] = fit.data;
+		fit.pdata[BLAYER] = fit.data;
 	}
 	update_used_memory();
 
@@ -483,7 +483,7 @@ int stack_median(struct stacking_args *args) {
 					}
 				}
 				quicksort_s(data->stack, nb_frames);
-				fit->pdata[my_block->channel][pixel_idx] =
+				fit.pdata[my_block->channel][pixel_idx] =
 						gsl_stats_ushort_median_from_sorted_data(data->stack, 1, nb_frames);
 				pixel_idx++;
 			}
@@ -495,14 +495,11 @@ int stack_median(struct stacking_args *args) {
 
 	set_progress_bar_data(_("Finalizing stacking..."), PROGRESS_NONE);
 	/* copy result to gfit if success */
-	copyfits(fit, &gfit, CP_FORMAT, 0);
-	if (gfit.data) free(gfit.data);
-	gfit.data = fit->data;
-	gfit.exposure = exposure;
-	memcpy(gfit.pdata, fit->pdata, 3*sizeof(WORD *));
-
-	fit->data = NULL;
-	memset(fit->pdata, 0, 3*sizeof(WORD *));
+	clearfits(&gfit);
+	copyfits(&fit, &gfit, CP_FORMAT, 0);
+	gfit.data = fit.data;
+	for (i = 0; i < fit.naxes[2]; i++)
+		gfit.pdata[i] = fit.pdata[i];
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);
@@ -524,7 +521,7 @@ free_and_close:
 	if (args->coeff.scale) free(args->coeff.scale);
 	if (retval) {
 		/* if retval is set, gfit has not been modified */
-		if (fit->data) free(fit->data);
+		if (fit.data) free(fit.data);
 		set_progress_bar_data(_("Median stacking failed. Check the log."), PROGRESS_RESET);
 		siril_log_message(_("Stacking failed.\n"));
 	} else {
@@ -557,13 +554,13 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	char filename[256];
 	int retval = 0;
 	int nb_frames, cur_nb = 0;
-	fits *fit = &wfit[0];
+	fits fit;
 	char *tmpmsg;
-	memset(fit, 0, sizeof(fits));
+	memset(&fit, 0, sizeof(fits));
 
 	/* should be pre-computed to display it in the stacking tab */
 	nb_frames = args->nb_images_to_stack;
-	reglayer = get_registration_layer();
+	reglayer = get_registration_layer(args->seq);
 
 	if (nb_frames <= 1) {
 		siril_log_message(_("No frame selected for stacking (select at least 2). Aborting.\n"));
@@ -594,20 +591,20 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 		cur_nb++;	// only used for progress bar
 
-		if (seq_read_frame(args->seq, j, fit)) {
+		if (seq_read_frame(args->seq, j, &fit)) {
 			siril_log_message(_("Stacking: could not read frame, aborting\n"));
 			retval = -3;
 			goto free_and_reset_progress_bar;
 		}
 
 		g_assert(args->seq->nb_layers == 1 || args->seq->nb_layers == 3);
-		g_assert(fit->naxes[2] == args->seq->nb_layers);
+		g_assert(fit.naxes[2] == args->seq->nb_layers);
 
 		/* first loaded image: init data structures for stacking */
 		if (!nbdata) {
-			nbdata = fit->ry * fit->rx;
-			final_pixel[0] = malloc(nbdata * fit->naxes[2] * sizeof(WORD));
-			memset(final_pixel[0], ismax ? 0 : USHRT_MAX, nbdata * fit->naxes[2] * sizeof(WORD));
+			nbdata = fit.ry * fit.rx;
+			final_pixel[0] = malloc(nbdata * fit.naxes[2] * sizeof(WORD));
+			memset(final_pixel[0], ismax ? 0 : USHRT_MAX, nbdata * fit.naxes[2] * sizeof(WORD));
 			if (final_pixel[0] == NULL){
 				printf("Stacking: memory allocation failure\n");
 				retval = -2;
@@ -617,7 +614,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 				final_pixel[1] = final_pixel[0] + nbdata;	// index of green layer in final_pixel[0]
 				final_pixel[2] = final_pixel[0] + nbdata*2;	// index of blue layer in final_pixel[0]
 			}
-		} else if (fit->ry * fit->rx != nbdata) {
+		} else if (fit.ry * fit.rx != nbdata) {
 			siril_log_message(_("Stacking: image in sequence doesn't has the same dimensions\n"));
 			retval = -3;
 			goto free_and_reset_progress_bar;
@@ -638,21 +635,21 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 #endif
 
 		/* Summing the exposure */
-		exposure += fit->exposure;
+		exposure += fit.exposure;
 
 		/* stack current image */
 		i=0;	// index in final_pixel[0]
-		for (y=0; y < fit->ry; ++y){
-			for (x=0; x < fit->rx; ++x){
+		for (y=0; y < fit.ry; ++y){
+			for (x=0; x < fit.rx; ++x){
 				nx = x - shiftx;
 				ny = y - shifty;
 				//printf("x=%d y=%d sx=%d sy=%d i=%d ii=%d\n",x,y,shiftx,shifty,i,ii);
-				if (nx >= 0 && nx < fit->rx && ny >= 0 && ny < fit->ry) {
-					ii = ny * fit->rx + nx;		// index in final_pixel[0] too
+				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
+					ii = ny * fit.rx + nx;		// index in final_pixel[0] too
 					//printf("shiftx=%d shifty=%d i=%d ii=%d\n",shiftx,shifty,i,ii);
-					if (ii > 0 && ii < fit->rx * fit->ry){
+					if (ii > 0 && ii < fit.rx * fit.ry){
 						for(layer=0; layer<args->seq->nb_layers; ++layer){
-							WORD current_pixel = fit->pdata[layer][ii];
+							WORD current_pixel = fit.pdata[layer][ii];
 							if ((ismax && current_pixel > final_pixel[layer][i]) ||	// we take the brighter pixel
 									(!ismax && current_pixel < final_pixel[layer][i]))	// we take the darker pixel
 								final_pixel[layer][i] = current_pixel;
@@ -673,17 +670,16 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	}
 	set_progress_bar_data(_("Finalizing stacking..."), (double)nb_frames/((double)nb_frames+1.));
 
-	copyfits(fit, &gfit, CP_ALLOC|CP_FORMAT, 0);
+	copyfits(&fit, &gfit, CP_ALLOC|CP_FORMAT, 0);
 	gfit.hi = round_to_WORD(minmaxim);
 	gfit.bitpix = USHORT_IMG;
-	gfit.exposure = exposure;						// TODO : think if exposure has a sense here
 
 	if (final_pixel[0]) {
 		g_assert(args->seq->nb_layers == 1 || args->seq->nb_layers == 3);
 		for (layer=0; layer<args->seq->nb_layers; ++layer){
 			from = final_pixel[layer];
 			to = gfit.pdata[layer];
-			for (y=0; y < fit->ry * fit->rx; ++y) {
+			for (y=0; y < fit.ry * fit.rx; ++y) {
 				*to++ = *from++;
 			}
 		}
@@ -766,6 +762,18 @@ static void remove_pixel(WORD *arr, int i, int N) {
 	memmove(&arr[i], &arr[i + 1], (N - i - 1) * sizeof(*arr));
 }
 
+static void normalize_to16bit(int bitpix, double *sum) {
+	switch(bitpix) {
+	case BYTE_IMG:
+		*sum *= (USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE);
+		break;
+	default:
+	case SHORT_IMG:
+	case USHORT_IMG:
+		; // do nothing
+	}
+}
+
 int stack_mean_with_rejection(struct stacking_args *args) {
 	int nb_frames;		/* number of frames actually used */
 	int status;		/* CFITSIO status value MUST be initialized to zero for EACH call */
@@ -781,16 +789,15 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 	int retval = 0;
 	struct _data_block *data_pool = NULL;
 	int pool_size = 1;
-	fits *fit = &wfit[0];
+	fits fit = {0};
 	struct image_block *blocks = NULL;
 
 	nb_frames = args->nb_images_to_stack;
-	reglayer = get_registration_layer();
-	memset(fit, 0, sizeof(fits));
+	reglayer = args->reglayer;
 
 	if (args->seq->type != SEQ_REGULAR && args->seq->type != SEQ_SER) {
 		char *msg = siril_log_message(_("Rejection stacking is only supported for FITS images and SER sequences.\nUse \"Sum Stacking\" instead.\n"));
-		show_dialog(msg, _("Error"), "gtk-dialog-error");
+		show_dialog(msg, _("Error"), "dialog-error-symbolic");
 		return -1;
 	}
 	if (nb_frames < 2) {
@@ -807,7 +814,7 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 
 	/* first loop: open all fits files and check they are of same size */
 	if (args->seq->type == SEQ_REGULAR) {
-		for (i=0; i<nb_frames; ++i) {
+		for (i = 0; i < nb_frames; ++i) {
 			int image_index = args->image_indices[i];	// image index in sequence
 			if (!get_thread_run()) {
 				retval = -1;
@@ -861,28 +868,27 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 			}
 
 			/* exposure summing */
-			double tmp;
-			status = 0;
-			/* and here we should provide a opened_fits_read_key for example */
-			fits_read_key (args->seq->fptr[image_index], TDOUBLE, "EXPTIME", &tmp, NULL, &status);
-			if (status || tmp <= 0.0) {
-				status = 0;
-				fits_read_key (args->seq->fptr[image_index], TDOUBLE, "EXPOSURE", &tmp, NULL, &status);
-			}
-			if (!status)
-				exposure += tmp;
+			exposure += get_exposure_from_fitsfile(args->seq->fptr[image_index]);
 		}
+		/* We copy metadata from reference to the final fit */
+		int ref = 0;
+		if (args->seq->reference_image > 0)
+			ref = args->seq->reference_image;
+		import_metadata_from_fitsfile(args->seq->fptr[ref], &fit);
+
 		update_used_memory();
 	}
 
 	if (naxes[2] == 0)
 		naxes[2] = 1;
 	g_assert(naxes[2] <= 3);
+
 	if (args->seq->type == SEQ_SER) {
 		g_assert(args->seq->ser_file);
 		naxes[0] = args->seq->ser_file->image_width;
 		naxes[1] = args->seq->ser_file->image_height;
 		ser_color type_ser = args->seq->ser_file->color_id;
+		bitpix = (args->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 		if (!com.debayer.open_debayer && type_ser != SER_RGB && type_ser != SER_BGR)
 			type_ser = SER_MONO;
 		naxes[2] = type_ser == SER_MONO ? 1 : 3;
@@ -904,28 +910,28 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 
 	/* initialize result image */
 	nbdata = naxes[0] * naxes[1];
-	fit->data = malloc(nbdata * naxes[2] * sizeof(WORD));
-	if (!fit->data) {
+	fit.data = malloc(nbdata * naxes[2] * sizeof(WORD));
+	if (!fit.data) {
 		fprintf(stderr, "Memory allocation error for result\n");
 		retval = -1;
 		goto free_and_close;
 	}
-	fit->bitpix = USHORT_IMG;
-	fit->naxes[0] = naxes[0];
-	fit->naxes[1] = naxes[1];
-	fit->naxes[2] = naxes[2];
-	fit->rx = naxes[0];
-	fit->ry = naxes[1];
-	fit->naxis = naxis;
-	fit->maxi = 0;
-	if(fit->naxis == 3) {
-		fit->pdata[RLAYER]=fit->data;
-		fit->pdata[GLAYER]=fit->data + nbdata;
-		fit->pdata[BLAYER]=fit->data + nbdata * 2;
+	fit.bitpix = fit.orig_bitpix = bitpix;
+	fit.naxes[0] = naxes[0];
+	fit.naxes[1] = naxes[1];
+	fit.naxes[2] = naxes[2];
+	fit.rx = naxes[0];
+	fit.ry = naxes[1];
+	fit.naxis = naxis;
+	fit.maxi = 0;
+	if(fit.naxis == 3) {
+		fit.pdata[RLAYER] = fit.data;
+		fit.pdata[GLAYER] = fit.data + nbdata;
+		fit.pdata[BLAYER] = fit.data + nbdata * 2;
 	} else {
-		fit->pdata[RLAYER]=fit->data;
-		fit->pdata[GLAYER]=fit->data;
-		fit->pdata[BLAYER]=fit->data;
+		fit.pdata[RLAYER] = fit.data;
+		fit.pdata[GLAYER] = fit.data;
+		fit.pdata[BLAYER] = fit.data;
 	}
 	update_used_memory();
 
@@ -1174,7 +1180,8 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 				retval = -1;
 				break;
 			}
-			set_progress_bar_data(NULL, (double)cur_nb/total);
+			if (y & 4)	// every 16 iterations
+				set_progress_bar_data(NULL, (double)cur_nb/total);
 
 			double sigma = -1.0;
 			uint64_t crej[2] = {0, 0};
@@ -1311,8 +1318,8 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 					break;
 				case LINEARFIT:
 					do {
-						double *xf = malloc(N * sizeof(double));
-						double *yf = malloc(N * sizeof(double));
+						double *xf = g_malloc(N * sizeof(double));
+						double *yf = g_malloc(N * sizeof(double));
 						double a, b, cov00, cov01, cov11, sumsq;
 						quicksort_s(data->stack, N);
 						for (frame = 0; frame < N; frame++) {
@@ -1321,7 +1328,7 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 						}
 						gsl_fit_linear(xf, 1, yf, 1, N, &b, &a, &cov00, &cov01, &cov11, &sumsq);
 						sigma = 0.0;
-						for (frame=0; frame < N; frame++)
+						for (frame = 0; frame < N; frame++)
 							sigma += (fabs((double)data->stack[frame] - (a*(double)frame + b)));
 						sigma /= (double)N;
 						n = 0;
@@ -1340,8 +1347,8 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 							}
 						}
 						N = N - n;
-						free(xf);
-						free(yf);
+						g_free(xf);
+						g_free(yf);
 					} while (n > 0 && N > 3);
 					break;
 				default:
@@ -1353,7 +1360,14 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 				for (frame = 0; frame < N; ++frame) {
 					sum += data->stack[frame];
 				}
-				fit->pdata[my_block->channel][pdata_idx++] = round_to_WORD(sum/(double)N);
+				sum /= (double) N;
+				if (args->norm_to_16) {
+					normalize_to16bit(bitpix, &sum);
+					fit.bitpix = fit.orig_bitpix = USHORT_IMG;
+				} else if (fit.orig_bitpix > BYTE_IMG) {
+					fit.bitpix = fit.orig_bitpix = USHORT_IMG;
+				}
+				fit.pdata[my_block->channel][pdata_idx++] = round_to_WORD(sum);
 			} // end of for x
 #ifdef _OPENMP
 #pragma omp critical
@@ -1379,18 +1393,16 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 	}
 
 	/* copy result to gfit if success */
-	copyfits(fit, &gfit, CP_FORMAT, 0);
-	if (gfit.data) free(gfit.data);
-	gfit.data = fit->data;
+	clearfits(&gfit);
+	copyfits(&fit, &gfit, CP_FORMAT, 0);
 	gfit.exposure = exposure;
-	memcpy(gfit.pdata, fit->pdata, 3*sizeof(WORD *));
-
-	fit->data = NULL;
-	memset(fit->pdata, 0, 3*sizeof(WORD *));
+	gfit.data = fit.data;
+	for (i = 0; i < fit.naxes[2]; i++)
+		gfit.pdata[i] = fit.pdata[i];
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);
-	for (i=0; i<nb_frames; ++i) {
+	for (i = 0; i < nb_frames; ++i) {
 		seq_close_image(args->seq, args->image_indices[i]);
 	}
 
@@ -1409,7 +1421,7 @@ free_and_close:
 	if (args->coeff.scale) free(args->coeff.scale);
 	if (retval) {
 		/* if retval is set, gfit has not been modified */
-		if (fit->data) free(fit->data);
+		if (fit.data) free(fit.data);
 		set_progress_bar_data(_("Rejection stacking failed. Check the log."), PROGRESS_RESET);
 		siril_log_message(_("Stacking failed.\n"));
 	} else {
@@ -1426,21 +1438,22 @@ gpointer stack_function_handler(gpointer p) {
 	// 1. normalization
 	do_normalization(args);	// does nothing if NO_NORM
 	// 2. up-scale
-	upscale_sequence(args); // does nothing if args->seq->upscale_at_stacking != 1
+	upscale_sequence(args); // does nothing if args->seq->upscale_at_stacking <= 1.05
 	// 3. stack
 	args->retval = args->method(p);
 	// 4. save result and clean-up
-	gdk_threads_add_idle(end_stacking, args);
-	return GINT_TO_POINTER(args->retval);	// not used anyway
+	siril_add_idle(end_stacking, args);
+	return GINT_TO_POINTER(args->retval);
 }
 
 /* starts a summing operation using data stored in the stackparam structure
  * function is not reentrant but can be called again after it has returned and the thread is running */
-void start_stacking() {
+static void start_stacking() {
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL;
 	static GtkEntry *output_file = NULL;
 	static GtkToggleButton *overwrite = NULL, *force_norm = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
+	static GtkWidget *norm_to_16 = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstack_methods"));
@@ -1451,6 +1464,7 @@ void start_stacking() {
 		rejec_combo = GTK_COMBO_BOX(lookup_widget("comborejection"));
 		norm_combo = GTK_COMBO_BOX(lookup_widget("combonormalize"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
+		norm_to_16 = lookup_widget("check_normalise_to_16b");
 	}
 
 	if (get_thread_run()) {
@@ -1463,6 +1477,8 @@ void start_stacking() {
 	stackparam.type_of_rejection = gtk_combo_box_get_active(rejec_combo);
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
+	stackparam.norm_to_16 = gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(norm_to_16)) && gtk_widget_is_visible(norm_to_16);
 	stackparam.coeff.offset = NULL;
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
@@ -1472,11 +1488,15 @@ void start_stacking() {
 	if (stackparam.method != stack_median && stackparam.method != stack_mean_with_rejection)
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
-	stackparam.reglayer = get_registration_layer();
+	stackparam.reglayer = get_registration_layer(&com.seq);
 	siril_log_color_message(_("Stacking will use registration data of layer %d if some exist.\n"), "salmon", stackparam.reglayer);
 	stackparam.max_number_of_rows = stack_get_max_number_of_rows(&com.seq, stackparam.nb_images_to_stack);
 
-	siril_log_color_message(_("Stacking: processing...\n"), "red");
+	/* Do not display that cause it uses the generic function that already
+	 * displays this text
+	 */
+	if (stackparam.method != &stack_summing_generic)
+		siril_log_color_message(_("Stacking: processing...\n"), "red");
 	gettimeofday(&stackparam.t_start, NULL);
 	set_cursor_waiting(TRUE);
 	siril_log_message(stackparam.description);
@@ -1496,20 +1516,15 @@ static void _show_summary(struct stacking_args *args) {
 	/* Type of algorithm */
 	if (args->method == &stack_mean_with_rejection) {
 		siril_log_message(_("Pixel combination ......... average\n"));
-	}
-	else if (args->method == &stack_summing_generic) {
+	} else if (args->method == &stack_summing_generic) {
 		siril_log_message(_("Pixel combination ......... normalized sum\n"));
-	}
-	else if (args->method == &stack_median) {
+	} else if (args->method == &stack_median) {
 		siril_log_message(_("Pixel combination ......... median\n"));
-	}
-	else if (args->method == &stack_addmin) {
+	} else if (args->method == &stack_addmin) {
 		siril_log_message(_("Pixel combination ......... minimum\n"));
-	}
-	else if (args->method == &stack_addmax) {
+	} else if (args->method == &stack_addmax) {
 		siril_log_message(_("Pixel combination ......... maximum\n"));
-	}
-	else {
+	} else {
 		siril_log_message(_("Pixel combination ......... none\n"));
 	}
 
@@ -1579,14 +1594,13 @@ static void _show_bgnoise(gpointer p) {
 				_("Another task is already in progress, ignoring new request.\n"));
 		return;
 	}
-
-	struct noise_data *args = malloc(sizeof(struct noise_data));
-
 	set_cursor_waiting(TRUE);
 
+	struct noise_data *args = malloc(sizeof(struct noise_data));
 	args->fit = com.uniq->fit;
 	args->verbose = FALSE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
+
 	start_in_new_thread(noise, args);
 }
 
@@ -1619,15 +1633,26 @@ static void remove_tmp_drizzle_files(struct stacking_args *args, gboolean remove
 	case SEQ_REGULAR:
 		for (i = 0; i < args->seq->number; i++) {
 			fit_sequence_get_image_filename(args->seq, args->image_indices[i], filename, TRUE);
+			siril_debug_print("Removing %s\n", filename);
 			g_unlink(filename);
 		}
 		break;
 	case SEQ_SER:
+		siril_debug_print("Removing %s\n", args->seq->ser_file->filename);
 		g_unlink(args->seq->ser_file->filename);
+		ser_close_file(args->seq->ser_file);
 		break;
 	}
 }
 
+void clean_end_stacking(struct stacking_args *args) {
+	_show_summary(args);
+	remove_tmp_drizzle_files(args, TRUE);
+}
+
+/* because this idle function is called after one of many stacking method
+ * functions, it contains all generic wrap-up stuff instead of only graphical
+ * operations. */
 static gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
@@ -1648,12 +1673,10 @@ static gboolean end_stacking(gpointer p) {
 		com.uniq->nb_layers = gfit.naxes[2];
 		com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 		com.uniq->fit = &gfit;
-		com.uniq->fit->maxi = 0;	// force to recompute min/max
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);
 		/* Giving noise estimation (new thread) */
 		_show_bgnoise(com.uniq->fit);
-		stop_processing_thread();	// wait for it?
 
 		/* save stacking result */
 		if (args->output_filename != NULL && args->output_filename[0] != '\0') {
@@ -1681,6 +1704,7 @@ static gboolean end_stacking(gpointer p) {
 		/* remove tmp files if exist (Drizzle) */
 		remove_tmp_drizzle_files(args, TRUE);
 
+		waiting_for_thread();		// bgnoise
 		adjust_cutoff_from_updated_gfit();	// computes min and max
 		set_sliders_value_to_gfit();
 		initialize_display_mode();
@@ -1707,8 +1731,14 @@ static gboolean end_stacking(gpointer p) {
 	gtkosx_application_attention_request(osx_app, INFO_REQUEST);
 	g_object_unref (osx_app);
 #endif
-	gettimeofday (&t_end, NULL);
-	show_time(args->t_start, t_end);
+	/* Do not display time for stack_summing_generic
+	 * cause it uses the generic function that already
+	 * displays the time
+	 */
+	if (args->method != &stack_summing_generic) {
+		gettimeofday(&t_end, NULL);
+		show_time(args->t_start, t_end);
+	}
 	return FALSE;
 }
 
@@ -1766,7 +1796,7 @@ void on_comborejection_changed (GtkComboBox *box, gpointer user_data) {
 			gtk_spin_button_set_range (GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button")), 0.0, 10.0);
 			gtk_spin_button_set_range (GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button")), 0.0, 10.0);
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button")), 5.0);
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button")), 2.5);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button")), 5.0);
 			gtk_label_set_text (label_rejection[0], "Linear low: ");
 			gtk_label_set_text (label_rejection[1], "Linear high: ");
 			break;
@@ -1801,18 +1831,29 @@ int stack_filter_all(sequence *seq, int nb_img, double any) {
 }
 
 int stack_filter_included(sequence *seq, int nb_img, double any) {
-	return (seq->imgparam[nb_img].incl);
+	return seq->imgparam[nb_img].incl;
 }
 
 /* filter for deep-sky */
 int stack_filter_fwhm(sequence *seq, int nb_img, double max_fwhm) {
 	int layer;
 	if (!seq->regparam) return 0;
-	layer = get_registration_layer();
+	layer = get_registration_layer(seq);
 	if (layer == -1) return 0;
 	if (!seq->regparam[layer]) return 0;
 	if (seq->imgparam[nb_img].incl && seq->regparam[layer][nb_img].fwhm > 0.0f)
-		return (seq->regparam[layer][nb_img].fwhm <= max_fwhm);
+		return seq->regparam[layer][nb_img].fwhm <= max_fwhm;
+	else return 0;
+}
+
+int stack_filter_roundness(sequence *seq, int nb_img, double min_rnd) {
+	int layer;
+	if (!seq->regparam) return 0;
+	layer = get_registration_layer(seq);
+	if (layer == -1) return 0;
+	if (!seq->regparam[layer]) return 0;
+	if (seq->imgparam[nb_img].incl && seq->regparam[layer][nb_img].roundness > 0.0f)
+		return seq->regparam[layer][nb_img].roundness >= min_rnd;
 	else return 0;
 }
 
@@ -1820,11 +1861,11 @@ int stack_filter_fwhm(sequence *seq, int nb_img, double max_fwhm) {
 int stack_filter_quality(sequence *seq, int nb_img, double max_quality) {
 	int layer;
 	if (!seq->regparam) return 0;
-	layer = get_registration_layer();
+	layer = get_registration_layer(seq);
 	if (layer == -1) return 0;
 	if (!seq->regparam[layer]) return 0;
 	if (seq->imgparam[nb_img].incl && seq->regparam[layer][nb_img].quality > 0.0)
-		return (seq->regparam[layer][nb_img].quality >= max_quality);
+		return seq->regparam[layer][nb_img].quality >= max_quality;
 	else return 0;
 }
 
@@ -1832,10 +1873,9 @@ int stack_filter_quality(sequence *seq, int nb_img, double max_quality) {
 int compute_nb_filtered_images() {
 	int i, count = 0;
 	if (!sequence_is_loaded()) return 0;
-	for (i=0; i<com.seq.number; i++) {
-		if (stackparam.filtering_criterion(
-					&com.seq, i,
-					stackparam.filtering_parameter))
+	for (i = 0; i < com.seq.number; i++) {
+		if (stackparam.filtering_criterion(&com.seq, i,
+				stackparam.filtering_parameter))
 			count++;
 	}
 	return count;
@@ -1887,14 +1927,14 @@ double compute_highest_accepted_fwhm(double percent) {
 	int i, layer, number_images_with_fwhm_data;
 	double *val = malloc(com.seq.number * sizeof(double));
 	double highest_accepted;
-	layer = get_registration_layer();
+	layer = get_registration_layer(&com.seq);
 	if (layer == -1 || !com.seq.regparam || !com.seq.regparam[layer]) {
 		free(val);
 		return 0.0;
 	}
 	// copy values
 	for (i=0; i<com.seq.number; i++) {
-		if (com.seq.regparam[layer][i].fwhm <= 0.0f) {
+		if (com.seq.imgparam[i].incl && com.seq.regparam[layer][i].fwhm <= 0.0f) {
 			val[i] = DBL_MAX;
 		} else {
 			val[i] = com.seq.regparam[layer][i].fwhm;
@@ -1916,7 +1956,7 @@ double compute_highest_accepted_fwhm(double percent) {
 	}
 
 	// get highest accepted
-	highest_accepted = val[(int) (percent * (double) number_images_with_fwhm_data / 100.0)];
+	highest_accepted = val[(int)(percent * (double)number_images_with_fwhm_data / 100.0)];
 	if (highest_accepted == DBL_MAX)
 		highest_accepted = 0.0;
 	free(val);
@@ -1930,13 +1970,13 @@ double compute_highest_accepted_quality(double percent) {
 	int i, layer;
 	double *val = malloc(com.seq.number * sizeof(double));
 	double highest_accepted;
-	layer = get_registration_layer();
+	layer = get_registration_layer(&com.seq);
 	if (layer == -1 || !com.seq.regparam || !com.seq.regparam[layer]) {
 		free(val);
 		return 0.0;
 	}
 	// copy values
-	for (i=0; i<com.seq.number; i++) {
+	for (i = 0; i < com.seq.number; i++) {
 		if (com.seq.imgparam[i].incl && com.seq.regparam[layer][i].quality < 0.0) {
 			siril_log_message(_("Error in highest quality accepted for sequence processing: some images don't have this kind of information available for channel #%d.\n"), layer);
 			free(val);
@@ -1949,11 +1989,56 @@ double compute_highest_accepted_quality(double percent) {
 	quicksort_d(val, com.seq.number);
 
 	// get highest accepted
-	highest_accepted = val[(int) ((100.0 - percent) * (double) com.seq.number
+	highest_accepted = val[(int)((100.0 - percent) * (double)com.seq.number
 			/ 100.0)];
 	free(val);
 	return highest_accepted;
 }
+
+/* For a sequence of images with quality registration data and a percentage of
+ * images to include in a processing, computes the lowest roundness value accepted.
+ */
+double compute_lowest_accepted_roundness(double percent) {
+	int i, layer, number_images_with_fwhm_data;
+	double *val = malloc(com.seq.number * sizeof(double));
+	double lowest_accepted;
+	layer = get_registration_layer(&com.seq);
+	if (layer == -1 || !com.seq.regparam || !com.seq.regparam[layer]) {
+		free(val);
+		return 0.0;
+	}
+	// copy values
+	for (i = 0; i < com.seq.number; i++) {
+		if (com.seq.imgparam[i].incl && com.seq.regparam[layer][i].roundness <= 0.0f) {
+			siril_log_message(_("Error in highest quality accepted for sequence processing: some images don't have this kind of information available for channel #%d.\n"), layer);
+			val[i] = DBL_MIN;
+		} else {
+			val[i] = com.seq.regparam[layer][i].roundness;
+		}
+	}
+
+	//sort values
+	quicksort_d(val, com.seq.number);
+
+	if (val[com.seq.number-1] != DBL_MIN) {
+		number_images_with_fwhm_data = com.seq.number;
+	} else {
+		for (i = 0; i < com.seq.number; i++)
+			if (val[i] == DBL_MIN)
+				break;
+		number_images_with_fwhm_data = i;
+		siril_log_message(_("Warning: some images don't have FWHM information available for best images selection, using only available data (%d images on %d).\n"),
+				number_images_with_fwhm_data, com.seq.number);
+	}
+
+	// get lowest accepted
+	lowest_accepted = val[(int)((100.0 - percent) * (double)number_images_with_fwhm_data / 100.0)];
+	if (lowest_accepted == DBL_MIN)
+		lowest_accepted = 0.0;
+	free(val);
+	return lowest_accepted;
+}
+
 
 /* Activates or not the stack button if there are 2 or more selected images,
  * all data related to stacking is set in stackparam, except the method itself,
@@ -1962,7 +2047,7 @@ double compute_highest_accepted_quality(double percent) {
 void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststackspin
 	static GtkAdjustment *stackadj = NULL;
 	static GtkWidget *go_stack = NULL, *stack[] = {NULL, NULL},
-			 *widgetnormalize = NULL, *force_norm = NULL;
+			 *widgetnormalize = NULL, *force_norm = NULL, *norm_to_16 = NULL;
 	static GtkComboBox *stack_type = NULL, *method_combo = NULL;
 	double percent;
 	int channel, ref_image;
@@ -1977,6 +2062,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		method_combo = GTK_COMBO_BOX(lookup_widget("comboboxstack_methods"));
 		widgetnormalize = lookup_widget("combonormalize");
 		force_norm = lookup_widget("checkforcenorm");
+		norm_to_16 = lookup_widget("check_normalise_to_16b");
 	}
 	if (!sequence_is_loaded()) return;
 	stackparam.seq = &com.seq;
@@ -1997,6 +2083,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		gtk_widget_set_sensitive(widgetnormalize, TRUE);
 		gtk_widget_set_sensitive(force_norm,
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
+		gtk_widget_set_visible(norm_to_16, stackparam.seq->bitpix < SHORT_IMG);
 	}
 
 	switch (gtk_combo_box_get_active(stack_type)) {
@@ -2021,14 +2108,13 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 	case BEST_PSF_IMAGES:
 		/* First we must check if the sequence has this kind of data
 		 * available before allowing the option to be selected. */
-		channel = get_registration_layer();
+		channel = get_registration_layer(&com.seq);
 		ref_image = sequence_find_refimage(&com.seq);
 		if (channel < 0) {
 			stackparam.nb_images_to_stack = 0;
 		} else if (stackparam.seq->regparam[channel] == NULL) {
 			stackparam.nb_images_to_stack = 0;
-		} else if (stackparam.seq->regparam[channel][ref_image].fwhm_data == NULL
-				&& stackparam.seq->regparam[channel][ref_image].fwhm == 0.0) {
+		} else if (stackparam.seq->regparam[channel][ref_image].fwhm == 0.0) {
 			stackparam.nb_images_to_stack = 0;
 		} else {
 			percent = gtk_adjustment_get_value(stackadj);
@@ -2048,6 +2134,37 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 			} else {
 				sprintf(labelbuffer, _("Based on FWHM"));
 			}
+			gtk_label_set_text(GTK_LABEL(stack[1]), labelbuffer);
+		}
+		break;
+
+	case BEST_ROUND_IMAGES:
+		/* First we must check if the sequence has this kind of data
+		 * available before allowing the option to be selected. */
+		channel = get_registration_layer(&com.seq);
+		ref_image = sequence_find_refimage(&com.seq);
+		if (channel < 0) {
+			stackparam.nb_images_to_stack = 0;
+		} else if (stackparam.seq->regparam[channel] == NULL) {
+			stackparam.nb_images_to_stack = 0;
+		} else if (stackparam.seq->regparam[channel][ref_image].roundness == 0.0) {
+			stackparam.nb_images_to_stack = 0;
+		} else {
+			percent = gtk_adjustment_get_value(stackadj);
+			stackparam.filtering_criterion = stack_filter_roundness;
+			stackparam.filtering_parameter = compute_lowest_accepted_roundness(
+					percent);
+			stackparam.nb_images_to_stack = compute_nb_filtered_images();
+			sprintf(stackparam.description, _("Stacking images of the sequence "
+						"with a roundness higher or equal than %g (%d)\n"),
+					stackparam.filtering_parameter, stackparam.nb_images_to_stack);
+			gtk_widget_set_sensitive(stack[0], TRUE);
+			gtk_widget_set_sensitive(stack[1], TRUE);
+			if (stackparam.filtering_parameter > 0.0)
+				sprintf(labelbuffer, _("Based on roundness > %.2f (%d images)"),
+						stackparam.filtering_parameter,	stackparam.nb_images_to_stack);
+			else
+				sprintf(labelbuffer, _("Based on roundness"));
 			gtk_label_set_text(GTK_LABEL(stack[1]), labelbuffer);
 		}
 		break;
@@ -2117,17 +2234,12 @@ struct upscale_args {
 	double factor;
 };
 
-static int upscale_image_hook(struct generic_seq_args *args, int i, fits *fit, rectangle *_) {
+static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
 	struct upscale_args *upargs = args->user;
 	return cvResizeGaussian(fit, fit->rx * upargs->factor, fit->ry * upargs->factor, OPENCV_NEAREST);
 }
 
-static gboolean end_upscale(gpointer p) {
-	// do nothing, the default behaviour of the generic processing ends the thread
-	return FALSE;
-}
-
-static int upscale_sequence(struct stacking_args *stackargs) {
+int upscale_sequence(struct stacking_args *stackargs) {
 	if (stackargs->seq->upscale_at_stacking <= 1.05)
 		return 0;
 	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
@@ -2144,7 +2256,7 @@ static int upscale_sequence(struct stacking_args *stackargs) {
 	args->finalize_hook = ser_finalize_hook;
 	args->image_hook = upscale_image_hook;
 	args->save_hook = NULL;
-	args->idle_function = end_upscale;
+	args->idle_function = NULL;
 	args->stop_on_error = TRUE;
 	args->description = _("Up-scaling sequence for stacking");
 	args->has_output = TRUE;
@@ -2154,7 +2266,6 @@ static int upscale_sequence(struct stacking_args *stackargs) {
 	args->user = upargs;
 	args->already_in_a_thread = TRUE;
 	args->parallel = TRUE;
-
 
 	generic_sequence_worker(args);
 	int retval = args->retval;
@@ -2188,7 +2299,7 @@ static int upscale_sequence(struct stacking_args *stackargs) {
 		}
 		free(seqname);
 
-		memset(&com.selection, 0, sizeof(rectangle));
+		delete_selected_area();
 
 		/* there are three differences between old and new sequence:
 		 * the size of images and possibly the number of images if the

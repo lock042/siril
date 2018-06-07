@@ -18,6 +18,7 @@ src/compositing/align_rgb.c
 src/compositing/compositing.c
 src/compositing/filters.c
 src/core/command.c
+src/core/command_def.h
 src/core/initfile.c
 src/core/processing.c
 src/core/siril.c
@@ -31,6 +32,7 @@ src/gui/progress_and_log.c
 src/gui/PSF_list.c
 src/gui/registration_preview.c
 src/gui/save_dialog.c
+src/gui/script_menu.c
 src/gui/sequence_list.c
 src/gui/statistics_list.c
 src/io/conversion.c
@@ -45,6 +47,8 @@ src/io/sequence_export.c
 src/io/ser.c
 src/io/single_image.c
 src/main.c
+src/opencv/opencv.cpp
+src/registration/global.c
 src/registration/registration.c
 src/stacking/normalization.c
 src/stacking/stacking.c

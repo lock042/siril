@@ -39,6 +39,7 @@
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
+#include "gui/script_menu.h"
 #include "gui/progress_and_log.h"
 #include "algos/colors.h"
 #include "algos/PSF.h"
@@ -63,6 +64,7 @@
 static enum {
 	CD_NULL, CD_INCALL, CD_EXCALL, CD_QUIT
 } confirm;
+
 static gboolean is_shift_on = FALSE;
 
 layer_info predefined_layers_colors[] = {
@@ -77,6 +79,13 @@ layer_info predefined_layers_colors[] = {
 static BYTE *remap_index[MAXGRAYVPORT];
 static float last_pente[MAXGRAYVPORT];
 static display_mode last_mode[MAXGRAYVPORT];
+
+/* STF (auto-stretch) data */
+static gboolean stfComputed;	// Flag to know if STF parameters are available
+static double stfShadows, stfHighlights, stfM;
+
+/* background image */
+static fits background_fit = { 0 };	// Testing init
 
 /*****************************************************************************
  *                    S T A T I C      F U N C T I O N S                     *
@@ -144,23 +153,41 @@ static GdkModifierType get_default_modifier() {
 
 struct _dialog_data {
 	const char *text;
+	const char *data;
 	const char *title;
 	const char *icon;
 };
 
 static gboolean show_dialog_idle(gpointer p) {
 	static GtkLabel *label = NULL;
+	static GtkWidget *txtdata = NULL;
+	static GtkTextView *dataview = NULL;
+	static GtkTextBuffer *databuffer = NULL;
+	GtkTextIter itBeg, itEnd;
+	gboolean has_data = FALSE;
 	struct _dialog_data *args = (struct _dialog_data *) p;
 	GtkImage *image = GTK_IMAGE(lookup_widget("image1"));
+
 	if (label == NULL) {
 		label = GTK_LABEL(gtk_builder_get_object(builder, "labeldialog1"));
+		txtdata = lookup_widget("dialog_scrollbar");
+		dataview = GTK_TEXT_VIEW(lookup_widget("dialog_data"));
+		databuffer = gtk_text_view_get_buffer(dataview);
 	}
+
+	has_data = (args->data == NULL) ? FALSE : TRUE;
+	if (has_data) {
+		gtk_text_buffer_get_bounds(databuffer, &itBeg, &itEnd);
+		gtk_text_buffer_delete(databuffer, &itBeg, &itEnd);
+		gtk_text_buffer_set_text(databuffer, args->data, strlen(args->data));
+	}
+	gtk_widget_set_visible(txtdata, has_data);
 	gtk_window_set_title(GTK_WINDOW(lookup_widget("dialog1")), args->title);
 	gtk_image_set_from_icon_name(image, args->icon, GTK_ICON_SIZE_DIALOG);
 	gtk_label_set_text(label, args->text);
-	gtk_label_set_use_markup (label, TRUE);
+	gtk_label_set_use_markup(label, TRUE);
 	gtk_widget_show(lookup_widget("dialog1"));
-	gtk_window_present (GTK_WINDOW(lookup_widget("dialog1")));
+	gtk_window_present(GTK_WINDOW(lookup_widget("dialog1")));
 	free(args);
 	return FALSE;
 }
@@ -444,7 +471,7 @@ static void test_and_allocate_reference_image(int vport) {
 static void remap(int vport) {
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
-	guint x, y;
+	guint y;
 	BYTE *dst, *index, rainbow_index[UCHAR_MAX + 1][3];
 	WORD *src, hi, lo;
 	display_mode mode;
@@ -587,9 +614,10 @@ static void remap(int vport) {
 	index = remap_index[vport];
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
 	for (y = 0; y < gfit.ry; y++) {
+		guint x;
 		for (x = 0; x < gfit.rx; x++) {
 			guint src_index = y * gfit.rx + x;
 			BYTE dst_pixel_value;
@@ -636,16 +664,11 @@ static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
 	float pente;
 	int i;
 	BYTE *index;
-	double m = 0.0;
 	double pxl;
 	if (mode == STF_DISPLAY) {
-		if (!com.stfComputed) {
-			double shadows = 0.0, highlights = 0.0;
-			m = findMidtonesBalance(&gfit, &shadows, &highlights);
-			com.stfShadows = shadows;
-			com.stfHighlights = highlights;
-			com.stfM = m;
-			com.stfComputed = TRUE;
+		if (!stfComputed) {
+			stfM = findMidtonesBalance(&gfit, &stfShadows, &stfHighlights);
+			stfComputed = TRUE;
 		}
 	}
 
@@ -715,12 +738,10 @@ static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
 			index[i] = round_to_BYTE((float) i * pente);
 			break;
 		case STF_DISPLAY:
-			pxl = (gfit.bitpix == BYTE_IMG ?
+			pxl = (gfit.orig_bitpix == BYTE_IMG ?
 					(double) i / UCHAR_MAX_DOUBLE :
 					(double) i / USHRT_MAX_DOUBLE);
-			pxl = (pxl - com.stfShadows < 0.0) ? 0.0 : pxl - com.stfShadows;
-			pxl /= (com.stfHighlights - com.stfShadows);
-			index[i] = round_to_BYTE((float) (MTF(pxl, com.stfM)) * pente);
+			index[i] = round_to_BYTE((float) (MTF(pxl, stfM, stfShadows, stfHighlights)) * pente);
 			break;
 		default:
 			return 1;
@@ -932,31 +953,17 @@ static void set_filters_dialog(GtkFileChooser *chooser) {
 	}
 }
 
-static gint strcompare(gconstpointer *a, gconstpointer *b) {
-	gchar *collate_key1, *collate_key2;
-	gint result;
-
-	const gchar *s1 = (const gchar *)a;
-	const gchar *s2 = (const gchar *)b;
-
-	collate_key1  = g_utf8_collate_key_for_filename(s1, strlen(s1));
-	collate_key2  = g_utf8_collate_key_for_filename(s2, strlen(s2));
-
-	result = g_strcmp0(collate_key1, collate_key2);
-	g_free(collate_key1);
-	g_free(collate_key2);
-
-	return result;
-}
-
 static void opendial(void) {
-	GtkWidget *widgetdialog = NULL;
+#ifdef _WIN32
+	GtkFileChooserNative *widgetdialog;
+#else
+	GtkWidget *widgetdialog;
+#endif
 	GtkFileChooser *dialog = NULL;
+	GtkFileChooserAction action;
+	GtkWindow *main_window = GTK_WINDOW(lookup_widget("main_window"));
+	GtkWindow *control_window = GTK_WINDOW(lookup_widget("control_window"));
 	gint res;
-	GtkWindow *main_window = GTK_WINDOW(
-			gtk_builder_get_object(builder, "main_window"));
-	GtkWindow *control_window = GTK_WINDOW(
-			gtk_builder_get_object(builder, "control_window"));
 
 	if (!com.wd)
 		return;
@@ -968,40 +975,59 @@ static void opendial(void) {
 	case OD_FLAT:
 	case OD_DARK:
 	case OD_OFFSET:
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), control_window,
-				GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
-				_("_Open"), GTK_RESPONSE_ACCEPT,
-				NULL);
+		action = GTK_FILE_CHOOSER_ACTION_OPEN;
+#ifdef _WIN32
+		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
+				_("_Open"), _("_Cancel"));
+#else
+		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"),
+				control_window, action, _("_Cancel"), GTK_RESPONSE_CANCEL,
+				_("_Open"), GTK_RESPONSE_ACCEPT, NULL);
+#endif
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog);
 		break;
 	case OD_CWD:
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), control_window,
-				GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, _("_Cancel"),
-				GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,
-				NULL);
+		action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+#ifdef _WIN32
+		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
+				_("_Open"), _("_Cancel"));
+#else
+		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), main_window,
+				action, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"),
+				GTK_RESPONSE_ACCEPT, NULL);
+#endif
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		break;
 	case OD_OPEN:
+		action = GTK_FILE_CHOOSER_ACTION_OPEN;
+#ifdef _WIN32
+		widgetdialog = gtk_file_chooser_native_new(_("Open File"), main_window, action,
+				_("_Open"), _("_Cancel"));
+#else
 		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), main_window,
 				GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
-				_("_Open"), GTK_RESPONSE_ACCEPT,
-				NULL);
+				_("_Open"), GTK_RESPONSE_ACCEPT, NULL);
+#endif
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog);
 		break;
 	case OD_CONVERT:
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), control_window,
-				GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
-				_("_Open"), GTK_RESPONSE_ACCEPT,
-				NULL);
-
+		action = GTK_FILE_CHOOSER_ACTION_OPEN;
+#if _WIN32
+		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
+				_("_Open"), _("_Cancel"));
+#else
+		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"),
+				control_window, GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"),
+				GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT, NULL);
+#endif
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, TRUE);
@@ -1010,7 +1036,11 @@ static void opendial(void) {
 
 	if (!dialog)
 		return;
+#if _WIN32
+	res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(widgetdialog));
+#else
 	res = gtk_dialog_run(GTK_DIALOG(dialog));
+#endif
 
 	if (res == GTK_RESPONSE_ACCEPT) {
 		GSList *list = NULL;
@@ -1067,7 +1097,7 @@ static void opendial(void) {
 			if (!changedir(filename, &err)) {
 				writeinitfile();
 			} else {
-				show_dialog(err, _("Error"), "gtk-dialog-error");
+				show_dialog(err, _("Error"), "dialog-error-symbolic");
 			}
 			break;
 
@@ -1087,7 +1117,11 @@ static void opendial(void) {
 		whichdial = OD_NULL;
 		g_free(filename);
 	}
+#ifdef _WIN32
+	g_object_unref(widgetdialog);
+#else
 	gtk_widget_destroy(widgetdialog);
+#endif
 }
 
 /*
@@ -1199,6 +1233,11 @@ static void toggle_image_selection(int image_num) {
 		--com.seq.selnum;
 		g_snprintf(msg, sizeof(msg),
 				_("Image %d has been unselected from sequence\n"), image_num);
+		if (image_num == com.seq.reference_image) {
+			com.seq.reference_image = -1;
+			sequence_list_change_reference();
+			adjust_refimage(image_num);
+		}
 	} else {
 		com.seq.imgparam[image_num].incl = TRUE;
 		++com.seq.selnum;
@@ -1208,6 +1247,7 @@ static void toggle_image_selection(int image_num) {
 	siril_log_message(msg);
 	sequence_list_change_selection_index(image_num);
 	update_reg_interface(FALSE);
+	update_stack_interface(TRUE);
 	adjust_exclude(image_num, TRUE);
 	writeseqfile(&com.seq);
 }
@@ -1228,7 +1268,7 @@ static void sequence_setselect_all(gboolean include_all) {
 
 	if (!com.seq.imgparam)
 		return;
-	for (i = 0; i <= com.seq.number; ++i) {
+	for (i = 0; i < com.seq.number; ++i) {
 		if (com.seq.imgparam[i].incl != include_all) {
 			com.seq.imgparam[i].incl = include_all;
 			sequence_list_change_selection_index(i);
@@ -1243,6 +1283,7 @@ static void sequence_setselect_all(gboolean include_all) {
 	}
 	adjust_exclude(com.seq.current, TRUE);
 	update_reg_interface(FALSE);
+	update_stack_interface(TRUE);
 	writeseqfile(&com.seq);
 }
 
@@ -1279,8 +1320,10 @@ static void do_popup_rgbmenu(GtkWidget *my_widget, GdkEventButton *event) {
 static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	static GtkMenu *menu = NULL;
 	gboolean selected;
-	gboolean is_a_single_image_loaded = single_image_is_loaded() && (!sequence_is_loaded()
-				|| (sequence_is_loaded() && com.seq.current == RESULT_IMAGE));
+
+	gboolean is_a_single_image_loaded = single_image_is_loaded()	&& (!sequence_is_loaded()
+			|| (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE
+					|| com.seq.current == SCALED_IMAGE)));
 
 	if (!menu) {
 		menu = GTK_MENU(gtk_builder_get_object(builder, "menugray"));
@@ -1321,6 +1364,28 @@ GtkWidget* lookup_widget(const gchar *widget_name) {
 	return GTK_WIDGET(gtk_builder_get_object(builder, widget_name));
 }
 
+GtkWidget *popover_new(GtkWidget *widget, const gchar *text) {
+	GtkWidget *popover, *box, *image, *label;
+
+	popover = gtk_popover_new(widget);
+	label = gtk_label_new(NULL);
+	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	image = gtk_image_new_from_icon_name("dialog-information-symbolic",
+			GTK_ICON_SIZE_DIALOG);
+
+	gtk_label_set_markup(GTK_LABEL(label), text);
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(label), 64);
+
+	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(popover), box);
+
+	gtk_widget_show_all(box);
+
+	return popover;
+}
+
 void set_sliders_value_to_gfit() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 
@@ -1336,7 +1401,6 @@ void set_sliders_value_to_gfit() {
 /* Sets maximum value for contrast scales. Minimum is always 0.
  * Should be done on first image load of a sequence and when single images are loaded.
  * Max value is taken from gfit.maxi, recomputed if not present.
- *
  */
 void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
@@ -1347,17 +1411,10 @@ void set_cutoff_sliders_max_values() {
 	}
 	fprintf(stdout, _("Setting MAX value for cutoff sliders adjustments\n"));
 	/* set max value for range according to number of bits of original image
-	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG */
-	/*if (gfit.bitpix == BYTE_IMG)
-	 max_val = UCHAR_MAX_DOUBLE;
-	 else max_val = USHRT_MAX_DOUBLE;*/
-	if (gfit.maxi == 0)
-		image_find_minmax(&gfit, 0);
-	if (gfit.maxi <= UCHAR_MAX)
-		max_val = UCHAR_MAX_DOUBLE;
-	else
-		max_val = USHRT_MAX_DOUBLE;
-
+	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
+	 * Since 0.9.8 we have orig_bitpix, but it's not filled for SER and other images.
+	 */
+	max_val = (double)get_normalized_value(&gfit);
 	gtk_adjustment_set_upper(adj1, max_val);
 	gtk_adjustment_set_upper(adj2, max_val);
 }
@@ -1586,9 +1643,8 @@ void update_MenuItem() {
 }
 
 gboolean redraw(int vport, int doremap) {
+	if (com.script) return FALSE;
 	GtkWidget *widget;
-
-	com.stfComputed = FALSE;
 
 	if (vport >= MAXVPORT) {
 		fprintf(stderr, _("redraw: maximum number of layers supported is %d"
@@ -1604,6 +1660,7 @@ gboolean redraw(int vport, int doremap) {
 		if (doremap == REMAP_ONLY) {
 			remap(vport);
 		} else if (doremap == REMAP_ALL) {
+			stfComputed = FALSE;
 			int i;
 //#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)		//probably causes crashes in HESTEQ_MODE
 			for (i = 0; i < gfit.naxes[2]; i++) {
@@ -1628,8 +1685,16 @@ gboolean redraw(int vport, int doremap) {
 		break;
 	}
 	//fprintf(stdout, "end of redraw\n");
-	com.drawn = FALSE;
 	return FALSE;
+}
+
+static gboolean redraw_idle(gpointer p) {
+	redraw(com.cvport, GPOINTER_TO_INT(p)); // draw stars
+	return FALSE;
+}
+
+void queue_redraw(int doremap) {	// request a redraw from another thread
+	siril_add_idle(redraw_idle, GINT_TO_POINTER(doremap));
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
@@ -1721,9 +1786,9 @@ int copy_rendering_settings_when_chained(gboolean from_GUI) {
 	return 1;
 }
 
-void set_prepro_button_sensitiveness() {
+void update_prepro_interface(gboolean allow_debayer) {
 	static GtkToggleButton *udark = NULL, *uoffset = NULL, *uflat = NULL,
-			*checkAutoEvaluate = NULL;
+			*checkAutoEvaluate = NULL, *pp_debayer = NULL;
 	if (udark == NULL) {
 		udark = GTK_TOGGLE_BUTTON(
 				gtk_builder_get_object(builder, "usedark_button"));
@@ -1733,6 +1798,8 @@ void set_prepro_button_sensitiveness() {
 				gtk_builder_get_object(builder, "useflat_button"));
 		checkAutoEvaluate = GTK_TOGGLE_BUTTON(
 				gtk_builder_get_object(builder, "checkbutton_auto_evaluate"));
+		pp_debayer = GTK_TOGGLE_BUTTON(
+				gtk_builder_get_object(builder, "checkButton_pp_dem"));
 	}
 
 	gtk_widget_set_sensitive(lookup_widget("prepro_button"),
@@ -1749,6 +1816,11 @@ void set_prepro_button_sensitiveness() {
 	gtk_widget_set_sensitive(lookup_widget("entry_flat_norm"),
 			gtk_toggle_button_get_active(uflat)
 					&& !gtk_toggle_button_get_active(checkAutoEvaluate));
+
+	gtk_widget_set_sensitive(lookup_widget("checkButton_pp_dem"), allow_debayer);
+	if (!allow_debayer) {
+		gtk_toggle_button_set_active(pp_debayer, FALSE);
+	}
 }
 
 void clear_sampling_setting_box() {
@@ -1954,6 +2026,8 @@ void set_layers_for_registration() {
 		if (com.seq.regparam[i]) {
 			// calculate average quality for this layer
 			strcat(layer, " (*)");
+			if (reminder == -1)	// set as default selection
+			       	reminder = i;
 		}
 		gtk_combo_box_text_append_text(cbbt_layers, layer);
 	}
@@ -1986,8 +2060,20 @@ void display_image_number(int index) {
 
 /* sets text in the label and displays the dialog window 1 */
 void show_dialog(const char *text, const char *title, const char *icon) {
+	if (com.headless)
+		return;	// show_dialog usually follows a siril_log_message() call
 	struct _dialog_data *args = malloc(sizeof(struct _dialog_data));
 	args->text = text;
+	args->data = NULL;
+	args->title = title;
+	args->icon = icon;
+	gdk_threads_add_idle(show_dialog_idle, args);
+}
+
+void show_txt_and_data_dialog(const char *text, const char *data, const char *title, const char *icon) {
+	struct _dialog_data *args = malloc(sizeof(struct _dialog_data));
+	args->text = text;
+	args->data = data;
 	args->title = title;
 	args->icon = icon;
 	gdk_threads_add_idle(show_dialog_idle, args);
@@ -2030,34 +2116,8 @@ void hide_rgb_window() {
 	gtk_widget_hide(lookup_widget("rgb_window"));
 }
 
-void set_cursor_waiting(gboolean waiting) {
-	GdkCursor *cursor;
-	static GdkCursor *clock = NULL;
-	GdkDisplay *display;
-	GdkScreen *screen;
-	GList *list;
-
-	display = gdk_display_get_default ();
-
-	if (clock == NULL)
-		clock = gdk_cursor_new_for_display(display, GDK_WATCH);
-
-	screen = gdk_screen_get_default();
-	list = gdk_screen_get_toplevel_windows(screen);
-
-	if (waiting) {
-		cursor = clock;
-	} else {
-		cursor = NULL;
-	}
-	while (list) {
-		GdkWindow *window = GDK_WINDOW(list->data);
-		gdk_window_set_cursor(window, cursor);
-		gdk_display_sync(gdk_window_get_display(window));
-		gdk_flush();
-		list = g_list_next(list);
-	}
-	g_list_free(list);
+void hide_gray_window() {
+	gtk_widget_hide(lookup_widget("main_window"));
 }
 
 void zoomcombo_update_display_for_zoom() {
@@ -2081,7 +2141,7 @@ void zoomcombo_update_display_for_zoom() {
 	}
 	msg = siril_log_message(
 			_("Unknown zoom_value value, what is the current zoom?\n"));
-	show_dialog(msg, _("Error"), "gtk-dialog-error");
+	show_dialog(msg, _("Error"), "dialog-error-symbolic");
 }
 
 void initialize_FITS_name_entries() {
@@ -2114,6 +2174,7 @@ void initialize_FITS_name_entries() {
 }
 
 void adjust_vport_size_to_image() {
+	if (com.script) return;
 	int vport;
 	// make GtkDrawingArea the same size than the image
 	// http://developer.gnome.org/gtk3/3.4/GtkWidget.html#gtk-widget-set-size-request
@@ -2149,7 +2210,6 @@ void adjust_refimage(int n) {
 	if (ref_butt == NULL)
 		ref_butt = lookup_widget("refframe");
 
-	//fprintf(stdout, "adjust refimage: %d (ref is %d)\n", n, com.seq.reference_image);
 	g_signal_handlers_block_by_func(ref_butt, on_ref_frame_toggled, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ref_butt), com.seq.reference_image == n);
 	g_signal_handlers_unblock_by_func(ref_butt, on_ref_frame_toggled, NULL);
@@ -2292,6 +2352,9 @@ void initialize_display_mode() {
 		g_signal_handlers_unblock_by_func(chainedbutton, on_checkchain_toggled,
 				NULL);
 	}
+
+	/* initialize background gradient data */
+	memset(&background_fit, 0, sizeof(fits));
 }
 
 void set_GUI_CWD() {
@@ -2345,6 +2408,7 @@ void initialize_preprocessing() {
 
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
 	gtk_toggle_button_set_active(ToggleButton, com.prepro_cfa);
+	update_prepro_interface(FALSE);
 }
 
 void set_libraw_settings_menu_available(gboolean activate) {
@@ -2808,6 +2872,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	double sig[2];
 	long icold = 0L, ihot = 0L;
 	double rate, total;
+	fits fit = { 0 };
 
 	set_cursor_waiting(TRUE);
 	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox")));
@@ -2818,13 +2883,17 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	label[1] = GTK_LABEL(lookup_widget("GtkLabelHotCC"));
 	entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 	filename = gtk_entry_get_text(entry);
-	if (filename) {
-		int ret = readfits(filename, &(wfit[4]), NULL);
-		if (!ret) {
-			count_deviant_pixels(&(wfit[4]), sig, &icold, &ihot);
-		}
+	if (readfits(filename, &fit, NULL)) {
+		str[0] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
+		str[1] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
+		gtk_label_set_markup(label[0], str[0]);
+		gtk_label_set_markup(label[1], str[1]);
+		set_cursor_waiting(FALSE);
+		return;
 	}
-	total = wfit[4].rx * wfit[4].ry;
+	count_deviant_pixels(&fit, sig, &icold, &ihot);
+	total = fit.rx * fit.ry;
+	clearfits(&fit);
 	rate = (double)icold / total;
 	/* 1% of cold pixels seems to be a reasonable limit */
 	if (rate > 0.01) {
@@ -2864,6 +2933,7 @@ void on_menu_FITS_header_activate(GtkMenuItem *menuitem, gpointer user_data) {
 void on_close_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	update_libraw_interface();
 	update_photometry_interface();
+	fill_script_paths_list();
 	gtk_widget_hide(lookup_widget("settings_window"));
 }
 
@@ -2983,7 +3053,7 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 
 	if (g_access (dir, W_OK)) {
 		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
-		show_dialog(msg, _("Error"), "gtk-dialog-error");
+		show_dialog(msg, _("Error"), "dialog-error-symbolic");
 		gtk_file_chooser_set_filename(swap_dir, com.swap_dir);
 		return;
 	}
@@ -3011,7 +3081,6 @@ void on_combobox_ext_changed(GtkComboBox *box, gpointer user_data) {
 		free(com.ext);
 
 	com.ext = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(box));
-	com.len_ext = strlen(com.ext);
 	writeinitfile();
 	initialize_FITS_name_entries();
 }
@@ -3033,6 +3102,8 @@ void gtk_main_quit() {
 }
 
 void on_exit_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	free_image_data();
+	close_sequence(FALSE);	// save unfinished business
 	gtk_main_quit();
 }
 
@@ -3213,7 +3284,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				 * callbacks because it's in the same file and
 				 * requires a special argument */
 				calculate_fwhm(widget);
-				com.drawn = TRUE;
 			} else if (mouse_status == MOUSE_ACTION_SELECT_PREVIEW1) {
 				set_preview_area(0, zoomedX, zoomedY);
 				mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
@@ -3616,7 +3686,7 @@ static const gchar* copyright = N_("Copyright © 2004-2011 François Meyer\n"
 static gchar **authors = (gchar *[] ) { "Vincent Hourdin <vh@free-astro.vinvin.tf>",
 				"Cyril Richard <cyril@free-astro.org>", "François Meyer", NULL };
 
-static gchar **documenters = (gchar *[] ) { "Laurent Roge <siril.doc@orange.fr>", NULL };
+static gchar **documenters = (gchar *[] ) { "Laurent Rogé <siril.doc@orange.fr>", NULL };
 
 static gchar **artists = (gchar *[] ) { "Coralie Monnier",
 				"Cyril Richard <cyril@free-astro.org>", NULL };
@@ -3649,7 +3719,7 @@ void on_about_activate(GtkMenuItem *menuitem, gpointer user_data) {
 }
 
 void on_excludebutton_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	if (!com.seq.imgparam) {
+	if (!sequence_is_loaded() || com.seq.current < 0) {
 		return;
 	}
 	toggle_image_selection(com.seq.current);
@@ -3706,7 +3776,7 @@ gboolean on_imagenumberspin_output(GtkSpinButton *spin, gpointer user_data) {
 	//fprintf(stdout, "SPINCHANGED: index=%d\n", index);
 
 	do_display = (com.seq.imgparam[index].incl || com.show_excluded);
-	return !seq_load_image(&com.seq, index, &gfit, do_display);
+	return !seq_load_image(&com.seq, index, do_display);
 }
 
 /* for the spin button to be able to display number which are not the actual value of
@@ -3794,26 +3864,16 @@ void on_seqselectall_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_show(lookup_widget("confirm_dialog"));
 }
 
-void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
+static int test_for_master_files() {
 	GtkToggleButton *tbutton;
 	GtkEntry *entry;
-	com.preprostatus = 0;
-
-	if (!single_image_is_loaded() && !sequence_is_loaded())
-		return;
-
-	if (!single_image_is_loaded() && get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
-		return;
-	}
+	int ret_value = 0;
 
 	// if dark selected
-	tbutton = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(builder, "usedark_button"));
+	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
 	if (gtk_toggle_button_get_active(tbutton) == TRUE) {
 		const char *filename;
-		entry = GTK_ENTRY(gtk_builder_get_object(builder, "darkname_entry"));
+		entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
@@ -3836,7 +3896,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 					gtk_entry_set_text(entry, "");
 				}
 				else {
-					com.preprostatus |= USE_DARK;
+					ret_value |= USE_DARK;
 					if (single_image_is_loaded())
 						com.uniq->dark = dark_fit;
 					else
@@ -3845,26 +3905,23 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 			}
 		}
 		// if dark optimization selected
-		tbutton = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "checkDarkOptimize"));
+		tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkDarkOptimize"));
 		if (gtk_toggle_button_get_active(tbutton) == TRUE) {
-			com.preprostatus |= USE_OPTD;
+			ret_value |= USE_OPTD;
 		}
 
 		// if cosmetic correction selected
-		tbutton = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "cosmEnabledCheck"));
+		tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
 		if (gtk_toggle_button_get_active(tbutton) == TRUE) {
-			com.preprostatus |= USE_COSME;
+			ret_value |= USE_COSME;
 		}
 	}
 
 	// if flat selected
-	tbutton = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(builder, "useflat_button"));
+	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
 	if (gtk_toggle_button_get_active(tbutton) == TRUE) {
 		const char *filename;
-		entry = GTK_ENTRY(gtk_builder_get_object(builder, "flatname_entry"));
+		entry = GTK_ENTRY(lookup_widget("flatname_entry"));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
@@ -3887,7 +3944,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 					gtk_entry_set_text(entry, "");
 				}
 				else {
-					com.preprostatus |= USE_FLAT;
+					ret_value |= USE_FLAT;
 					if (single_image_is_loaded())
 						com.uniq->flat = flat_fit;
 					else
@@ -3898,11 +3955,10 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	// if offset selected
-	tbutton = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(builder, "useoffset_button"));
+	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
 	if (gtk_toggle_button_get_active(tbutton) == TRUE) {
 		const char *filename;
-		entry = GTK_ENTRY(gtk_builder_get_object(builder, "offsetname_entry"));
+		entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
@@ -3925,7 +3981,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 					gtk_entry_set_text(entry, "");
 				}
 				else {
-					com.preprostatus |= USE_OFFSET;
+					ret_value |= USE_OFFSET;
 					if (single_image_is_loaded())
 						com.uniq->offset = bias_fit;
 					else
@@ -3934,33 +3990,50 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 			}
 		}
 	}
+	return ret_value;
+}
+
+void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkEntry *entry;
+	GtkWidget *autobutton;
+	GtkToggleButton *CFA, *debayer;
+	GtkSpinButton *sigHot, *sigCold;
+
+	if (!single_image_is_loaded() && !sequence_is_loaded())
+		return;
+
+	if (!single_image_is_loaded() && get_thread_run()) {
+		siril_log_message(_("Another task is already in "
+				"progress, ignoring new request.\n"));
+		return;
+	}
+
+	com.preprostatus = test_for_master_files();
 
 	if (com.preprostatus == 0)
 		return;
 
-	// set output filename (preprocessed file name prefix)
-	entry = GTK_ENTRY(gtk_builder_get_object(builder, "preproseqname_entry"));
 	struct preprocessing_data *args = malloc(sizeof(struct preprocessing_data));
-	siril_log_color_message(_("Preprocessing...\n"), "red");
 	gettimeofday(&args->t_start, NULL);
+	siril_log_color_message(_("Preprocessing...\n"), "red");
+
+	// set output filename (preprocessed file name prefix)
+	entry = GTK_ENTRY(lookup_widget("preproseqname_entry"));
 
 	/* Get parameters */
-	GtkWidget *autobutton = lookup_widget("checkbutton_auto_evaluate");
-	args->autolevel = gtk_toggle_button_get_active(
-			GTK_TOGGLE_BUTTON(autobutton));
+	autobutton = lookup_widget("checkbutton_auto_evaluate");
+	args->autolevel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(autobutton));
 	if (args->autolevel) {
 		args->normalisation = 1.0f;	// will be updated anyway
 	} else {
-		GtkEntry *norm_entry = GTK_ENTRY(
-				gtk_builder_get_object(builder, "entry_flat_norm"));
+		GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
 		args->normalisation = atof(gtk_entry_get_text(norm_entry));
 	}
-	GtkToggleButton *CFA;
-	GtkSpinButton *sigHot, *sigCold;
 
-	CFA = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder,"cosmCFACheck"));
-	sigHot = GTK_SPIN_BUTTON(gtk_builder_get_object(builder,"spinSigCosmeHot"));
-	sigCold = GTK_SPIN_BUTTON(gtk_builder_get_object(builder,"spinSigCosmeCold"));
+	CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
+	debayer = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_pp_dem"));
+	sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHot"));
+	sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeCold"));
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"))))
 		args->sigma[0] = gtk_spin_button_get_value(sigCold);
@@ -3973,11 +4046,17 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		args->sigma[1] = -1.0;
 
 	args->is_cfa = gtk_toggle_button_get_active(CFA);
+	args->compatibility = com.debayer.compatibility;
+	args->debayer = gtk_toggle_button_get_active(debayer);
 
 	/****/
 
 	if (single_image_is_loaded()) {
 		int success = 0;
+		args->offset = com.uniq->offset;
+		args->dark = com.uniq->dark;
+		args->flat = com.uniq->flat;
+		args->is_sequence = FALSE;
 
 		com.uniq->ppprefix = strdup(gtk_entry_get_text(entry));
 		// start preprocessing
@@ -3994,9 +4073,13 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		com.uniq->ppprefix = NULL;
 		unique_free_preprocessing_data(com.uniq);
 	} else {	// sequence, executed in a background thread
-		if (com.seq.ppprefix)
-			free(com.seq.ppprefix);
-		com.seq.ppprefix = strdup(gtk_entry_get_text(entry));
+		args->seq = &com.seq;
+		args->offset = args->seq->offset;
+		args->dark = args->seq->dark;
+		args->flat = args->seq->flat;
+		args->is_sequence = TRUE;
+
+		args->seq->ppprefix = strdup(gtk_entry_get_text(entry));
 
 		// start preprocessing
 		set_cursor_waiting(TRUE);
@@ -4018,8 +4101,13 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	} else {
 		com.seq.reference_image = com.seq.current;
 		test_and_allocate_reference_image(-1);
+		// a reference image should not be excluded to avoid confusion
+		if (!com.seq.imgparam[com.seq.current].incl) {
+			toggle_image_selection(com.seq.current);
+		}
 	}
 	sequence_list_change_reference();
+	update_stack_interface(FALSE);	// get stacking info and enable the Go button
 	adjust_sellabel();	// reference image is named in the label
 	writeseqfile(&com.seq);
 	drawPlot();		// update plots
@@ -4061,7 +4149,8 @@ void on_seqproc_entry_changed(GtkComboBox *widget, gpointer user_data) {
 		set_cursor_waiting(FALSE);
 		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	}
-	g_free(name);
+	if (name)
+		g_free(name);
 }
 
 /* signal handler for the gray window layer change */
@@ -4072,7 +4161,7 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 	set_display_mode();		// change the mode in the combo box if needed
 	redraw(com.cvport, REMAP_ONLY);
 	calculate_fwhm(com.vport[com.cvport]);
-	fill_sequence_list(&com.seq, com.cvport);
+	fill_sequence_list(&com.seq, com.cvport, FALSE);
 }
 
 struct checkSeq_filter_data {
@@ -4103,7 +4192,7 @@ static gpointer checkSeq(gpointer p) {
 
 	if (!check_seq(args->force))
 		args->retvalue = 1;
-	gdk_threads_add_idle(end_checkSeq, args);
+	siril_add_idle(end_checkSeq, args);
 	return GINT_TO_POINTER(0);
 }
 
@@ -4641,12 +4730,12 @@ void on_bkgCompute_clicked(GtkButton *button, gpointer user_data) {
 	if (!gtk_toggle_button_get_active(imgbutton)) {
 		char *msg =	siril_log_message(_("Background cannot be extracted"
 				" from itself. Please, click on Show Image\n"));
-		show_dialog(msg, _("Error"), "gtk-dialog-error");
+		show_dialog(msg, _("Error"), "dialog-error-symbolic");
 		return;
 	}
 
 	set_cursor_waiting(TRUE);
-	bkgExtractBackground(&wfit[0], automatic);
+	bkgExtractBackground(&background_fit, automatic);
 	redraw(com.cvport, REMAP_NONE);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
@@ -4662,7 +4751,7 @@ void on_button_bkg_correct_clicked(GtkButton *button, gpointer user_data) {
 		char *msg =
 				siril_log_message(
 						_("Please, apply correction on the image by clicking on Show Image\n"));
-		show_dialog(msg, _("Error"), "gtk-dialog-error");
+		show_dialog(msg, _("Error"), "dialog-error-symbolic");
 		return;
 	}
 
@@ -4678,7 +4767,7 @@ void on_button_bkg_correct_clicked(GtkButton *button, gpointer user_data) {
 	default:
 	case 0:
 		for (layer = 0; layer < com.uniq->nb_layers; layer++) {
-			if (sub_background(&gfit, &wfit[0], layer)) {
+			if (sub_background(&gfit, &background_fit, layer)) {
 				set_cursor_waiting(FALSE);
 				return;
 			}
@@ -4686,7 +4775,7 @@ void on_button_bkg_correct_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Subtraction done ...\n"));
 		break;
 	case 1:
-		if (ndiv(&gfit, &wfit[0])) {
+		if (ndiv(&gfit, &background_fit)) {
 			set_cursor_waiting(FALSE);
 			return;
 		}
@@ -4709,9 +4798,10 @@ void on_checkbutton_bkg_boxes_toggled(GtkToggleButton *togglebutton,
 
 void on_radiobutton_bkg_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
-	memcpy(&wfit[1], &gfit, sizeof(fits));
-	memcpy(&gfit, &wfit[0], sizeof(fits));
-	memcpy(&wfit[0], &wfit[1], sizeof(fits));
+	fits tmp;
+	memcpy(&tmp, &gfit, sizeof(fits));
+	memcpy(&gfit, &background_fit, sizeof(fits));
+	memcpy(&background_fit, &tmp, sizeof(fits));
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 }
@@ -4743,7 +4833,7 @@ void on_bkgClearSamples_clicked(GtkButton *button, gpointer user_data) {
 	clearSamples();
 	redraw(com.cvport, remap_option);
 	redraw_previews();
-	clearfits(&wfit[0]);
+	clearfits(&background_fit);
 	set_cursor_waiting(FALSE);
 }
 
@@ -4774,7 +4864,7 @@ void on_Bkg_extract_window_hide(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	redraw(com.cvport, remap_option);
 	redraw_previews();
-	clearfits(&wfit[0]);
+	clearfits(&background_fit);
 	set_cursor_waiting(FALSE);
 }
 
@@ -4869,11 +4959,8 @@ void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
+	int nbstars;
 	int layer = RLAYER;
-	starFinder sf;
-
-	memset(&sf, 0, sizeof(starFinder));
-
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
 		return;
@@ -4882,7 +4969,8 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	if (gfit.naxes[2] == 3)
 		layer = GLAYER;
 	delete_selected_area();
-	com.stars = peaker(&gfit, layer, &sf, NULL);
+	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE);
+	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
 	refresh_stars_list(com.stars);
 	set_cursor_waiting(FALSE);
 }
@@ -4983,7 +5071,7 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		show_dialog(
 				_("Current selection is too large.\n"
 						"To determine the PSF, please make a selection around a star.\n"),
-						_("Warning"), "gtk-dialog-warning");
+						_("Warning"), "dialog-warning-symbolic");
 		return;
 	}
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE);
@@ -5027,7 +5115,7 @@ void on_menu_gray_pick_star_activate(GtkMenuItem *menuitem, gpointer user_data) 
 			char *msg =
 					siril_log_message(
 							_("Current selection is too large.\nTo determine the PSF, please make a selection around a star.\n"));
-			show_dialog(msg, _("Warning"), "gtk-dialog-warning");
+			show_dialog(msg, _("Warning"), "dialog-warning-symbolic");
 			return;
 		}
 		fitted_PSF *new_star = add_star(&gfit, layer, &new_index);
@@ -5089,13 +5177,13 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (page == 0) {
 		if (sequence_is_loaded()) {
 			char *msg = siril_log_message(_("FFT does not work with sequences !\n"));
-			show_dialog(msg, _("Error"), "gtk-dialog-error");
+			show_dialog(msg, _("Error"), "dialog-error-symbolic");
 			set_cursor_waiting(FALSE);
 			return;
 		}
 		if (!single_image_is_loaded()) {
 			char *msg = siril_log_message(_("Open an image first !\n"));
-			show_dialog(msg, _("Error"), "gtk-dialog-error");
+			show_dialog(msg, _("Error"), "dialog-error-symbolic");
 			set_cursor_waiting(FALSE);
 			return;
 
@@ -5120,7 +5208,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		if (mag == NULL || phase == NULL) {
 			char *msg = siril_log_message(_("Select magnitude and phase before !\n"));
-			show_dialog(msg, _("Error"), "gtk-dialog-error");
+			show_dialog(msg, _("Error"), "dialog-error-symbolic");
 			set_cursor_waiting(FALSE);
 			free(type);
 			return;
@@ -5272,7 +5360,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 		char *msg = siril_log_message(
 				_("Wavelet: maximum number of plans for this image size is %d\n"),
 				maxplan);
-		show_dialog(msg, _("Warning"), "gtk-dialog-warning");
+		show_dialog(msg, _("Warning"), "dialog-warning-symbolic");
 		Nbr_Plan = maxplan;
 		gtk_spin_button_set_value(
 				GTK_SPIN_BUTTON(lookup_widget("spinbutton_plans_w")), Nbr_Plan);
@@ -5281,7 +5369,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	if (Type_Transform != TO_PAVE_LINEAR && Type_Transform != TO_PAVE_BSPLINE) {
 		char *msg = siril_log_message(_("Wavelet: type must be %d or %d\n"),
 		TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
-		show_dialog(msg, _("Warning"), "gtk-dialog-warning");
+		show_dialog(msg, _("Warning"), "dialog-warning-symbolic");
 	}
 
 	set_cursor_waiting(TRUE);
@@ -5317,8 +5405,8 @@ void on_menu_wavelet_separation_activate(GtkMenuItem *menuitem,
 }
 
 void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
-	fits *fit;
-	int Nbr_Plan, Type, maxplan, mins, i;
+	fits fit = { 0 };
+	int Nbr_Plan, Type, maxplan, mins;
 	static GtkSpinButton *Spin_Nbr_Plan = NULL;
 	static GtkComboBox *Combo_Wavelets_Type = NULL;
 
@@ -5336,24 +5424,18 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 	maxplan = log(mins) / log(2) - 2;
 
 	if (Nbr_Plan > maxplan) {
-		char *msg = siril_log_message(
-				_("Wavelet: maximum number of plans for this image size is %d\n"),
-				maxplan);
-		show_dialog(msg, _("Warning"), "gtk-dialog-warning");
+		char *msg = siril_log_message(_("Wavelet: maximum number "
+				"of plans for this image size is %d\n"), maxplan);
+		show_dialog(msg, _("Warning"), "dialog-warning-symbolic");
 		set_cursor_waiting(FALSE);
 		return;
 	}
-	fit = calloc(1, sizeof(fits));
-	copyfits(&gfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, 0);
 
-	for (i = 0; i < Nbr_Plan; i++) {
-		char filename[256];
+	copyfits(&gfit, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT, 0);
 
-		g_snprintf(filename, sizeof(filename), "layer%02d", i);
-		get_wavelet_layers(fit, Nbr_Plan, i, Type, -1);
-		savefits(filename, fit);
-	}
-	clearfits(fit);
+	extract_plans(&fit, Nbr_Plan, Type);
+
+	clearfits(&fit);
 	update_used_memory();
 	set_cursor_waiting(FALSE);
 }

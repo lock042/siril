@@ -30,7 +30,7 @@
 #include "io/single_image.h"
 #include "io/ser.h"
 #include "algos/cosmetic_correction.h"
-
+#include "algos/statistics.h"
 
 static WORD getMedian5x5(WORD *buf, const int xx, const int yy, const int w,
 		const int h, gboolean is_cfa) {
@@ -133,9 +133,9 @@ long count_deviant_pixels(fits *fit, double sig[2], long *icold, long *ihot) {
 	double sigma, median, thresHot, thresCold;
 
 	/** statistics **/
-	stat = statistics(fit, RLAYER, NULL, STATS_BASIC, STATS_ZERO_NULLCHECK);
+	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC);
 	if (!stat) {
-		siril_log_message(_("Error: no data computed.\n"));
+		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 0L;
 	}
 	sigma = stat->sigma;
@@ -156,7 +156,7 @@ long count_deviant_pixels(fits *fit, double sig[2], long *icold, long *ihot) {
 		thresHot = (val > USHRT_MAX_DOUBLE) ? USHRT_MAX_DOUBLE : val;
 	}
 
-	free(stat);
+	free_stats(stat);
 
 	/** We count deviant pixels **/
 	*icold = 0;
@@ -182,9 +182,9 @@ deviant_pixel *find_deviant_pixels(fits *fit, double sig[2], long *icold, long *
 	deviant_pixel *dev;
 
 	/** statistics **/
-	stat = statistics(fit, RLAYER, NULL, STATS_BASIC, STATS_ZERO_NULLCHECK);
+	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC);
 	if (!stat) {
-		siril_log_message(_("Error: no data computed.\n"));
+		siril_log_message(_("Error: statistics computation failed.\n"));
 		return NULL;
 	}
 	sigma = stat->sigma;
@@ -205,7 +205,7 @@ deviant_pixel *find_deviant_pixels(fits *fit, double sig[2], long *icold, long *
 		thresHot = (val > USHRT_MAX_DOUBLE) ? USHRT_MAX_DOUBLE : val;
 	}
 
-	free(stat);
+	free_stats(stat);
 
 	/** First we count deviant pixels **/
 	*icold = 0;
@@ -254,6 +254,7 @@ int cosmeticCorrOnePoint(fits *fit, deviant_pixel dev, gboolean is_cfa) {
 		newpixel = getAverage3x3(buf, x, y, width, height, is_cfa);
 
 	buf[x + y * fit->rx] = newpixel;
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
@@ -269,7 +270,7 @@ int cosmeticCorrOneLine(fits *fit, deviant_pixel dev, gboolean is_cfa) {
 	memcpy(line, newline, width * sizeof(WORD));
 
 	free(newline);
-
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
@@ -291,11 +292,13 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa)
 
 		buf[xx + yy * width] = newPixel;
 	}
+
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
 /**** Autodetect *****/
-int cosmetic_image_hook(struct generic_seq_args *args, int i, fits *fit, rectangle *_) {
+int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
 	struct cosmetic_data *c_args = (struct cosmetic_data *) args->user;
 	int retval, chan;
 	/* Count variables, icold and ihot, need to be local in order to be parallelized */
@@ -315,7 +318,7 @@ int cosmetic_image_hook(struct generic_seq_args *args, int i, fits *fit, rectang
 
 void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
-	args->seq = &com.seq;
+	args->seq = cosme_args->seq;
 	args->partial_image = FALSE;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = com.seq.selnum;
@@ -339,20 +342,14 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-// idle function executed at the end of the BandingEngine processing
+// idle function executed at the end of the Cosmetic Correction processing
 gboolean end_autoDetect(gpointer p) {
-	struct cosmetic_data *args = (struct cosmetic_data *) p;
-
-	stop_processing_thread();// can it be done here in case there is no thread?
-	siril_log_message(_("%ld pixels corrected (%ld + %ld)\n"),
-			args->icold + args->ihot, args->icold, args->ihot);
-	set_cursor_waiting(FALSE);
+	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 	update_used_memory();
-	free(args);
 	return FALSE;
 }
 
@@ -372,12 +369,13 @@ gpointer autoDetectThreaded(gpointer p) {
 		if (retval)
 			break;
 	}
-	args->icold = icold;
-	args->ihot = ihot;
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	gdk_threads_add_idle(end_autoDetect, args);
+	siril_log_message(_("%ld pixels corrected (%ld + %ld)\n"),
+			icold + ihot, icold, ihot);
 
+	free(args);
+	siril_add_idle(end_autoDetect, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -395,14 +393,14 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot, dou
 
 	/* XXX: if cfa, stats are irrelevant. We should compute them taking
 	 * into account the Bayer pattern */
-	stat = statistics(fit, layer, NULL, STATS_BASIC | STATS_AVGDEV, STATS_ZERO_NULLCHECK);
+	stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC | STATS_AVGDEV);
 	if (!stat) {
-		siril_log_message(_("Error: no data computed.\n"));
+		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 1;
 	}
 	bkg = stat->median;
 	avgDev = stat->avgDev;
-	free(stat);
+	free_stats(stat);
 
 	WORD *buf = fit->pdata[layer];
 
@@ -433,5 +431,6 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot, dou
 			}
 		}
 	}
+	invalidate_stats_from_fit(fit);
 	return 0;
 }

@@ -42,6 +42,14 @@
 #include "opencv.h"
 #include "opencv/ecc/ecc.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "algos/statistics.h"
+#ifdef __cplusplus
+}
+#endif
+
 
 #define defaultRANSACReprojThreshold 3
 
@@ -87,16 +95,17 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
 
 	resize(in, out, out.size(), 0, 0, interpolation);
 
-	image->rx = toX;
-	image->naxes[0] = toX;
-	image->ry = toY;
-	image->naxes[1] = toY;
 	WORD *newdata = (WORD*) realloc(image->data,
 			toX * toY * sizeof(WORD) * image->naxes[2]);
 	if (!newdata) {
 		free(newdata);
 		return 1;
 	}
+	image->rx = toX;
+	image->naxes[0] = toX;
+	image->ry = toY;
+	image->naxes[1] = toY;
+
 	image->data = newdata;
 	Mat channel[3];
 	split(out, channel);
@@ -124,6 +133,7 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
 	channel[0].release();
 	channel[1].release();
 	channel[2].release();
+	invalidate_stats_from_fit(image);
 	return 0;
 }
 
@@ -192,6 +202,7 @@ int cvRotateImage(fits *image, double angle, int interpolation, int cropped) {
 	image->ry = out.rows;
 	image->naxes[0] = image->rx;
 	image->naxes[1] = image->ry;
+	invalidate_stats_from_fit(image);
 
 	/* free data */
 	delete[] bgrbgr;
@@ -201,6 +212,30 @@ int cvRotateImage(fits *image, double angle, int interpolation, int cropped) {
 	channel[1].release();
 	channel[2].release();
 	return 0;
+}
+
+static void convert_H_to_MatH(Homography *from, Mat &to) {
+	to.at<double>(0, 0) = from->h00;
+	to.at<double>(0, 1) = from->h01;
+	to.at<double>(0, 2) = from->h02;
+	to.at<double>(1, 0) = from->h10;
+	to.at<double>(1, 1) = from->h11;
+	to.at<double>(1, 2) = from->h12;
+	to.at<double>(2, 0) = from->h20;
+	to.at<double>(2, 1) = from->h21;
+	to.at<double>(2, 2) = from->h22;
+}
+
+static void convert_MatH_to_H(Mat from, Homography *to) {
+	to->h00 = from.at<double>(0, 0);
+	to->h01 = from.at<double>(0, 1);
+	to->h02 = from.at<double>(0, 2);
+	to->h10 = from.at<double>(1, 0);
+	to->h11 = from.at<double>(1, 1);
+	to->h12 = from.at<double>(1, 2);
+	to->h20 = from.at<double>(2, 0);
+	to->h21 = from.at<double>(2, 1);
+    to->h22 = from.at<double>(2, 2);
 }
 
 int cvCalculH(s_star *star_array_img,
@@ -223,18 +258,42 @@ int cvCalculH(s_star *star_array_img,
 	}
 	Hom->Inliers = countNonZero(mask);
 
-	Hom->h00 = H.at<double>(0, 0);
-	Hom->h01 = H.at<double>(0, 1);
-	Hom->h02 = H.at<double>(0, 2);
-	Hom->h10 = H.at<double>(1, 0);
-	Hom->h11 = H.at<double>(1, 1);
-	Hom->h12 = H.at<double>(1, 2);
-	Hom->h20 = H.at<double>(2, 0);
-	Hom->h21 = H.at<double>(2, 1);
-    Hom->h22 = H.at<double>(2, 2);
+	convert_MatH_to_H(H, Hom);
 
 	mask.release();
 	H.release();
+	return 0;
+}
+
+/**
+ * Apply the upscale to H. Same value of x and y.
+ * @param H1
+ * @param scale
+ * @return 0
+ */
+int cvApplyScaleToH(Homography *H1, double s) {
+	Mat H = Mat::eye(3, 3, CV_64FC1);
+	Mat S = Mat::eye(3, 3, CV_64FC1);
+
+	convert_H_to_MatH(H1, H);
+
+	/* we define Scale Matrix S
+	 *
+	 *     s   0   0
+	 * S = 0   s   0
+	 *     0   0   1
+	 *
+	 */
+	S.at<double>(0,0) = s;
+	S.at<double>(1,1) = s;
+
+	/* We apply transform */
+	Mat result = S * H * S.inv();
+
+	convert_MatH_to_H(result, H1);
+
+	H.release();
+	result.release();
 	return 0;
 }
 
@@ -251,15 +310,7 @@ int cvTransformImage(fits *image, point ref, Homography Hom, int interpolation) 
 	Mat out(ref.y, ref.x, CV_16UC3);
 	Mat H = Mat::eye(3, 3, CV_64FC1);
 
-	H.at<double>(0, 0) = Hom.h00;
-	H.at<double>(0, 1) = Hom.h01;
-	H.at<double>(0, 2) = Hom.h02;
-	H.at<double>(1, 0) = Hom.h10;
-	H.at<double>(1, 1) = Hom.h11;
-	H.at<double>(1, 2) = Hom.h12;
-	H.at<double>(2, 0) = Hom.h20;
-	H.at<double>(2, 1) = Hom.h21;
-	H.at<double>(2, 2) = Hom.h22;
+	convert_H_to_MatH(&Hom, H);
 
 	warpPerspective(in, out, H, Size(ref.x, ref.y), interpolation);
 
@@ -295,6 +346,7 @@ int cvTransformImage(fits *image, point ref, Homography Hom, int interpolation) 
 	image->ry = out.rows;
 	image->naxes[0] = image->rx;
 	image->naxes[1] = image->ry;
+	invalidate_stats_from_fit(image);
 
 	/* free data */
 	delete[] bgrbgr;
@@ -335,6 +387,7 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 		image->pdata[2] = image->data + (image->rx * image->ry) * 2;
 	}
 	in.release();
+	invalidate_stats_from_fit(image);
 	return 0;
 }
 
@@ -374,6 +427,7 @@ int cvComputeFinestScale(fits *image) {
 	image->ry = out.rows;
 	image->naxes[0] = image->rx;
 	image->naxes[1] = image->ry;
+	invalidate_stats_from_fit(image);
 
 	/* free data */
 	delete[] bgrbgr;
@@ -472,7 +526,7 @@ int cvLucyRichardson(fits *image, double sigma, int iterations) {
 	image->naxes[0] = image->rx;
 	image->naxes[1] = image->ry;
 
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	set_progress_bar_data(_("Deconvoltuion applied"), PROGRESS_DONE);
 	/* free data */
 	delete[] bgrbgr;
 	in.release();
@@ -480,6 +534,7 @@ int cvLucyRichardson(fits *image, double sigma, int iterations) {
 	channel[0].release();
 	channel[1].release();
 	channel[2].release();
+	invalidate_stats_from_fit(image);
 
 	return 0;
 

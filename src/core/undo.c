@@ -31,6 +31,8 @@
 #include "io/single_image.h"
 #include "core/undo.h"
 #include "core/proto.h"
+#include "algos/statistics.h"
+
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -61,11 +63,11 @@ static int undo_build_swapfile(fits *fit, char **filename) {
 		siril_log_message(_("File I/O Error: Unable to write swap file in %s: [%s]\n"),
 				tmpdir, strerror(errno));
 		g_free(nameBuff);
-		close(fd);
+		g_close(fd, NULL);
 		return 1;
 	}
 	*filename = nameBuff;
-	close(fd);
+	g_close(fd, NULL);
 
 	return 0;
 }
@@ -126,20 +128,21 @@ static int undo_get_data(fits *fit, historic hist) {
 	errno = 0;
 	fit->rx = hist.rx;
 	fit->ry = hist.ry;
+
 	size = fit->rx * fit->ry * fit->naxes[2];
 	buf = calloc(1, size * sizeof(WORD));
 	// read the data from temporary file
 	if ((read(fd, buf, size * sizeof(WORD)) < size * sizeof(WORD))) {
 		printf("Read of [%s], failed with error [%s]\n", hist.filename, strerror(errno));
 		free(buf);
-		close(fd);
+		g_close(fd, NULL);
 		return 1;
 	}
 	WORD *newdata = (WORD*) realloc(fit->data, size * sizeof(WORD));
 	if (!newdata) {
 		free(newdata);
 		free(buf);
-		close(fd);
+		g_close(fd, NULL);
 		return 1;
 	}
 	fit->data = newdata;
@@ -149,8 +152,9 @@ static int undo_get_data(fits *fit, historic hist) {
 		fit->pdata[GLAYER] = fit->data + fit->rx * fit->ry;
 		fit->pdata[BLAYER] = fit->data + fit->rx * fit->ry * 2;
 	}
+	full_stats_invalidation_from_fit(fit);
 	free(buf);
-	close(fd);
+	g_close(fd, NULL);
 	return 0;
 }
 

@@ -27,6 +27,7 @@
 #include "core/proto.h"
 #include "gui/callbacks.h"
 #include "algos/demosaicing.h"
+#include "algos/statistics.h"
 
 /* width and height are sizes of the original image */
 static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
@@ -865,6 +866,7 @@ int debayer(fits* fit, interpolation_method interpolation) {
 	int xtrans[6][6] = { 0 };
 
 	retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
+	full_stats_invalidation_from_fit(fit);
 
 	newbuf = debayer_buffer(buf, &width, &height, interpolation,
 			com.debayer.bayer_pattern, xtrans);
@@ -886,13 +888,13 @@ int debayer(fits* fit, interpolation_method interpolation) {
 	fit->pdata[BLAYER] = fit->data + npixels * 2;
 	for (i = 0, j = 0; j < npixels; i += 3, j++) {
 		fit->pdata[RLAYER][j] =
-				(fit->bitpix == 8) ?
+				(fit->orig_bitpix == 8) ?
 						round_to_BYTE(newbuf[i + RLAYER]) : newbuf[i + RLAYER];
 		fit->pdata[GLAYER][j] =
-				(fit->bitpix == 8) ?
+				(fit->orig_bitpix == 8) ?
 						round_to_BYTE(newbuf[i + GLAYER]) : newbuf[i + GLAYER];
 		fit->pdata[BLAYER][j] =
-				(fit->bitpix == 8) ?
+				(fit->orig_bitpix == 8) ?
 						round_to_BYTE(newbuf[i + BLAYER]) : newbuf[i + BLAYER];
 	}
 	free(newbuf);

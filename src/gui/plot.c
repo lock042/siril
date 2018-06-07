@@ -278,7 +278,7 @@ static int lightCurve(pldata *plot, sequence *seq) {
 				"Please consider to install it before "
 				"trying to plot a graph of a variable star.\n"));
 
-		show_dialog(msg, _("Warning"), "gtk-dialog-warning");
+		show_dialog(msg, _("Warning"), "dialog-warning-symbolic");
 		return -1;
 	}
 
@@ -374,10 +374,10 @@ static int lightCurve(pldata *plot, sequence *seq) {
 				"JD_UT V-C err");
 		if (!ret) {
 			char *msg = siril_log_message(_("%s has been saved.\n"), filename);
-			show_dialog(msg, _("Information"), "gtk-dialog-info");
+			show_dialog(msg, _("Information"), "dialog-information-symbolic");
 		} else {
 			show_dialog(_("Something went wrong while saving plot"), _("Error"),
-					"gtk-dialog-error");
+					"dialog-error-symbolic");
 		}
 		g_free(filename);
 	}
@@ -433,10 +433,10 @@ static int exportCSV(pldata *plot, sequence *seq) {
 	}
 	if (!ret) {
 		msg = siril_log_message(_("%s.csv has been saved.\n"), file);
-		show_dialog(msg, _("Information"), "gtk-dialog-info");
+		show_dialog(msg, _("Information"), "dialog-information-symbolic");
 	} else {
 		show_dialog(_("Something went wrong while saving plot"), _("Error"),
-				"gtk-dialog-error");
+				"dialog-error-symbolic");
 	}
 	return 0;
 }
@@ -557,7 +557,7 @@ void drawPlot() {
 		if (seq->regparam[layer][ref_image].fwhm > 0.0f) {
 			is_fwhm = TRUE;
 			ylabel = _("FWHM");
-		} else if (seq->regparam[layer][ref_image].quality >= 0.0) {
+		} else if (seq->regparam[layer][ref_image].quality > 0.0) {
 			is_fwhm = FALSE;
 			ylabel = _("Quality");
 		} else

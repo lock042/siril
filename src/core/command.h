@@ -7,10 +7,12 @@
 
 typedef
 struct {
-	char name[32];
+	char *name;
 	int nbarg;
-	char usage[128];
+	char *usage;
 	int (* process)(int);
+	char *definition;
+	gboolean scriptable;
 } command;
 
 int	process_load(int nb);
@@ -72,9 +74,11 @@ int	process_wavelet(int nb);
 //
 int	process_log(int nb);
 int	process_ls(int nb);
-int	process_contrast(int nb);
 int	process_cdg(int nb);
+int	process_clear(int nb);
 int 	process_clearstar(int nb);
+int	process_close(int nb);
+int process_convertraw(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrory(int nb);
 int	process_resample(int nb);
@@ -108,11 +112,15 @@ int	process_split(int nb);
 int	process_select(int nb);
 int	process_set_mag(int nb);
 int	process_set_mag_seq(int nb);
+int	process_set_ext(int nb);
 int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);
+int process_register(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
+int	process_stackone(int nb);
+int process_preprocess(int nb);
 #ifdef _OPENMP
 int process_set_cpu(int nb);
 #endif
@@ -127,6 +135,8 @@ int	process_lrgb(int nb);
 int	process_help(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
+gpointer execute_script(gpointer p);
 int	processcommand(const char *line);
+void init_completion_command();
 
 #endif

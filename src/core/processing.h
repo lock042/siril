@@ -39,15 +39,18 @@ struct generic_seq_args {
 	int (*prepare_hook)(struct generic_seq_args *);
 	/** function called for each image with image index in sequence, number
 	 *  of image currently processed and the image, area if partial */
-	int (*image_hook)(struct generic_seq_args *, int, fits *, rectangle *);
+	int (*image_hook)(struct generic_seq_args *, int, int, fits *, rectangle *);
 	/** saving the processed image, the one passed to the image_hook, so
-	 *  in-place editing. If has_output, can be NULL to get default behaviour */
+	 * in-place editing, if the image_hook succeeded. Only used if
+	 * has_output, set to NULL to get default behaviour */
 	int (*save_hook)(struct generic_seq_args *, int, int, fits *);
-	/** function called after iterating through the sequence */
+	/** function called after iterating through the sequence, or on
+	 * clean-up, even in case of error */
 	int (*finalize_hook)(struct generic_seq_args *);
 
 	/** idle function to register at the end. If NULL, the default ending
-	 *  that stops the thread is queued. Return false for single execution. */
+	 *  that stops the thread is queued. Return false for single execution.
+	 *  It should free its argument. */
 	GSourceFunc idle_function;
 	/** retval, useful for the idle_function, set by the worker */
 	int retval;
@@ -78,7 +81,7 @@ struct generic_seq_args {
 	/** activate parallel execution */
 	gboolean parallel;
 #ifdef _OPENMP
-	/** for in-hook synchronization (internal) */
+	/** for in-hook synchronization (internal init, public use) */
 	omp_lock_t lock;
 #endif
 };
@@ -94,9 +97,12 @@ int seq_filter_all(sequence *seq, int nb_img, double any);
 int seq_filter_included(sequence *seq, int nb_img, double any);
 
 void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
+gpointer waiting_for_thread();
 void stop_processing_thread();
 void set_thread_run(gboolean b);
 gboolean get_thread_run();
+
 gboolean end_generic(gpointer arg);
+guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 
 #endif

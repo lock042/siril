@@ -5,12 +5,11 @@
 
 typedef struct deviant_struct deviant_pixel;
 
-/* Banding data from GUI */
+/* Cosmetic data from GUI */
 struct cosmetic_data {
 	fits *fit;
+	sequence *seq;
 	double sigma[2];
-	long icold;
-	long ihot;
 	double amount;
 	gboolean is_cfa;
 	const gchar *seqEntry;

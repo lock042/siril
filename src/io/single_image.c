@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "algos/statistics.h"
 #include "gui/callbacks.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
@@ -33,6 +34,7 @@
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
 #include "core/undo.h"
+#include "core/processing.h"
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
@@ -40,7 +42,7 @@
 void close_single_image() {
 	if (sequence_is_loaded() && com.seq.current >= 0)
 		return;
-	memset(&com.selection, 0, sizeof(rectangle));
+	fprintf(stdout, "MODE: closing single image\n");
 	free_image_data();
 	undo_flush();
 }
@@ -52,11 +54,15 @@ void free_image_data() {
 	fprintf(stdout, "free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
+	if (!single_image_is_loaded() && sequence_is_loaded())
+		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 	clearfits(&gfit);
-	clear_stars_list();
+	if (!com.script) {
+		clear_stars_list();
+		delete_selected_area();
+		clear_sampling_setting_box();	// clear focal and pixel pitch info
+	}
 	clear_histograms();
-	delete_selected_area();
-	clear_sampling_setting_box();	// clear focal and pixel pitch info
 
 	for (vport=0; vport<MAXGRAYVPORT; vport++) {
 		if (com.graybuf[vport]) {
@@ -70,7 +76,8 @@ void free_image_data() {
 		com.surface_stride[vport] = 0;
 		com.surface_height[vport] = 0;
 	}
-	activate_tab(RED_VPORT);
+	if (!com.script)
+		activate_tab(RED_VPORT);
 	if (com.rgbbuf) {
 		free(com.rgbbuf);
 		com.rgbbuf = NULL;
@@ -83,18 +90,26 @@ void free_image_data() {
 		free(com.uniq);
 		com.uniq = NULL;
 	}
-
-	/* TODO: free alignment preview data */
-	for (i=0; i<PREVIEW_NB; i++) {
-		if (com.preview_surface[i]) {
-			cairo_surface_destroy(com.preview_surface[i]);
-			com.preview_surface[i] = NULL;
+ 
+	if (!com.script) {
+		/* free alignment preview data */
+		for (i=0; i<PREVIEW_NB; i++) {
+			if (com.preview_surface[i]) {
+				cairo_surface_destroy(com.preview_surface[i]);
+				com.preview_surface[i] = NULL;
+			}
+		}
+		if (com.refimage_surface) {
+			cairo_surface_destroy(com.refimage_surface);
+			com.refimage_surface = NULL;
 		}
 	}
-	if (com.refimage_surface) {
-		cairo_surface_destroy(com.refimage_surface);
-		com.refimage_surface = NULL;
-	}
+}
+
+static gboolean end_read_single_image(gpointer p) {
+	set_GUI_CAMERA();
+	set_GUI_photometry();
+	return FALSE;
 }
 
 /* Reads an image from disk and stores it in the user allocated destination
@@ -110,7 +125,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
 		char *msg = siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		show_dialog(msg, _("Error"), "gtk-dialog-error");
+		show_dialog(msg, _("Error"), "dialog-error-symbolic");
 		set_cursor_waiting(FALSE);
 		free(realname);
 		return 1;
@@ -121,7 +136,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 	} else {
 		retval = any_to_fits(imagetype, realname, dest);
 		if (!retval)
-			debayer_if_needed(imagetype, dest, com.debayer.compatibility);
+			debayer_if_needed(imagetype, dest, com.debayer.compatibility, FALSE);
 	}
 	if (retval != 0 && retval != 3)
 		siril_log_message(_("Opening %s failed.\n"), realname);
@@ -129,10 +144,15 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 		*realname_out = realname;
 	else
 		free(realname);
-	set_GUI_CAMERA();
-	set_GUI_photometry();
 	com.filter = (int) imagetype;
+	siril_add_idle(end_read_single_image, NULL);
 	return retval;
+}
+
+static gboolean end_open_single_image(gpointer arg) {
+	char *name = (char *)arg;
+	open_single_image_from_gfit(name);
+	return FALSE;
 }
 
 /* This function is used to load a single image, meaning outside a sequence,
@@ -145,6 +165,7 @@ int open_single_image(const char* filename) {
 	char *realname;
 
 	close_single_image();	// close the previous image and free resources
+	close_sequence(FALSE);	// closing a sequence if loaded
 
 	retval = read_single_image(filename, &gfit, &realname);
 	
@@ -153,27 +174,24 @@ int open_single_image(const char* filename) {
 		return 0;
 	}
 	if (retval == 2) {
-		show_dialog(_("This file could not be opened because its extension is not supported.\n"), _("Error"), "gtk-dialog-error");
+		show_dialog(_("This file could not be opened because its extension is not supported.\n"), _("Error"), "dialog-error-symbolic");
 		return 1;
 	}
 	if (retval == 1) {
-		show_dialog(_("There was an error when opening this image. See the log for more information."), _("Error"), "gtk-dialog-error");
+		show_dialog(_("There was an error when opening this image. See the log for more information."), _("Error"), "dialog-error-symbolic");
 		return 1;
 	}
 
-	// Closing a sequence
-	if (sequence_is_loaded()) {
-		char *basename = g_path_get_basename(com.seq.seqname);
-		// TODO: is basename useful here?
-		siril_log_message(_("Closing sequence %s\n"), basename);
-		g_free(basename);
-		clear_sequence_list();
-		free_sequence(&(com.seq), FALSE);
-		clear_stars_list();
-		initialize_sequence(&com.seq, FALSE);
-	}
 	fprintf(stdout, "Loading image OK, now displaying\n");
-	open_single_image_from_gfit(realname);
+
+	/* Now initializing com struct */
+	com.seq.current = UNRELATED_IMAGE;
+	com.uniq = calloc(1, sizeof(single));
+	com.uniq->filename = realname;
+	com.uniq->nb_layers = gfit.naxes[2];
+	com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
+	com.uniq->fit = &gfit;
+	siril_add_idle(end_open_single_image, realname);
 	return 0;
 }
 
@@ -184,15 +202,9 @@ int open_single_image(const char* filename) {
 void open_single_image_from_gfit(char *realname) {
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
-	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->filename = realname;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
-	com.uniq->fit = &gfit;
+
 	initialize_display_mode();
 
-	image_find_minmax(&gfit, 0);
 	init_layers_hi_and_lo_values(MIPSLOHI);		// If MIPS-LO/HI exist we load these values. If not it is min/max
 
 	sliders_mode_set_state(com.sliders);
@@ -200,7 +212,7 @@ void open_single_image_from_gfit(char *realname) {
 	set_cutoff_sliders_values();
 
 	set_display_mode();
-	set_prepro_button_sensitiveness(); 			// enable or not the preprobutton
+	update_prepro_interface(TRUE);
 	adjust_sellabel();
 
 	display_filename();	// display filename in gray window
@@ -222,38 +234,41 @@ void open_single_image_from_gfit(char *realname) {
 
 /* searches the image for minimum and maximum pixel value, on each layer
  * the values are stored in fit->min[layer] and fit->max[layer] */
-//TODO: TO REWRITE WITH REDUCE
-int image_find_minmax(fits *fit, int force_minmax){
-	int i, layer;
-
-	/* this should only be done once per image */
-	if (fit->maxi != 0 && !force_minmax) return 1;
-
-	/* search for min and max values in all layers */
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(layer, i) schedule(dynamic,1) if(fit->naxes[2] > 1)
-#endif
+int image_find_minmax(fits *fit) {
+	int layer;
+	if (fit->maxi > 0.0)
+		return 0;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		WORD *buf = fit->pdata[layer];
-		fit->max[layer] = 0;
-		fit->min[layer] = USHRT_MAX;
-
-		for (i = 0; i < fit->rx * fit->ry; ++i) {
-			fit->max[layer] = max(fit->max[layer], buf[i]);
-			fit->min[layer] = min(fit->min[layer], buf[i]);
-		}
-		/* fprintf(stdout, "min and max (layer %d): %hu %hu\n",
-				layer, fit->min[layer], fit->max[layer]); */
-	}
-
-	/* set the overall min and max values from layer values */
-	fit->maxi = 0;
-	fit->mini = USHRT_MAX;
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		fit->maxi = max(fit->max[layer], fit->maxi);
-		fit->mini = min(fit->min[layer], fit->mini);
+		// calling statistics() saves stats in the fit already, we don't need
+		// to use the returned handle
+		free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX));
+		if (!fit->stats[layer])
+			return -1;
+		fit->maxi = max(fit->maxi, fit->stats[layer]->max);
+		fit->mini = min(fit->mini, fit->stats[layer]->min);
 	}
 	return 0;
+}
+
+static int fit_get_minmax(fits *fit, int layer) {
+	// calling statistics() saves stats in the fit already, we don't need
+	// to use the returned handle
+	free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX));
+	if (!fit->stats[layer])
+		return -1;
+	return 0;
+}
+
+double fit_get_max(fits *fit, int layer) {
+	if (fit_get_minmax(fit, layer))
+		return -1.0;
+	return fit->stats[layer]->max;
+}
+
+double fit_get_min(fits *fit, int layer) {
+	if (fit_get_minmax(fit, layer))
+		return -1.0;
+	return fit->stats[layer]->min;
 }
 
 /* gfit has been loaded, now we copy the hi and lo values into the com.uniq or com.seq layers.
@@ -286,10 +301,11 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 		if (gfit.hi == 0 || force_minmax == MINMAX) {
 			com.sliders = MINMAX;
 			if (!is_chained) {
-				layers[i].hi = gfit.max[i];
-				layers[i].lo = gfit.min[i];
+				layers[i].hi = fit_get_max(&gfit, i);
+				layers[i].lo = fit_get_min(&gfit, i);
 			}
 			else {
+				image_find_minmax(&gfit);
 				layers[i].hi = gfit.maxi;
 				layers[i].lo = gfit.mini;
 			}
@@ -303,10 +319,12 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 
 /* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
 void adjust_cutoff_from_updated_gfit() {
-	image_find_minmax(&gfit, 1);
-	update_gfit_histogram_if_needed();
-	init_layers_hi_and_lo_values(com.sliders);
-	set_cutoff_sliders_values();
+	invalidate_stats_from_fit(&gfit);
+	if (!com.script) {
+		update_gfit_histogram_if_needed();
+		init_layers_hi_and_lo_values(com.sliders);
+		set_cutoff_sliders_values();
+	}
 }
 
 void unique_free_preprocessing_data(single *uniq) {

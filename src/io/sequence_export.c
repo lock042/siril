@@ -62,7 +62,8 @@ static gpointer export_sequence(gpointer ptr) {
 	float cur_nb = 0.f, nb_frames;
 	unsigned int out_width, out_height, in_width, in_height, nbdata = 0;
 	uint8_t *data;
-	fits fit, destfit;
+	fits fit = { 0 };
+	fits destfit = { 0 };
 	char filename[256], dest[256];
 	struct ser_struct *ser_file = NULL;
 	GSList *timestamp = NULL;
@@ -71,11 +72,9 @@ static gpointer export_sequence(gpointer ptr) {
 	struct mp4_struct *mp4_file = NULL;
 #endif
 	struct exportseq_args *args = (struct exportseq_args *)ptr;
-	norm_coeff coeff;
-	memset(&fit, 0, sizeof(fits));
-	memset(&destfit, 0, sizeof(fits));
+	norm_coeff coeff = { 0 };
 
-	reglayer = get_registration_layer();
+	reglayer = get_registration_layer(args->seq);
 	siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
 	if (args->crop) {
 		in_width  = args->crop_area.w;
@@ -230,6 +229,7 @@ static gpointer export_sequence(gpointer ptr) {
 			destfit.fptr = NULL;
 			nbdata = fit.rx * fit.ry;
 			destfit.data = calloc(nbdata * fit.naxes[2], sizeof(WORD));
+			destfit.stats = NULL;
 			if (!destfit.data) {
 				fprintf(stderr, "Could not allocate memory for the export, aborting\n");
 				retval = -1;
@@ -252,7 +252,8 @@ static gpointer export_sequence(gpointer ptr) {
 		}
 		else {
 			/* we want copy the header */
-			copy_header(&fit, &destfit);
+			// TODO: why not use copyfits here?
+			copy_fits_metadata(&fit, &destfit);
 			memset(destfit.data, 0, nbdata * fit.naxes[2] * sizeof(WORD));
 			if (args->crop) {
 				/* reset destfit damaged by the crop function */
@@ -342,7 +343,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 free_and_reset_progress_bar:
 	clearfits(&fit);	// in case of goto
-	clearfits(&destfit);
+	free(destfit.data);
 	if (args->normalize) {
 		free(coeff.offset);
 		free(coeff.scale);
@@ -375,7 +376,7 @@ free_and_reset_progress_bar:
 	free(args->basename);
 	free(args);
 	args = NULL;
-	gdk_threads_add_idle(end_generic, args);
+	siril_add_idle(end_generic, args);
 	return NULL;
 }
 

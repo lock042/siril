@@ -34,7 +34,8 @@ typedef enum {
 	ALL_IMAGES,
 	SELECTED_IMAGES,
 	BEST_PSF_IMAGES,
-	BEST_QUALITY_IMAGES,
+	BEST_ROUND_IMAGES,
+	BEST_QUALITY_IMAGES
 } stackType;
 
 struct normalization_coeff {
@@ -62,6 +63,7 @@ struct stacking_args {
 	normalization normalize;	/* type of normalization */
 	norm_coeff coeff;		/* normalization data */
 	gboolean force_norm;		/* TRUE = force normalization */
+	gboolean norm_to_16;		/* normalize final image to 16bits */
 	int reglayer;		/* layer used for registration data */
 };
 
@@ -77,7 +79,10 @@ int stack_mean_with_rejection(struct stacking_args *args);
 int stack_addmax(struct stacking_args *args);
 int stack_addmin(struct stacking_args *args);
 
-void start_stacking();
+int upscale_sequence(struct stacking_args *args);
+
+
+void clean_end_stacking(struct stacking_args *args);
 void update_stack_interface(gboolean dont_change_stack_type);
 
 int stack_filter_all(sequence *seq, int nb_img, double any);

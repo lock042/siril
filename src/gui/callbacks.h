@@ -5,6 +5,7 @@
 #include "core/siril.h"	// for sliders_mode
 
 GtkWidget* lookup_widget (const gchar *widget_name);
+GtkWidget *popover_new(GtkWidget *widget, const gchar *text);
 
 void initialize_shortcuts();
 void fill_about_dialog();
@@ -23,6 +24,7 @@ void set_GUI_DiskSpace(double mem);
 void set_GUI_misc();
 void initialize_preprocessing();
 void update_MenuItem();
+void queue_redraw(int doremap);
 gboolean redraw(int vport, int remap);
 void sliders_mode_set_state(sliders_mode);
 int copy_rendering_settings_when_chained(gboolean from_GUI);
@@ -48,11 +50,12 @@ void set_layers_for_assign();
 void set_layers_for_registration();
 void display_image_number(int index);
 void show_dialog(const char *text, const char *title, const char *icon);
+void show_txt_and_data_dialog(const char *text, const char *data, const char *title, const char *icon);
 void show_data_dialog(char *text, char *title);
 void show_main_gray_window();
 void show_rgb_window();
 void hide_rgb_window();
-void set_cursor_waiting(gboolean waiting);
+void hide_gray_window();
 
 void zoomcombo_update_display_for_zoom();
 void initialize_FITS_name_entries();
@@ -65,7 +68,7 @@ void activate_tab(int vport);
 void control_window_switch_to_tab(main_tabs tab);
 void on_comboboxreglayer_changed(GtkComboBox *widget, gpointer user_data);
 
-void set_prepro_button_sensitiveness();
+void update_prepro_interface();
 
 void update_statusbar_convert();
 

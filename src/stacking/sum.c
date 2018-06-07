@@ -49,7 +49,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-static int sum_stacking_image_hook(struct generic_seq_args *args, int i, fits *fit, rectangle *_) {
+static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
 	struct sum_stacking_data *ssdata = args->user;
 	int shiftx, shifty, nx, ny, x, y, ii, layer;
 	int pixel = 0;	// index in sum[0]
@@ -103,11 +103,13 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		if (ssdata->sum[0][i] > max)
 			max = ssdata->sum[0][i];
 
+	clearfits(&gfit);
 	fits *fit = &gfit;
 	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers))
 		return -1;
 	gfit.hi = round_to_WORD(max);
 	gfit.exposure = ssdata->exposure;
+	gfit.bitpix = gfit.orig_bitpix = USHORT_IMG;
 
 	double ratio = 1.0;
 	if (max > USHRT_MAX)

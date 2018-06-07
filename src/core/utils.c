@@ -38,6 +38,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <psapi.h>
+#include <direct.h>
+#include <shlobj.h>
 #else
 #include <sys/resource.h>
 #endif
@@ -211,9 +213,19 @@ int get_extension_index(const char *filename) {
  * @return extension pointed from the filename itself or NULL
  */
 const char *get_filename_ext(const char *filename) {
-	const char *dot = strrchr(filename, '.');
-	if (!dot || dot == filename)
+	gchar *basename;
+	int len;
+	const char *dot, *p;
+
+	basename = g_path_get_basename(filename);
+	len = strlen(filename) - strlen(basename);
+	g_free(basename);
+
+	p = filename + len;
+	dot = strrchr(p, '.');
+	if (!dot || dot == p) {
 		return NULL;
+	}
 	return dot + 1;
 }
 
@@ -348,6 +360,8 @@ int changedir(const char *dir, gchar **err) {
 				"to write in this directory: %s\n"), "red", dir);
 		retval = 4;
 	} else {
+		/* sequences are invalidate when cwd is changed */
+		close_sequence(FALSE);
 		if (!g_chdir(dir)) {
 			/* do we need to search for sequences in the directory now? We still need to
 			 * press the check seq button to display the list, and this is also done there. */
@@ -357,7 +371,8 @@ int changedir(const char *dir, gchar **err) {
 			com.wd = g_get_current_dir();
 			siril_log_message(_("Setting CWD (Current "
 					"Working Directory) to '%s'\n"), com.wd);
-			set_GUI_CWD();
+			if (!com.script)
+				set_GUI_CWD();
 			update_used_memory();
 			retval = 0;
 		} else {
@@ -437,17 +452,26 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	struct dirent **list;
 	int number_of_loaded_sequences = 0;
 	int index_of_seq_to_load = -1;
+	char *seqname = NULL;
 
 	// clear the previous list
 	seqcombo = GTK_COMBO_BOX_TEXT(
 			gtk_builder_get_object(builder, "sequence_list_combobox"));
 	gtk_combo_box_text_remove_all(seqcombo);
 
+	if (sequence_name_to_select) {
+	       if (ends_with(sequence_name_to_select, ".seq"))
+		       seqname = strdup(sequence_name_to_select);
+	       else {
+		       seqname = malloc(strlen(sequence_name_to_select) + 5);
+		       sprintf(seqname, "%s.seq", sequence_name_to_select);
+	       }
+	}
+
 #ifdef _WIN32
-	number_of_loaded_sequences = ListSequences(com.wd, sequence_name_to_select, seqcombo, &index_of_seq_to_load);
+	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load);
 #else
 	int i, n;
-	char filename[256];
 
 	n = scandir(com.wd, &list, 0, alphasort);
 	if (n < 0)
@@ -459,14 +483,11 @@ int update_sequences_list(const char *sequence_name_to_select) {
 		if ((suf = strstr(list[i]->d_name, ".seq")) && strlen(suf) == 4) {
 			sequence *seq = readseqfile(list[i]->d_name);
 			if (seq != NULL) {
-				strncpy(filename, list[i]->d_name, 255);
 				free_sequence(seq, TRUE);
+				char *filename = list[i]->d_name;
 				gtk_combo_box_text_append_text(seqcombo, filename);
-				if (sequence_name_to_select
-						&& !strncmp(filename, sequence_name_to_select,
-								strlen(filename))) {
+				if (seqname && !strcmp(filename, seqname))
 					index_of_seq_to_load = number_of_loaded_sequences;
-				}
 				++number_of_loaded_sequences;
 			}
 		}
@@ -475,6 +496,8 @@ int update_sequences_list(const char *sequence_name_to_select) {
 		free(list[i]);
 	free(list);
 #endif
+
+	if (seqname) free(seqname);
 
 	if (!number_of_loaded_sequences) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
@@ -718,6 +741,32 @@ int get_available_memory_in_MB() {
 #endif
 
 /**
+ *
+ * @param filename
+ * @param size
+ */
+#ifdef _WIN32
+/* stolen from gimp which in turn stole from glib 2.35 */
+gchar *get_special_folder(int csidl) {
+	wchar_t path[MAX_PATH + 1];
+	HRESULT hr;
+	LPITEMIDLIST pidl = NULL;
+	BOOL b;
+	gchar *retval = NULL;
+
+	hr = SHGetSpecialFolderLocation(NULL, csidl, &pidl);
+	if (hr == S_OK) {
+		b = SHGetPathFromIDListW(pidl, path);
+		if (b)
+			retval = g_utf16_to_utf8(path, -1, NULL, NULL, NULL);
+		CoTaskMemFree(pidl);
+	}
+
+	return retval;
+}
+#endif
+
+/**
  * Expands the ~ in filenames
  * @param[in] filename input filename
  * @param[in] size maximum size of the filename
@@ -750,7 +799,7 @@ void expand_home_in_filename(char *filename, int size) {
  * @return 255 or 65535 if 8- or 16-bit image
  */
 WORD get_normalized_value(fits *fit) {
-	image_find_minmax(fit, 0);
+	image_find_minmax(fit);
 	if (fit->maxi <= UCHAR_MAX)
 		return UCHAR_MAX;
 	return USHRT_MAX;
@@ -768,7 +817,7 @@ void read_and_show_textfile(char *path, char *title) {
 
 	FILE *f = g_fopen(path, "r");
 	if (!f) {
-		show_dialog(_("File not found"), _("Error"), "gtk-dialog-error");
+		show_dialog(_("File not found"), _("Error"), "dialog-error-symbolic");
 		return;
 	}
 	while (fgets(line, sizeof(line), f) != NULL)
@@ -849,7 +898,7 @@ void quicksort_s(WORD *a, int n) {
 /**
  * Removes extension of the filename
  * @param filename file path with extension
- * @return filename without extension
+ * @return newly allocated filename without extension
  */
 char *remove_ext_from_filename(const char *filename) {
 	size_t filelen;
@@ -1032,4 +1081,27 @@ double encodeJD(dateTime dt) {
 	} else {
 		return jd1 + 2 - (dt.year / 100) + (dt.year / 400);
 	}
+}
+
+/**
+ * Compares a and b like strcmp()
+ * @param a a gconstpointer
+ * @param b a gconstpointer
+ * @return an integer less than, equal to, or greater than zero, if a is than b .
+ */
+gint strcompare(gconstpointer *a, gconstpointer *b) {
+	gchar *collate_key1, *collate_key2;
+	gint result;
+
+	const gchar *s1 = (const gchar *)a;
+	const gchar *s2 = (const gchar *)b;
+
+	collate_key1  = g_utf8_collate_key_for_filename(s1, strlen(s1));
+	collate_key2  = g_utf8_collate_key_for_filename(s2, strlen(s2));
+
+	result = g_strcmp0(collate_key1, collate_key2);
+	g_free(collate_key1);
+	g_free(collate_key2);
+
+	return result;
 }

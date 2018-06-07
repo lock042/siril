@@ -1,6 +1,7 @@
 #ifndef _SER_H_
 #define _SER_H_
 
+#include <stdio.h>
 #include <stdint.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -11,6 +12,31 @@
  * WARNING: the code in this file and its .c counterpart will not work properly
  * on big endian systems.
  */
+
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+#include <sys/param.h>		// define or not BSD macro
+#endif
+
+#ifdef __linux__
+#define fseek64 fseeko  // Linux
+#define ftell64 ftello  // Linux
+#elif defined (__APPLE__) && defined(__MACH__)
+#define fseek64 fseeko  // OS X
+#define ftell64 ftello  // OS X
+#elif defined(BSD)
+#define fseek64 fseeko  // DragonFly BSD, FreeBSD, OpenBSD, NetBSD
+#define ftell64 ftello  // DragonFly BSD, FreeBSD, OpenBSD, NetBSD
+#elif defined (__FreeBSD_kernel__) && defined (__GLIBC__)
+#define fseek64 fseeko  // kFreeBSD
+#define ftell64 ftello  // kFreeBSD
+#elif defined (__gnu_hurd__)
+#define fseek64 fseeko  // GNU/Hurd
+#define ftell64 ftello  // GNU/Hurd
+#else
+#define fseek64 _fseeki64  // Windows
+#define ftell64 _ftelli64  // Windows
+#endif
+
 
 #define SER_HEADER_LEN 178
 
@@ -78,18 +104,20 @@ struct ser_struct {
 	// internal representations of header data
 	ser_pixdepth byte_pixel_depth;	// more useful representation of the bit_pixel_depth
 	unsigned int number_of_planes;	// derived from the color_id
-	int fd;
+	FILE *file;
 	char *filename;
 #ifdef _OPENMP
 	omp_lock_t fd_lock, ts_lock;
 #endif
 };
 
+gboolean ser_is_cfa(struct ser_struct *ser_file);
 void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp);
 void ser_init_struct(struct ser_struct *ser_file);
 void ser_display_info(struct ser_struct *ser_file);
 int ser_open_file(const char *filename, struct ser_struct *ser_file);
 int ser_write_and_close(struct ser_struct *ser_file);
+int ser_compact_file(struct ser_struct *ser_file, unsigned char *successful_frames, int nb_frames);
 int ser_create_file(const char *filename, struct ser_struct *ser_file, gboolean overwrite, struct ser_struct *copy_from);
 int ser_close_file(struct ser_struct *ser_file);
 int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit);

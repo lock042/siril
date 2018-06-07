@@ -18,6 +18,16 @@
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
 
+
+#ifdef SIRIL_OUTPUT_DEBUG
+#define DEBUG_TEST 1
+#else
+#define DEBUG_TEST 0
+#endif
+
+#define siril_debug_print(fmt, ...) \
+            do { if (DEBUG_TEST) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
+
 #undef max
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -65,17 +75,6 @@ typedef unsigned short WORD;		// default type for internal image data
 #define PBMV_NORM 0.9709
 #define SN_NORM 1.1926
 #define QN_NORM 2.2191
-
-#define STATS_BASIC		(1 << 1)	// median, mean, sigma, noise
-#define STATS_AVGDEV	(1 << 2)	// average absolute deviation
-#define STATS_MAD		(1 << 3)	// median absolute deviation
-#define STATS_BWMV		(1 << 5)	// bidweight midvariance
-#define STATS_MAIN		STATS_BASIC | STATS_AVGDEV | STATS_MAD | STATS_BWMV
-#define STATS_IKSS		(1 << 6)	// Iterative K-sigma Estimator of Location and Scale. Take time, needed only for stacking
-#define STATS_EXTRA		STATS_MAIN | STATS_IKSS
-
-#define	STATS_ZERO_NONE 0
-#define	STATS_ZERO_NULLCHECK (!STATS_ZERO_NONE)
 
 /* when requesting an image redraw, it can be asked to remap its data before redrawing it.
  * REMAP_NONE	doesn't remaps the data,
@@ -199,6 +198,7 @@ typedef struct gradient_struct gradient;
 typedef struct historic_struct historic;
 typedef struct dateTime_struct dateTime;
 typedef struct fwhm_struct fitted_PSF;
+typedef struct star_finder_struct star_finder_params;
 
 /* global structures */
 
@@ -291,21 +291,20 @@ typedef enum { SEQ_REGULAR, SEQ_SER,
 struct imdata {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
-	//double eval;		/* an evaluation of the quality of the image, not yet used */
-	/* for deep-sky images, the quality is the FWHM of a star or an average of FWHM of stars,
-	 * for planetary and deep-sky images, it's computed from entropy, contrast or other eval functions. */
-	imstats *stats;		/* statistics of the image, used as a cache for full image first
-				   channel statistics, particularly used in stacking normalization.
-				   NULL if not available, this is stored in seqfile if non NULL */
 	char *date_obs;		/* date of the observation, processed and copied from the header */
 };
 
 /* preprocessing data from GUI */
 struct preprocessing_data {
 	struct timeval t_start;
+	fits *dark, *offset, *flat;
+	gboolean is_sequence;
+	sequence *seq;
 	gboolean autolevel;
 	double sigma[2];
 	gboolean is_cfa;
+	gboolean debayer;
+	gboolean compatibility;
 	float normalisation;
 	int retval;
 };
@@ -313,13 +312,9 @@ struct preprocessing_data {
 /* registration data, exists once for each image and each layer */
 struct registration_data {
 	float shiftx, shifty;	// we could have a subpixel precision, but is it needed? saved
-	float rot_centre_x, rot_centre_y;	// coordinates for the rotation centre, saved
-	float angle;		// angle for the rotation, saved
 	fitted_PSF *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
-	//double entropy;		// used in DFT registration, saved data
-	// entropy could be replaced by a more general quality indicator at
-	// some point. It's the only double value stored in the .seq files, others are single.
+	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set 
 	double quality;
 };
 
@@ -333,10 +328,17 @@ struct sequ {
 	int nb_layers;		// number of layers embedded in each image file, -1 if unknown
 	unsigned int rx;	// first image width
 	unsigned int ry;	// first image height
+	int bitpix;		// image pixel format, from fits
 	layer_info *layers;	// info about layers, may be null if nb_layers is unknown
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
 	regdata **regparam;	// *regparam[nb_layers], may be null if nb_layers is unknown
+	imstats ***stats;	// statistics of the images for each layer, may be null too
+	/* in the case of a CFA sequence, depending on the opening mode, we cannot store
+	 * and use everything that was in the seqfile, so we back them up here */
+	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
+	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
+
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum
 	int end;		// imgparam[number-1]->filenum
@@ -344,6 +346,7 @@ struct sequ {
 
 	sequence_type type;
 	struct ser_struct *ser_file;
+	gboolean cfa_opened_monochrome;	// in case the CFA SER was opened in monochrome mode
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
 	struct film_struct *film_file;
 	char *ext;		// extension of video, NULL if not video
@@ -392,7 +395,8 @@ struct single_image {
 struct ffit {
 	unsigned int rx;	// image width	(naxes[0])
 	unsigned int ry;	// image height	(naxes[1])
-	int bitpix;
+	int bitpix;		// current bitpix of loaded data
+	int orig_bitpix;	// original bitpix of the file
 	/* bitpix can take the following values:
 	 * BYTE_IMG	(8-bit byte pixels, 0 - 255)
 	 * SHORT_IMG	(16 bit signed integer pixels)	
@@ -431,10 +435,8 @@ struct ffit {
 	unsigned int dft_rx, dft_ry;		// padding: original value of picture size
 	
 	/* data computed or set by Siril */
-	unsigned short min[3];	// min for all layers
-	unsigned short max[3];	// max for all layers
-	unsigned short maxi;	// max of the max[3]
-	unsigned short mini;	// min of the min[3]
+	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
+	double mini, maxi;	// max of the stats->max[3]
 
 	fitsfile *fptr;		// file descriptor. Only used for file read and write.
 	WORD *data;		// 16-bit image data (depending on image type)
@@ -504,6 +506,14 @@ struct dateTime_struct {
 	int ms;
 };
 
+struct star_finder_struct {
+	int radius;
+	double sigma;
+	double roundness;
+};
+
+/* The global data structure of siril, the only with gfit and the gtk builder,
+ * declared in main.c */
 struct cominf {
 	/* current version of GTK, through GdkPixmap, doesn't handle gray images, so
 	 * graybufs are the same size than the rgbbuf with 3 times the same value */
@@ -529,7 +539,6 @@ struct cominf {
 	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
 
 	/* selection rectangle for registration, FWHM, PSF */
-	gboolean drawn;			// true if the selection rectangle has been drawn TO REMOVE!
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
 	gint startX, startY;		// where the mouse was originally clicked to
 	rectangle selection;		// coordinates of the selection rectangle
@@ -545,7 +554,6 @@ struct cominf {
 	gchar *initfile;			// the path of the init file
 	
 	char *ext;		// FITS extension used in SIRIL
-	int len_ext;
 
 	int reg_settings;		// Use to save registration method in the init file
 	
@@ -555,7 +563,7 @@ struct cominf {
 
 	stackconf stack;
 	
-	int filter;
+	int filter;			// file extension filter for open/save dialogs
 
 	/* history of the command line. This is a circular buffer (cmd_history)
 	 * of size cmd_hist_size, position to be written is cmd_hist_current and
@@ -571,7 +579,8 @@ struct cominf {
 	int hist_size;			// allocated size
 	int hist_current;		// current index
 	int hist_display;		// displayed index
-	gchar *swap_dir;
+	gchar *swap_dir;		// swap directory
+	GSList *script_path;	// script path directories
 
 	libraw raw_set;			// the libraw settings
 	struct debayer_config debayer;	// debayer settings
@@ -582,11 +591,7 @@ struct cominf {
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
 
-	gboolean stfComputed;	// Ugly Flag to know if stf parameters are already computed
-	double stfShadows;
-	double stfHighlights;
-	double stfM;
-
+	star_finder_params starfinder_conf;	// star finder settings, from GUI or init file
 	fitted_PSF **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
 	int selected_star;		// current selected star in the GtkListStore
@@ -596,18 +601,26 @@ struct cominf {
 	int grad_nb_boxes, grad_size_boxes;
 	gboolean grad_boxes_drawn;
 
+	int max_thread;			// maximum of thread used for parallel execution
+
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
 	gboolean run_thread;		// the main thread loop condition
-	int max_thread;			// maximum of thread used
+
+	gboolean headless;		// pure console, no GUI
+	gboolean script;		// scripts execution
+	gboolean stop_script;		// abort script execution
+	GThread *script_thread;		// reads a script and executes its commands
 };
 
 /* this structure is used to characterize the statistics of the image */
 struct image_stats {
-	long total, ngoodpix;
-	double mean, avgDev, median, sigma, bgnoise, min, max, normValue, mad, sqrtbwmv,
-			location, scale;
-	char layername[6];
+	long total,	// number of pixels
+	     ngoodpix;	// number of non-zero pixels
+	double mean, median, sigma, avgDev, mad, sqrtbwmv,
+	       location, scale, min, max, normValue, bgnoise;
+
+	int _nb_refs;	// reference counting for data management
 };
 
 typedef struct Homo {
@@ -642,7 +655,6 @@ struct image_layer_struct {
 extern GtkBuilder *builder;	// get widget references anywhere
 extern cominfo com;		// the main data struct
 extern fits gfit;		// currently loaded image
-extern fits wfit[5];		// used for temp files, can probably be replaced by local variables
 extern char **supported_extensions;
 extern char *filter_pattern[];
 #endif

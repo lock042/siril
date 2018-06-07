@@ -26,13 +26,14 @@
 
 #include "core/siril.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/undo.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
-#include "io/single_image.h"
 #include "gui/histogram.h"
-#include "core/proto.h"
+#include "io/single_image.h"
 #include "algos/colors.h"
-#include "core/undo.h"
+#include "algos/statistics.h"
 
 /*
  * A Fast HSL-to-RGB Transform
@@ -285,18 +286,10 @@ void xyz_to_rgb(double x, double y, double z, double *r, double *g, double *b) {
 // idle function executed at the end of the extract_channels processing
 gboolean end_extract_channels(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *) p;
-	if (args->process) {
-		int i;
-
-		stop_processing_thread();
-		for (i = 0; i < 3; i++)
-			save1fits16(args->channel[i], args->fit, i);
-	}
-	clearfits(args->fit);
+	stop_processing_thread();
 	free(args);
 	set_cursor_waiting(FALSE);
 	update_used_memory();
-
 	return FALSE;
 }
 
@@ -312,7 +305,8 @@ gpointer extract_channels(gpointer p) {
 		siril_log_message(
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
 		args->process = FALSE;
-		gdk_threads_add_idle(end_extract_channels, args);
+		clearfits(args->fit);
+		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -376,9 +370,12 @@ gpointer extract_channels(gpointer p) {
 		}
 
 	}
+	for (i = 0; i < 3; i++)
+		save1fits16(args->channel[i], args->fit, i);
+	clearfits(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	gdk_threads_add_idle(end_extract_channels, args);
+	siril_add_idle(end_extract_channels, args);
 
 	return GINT_TO_POINTER(0);
 }
@@ -405,11 +402,11 @@ gpointer enhance_saturation(gpointer p) {
 	int i;
 
 	if (!isrgb(args->fit)) {
-		gdk_threads_add_idle(end_enhance_saturation, args);
+		siril_add_idle(end_enhance_saturation, args);
 		return GINT_TO_POINTER(1);
 	}
 	if (args->coeff == 0.0) {
-		gdk_threads_add_idle(end_enhance_saturation, args);
+		siril_add_idle(end_enhance_saturation, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -422,17 +419,15 @@ gpointer enhance_saturation(gpointer p) {
 	args->h_min /= 360.0;
 	args->h_max /= 360.0;
 	if (args->preserve) {
-		imstats *stat = statistics(args->fit, GLAYER, NULL, STATS_BASIC,
-				STATS_ZERO_NULLCHECK);
+		imstats *stat = statistics(NULL, -1, args->fit, GLAYER, NULL, STATS_BASIC);
 		if (!stat) {
-			siril_log_message(_("Error: no data computed.\n"));
-			gdk_threads_add_idle(end_enhance_saturation, args);
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_add_idle(end_enhance_saturation, args);
 			return GINT_TO_POINTER(1);
 		}
 		bg = stat->median + stat->sigma;
 		bg /= stat->normValue;
-		free(stat);
-
+		free_stats(stat);
 	}
 
 #ifdef _OPENMP
@@ -464,22 +459,21 @@ gpointer enhance_saturation(gpointer p) {
 		buf[GLAYER][i] = round_to_WORD(g * USHRT_MAX_DOUBLE);
 		buf[BLAYER][i] = round_to_WORD(b * USHRT_MAX_DOUBLE);
 	}
+	invalidate_stats_from_fit(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	gdk_threads_add_idle(end_enhance_saturation, args);
+	siril_add_idle(end_enhance_saturation, args);
 
 	return GINT_TO_POINTER(0);
 }
 
 // idle function executed at the end of the scnr processing
 gboolean end_scnr(gpointer p) {
-	struct scnr_data *args = (struct scnr_data *) p;
 	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	update_gfit_histogram_if_needed();
-	free(args);
 	set_cursor_waiting(FALSE);
 	update_used_memory();
 
@@ -543,10 +537,11 @@ gpointer scnr(gpointer p) {
 		buf[BLAYER][i] = round_to_WORD(blue * (double) norm);
 	}
 
+	invalidate_stats_from_fit(args->fit);
+	free(args);
 	gettimeofday(&t_end, NULL);
-
 	show_time(t_start, t_end);
-	gdk_threads_add_idle(end_scnr, args);
+	siril_add_idle(end_scnr, NULL);
 	return GINT_TO_POINTER(0);
 }
 
@@ -556,7 +551,7 @@ void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 
 	if ((!com.selection.h) || (!com.selection.w)) {
 		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"gtk-dialog-warning");
+				"dialog-warning-symbolic");
 		return;
 	}
 
@@ -625,18 +620,15 @@ void initialize_calibration_interface() {
 /* This function equalize the background by giving equal value for all layers */
 static void background_neutralize(fits* fit, rectangle black_selection) {
 	int chan, i;
-	imstats** stats;
+	imstats* stats[3];
 	int ref = 0;
 
 	assert(fit->naxes[2] == 3);
 
-	stats = malloc(3 * sizeof(imstats *));
 	for (chan = 0; chan < 3; chan++) {
-		stats[chan] = statistics(fit, chan, &black_selection, STATS_BASIC,
-				STATS_ZERO_NULLCHECK);
+		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: no data computed.\n"));
-			free(stats);
+			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->median;
@@ -653,9 +645,10 @@ static void background_neutralize(fits* fit, rectangle black_selection) {
 				buf[i] = (buf[i] - offset >= USHRT_MAX ? USHRT_MAX : buf[i] - offset);
 
 		}
-		free(stats[chan]);
+		free_stats(stats[chan]);
 	}
-	free(stats);
+
+	invalidate_stats_from_fit(fit);
 }
 
 void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data) {
@@ -678,7 +671,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 
 	if ((!width) || (!height)) {
 		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"gtk-dialog-warning");
+				"dialog-warning-symbolic");
 		return;
 	}
 	black_selection.x = gtk_spin_button_get_value(selection_black_value[0]);
@@ -714,7 +707,7 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 
 	if ((!com.selection.h) || (!com.selection.w)) {
 		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"gtk-dialog-warning");
+				"dialog-warning-symbolic");
 		return;
 	}
 
@@ -757,14 +750,14 @@ static void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 
 	siril_log_message(_("Background reference:\n"));
 	for (chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(fit, chan, &black, STATS_BASIC, STATS_ZERO_NULLCHECK);
+		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC);
 		if (!stat) {
-			siril_log_message(_("Error: no data computed.\n"));
+			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		bg[chan] = stat->median / stat->normValue;
 		siril_log_message("B%d : %.5e\n", chan, bg[chan]);
-		free(stat);
+		free_stats(stat);
 
 	}
 
@@ -841,6 +834,8 @@ static void white_balance(fits *fit, gboolean is_manual, rectangle white_selecti
 		if (kw[chan] == 1.0) continue;
 		calibrate(fit, chan, kw[chan], bg[chan], norm);
 	}
+
+	invalidate_stats_from_fit(fit);
 }
 
 void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) {
@@ -885,7 +880,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 
 	if (!black_selection.w || !black_selection.h) {
 		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"gtk-dialog-warning");
+				"dialog-warning-symbolic");
 		return;
 	}
 
@@ -896,7 +891,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 
 	if ((!white_selection.w || !white_selection.h) && !is_manual) {
 		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"gtk-dialog-warning");
+				"dialog-warning-symbolic");
 		return;
 	}
 

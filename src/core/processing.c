@@ -29,6 +29,7 @@
 #include "gui/progress_and_log.h"
 #include "io/sequence.h"
 #include "io/ser.h"
+#include "algos/statistics.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -38,12 +39,12 @@ gpointer generic_sequence_worker(gpointer p) {
 	int frame;	// output frame index
 	int input_idx;	// index of the frame being processed in the sequence
 	int *index_mapping = NULL;
-	int nb_frames, progress = 0;
+	int nb_frames, excluded_frames = 0, progress = 0;
 	float nb_framesf;
 	int abort = 0;	// variable for breaking out of loop
 	GString *desc;	// temporary string description for logs
 	gchar *msg;	// final string description for logs
-	fits fit;
+	fits fit = { 0 };
 
 	assert(args);
 	assert(args->seq);
@@ -98,7 +99,6 @@ gpointer generic_sequence_worker(gpointer p) {
 #ifdef _OPENMP
 	omp_init_lock(&args->lock);
 #endif
-	memset(&fit, 0, sizeof(fits));
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) firstprivate(fit) private(input_idx) schedule(static) \
@@ -155,14 +155,20 @@ gpointer generic_sequence_worker(gpointer p) {
 				}
 			}
 
-			if (args->image_hook(args, input_idx, &fit, &area)) {
+			if (args->image_hook(args, frame, input_idx, &fit, &area)) {
 				if (args->stop_on_error)
 					abort = 1;
 				else {
-					args->seq->imgparam[frame].incl = FALSE;
-					if (args->nb_filtered_images > 0)
-						args->nb_filtered_images--;
-					args->seq->selnum--;
+					//args->seq->imgparam[frame].incl = FALSE;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+					{
+						//if (args->nb_filtered_images > 0)
+						//	args->nb_filtered_images--;
+						//args->seq->selnum--;
+						excluded_frames++;
+					}
 				}
 				clearfits(&fit);
 				continue;
@@ -180,6 +186,8 @@ gpointer generic_sequence_worker(gpointer p) {
 				}
 			}
 
+			// save stats that may have been computed for the first time
+			save_stats_from_fit(&fit, args->seq, input_idx);
 			clearfits(&fit);
 
 #ifdef _OPENMP
@@ -193,12 +201,17 @@ gpointer generic_sequence_worker(gpointer p) {
 
 	if (abort) {
 		set_progress_bar_data(_("Sequence processing failed. Check the log."), PROGRESS_RESET);
-		siril_log_message(_("Sequence processing failed.\n"));
+		siril_log_color_message(_("Sequence processing failed.\n"), "red");
 		args->retval = abort;
 	}
 	else {
-		set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
-		siril_log_message(_("Sequence processing succeeded.\n"));
+		if (excluded_frames) {
+			set_progress_bar_data(_("Sequence processing partially succeeded. Check the log."), PROGRESS_RESET);
+			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed and that were temporarily excluded from the sequence.\n"), "salmon", excluded_frames);
+		} else {
+			set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
+			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
+		}
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
@@ -218,10 +231,10 @@ the_end:
 			args->idle_function(args);
 	} else {
 		if (args->idle_function)
-			gdk_threads_add_idle(args->idle_function, args);
-		else gdk_threads_add_idle(end_generic_sequence, args);
+			siril_add_idle(args->idle_function, args);
+		else siril_add_idle(end_generic_sequence, args);
 	}
-	return NULL;
+	return GINT_TO_POINTER(args->retval);
 }
 
 // defaut idle function (in GTK main thread) to run at the end of the generic sequence processing
@@ -239,7 +252,8 @@ gboolean end_generic_sequence(gpointer p) {
 		g_free(basename);
 	}
 	
-	return end_generic(p);
+	free(p);
+	return end_generic(NULL);
 }
 
 int ser_prepare_hook(struct generic_seq_args *args) {
@@ -253,26 +267,27 @@ int ser_prepare_hook(struct generic_seq_args *args) {
 		else snprintf(dest, 255, "%s%s.ser", args->new_seq_prefix, args->seq->seqname);
 
 		args->new_ser = malloc(sizeof(struct ser_struct));
-		return ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file);
+		if (ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file)) {
+			free(args->new_ser);
+			args->new_ser = NULL;
+			return 1;
+		}
 	}
-
 	return 0;
 }
 
 int ser_finalize_hook(struct generic_seq_args *args) {
 	int retval = 0;
-	if (args->force_ser_output || args->seq->type == SEQ_SER) {
+	if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
 		retval = ser_write_and_close(args->new_ser);
 		free(args->new_ser);
 	}
 	return retval;
 }
 
-/* For a FITS sequence, adding 1 is recommended because for users a sequence
- * should start at 1 instead of 0.
- * With SER, all images must be in a contiguous sequence, so we use the out_index.
- * With FITS sequences, to keep track of image accross processings, we keep the
- * input index all along.
+/* In SER, all images must be in a contiguous sequence, so we use the out_index.
+ * In FITS sequences, to keep track of image accross processings, we keep the
+ * input file number all along (in_index is the index in the sequence, not the name).
  */
 int generic_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
 	char dest[256];
@@ -280,8 +295,13 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		return ser_write_frame_from_fit(args->new_ser, fit, out_index);
 	} else {
-		snprintf(dest, 256, "%s%s%05d%s", args->new_seq_prefix,
-				args->seq->seqname, in_index, com.ext);
+		char format[16];
+		sprintf(format, "%%s%%s%%0%dd%%s", args->seq->fixed);
+		snprintf(dest, 256, format, args->new_seq_prefix,
+				args->seq->seqname, 
+				args->seq->imgparam[in_index].filenum,
+				/*in_index,*/ com.ext);
+		fit->bitpix = fit->orig_bitpix;
 		return savefits(dest, fit);
 	}
 }
@@ -290,18 +310,34 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
  *      P R O C E S S I N G      T H R E A D      M A N A G E M E N T        *
  ****************************************************************************/
 
-// This function is reentrant
-void start_in_new_thread(gpointer (*f)(gpointer p), gpointer p) {
+static gboolean thread_being_waited = FALSE;
+
+// This function is reentrant. The pointer will be freed in the idle function,
+// so it must be a proper pointer to an allocated memory chunk.
+void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
-	if (com.run_thread || com.thread != NULL) {
+	if (com.run_thread || com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
+		free(p);
 		return;
 	}
 
 	com.run_thread = TRUE;
 	g_mutex_unlock(&com.mutex);
 	com.thread = g_thread_new("processing", f, p);
+}
+
+gpointer waiting_for_thread() {
+	gpointer retval = NULL;
+	if (com.thread) {
+		thread_being_waited = TRUE;
+		retval = g_thread_join(com.thread);
+	}
+	com.thread = NULL;
+	thread_being_waited = FALSE;
+	set_thread_run(FALSE);	// do it anyway in case of wait without stop
+	return retval;
 }
 
 void stop_processing_thread() {
@@ -311,9 +347,8 @@ void stop_processing_thread() {
 	}
 
 	set_thread_run(FALSE);
-
-	g_thread_join(com.thread);
-	com.thread = NULL;
+	if (!thread_being_waited)
+		waiting_for_thread();
 }
 
 void set_thread_run(gboolean b) {
@@ -331,7 +366,7 @@ gboolean get_thread_run() {
 }
 
 /* should be called in a threaded function if nothing special has to be done at the end.
- * gdk_threads_add_idle(end_generic, NULL);
+ * siril_add_idle(end_generic, NULL);
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
@@ -340,10 +375,26 @@ gboolean end_generic(gpointer arg) {
 	return FALSE;
 }
 
+/* wrapper for gdk_threads_add_idle that deactivates idle functions when
+ * running in script/console mode */
+guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
+	if (!com.script && !com.headless)
+		return gdk_threads_add_idle(idle_function, data);
+	return 0;
+}
+
+void wait_for_script_thread() {
+	if (com.script_thread)
+		g_thread_join(com.script_thread);
+	com.script_thread = NULL;
+}
+
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
+	com.stop_script = TRUE;
 	stop_processing_thread();
+	wait_for_script_thread();
 }
 
 int seq_filter_all(sequence *seq, int nb_img, double any) {

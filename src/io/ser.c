@@ -41,15 +41,6 @@
 #include "algos/demosaicing.h"
 #include "io/ser.h"
 
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-#ifdef _WIN32
-#define lseek64 _lseeki64
-#else
-#define lseek64 lseek
-#endif
-
 static gboolean warning = FALSE;
 
 /* 62135596800 sec from year 0001 to 01 janv. 1970 00:00:00 GMT */
@@ -234,10 +225,10 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 
 		// Seek to start of timestamps
 		for (i = 0; i < ser_file->frame_count; i++) {
-			if ((int64_t)-1 == lseek64(ser_file->fd, offset+(i*8), SEEK_SET))
+			if ((int64_t)-1 == fseek64(ser_file->file, offset+(i*8), SEEK_SET))
 				return -1;
 
-			if (8 != read(ser_file->fd, &ser_file->ts[i], 8))
+			if (8 != fread(&ser_file->ts[i], 1, 8, ser_file->file))
 				return 0;
 		}
 
@@ -312,20 +303,21 @@ static int ser_recompute_frame_count(struct ser_struct *ser_file) {
 static int ser_read_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];
 
-	if (!ser_file || ser_file->fd <= 0)
+	if (!ser_file || ser_file->file == NULL)
 		return -1;
 
 	/* Get file size */
-	ser_file->filesize = lseek64(ser_file->fd, 0, SEEK_END);
+	fseek64(ser_file->file, 0, SEEK_END);
+	ser_file->filesize = ftell64(ser_file->file);
+	fseek64(ser_file->file, 0, SEEK_SET);
 	if (ser_file->filesize == -1) {
 		perror("seek");
 		return -1;
 	}
-	lseek64(ser_file->fd, 0, SEEK_SET);
 
 	/* Read header (size of 178) */
-	if (SER_HEADER_LEN != read(ser_file->fd, header, sizeof header)) {
-		perror("read");
+	if (SER_HEADER_LEN != fread(header, 1, sizeof header, ser_file->file)) {
+		perror("fread");
 		return -1;
 	}
 
@@ -389,10 +381,10 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 		for (i = 0; i < ser_file->frame_count; i++) {
 			if (i >= ser_file->ts_alloc)
 				break;
-			if ((int64_t)-1 == lseek64(ser_file->fd, offset+(i*8), SEEK_SET)) {
+			if ((int64_t)-1 == fseek64(ser_file->file, offset+(i*8), SEEK_SET)) {
 				return -1;
 			}
-			if (8 != write(ser_file->fd, &ser_file->ts[i], 8)) {
+			if (8 != fwrite(&ser_file->ts[i], 1, 8, ser_file->file)) {
 				perror("write timestamps:");
 				return -1;
 			}
@@ -405,9 +397,9 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 static int ser_write_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];
 
-	if (!ser_file || ser_file->fd <= 0)
+	if (!ser_file || ser_file->file == NULL)
 		return -1;
-	if ((int64_t) -1 == lseek64(ser_file->fd, 0, SEEK_SET)) {
+	if ((int64_t) -1 == fseek64(ser_file->file, 0, SEEK_SET)) {
 		perror("seek");
 		return -1;
 	}
@@ -422,7 +414,7 @@ static int ser_write_header(struct ser_struct *ser_file) {
 	memcpy(header + 162, &ser_file->date, 8);
 	memcpy(header + 170, &ser_file->date_utc, 8);
 
-	if (sizeof(header) != write(ser_file->fd, header, sizeof(header))) {
+	if (sizeof(header) != fwrite(header, 1, sizeof(header), ser_file->file)) {
 		perror("write");
 		return 1;
 	}
@@ -528,6 +520,15 @@ static int ser_alloc_ts(struct ser_struct *ser_file, int frame_no) {
  * Public functions
  */
 
+gboolean ser_is_cfa(struct ser_struct *ser_file) {
+	return ser_file && (ser_file->color_id == SER_BAYER_RGGB || 
+			ser_file->color_id == SER_BAYER_GRBG || 
+			ser_file->color_id == SER_BAYER_GBRG || 
+			ser_file->color_id == SER_BAYER_BGGR); 
+	// SER_BAYER_CYYM SER_BAYER_YCMY SER_BAYER_YMCY SER_BAYER_MYYC are not
+	// supported yet so returning false for them here is good
+}
+
 /* set the timestamps of the ser_file using a list of timestamps in string form */
 void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 	int i = 0;
@@ -579,14 +580,69 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 	return ser_close_file(ser_file);// closes, frees and zeroes
 }
 
+/* calling ser_write_frame_from_fit() with image indices that do not cover a
+ * contiguous range will pose some problems since there will be holes in images
+ * data and the indices of frames in the file will be incorrect. To solve this
+ * and still allow a parallel processing that can safely fail to be done with
+ * SER output, we compact the frames that have been identified as failed in the
+ * processing. The provided array contains booleans that inform about the
+ * success of the processing and the presence of the frame with a given index
+ * in the file. nb_frames is the size of this array and the last index + 1 of
+ * the frames added to the file.
+ * This function is not thread-safe. */
+int ser_compact_file(struct ser_struct *ser_file, unsigned char *successful_frames, int nb_frames) {
+	int64_t offseti, offsetj, frame_size;
+	int i, j;
+	unsigned char *buffer = NULL;
+	frame_size = ser_file->image_width * ser_file->image_height *
+		ser_file->number_of_planes * ser_file->byte_pixel_depth;
+
+	// frame_count should be fine because it's incremented only when adding
+	// one, but the real number of images for the file size if nb_frames
+	for (i = 0, j = 0; i < ser_file->frame_count; i++, j++) {
+		while (!successful_frames[j] && j < nb_frames) j++;
+		if (i != j) {
+			// move image j to i
+			if (!buffer) {
+				buffer = malloc(frame_size);
+				if (!buffer) return 1;
+				siril_log_message(_("Compacting SER file after parallel output to it...\n"));
+			}
+			offseti = SER_HEADER_LEN + frame_size * (int64_t)i;
+			offsetj = SER_HEADER_LEN + frame_size * (int64_t)j;
+
+			if ((int64_t)-1 == fseek64(ser_file->file, offsetj, SEEK_SET)) {
+				perror("seek");
+				return 1;
+			}
+			if (fread(buffer, 1, frame_size, ser_file->file) != frame_size) {
+				perror("fread");
+				return 1;
+			}
+			if ((int64_t)-1 == fseek64(ser_file->file, offseti, SEEK_SET)) {
+				perror("seek");
+				return 1;
+			}
+			if (fwrite(buffer, 1, frame_size, ser_file->file) != frame_size) {
+				perror("fwrite");
+				return 1;
+			}
+
+			ser_file->ts[i] = ser_file->ts[j];
+		}
+	}
+
+	if (buffer) free(buffer);
+	return 0;
+}
+
 /* ser_file must be allocated
  * the file is created with no image size, the first image added will set it. */
 int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		gboolean overwrite, struct ser_struct *copy_from) {
 	if (overwrite)
 		g_unlink(filename);
-	if ((ser_file->fd = g_open(filename, O_CREAT | O_RDWR | O_BINARY,
-			S_IWRITE | S_IREAD)) == -1) {
+	if ((ser_file->file = g_fopen(filename, "w+b")) == NULL) {
 		perror("open SER file for creation");
 		return 1;
 	}
@@ -638,12 +694,12 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 }
 
 int ser_open_file(const char *filename, struct ser_struct *ser_file) {
-	if (ser_file->fd > 0) {
+	if (ser_file->file) {
 		fprintf(stderr, "SER: file already opened, or badly closed\n");
 		return -1;
 	}
-	ser_file->fd = g_open(filename, O_RDWR | O_BINARY, 0); // now we can fix broken file, so not O_RDONLY anymore
-	if (ser_file->fd == -1) {
+	ser_file->file = g_fopen(filename, "r+b"); // now we can fix broken file, so not O_RDONLY anymore
+	if (ser_file->file == NULL) {
 		perror("SER file open");
 		return -1;
 	}
@@ -666,9 +722,9 @@ int ser_close_file(struct ser_struct *ser_file) {
 	int retval = 0;
 	if (!ser_file)
 		return -1;
-	if (ser_file->fd > 0) {
-		retval = close(ser_file->fd);
-		ser_file->fd = -1;
+	if (ser_file->file) {
+		retval = fclose(ser_file->file);
+		ser_file->file = NULL;
 	}
 	if (ser_file->file_id)
 		free(ser_file->file_id);
@@ -695,7 +751,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 	int64_t offset, frame_size;
 	size_t read_size;
 	WORD *olddata, *tmp;
-	if (!ser_file || ser_file->fd <= 0 || !ser_file->number_of_planes ||
+	if (!ser_file || ser_file->file == NULL || !ser_file->number_of_planes ||
 			!fit || frame_no < 0 || frame_no >= ser_file->frame_count)
 		return -1;
 
@@ -705,8 +761,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 
 	olddata = fit->data;
 	if ((fit->data = realloc(fit->data, frame_size * sizeof(WORD))) == NULL) {
-		fprintf(stderr, "ser_read: error realloc %s %ld\n", ser_file->filename,
-				frame_size);
+		fprintf(stderr, "ser_read: error realloc %s %"G_GUINT64_FORMAT"\n", ser_file->filename, frame_size);
 		if (olddata)
 			free(olddata);
 		return -1;
@@ -719,11 +774,11 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 #ifdef _OPENMP
 	omp_set_lock(&ser_file->fd_lock);
 #endif
-	if ((int64_t)-1 == lseek64(ser_file->fd, offset, SEEK_SET)) {
-		perror("lseek in SER");
+	if ((int64_t)-1 == fseek64(ser_file->file, offset, SEEK_SET)) {
+		perror("fseek in SER");
 		retval = -1;
 	} else {
-		if (read(ser_file->fd, fit->data, read_size) != read_size)
+		if (fread(fit->data, 1, read_size, ser_file->file) != read_size)
 			retval = -1;
 	}
 #ifdef _OPENMP
@@ -735,6 +790,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 	ser_manage_endianess_and_depth(ser_file, fit->data, frame_size);
 
 	fit->bitpix = (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
+	fit->orig_bitpix = fit->bitpix;
 
 	/* If the user checks the SER CFA box, the video is opened in B&W
 	 * RGB and BGR are not coming from raw data. In consequence CFA does
@@ -891,11 +947,11 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 		area->y * ser_file->image_width *
 		ser_file->byte_pixel_depth * (layer != -1 ? 3 : 1);	// requested area
 
-	if ((int64_t)-1 == lseek64(ser_file->fd, offset, SEEK_SET)) {
-		perror("lseek in SER");
+	if ((int64_t)-1 == fseek64(ser_file->file, offset, SEEK_SET)) {
+		perror("fseek in SER");
 		retval = -1;
 	} else {
-		if (read(ser_file->fd, read_buffer, read_size) != read_size)
+		if (fread(read_buffer, 1, read_size, ser_file->file) != read_size)
 			retval = -1;
 	}
 #ifdef _OPENMP
@@ -942,7 +998,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 	rectangle debayer_area, image_area;
 	sensor_pattern sensortmp;
 
-	if (!ser_file || ser_file->fd <= 0 || frame_no < 0
+	if (!ser_file || ser_file->file == NULL || frame_no < 0
 			|| frame_no >= ser_file->frame_count)
 		return -1;
 
@@ -1057,7 +1113,7 @@ int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame_n
 	BYTE *data8 = NULL;			// for 8-bit files
 	WORD *data16 = NULL;		// for 16-bit files
 
-	if (!ser_file || ser_file->fd <= 0 || !fit)
+	if (!ser_file || ser_file->file == NULL || !fit)
 		return -1;
 	if (ser_file->number_of_planes == 0) {
 		// adding first frame of a new sequence, use it to populate the header
@@ -1102,7 +1158,7 @@ int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame_n
 #ifdef _OPENMP
 	omp_set_lock(&ser_file->fd_lock);
 #endif
-	if ((int64_t)-1 == lseek64(ser_file->fd, offset, SEEK_SET)) {
+	if ((int64_t)-1 == fseek64(ser_file->file, offset, SEEK_SET)) {
 #ifdef _OPENMP
 		omp_unset_lock(&ser_file->fd_lock);
 #endif
@@ -1112,7 +1168,7 @@ int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame_n
 	}
 
 	if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) {
-		ret = write(ser_file->fd, data8, frame_size * ser_file->byte_pixel_depth);
+		ret = fwrite(data8, 1, frame_size * ser_file->byte_pixel_depth, ser_file->file);
 #ifdef _OPENMP
 		omp_unset_lock(&ser_file->fd_lock);
 #endif
@@ -1122,7 +1178,7 @@ int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame_n
 			goto free_and_quit;
 		}
 	} else {
-		ret = write(ser_file->fd, data16, frame_size * ser_file->byte_pixel_depth);
+		ret = fwrite(data16, 1, frame_size * ser_file->byte_pixel_depth, ser_file->file);
 #ifdef _OPENMP
 		omp_unset_lock(&ser_file->fd_lock);
 #endif
