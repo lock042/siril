@@ -512,9 +512,16 @@ struct star_finder_struct {
 	double roundness;
 };
 
+enum _siril_mode {
+	NO_GUI = 0,
+	DEEP_SKY,
+	PLANETARY
+};
+
 /* The global data structure of siril, the only with gfit and the gtk builder,
  * declared in main.c */
 struct cominf {
+	enum _siril_mode siril_mode;
 	/* current version of GTK, through GdkPixmap, doesn't handle gray images, so
 	 * graybufs are the same size than the rgbbuf with 3 times the same value */
 	guchar *graybuf[MAXGRAYVPORT];	// one B/W display buffer per viewport (R,G,B)

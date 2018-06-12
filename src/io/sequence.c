@@ -49,8 +49,10 @@
 #include "avi_pipp/avi_writer.h"
 #include "single_image.h"
 #include "gui/histogram.h"
+#include "gui/gui.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"	// clear_stars_list
+#include "gui/image_display.h"
 #include "algos/PSF.h"
 #include "algos/quality.h"
 #include "algos/statistics.h"

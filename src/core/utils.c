@@ -985,52 +985,6 @@ float computePente(WORD *lo, WORD *hi) {
 	return pente;
 }
 
-static const gchar *checking_css_filename() {
-	printf(_("Checking GTK version ... GTK-%d.%d\n"), GTK_MAJOR_VERSION, GTK_MINOR_VERSION);
-	if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION >= 20))
-		return "gtk.css";
-	else if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION < 20))
-		return "gtk_old.css";
-	else {
-		return NULL;
-	}
-}
-
-/**
- * Loads the css sheet
- * @param path path of the file being loaded
- */
-void load_css_style_sheet (char *path) {
-	GtkCssProvider *css_provider;
-	GdkDisplay *display;
-	GdkScreen *screen;
-	gchar *CSSFile;
-	const gchar *css_filename;
-
-	css_filename = checking_css_filename();
-	if (css_filename == NULL) {
-		printf(_("The version of GTK does not match requirements: (GTK-%d.%d)\n"), GTK_MAJOR_VERSION, GTK_MINOR_VERSION);
-		exit(1);
-	}
-
-	CSSFile = g_build_filename (path, css_filename, NULL);
-	if (!g_file_test (CSSFile, G_FILE_TEST_EXISTS)) {
-		g_error (_("Unable to load CSS style sheet file: %s. Please reinstall %s\n"), CSSFile, PACKAGE);
-	}
-	else {
-		css_provider = gtk_css_provider_new();
-		display = gdk_display_get_default();
-		screen = gdk_display_get_default_screen(display);
-		gtk_style_context_add_provider_for_screen(screen,
-				GTK_STYLE_PROVIDER(css_provider),
-				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-		gtk_css_provider_load_from_path(css_provider, CSSFile, NULL);
-		fprintf(stdout, _("Successfully loaded '%s'\n"), CSSFile);
-		g_object_unref (css_provider);
-	}
-	g_free(CSSFile);
-}
-
 /**
  * From a datetime it computes the Julian date needed in photometry
  * (code borrowed from muniwin)

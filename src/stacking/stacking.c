@@ -43,6 +43,8 @@
 #include "stacking/stacking.h"
 #include "algos/PSF.h"
 #include "gui/PSF_list.h"
+#include "gui/gui.h"
+#include "gui/image_display.h"
 #include "gui/histogram.h"	// update_gfit_histogram_if_needed();
 #include "io/ser.h"
 #include "sum.h"

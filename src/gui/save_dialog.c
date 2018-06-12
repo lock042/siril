@@ -30,7 +30,7 @@
 #include "gui/save_dialog.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-
+#include "gui/gui.h"
 
 static image_type whichminisave = TYPEUNDEF;
 #ifdef _WIN32

@@ -22,7 +22,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
-#include "gui/callbacks.h"
+#include "gui/gui.h"
 #include "gui/progress_and_log.h"
 #include "io/sequence.h"
 #include "io/single_image.h"

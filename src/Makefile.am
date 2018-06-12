@@ -11,14 +11,14 @@ siril_SOURCES = \
 	io/conversion.c io/conversion.h io/ser.c io/ser.h io/films.c io/films.h \
 	io/image_formats_libraries.c io/image_formats_internal.c io/image_format_fits.c \
 	io/sequence.c io/sequence.h io/seqfile.c io/single_image.c io/single_image.h \
-	io/mp4_output.h io/mp4_output.c io/sequence_export.c \
-	gui/callbacks.c gui/callbacks.h gui/histogram.c gui/histogram.h gui/save_dialog.c gui/save_dialog.h \
-	gui/PSF_list.h gui/PSF_list.c gui/sequence_list.c gui/registration_preview.c \
-	gui/statistics_list.c gui/script_menu.c gui/script_menu.h \
-	gui/plot.c gui/plot.h \
+	io/mp4_output.h io/mp4_output.c io/sequence_export.c gui/gui.c gui/gui.h \
+	gui/callbacks.c gui/callbacks.h gui/histogram.c gui/histogram.h \
+	gui/save_dialog.c gui/save_dialog.h gui/PSF_list.h gui/PSF_list.c \
+	gui/sequence_list.c gui/registration_preview.c gui/image_display.c gui/image_display.h \
+	gui/statistics_list.c gui/script_menu.c gui/script_menu.h gui/plot.c gui/plot.h \
 	gui/gnuplot_i/gnuplot_i.c gui/gnuplot_i/gnuplot_i.h \
 	gui/progress_and_log.c gui/progress_and_log.h \
-	registration/registration.c registration/registration.h registration/global.c \
+	registration/registration.c registration/registration.h registration/global.c registration/cog.c \
 	registration/matching/match.c registration/matching/atpmatch.c registration/matching/misc.c \
 	stacking/stacking.c stacking/stacking.h stacking/sum.c stacking/sum.h stacking/normalization.c \
 	algos/gradient.c algos/gradient.h algos/quality.c algos/quality.h \

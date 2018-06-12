@@ -26,7 +26,8 @@
 #include <string.h>
 
 #include "core/siril.h"
-#include "gui/callbacks.h"
+#include "gui/gui.h"
+#include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "core/proto.h"
 #include "registration/registration.h"

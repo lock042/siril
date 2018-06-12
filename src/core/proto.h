@@ -120,7 +120,6 @@ char*	remove_ext_from_filename(const char *basename);
 char*	str_append(char** data, const char* newdata);
 char*	format_basename(char *root);
 float	computePente(WORD *lo, WORD *hi);
-void	load_css_style_sheet (char *path);
 double	encodeJD(dateTime dt);
 gint strcompare(gconstpointer *a, gconstpointer *b);
 

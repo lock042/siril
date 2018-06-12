@@ -31,6 +31,7 @@
 #include "algos/PSF.h"
 #include "gui/PSF_list.h"
 #include "gui/progress_and_log.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "io/sequence.h"
 #include "io/ser.h"

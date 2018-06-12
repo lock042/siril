@@ -6,7 +6,7 @@
 #include "ser.h"
 #include "stacking/stacking.h"
 #include "registration/registration.h"
-#include "gui/callbacks.h"
+#include "gui/gui.h"
 #include "gui/progress_and_log.h"
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
 #include "io/films.h"

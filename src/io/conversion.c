@@ -35,6 +35,7 @@
 #include "io/films.h"
 #include "io/sequence.h"
 #include "io/ser.h"
+#include "gui/gui.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"

@@ -4,12 +4,14 @@
 #include <sys/time.h>
 #include "core/siril.h"	// for sliders_mode
 
-GtkWidget* lookup_widget (const gchar *widget_name);
 GtkWidget *popover_new(GtkWidget *widget, const gchar *text);
 
+void test_and_allocate_reference_image(int vport);
+
+void initialize_scrollbars();
+void initialize_path_directory();
 void initialize_shortcuts();
 void fill_about_dialog();
-void initialize_remap();
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
 void set_sliders_value_to_gfit();
@@ -24,8 +26,6 @@ void set_GUI_DiskSpace(double mem);
 void set_GUI_misc();
 void initialize_preprocessing();
 void update_MenuItem();
-void queue_redraw(int doremap);
-gboolean redraw(int vport, int remap);
 void sliders_mode_set_state(sliders_mode);
 int copy_rendering_settings_when_chained(gboolean from_GUI);
 
@@ -59,7 +59,6 @@ void hide_gray_window();
 
 void zoomcombo_update_display_for_zoom();
 void initialize_FITS_name_entries();
-void adjust_vport_size_to_image();
 void scrollbars_hadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void scrollbars_vadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void set_output_filename_to_sequence_name();

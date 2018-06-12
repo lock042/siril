@@ -33,6 +33,8 @@
 #include "io/single_image.h"
 #include "gui/PSF_list.h"
 #include "gui/callbacks.h"
+#include "gui/image_display.h"
+#include "gui/gui.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
 #include "compositing/filters.h"

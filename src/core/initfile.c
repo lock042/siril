@@ -68,7 +68,6 @@ static int readinitfile() {
 				fprintf(stderr, "Could not change to start-up directory, aborting\n");
 				return 1;
 			}
-			set_GUI_CWD();
 			writeinitfile();
 		}
 	}
@@ -182,6 +181,8 @@ static int readinitfile() {
 		com.ext = strdup(".fit");
 	}
 	com.script_path = list;
+	com.siril_mode = PLANETARY;	// to serialize someday
+	//com.siril_mode = DEEP_SKY;	// to serialize someday
 	return 0;
 }
 
@@ -410,7 +411,6 @@ int checkinitfile() {
 	if (readinitfile()) {	// couldn't read it
 		char filename[255];
 
-		set_GUI_CWD();
 		// if that fails, check and create the default ini file
 #if (defined(__APPLE__) && defined(__MACH__))
 		snprintf(filename, 255, "%s", homefolder);

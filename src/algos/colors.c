@@ -29,6 +29,8 @@
 #include "core/proto.h"
 #include "core/undo.h"
 #include "gui/progress_and_log.h"
+#include "gui/image_display.h"
+#include "gui/gui.h"
 #include "gui/callbacks.h"
 #include "gui/histogram.h"
 #include "io/single_image.h"

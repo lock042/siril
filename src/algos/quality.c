@@ -384,8 +384,6 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 		RealThreshHold = THRESHOLD * 256;
 
 	for (y = y1; y <= y2; ++y) {
-//		int rowcount = 0;
-
 		unsigned short *iptr = fit->data + y * img_width + x1;
 		for (x = x1; x <= x2; ++x, ++iptr) {
 			if (*iptr >= RealThreshHold && *(iptr - 1) >= RealThreshHold
@@ -395,7 +393,6 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 				x_total += x;
 				y_total += y;
 				count++;
-//				rowcount++;
 			}
 		}
 	}
@@ -404,14 +401,14 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 		printf("[no image] ");
 		if (BlankImageCount >= 0)
 			++BlankImageCount;
-		return (0);
+		return 1;
 	}
 
 	if (count < MinPixels) {
 		printf("[Not enough pixels. Found %d, require %d] ", count, MinPixels);
 		if (BlankImageCount >= 0)
 			++BlankImageCount;
-		return (0);
+		return 1;
 	}
 
 	if (count > 0) {
@@ -422,15 +419,13 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 
 	*y_avg = img_height - *y_avg;
 
-	return (1);
+	return 0;
 }
 
 static int _FindCentre(fits *fit, int x1, int y1, int x2, int y2, double *x_avg,
 		double *y_avg) {
 
 	return _FindCentre_Barycentre(fit, x1, y1, x2, y2, x_avg, y_avg);
-
-	return 0;
 }
 
 // find the centre of brightness of the whole image

@@ -31,6 +31,7 @@
 #include "core/initfile.h"
 #include "core/command.h"
 #include "core/processing.h"
+#include "gui/gui.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "script_menu.h"

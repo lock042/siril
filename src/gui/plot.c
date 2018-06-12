@@ -31,6 +31,8 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "gui/gui.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "kplot.h"
