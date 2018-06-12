@@ -529,6 +529,7 @@ static void set_filters_dialog(GtkFileChooser *chooser) {
 }
 
 static void opendial(void) {
+	gint res;
 #ifdef _WIN32
 	GtkFileChooserNative *widgetdialog;
 #else
@@ -537,8 +538,11 @@ static void opendial(void) {
 	GtkFileChooser *dialog = NULL;
 	GtkFileChooserAction action;
 	GtkWindow *main_window = GTK_WINDOW(lookup_widget("main_window"));
-	GtkWindow *control_window = GTK_WINDOW(lookup_widget("control_window"));
-	gint res;
+	GtkWindow *control_window;
+	if (com.siril_mode == PLANETARY)
+		control_window = main_window;
+	else if (com.siril_mode == DEEP_SKY)
+		control_window = GTK_WINDOW(lookup_widget("control_window"));
 
 	if (!com.wd)
 		return;
@@ -1115,8 +1119,9 @@ void adjust_exclude(int n, gboolean changed) {
 int adjust_sellabel() {
 	static GtkLabel *local_label = NULL, *global_label = NULL;
 	char bufferlocal[256], bufferglobal[256];
-	if (local_label == NULL) {
-		local_label = GTK_LABEL(lookup_widget("imagesel_label"));
+	if (global_label == NULL) {
+		if (com.siril_mode == DEEP_SKY) 
+			local_label = GTK_LABEL(lookup_widget("imagesel_label"));
 		global_label = GTK_LABEL(lookup_widget("labelseq"));
 	}
 	if (sequence_is_loaded()) {
@@ -1148,7 +1153,8 @@ int adjust_sellabel() {
 		gtk_widget_set_sensitive(lookup_widget("goregister_button"), FALSE);
 	}
 
-	gtk_label_set_text(local_label, bufferlocal);
+	if (com.siril_mode == DEEP_SKY) 
+		gtk_label_set_text(local_label, bufferlocal);
 	gtk_label_set_text(global_label, bufferglobal);
 	return 0;
 }
@@ -1618,6 +1624,7 @@ void show_main_gray_window() {
 }
 
 void show_rgb_window() {
+	if (com.siril_mode == PLANETARY) return;
 	GtkCheckMenuItem *rgbcheck = GTK_CHECK_MENU_ITEM(
 			gtk_builder_get_object(builder, "menuitemcolor"));
 	gtk_check_menu_item_set_active(rgbcheck, TRUE);
@@ -1625,6 +1632,7 @@ void show_rgb_window() {
 }
 
 void hide_rgb_window() {
+	if (com.siril_mode == PLANETARY) return;
 	/* unchecking the menu item is done in the window destruction callback */
 	/*GtkCheckMenuItem *rgbcheck =
 	 GTK_CHECK_MENU_ITEM(gtk_builder_get_object(builder, "menuitemcolor"));
@@ -1633,6 +1641,7 @@ void hide_rgb_window() {
 }
 
 void hide_gray_window() {
+	if (com.siril_mode == PLANETARY) return;
 	gtk_widget_hide(lookup_widget("main_window"));
 }
 
@@ -2031,12 +2040,15 @@ void set_GUI_LIBRAW() {
 	GtkComboBox *inter = GTK_COMBO_BOX(lookup_widget("comboBayer_inter"));
 	GtkToggleButton *compat = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility"));
 	GtkToggleButton *use_header = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header"));
-	GtkToggleButton *demosaicingButton = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
+	GtkToggleButton *demosaicingButton;
+	if (com.siril_mode == DEEP_SKY) 
+		demosaicingButton = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
 	gtk_combo_box_set_active(pattern, com.debayer.bayer_pattern);
 	gtk_combo_box_set_active(inter, com.debayer.bayer_inter);
 	gtk_toggle_button_set_active(compat, com.debayer.compatibility);
 	gtk_toggle_button_set_active(use_header, com.debayer.use_bayer_header);
-	gtk_toggle_button_set_active(demosaicingButton,	com.debayer.open_debayer);
+	if (com.siril_mode == DEEP_SKY) 
+		gtk_toggle_button_set_active(demosaicingButton,	com.debayer.open_debayer);
 }
 
 void set_GUI_photometry() {

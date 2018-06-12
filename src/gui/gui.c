@@ -129,6 +129,7 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 		return;
 
 	uninit_gui();	// release all widgets and the builder
+	com.siril_mode = new_mode;
 
 	if (new_mode == NO_GUI)
 		return;
@@ -168,8 +169,10 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 	com.vport[GREEN_VPORT] = lookup_widget("drawingareag");
 	com.vport[BLUE_VPORT] = lookup_widget("drawingareab");
 	com.vport[RGB_VPORT] = lookup_widget("drawingareargb");
-	com.preview_area[0] = lookup_widget("drawingarea_preview1");
-	com.preview_area[1] = lookup_widget("drawingarea_preview2");
+	if (com.siril_mode == DEEP_SKY) {
+		com.preview_area[0] = lookup_widget("drawingarea_preview1");
+		com.preview_area[1] = lookup_widget("drawingarea_preview2");
+	}
 
 	initialize_remap();
 	initialize_scrollbars();
@@ -178,31 +181,33 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 	/* Keybord Shortcuts */
 	initialize_shortcuts();
 
-	/* Select combo boxes that trigger some text display or other things */
-	gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstack_methods")), 0);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstacksel")), 0);
+	if (com.siril_mode == DEEP_SKY) {
+		/* Select combo boxes that trigger some text display or other things */
+		gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstack_methods")), 0);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstacksel")), 0);
+
+		/* initialize comboboxs of extraction background */
+		GtkComboBox *order = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combo_polyorder"));
+		gtk_combo_box_set_active(order, POLY_4);
+		GtkComboBox *grad_inter = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combobox_gradient_inter"));
+		gtk_combo_box_set_active(grad_inter, 0);
+
+		/* Create tags associated with the buffer for the output text. */
+		GtkTextBuffer *tbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(gtk_builder_get_object(builder, "output")));
+		/* Tag with weight bold and tag name "bold" . */
+		gtk_text_buffer_create_tag (tbuf, "bold", "weight", PANGO_WEIGHT_BOLD, NULL);
+		/* Tag with style normal */
+		gtk_text_buffer_create_tag (tbuf, "normal", "weight", PANGO_WEIGHT_NORMAL, NULL);
+		/* Couleur Tags */
+		gtk_text_buffer_create_tag (tbuf, "red", "foreground", "#e72828", NULL);
+		gtk_text_buffer_create_tag (tbuf, "salmon", "foreground", "#ff9898", NULL);
+		gtk_text_buffer_create_tag (tbuf, "green", "foreground", "#01b301", NULL);
+		gtk_text_buffer_create_tag (tbuf, "blue", "foreground", "#7a7af8", NULL);
+		gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
+	}
 
 	/* needs com.zoom_value */
 	zoomcombo_update_display_for_zoom();
-
-	/* initialize comboboxs of extraction background */
-	GtkComboBox *order = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combo_polyorder"));
-	gtk_combo_box_set_active(order, POLY_4);
-	GtkComboBox *grad_inter = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combobox_gradient_inter"));
-	gtk_combo_box_set_active(grad_inter, 0);
-
-	/* Create tags associated with the buffer for the output text. */
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(gtk_builder_get_object(builder, "output")));
-	/* Tag with weight bold and tag name "bold" . */
-	gtk_text_buffer_create_tag (tbuf, "bold", "weight", PANGO_WEIGHT_BOLD, NULL);
-	/* Tag with style normal */
-	gtk_text_buffer_create_tag (tbuf, "normal", "weight", PANGO_WEIGHT_NORMAL, NULL);
-	/* Couleur Tags */
-	gtk_text_buffer_create_tag (tbuf, "red", "foreground", "#e72828", NULL);
-	gtk_text_buffer_create_tag (tbuf, "salmon", "foreground", "#ff9898", NULL);
-	gtk_text_buffer_create_tag (tbuf, "green", "foreground", "#01b301", NULL);
-	gtk_text_buffer_create_tag (tbuf, "blue", "foreground", "#7a7af8", NULL);
-	gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
 
 	/* needs com.seq init */
 	adjust_sellabel();
@@ -212,19 +217,23 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 
 	/* initialize menu gui */
 	update_MenuItem();
-	initialize_script_menu();
+	if (com.siril_mode == DEEP_SKY) {
+		initialize_script_menu();
 
-	/* initialize command completion */
-	init_completion_command();
+		/* initialize command completion */
+		init_completion_command();
+
+		/* initialize registration methods */
+		initialize_registration_methods();
+
+		/* initialize stacking methods */
+		initialize_stacking_methods();
+
+		init_peaker_GUI();
+	}
 
 	/* initialize preprocessing */
 	initialize_preprocessing();
-
-	/* initialize registration methods */
-	initialize_registration_methods();
-
-	/* initialize stacking methods */
-	initialize_stacking_methods();
 
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);
@@ -249,19 +258,19 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 #endif
 	set_GUI_photometry();
 
-	init_peaker_GUI();
-
 	update_spinCPU(com.max_thread);
 
 	if (com.have_dark_theme) {
-		/* Put dark icons */
-		printf("Loading dark theme...\n");
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_anticlock_button")), lookup_widget("rotate90-acw_dark"));
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_clock_button")), lookup_widget("rotate90-cw_dark"));
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("mirrorx_button")), lookup_widget("image_mirrorx_dark"));
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("mirrory_button")), lookup_widget("image_mirrory_dark"));
+		if (com.siril_mode == DEEP_SKY) {
+			/* Put dark icons */
+			printf("Loading dark theme...\n");
+			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_anticlock_button")), lookup_widget("rotate90-acw_dark"));
+			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_clock_button")), lookup_widget("rotate90-cw_dark"));
+			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("mirrorx_button")), lookup_widget("image_mirrorx_dark"));
+			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("mirrory_button")), lookup_widget("image_mirrory_dark"));
+			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("seqlist_button")), lookup_widget("image_seqlist_dark"));
+		}
 		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("histogram_button")), lookup_widget("image_histogram_dark"));
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("seqlist_button")), lookup_widget("image_seqlist_dark"));
 	}
 
 	update_used_memory();
