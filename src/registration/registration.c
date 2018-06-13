@@ -149,7 +149,7 @@ struct registration_method *get_selected_registration_method() {
 	return reg_methods[index];
 }
 
-static void normalizeQualityData(struct registration_args *args, double q_min, double q_max) {
+void normalizeQualityData(struct registration_args *args, double q_min, double q_max) {
 	int frame;
 	double diff = q_max - q_min;
 
@@ -246,8 +246,8 @@ int register_shift_dft(struct registration_args *args) {
 	for (j = 0; j < sqsize; j++)
 		ref[j] = (double) fit_ref.data[j];
 
-	// We don't need fit anymore, we can destroy it.
 	current_regdata[ref_image].quality = QualityEstimate(&fit_ref, args->layer, QUALTYPE_NORMAL);
+	// We don't need fit anymore, we can destroy it.
 	clearfits(&fit_ref);
 	fftw_execute_dft(p, ref, in); /* repeat as needed */
 	current_regdata[ref_image].shiftx = 0.0;
@@ -643,8 +643,10 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 
 /* for now, the sequence argument is used only when executing a script */
 int get_registration_layer(sequence *seq) {
+	static GtkComboBox *registbox = NULL;
 	if (!com.script) {
-		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
+		if (!registbox)
+			registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		int reglayer = gtk_combo_box_get_active(registbox);
 		if (!seq || !seq->regparam || seq->nb_layers < 0)
 			return -1;

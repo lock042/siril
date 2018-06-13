@@ -240,17 +240,17 @@ static double Gradient(WORD *buf, int width, int height, int qtype) {
 	int xborder = (int) ((double) width * QMARGIN) + 1;
 	double d1, d2;
 	double val, avg = 0;
-	int threshhold = (THRESHOLD) << 8;
+	int threshold = (THRESHOLD) << 8;
 	unsigned char *map = calloc(width * height, sizeof(unsigned char));
 
-	// pass 1 locate all pixels > threshhold and flag the 3x3 region
+	// pass 1 locate all pixels > threshold and flag the 3x3 region
 	// around them for inclusion in the algorithm
 	pixels = 0;
 	avg = 0;
 	for (y = yborder; y < height - yborder; ++y) {
 		int o = y * width + xborder;
 		for (x = xborder; x < width - xborder; ++x, ++o) {
-			if (buf[o] >= threshhold) {
+			if (buf[o] >= threshold) {
 				map[o - width - 1] = map[o - width] = map[o - width + 1] = 1;
 				map[o - 1] = map[o] = map[o + 1] = 1;
 				map[o + width - 1] = map[o + width] = map[o + width + 1] = 1;
@@ -350,13 +350,9 @@ static unsigned short *_smooth_image_16(unsigned short *buf, int width,
 
 // Scan the region given by (x1,y1) - (x2,y2) and return the barycentre (centre of brightness)
 
-// For a pixel to be counted it's orthogonal neighbors must all be above the threshhold. This
-// stops hot pixels and isolated pixels from counting.
+// For a pixel to be counted it's orthogonal neighbours must all be above the threshold. This
+// prevents hot pixels and isolated pixels from counting.
 // Also, a horizontal gap of 3 or more pixels will cause the last counted pixel to be un-counted.
-//
-
-int BlankImageCount = 0;
-int MinPixels = 50;
 
 static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 		double *x_avg, double *y_avg) {
@@ -364,32 +360,29 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 	int img_height = fit->ry;
 	int x, y;
 	int count = 0;	// count of significant pixels
-	double x_total = 0, y_total = 0;
-	double RealThreshHold;
+	int x_total = 0.0, y_total = 0.0;
+	unsigned short threshold;
 
-	// must prevent scanning near the edge due to the extended tests below that look
-	// +/- 1 pixel above and below
-	if (x1 < 1)
-		x1 = 1;
-	if (y1 < 1)
-		y1 = 1;
+	// must prevent scanning near the edges due to the tests that check
+	// +/- 1 pixel in all directions
+	if (x1 < 1) x1 = 1;
+	if (y1 < 1) y1 = 1;
 	if (x2 >= img_width - 1)
 		x2 = img_width - 2;
 	if (y2 >= img_height - 1)
 		y2 = img_height - 2;
 
 	if (get_normalized_value(fit) == UCHAR_MAX)
-		RealThreshHold = THRESHOLD;
-	else
-		RealThreshHold = THRESHOLD * 256;
+		threshold = THRESHOLD;
+	else threshold = (THRESHOLD) << 8;
 
 	for (y = y1; y <= y2; ++y) {
 		unsigned short *iptr = fit->data + y * img_width + x1;
 		for (x = x1; x <= x2; ++x, ++iptr) {
-			if (*iptr >= RealThreshHold && *(iptr - 1) >= RealThreshHold
-					&& *(iptr + 1) >= RealThreshHold
-					&& *(iptr - img_width) >= RealThreshHold
-					&& *(iptr + img_width) >= RealThreshHold) {
+			if (*iptr >= threshold && *(iptr - 1) >= threshold
+					&& *(iptr + 1) >= threshold
+					&& *(iptr - img_width) >= threshold
+					&& *(iptr + img_width) >= threshold) {
 				x_total += x;
 				y_total += y;
 				count++;
@@ -397,45 +390,24 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 		}
 	}
 
-	if (count == 0) {
-		printf("[no image] ");
-		if (BlankImageCount >= 0)
-			++BlankImageCount;
-		return 1;
+	if (count < MINPIXELS) {
+		return -1;
 	}
 
-	if (count < MinPixels) {
-		printf("[Not enough pixels. Found %d, require %d] ", count, MinPixels);
-		if (BlankImageCount >= 0)
-			++BlankImageCount;
-		return 1;
-	}
-
-	if (count > 0) {
-		*x_avg = ((double) x_total / (double) count + 0.5);
-		*y_avg = ((double) y_total / (double) count + 0.5);
-		BlankImageCount = 0;
-	}
-
-	*y_avg = img_height - *y_avg;
-
+	*x_avg = (double)x_total / (double)count;
+	*y_avg = (double)y_total / (double)count;
 	return 0;
 }
 
-static int _FindCentre(fits *fit, int x1, int y1, int x2, int y2, double *x_avg,
-		double *y_avg) {
-
-	return _FindCentre_Barycentre(fit, x1, y1, x2, y2, x_avg, y_avg);
-}
-
-// find the centre of brightness of the whole image
+// Find the centre of brightness of the whole image.
+// Returns -1 if not enough pixels are above the threshold.
 int FindCentre(fits *fit, double *x_avg, double *y_avg) {
 	int x1 = 2;
 	int x2 = fit->rx - 3;
 	int y1 = 0;
 	int y2 = fit->ry - 1;
 
-	return _FindCentre(fit, x1, y1, x2, y2, x_avg, y_avg);
+	return _FindCentre_Barycentre(fit, x1, y1, x2, y2, x_avg, y_avg);
 }
 
 /* Aperture algorithm for determining quality of small objects (round, featureless).

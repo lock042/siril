@@ -23,6 +23,7 @@
 #include "registration.h"
 #include "algos/quality.h"
 #include "gui/progress_and_log.h"
+#include "stacking/stacking.h"
 
 struct regcog_data {
 	struct registration_args *regargs;
@@ -51,12 +52,19 @@ static int regcog_prepare_hook(struct generic_seq_args *args) {
 
 static int regcog_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
 	struct regcog_data *rcdata = args->user;
-	double shiftx, shifty;
+	struct registration_args *regargs = rcdata->regargs;
+	double shiftx, shifty, quality;
 	int retval;
 
+	// Compute barycentre for the image
 	retval = FindCentre(fit, &shiftx, &shifty);
+	if (retval) return retval;
 	rcdata->current_regdata[in_index].shiftx = (float)shiftx;
 	rcdata->current_regdata[in_index].shifty = (float)shifty;
+
+	// Compute quality for the image
+	quality = QualityEstimate(fit, regargs->layer, QUALTYPE_NORMAL);
+	rcdata->current_regdata[in_index].quality = quality;
 	return retval;
 }
 
@@ -65,7 +73,32 @@ static int regcog_finalize_hook(struct generic_seq_args *args) {
 	struct registration_args *regargs = rcdata->regargs;
 	if (!args->retval) {
 		args->seq->regparam[regargs->layer] = rcdata->current_regdata;
+
+		/* find best frame and normalize quality */
+		int i, q_index;
+		double q_max = 0, q_min = DBL_MAX;
+		for (i = 0; i < args->seq->number; i++) {
+			double qual = rcdata->current_regdata[i].quality;
+			if (qual > q_max) {
+				q_max = qual;
+				q_index = i;
+			}
+			q_min = min(q_min, qual);
+		}
+		normalizeQualityData(regargs, q_min, q_max);
+
+		/* get shifts relative to the reference image */
+		double ref_x = rcdata->current_regdata[q_index].shiftx;
+		double ref_y = rcdata->current_regdata[q_index].shifty;
+		for (i = 0; i < args->seq->number; i++) {
+			rcdata->current_regdata[i].shiftx = ref_x - rcdata->current_regdata[i].shiftx;
+			/* for Y, FITS are upside-down */
+			if (args->seq->type == SEQ_REGULAR)
+				rcdata->current_regdata[i].shifty = ref_y + rcdata->current_regdata[i].shifty;
+			else rcdata->current_regdata[i].shifty = ref_y - rcdata->current_regdata[i].shifty;
+		}
 		siril_log_message(_("Registration finished.\n"));
+		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index);
 	}
 	else {
 		siril_log_message(_("Registration aborted.\n"));
@@ -80,10 +113,10 @@ int register_cog(struct registration_args *regargs) {
 	args->seq = regargs->seq;
 	args->partial_image = FALSE;
 	if (regargs->process_all_frames) {
-		args->filtering_criterion = seq_filter_all;
+		args->filtering_criterion = stack_filter_all;
 		args->nb_filtered_images = regargs->seq->number;
 	} else {
-		args->filtering_criterion = seq_filter_included;
+		args->filtering_criterion = stack_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
 	args->prepare_hook = regcog_prepare_hook;

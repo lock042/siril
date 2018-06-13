@@ -198,7 +198,7 @@ static gpointer export_sequence(gpointer ptr) {
 			retval = -1;
 			goto free_and_reset_progress_bar;
 		}
-		if (!args->filtering_criterion(args->seq, i, args->filtering_parameter)) {
+		if (!args->filtering_criterion(args->seq, reglayer, i, args->filtering_parameter)) {
 			siril_log_message(_("image %d is excluded from export\n"), i);
 			skipped++;
 			continue;

@@ -136,6 +136,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->partial_image = FALSE;
 	args->filtering_criterion = stackargs->filtering_criterion;
 	args->filtering_parameter = stackargs->filtering_parameter;
+	args->layer = stackargs->reglayer;
 	args->nb_filtered_images = stackargs->nb_images_to_stack;
 	args->prepare_hook = sum_stacking_prepare_hook;
 	args->image_hook = sum_stacking_image_hook;

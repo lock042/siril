@@ -39,6 +39,7 @@
 #include "registration/matching/match.h"
 #include "registration/matching/misc.h"
 #include "opencv/opencv.h"
+#include "stacking/stacking.h"
 
 #define MAX_STARS_FITTED 2000
 
@@ -368,10 +369,10 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->seq = regargs->seq;
 	args->partial_image = FALSE;
 	if (regargs->process_all_frames) {
-		args->filtering_criterion = seq_filter_all;
+		args->filtering_criterion = stack_filter_all;
 		args->nb_filtered_images = regargs->seq->number;
 	} else {
-		args->filtering_criterion = seq_filter_included;
+		args->filtering_criterion = stack_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
 	args->prepare_hook = star_align_prepare_hook;

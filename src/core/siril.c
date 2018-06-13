@@ -60,6 +60,7 @@
 #include "algos/cosmetic_correction.h"
 #include "algos/statistics.h"
 #include "opencv/opencv.h"
+#include "stacking/stacking.h"
 
 #define MAX_ITER 15
 #define EPSILON 1E-4
@@ -1420,7 +1421,7 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
 	args->seq = &com.seq;
 	args->partial_image = FALSE;
-	args->filtering_criterion = seq_filter_included;
+	args->filtering_criterion = stack_filter_included;
 	args->nb_filtered_images = com.seq.selnum;
 	args->prepare_hook = ser_prepare_hook;
 	args->finalize_hook = ser_finalize_hook;

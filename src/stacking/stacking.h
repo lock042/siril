@@ -73,6 +73,7 @@ int stack_get_max_number_of_rows(sequence *seq, int nb_images_to_stack);
 void stack_fill_list_of_unfiltered_images(struct stacking_args *args);
 double compute_highest_accepted_fwhm(double percent);
 double compute_highest_accepted_quality(double percent);
+int compute_nb_filtered_images(struct stacking_args *stack_args);
 
 int stack_median(struct stacking_args *args);
 int stack_mean_with_rejection(struct stacking_args *args);
@@ -81,14 +82,15 @@ int stack_addmin(struct stacking_args *args);
 
 int upscale_sequence(struct stacking_args *args);
 
-
+gboolean end_stacking(gpointer p);
 void clean_end_stacking(struct stacking_args *args);
 void update_stack_interface(gboolean dont_change_stack_type);
 
-int stack_filter_all(sequence *seq, int nb_img, double any);
-int stack_filter_included(sequence *seq, int nb_img, double any);
-int stack_filter_fwhm(sequence *seq, int nb_img, double max_fwhm);
-int stack_filter_quality(sequence *seq, int nb_img, double max_quality);
+int stack_filter_all(sequence *seq, int layer, int nb_img, double any);
+int stack_filter_included(sequence *seq, int layer, int nb_img, double any);
+int stack_filter_fwhm(sequence *seq, int layer, int nb_img, double max_fwhm);
+int stack_filter_roundness(sequence *seq, int layer, int nb_img, double min_rnd);
+int stack_filter_quality(sequence *seq, int layer, int nb_img, double max_quality);
 
 /* normalization functions, normalize.c */
 int do_normalization(struct stacking_args *args);

@@ -62,7 +62,6 @@ stack_method stacking_methods[] = {
 	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
 };
 
-static gboolean end_stacking(gpointer p);
 static int stack_addminmax(struct stacking_args *args, gboolean ismax);
 static void start_stacking();
 
@@ -578,7 +577,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 			retval = -1;
 			goto free_and_reset_progress_bar;
 		}
-		if (!args->filtering_criterion(args->seq, j, args->filtering_parameter)) {
+		if (!args->filtering_criterion(args->seq, reglayer, j, args->filtering_parameter)) {
 			fprintf(stdout, "image %d is excluded from stacking\n", j);
 			continue;
 		}
@@ -1655,7 +1654,7 @@ void clean_end_stacking(struct stacking_args *args) {
 /* because this idle function is called after one of many stacking method
  * functions, it contains all generic wrap-up stuff instead of only graphical
  * operations. */
-static gboolean end_stacking(gpointer p) {
+gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
 	fprintf(stdout, "Ending stacking idle function, retval=%d\n", args->retval);
@@ -1828,19 +1827,17 @@ void on_comborejection_changed (GtkComboBox *box, gpointer user_data) {
  * The functions are also called in a loop to determine the number of images to
  * be processed.
  */
-int stack_filter_all(sequence *seq, int nb_img, double any) {
+int stack_filter_all(sequence *seq, int layer, int nb_img, double any) {
 	return 1;
 }
 
-int stack_filter_included(sequence *seq, int nb_img, double any) {
+int stack_filter_included(sequence *seq, int layer, int nb_img, double any) {
 	return seq->imgparam[nb_img].incl;
 }
 
 /* filter for deep-sky */
-int stack_filter_fwhm(sequence *seq, int nb_img, double max_fwhm) {
-	int layer;
+int stack_filter_fwhm(sequence *seq, int layer, int nb_img, double max_fwhm) {
 	if (!seq->regparam) return 0;
-	layer = get_registration_layer(seq);
 	if (layer == -1) return 0;
 	if (!seq->regparam[layer]) return 0;
 	if (seq->imgparam[nb_img].incl && seq->regparam[layer][nb_img].fwhm > 0.0f)
@@ -1848,10 +1845,8 @@ int stack_filter_fwhm(sequence *seq, int nb_img, double max_fwhm) {
 	else return 0;
 }
 
-int stack_filter_roundness(sequence *seq, int nb_img, double min_rnd) {
-	int layer;
+int stack_filter_roundness(sequence *seq, int layer, int nb_img, double min_rnd) {
 	if (!seq->regparam) return 0;
-	layer = get_registration_layer(seq);
 	if (layer == -1) return 0;
 	if (!seq->regparam[layer]) return 0;
 	if (seq->imgparam[nb_img].incl && seq->regparam[layer][nb_img].roundness > 0.0f)
@@ -1860,10 +1855,8 @@ int stack_filter_roundness(sequence *seq, int nb_img, double min_rnd) {
 }
 
 /* filter for planetary */
-int stack_filter_quality(sequence *seq, int nb_img, double max_quality) {
-	int layer;
+int stack_filter_quality(sequence *seq, int layer, int nb_img, double max_quality) {
 	if (!seq->regparam) return 0;
-	layer = get_registration_layer(seq);
 	if (layer == -1) return 0;
 	if (!seq->regparam[layer]) return 0;
 	if (seq->imgparam[nb_img].incl && seq->regparam[layer][nb_img].quality > 0.0)
@@ -1871,13 +1864,14 @@ int stack_filter_quality(sequence *seq, int nb_img, double max_quality) {
 	else return 0;
 }
 
-/* browse the images to konw how many fit the criterion, from global data */
-int compute_nb_filtered_images() {
+/* browse the images to know how many fit the criterion, from global data */
+int compute_nb_filtered_images(struct stacking_args *stack_args) {
 	int i, count = 0;
 	if (!sequence_is_loaded()) return 0;
 	for (i = 0; i < com.seq.number; i++) {
-		if (stackparam.filtering_criterion(&com.seq, i,
-				stackparam.filtering_parameter))
+		if (stack_args->filtering_criterion(&com.seq,
+					stack_args->reglayer, i,
+					stack_args->filtering_parameter))
 			count++;
 	}
 	return count;
@@ -1907,7 +1901,7 @@ void stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 	int ref_image = args->seq->reference_image;
 	for (i=0, j=0; i<args->seq->number; i++) {
 		if (args->filtering_criterion(
-					args->seq, i,
+					args->seq, args->reglayer, i,
 					args->filtering_parameter)) {
 			args->image_indices[j] = i;
 			j++;
@@ -2124,7 +2118,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 			stackparam.filtering_parameter = compute_highest_accepted_fwhm(percent);
 			// sometimes this fails and returns 0.0 ^
 			if (stackparam.filtering_parameter > 0.0) {
-				stackparam.nb_images_to_stack = compute_nb_filtered_images();
+				stackparam.nb_images_to_stack = compute_nb_filtered_images(&stackparam);
 				sprintf(stackparam.description, _("Stacking images of the sequence "
 							"with a FWHM lower or equal than %g (%d)\n"),
 						stackparam.filtering_parameter,	stackparam.nb_images_to_stack);
@@ -2156,7 +2150,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 			stackparam.filtering_criterion = stack_filter_roundness;
 			stackparam.filtering_parameter = compute_lowest_accepted_roundness(
 					percent);
-			stackparam.nb_images_to_stack = compute_nb_filtered_images();
+			stackparam.nb_images_to_stack = compute_nb_filtered_images(&stackparam);
 			sprintf(stackparam.description, _("Stacking images of the sequence "
 						"with a roundness higher or equal than %g (%d)\n"),
 					stackparam.filtering_parameter, stackparam.nb_images_to_stack);
@@ -2176,7 +2170,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		stackparam.filtering_criterion = stack_filter_quality;
 		stackparam.filtering_parameter = compute_highest_accepted_quality(
 				percent);
-		stackparam.nb_images_to_stack = compute_nb_filtered_images();
+		stackparam.nb_images_to_stack = compute_nb_filtered_images(&stackparam);
 		sprintf(stackparam.description, _("Stacking images of the sequence "
 				"with a quality higher or equal than %g (%d)\n"),
 				stackparam.filtering_parameter, stackparam.nb_images_to_stack);
@@ -2319,7 +2313,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 			return retval;
 		}
 		stackargs->seq = newseq;
-		stackargs->filtering_criterion = seq_filter_all;
+		stackargs->filtering_criterion = stack_filter_all;
 		stackargs->filtering_parameter = 0.0;
 		stackargs->nb_images_to_stack = newseq->number;
 

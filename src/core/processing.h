@@ -9,7 +9,7 @@
  */
 
 /** the dynamic image selection, based on various possible criteria */
-typedef int (*seq_image_filter)(sequence *seq, int nb_img, double param);
+typedef int (*seq_image_filter)(sequence *seq, int layer, int nb_img, double param);
 
 /** Main structure of the generic function */
 struct generic_seq_args {
@@ -34,6 +34,8 @@ struct generic_seq_args {
 	/** if already known, the number of images after filtering, for smoother
 	 *  progress report. < 1 is unknown */
 	int nb_filtered_images;
+	/** layer used for registration data for the filtering */
+	int layer;	// TODO: set this value everywhere
 
 	/** function called before iterating through the sequence */
 	int (*prepare_hook)(struct generic_seq_args *);
@@ -93,8 +95,8 @@ int ser_prepare_hook(struct generic_seq_args *args);
 int ser_finalize_hook(struct generic_seq_args *args);
 int generic_save(struct generic_seq_args *, int, int, fits *);
 
-int seq_filter_all(sequence *seq, int nb_img, double any);
-int seq_filter_included(sequence *seq, int nb_img, double any);
+//int seq_filter_all(sequence *seq, int nb_img, double any);
+//int seq_filter_included(sequence *seq, int nb_img, double any);
 
 void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();

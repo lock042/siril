@@ -30,6 +30,7 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "algos/statistics.h"
+#include "stacking/stacking.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -72,10 +73,10 @@ gpointer generic_sequence_worker(gpointer p) {
 	 * array providing the image number in the input sequence. It cannot be
 	 * done in parallel.
 	 * This is mandatory for SER contiguous output. */
-	if (args->filtering_criterion) {
+	if (args->filtering_criterion && args->filtering_criterion != stack_filter_all) {
 		index_mapping = malloc(nb_frames * sizeof(int));
 		for (input_idx = 0, frame = 0; input_idx < args->seq->number; input_idx++) {
-			if (!args->filtering_criterion(args->seq, input_idx, args->filtering_parameter)) {
+			if (!args->filtering_criterion(args->seq, args->layer, input_idx, args->filtering_parameter)) {
 				continue;
 			}
 			index_mapping[frame++] = input_idx;
@@ -397,6 +398,7 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	wait_for_script_thread();
 }
 
+/*
 int seq_filter_all(sequence *seq, int nb_img, double any) {
 	return 1;
 }
@@ -404,4 +406,4 @@ int seq_filter_all(sequence *seq, int nb_img, double any) {
 int seq_filter_included(sequence *seq, int nb_img, double any) {
 	return (seq->imgparam[nb_img].incl);
 }
-
+*/

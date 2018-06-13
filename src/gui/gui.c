@@ -229,7 +229,8 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 		/* initialize stacking methods */
 		initialize_stacking_methods();
 
-		init_peaker_GUI();
+		// This crashes for an unknown reason
+		//init_peaker_GUI();
 	}
 
 	/* initialize preprocessing */
