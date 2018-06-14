@@ -18,6 +18,8 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <float.h>
+
 #include "core/siril.h"
 #include "core/processing.h"
 #include "registration.h"
