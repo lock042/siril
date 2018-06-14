@@ -6,6 +6,6 @@
 
 GtkWidget* lookup_widget (const gchar *widget_name);
 
-void init_gui(gchar *startup_dir, enum _siril_mode new_mode);
+void init_gui(enum _siril_mode new_mode);
 
 #endif

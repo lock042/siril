@@ -1315,7 +1315,7 @@ int process_cdg(int nb) {
 
 	if (!single_image_is_loaded() && !sequence_is_loaded()) return 1;
 
-	FindCentre(&gfit, &x_avg, &y_avg);
+	FindCentre(&gfit, 0, &x_avg, &y_avg);
 	y_avg = gfit.ry - y_avg;	// FITS are stored bottom to top
 	siril_log_message(_("Center of gravity coordinates are (%.3lf, %.3lf)\n"), x_avg, y_avg);
 

@@ -181,8 +181,8 @@ static int readinitfile() {
 		com.ext = strdup(".fit");
 	}
 	com.script_path = list;
-	com.siril_mode = PLANETARY;	// to serialize someday
-	//com.siril_mode = DEEP_SKY;	// to serialize someday
+	com.siril_mode = MODE_PLANETARY;	// to serialize someday
+	//com.siril_mode = MODE_DEEP_SKY;	// to serialize someday
 	return 0;
 }
 

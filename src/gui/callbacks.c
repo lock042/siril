@@ -539,9 +539,9 @@ static void opendial(void) {
 	GtkFileChooserAction action;
 	GtkWindow *main_window = GTK_WINDOW(lookup_widget("main_window"));
 	GtkWindow *control_window;
-	if (com.siril_mode == PLANETARY)
+	if (com.siril_mode == MODE_PLANETARY)
 		control_window = main_window;
-	else if (com.siril_mode == DEEP_SKY)
+	else if (com.siril_mode == MODE_DEEP_SKY)
 		control_window = GTK_WINDOW(lookup_widget("control_window"));
 
 	if (!com.wd)
@@ -1120,7 +1120,7 @@ int adjust_sellabel() {
 	static GtkLabel *local_label = NULL, *global_label = NULL;
 	char bufferlocal[256], bufferglobal[256];
 	if (global_label == NULL) {
-		if (com.siril_mode == DEEP_SKY) 
+		if (com.siril_mode == MODE_DEEP_SKY) 
 			local_label = GTK_LABEL(lookup_widget("imagesel_label"));
 		global_label = GTK_LABEL(lookup_widget("labelseq"));
 	}
@@ -1153,7 +1153,7 @@ int adjust_sellabel() {
 		gtk_widget_set_sensitive(lookup_widget("goregister_button"), FALSE);
 	}
 
-	if (com.siril_mode == DEEP_SKY) 
+	if (com.siril_mode == MODE_DEEP_SKY) 
 		gtk_label_set_text(local_label, bufferlocal);
 	gtk_label_set_text(global_label, bufferglobal);
 	return 0;
@@ -1624,7 +1624,7 @@ void show_main_gray_window() {
 }
 
 void show_rgb_window() {
-	if (com.siril_mode == PLANETARY) return;
+	if (com.siril_mode == MODE_PLANETARY) return;
 	GtkCheckMenuItem *rgbcheck = GTK_CHECK_MENU_ITEM(
 			gtk_builder_get_object(builder, "menuitemcolor"));
 	gtk_check_menu_item_set_active(rgbcheck, TRUE);
@@ -1632,7 +1632,7 @@ void show_rgb_window() {
 }
 
 void hide_rgb_window() {
-	if (com.siril_mode == PLANETARY) return;
+	if (com.siril_mode == MODE_PLANETARY) return;
 	/* unchecking the menu item is done in the window destruction callback */
 	/*GtkCheckMenuItem *rgbcheck =
 	 GTK_CHECK_MENU_ITEM(gtk_builder_get_object(builder, "menuitemcolor"));
@@ -1641,7 +1641,7 @@ void hide_rgb_window() {
 }
 
 void hide_gray_window() {
-	if (com.siril_mode == PLANETARY) return;
+	if (com.siril_mode == MODE_PLANETARY) return;
 	gtk_widget_hide(lookup_widget("main_window"));
 }
 
@@ -2045,13 +2045,13 @@ void set_GUI_LIBRAW() {
 	GtkToggleButton *compat = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility"));
 	GtkToggleButton *use_header = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header"));
 	GtkToggleButton *demosaicingButton;
-	if (com.siril_mode == DEEP_SKY) 
+	if (com.siril_mode == MODE_DEEP_SKY) 
 		demosaicingButton = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
 	gtk_combo_box_set_active(pattern, com.debayer.bayer_pattern);
 	gtk_combo_box_set_active(inter, com.debayer.bayer_inter);
 	gtk_toggle_button_set_active(compat, com.debayer.compatibility);
 	gtk_toggle_button_set_active(use_header, com.debayer.use_bayer_header);
-	if (com.siril_mode == DEEP_SKY) 
+	if (com.siril_mode == MODE_DEEP_SKY) 
 		gtk_toggle_button_set_active(demosaicingButton,	com.debayer.open_debayer);
 }
 
@@ -2671,40 +2671,60 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
-	//static int delay = 5;
-	gchar label[32] = "labeldensity";
 	fits *fit = &(gfit);
+	static GtkLabel *redlabel = NULL, *greenlabel = NULL, *bluelabel = NULL, *rgblabel = NULL;
+	GtkLabel *label = NULL;
+
+	if (!redlabel) {
+		redlabel = GTK_LABEL(gtk_builder_get_object(builder, "labeldensityr"));
+		greenlabel = GTK_LABEL(gtk_builder_get_object(builder, "labeldensityg"));
+		bluelabel = GTK_LABEL(gtk_builder_get_object(builder, "labeldensityb"));
+		rgblabel = GTK_LABEL(gtk_builder_get_object(builder, "labeldensityrgb"));
+	}
 
 	if (inimage((GdkEvent *) event)) {
-		char buffer[45];
+		// draw coordinates and pixel value at the bottom of the image
+		char buffer[65];
 		char format[25], *format_base = "x: %%.%dd y: %%.%dd = %%.%dd";
-		int coords_width = 3, val_width = 3;
+		char rgbformat[35], *rgb_format_base = "x: %%.%dd y: %%.%dd = (%%.%dd,%%.%dd,%%.%dd)";
+		int coords_width = 3, val_width = 3, pixel_index;
 		double zoom = get_zoom_val();
 		gint zoomedX, zoomedY;
+
+		/* TODO: fix to use the new function vport_number_to_name() */
+		if (widget == com.vport[RED_VPORT])
+			label = redlabel;
+		else if (widget == com.vport[GREEN_VPORT])
+			label = greenlabel;
+		else if (widget == com.vport[BLUE_VPORT])
+			label = bluelabel;
+		else if (widget == com.vport[RGB_VPORT])
+			label = rgblabel;
+		else return FALSE;
+
 		zoomedX = (gint) (event->x / zoom);
 		zoomedY = (gint) (event->y / zoom);
+		pixel_index = fit->rx * (fit->ry - zoomedY - 1) + zoomedX;
 		if (fit->rx >= 1000 || fit->ry >= 1000)
 			coords_width = 4;
 		if (fit->hi >= 1000)
 			val_width = 4;
 		if (fit->hi >= 10000)
 			val_width = 5;
-		g_snprintf(format, sizeof(format), format_base, coords_width,
-				coords_width, val_width);
-		g_snprintf(buffer, sizeof(buffer), format, zoomedX, zoomedY,
-				fit->pdata[com.cvport][fit->rx * (fit->ry - zoomedY - 1)
-						+ zoomedX]);
-		/* TODO: fix to use the new function vport_number_to_name() */
-		if (widget == com.vport[RED_VPORT])
-			strcat(label, "r");
-		else if (widget == com.vport[GREEN_VPORT])
-			strcat(label, "g");
-		else if (widget == com.vport[BLUE_VPORT])
-			strcat(label, "b");
-		else
-			return FALSE;
-		gtk_label_set_text(GTK_LABEL(gtk_builder_get_object(builder, label)),
-				buffer);
+		if (com.cvport < MAXGRAYVPORT) {
+			g_snprintf(format, sizeof format, format_base, coords_width,
+					coords_width, val_width);
+			g_snprintf(buffer, sizeof buffer, format, zoomedX, zoomedY,
+					fit->pdata[com.cvport][pixel_index]);
+		} else if (com.cvport < MAXVPORT) {
+			g_snprintf(rgbformat, sizeof rgbformat, rgb_format_base, coords_width,
+					coords_width, val_width, val_width, val_width);
+			g_snprintf(buffer, sizeof buffer, rgbformat, zoomedX, zoomedY,
+					fit->pdata[RED_VPORT][pixel_index],
+					fit->pdata[GREEN_VPORT][pixel_index],
+					fit->pdata[BLUE_VPORT][pixel_index]);
+		} else return FALSE;
+		gtk_label_set_text(label, buffer);
 
 		if (com.drawing) {	// with button 1 down
 			if (zoomedX > com.startX) {
@@ -3359,6 +3379,12 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	if (com.preprostatus == 0)
 		return;
 
+	if (com.siril_mode == MODE_PLANETARY && sequence_is_loaded()) {
+		// TODO: if sequence is CFA, close it
+		com.debayer.open_debayer = FALSE;
+		// TODO: and reopen it
+	}
+
 	struct preprocessing_data *args = malloc(sizeof(struct preprocessing_data));
 	gettimeofday(&args->t_start, NULL);
 	siril_log_color_message(_("Preprocessing...\n"), "red");
@@ -3544,7 +3570,7 @@ static gpointer checkSeq(gpointer p) {
 
 void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 	static GtkToggleButton *forceButton = NULL;
-	int force;
+	int force = 0;
 
 	if (forceButton == NULL) {
 		forceButton = GTK_TOGGLE_BUTTON(lookup_widget("checkforceseq"));
@@ -3556,7 +3582,10 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 				"in progress, ignoring new request.\n"));
 		return;
 	}
-
+	if (com.siril_mode == MODE_PLANETARY) {
+		// in planetary mode, always open sequences in debayer mode
+		com.debayer.open_debayer = TRUE;
+	}
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(_("Searching for sequences in "
 			"the current working directory..."), PROGRESS_NONE);

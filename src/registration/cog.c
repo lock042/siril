@@ -24,6 +24,7 @@
 #include "algos/quality.h"
 #include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
+#include "core/proto.h"	// writeseqfile
 
 struct regcog_data {
 	struct registration_args *regargs;
@@ -57,7 +58,7 @@ static int regcog_image_hook(struct generic_seq_args *args, int out_index, int i
 	int retval;
 
 	// Compute barycentre for the image
-	retval = FindCentre(fit, &shiftx, &shifty);
+	retval = FindCentre(fit, regargs->layer, &shiftx, &shifty);
 	if (retval) return retval;
 	rcdata->current_regdata[in_index].shiftx = (float)shiftx;
 	rcdata->current_regdata[in_index].shifty = (float)shifty;
@@ -79,6 +80,8 @@ static int regcog_finalize_hook(struct generic_seq_args *args) {
 		double q_max = 0, q_min = DBL_MAX;
 		for (i = 0; i < args->seq->number; i++) {
 			double qual = rcdata->current_regdata[i].quality;
+			if (qual <= 0.0)
+				continue;
 			if (qual > q_max) {
 				q_max = qual;
 				q_index = i;
@@ -91,6 +94,8 @@ static int regcog_finalize_hook(struct generic_seq_args *args) {
 		double ref_x = rcdata->current_regdata[q_index].shiftx;
 		double ref_y = rcdata->current_regdata[q_index].shifty;
 		for (i = 0; i < args->seq->number; i++) {
+			if (rcdata->current_regdata[i].quality <= 0.0) continue;
+
 			rcdata->current_regdata[i].shiftx = ref_x - rcdata->current_regdata[i].shiftx;
 			/* for Y, FITS are upside-down */
 			if (args->seq->type == SEQ_REGULAR)
@@ -99,6 +104,8 @@ static int regcog_finalize_hook(struct generic_seq_args *args) {
 		}
 		siril_log_message(_("Registration finished.\n"));
 		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index);
+		args->seq->reference_image = q_index;
+		writeseqfile(args->seq);
 	}
 	else {
 		siril_log_message(_("Registration aborted.\n"));
@@ -119,6 +126,22 @@ int register_cog(struct registration_args *regargs) {
 		args->filtering_criterion = stack_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
+	args->layer = regargs->layer;
+
+	/* check if it's already computed before doing it for nothing */
+	if (args->seq->regparam[args->layer]) {
+		int i;
+		for (i = 0; i < args->seq->number; i++) {
+			if (args->filtering_criterion(args->seq, args->layer, i, 0) &&
+					args->seq->regparam[args->layer][i].quality <= 0.0)
+				break;
+		}
+		if (i == args->seq->number) {
+			siril_log_message(_("Registration data already available, not recomputing.\n"));
+			return 0;
+		}
+	}
+
 	args->prepare_hook = regcog_prepare_hook;
 	args->image_hook = regcog_image_hook;
 	args->save_hook = NULL;

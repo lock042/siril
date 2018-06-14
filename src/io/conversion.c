@@ -417,7 +417,7 @@ void initialize_converters() {
 
 	g_string_append(string, ".");
 	text = g_string_free(string, FALSE);
-	if (!com.script) {
+	if (!com.script && com.siril_mode == MODE_DEEP_SKY) {
 		label_supported = GTK_LABEL(gtk_builder_get_object(builder, "label_supported_types"));
 		gtk_label_set_text(label_supported, text);
 	}

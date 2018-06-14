@@ -546,7 +546,6 @@ int writeseqfile(sequence *seq){
 						seq->stats[layer][i]->max,
 						seq->stats[layer][i]->normValue,
 						seq->stats[layer][i]->bgnoise);
-
 			}
 		}
 	}
@@ -582,7 +581,6 @@ int writeseqfile(sequence *seq){
 						seq->stats_bkp[layer][i]->max,
 						seq->stats_bkp[layer][i]->normValue,
 						seq->stats_bkp[layer][i]->bgnoise);
-
 			}
 		}
 	}

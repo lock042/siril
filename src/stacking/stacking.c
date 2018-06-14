@@ -1867,9 +1867,8 @@ int stack_filter_quality(sequence *seq, int layer, int nb_img, double max_qualit
 /* browse the images to know how many fit the criterion, from global data */
 int compute_nb_filtered_images(struct stacking_args *stack_args) {
 	int i, count = 0;
-	if (!sequence_is_loaded()) return 0;
 	for (i = 0; i < com.seq.number; i++) {
-		if (stack_args->filtering_criterion(&com.seq,
+		if (stack_args->filtering_criterion(stack_args->seq,
 					stack_args->reglayer, i,
 					stack_args->filtering_parameter))
 			count++;

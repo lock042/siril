@@ -190,7 +190,7 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 	new_msg->timestamp = strdup(timestamp);
 	new_msg->message = strdup(msg);
 	new_msg->color = color;
-	if (!com.headless || com.siril_mode == PLANETARY) // avoid adding things in lost memory
+	if (!com.headless || com.siril_mode == MODE_PLANETARY) // avoid adding things in lost memory
 		gdk_threads_add_idle(idle_messaging, new_msg);
 
 	return msg;

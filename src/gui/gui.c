@@ -120,10 +120,10 @@ static void uninit_gui() {
  * frees everything of the previous mode stored in com.planetary before loading
  * the new mode.
  */
-void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
+void init_gui(enum _siril_mode new_mode) {
 	gchar *siril_path = NULL;
 	int i = 0;
-	const char *glade_file_name = new_mode == PLANETARY ? PLANETARY_GLADE_FILE : GLADE_FILE;
+	const char *glade_file_name = new_mode == MODE_PLANETARY ? PLANETARY_GLADE_FILE : GLADE_FILE;
 
 	if (new_mode == com.siril_mode)
 		return;
@@ -131,8 +131,12 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 	uninit_gui();	// release all widgets and the builder
 	com.siril_mode = new_mode;
 
-	if (new_mode == NO_GUI)
+	if (new_mode == MODE_NO_GUI)
 		return;
+
+	if (new_mode == MODE_PLANETARY)
+		fprintf(stdout, _("Initializing Siril Planetary interface\n"));
+	else fprintf(stdout, _("Initializing Siril Deep-Sky interface\n"));
 
 	/* try to load the glade file, from the sources defined above */
 	builder = gtk_builder_new();
@@ -142,7 +146,7 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 
 		if (siril_sources[i][0] != '\0')
 			gladefile = g_build_filename (siril_sources[i], glade_file_name, NULL);
-		else gladefile = g_build_filename (startup_dir, glade_file_name, NULL);
+		else gladefile = g_build_filename (com.startup_dir, glade_file_name, NULL);
 		if (gtk_builder_add_from_file (builder, gladefile, &err)) {
 			fprintf(stdout, _("Successfully loaded '%s'\n"), gladefile);
 			g_free(gladefile);
@@ -161,7 +165,7 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 	}
 	siril_path = siril_sources[i];
 	if (siril_path[0] == '\0')
-		siril_path = startup_dir;
+		siril_path = com.startup_dir;
 
 	gtk_builder_connect_signals(builder, NULL);
 
@@ -169,7 +173,7 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 	com.vport[GREEN_VPORT] = lookup_widget("drawingareag");
 	com.vport[BLUE_VPORT] = lookup_widget("drawingareab");
 	com.vport[RGB_VPORT] = lookup_widget("drawingareargb");
-	if (com.siril_mode == DEEP_SKY) {
+	if (com.siril_mode == MODE_DEEP_SKY) {
 		com.preview_area[0] = lookup_widget("drawingarea_preview1");
 		com.preview_area[1] = lookup_widget("drawingarea_preview2");
 	}
@@ -181,7 +185,7 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 	/* Keybord Shortcuts */
 	initialize_shortcuts();
 
-	if (com.siril_mode == DEEP_SKY) {
+	if (com.siril_mode == MODE_DEEP_SKY) {
 		/* Select combo boxes that trigger some text display or other things */
 		gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstack_methods")), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstacksel")), 0);
@@ -217,7 +221,7 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 
 	/* initialize menu gui */
 	update_MenuItem();
-	if (com.siril_mode == DEEP_SKY) {
+	if (com.siril_mode == MODE_DEEP_SKY) {
 		initialize_script_menu();
 
 		/* initialize command completion */
@@ -262,7 +266,7 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 	update_spinCPU(com.max_thread);
 
 	if (com.have_dark_theme) {
-		if (com.siril_mode == DEEP_SKY) {
+		if (com.siril_mode == MODE_DEEP_SKY) {
 			/* Put dark icons */
 			printf("Loading dark theme...\n");
 			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_anticlock_button")), lookup_widget("rotate90-acw_dark"));
@@ -276,3 +280,20 @@ void init_gui(gchar *startup_dir, enum _siril_mode new_mode) {
 
 	update_used_memory();
 }
+
+/* the trigger for mode change */
+void on_menuitemplanetary_toggled(GtkCheckMenuItem *checkmenuitem,
+		gpointer user_data) {
+	/* this is not at all that simple.
+	 * a master thread will have to manage the two sets of widgets, because
+	 * with this technique, a gtk_main being disposed is calling his own
+	 * destroying and re-creating a new builder. gtk_main has to stop
+	 * naturally, and a new builder then can be loaded. */
+	/*if (gtk_check_menu_item_get_active(checkmenuitem))
+		init_gui(MODE_PLANETARY);
+	else init_gui(MODE_DEEP_SKY);*/
+	com.requested_mode =
+		gtk_check_menu_item_get_active(checkmenuitem) ? MODE_PLANETARY : MODE_DEEP_SKY;
+	gtk_main_quit();	// the main will handle the change, maybe
+}
+

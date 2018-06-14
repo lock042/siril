@@ -513,15 +513,16 @@ struct star_finder_struct {
 };
 
 enum _siril_mode {
-	NO_GUI = 0,
-	DEEP_SKY,
-	PLANETARY
+	MODE_NO_GUI = 0,	// TODO: use for headless
+	MODE_DEEP_SKY,
+	MODE_PLANETARY
 };
 
 /* The global data structure of siril, the only with gfit and the gtk builder,
  * declared in main.c */
 struct cominf {
-	enum _siril_mode siril_mode;
+	enum _siril_mode siril_mode;	// current siril mode
+	enum _siril_mode requested_mode;// requested mode
 	/* current version of GTK, through GdkPixmap, doesn't handle gray images, so
 	 * graybufs are the same size than the rgbbuf with 3 times the same value */
 	guchar *graybuf[MAXGRAYVPORT];	// one B/W display buffer per viewport (R,G,B)
@@ -558,7 +559,8 @@ struct cominf {
 	cairo_surface_t *refimage_surface;
 
 	gchar *wd;			// working directory, where images and sequences are
-	gchar *initfile;			// the path of the init file
+	gchar *startup_dir;		// startup directory for glade file search
+	gchar *initfile;		// the path of the init file
 	
 	char *ext;		// FITS extension used in SIRIL
 

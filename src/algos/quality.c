@@ -354,7 +354,7 @@ static unsigned short *_smooth_image_16(unsigned short *buf, int width,
 // prevents hot pixels and isolated pixels from counting.
 // Also, a horizontal gap of 3 or more pixels will cause the last counted pixel to be un-counted.
 
-static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
+static int _FindCentre_Barycentre(fits *fit, int layer, int x1, int y1, int x2, int y2,
 		double *x_avg, double *y_avg) {
 	int img_width = fit->rx;
 	int img_height = fit->ry;
@@ -377,7 +377,7 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 	else threshold = (THRESHOLD) << 8;
 
 	for (y = y1; y <= y2; ++y) {
-		unsigned short *iptr = fit->data + y * img_width + x1;
+		unsigned short *iptr = fit->pdata[layer] + y * img_width + x1;
 		for (x = x1; x <= x2; ++x, ++iptr) {
 			if (*iptr >= threshold && *(iptr - 1) >= threshold
 					&& *(iptr + 1) >= threshold
@@ -401,13 +401,13 @@ static int _FindCentre_Barycentre(fits *fit, int x1, int y1, int x2, int y2,
 
 // Find the centre of brightness of the whole image.
 // Returns -1 if not enough pixels are above the threshold.
-int FindCentre(fits *fit, double *x_avg, double *y_avg) {
+int FindCentre(fits *fit, int layer, double *x_avg, double *y_avg) {
 	int x1 = 2;
 	int x2 = fit->rx - 3;
 	int y1 = 0;
 	int y2 = fit->ry - 1;
 
-	return _FindCentre_Barycentre(fit, x1, y1, x2, y2, x_avg, y_avg);
+	return _FindCentre_Barycentre(fit, layer, x1, y1, x2, y2, x_avg, y_avg);
 }
 
 /* Aperture algorithm for determining quality of small objects (round, featureless).
@@ -429,7 +429,7 @@ double Aperture(fits *fit, int layer) {
 
 	xc = yc = 0;
 
-	FindCentre(fit, &xc, &yc);
+	FindCentre(fit, layer, &xc, &yc);
 
 	r1 = QF_APERTURE_RADIUS;
 	r2 = r1 * 1.414 + 0.5;

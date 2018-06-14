@@ -37,6 +37,6 @@ enum {
 };
 
 double QualityEstimate(fits *fit, int layer, int qtype);
-int FindCentre(fits *fit, double *x_avg, double *y_avg);
+int FindCentre(fits *fit, int layer, double *x_avg, double *y_avg);
 
 #endif /* SRC_QUALITY_H_ */

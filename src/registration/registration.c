@@ -149,9 +149,11 @@ struct registration_method *get_selected_registration_method() {
 	return reg_methods[index];
 }
 
+/* normalizes quality for the sequence between 0.01 and 1.0 */
 void normalizeQualityData(struct registration_args *args, double q_min, double q_max) {
 	int frame;
 	double diff = q_max - q_min;
+	q_min -= 0.01;
 
 	/* this case occurs when all images but one are excluded */
 	if (diff == 0) {

@@ -141,7 +141,6 @@ int main(int argc, char *argv[]) {
 	int i;
 	extern char *optarg;
 	extern int opterr;
-	gchar *current_cwd = NULL;
 	gboolean forcecwd = FALSE;
 	char *cwd_forced = NULL, *start_script = NULL;
 
@@ -249,7 +248,7 @@ int main(int argc, char *argv[]) {
 
 	/* set default CWD */
 	com.wd = siril_get_startup_dir();
-	current_cwd = g_get_current_dir();
+	com.startup_dir = g_get_current_dir();
 
 	/* load init file */
 	if (checkinitfile()) {
@@ -260,8 +259,10 @@ int main(int argc, char *argv[]) {
 	if (!com.headless) {
 		gtk_init(&argc, &argv);
 		enum _siril_mode mode = com.siril_mode;
-		com.siril_mode = NO_GUI;	// for now
-		init_gui(current_cwd, mode);
+		com.siril_mode = MODE_NO_GUI;
+		init_gui(mode);	// sets new mode
+	} else {
+		com.siril_mode = MODE_NO_GUI;	// TODO: transition headless mode to that
 	}
 
 	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
@@ -292,10 +293,7 @@ int main(int argc, char *argv[]) {
 
 	/* start Siril */
 	if (argv[optind] != NULL) {
-		if (current_cwd) {
-			changedir(current_cwd, NULL);
-			g_free(current_cwd);
-		}
+		changedir(com.startup_dir, NULL);
 		open_single_image(argv[optind]);
 		if (!forcecwd) {
 			gchar *newpath = g_path_get_dirname(argv[optind]);
@@ -316,7 +314,19 @@ int main(int argc, char *argv[]) {
 		}
 		execute_script(fp);
 	}
-	else gtk_main();
+	else {
+		do {
+			gtk_main();
+
+			process_close(0);
+			// wait for clean-up, apparently it never gets there
+			while (gtk_events_pending())
+				gtk_main_iteration_do(FALSE);
+			//uninit_gui();
+
+			init_gui(com.requested_mode);
+		} while (com.requested_mode != MODE_NO_GUI);
+	}
 
 	/* quit Siril */
 	close_sequence(FALSE);

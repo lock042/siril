@@ -20,6 +20,16 @@
 
 /* This is the main file for the multi-point planetary processing */
 
+/* TODO:
+ * registration layer
+ * demosaicing setting: manage prepro in on_prepro_button_clicked
+ * verify quality normalization and filtering
+ * fix the layer/filter thing in processing and elsewhere
+ * GUI mode switch
+ * remove menuitemcolor and menuitemgray in planetary mode
+ * chain hi/lo/mode when RGB vport is modified
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -71,17 +81,11 @@ void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
 static gpointer sequence_analysis_thread_func(gpointer p) {
 	struct registration_args *reg_args = (struct registration_args *) p;
 
+	// COG registration
 	reg_args->retval = reg_args->func(reg_args);
 
 	if (reg_args->retval)
 		return GINT_TO_POINTER(-1);
-
-	if (reg_args->seq->reference_image == -1) {
-		// set new reference image: should we do it all the time?
-		// also done in generated sequence in global.c
-		reg_args->seq->reference_image = sequence_find_refimage(reg_args->seq);
-	}
-	writeseqfile(reg_args->seq);
 
 	/* sequence quality evaluation is over, now we generate the reference
 	 * image by taking a few of the best images */
@@ -89,8 +93,9 @@ static gpointer sequence_analysis_thread_func(gpointer p) {
 	struct stacking_args *stack_args = calloc(1, sizeof(struct stacking_args));
 	stack_args->method = stack_summing_generic;
 	stack_args->seq = reg_args->seq;
+	stack_args->reglayer = reg_args->layer;
 	stack_args->filtering_criterion = stack_filter_quality;
-	stack_args->filtering_parameter = 0.9;
+	stack_args->filtering_parameter = 0.75;	// not the right way do to it, sorting is
 	stack_args->nb_images_to_stack = compute_nb_filtered_images(stack_args);
 	stack_args->image_indices = malloc(stack_args->nb_images_to_stack * sizeof(int));
 	stack_fill_list_of_unfiltered_images(stack_args);
@@ -102,7 +107,6 @@ static gpointer sequence_analysis_thread_func(gpointer p) {
 			(ends_with(com.seq.seqname, "-") ? "" : "_"), com.ext);
 	stack_args->output_filename = (const char*)output_filename;
 	stack_args->output_overwrite = TRUE;
-	stack_args->reglayer = reg_args->layer;
 	gettimeofday(&stack_args->t_start, NULL);
 	free(reg_args);
 
