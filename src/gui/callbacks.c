@@ -68,6 +68,7 @@ static enum {
 } confirm;
 
 static gboolean is_shift_on = FALSE;
+static gboolean seqimage_range_mouse_pressed = FALSE;
 
 layer_info predefined_layers_colors[] = {
 		/* name, lambda, lo, hi, c/over, c/under, mode */
@@ -1048,6 +1049,7 @@ void set_cutoff_sliders_values() {
 
 /* sets the maximum value for the spin button and display the initial file name */
 int seqsetnum(int image_number) {
+	if (com.siril_mode == MODE_DEEP_SKY) {
 	GtkSpinButton *spin;
 	GtkAdjustment *adj;
 	if (com.seq.number <= 0 || image_number >= com.seq.number)
@@ -1059,6 +1061,9 @@ int seqsetnum(int image_number) {
 	gtk_adjustment_set_value(adj, (gdouble) image_number);	// 0 is default
 	display_image_number(image_number);
 	//on_imagenumberspin_output(GTK_SPIN_BUTTON(spin), NULL);	// redraw the real file number instead of 0
+	} else if (com.siril_mode == MODE_PLANETARY) {
+		gtk_range_set_range(GTK_RANGE(gtk_builder_get_object(builder, "seqimage_scale")), 0.0, com.seq.number - 1.0);
+	}
 	return 0;
 }
 
@@ -3118,6 +3123,33 @@ void on_layer_assign_selected(GtkComboBox *widget, gpointer user_data) {
 	else
 		g_snprintf(wl, sizeof(wl), _("undefined"));
 	gtk_entry_set_text(entry_wl, wl);
+}
+
+/* the planetary mode uses a slider to change displayed image whereas the
+ * deep-sky mode uses a spin button (on_imagenumberspin_output) */
+void on_seqimage_changed(GtkRange *range, gpointer user_data) {
+	if (!sequence_is_loaded() || seqimage_range_mouse_pressed) return;
+	int index = (int)gtk_range_get_value(range);
+	seq_load_image(&com.seq, index, TRUE);
+}
+
+gboolean on_seqimage_button_press(GtkWidget *widget,
+		GdkEventButton *event, gpointer user_data) {
+	seqimage_range_mouse_pressed = TRUE;
+	return FALSE;
+}
+
+gboolean on_seqimage_button_release(GtkWidget *widget,
+		GdkEventButton *event, gpointer user_data) {
+	seqimage_range_mouse_pressed = FALSE;
+	on_seqimage_changed(GTK_RANGE(widget), NULL);
+	return FALSE;
+}
+
+void on_bestimage_changed(GtkRange *range, gpointer user_data) {
+	if (!sequence_is_loaded()) return;
+	double qual = compute_lowest_accepted_quality(gtk_range_get_value(range));
+	plot_set_filtering_threshold(qual);
 }
 
 /* Returns :	TRUE if the value has been displayed */

@@ -1929,11 +1929,9 @@ double compute_highest_accepted_fwhm(double percent) {
 	}
 	// copy values
 	for (i=0; i<com.seq.number; i++) {
-		if (com.seq.imgparam[i].incl && com.seq.regparam[layer][i].fwhm <= 0.0f) {
+		if (!com.seq.imgparam[i].incl || com.seq.regparam[layer][i].fwhm <= 0.0f)
 			val[i] = DBL_MAX;
-		} else {
-			val[i] = com.seq.regparam[layer][i].fwhm;
-		}
+		else val[i] = com.seq.regparam[layer][i].fwhm;
 	}
 
 	//sort values
@@ -1946,8 +1944,8 @@ double compute_highest_accepted_fwhm(double percent) {
 			if (val[i] == DBL_MAX)
 				break;
 		number_images_with_fwhm_data = i;
-		siril_log_message(_("Warning: some images don't have FWHM information available for best images selection, using only available data (%d images on %d).\n"),
-				number_images_with_fwhm_data, com.seq.number);
+		siril_log_message(_("Warning: some images don't have FWHM information available for best images selection, using only available data (%d images on %d, channel %d).\n"),
+				number_images_with_fwhm_data, com.seq.number, layer);
 	}
 
 	// get highest accepted
@@ -1959,12 +1957,12 @@ double compute_highest_accepted_fwhm(double percent) {
 }
 
 /* For a sequence of images with quality registration data and a percentage of
- * images to include in a processing, computes the highest quality value accepted.
+ * images to include in a processing, computes the lowest quality value accepted.
  */
-double compute_highest_accepted_quality(double percent) {
-	int i, layer;
+double compute_lowest_accepted_quality(double percent) {
+	int i, layer, number_images_with_quality_data;
 	double *val = malloc(com.seq.number * sizeof(double));
-	double highest_accepted;
+	double lowest_accepted;
 	layer = get_registration_layer(&com.seq);
 	if (layer == -1 || !com.seq.regparam || !com.seq.regparam[layer]) {
 		free(val);
@@ -1972,22 +1970,32 @@ double compute_highest_accepted_quality(double percent) {
 	}
 	// copy values
 	for (i = 0; i < com.seq.number; i++) {
-		if (com.seq.imgparam[i].incl && com.seq.regparam[layer][i].quality < 0.0) {
-			siril_log_message(_("Error in highest quality accepted for sequence processing: some images don't have this kind of information available for channel #%d.\n"), layer);
-			free(val);
-			return 0.0;
-		}
+		if (!com.seq.imgparam[i].incl || com.seq.regparam[layer][i].quality < 0.0)
+			val[i] = DBL_MAX;
 		else val[i] = com.seq.regparam[layer][i].quality;
 	}
 
 	//sort values
 	quicksort_d(val, com.seq.number);
 
-	// get highest accepted
-	highest_accepted = val[(int)((100.0 - percent) * (double)com.seq.number
-			/ 100.0)];
+	if (val[com.seq.number-1] != DBL_MAX) {
+		number_images_with_quality_data = com.seq.number;
+	} else {
+		for (i=0; i<com.seq.number; i++)
+			if (val[i] == DBL_MAX)
+				break;
+		number_images_with_quality_data = i;
+		siril_log_message(_("Warning: some images don't have quality information available for best images selection, using only available data (%d images on %d, channel %d).\n"),
+				number_images_with_quality_data, com.seq.number, layer);
+	}
+
+	// get lowest accepted
+	lowest_accepted = val[(int)((100.0 - percent) *
+			(double)number_images_with_quality_data / 100.0)];
+	if (lowest_accepted == DBL_MAX)
+		lowest_accepted = 0.0;
 	free(val);
-	return highest_accepted;
+	return lowest_accepted;
 }
 
 /* For a sequence of images with quality registration data and a percentage of
@@ -2004,31 +2012,28 @@ double compute_lowest_accepted_roundness(double percent) {
 	}
 	// copy values
 	for (i = 0; i < com.seq.number; i++) {
-		if (com.seq.imgparam[i].incl && com.seq.regparam[layer][i].roundness <= 0.0f) {
-			siril_log_message(_("Error in highest quality accepted for sequence processing: some images don't have this kind of information available for channel #%d.\n"), layer);
-			val[i] = DBL_MIN;
-		} else {
-			val[i] = com.seq.regparam[layer][i].roundness;
-		}
+		if (!com.seq.imgparam[i].incl || com.seq.regparam[layer][i].roundness <= 0.0f) 
+			val[i] = DBL_MAX;
+		else val[i] = com.seq.regparam[layer][i].roundness;
 	}
 
 	//sort values
 	quicksort_d(val, com.seq.number);
 
-	if (val[com.seq.number-1] != DBL_MIN) {
+	if (val[com.seq.number-1] != DBL_MAX) {
 		number_images_with_fwhm_data = com.seq.number;
 	} else {
 		for (i = 0; i < com.seq.number; i++)
-			if (val[i] == DBL_MIN)
+			if (val[i] == DBL_MAX)
 				break;
 		number_images_with_fwhm_data = i;
-		siril_log_message(_("Warning: some images don't have FWHM information available for best images selection, using only available data (%d images on %d).\n"),
-				number_images_with_fwhm_data, com.seq.number);
+		siril_log_message(_("Warning: some images don't have FWHM information available for best images selection, using only available data (%d images on %d, channel %d).\n"),
+				number_images_with_fwhm_data, com.seq.number, layer);
 	}
 
 	// get lowest accepted
 	lowest_accepted = val[(int)((100.0 - percent) * (double)number_images_with_fwhm_data / 100.0)];
-	if (lowest_accepted == DBL_MIN)
+	if (lowest_accepted == DBL_MAX)
 		lowest_accepted = 0.0;
 	free(val);
 	return lowest_accepted;
@@ -2167,7 +2172,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 	case BEST_QUALITY_IMAGES:
 		percent = gtk_adjustment_get_value(stackadj);
 		stackparam.filtering_criterion = stack_filter_quality;
-		stackparam.filtering_parameter = compute_highest_accepted_quality(
+		stackparam.filtering_parameter = compute_lowest_accepted_quality(
 				percent);
 		stackparam.nb_images_to_stack = compute_nb_filtered_images(&stackparam);
 		sprintf(stackparam.description, _("Stacking images of the sequence "

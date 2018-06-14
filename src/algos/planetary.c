@@ -21,11 +21,9 @@
 /* This is the main file for the multi-point planetary processing */
 
 /* TODO:
- * registration layer
  * demosaicing setting: manage prepro in on_prepro_button_clicked
- * verify quality normalization and filtering
- * fix the layer/filter thing in processing and elsewhere
- * GUI mode switch
+ * fix the new arg->layer and filters in processing and elsewhere
+ * GUI mode switch: maybe not
  * remove menuitemcolor and menuitemgray in planetary mode
  * chain hi/lo/mode when RGB vport is modified
  */
@@ -127,3 +125,4 @@ static gboolean end_reference_image_stacking(gpointer p) {
 	free(args);
 	return FALSE;
 }
+

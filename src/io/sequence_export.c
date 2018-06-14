@@ -420,7 +420,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		case 3:
 			percent = gtk_adjustment_get_value(stackadj);
 			args->filtering_criterion = stack_filter_quality;
-			args->filtering_parameter = compute_highest_accepted_quality(percent);
+			args->filtering_parameter = compute_lowest_accepted_quality(percent);
 	}
 
 	// format

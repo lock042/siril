@@ -72,7 +72,7 @@ void initialize_stacking_methods();
 int stack_get_max_number_of_rows(sequence *seq, int nb_images_to_stack);
 void stack_fill_list_of_unfiltered_images(struct stacking_args *args);
 double compute_highest_accepted_fwhm(double percent);
-double compute_highest_accepted_quality(double percent);
+double compute_lowest_accepted_quality(double percent);
 int compute_nb_filtered_images(struct stacking_args *stack_args);
 
 int stack_median(struct stacking_args *args);

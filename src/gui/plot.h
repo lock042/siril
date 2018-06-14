@@ -25,6 +25,7 @@
 
 void reset_plot();
 void drawPlot();
+void plot_set_filtering_threshold(double threshold);
 void notify_new_photometry();
 void free_photometry_set(sequence *seq, int set);
 

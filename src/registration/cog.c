@@ -96,7 +96,7 @@ static int regcog_finalize_hook(struct generic_seq_args *args) {
 		double ref_x = rcdata->current_regdata[q_index].shiftx;
 		double ref_y = rcdata->current_regdata[q_index].shifty;
 		for (i = 0; i < args->seq->number; i++) {
-			if (rcdata->current_regdata[i].quality <= 0.0) continue;
+			if (rcdata->current_regdata[i].quality < 0.0) continue;
 
 			rcdata->current_regdata[i].shiftx = ref_x - rcdata->current_regdata[i].shiftx;
 			/* for Y, FITS are upside-down */
@@ -135,7 +135,7 @@ int register_cog(struct registration_args *regargs) {
 		int i;
 		for (i = 0; i < args->seq->number; i++) {
 			if (args->filtering_criterion(args->seq, args->layer, i, 0) &&
-					args->seq->regparam[args->layer][i].quality <= 0.0)
+					args->seq->regparam[args->layer][i].quality < 0.0)
 				break;
 		}
 		if (i == args->seq->number) {

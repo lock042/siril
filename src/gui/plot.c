@@ -54,6 +54,7 @@ static gchar *xlabel = NULL;
 static enum photmetry_source selected_source = ROUNDNESS;
 static int julian0 = 0;
 static gnuplot_ctrl *gplot = NULL;
+static double filtering_threshold = -1.0;
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
@@ -361,7 +362,8 @@ static int lightCurve(pldata *plot, sequence *seq) {
 
 	/* Plotting light curve */
 	gnuplot_set_title(gplot, _("Light Curve"));
-	gnuplot_set_xlabel(gplot, xlabel);
+	if (com.siril_mode == MODE_DEEP_SKY)
+		gnuplot_set_xlabel(gplot, xlabel);
 	gnuplot_reverse_yaxis(gplot);
 	gnuplot_setstyle(gplot, "errorbars");
 	gnuplot_plot_xyyerr(gplot, x, vmag, err, nbImages, "");
@@ -622,21 +624,23 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	guint width, height, i, j;
 	double mean;
 	int min, max, nb_graphs = 0;
-	struct kpair *avg;
+	struct kpair *avg, *filter;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
-	struct kdata *d1, *ref_d, *mean_d;
+	struct kdata *d1, *ref_d, *mean_d, *filter_d;
 	struct kplot *p;
 
 	if (plot_data) {
 		pldata *plot = plot_data;
-		d1 = ref_d = mean_d = NULL;
+		d1 = ref_d = mean_d = filter_d = NULL;
 
 		kplotcfg_defaults(&cfgplot);
 		kdatacfg_defaults(&cfgdata);
 		set_colors(&cfgplot);
-		cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
-		cfgplot.yaxislabel = ylabel;
+		if (com.siril_mode == MODE_DEEP_SKY) {
+			cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
+			cfgplot.yaxislabel = ylabel;
+		}
 		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
 		cfgdata.point.radius = 10;
@@ -663,16 +667,24 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 		if (nb_graphs == 1) {
 			avg = calloc(max - min, sizeof(struct kpair));
+			filter = calloc(max - min, sizeof(struct kpair));
 			j = min;
 			for (i = 0; i < max - min; i++) {
 				avg[i].x = plot_data->data[j].x;
 				avg[i].y = mean;
+				filter[i].x = plot_data->data[j].x;
+				filter[i].y = filtering_threshold;
 				++j;
 			}
 
 			mean_d = kdata_array_alloc(avg, max - min);
 			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
+			if (com.siril_mode == MODE_PLANETARY) {
+				filter_d = kdata_array_alloc(filter, max - min);
+				kplot_attach_data(p, filter_d, KPLOT_LINES, NULL);	// mean plot
+			}
 			free(avg);
+			free(filter);
 
 			if (ref.x >= 0.0 && ref.y >= 0.0) {
 				ref_d = kdata_array_alloc(&ref, 1);
@@ -710,6 +722,10 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
 	drawPlot();
+}
+
+void plot_set_filtering_threshold(double threshold) {
+	filtering_threshold = threshold;
 }
 
 static void update_ylabel() {

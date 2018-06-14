@@ -4595,6 +4595,11 @@ WARNING: Reducing the ratio of memory allocated to computation will degrade perf
       <action-widget response="0">SCNR_Apply</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkAdjustment" id="adjustment_seqimage">
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_shiftx">
     <property name="lower">-300</property>
     <property name="upper">300</property>
@@ -7455,6 +7460,26 @@ WARNING: it will erase all registration and statistics data.	</property>
                             <property name="width">2</property>
                           </packing>
                         </child>
+                        <child>
+                          <object class="GtkScale" id="seqimage_scale">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="tooltip_text" translatable="yes">Image of the sequence that is displayed. Use the left/right arrows or page up/down after clicking on it to change one or ten images forward or backward.</property>
+                            <property name="adjustment">adjustment_seqimage</property>
+                            <property name="lower_stepper_sensitivity">off</property>
+                            <property name="upper_stepper_sensitivity">on</property>
+                            <property name="round_digits">0</property>
+                            <property name="digits">0</property>
+                            <signal name="button-press-event" handler="on_seqimage_button_press" swapped="no"/>
+                            <signal name="button-release-event" handler="on_seqimage_button_release" swapped="no"/>
+                            <signal name="value-changed" handler="on_seqimage_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">3</property>
+                            <property name="width">2</property>
+                          </packing>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -8053,10 +8078,10 @@ The new sequence is automatically loaded as the current sequence upon completion
                               <object class="GtkComboBoxText" id="comboboxreglayer">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-				<property name="tooltip_text" translatable="yes">Layer on which the registration is done. It can only be done on one layer at a time, so on monochrome images.
+                                <property name="tooltip_text" translatable="yes">Layer on which the registration is done. It can only be done on one layer at a time, so on monochrome images.
 The (*) sign appearing after the layer's name means that registration data is already available for this layer.
 When processing images, registration data is taken from the default layer if available (for RGB images: Green, else fallback to Blue then Red).</property>
-				<signal name="changed" handler="on_comboboxreglayer_changed" swapped="no"/>
+                                <signal name="changed" handler="on_comboboxreglayer_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -8069,7 +8094,7 @@ When processing images, registration data is taken from the default layer if ava
                               <object class="GtkLabel" id="label66">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-				<property name="label" translatable="yes">Registration layer:</property>
+                                <property name="label" translatable="yes">Registration layer:</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -8085,9 +8110,6 @@ When processing images, registration data is taken from the default layer if ava
                             <property name="padding">1</property>
                             <property name="position">1</property>
                           </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
                         </child>
                         <child>
                           <object class="GtkBox" id="box4">
@@ -8113,6 +8135,7 @@ When processing images, registration data is taken from the default layer if ava
                                 <property name="adjustment">adjustment4</property>
                                 <property name="inverted">True</property>
                                 <property name="round_digits">1</property>
+                                <signal name="value-changed" handler="on_bestimage_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
@@ -8136,7 +8159,7 @@ When processing images, registration data is taken from the default layer if ava
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">3</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
@@ -8147,15 +8170,24 @@ When processing images, registration data is taken from the default layer if ava
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSeparator" id="separator15">
+                      <object class="GtkViewport" id="GtkViewPortPlot">
+                        <property name="height_request">100</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="margin_top">4</property>
+                        <child>
+                          <object class="GtkDrawingArea" id="DrawingPlot">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="tooltip_text" translatable="yes">The frame quality estimation for the sequence. Quality is between 1 for the best and 0 for the worst images evaluated for the sequence.
+The green line represents the average quality of the sequence.
+The blue line represents the threshold quality under which images are not used in stacking.</property>
+                            <signal name="draw" handler="on_DrawingPlot_draw" swapped="no"/>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
-                        <property name="padding">4</property>
                         <property name="position">2</property>
                       </packing>
                     </child>
@@ -9520,7 +9552,7 @@ gradients with differing spatial distributions and orientations.
                             <property name="receives_default">False</property>
                             <property name="active">True</property>
                             <property name="draw_indicator">True</property>
-			    <property name="group">radiobutton_minmax</property>
+                            <property name="group">radiobutton_minmax</property>
                             <signal name="toggled" handler="on_radiobutton_hilo_toggled" swapped="no"/>
                           </object>
                           <packing>
@@ -9537,7 +9569,7 @@ gradients with differing spatial distributions and orientations.
                             <property name="receives_default">False</property>
                             <property name="active">True</property>
                             <property name="draw_indicator">True</property>
-			    <property name="group">radiobutton_minmax</property>
+                            <property name="group">radiobutton_minmax</property>
                             <signal name="toggled" handler="on_radiobutton_user_toggled" swapped="no"/>
                           </object>
                           <packing>
@@ -9710,7 +9742,7 @@ gradients with differing spatial distributions and orientations.
               </object>
               <packing>
                 <property name="resize">True</property>
-                <property name="shrink">True</property>
+                <property name="shrink">False</property>
               </packing>
             </child>
           </object>
