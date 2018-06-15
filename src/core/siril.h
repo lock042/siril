@@ -195,6 +195,7 @@ typedef struct image_stats imstats;
 typedef struct rectangle_struct rectangle;
 typedef struct point_struct point;
 typedef struct gradient_struct gradient;
+typedef struct stacking_zone_struct stacking_zone;
 typedef struct historic_struct historic;
 typedef struct dateTime_struct dateTime;
 typedef struct fwhm_struct fitted_PSF;
@@ -490,6 +491,11 @@ struct gradient_struct {
 	double boxvalue[3];
 };
 
+struct stacking_zone_struct {
+	point centre;
+	double half_side;
+};
+
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
@@ -609,6 +615,9 @@ struct cominf {
 	gradient *grad;
 	int grad_nb_boxes, grad_size_boxes;
 	gboolean grad_boxes_drawn;
+
+	stacking_zone *stacking_zones;	// zones for multi-point processing
+	int stacking_zones_size;	// allocated size
 
 	int max_thread;			// maximum of thread used for parallel execution
 

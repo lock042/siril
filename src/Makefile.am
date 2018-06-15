@@ -13,7 +13,8 @@ siril_SOURCES = \
 	io/image_formats_libraries.c io/image_formats_internal.c io/image_format_fits.c \
 	io/sequence.c io/sequence.h io/seqfile.c io/single_image.c io/single_image.h \
 	io/mp4_output.h io/mp4_output.c io/sequence_export.c gui/gui.c gui/gui.h \
-	gui/callbacks.c gui/callbacks.h gui/histogram.c gui/histogram.h \
+	gui/callbacks.c gui/callbacks.h gui/planetary_callbacks.c gui/planetary_callbacks.h \
+	gui/histogram.c gui/histogram.h \
 	gui/save_dialog.c gui/save_dialog.h gui/PSF_list.h gui/PSF_list.c \
 	gui/sequence_list.c gui/registration_preview.c gui/image_display.c gui/image_display.h \
 	gui/statistics_list.c gui/script_menu.c gui/script_menu.h gui/plot.c gui/plot.h \

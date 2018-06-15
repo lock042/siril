@@ -54,7 +54,7 @@ static gchar *xlabel = NULL;
 static enum photmetry_source selected_source = ROUNDNESS;
 static int julian0 = 0;
 static gnuplot_ctrl *gplot = NULL;
-static double filtering_threshold = -1.0;
+static double filtering_threshold = 0.0;
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);

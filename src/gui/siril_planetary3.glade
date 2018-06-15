@@ -1912,6 +1912,7 @@ This is useful when modulation parameter is different to 1 helping the whole pro
   </object>
   <object class="GtkAdjustment" id="adjustment4">
     <property name="upper">100</property>
+    <property name="value">100</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -2005,6 +2006,12 @@ This is useful when modulation parameter is different to 1 helping the whole pro
   <object class="GtkAdjustment" id="adjustment_lum_y">
     <property name="lower">-1000</property>
     <property name="upper">1000</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_overlap">
+    <property name="upper">50</property>
+    <property name="value">10</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -4656,6 +4663,12 @@ WARNING: Reducing the ratio of memory allocated to computation will degrade perf
     <property name="upper">100</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_zonesize">
+    <property name="upper">2000</property>
+    <property name="value">50</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">25</property>
   </object>
   <object class="GtkDialog" id="confirm_dialog">
     <property name="can_focus">False</property>
@@ -8218,6 +8231,7 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkLabel" id="label_zones2">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="tooltip_text" translatable="yes">half-side of a stacking zone in pixels</property>
                             <property name="halign">end</property>
                             <property name="label" translatable="yes">Stacking zone size:</property>
                           </object>
@@ -8230,6 +8244,7 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkSpinButton" id="zonesize">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="adjustment">adjustment_zonesize</property>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -8240,6 +8255,7 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkCheckButton" id="check_autosize">
                             <property name="label" translatable="yes">Automatic size</property>
                             <property name="visible">True</property>
+                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="halign">start</property>
@@ -8254,6 +8270,7 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkCheckButton" id="check_autopos">
                             <property name="label" translatable="yes">Automatic positioning</property>
                             <property name="visible">True</property>
+                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="halign">start</property>
@@ -8268,6 +8285,7 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkLabel" id="label_zones3">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="tooltip_text" translatable="yes">in percent</property>
                             <property name="halign">end</property>
                             <property name="label" translatable="yes">Overlap amount:</property>
                           </object>
@@ -8292,7 +8310,9 @@ The blue line represents the threshold quality under which images are not used i
                         <child>
                           <object class="GtkSpinButton" id="overlapamount">
                             <property name="visible">True</property>
+                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
+                            <property name="adjustment">adjustment_overlap</property>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -8318,6 +8338,7 @@ The blue line represents the threshold quality under which images are not used i
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="margin_top">8</property>
+                            <signal name="toggled" handler="on_add_zones_toggled" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -8328,10 +8349,10 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkToggleButton" id="remove_zones">
                             <property name="label" translatable="yes">Remove zones</property>
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="margin_top">8</property>
+                            <signal name="toggled" handler="on_remove_zones_toggled" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>

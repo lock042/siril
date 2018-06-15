@@ -750,10 +750,11 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	/* draw background removal gradient selection boxes */
 	if (com.grad && com.grad_boxes_drawn) {
 		int i = 0;
+		cairo_set_dash(cr, NULL, 0, 0);
+		cairo_set_line_width(cr, 1.5);
+		cairo_set_source_rgba(cr, 0.2, 1.0, 0.3, 1.0);
 		while (i < com.grad_nb_boxes) {
 			if (com.grad[i].boxvalue[0] != -1.0) {
-				cairo_set_line_width(cr, 1.5);
-				cairo_set_source_rgba(cr, 0.2, 1.0, 0.3, 1.0);
 				cairo_rectangle(cr, com.grad[i].centre.x - com.grad_size_boxes,
 						com.grad[i].centre.y - com.grad_size_boxes,
 						com.grad_size_boxes, com.grad_size_boxes);
@@ -762,6 +763,37 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			i++;
 		}
 	}
+
+	if (com.stacking_zones) {
+		int i = 0;
+		// draw boxes
+		cairo_set_dash(cr, NULL, 0, 0);
+		cairo_set_line_width(cr, 1.5);
+		cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, 1.0);	// cyan
+		while (com.stacking_zones[i].centre.x >= 0.0) {
+			stacking_zone *zone = &com.stacking_zones[i];
+			cairo_rectangle(cr, zone->centre.x - zone->half_side,
+					zone->centre.y - zone->half_side,
+					2.0 * zone->half_side, 2.0 * zone->half_side);
+			cairo_stroke(cr);
+			i++;
+		}
+
+		// draw points at the centre
+		i = 0;
+		cairo_set_line_width(cr, 4.0);
+		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);	// red 
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		while (com.stacking_zones[i].centre.x >= 0.0) {
+			stacking_zone *zone = &com.stacking_zones[i];
+			cairo_move_to(cr, zone->centre.x, zone->centre.y);
+			cairo_close_path(cr);
+			cairo_stroke(cr);
+			i++;
+		}
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+	}
+
 	return FALSE;
 }
 

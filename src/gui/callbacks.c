@@ -36,13 +36,15 @@
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/undo.h"
-#include "gui/callbacks.h"
-#include "gui/gui.h"
-#include "gui/PSF_list.h"
-#include "gui/histogram.h"
-#include "gui/script_menu.h"
-#include "gui/progress_and_log.h"
-#include "gui/image_display.h"
+#include "callbacks.h"
+#include "gui.h"
+#include "PSF_list.h"
+#include "histogram.h"
+#include "script_menu.h"
+#include "progress_and_log.h"
+#include "image_display.h"
+#include "plot.h"
+#include "planetary_callbacks.h"
 #include "algos/colors.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
@@ -60,7 +62,6 @@
 #include "stacking/stacking.h"
 #include "compositing/compositing.h"
 #include "compositing/align_rgb.h"
-#include "plot.h"
 #include "opencv/opencv.h"
 
 static enum {
@@ -68,7 +69,6 @@ static enum {
 } confirm;
 
 static gboolean is_shift_on = FALSE;
-static gboolean seqimage_range_mouse_pressed = FALSE;
 
 layer_info predefined_layers_colors[] = {
 		/* name, lambda, lo, hi, c/over, c/under, mode */
@@ -2544,16 +2544,20 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				do_popup_rgbmenu(widget, event);
 				return TRUE;
 			}
+			else if (event->button == 1) {
+				double zoom = get_zoom_val();
+				planetary_click_in_image(event->x / zoom, event->y / zoom);
+			}
 			return FALSE;
 		}
 
 		/* else, click on gray image */
 		if (event->button == 1) {	// left click
+			double zoom = get_zoom_val();
 			if (mouse_status == MOUSE_ACTION_SELECT_REG_AREA) {
 				if (com.drawing) {
 					com.drawing = FALSE;
 				} else {
-					double zoom = get_zoom_val();
 					com.drawing = TRUE;
 					com.startX = event->x / zoom;
 					com.startY = event->y / zoom;
@@ -2563,7 +2567,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				gtk_widget_queue_draw(widget);
 			}
 			else if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
-				double zoom = get_zoom_val();
 				if (!com.grad) {
 					com.grad = malloc(NB_MAX_OF_SAMPLES * sizeof(gradient));
 					com.grad_boxes_drawn = TRUE;
@@ -2595,6 +2598,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					}
 				}
 			}
+			planetary_click_in_image(event->x / zoom, event->y / zoom);
 		} else if (event->button == 2) {	// middle click
 
 		}
@@ -2785,7 +2789,7 @@ void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event, gpoin
  * one call to select new button, one call to unselect previous one */
 void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
-	if (gtk_toggle_button_get_active(togglebutton) == TRUE) {
+	if (gtk_toggle_button_get_active(togglebutton)) {
 		com.sliders = MINMAX;
 		init_layers_hi_and_lo_values(com.sliders);
 		set_cutoff_sliders_values();
@@ -2796,7 +2800,7 @@ void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 
 void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
-	if (gtk_toggle_button_get_active(togglebutton) == TRUE) {
+	if (gtk_toggle_button_get_active(togglebutton)) {
 		com.sliders = MIPSLOHI;
 		init_layers_hi_and_lo_values(com.sliders);
 		set_cutoff_sliders_values();
@@ -2807,7 +2811,7 @@ void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 
 void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
-	if (gtk_toggle_button_get_active(togglebutton) == TRUE) {
+	if (gtk_toggle_button_get_active(togglebutton)) {
 		com.sliders = USER;
 		init_layers_hi_and_lo_values(com.sliders);
 		set_cutoff_sliders_values();
@@ -3123,33 +3127,6 @@ void on_layer_assign_selected(GtkComboBox *widget, gpointer user_data) {
 	else
 		g_snprintf(wl, sizeof(wl), _("undefined"));
 	gtk_entry_set_text(entry_wl, wl);
-}
-
-/* the planetary mode uses a slider to change displayed image whereas the
- * deep-sky mode uses a spin button (on_imagenumberspin_output) */
-void on_seqimage_changed(GtkRange *range, gpointer user_data) {
-	if (!sequence_is_loaded() || seqimage_range_mouse_pressed) return;
-	int index = (int)gtk_range_get_value(range);
-	seq_load_image(&com.seq, index, TRUE);
-}
-
-gboolean on_seqimage_button_press(GtkWidget *widget,
-		GdkEventButton *event, gpointer user_data) {
-	seqimage_range_mouse_pressed = TRUE;
-	return FALSE;
-}
-
-gboolean on_seqimage_button_release(GtkWidget *widget,
-		GdkEventButton *event, gpointer user_data) {
-	seqimage_range_mouse_pressed = FALSE;
-	on_seqimage_changed(GTK_RANGE(widget), NULL);
-	return FALSE;
-}
-
-void on_bestimage_changed(GtkRange *range, gpointer user_data) {
-	if (!sequence_is_loaded()) return;
-	double qual = compute_lowest_accepted_quality(gtk_range_get_value(range));
-	plot_set_filtering_threshold(qual);
 }
 
 /* Returns :	TRUE if the value has been displayed */
