@@ -553,10 +553,10 @@ int cvLaplacian(fits *image) {
 	Mat out(image->ry, image->rx, CV_16UC3);
 	Mat in_gray;
 
-	GaussianBlur(in, in, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	GaussianBlur(in, in, Size(5, 5), 0, 0, BORDER_DEFAULT);
 	cvtColor(in, in_gray, COLOR_BGR2GRAY); // Convert the image to grayscale
 
-	Laplacian(in_gray, out, CV_16U, 3, 1, 0, BORDER_DEFAULT);
+	Laplacian(in_gray, out, CV_16U, 5, 1, 0, BORDER_DEFAULT);
 
 	memcpy(image->data, out.data, ndata * sizeof(WORD));
 
