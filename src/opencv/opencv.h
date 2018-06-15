@@ -26,6 +26,7 @@ int cvTransformImage(fits *, point, Homography, int);
 int cvUnsharpFilter(fits*, double, double);
 int cvComputeFinestScale(fits *image);
 int cvLucyRichardson(fits *image, double sigma, int iterations);
+int cvLaplacian(fits *image);
 #ifdef __cplusplus
 }
 #endif

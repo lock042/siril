@@ -539,3 +539,40 @@ int cvLucyRichardson(fits *image, double sigma, int iterations) {
 	return 0;
 
 }
+
+int cvLaplacian(fits *image) {
+	assert(image->data);
+	assert(image->rx);
+	assert(image->ry);
+
+	int ndata = image->rx * image->ry;
+
+	WORD *bgrbgr = fits_to_bgrbgr(image);
+
+	Mat in(image->ry, image->rx, CV_16UC3, bgrbgr);
+	Mat out(image->ry, image->rx, CV_16UC3);
+	Mat in_gray;
+
+	GaussianBlur(in, in, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	cvtColor(in, in_gray, COLOR_BGR2GRAY); // Convert the image to grayscale
+
+	Laplacian(in_gray, out, CV_16U, 3, 1, 0, BORDER_DEFAULT);
+
+	memcpy(image->data, out.data, ndata * sizeof(WORD));
+
+	image->pdata[RLAYER] = image->data;
+	image->pdata[GLAYER] = image->data;
+	image->pdata[BLAYER] = image->data;
+	image->rx = out.cols;
+	image->ry = out.rows;
+	image->naxes[0] = image->rx;
+	image->naxes[1] = image->ry;
+
+	delete[] bgrbgr;
+	in.release();
+	out.release();
+
+	invalidate_stats_from_fit(image);
+
+	return 0;
+}
