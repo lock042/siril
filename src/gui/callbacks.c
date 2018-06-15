@@ -43,6 +43,7 @@
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "image_display.h"
+#include "planetary_callbacks.h"
 #include "plot.h"
 #include "planetary_callbacks.h"
 #include "algos/colors.h"
