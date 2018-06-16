@@ -35,9 +35,9 @@
 #define SIGMA_CLIP     5.
 #define NITER          3	/* number of sigma-clipping iterations */
 
-static int FnMeanSigma_ushort(WORD *array, long npix, int nullcheck,
+/*static int FnMeanSigma_ushort(WORD *array, long npix, int nullcheck,
 		WORD nullvalue, long *ngoodpix, double *mean, double *sigma,
-		int *status);
+		int *status);*/
 
 static int FnMeanSigma_int(int *array, long npix, int nullcheck, int nullvalue,
 		long *ngoodpix, double *mean, double *sigma, int *status);
@@ -123,7 +123,7 @@ int *status) /* error status */
 }
 
 /*--------------------------------------------------------------------------*/
-static int FnMeanSigma_ushort(WORD *array, /*  2 dimensional array of image pixels */
+int FnMeanSigma_ushort(WORD *array, /*  2 dimensional array of image pixels */
 long npix, /* number of pixels in the image */
 int nullcheck, /* check for null values, if true */
 WORD nullvalue, /* value of null pixels, if nullcheck is true */

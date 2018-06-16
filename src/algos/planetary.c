@@ -26,6 +26,7 @@
  * GUI mode switch: maybe not
  * remove menuitemcolor and menuitemgray in planetary mode
  * chain hi/lo/mode when RGB vport is modified
+ * add a 'clear zones' button to remove all existing
  */
 
 #include <stdlib.h>
@@ -33,6 +34,7 @@
 #include <string.h>
 #include <glib.h>
 #include <gtk/gtk.h>
+#include <math.h>
 
 #include "core/siril.h"
 #include "core/processing.h"
@@ -121,6 +123,74 @@ static gpointer sequence_analysis_thread_func(gpointer p) {
 
 static gboolean end_reference_image_stacking(gpointer p) {
 	struct stacking_args *args = (struct stacking_args *)p;
+
+	/* adapting automatic settings based on registration data */
+	regdata *regparam = args->seq->regparam[args->reglayer];
+	WORD *shifts = malloc(args->seq->number * sizeof(WORD));
+	int i, nb_images;
+	for (i = 0, nb_images = 0; i < args->seq->number; i++) {
+		if (regparam[i].quality < 0.0) continue;
+		shifts[nb_images++] = (WORD)roundf_to_int(
+				fabs(regparam[i].shiftx) + fabs(regparam[i].shifty));
+	}
+
+	double mean, sigma;
+	int status = 0;
+	FnMeanSigma_ushort(shifts, nb_images, 0, 0, NULL, &mean, &sigma, &status);
+	// the set of shifts is converted to WORD which will lose some precision but it's
+	// probably not significant for this use.
+
+	fprintf(stdout, "Average shifts for the sequence: %f (sigma: %f)\n", mean, sigma);
+
+	/* stacking process:
+	 * 1. compute parameters:
+	 *  - zone size: can it be guessed from the quality values? Are they a good
+	 *  indicator of SNR? Otherwise, we may count the number of pixels above a
+	 *  threshold to estimate the size of the planet in pixels and the samping of the
+	 *  acquisition. Zone size should depend on sampling, SNR and sky quality.
+	 *  - overlap, the number of pixels that are common between two zones and of the
+	 *  number of pixel in the zones, as a percentage. It depends on how much the
+	 *  images move, how much spaced the zones are (which depends on their size)
+	 *  because the more zones are far apart, the more shear might appear if they
+	 *  don't align. The value should not be higher than 50%, which would mean that
+	 *  the centre of two zones are both in the two zones. It's probably wiser to have
+	 *  the centres only in one zone.
+	 *  - extra read for zones, when trying to align zones, even if we read them in
+	 *  images taking into account the global shifts from the first registration, they
+	 *  might not perfectly fit. This value indicates how many pixels extra half side
+	 *  we need to read for each zone. This depends probably on the same data as the
+	 *  overlap, with emphasis on the standard deviation of the set of shifts.
+	 *  - sigma low and high of the stacking may be guesses from quality standard
+	 *  deviation?
+	 *
+	 *  Then show these values in the GUI and wait for user input. When the user
+	 *  changes the zone size, it may update the overlap amount in automatic mode.
+	 *
+	 * 2. place the stacking zones
+	 *  for the automatic mode, we will have to run a filter on the reference image to
+	 *  find points of interest. The points should not be on the planet's edge, but
+	 *  since it's a high contrast zone, it needs to be filtered out. The points
+	 *  should be spaced in a way that somewhat respect the overlap parameter
+	 *
+	 * 3. do the mpp stacking
+	 *  - each zone has to be read, with the extra read borders, on each image of the
+	 *  X best percent selected by user, to run a DFT registration on them. This gives
+	 *  local shifts, or zone shifts. A texture of the size of the reference image is
+	 *  used to store the cumulated number of zones that contain each pixel. This
+	 *  helps managing the variable pixel count in the stack.
+	 *  - average stacking with rejection is then run almost normally, with the blocks
+	 *  computed for multi-threading almost as usual, but taking into account the
+	 *  overlap that will add some pixels to each pixel stacks.
+	 *    For each pixel, we get for each image the pixels of each zone slided with
+	 *    the local shift (there may be several zones that contain the pixel in
+	 *    overlapping zones) or globally shifted pixel if the pixel is not in a zone.
+	 *
+	 * There may be a way do to the zones registration and the stacking at the same
+	 * time, but this gets complicated with the stacking blocks for the
+	 * multi-threading. Separating in two as explained above should not give an
+	 * unreasonable speed penalty.
+	 *    
+	 */
 
 	free(args);
 	return FALSE;

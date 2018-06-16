@@ -129,6 +129,9 @@ int fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 		double *mean, double *sigma, double *noise1, double *noise2, double *noise3,
 		double *noise5, int *status);
 
+int FnMeanSigma_ushort(WORD *array, long npix, int nullcheck, WORD nullvalue, long *ngoodpix,
+		double *mean, double *sigma, int *status); 
+
 /****************** siril.h ******************/
 /* crop sequence data from GUI */
 struct crop_sequence_data {
