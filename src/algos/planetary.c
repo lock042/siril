@@ -21,6 +21,8 @@
 /* This is the main file for the multi-point planetary processing */
 
 /* TODO:
+ * gostack_button sensitivity is changed from a code that interferes, probably end_registration
+ * load the reference image in refimage when it exists
  * demosaicing setting: manage prepro in on_prepro_button_clicked
  * fix the new arg->layer and filters in processing and elsewhere
  * GUI mode switch: maybe not
@@ -35,7 +37,10 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <math.h>
+#include <complex.h>
+#include <fftw3.h>
 
+#include "planetary.h"
 #include "core/siril.h"
 #include "core/processing.h"
 #include "core/proto.h"
@@ -45,10 +50,13 @@
 #include "io/sequence.h"
 #include "gui/progress_and_log.h"
 
-//static fits refimage;
+static fits refimage;
 
 static gpointer sequence_analysis_thread_func(gpointer p);
 static gboolean end_reference_image_stacking(gpointer p);
+static int get_number_of_zones();
+static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex *dest,
+		int layer, double shiftx, double shifty);
 
 /* First step: running the global registration and building the reference image */
 void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
@@ -113,7 +121,9 @@ static gpointer sequence_analysis_thread_func(gpointer p) {
 	stack_args->retval = stack_summing_generic(stack_args);
 	if (stack_args->retval)
 		return GINT_TO_POINTER(-1);
+
 	/* the reference image is now in gfit */
+	copyfits(&gfit, &refimage, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 
 	siril_add_idle(end_stacking, stack_args);
 	siril_add_idle(end_reference_image_stacking, stack_args);
@@ -196,3 +206,174 @@ static gboolean end_reference_image_stacking(gpointer p) {
 	return FALSE;
 }
 
+
+gpointer the_multipoint_registration(gpointer ptr) {
+	struct mpr_args *args = (struct mpr_args*)ptr;
+	int zone_idx, nb_zones, frame;
+	int abort = 0;
+	stacking_zone *zone;
+	fftw_complex **ref, **in, **out, **convol;
+	fftw_plan *p, *q;
+	regdata *regparam = args->seq->regparam[args->layer];
+	if (!regparam) return GINT_TO_POINTER(-1);
+
+	nb_zones = get_number_of_zones();
+	if (nb_zones < 1) {
+		fprintf(stderr, "cannot do the multi-point registration if no zone is defined\n");
+		// TODO: add the idle instead
+		return GINT_TO_POINTER(-1);
+	}
+	ref = malloc(nb_zones * sizeof(fftw_complex*));
+	in = malloc(nb_zones * sizeof(fftw_complex*));
+	out = malloc(nb_zones * sizeof(fftw_complex*));
+	convol = malloc(nb_zones * sizeof(fftw_complex*));
+	p = malloc(nb_zones * sizeof(fftw_plan));
+	q = malloc(nb_zones * sizeof(fftw_plan));
+	
+	/* reading zones in the reference image */
+	fprintf(stdout, "loading reference zones\n");
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+		zone = &com.stacking_zones[zone_idx];
+		int side = round_to_int(zone->half_side * 2.0);
+		int nb_pixels = side * side;
+		ref[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
+		in[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
+		out[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
+		convol[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
+
+		/* TODO: what's that?
+		if (nb_frames > 200.f)
+			plan = FFTW_MEASURE;
+		else plan = FFTW_ESTIMATE; */
+		int plan = FFTW_MEASURE;
+
+		// CRASH HERE v
+		p[zone_idx] = fftw_plan_dft_2d(side, side, ref[zone_idx], out[zone_idx], FFTW_FORWARD, plan);
+		q[zone_idx] = fftw_plan_dft_2d(side, side, convol[zone_idx], out[zone_idx], FFTW_BACKWARD, plan);
+
+		copy_image_zone_to_fftw(&refimage, zone, ref[zone_idx],
+				args->layer, 0.0, 0.0);
+
+		fftw_execute_dft(p[zone_idx], ref[zone_idx], in[zone_idx]);
+	}
+
+	fftw_complex **zones = calloc(nb_zones, sizeof(fftw_complex*));
+	fftw_complex **out2 = calloc(nb_zones, sizeof(fftw_complex*));
+	fftw_complex **convol2 = calloc(nb_zones, sizeof(fftw_complex*));
+
+	/* for each image, we read the zones with global shift and register them */
+	for (frame = 0; frame < args->seq->number; frame++) {
+		fits fit = { 0 };
+		int i;
+		if (abort) continue;
+		if (!args->filtering_criterion(args->seq, args->layer, frame, args->filtering_parameter))
+			continue;
+
+		if (seq_read_frame(args->seq, frame, &fit)) {
+			abort = 1;
+			continue;
+		}
+		fprintf(stdout, "aligning zones for image %d\n", frame);
+
+		/* reading zones in the reference image */
+		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+			if (abort) continue;
+			zone = &com.stacking_zones[zone_idx];
+			int side = round_to_int(zone->half_side * 2.0);
+			int nb_pixels = side * side;
+			stacking_zone shifted_zone = { .centre =
+				{ .x = zone->centre.x + regparam[frame].shiftx,
+					.y = zone->centre.y + regparam[frame].shifty },
+				.half_side = zone->half_side };
+
+			if (!zones[zone_idx]) {	// keep across images
+			       zones[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
+			       out2[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
+			       convol2[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
+			}
+
+			copy_image_zone_to_fftw(&fit, &shifted_zone, zones[zone_idx],
+					args->layer, 0.0, 0.0);
+
+			fftw_execute_dft(p[zone_idx], zones[zone_idx], out2[zone_idx]);
+
+			for (i = 0; i < nb_pixels; i++) {
+				convol2[zone_idx][i] = in[zone_idx][i] * conj(out2[zone_idx][i]);
+			}
+			fftw_execute_dft(q[zone_idx], convol2[zone_idx], out2[zone_idx]);
+
+			int shift = 0;
+			for (i = 1; i < nb_pixels; ++i) {
+				if (creal(out2[zone_idx][i]) > creal(out2[zone_idx][shift])) {
+					shift = i;
+					// TODO: break or get last or max value?
+				}
+			}
+			int shifty = shift / side;
+			int shiftx = shift % side;
+			if (shifty > zone->half_side) {
+				shifty -= side;
+			}
+			if (shiftx > zone->half_side) {
+				shiftx -= side;
+			}
+
+			/* for Y, it's a bit special because FITS are upside-down */
+			int sign = args->seq->type == SEQ_SER ? -1 : 1;
+
+			/* shitfs for this image and this zone is shiftx, sign*shifty */
+			fprintf(stdout, "frame %d, zone %d shifts: %d,%d\n", frame, zone_idx, shiftx, shifty*sign);
+		}
+	}
+
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+		fftw_free(zones[zone_idx]);
+		fftw_free(out2[zone_idx]);
+		fftw_free(convol2[zone_idx]);
+
+		fftw_destroy_plan(p[zone_idx]);
+		fftw_destroy_plan(q[zone_idx]);
+		fftw_free(in[zone_idx]);
+		fftw_free(out[zone_idx]);
+		fftw_free(ref[zone_idx]);
+		fftw_free(convol[zone_idx]);
+	}
+	free(zones); free(out2); free(convol2);
+	free(p); free(q);
+	free(in); free(out); free(ref); free(convol);
+
+	//siril_add_idle();
+	return NULL;
+}
+
+static int get_number_of_zones() {
+	int i = 0;
+	while (com.stacking_zones[i].centre.x >= 0.0) i++;
+	return i;
+}
+
+static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex *dest,
+		int layer, double shiftx, double shifty) {
+
+	int side = round_to_int(zone->half_side * 2.0);
+	int startx = round_to_int(zone->centre.x - zone->half_side + shiftx);
+	int starty = round_to_int(zone->centre.y - zone->half_side + shiftx);
+	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
+		/* this zone is partly outside the image, I don't think there's
+		 * much we can do for it, it just has to be ignored for this
+		 * image for the stacking. */
+		return -1;
+	}
+
+	WORD *from = fit->pdata[layer] + (fit->ry - starty) * fit->rx + starty;
+	int stridefrom = fit->rx - side;
+	int i, j;
+
+	for (i = 0; i < side; ++i) {
+		for (j = 0; j < side; ++j) {
+			*dest++ = (double)*from++;
+		}
+		from += stridefrom;
+	}
+	return 0;
+}

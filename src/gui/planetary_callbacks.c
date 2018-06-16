@@ -23,12 +23,14 @@
 #include <float.h>
 #include "io/sequence.h"
 #include "stacking/stacking.h"
+#include "algos/planetary.h"
 #include "plot.h"
 #include "gui.h"
 
 static gboolean seqimage_range_mouse_pressed = FALSE;
 static gboolean add_zones_mode = FALSE;
 static gboolean remove_zones_mode = FALSE;
+static double lowest_accepted_quality = 0.0;
 
 /* the planetary mode uses a slider to change displayed image whereas the
  * deep-sky mode uses a spin button (on_imagenumberspin_output) */
@@ -53,8 +55,8 @@ gboolean on_seqimage_button_release(GtkWidget *widget,
 
 void on_bestimage_changed(GtkRange *range, gpointer user_data) {
 	if (!sequence_is_loaded()) return;
-	double qual = compute_lowest_accepted_quality(gtk_range_get_value(range));
-	plot_set_filtering_threshold(qual);
+	lowest_accepted_quality = compute_lowest_accepted_quality(gtk_range_get_value(range));
+	plot_set_filtering_threshold(lowest_accepted_quality);
 }
 
 
@@ -92,6 +94,9 @@ void add_stacking_zone(double x, double y, double half_side) {
 	zone->half_side = half_side;
 
 	com.stacking_zones[i+1].centre.x = -1.0; 
+
+	GtkWidget *stack_button = lookup_widget("gostack_button");
+	gtk_widget_set_sensitive(stack_button, TRUE);
 }
 
 void planetary_click_in_image(double x, double y) {
@@ -129,6 +134,24 @@ void planetary_click_in_image(double x, double y) {
 						sizeof(stacking_zone));
 				com.stacking_zones[i-1].centre.x = -1.0;
 			}
+
+			if (i == 1) {
+				GtkWidget *stack_button = lookup_widget("gostack_button");
+				gtk_widget_set_sensitive(stack_button, FALSE);
+			}
 		}
 	}
+}
+
+gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(
+			gtk_builder_get_object(builder, "comboboxreglayer"));
+
+	struct mpr_args *args = malloc(sizeof(struct mpr_args));
+	args->seq = &com.seq;
+	args->layer = gtk_combo_box_get_active(cbbt_layers);
+	args->filtering_criterion = stack_filter_quality;
+	args->filtering_parameter = lowest_accepted_quality;
+	start_in_new_thread(the_multipoint_registration, args);
+	return FALSE;
 }
