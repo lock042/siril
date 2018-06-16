@@ -1503,7 +1503,7 @@ static void start_stacking() {
 	siril_log_message(stackparam.description);
 
 	stackparam.output_overwrite = gtk_toggle_button_get_active(overwrite);
-	stackparam.output_filename = gtk_entry_get_text(output_file);
+	stackparam.output_filename = strdup(gtk_entry_get_text(output_file));
 
 	/* Stacking. Result is in gfit if success */
 	start_in_new_thread(stack_function_handler, &stackparam);
@@ -2053,6 +2053,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 	int channel, ref_image;
 	char labelbuffer[256];
 
+	if (com.siril_mode != MODE_DEEP_SKY) return;
 	if(!stackadj) {
 		go_stack = lookup_widget("gostack_button");
 		stack[0] = lookup_widget("stackspin");

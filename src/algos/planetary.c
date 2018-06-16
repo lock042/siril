@@ -21,8 +21,8 @@
 /* This is the main file for the multi-point planetary processing */
 
 /* TODO:
- * gostack_button sensitivity is changed from a code that interferes, probably end_registration
- * load the reference image in refimage when it exists
+ * allow the ref image not to be displayed when loading a sequence if we
+ *   display the planetary reference image 
  * demosaicing setting: manage prepro in on_prepro_button_clicked
  * fix the new arg->layer and filters in processing and elsewhere
  * GUI mode switch: maybe not
@@ -49,8 +49,10 @@
 #include "stacking/sum.h"
 #include "io/sequence.h"
 #include "gui/progress_and_log.h"
+#include "gui/planetary_callbacks.h"
 
 static fits refimage;
+static char *refimage_filename;
 
 static gpointer sequence_analysis_thread_func(gpointer p);
 static gboolean end_reference_image_stacking(gpointer p);
@@ -109,11 +111,7 @@ static gpointer sequence_analysis_thread_func(gpointer p) {
 	stack_fill_list_of_unfiltered_images(stack_args);
 	snprintf(stack_args->description, sizeof stack_args->description,
 			_("Creating the reference image for the multi-point planetary processing"));
-	char *output_filename = malloc(strlen(reg_args->seq->seqname) + 20);
-	sprintf(output_filename, "%s%sreference%s", reg_args->seq->seqname,
-			ends_with(com.seq.seqname, "_") ?  "" :
-			(ends_with(com.seq.seqname, "-") ? "" : "_"), com.ext);
-	stack_args->output_filename = (const char*)output_filename;
+	stack_args->output_filename = get_reference_image_name(reg_args->seq, reg_args->layer);
 	stack_args->output_overwrite = TRUE;
 	gettimeofday(&stack_args->t_start, NULL);
 	free(reg_args);
@@ -202,10 +200,47 @@ static gboolean end_reference_image_stacking(gpointer p) {
 	 *    
 	 */
 
+	free(args->output_filename);
 	free(args);
 	return FALSE;
 }
 
+// 2be3d
+char *get_reference_image_name(sequence *seq, int layer) {
+	char *seqname = seq->seqname;
+	char *output_filename = malloc(strlen(seqname) + 20);
+	sprintf(output_filename, "%s%sreference%d%s", seqname,
+			ends_with(seqname, "_") ?  "" :
+			(ends_with(seqname, "-") ? "" : "_"),
+			layer, com.ext);
+	return output_filename;
+}
+
+int refimage_is_set() {
+	return refimage.naxes[0] > 0;
+}
+
+const fits *get_refimage() {
+	return &refimage;
+}
+
+const char *get_refimage_filename() {
+	return (const char *)refimage_filename;
+}
+
+void update_refimage_on_layer_change(sequence *seq, int layer) {
+	if (refimage_is_set())
+		clearfits(&refimage);
+	char *ref_name = get_reference_image_name(seq, layer);
+	if (is_readable_file(ref_name) && !readfits(ref_name, &refimage, NULL)) {
+		siril_log_message(_("A previously computed reference image was found"
+				       " for layer %d, using it"), layer);
+		refimage_filename = ref_name;
+		display_refimage_if_needed();
+	} else {
+		free(ref_name);
+	}
+}
 
 gpointer the_multipoint_registration(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
@@ -377,3 +412,11 @@ static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex 
 	}
 	return 0;
 }
+
+int point_is_inside_zone(int px, int py, stacking_zone *zone) {
+	int side = round_to_int(zone->half_side * 2.0);
+	int startx = round_to_int(zone->centre.x - zone->half_side);
+	int starty = round_to_int(zone->centre.y - zone->half_side);
+	return px > startx && px < startx + side && py > starty && py < starty + side;
+}
+

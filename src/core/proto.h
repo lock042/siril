@@ -26,7 +26,7 @@ int	read_opened_fits_partial(sequence *seq, int layer, int index, WORD *buffer, 
 int	fits_get_date_obs(const char *name, fits *f);
 int 	savefits(const char *, fits *);
 void 	save_fits_header(fits *);
-int	copyfits(fits *from, fits *to, unsigned char oper, int layer);
+int	copyfits(const fits *from, fits *to, unsigned char oper, int layer);
 int	copy_fits_metadata(fits *from, fits *to);
 int	save1fits16(const char *filename, fits *fit, int layer);
 int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status);

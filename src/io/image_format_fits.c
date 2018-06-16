@@ -1146,7 +1146,7 @@ void save_fits_header(fits *fit) {
  * flags should be used:	CP_ALLOC | CP_COPYA | CP_FORMAT
  *
  */
-int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
+int copyfits(const fits *from, fits *to, unsigned char oper, int layer) {
 	int depth, i;
 	unsigned int nbdata = from->rx * from->ry;
 

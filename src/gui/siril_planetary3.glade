@@ -8075,11 +8075,13 @@ The new sequence is automatically loaded as the current sequence upon completion
                               <object class="GtkCheckButton" id="showref_check">
                                 <property name="label" translatable="yes">Show reference image</property>
                                 <property name="visible">True</property>
-                                <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
+                                <property name="tooltip_text" translatable="yes">Show the reference image if any has been created.</property>
                                 <property name="halign">start</property>
+                                <property name="active">True</property>
                                 <property name="draw_indicator">True</property>
+                                <signal name="toggled" handler="on_showref_check_toggled" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -8094,7 +8096,7 @@ The new sequence is automatically loaded as the current sequence upon completion
                                 <property name="tooltip_text" translatable="yes">Layer on which the registration is done. It can only be done on one layer at a time, so on monochrome images.
 The (*) sign appearing after the layer's name means that registration data is already available for this layer.
 When processing images, registration data is taken from the default layer if available (for RGB images: Green, else fallback to Blue then Red).</property>
-                                <signal name="changed" handler="on_comboboxreglayer_changed" swapped="no"/>
+                                <signal name="changed" handler="on_comboboxreglayer_planetary_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -8439,7 +8441,7 @@ The blue line represents the threshold quality under which images are not used i
 Siril uses a 32-bit internal image to process the stacking, which is then saved to a 16-bit image whose name is given below.</property>
                             <property name="margin_top">15</property>
                             <property name="use_underline">True</property>
-			    <signal name="clicked" handler="on_planetary_processing_button_clicked" swapped="no"/>
+                            <signal name="clicked" handler="on_planetary_processing_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>

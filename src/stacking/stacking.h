@@ -52,7 +52,7 @@ struct stacking_args {
 	int nb_images_to_stack; // calculated from the above, for display purposes
 	int *image_indices;	// conversion between selected image indices and sequence image indices
 	char description[100];	// description of the filtering
-	const char *output_filename;	// used in the idle function only
+	char *output_filename;	// used in the idle function only
 	gboolean output_overwrite;	// used in the idle function only
 	struct timeval t_start;
 	int retval;
