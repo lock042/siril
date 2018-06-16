@@ -20,6 +20,7 @@
 
 #include <gtk/gtk.h>
 #include <math.h>
+#include <float.h>
 #include "io/sequence.h"
 #include "stacking/stacking.h"
 #include "plot.h"
@@ -77,7 +78,7 @@ void add_stacking_zone(double x, double y, double half_side) {
 	}
 
 	int i = 0;
-	while (com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1) 
+	while (com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1)
 		i++;
 	if (i == com.stacking_zones_size - 1) {
 		com.stacking_zones_size *= 2;

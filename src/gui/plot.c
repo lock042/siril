@@ -464,6 +464,14 @@ static void free_plot_data() {
 	}
 }
 
+static void quality_y_format(double value, char *buf, size_t size) {
+	snprintf(buf, size, "%3.1lf", value);
+}
+
+static void frame_x_format(double value, char *buf, size_t size) {
+	snprintf(buf, size, "%.0lf", value + 0.5);
+}
+
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(box));
 	gtk_widget_set_visible(combo, use_photometry);
@@ -643,7 +651,10 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		}
 		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
+		cfgplot.xticlabelfmt = frame_x_format;
+
 		cfgdata.point.radius = 10;
+		cfgplot.yticlabelfmt = quality_y_format;
 
 		p = kplot_alloc(&cfgplot);
 
