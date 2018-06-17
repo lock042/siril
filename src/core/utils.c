@@ -79,6 +79,19 @@
 #include <sys/mount.h>
 #endif
 
+#include <errno.h>
+#include <gio/gio.h>
+#include <glib/gstdio.h>
+#ifdef _WIN32
+#define DATADIR datadir
+/* Constant available since Shell32.dll 4.72 */
+#ifndef CSIDL_APPDATA
+#define CSIDL_APPDATA 0x001a
+#endif
+#endif
+
+#include <time.h>
+
 /**
  * Round double value to an integer
  * @param x value to round
@@ -1059,3 +1072,84 @@ gint strcompare(gconstpointer *a, gconstpointer *b) {
 
 	return result;
 }
+
+/* create the siril config directory if it does not exist and return the name
+ * if available, NULL otherwise, on all systems.
+ * To be g_freed! */
+gchar *get_siril_config_directory() {
+	struct stat sts;
+	gchar *configdir;	// the path of the configuration directory
+
+#ifdef _WIN32
+	// AppData/siril directory
+	configdir = g_build_filename(get_special_folder(CSIDL_APPDATA), "siril", NULL);
+#else
+	const gchar *tmp = g_get_home_dir();
+	if (!tmp) {
+		fprintf(stderr, "Could not get the environment variable $HOME.\n");
+		return NULL;
+	}
+#if (defined(__APPLE__) && defined(__MACH__))
+	configdir = g_build_filename(tmp, "Library", "Application Support",
+			"siril", NULL);
+#else
+	configdir = g_build_filename(tmp, ".siril", NULL);
+#endif
+#endif
+
+	/* then, test if it exists and create it if not */
+	if (g_stat(configdir, &sts) != 0) {
+		if (errno == ENOENT) {
+			fprintf(stdout, _("Creating Siril configuration directory %s\n"), configdir);
+			if (g_mkdir(configdir, 0755)) {
+				fprintf(stderr, "Could not create dir %s, please help me!\n",
+						configdir);
+				free(configdir);
+				return NULL;
+			}
+			return configdir;
+		}
+	}
+
+	if (!(S_ISDIR(sts.st_mode))) {
+		fprintf(stderr, "There is a file named %s, where Siril wants to create its "
+			       "configuration directory. Please move or remove this file.\n",
+				configdir);
+		free(configdir);
+		return NULL;
+	}
+
+	return configdir;
+}
+
+gchar *get_configdir_file_path(const char* file) {
+	gchar *filename;
+	gchar *configdir = get_siril_config_directory();
+	if (!configdir) return NULL;
+	filename = g_build_filename(configdir, file, NULL);
+	g_free(configdir);
+	return filename;
+}
+
+/* linux-specific high-resolution timer */
+static struct timespec start, stop;
+
+void start_timer() {
+#if defined(__linux__)
+	clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+#endif
+}
+
+long stop_timer_elapsed_mus() {
+#if defined(__linux__)
+	clock_gettime(CLOCK_MONOTONIC_RAW, &stop);
+	long timens;
+	if (stop.tv_nsec > start.tv_nsec)
+		timens = stop.tv_nsec - start.tv_nsec;
+	else timens = 1000000000L + stop.tv_nsec - start.tv_nsec;
+	return (stop.tv_sec - start.tv_sec)*1000000L + timens / 1000L;
+#else
+	return 0L;
+#endif
+}
+

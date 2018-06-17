@@ -256,6 +256,16 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
+	/* Get CPU number and set the number of threads */
+	siril_log_message(_("Parallel processing %s: using %d logical processor(s).\n"),
+#ifdef _OPENMP
+			_("enabled"), com.max_thread = omp_get_num_procs()
+#else
+			_("disabled"), com.max_thread = 1
+#endif
+			);
+
+
 	if (!com.headless) {
 		gtk_init(&argc, &argv);
 		enum _siril_mode mode = com.siril_mode;
@@ -269,15 +279,6 @@ int main(int argc, char *argv[]) {
 
 	/* initialize converters (supported file type) */
 	initialize_converters();
-
-	/* Get CPU number and set the number of threads */
-	siril_log_message(_("Parallel processing %s: Using %d logical processor(s).\n"),
-#ifdef _OPENMP
-			_("enabled"), com.max_thread = omp_get_num_procs()
-#else
-			_("disabled"), com.max_thread = 1
-#endif
-			);
 
 	if (com.headless) {
 		init_peaker_default();

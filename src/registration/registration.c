@@ -250,7 +250,7 @@ int register_shift_dft(struct registration_args *args) {
 	current_regdata[ref_image].quality = QualityEstimate(&fit_ref, args->layer, QUALTYPE_NORMAL);
 	// We don't need fit anymore, we can destroy it.
 	clearfits(&fit_ref);
-	fftw_execute_dft(p, ref, in); /* repeat as needed */
+	fftw_execute_dft(p, ref, in);
 	current_regdata[ref_image].shiftx = 0.0;
 	current_regdata[ref_image].shifty = 0.0;
 
@@ -309,7 +309,7 @@ int register_shift_dft(struct registration_args *args) {
 					q_min = min(q_min, qual);
 				}
 
-				fftw_execute_dft(p, img, out2); /* repeat as needed */
+				fftw_execute_dft(p, img, out2);
 
 				fftw_complex *convol2 = fftw_malloc(sizeof(fftw_complex) * sqsize);
 
@@ -317,7 +317,7 @@ int register_shift_dft(struct registration_args *args) {
 					convol2[x] = in[x] * conj(out2[x]);
 				}
 
-				fftw_execute_dft(q, convol2, out2); /* repeat as needed */
+				fftw_execute_dft(q, convol2, out2);
 				fftw_free(convol2);
 
 				int shift = 0;

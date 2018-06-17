@@ -21,17 +21,8 @@
 #include <errno.h>
 #include <libconfig.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <gio/gio.h>
-#include <glib/gstdio.h>
-#ifdef _WIN32
-#define DATADIR datadir
-/* Constant available since Shell32.dll 4.72 */
-#ifndef CSIDL_APPDATA
-#define CSIDL_APPDATA 0x001a
-#endif
-#endif
+#include <glib.h>
+#include <glib/gprintf.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -363,87 +354,24 @@ int writeinitfile() {
 }
 
 int checkinitfile() {
-	gchar *home = NULL;
-	struct stat sts;
+	gchar *configdir;
 
 	// try to read the file given on command line
 	if (com.initfile && !readinitfile()) {
 		return 0;
 	}
 
-	// no file given on command line, set initfile to default location
-#ifdef _WIN32
-	home = g_build_filename (get_special_folder (CSIDL_APPDATA),
-			"siril", NULL);
-	if( g_mkdir_with_parents( home, 1 ) == 0 ) {
-		fprintf( stderr, "Created homefolder %s!\n", home );
-	} else {
-		fprintf( stderr, "Failed to create homefolder %s!\n", com.initfile );
-	}
-#else
-	const gchar *tmp = g_get_home_dir();
-	if (tmp == NULL) {
-		fprintf(stderr,
-				"Could not get the environment variable $HOME, no config file.\n");
-		return 1;
-	}
-	home = g_strdup(tmp);
-#endif
+	configdir = get_siril_config_directory();
+	if (!configdir) return -1;
+	com.initfile = g_build_filename(configdir, CFG_FILE, NULL);
+	g_free(configdir);
 
-#if (defined(__APPLE__) && defined(__MACH__))
-	fprintf(stderr, "Creating initfile in Application Support.\n");
-	gchar *homefolder;
-	homefolder = g_build_filename(g_get_home_dir(),
-			"Library", "Application Support", "siril", NULL);
-	if (g_mkdir_with_parents(homefolder, 0755) == 0) {
-		com.initfile = g_build_filename(homefolder, CFG_FILE, NULL);
-		fprintf(stderr, "The initfile name is %s.\n", com.initfile);
-	} else {
-		fprintf(stderr, "Failed to create homefolder %s.\n", homefolder);
-	}
-
-#elif defined (_WIN32)
-	com.initfile = g_build_filename(home, CFG_FILE, NULL);
-#else
-	com.initfile = g_new(gchar, strlen(home) + 20);
-	sprintf(com.initfile, "%s/.siril/%s", home, CFG_FILE);
-#endif
-	if (readinitfile()) {	// couldn't read it
-		char filename[255];
-
+	if (readinitfile()) {
 		// if that fails, check and create the default ini file
-#if (defined(__APPLE__) && defined(__MACH__))
-		snprintf(filename, 255, "%s", homefolder);
-		g_free(homefolder);
-#elif defined (_WIN32)
-		snprintf(filename, 255, "%s", home);
-#else
-		snprintf(filename, 255, "%s/.siril", home);
-#endif
-		g_free(home);
-		if (g_stat(filename, &sts) != 0) {
-			if (errno == ENOENT) {
-				if (g_mkdir(filename, 0755)) {
-					fprintf(stderr, "Could not create dir %s, please check\n",
-							filename);
-					return 1;
-				}
-				com.swap_dir = g_strdup(g_get_tmp_dir());
-				com.ext = strdup(".fit");
-				return (writeinitfile());
-			}
-		}
-
-		if (!(S_ISDIR(sts.st_mode))) {
-			fprintf(stderr,
-					"There is a file named %s, that is not a directory.\n"
-							"Remove or rename it first\n", filename);
-			return 1;
-		}
-
 		com.swap_dir = g_strdup(g_get_tmp_dir());
 		com.ext = strdup(".fit");
 		return (writeinitfile());
 	}
 	return 0;
 }
+

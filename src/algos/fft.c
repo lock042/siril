@@ -18,6 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* functions in this file are all related to manipulating the Fourier
+ * transformation of an image and returning to the image from it after
+ * modification */
+
 #include <stdio.h>
 #include <math.h>
 #include <complex.h>

@@ -122,6 +122,10 @@ char*	format_basename(char *root);
 float	computePente(WORD *lo, WORD *hi);
 double	encodeJD(dateTime dt);
 gint strcompare(gconstpointer *a, gconstpointer *b);
+gchar *get_siril_config_directory();
+gchar *get_configdir_file_path(const char* file);
+void start_timer();
+long stop_timer_elapsed_mus();
 
 /****************** quantize.h ***************/
 int fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,

@@ -22,13 +22,15 @@
 
 /* TODO:
  * allow the ref image not to be displayed when loading a sequence if we
- *   display the planetary reference image 
+ *   display the planetary reference image
  * demosaicing setting: manage prepro in on_prepro_button_clicked
  * fix the new arg->layer and filters in processing and elsewhere
- * GUI mode switch: maybe not
+ * GUI mode switch: maybe not, maybe fork+exec?
  * remove menuitemcolor and menuitemgray in planetary mode
  * chain hi/lo/mode when RGB vport is modified
  * add a 'clear zones' button to remove all existing
+ * make a background thread that precomputes FFTW wisdom, it's too slow for big zones
+ * restrict zone size (see FFTW comment below) to some values
  */
 
 #include <stdlib.h>
@@ -37,8 +39,9 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <math.h>
-#include <complex.h>
+#include <complex.h>	// to include before fftw3.h
 #include <fftw3.h>
+#include <time.h>
 
 #include "planetary.h"
 #include "core/siril.h"
@@ -50,6 +53,8 @@
 #include "io/sequence.h"
 #include "gui/progress_and_log.h"
 #include "gui/planetary_callbacks.h"
+
+#define FFTW_WISDOM_FILE "fftw_wisdom"
 
 static fits refimage;
 static char *refimage_filename;
@@ -242,13 +247,21 @@ void update_refimage_on_layer_change(sequence *seq, int layer) {
 	}
 }
 
+
+/* about FFTW: http://www.fftw.org/fftw3_doc/Introduction.html
+ * The standard FFTW distribution works most efficiently for arrays whose size
+ * can be factored into small primes (2, 3, 5, and 7), and otherwise it uses a
+ * slower general-purpose routine.
+ * Maybe we need to constrain the zone size to these numbers, that's not too
+ * many that do not register (11 13 17 19 23 31 37 41 43 47 53 59 61 67 71 ...)
+ */
 gpointer the_multipoint_registration(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
 	int zone_idx, nb_zones, frame;
 	int abort = 0;
 	stacking_zone *zone;
 	fftw_complex **ref, **in, **out, **convol;
-	fftw_plan *p, *q;
+	fftw_plan *fplan, *bplan;	// forward and backward plans
 	regdata *regparam = args->seq->regparam[args->layer];
 	if (!regparam) return GINT_TO_POINTER(-1);
 
@@ -262,34 +275,42 @@ gpointer the_multipoint_registration(gpointer ptr) {
 	in = malloc(nb_zones * sizeof(fftw_complex*));
 	out = malloc(nb_zones * sizeof(fftw_complex*));
 	convol = malloc(nb_zones * sizeof(fftw_complex*));
-	p = malloc(nb_zones * sizeof(fftw_plan));
-	q = malloc(nb_zones * sizeof(fftw_plan));
+	fplan = malloc(nb_zones * sizeof(fftw_plan));
+	bplan = malloc(nb_zones * sizeof(fftw_plan));
 	
-	/* reading zones in the reference image */
+	/* reading zones in the reference image, single threaded init */
 	fprintf(stdout, "loading reference zones\n");
+	gchar *wisdom_file = get_configdir_file_path(FFTW_WISDOM_FILE);
+	if (wisdom_file) {
+		if (fftw_import_wisdom_from_filename(wisdom_file))
+			fprintf(stdout, "FFTW wisdom restored\n");
+	}
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 		zone = &com.stacking_zones[zone_idx];
 		int side = round_to_int(zone->half_side * 2.0);
 		int nb_pixels = side * side;
+		// allocate aligned DFT buffers with fftw_malloc
 		ref[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
 		in[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
 		out[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
 		convol[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
 
-		/* TODO: what's that?
-		if (nb_frames > 200.f)
-			plan = FFTW_MEASURE;
-		else plan = FFTW_ESTIMATE; */
-		int plan = FFTW_MEASURE;
-
-		// CRASH HERE v
-		p[zone_idx] = fftw_plan_dft_2d(side, side, ref[zone_idx], out[zone_idx], FFTW_FORWARD, plan);
-		q[zone_idx] = fftw_plan_dft_2d(side, side, convol[zone_idx], out[zone_idx], FFTW_BACKWARD, plan);
+		start_timer();
+		fplan[zone_idx] = fftw_plan_dft_2d(side, side, ref[zone_idx], out[zone_idx], FFTW_FORWARD, FFTW_PATIENT);
+		bplan[zone_idx] = fftw_plan_dft_2d(side, side, convol[zone_idx], out[zone_idx], FFTW_BACKWARD, FFTW_PATIENT);
+		fprintf(stdout, "plan %d creation time: %ld microsec\n", zone_idx,
+				stop_timer_elapsed_mus());
+		// the plan creation time should be long only the first time a zone size is used
 
 		copy_image_zone_to_fftw(&refimage, zone, ref[zone_idx],
 				args->layer, 0.0, 0.0);
 
-		fftw_execute_dft(p[zone_idx], ref[zone_idx], in[zone_idx]);
+		fftw_execute_dft(fplan[zone_idx], ref[zone_idx], in[zone_idx]);
+	}
+	if (wisdom_file) {
+		if (fftw_export_wisdom_to_filename(wisdom_file))
+			fprintf(stdout, "FFTW wisdom saved\n");
+		g_free(wisdom_file);
 	}
 
 	fftw_complex **zones = calloc(nb_zones, sizeof(fftw_complex*));
@@ -297,6 +318,11 @@ gpointer the_multipoint_registration(gpointer ptr) {
 	fftw_complex **convol2 = calloc(nb_zones, sizeof(fftw_complex*));
 
 	/* for each image, we read the zones with global shift and register them */
+	/* for sequences that require demosaicing, seq_read_frame is usually the longest
+	 * operation in this loop, so parallelizing the zone alignment does not help
+	 * much, either with fftw3_threads or with OpenMP in the zone loop below. The
+	 * best way to speed things up is probably to execute this loop in parallel.
+	 * The fftw plan execution is thread-safe so it should not be a problem. */
 	for (frame = 0; frame < args->seq->number; frame++) {
 		fits fit = { 0 };
 		int i;
@@ -311,6 +337,9 @@ gpointer the_multipoint_registration(gpointer ptr) {
 		fprintf(stdout, "aligning zones for image %d\n", frame);
 
 		/* reading zones in the reference image */
+#ifdef _OPENMP
+//#pragma omp parallel for num_threads(com.max_thread) private(zone_idx, zone) schedule(static) if((args->seq->type == SEQ_REGULAR && fits_is_reentrant()) || args->seq->type == SEQ_SER)
+#endif
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 			if (abort) continue;
 			zone = &com.stacking_zones[zone_idx];
@@ -330,12 +359,12 @@ gpointer the_multipoint_registration(gpointer ptr) {
 			copy_image_zone_to_fftw(&fit, &shifted_zone, zones[zone_idx],
 					args->layer, 0.0, 0.0);
 
-			fftw_execute_dft(p[zone_idx], zones[zone_idx], out2[zone_idx]);
+			fftw_execute_dft(fplan[zone_idx], zones[zone_idx], out2[zone_idx]);
 
 			for (i = 0; i < nb_pixels; i++) {
 				convol2[zone_idx][i] = in[zone_idx][i] * conj(out2[zone_idx][i]);
 			}
-			fftw_execute_dft(q[zone_idx], convol2[zone_idx], out2[zone_idx]);
+			fftw_execute_dft(bplan[zone_idx], convol2[zone_idx], out2[zone_idx]);
 
 			int shift = 0;
 			for (i = 1; i < nb_pixels; ++i) {
@@ -359,6 +388,8 @@ gpointer the_multipoint_registration(gpointer ptr) {
 			/* shitfs for this image and this zone is shiftx, sign*shifty */
 			fprintf(stdout, "frame %d, zone %d shifts: %d,%d\n", frame, zone_idx, shiftx, shifty*sign);
 		}
+		
+		set_progress_bar_data(NULL, frame/(double)args->seq->number);
 	}
 
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
@@ -366,15 +397,15 @@ gpointer the_multipoint_registration(gpointer ptr) {
 		fftw_free(out2[zone_idx]);
 		fftw_free(convol2[zone_idx]);
 
-		fftw_destroy_plan(p[zone_idx]);
-		fftw_destroy_plan(q[zone_idx]);
+		fftw_destroy_plan(fplan[zone_idx]);
+		fftw_destroy_plan(bplan[zone_idx]);
 		fftw_free(in[zone_idx]);
 		fftw_free(out[zone_idx]);
 		fftw_free(ref[zone_idx]);
 		fftw_free(convol[zone_idx]);
 	}
 	free(zones); free(out2); free(convol2);
-	free(p); free(q);
+	free(fplan); free(bplan);
 	free(in); free(out); free(ref); free(convol);
 
 	//siril_add_idle();

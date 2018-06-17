@@ -488,6 +488,7 @@ void on_checkAviResize_toggled(GtkToggleButton *togglebutton, gpointer user_data
 
 void update_export_crop_label() {
 	static GtkLabel *label = NULL;
+	if (com.siril_mode != MODE_DEEP_SKY) return;
 	if (!label) 
 		label = GTK_LABEL(lookup_widget("exportLabel"));
 	if (com.selection.w && com.selection.h)
