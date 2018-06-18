@@ -651,7 +651,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		}
 		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
-		cfgplot.xticlabelfmt = frame_x_format;
+		cfgplot.xticlabelfmt = xlabel == NULL ? frame_x_format : NULL;
 
 		cfgdata.point.radius = 10;
 		cfgplot.yticlabelfmt = quality_y_format;
