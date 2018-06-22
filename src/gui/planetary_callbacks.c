@@ -199,9 +199,12 @@ void on_comboboxreglayer_planetary_changed(GtkComboBox *widget, gpointer user_da
 }
 
 void on_showref_check_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	int condition = refimage_is_set() && gtk_toggle_button_get_active(togglebutton);
-	if (condition) {
-		if (single_image_is_loaded()) return;
+	if (refimage_is_set() && gtk_toggle_button_get_active(togglebutton)) {
+		if (single_image_is_loaded()) {
+		       if (!strcmp(com.uniq->filename, get_refimage_filename()))
+			       return;
+		       close_single_image();
+		}
 		clearfits(&gfit);
 		const fits *refimage = get_refimage();
 		copyfits(refimage, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);

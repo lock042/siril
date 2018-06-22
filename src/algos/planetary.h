@@ -4,6 +4,13 @@
 #include "core/siril.h"
 #include "core/processing.h"
 
+struct mpregdata {
+	float x, y;
+	// stores the phase correlation peak at first, then a normalized
+	// version of it acting as confidence for the AP data
+	double peak;	
+};
+
 struct mpr_args {
 	/* sequence configuration fields */
 	sequence *seq;
@@ -21,7 +28,7 @@ struct mpr_args {
 	gboolean output_overwrite;
 
 	/* internal use, set by registration for stacking */
-	point **regdata;	// regdata[image][zone]
+	struct mpregdata **regdata;// regdata[image][zone]
 	unsigned long *sum[3];	// the new image's channels
 };
 

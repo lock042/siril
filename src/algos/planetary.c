@@ -74,6 +74,9 @@
  * extra read for zones for the registration, does it make sens DFT-wise?
  * is it possible to have a confidence rating for a DFT match? To discard
  *   failures and adjust barycentre weights
+ * sub-pixel phase correlation is possible and explained in the method section here
+ *   https://en.wikipedia.org/wiki/Phase_correlation but "Subpixel methods are also
+ *   particularly sensitive to noise in the images"
  * allow the ref/first image not to be displayed when loading a sequence if we
  *   display the planetary reference image
  * demosaicing setting: manage prepro in on_prepro_button_clicked
@@ -119,6 +122,7 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args);
 static int get_number_of_zones();
 static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex *dest,
 		int layer, double shiftx, double shifty);
+static void compute_zones_confidence(struct mpregdata *regparam, int nb_zones);
 
 /* First step: running the global registration and building the reference image */
 void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
@@ -227,7 +231,7 @@ char *get_reference_image_name(sequence *seq, int layer) {
 }
 
 int refimage_is_set() {
-	return refimage.naxes[0] > 0;
+	return refimage.naxes[0] > 0 && refimage_filename;
 }
 
 const fits *get_refimage() {
@@ -244,12 +248,13 @@ void update_refimage_on_layer_change(sequence *seq, int layer) {
 	char *ref_name = get_reference_image_name(seq, layer);
 	if (is_readable_file(ref_name) && !readfits(ref_name, &refimage, NULL)) {
 		siril_log_message(_("A previously computed reference image was found"
-				       " for layer %d, using it"), layer);
+				       " for layer %d, using it\n"), layer);
 		if (refimage_filename) free(refimage_filename);
 		refimage_filename = ref_name;
 		display_refimage_if_needed();
 	} else {
 		free(ref_name);
+		refimage.naxes[0] = 0;
 	}
 }
 
@@ -280,6 +285,13 @@ gpointer the_multipoint_processing(gpointer ptr) {
  * slower general-purpose routine.
  * Maybe we need to constrain the zone size to these numbers, that's not too
  * many that do not register (11 13 17 19 23 31 37 41 43 47 53 59 61 67 71 ...)
+ *
+ * Applying the phase correlation method to a pair of images
+ * produces a third image which contains a single peak. The
+ * location of this peak corresponds to the relative translation
+ * between the images.
+ * The Fourier-Mellin transform extends phase correlation to
+ * handle images transformed by both translation and rotation.
  */
 static int the_multipoint_registration(struct mpr_args *args) {
 	int zone_idx, nb_zones, frame;
@@ -330,7 +342,10 @@ static int the_multipoint_registration(struct mpr_args *args) {
 				args->layer, 0.0, 0.0);
 
 		fftw_execute_dft(fplan[zone_idx], ref[zone_idx], in[zone_idx]);
+
 	}
+	// in out and convol can probably be freed here, or even allocated once and reused
+	// for the above loop
 	if (wisdom_file) {
 		if (fftw_export_wisdom_to_filename(wisdom_file))
 			fprintf(stdout, "FFTW wisdom saved\n");
@@ -340,7 +355,7 @@ static int the_multipoint_registration(struct mpr_args *args) {
 	fftw_complex **zones = calloc(nb_zones, sizeof(fftw_complex*));
 	fftw_complex **out2 = calloc(nb_zones, sizeof(fftw_complex*));
 	fftw_complex **convol2 = calloc(nb_zones, sizeof(fftw_complex*));
-	args->regdata = malloc(args->seq->number * sizeof(point*));
+	args->regdata = malloc(args->seq->number * sizeof(struct mpregdata*));
 	if (!args->regdata) {
 		fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
 		return -1;
@@ -365,7 +380,7 @@ static int the_multipoint_registration(struct mpr_args *args) {
 		}
 		fprintf(stdout, "aligning zones for image %d\n", frame);
 
-		args->regdata[frame] = malloc(nb_zones * sizeof(point));
+		args->regdata[frame] = malloc(nb_zones * sizeof(struct mpregdata));
 		if (!args->regdata[frame]) {
 			fprintf(stderr, "Stacking: memory allocation failure for registration data per frame\n");
 			return -1;
@@ -394,21 +409,28 @@ static int the_multipoint_registration(struct mpr_args *args) {
 			copy_image_zone_to_fftw(&fit, &shifted_zone, zones[zone_idx],
 					args->layer, 0.0, 0.0);
 
+			// forward transformation zone -> out2
 			fftw_execute_dft(fplan[zone_idx], zones[zone_idx], out2[zone_idx]);
 
+			// compute a new fourier domain image defined as the fourier
+			// representation of the reference image on this zone * conj(out2)
 			for (i = 0; i < nb_pixels; i++) {
 				convol2[zone_idx][i] = in[zone_idx][i] * conj(out2[zone_idx][i]);
 			}
+
+			// backward transformation of this new image to out2
 			fftw_execute_dft(bplan[zone_idx], convol2[zone_idx], out2[zone_idx]);
 
+			// searching for the real part peak in out2, which is the shift
+			// between the reference image and this image in this zone
 			int shift = 0;
+			double peak;
 			for (i = 1; i < nb_pixels; ++i) {
 				if (creal(out2[zone_idx][i]) > creal(out2[zone_idx][shift])) {
 					shift = i;
-					// TODO: break or get last or max value?
-					// can we get a subpixel maximum?
 				}
 			}
+			peak = creal(out2[zone_idx][shift]);
 			int shifty = shift / side;
 			int shiftx = shift % side;
 			if (shifty > zone->half_side) {
@@ -422,10 +444,13 @@ static int the_multipoint_registration(struct mpr_args *args) {
 			int sign = args->seq->type == SEQ_SER ? -1 : 1;
 
 			/* shitfs for this image and this zone is shiftx, sign*shifty */
-			fprintf(stdout, "frame %d, zone %d shifts: %d,%d\n", frame, zone_idx, shiftx, shifty*sign);
+			fprintf(stdout, "frame %d, zone %d shifts: %d,%d,\tpeak: %f\n", frame, zone_idx, shiftx, shifty*sign, peak);
 			args->regdata[frame][zone_idx].x = (double)shiftx;
 			args->regdata[frame][zone_idx].y = (double)shifty * sign;
+			args->regdata[frame][zone_idx].peak = peak;
 		}
+
+		compute_zones_confidence(args->regdata[frame], nb_zones);
 
 		// TODO: this will require a fix similar to what's done in the generic
 		// function, especially if it's executed in parallel
@@ -455,6 +480,7 @@ static int the_multipoint_registration(struct mpr_args *args) {
 struct weighted_AP {
 	int zone_index;
 	double distance;
+	float confidence;
 };
 
 static void check_closest_list(struct weighted_AP *list_for_this_point,
@@ -547,6 +573,7 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 					if (list_for_this_AP[i].distance <= 1.0)
 						this_weight = args->max_distance;
 					else this_weight = args->max_distance / list_for_this_AP[i].distance;
+					this_weight *= args->regdata[frame][list_for_this_AP[i].zone_index].peak;
 					weight += this_weight;
 					sumx += args->regdata[frame][list_for_this_AP[i].zone_index].x * weight;
 					sumy += args->regdata[frame][list_for_this_AP[i].zone_index].y * weight;
@@ -728,3 +755,21 @@ static void filter_closest_list_owned(struct weighted_AP *list_for_this_point,
 	}
 }
 #endif
+
+/* normalize the peaks to have a confidence ratio [0; 1].
+ * Typical values range from 0.01 to 1:
+ * 0.7 to 1 for good confidence, 0.2 to 0.7 for medium, 0.01 to 0.2 for poor.
+ * Would have been better to do it on all images at the same time, but the data structure
+ * does not currently permit it.
+ */
+static void compute_zones_confidence(struct mpregdata *regparam, int nb_zones) {
+	int zone_idx;
+	double max = 0;
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+		if (regparam[zone_idx].peak > max)
+			max = regparam[zone_idx].peak;
+	}
+
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++)
+		regparam[zone_idx].peak /= max;
+}
