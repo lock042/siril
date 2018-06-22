@@ -114,6 +114,18 @@ void add_stacking_zone(double x, double y, double half_side) {
 	activate_mpp_processing_button();
 }
 
+gboolean on_remove_all_zones_clicked(GtkButton *button, gpointer user_data) {
+	if (com.stacking_zones) {
+		int i = 0;
+		while (com.stacking_zones[i].centre.x >= 0.0) {
+			com.stacking_zones[i].centre.x = -1.0;
+			i++;
+		}
+	}
+	redraw(com.cvport, REMAP_NONE);
+	return FALSE;
+}
+
 void planetary_click_in_image(double x, double y) {
 	int i = 0;
 	if (add_zones_mode) {
@@ -162,13 +174,20 @@ void planetary_click_in_image(double x, double y) {
 gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(
 			gtk_builder_get_object(builder, "comboboxreglayer"));
+	GtkEntry *output_file = GTK_ENTRY(gtk_builder_get_object(builder, "entryresultfile"));
+	GtkToggleButton *overwrite = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "checkbutoverwrite"));
 
 	struct mpr_args *args = malloc(sizeof(struct mpr_args));
 	args->seq = &com.seq;
 	args->layer = gtk_combo_box_get_active(cbbt_layers);
 	args->filtering_criterion = stack_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
-	start_in_new_thread(the_multipoint_registration, args);
+	args->nb_closest_AP = 5;
+	args->max_distance = 350.0;
+	args->own_distance_f = 0.5;
+	args->output_filename = strdup(gtk_entry_get_text(output_file));
+	args->output_overwrite = gtk_toggle_button_get_active(overwrite);
+	start_in_new_thread(the_multipoint_processing, args);
 	return FALSE;
 }
 

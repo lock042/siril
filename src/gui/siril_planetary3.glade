@@ -7790,7 +7790,7 @@ WARNING: Do not apply dark optimization on master-dark if master-bias has not be
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkGrid" id="grid10">
+                              <object class="GtkGrid" id="gridCC">
                                 <property name="visible">True</property>
                                 <property name="sensitive">False</property>
                                 <property name="can_focus">False</property>
@@ -8211,7 +8211,7 @@ The blue line represents the threshold quality under which images are not used i
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="margin_bottom">6</property>
-                        <property name="label" translatable="yes">Points of interest and stacking zones</property>
+                        <property name="label" translatable="yes">Points of alignment and stacking zones</property>
                         <attributes>
                           <attribute name="weight" value="bold"/>
                         </attributes>
@@ -8303,6 +8303,7 @@ The blue line represents the threshold quality under which images are not used i
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Create the zones automatically using the parameters above.</property>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -8339,6 +8340,7 @@ The blue line represents the threshold quality under which images are not used i
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Set the zone adding mode. Clicking  in the image will create a zone at this location as long as this mode is enabled. </property>
                             <property name="margin_top">8</property>
                             <signal name="toggled" handler="on_add_zones_toggled" swapped="no"/>
                           </object>
@@ -8353,6 +8355,7 @@ The blue line represents the threshold quality under which images are not used i
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Set the zone removal mode. Clicking on a zone in the image will remove it as long as this mode is enabled. </property>
                             <property name="margin_top">8</property>
                             <signal name="toggled" handler="on_remove_zones_toggled" swapped="no"/>
                           </object>
@@ -8360,6 +8363,26 @@ The blue line represents the threshold quality under which images are not used i
                             <property name="left_attach">2</property>
                             <property name="top_attach">3</property>
                           </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="remove_all_zones">
+                            <property name="label" translatable="yes">Clear zones</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Removes all zones</property>
+                            <signal name="clicked" handler="on_remove_all_zones_clicked" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="top_attach">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
                         </child>
                         <child>
                           <placeholder/>
@@ -8462,7 +8485,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkEntry" id="entryresultfile1">
+                          <object class="GtkEntry" id="entryresultfile">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="invisible_char">●</property>
@@ -8474,7 +8497,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkCheckButton" id="checkbutoverwrite1">
+                          <object class="GtkCheckButton" id="checkbutoverwrite">
                             <property name="label" translatable="yes">Overwrite</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -8490,11 +8513,10 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                         </child>
                         <child>
                           <object class="GtkBox" id="box80">
-                            <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="spacing">20</property>
                             <child>
-                              <object class="GtkComboBoxText" id="combonormalize1">
+                              <object class="GtkComboBoxText" id="combonormalize">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">If one of these items is selected, a normalisation process will be applied to all input
@@ -8519,6 +8541,7 @@ However, multiplicative normalisation must be used with flat-field frames.</prop
                                   <item translatable="yes">Additive with scaling</item>
                                   <item translatable="yes">Multiplicative with scaling</item>
                                 </items>
+                                <signal name="changed" handler="on_combonormalize_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -8527,7 +8550,7 @@ However, multiplicative normalisation must be used with flat-field frames.</prop
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkCheckButton" id="checkforcenorm1">
+                              <object class="GtkCheckButton" id="checkforcenorm">
                                 <property name="label" translatable="yes">Force recomputing</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
@@ -8551,7 +8574,6 @@ However, multiplicative normalisation must be used with flat-field frames.</prop
                         </child>
                         <child>
                           <object class="GtkFrame" id="frame1">
-                            <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <property name="shadow_type">none</property>

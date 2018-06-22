@@ -34,7 +34,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	unsigned int nbdata = args->seq->ry * args->seq->rx;
 	ssdata->sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
 	if (ssdata->sum[0] == NULL){
-		printf("Stacking: memory allocation failure\n");
+		fprintf(stderr, "Stacking: memory allocation failure\n");
 		return -1;
 	}
 	if(args->seq->nb_layers == 3){
@@ -74,13 +74,11 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 			if (nx >= 0 && nx < fit->rx && ny >= 0 && ny < fit->ry) {
 				// we have data for this pixel
 				ii = ny * fit->rx + nx;		// index in source image
-				if (ii >= 0 && ii < fit->rx * fit->ry){
-					for(layer=0; layer<args->seq->nb_layers; ++layer) {
+				for(layer=0; layer<args->seq->nb_layers; ++layer) {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-						ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
-					}
+					ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
 				}
 			}
 			++pixel;
@@ -98,7 +96,9 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 
 	nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
 	// find the max first
+#ifdef _OPENMP
 	#pragma omp parallel for reduction(max:max)
+#endif
 	for (i=0; i < nbdata; ++i)
 		if (ssdata->sum[0][i] > max)
 			max = ssdata->sum[0][i];
@@ -109,7 +109,6 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		return -1;
 	gfit.hi = round_to_WORD(max);
 	gfit.exposure = ssdata->exposure;
-	gfit.bitpix = gfit.orig_bitpix = USHORT_IMG;
 
 	double ratio = 1.0;
 	if (max > USHRT_MAX)

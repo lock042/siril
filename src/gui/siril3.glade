@@ -12107,7 +12107,7 @@ WARNING: Do not apply dark optimization on master-dark if master-bias has not be
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkGrid" id="grid24">
+                  <object class="GtkGrid" id="gridCC">
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can_focus">False</property>

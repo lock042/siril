@@ -1566,7 +1566,7 @@ static void _show_summary(struct stacking_args *args) {
 		default:
 		case NO_REJEC:
 			rej_str = _("none");
-			break;
+			return;
 		case PERCENTILE:
 			rej_str = _("percentile clipping");
 			break;

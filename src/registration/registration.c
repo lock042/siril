@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <complex.h>
+#include <complex.h>	// to include before fftw3.h
 #include <fftw3.h>
 #include <assert.h>
 #include <float.h>
@@ -173,6 +173,8 @@ void normalizeQualityData(struct registration_args *args, double q_min, double q
 /* Calculate shift in images to be aligned with the reference image, using
  * discrete Fourrier transform on a square selected area and matching the
  * phases.
+ * There is a more intense use of this algorithm in the multipoint registration.
+ * about FFTW: http://www.fftw.org/fftw3_doc/Introduction.html
  */
 int register_shift_dft(struct registration_args *args) {
 	fits fit_ref = { 0 }, fit = { 0 };

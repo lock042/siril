@@ -1430,6 +1430,7 @@ int new_fit_image(fits **fit, int width, int height, int nblayer) {
 	}
 
 	(*fit)->bitpix = USHORT_IMG;
+	(*fit)->orig_bitpix = USHORT_IMG;
 	if (nblayer > 1)
 		(*fit)->naxis = 3;
 	else (*fit)->naxis = 2;

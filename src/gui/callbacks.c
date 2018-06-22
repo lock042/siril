@@ -1335,7 +1335,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 					&& (gtk_toggle_button_get_active(udark)
 							|| gtk_toggle_button_get_active(uoffset)
 							|| gtk_toggle_button_get_active(uflat)));
-	gtk_widget_set_sensitive(lookup_widget("grid24"),
+	gtk_widget_set_sensitive(lookup_widget("gridCC"),
 			gtk_toggle_button_get_active(udark));
 	gtk_widget_set_sensitive(lookup_widget("checkDarkOptimize"),
 			gtk_toggle_button_get_active(udark));
