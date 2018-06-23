@@ -575,8 +575,8 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 					else this_weight = args->max_distance / list_for_this_AP[i].distance;
 					this_weight *= args->regdata[frame][list_for_this_AP[i].zone_index].peak;
 					weight += this_weight;
-					sumx += args->regdata[frame][list_for_this_AP[i].zone_index].x * weight;
-					sumy += args->regdata[frame][list_for_this_AP[i].zone_index].y * weight;
+					sumx += args->regdata[frame][list_for_this_AP[i].zone_index].x * this_weight;
+					sumy += args->regdata[frame][list_for_this_AP[i].zone_index].y * this_weight;
 				}
 				// if zones are too far away, which will happen for pixels
 				// away from the planet, just take the global shift
