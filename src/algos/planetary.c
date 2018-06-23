@@ -72,8 +72,8 @@
 
 /* TODO:
  * extra read for zones for the registration, does it make sens DFT-wise?
- * is it possible to have a confidence rating for a DFT match? To discard
- *   failures and adjust barycentre weights
+ *   probably not
+ * take into account phase correlation confidence earlier to discard some zones
  * sub-pixel phase correlation is possible and explained in the method section here
  *   https://en.wikipedia.org/wiki/Phase_correlation but "Subpixel methods are also
  *   particularly sensitive to noise in the images"
@@ -109,6 +109,8 @@
 #include "io/sequence.h"
 #include "gui/progress_and_log.h"
 #include "gui/planetary_callbacks.h"
+#include "gui/callbacks.h"
+#include "gui/plot.h"
 
 #define FFTW_WISDOM_FILE "fftw_wisdom"
 
@@ -214,6 +216,10 @@ static gboolean end_reference_image_stacking(gpointer p) {
 
 	fprintf(stdout, "Average shifts for the sequence: %f (sigma: %f)\n", mean, sigma);
 
+	/* things from end_register_idle */
+	set_layers_for_registration();	// update display of available reg data
+	drawPlot();
+
 	free(args->output_filename);
 	free(args);
 	return FALSE;
@@ -245,6 +251,12 @@ const char *get_refimage_filename() {
 void update_refimage_on_layer_change(sequence *seq, int layer) {
 	if (refimage_is_set())
 		clearfits(&refimage);
+	if (layer == -1) {
+		if (refimage_filename) free(refimage_filename);
+		refimage_filename = NULL;
+		refimage.naxes[0] = 0;
+		return;
+	}
 	char *ref_name = get_reference_image_name(seq, layer);
 	if (is_readable_file(ref_name) && !readfits(ref_name, &refimage, NULL)) {
 		siril_log_message(_("A previously computed reference image was found"
@@ -285,13 +297,14 @@ gpointer the_multipoint_processing(gpointer ptr) {
  * slower general-purpose routine.
  * Maybe we need to constrain the zone size to these numbers, that's not too
  * many that do not register (11 13 17 19 23 31 37 41 43 47 53 59 61 67 71 ...)
+ * wait, do they need to decompose down to only 2 3 5 and 7? If so the list is
+ * longer.
  *
- * Applying the phase correlation method to a pair of images
- * produces a third image which contains a single peak. The
- * location of this peak corresponds to the relative translation
- * between the images.
- * The Fourier-Mellin transform extends phase correlation to
- * handle images transformed by both translation and rotation.
+ * Applying the phase correlation method to a pair of images produces a third
+ * image which contains a single peak. The location of this peak corresponds to
+ * the relative translation between the images.
+ * The Fourier-Mellin transform extends phase correlation to handle images
+ * transformed by both translation and rotation.
  */
 static int the_multipoint_registration(struct mpr_args *args) {
 	int zone_idx, nb_zones, frame;
