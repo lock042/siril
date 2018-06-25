@@ -553,10 +553,11 @@ double findTransform_ECC(InputArray templateImage, InputArray inputImage,
 	return rho;
 }
 
-int findTransform(fits *reference, fits *image, int layer,
-		reg_ecc *reg_param) {
-	Mat ref(reference->ry, reference->rx, CV_16UC1, reference->pdata[layer]);
-	Mat im(image->ry, image->rx, CV_16UC1, image->pdata[layer]);
+int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
+		WORD *image, int im_rows, int im_cols, reg_ecc *reg_param)
+{
+	Mat ref(ref_rows, ref_cols, CV_16UC1, reference);
+	Mat im(im_rows, im_cols, CV_16UC1, image);
 	Mat warp_matrix(3, 3, CV_32FC1);
 	WARP_MODE warp_mode = WARP_MODE_TRANSLATION;	// for tests
 	int number_of_iterations = 50;
@@ -600,4 +601,10 @@ int findTransform(fits *reference, fits *image, int layer,
 	ref.release();
 	im.release();
 	return retvalue;
+}
+
+int findTransform(fits *reference, fits *image, int layer, reg_ecc *reg_param)
+{
+	return findTransformBuf(reference->pdata[layer], reference->ry, reference->rx,
+			image->pdata[layer], image->ry, image->rx, reg_param);
 }

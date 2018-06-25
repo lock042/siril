@@ -111,6 +111,7 @@
 #include "gui/planetary_callbacks.h"
 #include "gui/callbacks.h"
 #include "gui/plot.h"
+#include "opencv/ecc/ecc.h"
 
 #define FFTW_WISDOM_FILE "fftw_wisdom"
 
@@ -119,11 +120,16 @@ static char *refimage_filename;
 
 static gpointer sequence_analysis_thread_func(gpointer p);
 static gboolean end_reference_image_stacking(gpointer p);
-static int the_multipoint_registration(struct mpr_args *args);
+
+static int the_multipoint_ecc_registration(struct mpr_args *args);
+static int the_multipoint_dft_registration(struct mpr_args *args);
+
 static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args);
+
 static int get_number_of_zones();
 static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex *dest,
-		int layer, double shiftx, double shifty);
+		int layer);
+static int copy_image_zone_to_buffer(fits *fit, stacking_zone *zone, WORD *dest, int layer);
 static void compute_zones_confidence(struct mpregdata *regparam, int nb_zones);
 
 /* First step: running the global registration and building the reference image */
@@ -274,7 +280,8 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
 	int retval;
 	/* multi-point registration: compute the local shifts */
-	retval = the_multipoint_registration(args);
+	//retval = the_multipoint_dft_registration(args);
+	retval = the_multipoint_ecc_registration(args);
 	if (!retval) {
 		/* multi-point stacking: stack with local shifts */
 		retval = the_multipoint_barycentric_sum_stacking(args);
@@ -291,6 +298,96 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	return GINT_TO_POINTER(retval);
 }	
 
+static int the_multipoint_ecc_registration(struct mpr_args *args) {
+	int frame, zone_idx, nb_zones, abort = 0;
+	WORD **references;	// an array of pointers because their size varies
+	stacking_zone *zone;
+
+	nb_zones = get_number_of_zones();
+	if (nb_zones < 1) {
+		fprintf(stderr, "cannot do the multi-point registration if no zone is defined\n");
+		return -1;
+	}
+
+	args->regdata = malloc(args->seq->number * sizeof(struct mpregdata*));
+	if (!args->regdata) {
+		fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+		return -1;
+	}
+
+	/* read zones of the reference image */
+	references = malloc(nb_zones*sizeof(WORD *));
+	if (!references) {
+		fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+		return -1;
+	}
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+		zone = &com.stacking_zones[zone_idx];
+		int side = round_to_int(zone->half_side * 2.0);
+		references[zone_idx] = malloc(side * side * sizeof(WORD));
+		if (!references[zone_idx]) {
+			fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+			return -1;
+		}
+		copy_image_zone_to_buffer(&refimage, zone, references[zone_idx], args->layer);
+	}
+
+	for (frame = 0; frame < args->seq->number; frame++) {
+		fits fit = { 0 };
+		if (!args->filtering_criterion(args->seq, args->layer,
+					frame, args->filtering_parameter) || abort)
+			continue;
+
+		if (seq_read_frame(args->seq, frame, &fit)) {
+			abort = 1;
+			continue;
+		}
+		fprintf(stdout, "aligning zones for image %d\n", frame);
+
+		args->regdata[frame] = malloc(nb_zones * sizeof(struct mpregdata));
+		if (!args->regdata[frame]) {
+			fprintf(stderr, "Stacking: memory allocation failure for registration data per frame\n");
+			abort = 1;
+			clearfits(&fit);
+			continue;
+		}
+
+		/* reading zones in the reference image */
+		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+			reg_ecc reg_param = { 0 };
+			zone = &com.stacking_zones[zone_idx];
+			int side = round_to_int(zone->half_side * 2.0);
+			WORD *buffer = malloc(side * side * sizeof(WORD));
+			if (!buffer) {
+				fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+				abort = 1;
+				clearfits(&fit);
+				continue;
+			}
+			copy_image_zone_to_buffer(&fit, zone, buffer, args->layer);
+
+			if (findTransformBuf(references[zone_idx], side, side,
+						buffer, side, side, &reg_param)) {
+				siril_log_message(_("Cannot perform ECC alignment for frame %d\n"), frame);
+				args->regdata[frame][zone_idx].peak = 0.0;
+			} else {
+				args->regdata[frame][zone_idx].x = -reg_param.dx;
+				args->regdata[frame][zone_idx].y = -reg_param.dy;
+				args->regdata[frame][zone_idx].peak = 1.0;
+				fprintf(stdout, "frame %d, zone %d shifts: %f,%f\n", frame, zone_idx,
+						args->regdata[frame][zone_idx].x,
+						args->regdata[frame][zone_idx].y);
+			}
+		}
+		clearfits(&fit);
+
+		// TODO: this will require a fix similar to what's done in the generic
+		// function, especially if it's executed in parallel
+		set_progress_bar_data(NULL, frame/(double)args->seq->number);
+	}
+	return abort;
+}
+
 /* about FFTW: http://www.fftw.org/fftw3_doc/Introduction.html
  * The standard FFTW distribution works most efficiently for arrays whose size
  * can be factored into small primes (2, 3, 5, and 7), and otherwise it uses a
@@ -306,7 +403,7 @@ gpointer the_multipoint_processing(gpointer ptr) {
  * The Fourier-Mellin transform extends phase correlation to handle images
  * transformed by both translation and rotation.
  */
-static int the_multipoint_registration(struct mpr_args *args) {
+static int the_multipoint_dft_registration(struct mpr_args *args) {
 	int zone_idx, nb_zones, frame;
 	int abort = 0;
 	stacking_zone *zone;
@@ -352,7 +449,7 @@ static int the_multipoint_registration(struct mpr_args *args) {
 		// the plan creation time should be long only the first time a zone size is used
 
 		copy_image_zone_to_fftw(&refimage, zone, ref[zone_idx],
-				args->layer, 0.0, 0.0);
+				args->layer);
 
 		fftw_execute_dft(fplan[zone_idx], ref[zone_idx], in[zone_idx]);
 
@@ -384,7 +481,8 @@ static int the_multipoint_registration(struct mpr_args *args) {
 		fits fit = { 0 };
 		int i;
 		if (abort) continue;
-		if (!args->filtering_criterion(args->seq, args->layer, frame, args->filtering_parameter))
+		if (!args->filtering_criterion(args->seq, args->layer,
+					frame, args->filtering_parameter) || abort)
 			continue;
 
 		if (seq_read_frame(args->seq, frame, &fit)) {
@@ -396,7 +494,9 @@ static int the_multipoint_registration(struct mpr_args *args) {
 		args->regdata[frame] = malloc(nb_zones * sizeof(struct mpregdata));
 		if (!args->regdata[frame]) {
 			fprintf(stderr, "Stacking: memory allocation failure for registration data per frame\n");
-			return -1;
+			abort = 1;
+			clearfits(&fit);
+			continue;
 		}
 
 		/* reading zones in the reference image */
@@ -420,7 +520,7 @@ static int the_multipoint_registration(struct mpr_args *args) {
 			}
 
 			copy_image_zone_to_fftw(&fit, &shifted_zone, zones[zone_idx],
-					args->layer, 0.0, 0.0);
+					args->layer);
 
 			// forward transformation zone -> out2
 			fftw_execute_dft(fplan[zone_idx], zones[zone_idx], out2[zone_idx]);
@@ -463,6 +563,7 @@ static int the_multipoint_registration(struct mpr_args *args) {
 			args->regdata[frame][zone_idx].peak = peak;
 		}
 
+		clearfits(&fit);
 		compute_zones_confidence(args->regdata[frame], nb_zones);
 
 		// TODO: this will require a fix similar to what's done in the generic
@@ -672,11 +773,10 @@ static int get_number_of_zones() {
 }
 
 static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex *dest,
-		int layer, double shiftx, double shifty) {
-
+		int layer) {
 	int side = round_to_int(zone->half_side * 2.0);
-	int startx = round_to_int(zone->centre.x - zone->half_side + shiftx);
-	int starty = round_to_int(zone->centre.y - zone->half_side + shiftx);
+	int startx = round_to_int(zone->centre.x - zone->half_side);
+	int starty = round_to_int(zone->centre.y - zone->half_side);
 	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
 		/* this zone is partly outside the image, I don't think there's
 		 * much we can do for it, it just has to be ignored for this
@@ -691,6 +791,31 @@ static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex 
 	for (i = 0; i < side; ++i) {
 		for (j = 0; j < side; ++j) {
 			*dest++ = (double)*from++;
+		}
+		from += stridefrom;
+	}
+	return 0;
+}
+
+// the same with a WORD buffer instead of double
+static int copy_image_zone_to_buffer(fits *fit, stacking_zone *zone, WORD *dest, int layer) {
+	int side = round_to_int(zone->half_side * 2.0);
+	int startx = round_to_int(zone->centre.x - zone->half_side);
+	int starty = round_to_int(zone->centre.y - zone->half_side);
+	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
+		/* this zone is partly outside the image, I don't think there's
+		 * much we can do for it, it just has to be ignored for this
+		 * image for the stacking. */
+		return -1;
+	}
+
+	WORD *from = fit->pdata[layer] + (fit->ry - starty) * fit->rx + starty;
+	int stridefrom = fit->rx - side;
+	int i, j;
+
+	for (i = 0; i < side; ++i) {
+		for (j = 0; j < side; ++j) {
+			*dest++ = *from++;
 		}
 		from += stridefrom;
 	}

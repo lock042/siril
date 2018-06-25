@@ -41,6 +41,8 @@ struct reg_ecc_struct {
 };
 
 int findTransform(fits *reference, fits *image, int layer, reg_ecc *reg_param);
+int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
+		WORD *image, int im_rows, int im_cols, reg_ecc *reg_param);
 
 #ifdef __cplusplus
 }

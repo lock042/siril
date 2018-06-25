@@ -483,11 +483,12 @@ int register_shift_fwhm(struct registration_args *args) {
 	return 0;
 }
 
+/* https://www.learnopencv.com/image-alignment-ecc-in-opencv-c-python/ */
 int register_ecc(struct registration_args *args) {
 	int frame, ref_image, ret, failed = 0;
 	float nb_frames, cur_nb;
 	regdata *current_regdata;
-	fits ref, im;
+	fits ref = { 0 };
 	double q_max = 0, q_min = DBL_MAX;
 	int q_index = -1;
 	int abort = 0;
@@ -512,8 +513,6 @@ int register_ecc(struct registration_args *args) {
 	/* loading reference frame */
 	ref_image = sequence_find_refimage(args->seq);
 
-	memset(&ref, 0, sizeof(fits));
-
 	/* first we're looking for stars in reference image */
 	ret = seq_read_frame(args->seq, ref_image, &ref);
 	if (ret) {
@@ -537,9 +536,8 @@ int register_ecc(struct registration_args *args) {
 
 	cur_nb = 0.f;
 
-	memset(&im, 0, sizeof(fits));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) firstprivate(im) schedule(static) \
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) \
 	if((args->seq->type == SEQ_REGULAR && fits_is_reentrant()) || args->seq->type == SEQ_SER)
 #endif
 	for (frame = 0; frame < args->seq->number; frame++) {
@@ -561,11 +559,10 @@ int register_ecc(struct registration_args *args) {
 			set_progress_bar_data(tmpmsg, PROGRESS_NONE);
 
 			if (frame != ref_image) {
-
+				fits im = { 0 };
 				ret = seq_read_frame(args->seq, frame, &im);
 				if (!ret) {
-					reg_ecc reg_param;
-					memset(&reg_param, 0, sizeof(reg_ecc));
+					reg_ecc reg_param = { 0 };
 
 					if (findTransform(&ref, &im, args->layer, &reg_param)) {
 						siril_log_message(
