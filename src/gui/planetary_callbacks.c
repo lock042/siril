@@ -88,6 +88,7 @@ static void activate_mpp_processing_button() {
 	gtk_widget_set_sensitive(stack_button, status);
 }
 
+/* add a stacking zone centred around x,y with the given half side */
 void add_stacking_zone(double x, double y, double half_side) {
 	if (!com.stacking_zones_size || !com.stacking_zones) {
 		com.stacking_zones_size = 40;
@@ -132,7 +133,7 @@ void planetary_click_in_image(double x, double y) {
 		GtkAdjustment *sizeadj = GTK_ADJUSTMENT(lookup_widget("adjustment_zonesize"));
 		double size = gtk_adjustment_get_value(sizeadj);
 		if (size > 0.0)
-			add_stacking_zone(x, y, size);
+			add_stacking_zone(x, y, size*0.5);
 	}
 	else if (remove_zones_mode) {
 		double closest_distance = DBL_MAX;
