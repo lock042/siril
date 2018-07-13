@@ -114,6 +114,7 @@
 #include "opencv/ecc/ecc.h"
 
 #define FFTW_WISDOM_FILE "fftw_wisdom"
+#define DEBUG_MPP
 
 static fits refimage;
 static char *refimage_filename;
@@ -357,6 +358,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 			reg_ecc reg_param = { 0 };
 			zone = &com.stacking_zones[zone_idx];
 			int side = round_to_int(zone->half_side * 2.0);
+			printf("side:%d\n", side);
 			WORD *buffer = malloc(side * side * sizeof(WORD));
 			if (!buffer) {
 				fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
@@ -365,6 +367,17 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 				continue;
 			}
 			copy_image_zone_to_buffer(&fit, zone, buffer, args->layer);
+#ifdef DEBUG_MPP
+			char tmpfn[100];	// this is for debug purposes
+			sprintf(tmpfn, "/tmp/partial_%d.fit", frame);
+			fits *tmp = NULL;
+			new_fit_image(&tmp, side, side, 1);
+			tmp->data = buffer;
+			tmp->pdata[0] = tmp->data;
+			tmp->pdata[1] = tmp->data;
+			tmp->pdata[2] = tmp->data;
+			savefits(tmpfn, tmp);
+#endif
 
 			if (findTransformBuf(references[zone_idx], side, side,
 						buffer, side, side, &reg_param)) {
@@ -802,6 +815,7 @@ static int copy_image_zone_to_buffer(fits *fit, stacking_zone *zone, WORD *dest,
 	int side = round_to_int(zone->half_side * 2.0);
 	int startx = round_to_int(zone->centre.x - zone->half_side);
 	int starty = round_to_int(zone->centre.y - zone->half_side);
+
 	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
 		/* this zone is partly outside the image, I don't think there's
 		 * much we can do for it, it just has to be ignored for this
@@ -809,7 +823,7 @@ static int copy_image_zone_to_buffer(fits *fit, stacking_zone *zone, WORD *dest,
 		return -1;
 	}
 
-	WORD *from = fit->pdata[layer] + (fit->ry - starty) * fit->rx + starty;
+	WORD *from = fit->pdata[layer] + (fit->ry - starty - side) * fit->rx + startx;
 	int stridefrom = fit->rx - side;
 	int i, j;
 
