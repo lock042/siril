@@ -128,9 +128,9 @@ static int the_multipoint_dft_registration(struct mpr_args *args);
 static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args);
 
 static int get_number_of_zones();
-static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex *dest,
+static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_complex *dest,
 		int layer);
-static int copy_image_zone_to_buffer(fits *fit, stacking_zone *zone, WORD *dest, int layer);
+static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer);
 static void compute_zones_confidence(struct mpregdata *regparam, int nb_zones);
 
 /* First step: running the global registration and building the reference image */
@@ -304,6 +304,9 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 	WORD **references;	// an array of pointers because their size varies
 	stacking_zone *zone;
 
+	regdata *regparam = args->seq->regparam[args->layer];
+	if (!regparam) return -1;
+
 	nb_zones = get_number_of_zones();
 	if (nb_zones < 1) {
 		fprintf(stderr, "cannot do the multi-point registration if no zone is defined\n");
@@ -357,6 +360,10 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 			reg_ecc reg_param = { 0 };
 			zone = &com.stacking_zones[zone_idx];
+			stacking_zone shifted_zone = { .centre =
+				{ .x = zone->centre.x - regparam[frame].shiftx,
+					.y = zone->centre.y + regparam[frame].shifty },
+				.half_side = zone->half_side };
 			int side = round_to_int(zone->half_side * 2.0);
 			printf("side:%d\n", side);
 			WORD *buffer = malloc(side * side * sizeof(WORD));
@@ -366,17 +373,19 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 				clearfits(&fit);
 				continue;
 			}
-			copy_image_zone_to_buffer(&fit, zone, buffer, args->layer);
+			copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
 #ifdef DEBUG_MPP
-			char tmpfn[100];	// this is for debug purposes
-			sprintf(tmpfn, "/tmp/partial_%d.fit", frame);
-			fits *tmp = NULL;
-			new_fit_image(&tmp, side, side, 1);
-			tmp->data = buffer;
-			tmp->pdata[0] = tmp->data;
-			tmp->pdata[1] = tmp->data;
-			tmp->pdata[2] = tmp->data;
-			savefits(tmpfn, tmp);
+			if (zone_idx == 0) {
+				char tmpfn[100];	// this is for debug purposes
+				sprintf(tmpfn, "/tmp/partial_%d.fit", frame);
+				fits *tmp = NULL;
+				new_fit_image(&tmp, side, side, 1);
+				tmp->data = buffer;
+				tmp->pdata[0] = tmp->data;
+				tmp->pdata[1] = tmp->data;
+				tmp->pdata[2] = tmp->data;
+				savefits(tmpfn, tmp);
+			}
 #endif
 
 			if (findTransformBuf(references[zone_idx], side, side,
@@ -384,8 +393,8 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 				siril_log_message(_("Cannot perform ECC alignment for frame %d\n"), frame);
 				args->regdata[frame][zone_idx].peak = 0.0;
 			} else {
-				args->regdata[frame][zone_idx].x = -reg_param.dx;
-				args->regdata[frame][zone_idx].y = -reg_param.dy;
+				args->regdata[frame][zone_idx].x = -reg_param.dx - regparam[frame].shiftx;
+				args->regdata[frame][zone_idx].y = -reg_param.dy + regparam[frame].shifty;
 				args->regdata[frame][zone_idx].peak = 1.0;
 				fprintf(stdout, "frame %d, zone %d shifts: %f,%f\n", frame, zone_idx,
 						args->regdata[frame][zone_idx].x,
@@ -522,7 +531,7 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 			int side = round_to_int(zone->half_side * 2.0);
 			int nb_pixels = side * side;
 			stacking_zone shifted_zone = { .centre =
-				{ .x = zone->centre.x + regparam[frame].shiftx,
+				{ .x = zone->centre.x - regparam[frame].shiftx,
 					.y = zone->centre.y + regparam[frame].shifty },
 				.half_side = zone->half_side };
 
@@ -566,13 +575,10 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 				shiftx -= side;
 			}
 
-			/* for Y, it's a bit special because FITS are upside-down */
-			int sign = args->seq->type == SEQ_SER ? -1 : 1;
-
-			/* shitfs for this image and this zone is shiftx, sign*shifty */
-			fprintf(stdout, "frame %d, zone %d shifts: %d,%d,\tpeak: %f\n", frame, zone_idx, shiftx, shifty*sign, peak);
-			args->regdata[frame][zone_idx].x = (double)shiftx;
-			args->regdata[frame][zone_idx].y = (double)shifty * sign;
+			/* shitfs for this image and this zone is (shiftx, shifty) + the global shifts */
+			fprintf(stdout, "frame %d, zone %d adjustment shifts: %d,%d,\tpeak: %f\n", frame, zone_idx, shiftx, shifty, peak);
+			args->regdata[frame][zone_idx].x = (double)shiftx - regparam[frame].shiftx;
+			args->regdata[frame][zone_idx].y = (double)shifty + regparam[frame].shifty;
 			args->regdata[frame][zone_idx].peak = peak;
 		}
 
@@ -717,7 +723,7 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 
 				// then do the regular sum stacking with shift
 				int nx = round_to_int(x - shiftx);
-				int ny = round_to_int(y - shifty);
+				int ny = round_to_int(y + shifty);
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 					int ii = ny * fit.rx + nx;		// index in source image
 					int layer;
@@ -785,9 +791,11 @@ static int get_number_of_zones() {
 	return i;
 }
 
-static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex *dest,
+// copy the image zone into a double buffer, it remains upside-down
+static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_complex *dest,
 		int layer) {
 	int side = round_to_int(zone->half_side * 2.0);
+	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side);
 	int starty = round_to_int(zone->centre.y - zone->half_side);
 	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
@@ -797,7 +805,7 @@ static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex 
 		return -1;
 	}
 
-	WORD *from = fit->pdata[layer] + (fit->ry - starty) * fit->rx + starty;
+	WORD *from = fit->pdata[layer] + (fit->ry - starty - side - 1) * fit->rx + startx;
 	int stridefrom = fit->rx - side;
 	int i, j;
 
@@ -810,9 +818,10 @@ static int copy_image_zone_to_fftw(fits *fit, stacking_zone *zone, fftw_complex 
 	return 0;
 }
 
-// the same with a WORD buffer instead of double
-static int copy_image_zone_to_buffer(fits *fit, stacking_zone *zone, WORD *dest, int layer) {
+// the same as above with a WORD buffer instead of double
+static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer) {
 	int side = round_to_int(zone->half_side * 2.0);
+	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side);
 	int starty = round_to_int(zone->centre.y - zone->half_side);
 
@@ -823,7 +832,7 @@ static int copy_image_zone_to_buffer(fits *fit, stacking_zone *zone, WORD *dest,
 		return -1;
 	}
 
-	WORD *from = fit->pdata[layer] + (fit->ry - starty - side) * fit->rx + startx;
+	WORD *from = fit->pdata[layer] + (fit->ry - starty - side - 1) * fit->rx + startx;
 	int stridefrom = fit->rx - side;
 	int i, j;
 

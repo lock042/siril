@@ -648,6 +648,7 @@ char *seq_get_image_filename(sequence *seq, int index, char *name_buf) {
 
 /* Read an entire image from a sequence, inside a pre-allocated fits.
  * Opens the file, reads data, closes the file.
+ * the dest FITS is stored upside-down for any sequence type.
  */
 int seq_read_frame(sequence *seq, int index, fits *dest) {
 	char filename[256];
