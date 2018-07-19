@@ -281,8 +281,8 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
 	int retval;
 	/* multi-point registration: compute the local shifts */
-	//retval = the_multipoint_dft_registration(args);
-	retval = the_multipoint_ecc_registration(args);
+	retval = the_multipoint_dft_registration(args);
+	//retval = the_multipoint_ecc_registration(args);
 	if (!retval) {
 		/* multi-point stacking: stack with local shifts */
 		retval = the_multipoint_barycentric_sum_stacking(args);
@@ -722,12 +722,12 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 				}
 
 				// then do the regular sum stacking with shift
-				int nx = round_to_int(x - shiftx);
-				int ny = round_to_int(y + shifty);
+				int nx = round_to_int(x + shiftx);
+				int ny = round_to_int(y - shifty);
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 					int ii = ny * fit.rx + nx;		// index in source image
 					int layer;
-					for (layer=0; layer<args->seq->nb_layers; ++layer) {
+					for (layer = 0; layer < args->seq->nb_layers; ++layer) {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
