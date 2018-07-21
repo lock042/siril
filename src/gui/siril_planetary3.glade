@@ -2011,7 +2011,7 @@ This is useful when modulation parameter is different to 1 helping the whole pro
   </object>
   <object class="GtkAdjustment" id="adjustment_overlap">
     <property name="upper">50</property>
-    <property name="value">10</property>
+    <property name="value">20</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -8272,11 +8272,12 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkCheckButton" id="check_autopos">
                             <property name="label" translatable="yes">Automatic positioning</property>
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="halign">start</property>
+                            <property name="active">True</property>
                             <property name="draw_indicator">True</property>
+                            <signal name="toggled" handler="on_check_autopos_toggled" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -8300,10 +8301,10 @@ The blue line represents the threshold quality under which images are not used i
                           <object class="GtkButton" id="autoposition_button">
                             <property name="label" translatable="yes">Proceed</property>
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Create the zones automatically using the parameters above.</property>
+                            <signal name="clicked" handler="on_autoposition_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -8313,7 +8314,6 @@ The blue line represents the threshold quality under which images are not used i
                         <child>
                           <object class="GtkSpinButton" id="overlapamount">
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="adjustment">adjustment_overlap</property>
                           </object>

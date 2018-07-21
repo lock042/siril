@@ -32,11 +32,21 @@
 #include "callbacks.h"
 #include "image_display.h"
 #include "planetary_callbacks.h"
+#include "algos/statistics.h"
+
 
 static gboolean seqimage_range_mouse_pressed = FALSE;
 static gboolean add_zones_mode = FALSE;
 static gboolean remove_zones_mode = FALSE;
 static double lowest_accepted_quality = 0.0;
+
+static double get_overlapamout() {
+	double val;
+	GtkAdjustment *overlapadj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_overlap"));
+	val = gtk_adjustment_get_value(overlapadj);
+
+	return val;
+}
 
 /* the planetary mode uses a slider to change displayed image whereas the
  * deep-sky mode uses a spin button (on_imagenumberspin_output) */
@@ -130,7 +140,7 @@ gboolean on_remove_all_zones_clicked(GtkButton *button, gpointer user_data) {
 void planetary_click_in_image(double x, double y) {
 	int i = 0;
 	if (add_zones_mode) {
-		GtkAdjustment *sizeadj = GTK_ADJUSTMENT(lookup_widget("adjustment_zonesize"));
+		GtkAdjustment *sizeadj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_zonesize"));
 		double size = gtk_adjustment_get_value(sizeadj);
 		if (size > 0.0)
 			add_stacking_zone(x, y, size*0.5);
@@ -247,4 +257,121 @@ void on_showref_check_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 
 void display_refimage_if_needed() {
 	on_showref_check_toggled(GTK_TOGGLE_BUTTON(lookup_widget("showref_check")), NULL);
+}
+
+static WORD Compute_threshold(fits *fit, int layer, WORD *norm) {
+	WORD threshold;
+	imstats *stat;
+
+	stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC);
+	if (!stat) {
+		//siril_log_message(_("Error: statistics computation failed.\n"));
+		return 0;
+	}
+	threshold = (WORD) stat->median + 1 * (WORD) stat->sigma;
+	*norm = (WORD) stat->normValue;
+	free_stats(stat);
+
+	return threshold;
+}
+
+static gboolean zone_is_too_close(int x, int y, int size) {
+	if (com.stacking_zones) {
+		int i = 0;
+		while (com.stacking_zones[i].centre.x >= 0.0) {
+			if ((fabs(com.stacking_zones[i].centre.x - x) < size)
+					&& (fabs(com.stacking_zones[i].centre.y - y) < size))
+				return TRUE;
+			i++;
+		}
+	}
+	return FALSE;
+}
+
+static void auto_add_stacking_zones(fits *fit, int layer, int size) {
+	WORD **image;
+	WORD threshold, norm;
+	int nx = fit->rx;
+	int ny = fit->ry;
+	int k, y, nbzone = 0;
+	int areaX0 = 0;
+	int areaY0 = 0;
+	int areaX1 = nx;
+	int areaY1 = ny;
+	// TODO wich value should we take in radius ??
+	int radius = 50;
+	double overlap = get_overlapamout();
+
+	threshold = Compute_threshold(fit, layer, &norm);
+
+	/* FILL real image upside-down */
+	image = malloc(ny * sizeof(WORD *));
+	if (image == NULL) {
+		fprintf(stderr, "Memory allocation failed: peaker\n");
+		return;
+	}
+	for (k = 0; k < ny; k++)
+		image[ny - k - 1] = fit->pdata[layer] + k * nx;
+
+	for (y = radius + areaY0; y < areaY1 - radius; y++) {
+		int x;
+		for (x = radius + areaX0; x < areaX1 - radius; x++) {
+			WORD pixel = image[y][x];
+			if (pixel > threshold/* && pixel < norm*/) {
+				int yy, xx;
+				gboolean bingo = TRUE;
+				WORD neighbor;
+				for (yy = y - 1; yy <= y + 1; yy++) {
+					for (xx = x - 1; xx <= x + 1; xx++) {
+						if (xx == x && yy == y)
+							continue;
+						neighbor = image[yy][xx];
+						if (neighbor > pixel) {
+							bingo = FALSE;
+							break;
+						} else if (neighbor == pixel) {
+							if ((xx <= x && yy <= y) || (xx > x && yy < y)) {
+								bingo = FALSE;
+								break;
+							}
+						}
+					}
+				}
+				if (bingo) {
+					nbzone++;
+					int ii, jj, i, j;
+					if (!zone_is_too_close(x, y, overlap))
+						add_stacking_zone(x, y, size);
+				}
+			}
+		}
+	}
+	if (nbzone) redraw(com.cvport, REMAP_ALL);
+}
+
+void on_autoposition_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkAdjustment *sizeadj = GTK_ADJUSTMENT(
+			gtk_builder_get_object(builder, "adjustment_zonesize"));
+	double size = gtk_adjustment_get_value(sizeadj);
+
+	if (com.stacking_zones) {
+		int i = 0;
+		while (com.stacking_zones[i].centre.x >= 0.0) {
+			com.stacking_zones[i].centre.x = -1.0;
+			i++;
+		}
+	}
+
+	auto_add_stacking_zones(&gfit, 0, size * 0.5);
+}
+
+void on_check_autopos_toggled(GtkToggleButton *togglebutton,
+		gpointer user_data) {
+
+	GtkWidget *overlapamount = lookup_widget("overlapamount");
+	GtkWidget *autoposition_button = lookup_widget("autoposition_button");
+	gboolean is_active = gtk_toggle_button_get_active(togglebutton);
+
+	gtk_widget_set_sensitive(overlapamount, is_active);
+	gtk_widget_set_sensitive(autoposition_button, is_active);
 }
