@@ -88,6 +88,16 @@ void on_remove_zones_toggled(GtkToggleButton *togglebutton, gpointer user_data) 
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("add_zones")), FALSE);
 }
 
+static void remove_stacking_zones() {
+	if (com.stacking_zones) {
+		int i = 0;
+		while (com.stacking_zones[i].centre.x >= 0.0) {
+			com.stacking_zones[i].centre.x = -1.0;
+			i++;
+		}
+	}
+}
+
 static void activate_mpp_processing_button() {
 	static GtkWidget *stack_button = NULL;
 	int status = sequence_is_loaded() && refimage_is_set() &&
@@ -107,7 +117,7 @@ void add_stacking_zone(double x, double y, double half_side) {
 	}
 
 	int i = 0;
-	while (com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1)
+	while (com.stacking_zones && com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1)
 		i++;
 	if (i == com.stacking_zones_size - 1) {
 		com.stacking_zones_size *= 2;
@@ -126,13 +136,7 @@ void add_stacking_zone(double x, double y, double half_side) {
 }
 
 gboolean on_remove_all_zones_clicked(GtkButton *button, gpointer user_data) {
-	if (com.stacking_zones) {
-		int i = 0;
-		while (com.stacking_zones[i].centre.x >= 0.0) {
-			com.stacking_zones[i].centre.x = -1.0;
-			i++;
-		}
-	}
+	remove_stacking_zones();
 	redraw(com.cvport, REMAP_NONE);
 	return FALSE;
 }
@@ -339,7 +343,6 @@ static void auto_add_stacking_zones(fits *fit, int layer, int size) {
 				}
 				if (bingo) {
 					nbzone++;
-					int ii, jj, i, j;
 					if (!zone_is_too_close(x, y, overlap))
 						add_stacking_zone(x, y, size);
 				}
@@ -347,6 +350,7 @@ static void auto_add_stacking_zones(fits *fit, int layer, int size) {
 		}
 	}
 	if (nbzone) redraw(com.cvport, REMAP_ALL);
+	free(image);
 }
 
 void on_autoposition_button_clicked(GtkButton *button, gpointer user_data) {
@@ -354,14 +358,9 @@ void on_autoposition_button_clicked(GtkButton *button, gpointer user_data) {
 			gtk_builder_get_object(builder, "adjustment_zonesize"));
 	double size = gtk_adjustment_get_value(sizeadj);
 
-	if (com.stacking_zones) {
-		int i = 0;
-		while (com.stacking_zones[i].centre.x >= 0.0) {
-			com.stacking_zones[i].centre.x = -1.0;
-			i++;
-		}
-	}
+	remove_stacking_zones();
 
+	// TODO: set layer
 	auto_add_stacking_zones(&gfit, 0, size * 0.5);
 }
 

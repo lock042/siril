@@ -428,6 +428,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 static int the_multipoint_dft_registration(struct mpr_args *args) {
 	int zone_idx, nb_zones, frame;
 	int abort = 0;
+	int retval = 0;
 	stacking_zone *zone;
 	fftw_complex **ref, **in, **out, **convol;
 	fftw_plan *fplan, *bplan;	// forward and backward plans
@@ -490,7 +491,8 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 	args->regdata = malloc(args->seq->number * sizeof(struct mpregdata*));
 	if (!args->regdata) {
 		fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
-		return -1;
+		retval = -1;
+		goto cleaning_all;
 	}
 
 	/* for each image, we read the zones with global shift and register them */
@@ -590,6 +592,7 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 		set_progress_bar_data(NULL, frame/(double)args->seq->number);
 	}
 
+cleaning_all:
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 		fftw_free(zones[zone_idx]);
 		fftw_free(out2[zone_idx]);
@@ -606,7 +609,7 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 	free(fplan); free(bplan);
 	free(in); free(out); free(ref); free(convol);
 
-	return 0;
+	return retval;
 }
 
 
