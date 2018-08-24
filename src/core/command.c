@@ -360,7 +360,7 @@ int process_fdiv(int nb){
 	norm = atof(word[2]);
 	if (readfits(word[1], &fit, NULL))
 		return -1;
-	fdiv(&gfit, &fit, norm);
+	siril_fdiv(&gfit, &fit, norm);
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
@@ -2311,7 +2311,7 @@ static void parseLine(char *myline, int len, int *nb) {
 				break;
 			}
 		} while (i < len && (!isblank(myline[i]) || string_starter != '\0')
-				&& myline[i] != '\n');
+				&& myline[i] != '\r' && myline[i] != '\n');
 		if (myline[i] == '\0')	// the end of the word and line (i == len)
 			break;
 		myline[i++] = '\0';		// the end of the word

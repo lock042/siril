@@ -539,10 +539,9 @@ static void opendial(void) {
 #endif
 	GtkFileChooser *dialog = NULL;
 	GtkFileChooserAction action;
-	GtkWindow *main_window = GTK_WINDOW(lookup_widget("main_window"));
 	GtkWindow *control_window;
 	if (com.siril_mode == MODE_PLANETARY)
-		control_window = main_window;
+		control_window = GTK_WINDOW(lookup_widget("main_window"));
 	else if (com.siril_mode == MODE_DEEP_SKY)
 		control_window = GTK_WINDOW(lookup_widget("control_window"));
 
@@ -576,7 +575,7 @@ static void opendial(void) {
 		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
 				_("_Open"), _("_Cancel"));
 #else
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), main_window,
+		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), control_window,
 				action, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"),
 				GTK_RESPONSE_ACCEPT, NULL);
 #endif
@@ -587,10 +586,10 @@ static void opendial(void) {
 	case OD_OPEN:
 		action = GTK_FILE_CHOOSER_ACTION_OPEN;
 #ifdef _WIN32
-		widgetdialog = gtk_file_chooser_native_new(_("Open File"), main_window, action,
+		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
 				_("_Open"), _("_Cancel"));
 #else
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), main_window,
+		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), control_window,
 				GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
 				_("_Open"), GTK_RESPONSE_ACCEPT, NULL);
 #endif
@@ -4123,7 +4122,7 @@ void on_button_bkg_correct_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Subtraction done ...\n"));
 		break;
 	case 1:
-		if (ndiv(&gfit, &background_fit)) {
+		if (siril_ndiv(&gfit, &background_fit)) {
 			set_cursor_waiting(FALSE);
 			return;
 		}
