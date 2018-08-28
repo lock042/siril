@@ -87,6 +87,8 @@
  * make a background thread that precomputes FFTW wisdom, it's too slow for big zones
  * restrict zone size (see FFTW comment below) to some values
  * restrict zones inside the image
+ * allow the sequence list to be ellipsized because it can be huge
+ * displays 'No sequence selected' when selecting a sequence that has no global regdata
  */
 
 #include <stdlib.h>
@@ -365,7 +367,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 					.y = zone->centre.y + regparam[frame].shifty },
 				.half_side = zone->half_side };
 			int side = round_to_int(zone->half_side * 2.0);
-			printf("side:%d\n", side);
+			//printf("side:%d\n", side);
 			WORD *buffer = malloc(side * side * sizeof(WORD));
 			if (!buffer) {
 				fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
@@ -400,6 +402,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 						args->regdata[frame][zone_idx].x,
 						args->regdata[frame][zone_idx].y);
 			}
+			free(buffer);
 		}
 		clearfits(&fit);
 
@@ -740,6 +743,7 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 				++pixel;
 			}
 		}
+		clearfits(&fit);
 
 		// TODO: this will require a fix similar to what's done in the generic
 		// function, especially if it's executed in parallel

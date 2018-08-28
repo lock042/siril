@@ -185,6 +185,7 @@ double QualityEstimate(fits *fit, int layer, int qtype) {
 		/*********************************/
 #endif
 		q = Gradient(new_image, x_samples, y_samples, qtype);
+		free(new_image);
 
 		if (qtype == QUALTYPE_NINOX) {
 			dval += q;
@@ -262,8 +263,8 @@ static double Gradient(WORD *buf, int width, int height, int qtype) {
 
 	// Average of the significant pixels
 	if (!pixels) {
-		val = -1.0;
-		goto end;
+		free(map);
+		return -1.0;
 	}
 
 	avg /= (double) pixels;
@@ -314,9 +315,7 @@ static double Gradient(WORD *buf, int width, int height, int qtype) {
 		val = val / 10;
 	}
 
-	end:
 	free(map);
-
 	return val;
 }
 
