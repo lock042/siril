@@ -249,7 +249,7 @@ int register_shift_dft(struct registration_args *args) {
 	for (j = 0; j < sqsize; j++)
 		ref[j] = (double) fit_ref.data[j];
 
-	current_regdata[ref_image].quality = QualityEstimate(&fit_ref, args->layer, QUALTYPE_NORMAL);
+	current_regdata[ref_image].quality = QualityEstimate(&fit_ref, args->layer);
 	// We don't need fit anymore, we can destroy it.
 	clearfits(&fit_ref);
 	fftw_execute_dft(p, ref, in);
@@ -294,8 +294,7 @@ int register_shift_dft(struct registration_args *args) {
 					img[x] = (double) fit.data[x];
 
 				// We don't need fit anymore, we can destroy it.
-				current_regdata[frame].quality = QualityEstimate(&fit, args->layer,
-						QUALTYPE_NORMAL);
+				current_regdata[frame].quality = QualityEstimate(&fit, args->layer);
 
 				clearfits(&fit);
 
@@ -521,7 +520,7 @@ int register_ecc(struct registration_args *args) {
 		free(current_regdata);
 		return 1;
 	}
-	current_regdata[ref_image].quality = QualityEstimate(&ref, args->layer, QUALTYPE_NORMAL);
+	current_regdata[ref_image].quality = QualityEstimate(&ref, args->layer);
 	/* we make sure to free data in the destroyed fit */
 	clearfits(&ref);
 	/* Ugly code: as QualityEstimate destroys fit we need to reload it */
@@ -580,9 +579,8 @@ int register_ecc(struct registration_args *args) {
 						continue;
 					}
 
-					current_regdata[frame].quality = QualityEstimate(&im,
-							args->layer, QUALTYPE_NORMAL);
-
+					current_regdata[frame].quality =
+						QualityEstimate(&im, args->layer);
 #ifdef _OPENMP
 #pragma omp critical
 #endif

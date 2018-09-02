@@ -67,7 +67,7 @@ static int regcog_image_hook(struct generic_seq_args *args, int out_index, int i
 
 	// Compute quality for the image
 	// Warning: QualityEstimate modifies fit on this layer
-	quality = QualityEstimate(fit, regargs->layer, QUALTYPE_NORMAL);
+	quality = QualityEstimate(fit, regargs->layer);
 	rcdata->current_regdata[in_index].quality = quality;
 	return retval;
 }

@@ -6,9 +6,6 @@
 
 struct mpregdata {
 	float x, y;
-	// stores the phase correlation peak at first, then a normalized
-	// version of it acting as confidence for the AP data
-	double peak;	
 };
 
 struct mpr_args {

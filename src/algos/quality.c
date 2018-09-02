@@ -36,17 +36,12 @@ static int32_t SubSample(WORD *ptr, int img_wid, int x_size, int y_size);
 static unsigned short *_smooth_image_16(unsigned short *buf, int width,
 		int height);
 
-static double Gradient(WORD *buf, int width, int height, int qtype);
+static double Gradient(WORD *buf, int width, int height);
 
 // -------------------------------------------------------
-// Method to estimate quality.
-// Runs on the complete layer and destroys it.
-// What is qtype?
+// Method to estimate quality on a buffer.
 // -------------------------------------------------------
-double QualityEstimate(fits *fit, int layer, int qtype) {
-	WORD *buffer;
-	int width = fit->rx;
-	int height = fit->ry;
+double QualityEstimateBuf(WORD *buffer, int width, int height) {
 	int x1, y1;
 	int subsample, region_w, region_h;
 	int i, j, n, x, y, max, maxp[MAXP], x_inc;
@@ -55,26 +50,9 @@ double QualityEstimate(fits *fit, int layer, int qtype) {
 	WORD *new_image = NULL;
 	double mult, q, dval = 0.0;
 
-	buffer = fit->pdata[layer];
-
-#if 0
-	if (qtype == QUALTYPE_HISTO) {
-		double size_d = (double) ((m_y_planet_max - m_y_planet_min)
-				* (m_x_planet_max - m_x_planet_min));
-		return histo_quality(colour) / size_d;
-	}
-
-	if (qtype == QUALTYPE_TOTAL) {
-		return average_pixel_quality(colour);
-	}
-#endif
-
-	/* dimensions of the region we want to analyse
-	 * We take all the tmpfit
-	 */
+	/* dimensions of the region we want to analyse */
 	region_w = width - 1;
 	region_h = height - 1;
-
 	x1 = 0;
 	y1 = 0;
 
@@ -184,17 +162,12 @@ double QualityEstimate(fits *fit, int layer, int qtype) {
 		}
 		/*********************************/
 #endif
-		q = Gradient(new_image, x_samples, y_samples, qtype);
+		q = Gradient(new_image, x_samples, y_samples);
 		free(new_image);
 
-		if (qtype == QUALTYPE_NINOX) {
-			dval += q;
-		} else {
-			dval += (q
-					* ((QSUBSAMPLE_MIN * QSUBSAMPLE_MIN)
-							/ (subsample * subsample))); // New scheme
-		}
-
+		dval += (q
+				* ((QSUBSAMPLE_MIN * QSUBSAMPLE_MIN)
+					/ (subsample * subsample))); // New scheme
 		//printf("dval val : %lf\n", dval);
 
 		do {
@@ -203,19 +176,24 @@ double QualityEstimate(fits *fit, int layer, int qtype) {
 				&& height / subsample == y_samples);
 	}
 
-	if (qtype == QUALTYPE_NORMAL || qtype == QUALTYPE_NINOX) {
-		dval = sqrt(dval);
-	}
+	dval = sqrt(dval);
 
-	/*	if (qtype == QUALTYPE_NORMAL) {
+	/* why is this code commented?
 	 double histo_val;
 	 histo_val = histo_quality(colour);
 	 histo_val = histo_val / (50 * 255 * 255);
 	 dval = dval * histo_val;
-	 }
-	 */
+	*/
 	free(buf);
 	return dval;
+}
+
+// -------------------------------------------------------
+// Method to estimate quality on a fits.
+// Runs on the complete layer and destroys it.
+// -------------------------------------------------------
+double QualityEstimate(fits *fit, int layer) {
+	return QualityEstimateBuf(fit->pdata[layer], fit->rx, fit->ry);
 }
 
 /*
@@ -234,13 +212,13 @@ static int32_t SubSample(WORD *ptr, int img_wid, int x_size, int y_size) {
 	return val / (x_size * y_size);
 }
 
-static double Gradient(WORD *buf, int width, int height, int qtype) {
+static double Gradient(WORD *buf, int width, int height) {
 	int pixels;
 	int x, y;
 	int yborder = (int) ((double) height * QMARGIN) + 1;
 	int xborder = (int) ((double) width * QMARGIN) + 1;
 	double d1, d2;
-	double val, avg = 0;
+	double val, avg = 0.0;
 	int threshold = (THRESHOLD) << 8;
 	unsigned char *map = calloc(width * height, sizeof(unsigned char));
 
@@ -272,48 +250,24 @@ static double Gradient(WORD *buf, int width, int height, int qtype) {
 	val = 0;
 	pixels = 0;
 
-	if (qtype == QUALTYPE_NINOX) {
-		for (y = yborder; y < height - yborder; ++y) {
-			int o = y * width + xborder;      // start of row y
-			for (x = xborder; x < width - xborder; ++x, ++o)
-				if (map[o]) {
-					// Pixel differences
-					d1 = buf[o];
-					d2 = buf[o];
+	for (y = yborder; y < height - yborder; ++y) {
+		int o = y * width + xborder;      // start of row y
+		for (x = xborder; x < width - xborder; ++x, ++o)
+			if (map[o]) {
+				// Pixel differences
+				d1 = buf[o];
+				d2 = buf[o];
 
-					d1 = fabs(d1 - (int) (buf[o + 1]));
-					d2 = fabs(d2 - (int) (buf[o + width]));
+				d1 = d1 - (int) (buf[o + 1]);
+				d2 = d2 - (int) (buf[o + width]);
 
-					val += d1 + d2;
-					pixels++;
-				}
-		}
-	} else {
-		for (y = yborder; y < height - yborder; ++y) {
-			int o = y * width + xborder;      // start of row y
-			for (x = xborder; x < width - xborder; ++x, ++o)
-				if (map[o]) {
-					// Pixel differences
-					d1 = buf[o];
-					d2 = buf[o];
-
-					d1 = d1 - (int) (buf[o + 1]);
-					d2 = d2 - (int) (buf[o + width]);
-
-					val += (d1 * d1 + d2 * d2);
-					pixels++;
-				}
-		}
+				val += (d1 * d1 + d2 * d2);
+				pixels++;
+			}
 	}
 
-	if (qtype == QUALTYPE_NINOX) {
-		val = val / (double) pixels; // normalise value to per-pixel
-		val = (val * 50) / avg;    // arbitrary increase +
-								   // normalise differences to compensate for dim/bright images
-	} else {
-		val = val / (double) pixels; // normalise value to per-pixel
-		val = val / 10;
-	}
+	val = val / (double)pixels; // normalise value to per-pixel
+	val = val / 10.0;
 
 	free(map);
 	return val;

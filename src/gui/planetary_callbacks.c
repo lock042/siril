@@ -129,6 +129,7 @@ void add_stacking_zone(double x, double y, double half_side) {
 	zone->centre.x = x;
 	zone->centre.y = y;
 	zone->half_side = half_side;
+	fprintf(stdout, "Added stacking zone %d at %4g,%4g. Half side: %g\n", i, x, y, half_side);
 
 	com.stacking_zones[i+1].centre.x = -1.0; 
 
@@ -197,8 +198,8 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	args->layer = gtk_combo_box_get_active(cbbt_layers);
 	args->filtering_criterion = stack_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
-	args->nb_closest_AP = 5;
-	args->max_distance = 350.0;
+	args->nb_closest_AP = 5;	// min(this, nb_AP) will be used
+	args->max_distance = 350.0;	// AP farther than this will be ignored
 	args->own_distance_f = 0.5;
 	args->output_filename = strdup(gtk_entry_get_text(output_file));
 	args->output_overwrite = gtk_toggle_button_get_active(overwrite);

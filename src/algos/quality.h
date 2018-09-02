@@ -36,7 +36,9 @@ enum {
 	QUALTYPE_NORMAL, QUALTYPE_NINOX
 };
 
-double QualityEstimate(fits *fit, int layer, int qtype);
+double QualityEstimateBuf(WORD *buffer, int width, int height);
+double QualityEstimate(fits *fit, int layer);
+
 int FindCentre(fits *fit, int layer, double *x_avg, double *y_avg);
 
 #endif /* SRC_QUALITY_H_ */

@@ -67,13 +67,12 @@
  * time, but this gets complicated with the stacking blocks for the
  * multi-threading. Separating in two as explained above should not give an
  * unreasonable speed penalty.
- *    
+ *
  */
 
 /* TODO:
  * extra read for zones for the registration, does it make sens DFT-wise?
  *   probably not
- * take into account phase correlation confidence earlier to discard some zones
  * sub-pixel phase correlation is possible and explained in the method section here
  *   https://en.wikipedia.org/wiki/Phase_correlation but "Subpixel methods are also
  *   particularly sensitive to noise in the images"
@@ -200,7 +199,7 @@ static gpointer sequence_analysis_thread_func(gpointer p) {
 
 	siril_add_idle(end_stacking, stack_args);
 	siril_add_idle(end_reference_image_stacking, stack_args);
-	
+
 	return NULL;
 }
 
@@ -279,6 +278,8 @@ void update_refimage_on_layer_change(sequence *seq, int layer) {
 	}
 }
 
+/*********************** PROCESSING *************************/
+
 gpointer the_multipoint_processing(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
 	int retval;
@@ -299,7 +300,7 @@ gpointer the_multipoint_processing(gpointer ptr) {
 		siril_add_idle(end_stacking, stackargs);
 	}
 	return GINT_TO_POINTER(retval);
-}	
+}
 
 static int the_multipoint_ecc_registration(struct mpr_args *args) {
 	int frame, zone_idx, nb_zones, abort = 0;
@@ -367,7 +368,6 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 					.y = zone->centre.y + regparam[frame].shifty },
 				.half_side = zone->half_side };
 			int side = round_to_int(zone->half_side * 2.0);
-			//printf("side:%d\n", side);
 			WORD *buffer = malloc(side * side * sizeof(WORD));
 			if (!buffer) {
 				fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
@@ -375,6 +375,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 				clearfits(&fit);
 				continue;
 			}
+
 			copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
 #ifdef DEBUG_MPP
 			if (zone_idx == 0) {
@@ -389,15 +390,12 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 				savefits(tmpfn, tmp);
 			}
 #endif
-
 			if (findTransformBuf(references[zone_idx], side, side,
 						buffer, side, side, &reg_param)) {
 				siril_log_message(_("Cannot perform ECC alignment for frame %d\n"), frame);
-				args->regdata[frame][zone_idx].peak = 0.0;
 			} else {
 				args->regdata[frame][zone_idx].x = -reg_param.dx - regparam[frame].shiftx;
 				args->regdata[frame][zone_idx].y = -reg_param.dy + regparam[frame].shifty;
-				args->regdata[frame][zone_idx].peak = 1.0;
 				fprintf(stdout, "frame %d, zone %d shifts: %f,%f\n", frame, zone_idx,
 						args->regdata[frame][zone_idx].x,
 						args->regdata[frame][zone_idx].y);
@@ -449,7 +447,7 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 	convol = malloc(nb_zones * sizeof(fftw_complex*));
 	fplan = malloc(nb_zones * sizeof(fftw_plan));
 	bplan = malloc(nb_zones * sizeof(fftw_plan));
-	
+
 	/* reading zones in the reference image, single threaded init */
 	fprintf(stdout, "loading reference zones\n");
 	gchar *wisdom_file = get_configdir_file_path(FFTW_WISDOM_FILE);
@@ -564,13 +562,11 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 			// searching for the real part peak in out2, which is the shift
 			// between the reference image and this image in this zone
 			int shift = 0;
-			double peak;
 			for (i = 1; i < nb_pixels; ++i) {
 				if (creal(out2[zone_idx][i]) > creal(out2[zone_idx][shift])) {
 					shift = i;
 				}
 			}
-			peak = creal(out2[zone_idx][shift]);
 			int shifty = shift / side;
 			int shiftx = shift % side;
 			if (shifty > zone->half_side) {
@@ -581,14 +577,13 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 			}
 
 			/* shitfs for this image and this zone is (shiftx, shifty) + the global shifts */
-			fprintf(stdout, "frame %d, zone %d adjustment shifts: %d,%d,\tpeak: %f\n", frame, zone_idx, shiftx, shifty, peak);
+			fprintf(stdout, "frame %d, zone %d adjustment shifts: %d,%d\n", frame, zone_idx, shiftx, shifty);
 			args->regdata[frame][zone_idx].x = (double)shiftx - regparam[frame].shiftx;
 			args->regdata[frame][zone_idx].y = (double)shifty + regparam[frame].shifty;
-			args->regdata[frame][zone_idx].peak = peak;
 		}
 
 		clearfits(&fit);
-		compute_zones_confidence(args->regdata[frame], nb_zones);
+		//compute_zones_confidence(args->regdata[frame], nb_zones);
 
 		// TODO: this will require a fix similar to what's done in the generic
 		// function, especially if it's executed in parallel
@@ -619,7 +614,7 @@ cleaning_all:
 struct weighted_AP {
 	int zone_index;
 	double distance;
-	float confidence;
+	// double direction; someday
 };
 
 static void check_closest_list(struct weighted_AP *list_for_this_point,
@@ -633,24 +628,28 @@ static void check_closest_list(struct weighted_AP *list_for_this_point,
 static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 	int frame, zone_idx, nb_zones, abort = 0;
 	regdata *regparam = args->seq->regparam[args->layer];
-	struct weighted_AP *closest_zones_map = malloc(args->seq->rx * args->seq->ry * args->nb_closest_AP * sizeof(struct weighted_AP));
+	struct weighted_AP *closest_zones_map;	// list of nb_closest_AP AP (fixed) for each pixel
+
+	nb_zones = get_number_of_zones();
+	if (nb_zones < args->nb_closest_AP)
+		args->nb_closest_AP = nb_zones;
+	closest_zones_map = malloc(args->seq->rx * args->seq->ry * args->nb_closest_AP * sizeof(struct weighted_AP));
 	if (!closest_zones_map) {
 		fprintf(stderr, "Stacking: memory allocation failure for zone mapping\n");
 		return -1;
 	}
-	nb_zones = get_number_of_zones();
+	siril_log_message("Using %d closest zones for multipoint stacking refinement\n", args->nb_closest_AP);
 
 	/* precompute the closest zones from each pixel */
 	int x, y;
 	for (y = 0; y < args->seq->ry; y++) {
 		for (x = 0; x < args->seq->rx; x++) {
 			int ap;
-			struct weighted_AP *list_for_this_pixel = closest_zones_map + (x + y * args->seq->ry) * args->nb_closest_AP;
+			struct weighted_AP *list_for_this_pixel = closest_zones_map + (x + y * args->seq->rx) * args->nb_closest_AP;
 			for (ap = 0; ap < args->nb_closest_AP; ap++)	// init the struct
 				list_for_this_pixel[ap].distance = -1.0;
 
 			for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
-
 				stacking_zone *zone = &com.stacking_zones[zone_idx];
 				// compute the distance from the centre of the pixel
 				double xdist = zone->centre.x - x + 0.5;
@@ -695,13 +694,13 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 		/* for each image, we use the closest zones' shifts computed in the
 		 * multi-point registration and weight them with their distance to get
 		 * the coordinates of the pixel of the image to stack for each end-image
-		 * pixel. THe direction of each AP would also be important, the
+		 * pixel. The direction of each AP would also be important, the
 		 * distribution of the AP having a role in the weighing. */
 		int x, y;
 		int pixel = 0;	// index in sum[0]
 		for (y = 0; y < fit.ry; y++) {
 			for (x = 0; x < fit.rx; x++) {
-				struct weighted_AP *list_for_this_AP = closest_zones_map + (x + y * args->seq->ry) * args->nb_closest_AP;
+				struct weighted_AP *list_for_this_AP = closest_zones_map + (x + y * args->seq->rx) * args->nb_closest_AP;
 				int i;
 				double weight = 0.0, sumx = 0.0, sumy = 0.0, shiftx, shifty;
 
@@ -712,7 +711,7 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 					if (list_for_this_AP[i].distance <= 1.0)
 						this_weight = args->max_distance;
 					else this_weight = args->max_distance / list_for_this_AP[i].distance;
-					this_weight *= args->regdata[frame][list_for_this_AP[i].zone_index].peak;
+
 					weight += this_weight;
 					sumx += args->regdata[frame][list_for_this_AP[i].zone_index].x * this_weight;
 					sumy += args->regdata[frame][list_for_this_AP[i].zone_index].y * this_weight;
@@ -726,12 +725,13 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 					shiftx = sumx / weight;
 					shifty = sumy / weight;
 				}
+				//fprintf(stdout, "%d,%d weight is %g\n", x, y, weight);
 
 				// then do the regular sum stacking with shift
 				int nx = round_to_int(x + shiftx);
 				int ny = round_to_int(y - shifty);
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
-					int ii = ny * fit.rx + nx;		// index in source image
+					int ii = ny * fit.rx + nx;	// index in source image
 					int layer;
 					for (layer = 0; layer < args->seq->nb_layers; ++layer) {
 #ifdef _OPENMP
@@ -859,7 +859,6 @@ int point_is_inside_zone(int px, int py, stacking_zone *zone) {
 	return px > startx && px < startx + side && py > starty && py < starty + side;
 }
 
-
 /* we build a list of max_AP of the closest alignment points for a pixel. The
  * list is passed, max_AP too, and we try a new candidate AP for the top max_AP.
  * The built list is not ordered.
@@ -891,7 +890,7 @@ static void check_closest_list(struct weighted_AP *list_for_this_point,
 
 #if 0
 /* when the list of closest AP is complete, we check for special case of pixel position
- * being very closed to AP centres. Below this owned_distance threshold, other AP are not
+ * being very close to AP centres. Below this owned_distance threshold, other AP are not
  * considered relevant and are removed of the list. */
 static void filter_closest_list_owned(struct weighted_AP *list_for_this_point,
 		int max_AP, double owned_distance) {
@@ -917,27 +916,9 @@ static void filter_closest_list_owned(struct weighted_AP *list_for_this_point,
 			       list_for_this_point[i].distance = -1.0;
 			       list_for_this_point[i].zone_index = -1;
 		       }
-		       if (unowned_idx == -1) 
+		       if (unowned_idx == -1)
 			       unowned_idx = i;
 		}
 	}
 }
 #endif
-
-/* normalize the peaks to have a confidence ratio [0; 1].
- * Typical values range from 0.01 to 1:
- * 0.7 to 1 for good confidence, 0.2 to 0.7 for medium, 0.01 to 0.2 for poor.
- * Would have been better to do it on all images at the same time, but the data structure
- * does not currently permit it.
- */
-static void compute_zones_confidence(struct mpregdata *regparam, int nb_zones) {
-	int zone_idx;
-	double max = 0;
-	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
-		if (regparam[zone_idx].peak > max)
-			max = regparam[zone_idx].peak;
-	}
-
-	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++)
-		regparam[zone_idx].peak /= max;
-}
