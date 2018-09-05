@@ -491,9 +491,15 @@ struct gradient_struct {
 	double boxvalue[3];
 };
 
+struct ap_regdata {
+	float x, y, quality;
+};
+
 struct stacking_zone_struct {
 	point centre;
 	double half_side;
+	// a struct for each image, NULL if not yet evaluated
+	struct ap_regdata *regparam;
 };
 
 struct historic_struct {
@@ -618,6 +624,7 @@ struct cominf {
 
 	stacking_zone *stacking_zones;	// zones for multi-point processing
 	int stacking_zones_size;	// allocated size
+	int stacking_zone_focus;	// index of the selected zone
 
 	int max_thread;			// maximum of thread used for parallel execution
 

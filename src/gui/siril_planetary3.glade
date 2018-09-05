@@ -7429,6 +7429,7 @@ WARNING: Reducing the ratio of memory allocated to computation will degrade perf
 This button will be automatically unchecked after being used.
 
 WARNING: it will erase all registration and statistics data.	</property>
+                            <property name="halign">start</property>
                             <property name="draw_indicator">True</property>
                           </object>
                           <packing>
@@ -7437,33 +7438,22 @@ WARNING: it will erase all registration and statistics data.	</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="seqtoproc_label1">
+                          <object class="GtkComboBoxText" id="sequence_list_combobox">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Select sequence:</property>
-                            <property name="justify">center</property>
+                            <property name="hexpand">True</property>
+                            <signal name="changed" handler="on_seqproc_entry_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
                             <property name="top_attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkComboBoxText" id="sequence_list_combobox">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <signal name="changed" handler="on_seqproc_entry_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">1</property>
+                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
                           <object class="GtkLabel" id="imagesel_label1">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="halign">start</property>
                             <property name="label" translatable="yes">No sequence selected</property>
                             <property name="justify">right</property>
                           </object>
@@ -7493,6 +7483,60 @@ WARNING: it will erase all registration and statistics data.	</property>
                             <property name="width">2</property>
                           </packing>
                         </child>
+                        <child>
+                          <object class="GtkButton" id="global_reg_button">
+                            <property name="label" translatable="yes">Start global sequence evaluation</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">This will start a global sequence analysis and registration and create the reference image. This is not needed if the reffeg</property>
+                            <signal name="clicked" handler="on_planetary_analysis_clicked" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">5</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="showref_check">
+                            <property name="label" translatable="yes">Show reference image</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">False</property>
+                            <property name="tooltip_text" translatable="yes">Show the reference image if any has been created.</property>
+                            <property name="halign">start</property>
+                            <property name="active">True</property>
+                            <property name="draw_indicator">True</property>
+                            <signal name="toggled" handler="on_showref_check_toggled" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">6</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label2">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="margin_top">14</property>
+                            <property name="margin_bottom">6</property>
+                            <property name="label" translatable="yes">Global quality estimation and reference image creation</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">4</property>
+                            <property name="width">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -7504,6 +7548,7 @@ WARNING: it will erase all registration and statistics data.	</property>
                       <object class="GtkExpander" id="prepro_expander">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="margin_top">14</property>
                         <child>
                           <object class="GtkBox" id="vbox4">
                             <property name="visible">True</property>
@@ -8029,12 +8074,13 @@ The new sequence is automatically loaded as the current sequence upon completion
                     <property name="can_focus">False</property>
                     <property name="border_width">12</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">10</property>
                     <child>
-                      <object class="GtkLabel" id="label2">
+                      <object class="GtkLabel" id="label1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="margin_bottom">6</property>
-                        <property name="label" translatable="yes">Global quality estimation and reference image creation</property>
+                        <property name="label" translatable="yes">Points of alignment and stacking zones</property>
                         <attributes>
                           <attribute name="weight" value="bold"/>
                         </attributes>
@@ -8047,22 +8093,259 @@ The new sequence is automatically loaded as the current sequence upon completion
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkFrame" id="frameap">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label_xalign">0</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignap">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="left_padding">12</property>
+                            <child>
+                              <object class="GtkGrid" id="grid35">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="row_spacing">2</property>
+                                <property name="column_spacing">8</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_zones2">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="tooltip_text" translatable="yes">half-side of a stacking zone in pixels</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Stacking zone size:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">1</property>
+                                    <property name="top_attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="zonesize">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="adjustment">adjustment_zonesize</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">2</property>
+                                    <property name="top_attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="check_autosize">
+                                    <property name="label" translatable="yes">Automatic size</property>
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw_indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">0</property>
+                                    <property name="top_attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="check_autopos">
+                                    <property name="label" translatable="yes">Automatic positioning</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw_indicator">True</property>
+                                    <signal name="toggled" handler="on_check_autopos_toggled" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">0</property>
+                                    <property name="top_attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label_zones3">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="tooltip_text" translatable="yes">in percent</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Overlap amount:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">1</property>
+                                    <property name="top_attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="autoposition_button">
+                                    <property name="label" translatable="yes">Compute zones</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">True</property>
+                                    <property name="tooltip_text" translatable="yes">Create the zones automatically using the parameters above.</property>
+                                    <signal name="clicked" handler="on_autoposition_button_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">1</property>
+                                    <property name="top_attach">2</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="overlapamount">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="adjustment">adjustment_overlap</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">2</property>
+                                    <property name="top_attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="labelap1">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="margin_bottom">6</property>
+                            <property name="label" translatable="yes">Automatic zone placement</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame" id="frameap2">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label_xalign">0</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignap2">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="left_padding">12</property>
+                            <child>
+                              <object class="GtkBox" id="manualapbox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="spacing">8</property>
+                                <property name="homogeneous">True</property>
+                                <child>
+                                  <object class="GtkToggleButton" id="add_zones">
+                                    <property name="label" translatable="yes">Add zones</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">True</property>
+                                    <property name="tooltip_text" translatable="yes">Set the zone adding mode. Clicking  in the image will create a zone at this location with the size given above 	as long as this mode is enabled. </property>
+                                    <signal name="toggled" handler="on_add_zones_toggled" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkToggleButton" id="remove_zones">
+                                    <property name="label" translatable="yes">Remove zones</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">True</property>
+                                    <property name="tooltip_text" translatable="yes">Set the zone removal mode. Clicking on a zone in the image will remove it as long as this mode is enabled. </property>
+                                    <signal name="toggled" handler="on_remove_zones_toggled" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="remove_all_zones">
+                                    <property name="label" translatable="yes">Clear zones</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">True</property>
+                                    <property name="tooltip_text" translatable="yes">Removes all zones</property>
+                                    <signal name="clicked" handler="on_remove_all_zones_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="labelap2">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="margin_bottom">6</property>
+                            <property name="label" translatable="yes">Manual zone placement</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="mpreg_button">
+                        <property name="label" translatable="yes">Evaluate zones for the sequence</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Once zones have been positioned, click here to run the multi-point registration. This is optional and only needed  if you want to see the graphs per zone, to refine the zones' placement. This is otherwise done as part of the stacking.</property>
+                        <signal name="clicked" handler="on_mpreg_button_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkBox" id="box3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkButton" id="global_reg_button">
-                            <property name="label" translatable="yes">Start global sequence evaluation</property>
+                          <object class="GtkLabel" id="label4">
                             <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">This will start a global sequence analysis and registration and create the reference image.</property>
-                            <signal name="clicked" handler="on_planetary_analysis_clicked" swapped="no"/>
+                            <property name="can_focus">False</property>
+                            <property name="margin_top">12</property>
+                            <property name="margin_bottom">6</property>
+                            <property name="label" translatable="yes">Quality estimates</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">True</property>
+                            <property name="fill">False</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
@@ -8072,16 +8355,15 @@ The new sequence is automatically loaded as the current sequence upon completion
                             <property name="can_focus">False</property>
                             <property name="spacing">6</property>
                             <child>
-                              <object class="GtkCheckButton" id="showref_check">
-                                <property name="label" translatable="yes">Show reference image</property>
+                              <object class="GtkComboBoxText" id="selectedzonecombo">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">False</property>
-                                <property name="tooltip_text" translatable="yes">Show the reference image if any has been created.</property>
-                                <property name="halign">start</property>
-                                <property name="active">True</property>
-                                <property name="draw_indicator">True</property>
-                                <signal name="toggled" handler="on_showref_check_toggled" swapped="no"/>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_text" translatable="yes">Select the data source for the graph, either per image or per stacking zone </property>
+                                <property name="active">0</property>
+                                <items>
+                                  <item translatable="yes">global</item>
+                                </items>
+                                <signal name="changed" handler="on_selectedzonecombo_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -8147,6 +8429,7 @@ When processing images, registration data is taken from the default layer if ava
                               <object class="GtkScale" id="bestscale">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
+                                <property name="tooltip_text" translatable="yes">Percentage of best images to keep from the sequence, evaluated for each zone.</property>
                                 <property name="adjustment">adjustment4</property>
                                 <property name="inverted">True</property>
                                 <property name="round_digits">1</property>
@@ -8181,7 +8464,7 @@ When processing images, registration data is taken from the default layer if ava
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                     <child>
@@ -8203,198 +8486,7 @@ The blue line represents the threshold quality under which images are not used i
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label1">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="margin_bottom">6</property>
-                        <property name="label" translatable="yes">Points of alignment and stacking zones</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                        </attributes>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="padding">10</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkGrid" id="grid35">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="row_spacing">2</property>
-                        <property name="column_spacing">8</property>
-                        <child>
-                          <object class="GtkLabel" id="label_zones2">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="tooltip_text" translatable="yes">half-side of a stacking zone in pixels</property>
-                            <property name="halign">end</property>
-                            <property name="label" translatable="yes">Stacking zone size:</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="zonesize">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="adjustment">adjustment_zonesize</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="top_attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkCheckButton" id="check_autosize">
-                            <property name="label" translatable="yes">Automatic size</property>
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">False</property>
-                            <property name="halign">start</property>
-                            <property name="draw_indicator">True</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">0</property>
-                            <property name="top_attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkCheckButton" id="check_autopos">
-                            <property name="label" translatable="yes">Automatic positioning</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">False</property>
-                            <property name="halign">start</property>
-                            <property name="active">True</property>
-                            <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="on_check_autopos_toggled" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">0</property>
-                            <property name="top_attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="label_zones3">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="tooltip_text" translatable="yes">in percent</property>
-                            <property name="halign">end</property>
-                            <property name="label" translatable="yes">Overlap amount:</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="autoposition_button">
-                            <property name="label" translatable="yes">Proceed</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Create the zones automatically using the parameters above.</property>
-                            <signal name="clicked" handler="on_autoposition_button_clicked" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="top_attach">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="overlapamount">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="adjustment">adjustment_overlap</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="top_attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="label_zones1">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="margin_top">8</property>
-                            <property name="label" translatable="yes">Edit stacking zones:	</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">0</property>
-                            <property name="top_attach">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkToggleButton" id="add_zones">
-                            <property name="label" translatable="yes">Add zones</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Set the zone adding mode. Clicking  in the image will create a zone at this location as long as this mode is enabled. </property>
-                            <property name="margin_top">8</property>
-                            <signal name="toggled" handler="on_add_zones_toggled" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkToggleButton" id="remove_zones">
-                            <property name="label" translatable="yes">Remove zones</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Set the zone removal mode. Clicking on a zone in the image will remove it as long as this mode is enabled. </property>
-                            <property name="margin_top">8</property>
-                            <signal name="toggled" handler="on_remove_zones_toggled" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="top_attach">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="remove_all_zones">
-                            <property name="label" translatable="yes">Clear zones</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Removes all zones</property>
-                            <signal name="clicked" handler="on_remove_all_zones_clicked" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="top_attach">4</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">4</property>
+                        <property name="position">5</property>
                       </packing>
                     </child>
                   </object>
@@ -8730,6 +8822,9 @@ gradients with differing spatial distributions and orientations.
                         <property name="pack_type">end</property>
                         <property name="position">3</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                   <packing>

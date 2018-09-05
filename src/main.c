@@ -228,6 +228,7 @@ int main(int argc, char *argv[]) {
 	com.cvport = RED_VPORT;
 	com.show_excluded = TRUE;
 	com.selected_star = -1;
+	com.stacking_zone_focus = -1;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.uniq = NULL;

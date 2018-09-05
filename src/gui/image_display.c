@@ -769,11 +769,15 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		cairo_set_line_width(cr, 1.5);
 		cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, 1.0);	// cyan
 		while (com.stacking_zones[i].centre.x >= 0.0) {
+			if (i == com.stacking_zone_focus)
+				cairo_set_source_rgba(cr, 1.0, 0.2, 0.0, 1.0);	// light orange
 			stacking_zone *zone = &com.stacking_zones[i];
 			cairo_rectangle(cr, zone->centre.x - zone->half_side,
 					zone->centre.y - zone->half_side,
 					2.0 * zone->half_side, 2.0 * zone->half_side);
 			cairo_stroke(cr);
+			if (i == com.stacking_zone_focus)
+				cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, 1.0);	// cyan
 			i++;
 		}
 

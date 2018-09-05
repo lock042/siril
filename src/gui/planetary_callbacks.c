@@ -108,6 +108,30 @@ static void activate_mpp_processing_button() {
 	gtk_widget_set_sensitive(stack_button, status);
 }
 
+// add the new zone index in the graphical list
+void update_zones_list() {
+	static GtkComboBox *combo = NULL;
+	static GtkComboBoxText *combotext = NULL;
+	if (!combo) {
+		combo = GTK_COMBO_BOX(lookup_widget("selectedzonecombo"));
+		combotext = GTK_COMBO_BOX_TEXT(combo);
+	}
+	int previous_selection = gtk_combo_box_get_active(combo);
+
+	gtk_combo_box_text_remove_all(combotext);
+	gtk_combo_box_text_append_text(combotext, "global");
+
+	int i = 0;
+	char buf[30];
+	while (com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1) {
+		i++;
+		snprintf(buf, 30, "%s %d", _("zone"), i);
+		gtk_combo_box_text_append_text(combotext, buf);
+	}
+	if (i > previous_selection)
+		gtk_combo_box_set_active(combo, previous_selection);
+}
+
 /* add a stacking zone centred around x,y with the given half side */
 void add_stacking_zone(double x, double y, double half_side) {
 	if (!com.stacking_zones_size || !com.stacking_zones) {
@@ -129,6 +153,7 @@ void add_stacking_zone(double x, double y, double half_side) {
 	zone->centre.x = x;
 	zone->centre.y = y;
 	zone->half_side = half_side;
+	zone->regparam = NULL;
 	fprintf(stdout, "Added stacking zone %d at %4g,%4g. Half side: %g\n", i, x, y, half_side);
 
 	com.stacking_zones[i+1].centre.x = -1.0; 
@@ -138,6 +163,7 @@ void add_stacking_zone(double x, double y, double half_side) {
 
 gboolean on_remove_all_zones_clicked(GtkButton *button, gpointer user_data) {
 	remove_stacking_zones();
+	update_zones_list();
 	redraw(com.cvport, REMAP_NONE);
 	return FALSE;
 }
@@ -149,6 +175,7 @@ void planetary_click_in_image(double x, double y) {
 		double size = gtk_adjustment_get_value(sizeadj);
 		if (size > 0.0)
 			add_stacking_zone(x, y, size*0.5);
+		update_zones_list();
 	}
 	else if (remove_zones_mode) {
 		double closest_distance = DBL_MAX;
@@ -175,6 +202,10 @@ void planetary_click_in_image(double x, double y) {
 			}
 
 			if (closest_zone != -1) {
+				if (com.stacking_zones[closest_zone].regparam) {
+					free(com.stacking_zones[closest_zone].regparam);
+					com.stacking_zones[closest_zone].regparam = NULL;
+				}
 				// replace by last zone
 				memcpy(&com.stacking_zones[closest_zone],
 						&com.stacking_zones[i-1],
@@ -182,11 +213,25 @@ void planetary_click_in_image(double x, double y) {
 				com.stacking_zones[i-1].centre.x = -1.0;
 
 				activate_mpp_processing_button();
+				update_zones_list();
 			}
 		}
 	}
 }
 
+/* clicking on registration, only start registration */
+gboolean on_mpreg_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(
+			gtk_builder_get_object(builder, "comboboxreglayer"));
+	struct mpr_args *args = malloc(sizeof(struct mpr_args));
+	args->seq = &com.seq;
+	args->layer = gtk_combo_box_get_active(cbbt_layers);
+	args->filtering_criterion = stack_filter_all;
+	start_in_new_thread(the_multipoint_analysis, args);
+	return FALSE;
+}
+
+/* clicking on stacking, start everything */
 gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(
 			gtk_builder_get_object(builder, "comboboxreglayer"));
@@ -199,8 +244,8 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	args->filtering_criterion = stack_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
 	args->nb_closest_AP = 5;	// min(this, nb_AP) will be used
-	args->max_distance = 350.0;	// AP farther than this will be ignored
-	args->own_distance_f = 0.5;
+	args->max_distance = 250.0;	// AP farther than this will be ignored
+	//args->own_distance_f = 0.5;	// unused
 	args->output_filename = strdup(gtk_entry_get_text(output_file));
 	args->output_overwrite = gtk_toggle_button_get_active(overwrite);
 	start_in_new_thread(the_multipoint_processing, args);
@@ -346,6 +391,7 @@ static void auto_add_stacking_zones(fits *fit, int layer, int size) {
 					nbzone++;
 					if (!zone_is_too_close(x, y, overlap))
 						add_stacking_zone(x, y, size);
+					update_zones_list();
 				}
 			}
 		}
@@ -375,3 +421,27 @@ void on_check_autopos_toggled(GtkToggleButton *togglebutton,
 	gtk_widget_set_sensitive(overlapamount, is_active);
 	gtk_widget_set_sensitive(autoposition_button, is_active);
 }
+
+void on_selectedzonecombo_changed(GtkComboBox *widget, gpointer user_data) {
+	int zone_id = gtk_combo_box_get_active(widget);
+	com.stacking_zone_focus = -1;
+
+	if (zone_id < 0) return;
+	if (zone_id == 0) {
+		// TODO: show global graph
+		return;
+	}
+
+	// show graph for a zone and highlight it
+	int i = 0;
+	while (com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1) {
+		i++;
+		if (i == zone_id) {
+			com.stacking_zone_focus = i-1;
+			redraw(com.cvport, REMAP_NONE);		// show the new selected zone
+			//fprintf(stdout, "setting focus to zone %d\n", i);
+			// TODO: show graph for the zone i-1
+		}
+	}
+}
+

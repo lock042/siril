@@ -501,15 +501,13 @@ void reset_plot() {
 }
 
 static int compare(const void *a, const void *b) {
-    struct kpair datax_a = * ((struct kpair *) a);
-    struct kpair datax_b = * ((struct kpair *) b);
-
-    if (datax_a.x > datax_b.x) {
-        return 1;
-    } else if (datax_a.x < datax_b.x) {
-        return -1;
-    } else
-        return 0;
+	struct kpair datax_a = * ((struct kpair *) a);
+	struct kpair datax_b = * ((struct kpair *) b);
+	if (datax_a.x > datax_b.x)
+		return 1;
+	if (datax_a.x < datax_b.x)
+		return -1;
+	return 0;
 }
 
 void drawPlot() {

@@ -104,6 +104,7 @@
 #include "core/siril.h"
 #include "core/processing.h"
 #include "core/proto.h"
+#include "algos/quality.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -122,6 +123,8 @@ static char *refimage_filename;
 
 static gpointer sequence_analysis_thread_func(gpointer p);
 static gboolean end_reference_image_stacking(gpointer p);
+
+static int the_multipoint_quality_analysis(struct mpr_args *args);
 
 static int the_multipoint_ecc_registration(struct mpr_args *args);
 static int the_multipoint_dft_registration(struct mpr_args *args);
@@ -278,8 +281,68 @@ void update_refimage_on_layer_change(sequence *seq, int layer) {
 	}
 }
 
-/*********************** PROCESSING *************************/
+/*********************** ANALYSIS *************************/
+gpointer the_multipoint_analysis(gpointer ptr) {
+	struct mpr_args *args = (struct mpr_args*)ptr;
+	int retval = the_multipoint_quality_analysis(args);
+	siril_add_idle(end_generic, NULL);
+	free(args);
+	return GINT_TO_POINTER(retval);
+}
 
+static int the_multipoint_quality_analysis(struct mpr_args *args) {
+	int retval = 0, frame, zone_idx, abort = 0;
+
+	int nb_zones = get_number_of_zones();
+	if (nb_zones < 1) {
+		fprintf(stderr, "cannot do the multi-point registration if no zone is defined\n");
+		return -1;
+	}
+	WORD **buffer = calloc(nb_zones, sizeof(WORD *));
+
+	for (frame = 0; frame < args->seq->number; frame++) {
+		fits fit = { 0 };
+		if (seq_read_frame(args->seq, frame, &fit)) {
+			abort = 1;
+			continue;
+		}
+		fprintf(stdout, "analysing zones for image %d\n", frame);
+
+		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+			if (abort) continue;
+			stacking_zone *zone = &com.stacking_zones[zone_idx];
+			int side = round_to_int(zone->half_side * 2.0);
+
+			if (!zone->regparam) {
+				zone->regparam = calloc(args->seq->number, sizeof(struct ap_regdata));
+				// TODO: check retval 
+			}
+
+			// copy the zone to a buffer and evaluate quality,
+			// cannot be done in-place
+			if (!buffer[zone_idx]) {
+				/* this is not thread-safe, a buffer is required per thread */
+				buffer[zone_idx] = malloc(side * side * sizeof(WORD));
+			}
+			copy_image_zone_to_buffer(&fit, zone, buffer[zone_idx], args->layer);
+			// TODO: check retval
+
+			zone->regparam[frame].quality =
+				(float)QualityEstimateBuf(buffer[zone_idx], side, side);
+		}
+
+		clearfits(&fit);
+	}
+
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+		if (buffer[zone_idx])
+			free(buffer[zone_idx]);
+	}
+
+	return retval;
+}
+
+/*********************** PROCESSING *************************/
 gpointer the_multipoint_processing(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
 	int retval;

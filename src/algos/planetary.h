@@ -8,6 +8,8 @@ struct mpregdata {
 	float x, y;
 };
 
+/* This struct conveys data from the start of the multi-point registration to
+ * the end of the stacking. */
 struct mpr_args {
 	/* sequence configuration fields */
 	sequence *seq;
@@ -35,6 +37,7 @@ const fits *get_refimage();
 const char *get_refimage_filename();
 void update_refimage_on_layer_change(sequence *seq, int layer);
 
+gpointer the_multipoint_analysis(gpointer ptr);
 gpointer the_multipoint_processing(gpointer ptr);
 
 int point_is_inside_zone(int px, int py, stacking_zone *zone);
