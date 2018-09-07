@@ -53,6 +53,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"	// clear_stars_list
 #include "gui/image_display.h"
+#include "gui/planetary_callbacks.h"
 #include "algos/PSF.h"
 #include "algos/quality.h"
 #include "algos/statistics.h"
@@ -1121,9 +1122,16 @@ void close_sequence(int loading_another) {
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
 		free_sequence(&com.seq, FALSE);
+		initialize_sequence(&com.seq, FALSE);
 		if (!com.script)
 			clear_stars_list();
-		initialize_sequence(&com.seq, FALSE);
+
+		if (com.stacking_zones)
+			com.stacking_zones[0].centre.x = -1.0; 
+		com.stacking_zone_focus = -1;
+		if (com.siril_mode == MODE_PLANETARY)
+			update_zones_list();
+
 		if (!loading_another && !com.script) {
 			// unselect the sequence in the sequence list
 			GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));

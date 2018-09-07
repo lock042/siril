@@ -130,6 +130,7 @@ void update_zones_list() {
 	}
 	if (i > previous_selection)
 		gtk_combo_box_set_active(combo, previous_selection);
+	else 	gtk_combo_box_set_active(combo, 0);	// global
 }
 
 /* add a stacking zone centred around x,y with the given half side */
@@ -428,7 +429,7 @@ void on_selectedzonecombo_changed(GtkComboBox *widget, gpointer user_data) {
 
 	if (zone_id < 0) return;
 	if (zone_id == 0) {
-		// TODO: show global graph
+		drawPlot();
 		return;
 	}
 
@@ -440,7 +441,7 @@ void on_selectedzonecombo_changed(GtkComboBox *widget, gpointer user_data) {
 			com.stacking_zone_focus = i-1;
 			redraw(com.cvport, REMAP_NONE);		// show the new selected zone
 			//fprintf(stdout, "setting focus to zone %d\n", i);
-			// TODO: show graph for the zone i-1
+			drawPlot();
 		}
 	}
 }

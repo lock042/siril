@@ -492,7 +492,8 @@ struct gradient_struct {
 };
 
 struct ap_regdata {
-	float x, y, quality;
+	float x, y;
+	double quality;
 };
 
 struct stacking_zone_struct {

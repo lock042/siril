@@ -86,7 +86,7 @@
  * make a background thread that precomputes FFTW wisdom, it's too slow for big zones
  * restrict zone size (see FFTW comment below) to some values
  * restrict zones inside the image
- * allow the sequence list to be ellipsized because it can be huge
+ * allow the sequence list to be ellipsized because it can be huge -> feature not found!
  * displays 'No sequence selected' when selecting a sequence that has no global regdata
  */
 
@@ -299,9 +299,11 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 		return -1;
 	}
 	WORD **buffer = calloc(nb_zones, sizeof(WORD *));
+	double *max = calloc(nb_zones, sizeof(double));
 
 	for (frame = 0; frame < args->seq->number; frame++) {
 		fits fit = { 0 };
+		if (abort) continue;
 		if (seq_read_frame(args->seq, frame, &fit)) {
 			abort = 1;
 			continue;
@@ -309,35 +311,52 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 		fprintf(stdout, "analysing zones for image %d\n", frame);
 
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
-			if (abort) continue;
 			stacking_zone *zone = &com.stacking_zones[zone_idx];
 			int side = round_to_int(zone->half_side * 2.0);
 
 			if (!zone->regparam) {
 				zone->regparam = calloc(args->seq->number, sizeof(struct ap_regdata));
-				// TODO: check retval 
+				if (!zone->regparam) {
+					abort = 1;
+					break;
+				}
 			}
 
 			// copy the zone to a buffer and evaluate quality,
 			// cannot be done in-place
 			if (!buffer[zone_idx]) {
-				/* this is not thread-safe, a buffer is required per thread */
+				/* this is not thread-safe, a buffer is required per thread, it
+				 * can be done with a single allocation with round-robin
+				 * distribution of zones across threads */
 				buffer[zone_idx] = malloc(side * side * sizeof(WORD));
 			}
-			copy_image_zone_to_buffer(&fit, zone, buffer[zone_idx], args->layer);
-			// TODO: check retval
 
-			zone->regparam[frame].quality =
-				(float)QualityEstimateBuf(buffer[zone_idx], side, side);
+			if (!copy_image_zone_to_buffer(&fit, zone, buffer[zone_idx], args->layer)) {
+				zone->regparam[frame].quality =
+					QualityEstimateBuf(buffer[zone_idx], side, side);
+				if (max[zone_idx] < zone->regparam[frame].quality)
+					max[zone_idx] = zone->regparam[frame].quality;
+			}
 		}
 
 		clearfits(&fit);
+		set_progress_bar_data(NULL, frame/(double)args->seq->number);
 	}
+
+	// normalization
+	for (frame = 0; frame < args->seq->number; frame++) {
+		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+			stacking_zone *zone = &com.stacking_zones[zone_idx];
+			zone->regparam[frame].quality /= max[zone_idx];
+		}
+	}	
 
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 		if (buffer[zone_idx])
 			free(buffer[zone_idx]);
 	}
+	free(buffer);
+	free(max);
 
 	return retval;
 }

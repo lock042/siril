@@ -87,7 +87,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl)
 			continue;
-		plot->data[j].x = (double) i;
+		plot->data[j].x = (double)i;
 		plot->data[j].y = is_fwhm ?	seq->regparam[layer][i].fwhm :
 						seq->regparam[layer][i].quality;
 		j++;
@@ -99,6 +99,14 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			seq->regparam[layer][ref_image].fwhm :
 			seq->regparam[layer][ref_image].quality;
 
+}
+
+static void build_planetary_zone_dataset(sequence *seq, stacking_zone *zone, pldata *plot) {
+	int i;
+	for (i = 0; i < seq->number; i++) {
+		plot->data[i].x = (double)i;
+		plot->data[i].y = zone->regparam[i].quality;
+	}
 }
 
 static const uint64_t epochTicks = 621355968000000000UL;
@@ -549,6 +557,13 @@ void drawPlot() {
 
 			build_photometry_dataset(seq, i, seq->number, ref_image, plot);
 			qsort(plot->data, plot->nb, sizeof(struct kpair), compare);
+		}
+	} else if (com.stacking_zone_focus >= 0) {
+		// planetary data per zone display
+		stacking_zone *zone = &com.stacking_zones[com.stacking_zone_focus];
+		if (zone && zone->regparam) {
+			plot_data = alloc_plot_data(seq->number);
+			build_planetary_zone_dataset(seq, zone, plot_data);
 		}
 	} else {
 		// registration data display
