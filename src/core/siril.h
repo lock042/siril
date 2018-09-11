@@ -500,7 +500,7 @@ struct stacking_zone_struct {
 	point centre;
 	double half_side;
 	// a struct for each image, NULL if not yet evaluated
-	struct ap_regdata *regparam;
+	struct ap_regdata *mpregparam;
 };
 
 struct historic_struct {

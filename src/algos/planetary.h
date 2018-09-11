@@ -4,10 +4,6 @@
 #include "core/siril.h"
 #include "core/processing.h"
 
-struct mpregdata {
-	float x, y;
-};
-
 /* This struct conveys data from the start of the multi-point registration to
  * the end of the stacking. */
 struct mpr_args {
@@ -25,10 +21,6 @@ struct mpr_args {
 	
 	char *output_filename;	// the file name for stacking result
 	gboolean output_overwrite;
-
-	/* internal use, set by registration for stacking */
-	struct mpregdata **regdata;// regdata[image][zone]
-	unsigned long *sum[3];	// the new image's channels
 };
 
 char *get_reference_image_name(sequence *seq, int layer);

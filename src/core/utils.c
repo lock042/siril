@@ -60,7 +60,7 @@
 #include <math.h>
 
 #include "core/siril.h"
-#include "core/proto.h"
+#include "core/proto.h"		// defines this file's functions
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "gui/callbacks.h"
@@ -906,6 +906,36 @@ void quicksort_s(WORD *a, int n) {
 	}
 	quicksort_s(a, r - a + 1);
 	quicksort_s(l, a + n - l);
+}
+
+struct sort_elem { int idx; double val; };
+
+static int cmp_elems(const void *p1, const void *p2) {
+	struct sort_elem *elem1 = (struct sort_elem *)p1;
+	struct sort_elem *elem2 = (struct sort_elem *)p2;
+
+	if (elem1->val > elem2->val) return -1;
+	if (elem1->val < elem2->val) return 1;
+	return 0;
+}
+
+/* this sorts frames from best to worst and returns an array with their indices */
+int *apregdata_best(struct ap_regdata *input, int size) {
+	int i;
+	struct sort_elem *data = malloc(sizeof(struct sort_elem) * size);
+	int *output = malloc(sizeof(int) * size);
+
+	for (i=0; i<size; i++) {
+		data[i].idx = i;
+		data[i].val = input[i].quality;
+	}
+	qsort(data, size, sizeof(struct sort_elem), cmp_elems);
+
+	for (i=0; i<size; i++)
+		output[i] = data[i].idx;
+
+	free(data);
+	return output;
 }
 
 /**

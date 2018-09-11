@@ -129,13 +129,16 @@ static int the_multipoint_quality_analysis(struct mpr_args *args);
 static int the_multipoint_ecc_registration(struct mpr_args *args);
 static int the_multipoint_dft_registration(struct mpr_args *args);
 
-static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args);
+static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args);
+static int the_local_multipoint_sum_stacking(struct mpr_args *args);
 
 static int get_number_of_zones();
 static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_complex *dest,
 		int layer);
 static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer);
-static void compute_zones_confidence(struct mpregdata *regparam, int nb_zones);
+static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
+		unsigned long *sum[3], int *count[3]);
+static BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images);
 
 /* First step: running the global registration and building the reference image */
 void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
@@ -314,9 +317,10 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 			stacking_zone *zone = &com.stacking_zones[zone_idx];
 			int side = round_to_int(zone->half_side * 2.0);
 
-			if (!zone->regparam) {
-				zone->regparam = calloc(args->seq->number, sizeof(struct ap_regdata));
-				if (!zone->regparam) {
+			if (!zone->mpregparam) {
+				zone->mpregparam = calloc(args->seq->number, sizeof(struct ap_regdata));
+				if (!zone->mpregparam) {
+					fprintf(stderr, "memory allocation failed\n");
 					abort = 1;
 					break;
 				}
@@ -332,10 +336,10 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 			}
 
 			if (!copy_image_zone_to_buffer(&fit, zone, buffer[zone_idx], args->layer)) {
-				zone->regparam[frame].quality =
+				zone->mpregparam[frame].quality =
 					QualityEstimateBuf(buffer[zone_idx], side, side);
-				if (max[zone_idx] < zone->regparam[frame].quality)
-					max[zone_idx] = zone->regparam[frame].quality;
+				if (max[zone_idx] < zone->mpregparam[frame].quality)
+					max[zone_idx] = zone->mpregparam[frame].quality;
 			}
 		}
 
@@ -347,7 +351,7 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 	for (frame = 0; frame < args->seq->number; frame++) {
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 			stacking_zone *zone = &com.stacking_zones[zone_idx];
-			zone->regparam[frame].quality /= max[zone_idx];
+			zone->mpregparam[frame].quality /= max[zone_idx];
 		}
 	}	
 
@@ -365,22 +369,36 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 gpointer the_multipoint_processing(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
 	int retval;
+	if (!com.stacking_zones || com.stacking_zones[0].centre.x == -1.0) {
+		siril_log_message("Place some zones on the image before starting the processing\n");
+		return GINT_TO_POINTER(-1);
+	}
+	/* make sure the zones analysis has been done above */
+	if (!com.stacking_zones[0].mpregparam ||
+			com.stacking_zones[0].mpregparam[0].quality < 0.0 ||
+			com.stacking_zones[0].mpregparam[0].quality > 1.0) {
+		// TODO: do this in the registration instead to improve performance
+		retval = the_multipoint_quality_analysis(args);
+		if (retval) return GINT_TO_POINTER(retval);
+	}
+
 	/* multi-point registration: compute the local shifts */
 	retval = the_multipoint_dft_registration(args);
 	//retval = the_multipoint_ecc_registration(args);
-	if (!retval) {
-		/* multi-point stacking: stack with local shifts */
-		retval = the_multipoint_barycentric_sum_stacking(args);
+	if (retval) return GINT_TO_POINTER(retval);
 
-		/* registering the generic stacking idle with the required args */
-		struct stacking_args *stackargs = malloc(sizeof(struct stacking_args));;
-		stackargs->retval = retval;
-		stackargs->output_filename = args->output_filename;
-		stackargs->output_overwrite = args->output_overwrite;
-		stackargs->seq = args->seq;
-		// TODO: nb_images_to_stack for summary output
-		siril_add_idle(end_stacking, stackargs);
-	}
+	/* multi-point stacking: stack with local shifts */
+	retval = the_local_multipoint_sum_stacking(args);
+
+	/* registering the generic stacking idle with the required args */
+	struct stacking_args *stackargs = malloc(sizeof(struct stacking_args));;
+	stackargs->retval = retval;
+	stackargs->output_filename = args->output_filename;
+	stackargs->output_overwrite = args->output_overwrite;
+	stackargs->seq = args->seq;
+	// TODO: nb_images_to_stack for summary output
+	siril_add_idle(end_stacking, stackargs);
+
 	return GINT_TO_POINTER(retval);
 }
 
@@ -395,12 +413,6 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 	nb_zones = get_number_of_zones();
 	if (nb_zones < 1) {
 		fprintf(stderr, "cannot do the multi-point registration if no zone is defined\n");
-		return -1;
-	}
-
-	args->regdata = malloc(args->seq->number * sizeof(struct mpregdata*));
-	if (!args->regdata) {
-		fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
 		return -1;
 	}
 
@@ -432,14 +444,6 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 			continue;
 		}
 		fprintf(stdout, "aligning zones for image %d\n", frame);
-
-		args->regdata[frame] = malloc(nb_zones * sizeof(struct mpregdata));
-		if (!args->regdata[frame]) {
-			fprintf(stderr, "Stacking: memory allocation failure for registration data per frame\n");
-			abort = 1;
-			clearfits(&fit);
-			continue;
-		}
 
 		/* reading zones in the reference image */
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
@@ -476,11 +480,11 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 						buffer, side, side, &reg_param)) {
 				siril_log_message(_("Cannot perform ECC alignment for frame %d\n"), frame);
 			} else {
-				args->regdata[frame][zone_idx].x = -reg_param.dx - regparam[frame].shiftx;
-				args->regdata[frame][zone_idx].y = -reg_param.dy + regparam[frame].shifty;
+				zone->mpregparam[frame].x = -reg_param.dx - regparam[frame].shiftx;
+				zone->mpregparam[frame].y = -reg_param.dy + regparam[frame].shifty;
 				fprintf(stdout, "frame %d, zone %d shifts: %f,%f\n", frame, zone_idx,
-						args->regdata[frame][zone_idx].x,
-						args->regdata[frame][zone_idx].y);
+						zone->mpregparam[frame].x,
+						zone->mpregparam[frame].y);
 			}
 			free(buffer);
 		}
@@ -571,12 +575,6 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 	fftw_complex **zones = calloc(nb_zones, sizeof(fftw_complex*));
 	fftw_complex **out2 = calloc(nb_zones, sizeof(fftw_complex*));
 	fftw_complex **convol2 = calloc(nb_zones, sizeof(fftw_complex*));
-	args->regdata = malloc(args->seq->number * sizeof(struct mpregdata*));
-	if (!args->regdata) {
-		fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
-		retval = -1;
-		goto cleaning_all;
-	}
 
 	/* for each image, we read the zones with global shift and register them */
 	/* for sequences that require demosaicing, seq_read_frame is usually the longest
@@ -597,14 +595,6 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 			continue;
 		}
 		fprintf(stdout, "aligning zones for image %d\n", frame);
-
-		args->regdata[frame] = malloc(nb_zones * sizeof(struct mpregdata));
-		if (!args->regdata[frame]) {
-			fprintf(stderr, "Stacking: memory allocation failure for registration data per frame\n");
-			abort = 1;
-			clearfits(&fit);
-			continue;
-		}
 
 		/* reading zones in the reference image */
 #ifdef _OPENMP
@@ -660,12 +650,11 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 
 			/* shitfs for this image and this zone is (shiftx, shifty) + the global shifts */
 			fprintf(stdout, "frame %d, zone %d adjustment shifts: %d,%d\n", frame, zone_idx, shiftx, shifty);
-			args->regdata[frame][zone_idx].x = (double)shiftx - regparam[frame].shiftx;
-			args->regdata[frame][zone_idx].y = (double)shifty + regparam[frame].shifty;
+			zone->mpregparam[frame].x = (double)shiftx - regparam[frame].shiftx;
+			zone->mpregparam[frame].y = (double)shifty + regparam[frame].shifty;
 		}
 
 		clearfits(&fit);
-		//compute_zones_confidence(args->regdata[frame], nb_zones);
 
 		// TODO: this will require a fix similar to what's done in the generic
 		// function, especially if it's executed in parallel
@@ -707,7 +696,7 @@ static void check_closest_list(struct weighted_AP *list_for_this_point,
 /* this function is a stacking sum that takes shifts from the multipoint registration
  * instead of taking them from the global registration. If it works well, it will have to
  * be exploded as a generic processing function. */
-static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
+static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 	int frame, zone_idx, nb_zones, abort = 0;
 	regdata *regparam = args->seq->regparam[args->layer];
 	struct weighted_AP *closest_zones_map;	// list of nb_closest_AP AP (fixed) for each pixel
@@ -748,17 +737,19 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 
 	// init stacking data (copied from sum_stacking_prepare_hook)
 	unsigned int nbdata = args->seq->ry * args->seq->rx;
-	args->sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
-	if (!args->sum[0]){
+	unsigned long *sum[3];	// the new image's channels
+	int *count[3];	// the new image's contributions count
+	sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
+	if (!sum[0]){
 		fprintf(stderr, "Stacking: memory allocation failure\n");
 		return -1;
 	}
 	if(args->seq->nb_layers == 3){
-		args->sum[1] = args->sum[0] + nbdata;	// index of green layer in sum[0]
-		args->sum[2] = args->sum[0] + nbdata*2;	// index of blue layer in sum[0]
+		sum[1] = sum[0] + nbdata;	// index of green layer in sum[0]
+		sum[2] = sum[0] + nbdata*2;	// index of blue layer in sum[0]
 	} else {
-		args->sum[1] = NULL;
-		args->sum[2] = NULL;
+		sum[1] = NULL;
+		sum[2] = NULL;
 	}
 
 	for (frame = 0; frame < args->seq->number; frame++) {
@@ -788,6 +779,9 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 
 				for (i = 0; i < args->nb_closest_AP; i++) {
 					double this_weight;
+					int zone_index = list_for_this_AP[i].zone_index;
+					struct ap_regdata *regparam_zone_image = 
+						&com.stacking_zones[zone_index].mpregparam[frame];
 					if (list_for_this_AP[i].distance < 0.0)
 						continue;
 					if (list_for_this_AP[i].distance <= 1.0)
@@ -795,8 +789,8 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 					else this_weight = args->max_distance / list_for_this_AP[i].distance;
 
 					weight += this_weight;
-					sumx += args->regdata[frame][list_for_this_AP[i].zone_index].x * this_weight;
-					sumy += args->regdata[frame][list_for_this_AP[i].zone_index].y * this_weight;
+					sumx += regparam_zone_image->x * this_weight;
+					sumy += regparam_zone_image->y * this_weight;
 				}
 				// if zones are too far away, which will happen for pixels
 				// away from the planet, just take the global shift
@@ -819,7 +813,7 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-						args->sum[layer][pixel] += fit.pdata[layer][ii];
+						sum[layer][pixel] += fit.pdata[layer][ii];
 					}
 				}
 				++pixel;
@@ -844,8 +838,8 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 #pragma omp parallel for reduction(max:max)
 #endif
 		for (i=0; i < nbdata; ++i)
-			if (args->sum[0][i] > max)
-				max = args->sum[0][i];
+			if (sum[0][i] > max)
+				max = sum[0][i];
 
 		clearfits(&gfit);
 		fits *fit = &gfit;
@@ -859,7 +853,7 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 
 		nbdata = args->seq->ry * args->seq->rx;
 		for (layer=0; layer<args->seq->nb_layers; ++layer){
-			unsigned long* from = args->sum[layer];
+			unsigned long* from = sum[layer];
 			WORD *to = gfit.pdata[layer];
 			for (i=0; i < nbdata; ++i) {
 				if (ratio == 1.0)
@@ -869,10 +863,147 @@ static int the_multipoint_barycentric_sum_stacking(struct mpr_args *args) {
 		}
 	}
 
-	free(args->sum[0]);
+	free(sum[0]);
 
 	return 0;
 }
+
+/* this function is a stacking sum that takes shifts from the multipoint registration instead
+ * of taking them from the global registration.  Additionally, it takes only parts of images
+ * defined as best for a zone instead of taking the best global images for the seuqence.
+ * If it works well, it will have to be exploded as a generic processing function. */
+static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
+	int frame, zone_idx, nb_zones, nb_images, abort = 0;
+	regdata *regparam = args->seq->regparam[args->layer];
+	struct weighted_AP *closest_zones_map;	// list of nb_closest_AP AP (fixed) for each pixel
+
+	nb_zones = get_number_of_zones();
+	nb_images = round_to_int((double)args->seq->number * args->filtering_parameter);
+	// TODO ^ filtering parameter has to be the ratio of images to be stacked, not a
+	// quality value
+	
+	/* 1. sort images indices from the list of best quality for zones *
+	 * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
+	 * image for the concerned zone. To speed up the look-up, we create an index here.
+	 * */
+	BYTE **best_zones = malloc(nb_zones * sizeof(BYTE *));
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+		best_zones[zone_idx] = sort_zones_quality(zone_idx, nb_images, args->seq->number);
+	}
+
+	/* 2. allocate stacking data *
+	 * A sum and a contribution map (number of pixel added for each sum)
+	 */
+	unsigned int nbdata = args->seq->ry * args->seq->rx;
+	unsigned long *sum[3];	// the new image's channels
+	int *count[3];	// the new image's contributions count
+	sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
+	count[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
+	if (!sum[0] || !count[0]){
+		fprintf(stderr, "Stacking: memory allocation failure\n");
+		return -1;
+	}
+	if(args->seq->nb_layers == 3){
+		sum[1] = sum[0] + nbdata;	// index of green layer in sum[0]
+		sum[2] = sum[0] + nbdata*2;	// index of blue layer in sum[0]
+		count[1] = count[0] + nbdata;
+		count[2] = count[0] + nbdata*2;
+	} else {
+		sum[1] = NULL;
+		sum[2] = NULL;
+		count[1] = NULL;
+		count[2] = NULL;
+	}
+
+	for (frame = 0; frame < args->seq->number; frame++) {
+		fits fit = { 0 };
+		int zone_idx = 0;
+		if (abort) continue;
+
+		while (!best_zones[zone_idx++][frame] && zone_idx < nb_zones);
+		if (zone_idx == nb_zones) {
+			fprintf(stdout, "frame %d had only bad zones, skipping\n", frame);
+			continue;
+		}
+
+		if (seq_read_frame(args->seq, frame, &fit)) {
+			abort = 1;
+			continue;
+		}
+		fprintf(stdout, "reading best zones for image %d\n", frame);
+
+		/* 3. extract best zones and stack them *
+		 * From each image we add the pixels of the best zones to the sum and keep track
+		 * of how many times we add each pixel to keep track of the average
+		 */
+		zone_idx = 0;
+		while (zone_idx < nb_zones) {
+			if (best_zones[zone_idx][frame]) {
+				stacking_zone *zone = &com.stacking_zones[zone_idx];
+				add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
+				/* TODO someday: instead of copying data like this, create
+				 * a mask from the zones, process the mask to unsharpen it
+				 * and make it follow the path of the turbulence, and then
+				 * use the mask to copy the data. */
+			}
+			zone_idx++;
+		}
+
+		clearfits(&fit);
+		// this progress is not as bad as usual, but could be improved by counting
+		// the number of zones instead of the number of images
+		set_progress_bar_data(NULL, frame/(double)args->seq->number);
+	}
+
+	fprintf(stdout, "multipoint stacking ended, creating final image\n");
+
+	/* 4. compute averages for the zones and merge with the reference image for areas
+	 * outside zones, store the result in gfit.
+	 */
+	if (!abort) {
+		int i, minzones = nb_images / 3 + 1;	// at least 1
+		nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
+		double *buf = malloc(nbdata * sizeof(double));
+		for (i = 0; i < nbdata; i++) {
+			if (count[0][i] > minzones)
+				buf[i] = (double)sum[0][i] / (double)count[0][i];
+			else if (count[0][i] > 0)
+				buf[i] = ((double)refimage.data[i] +
+						(double)sum[0][i] / (double)count[0][i]) / 2.0;
+			else buf[i] = (double)refimage.data[i];
+		}
+
+		// find the max
+		double max = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(max:max)
+#endif
+		for (i=0; i < nbdata; ++i)
+			if (buf[i] > max)
+				max = buf[i];
+
+		// make a copy of the reference image to gfit to initialize it
+		clearfits(&gfit);
+		fits *fit = &gfit;
+		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers))
+			return -1;
+		gfit.hi = round_to_WORD(max);
+
+		double ratio = 1.0;
+		if (max > USHRT_MAX_DOUBLE)
+			ratio = USHRT_MAX_DOUBLE / (double)max;
+
+		for (i = 0; i < nbdata; i++)
+			fit->data[i] = round_to_WORD(buf[i] * ratio);
+		free(buf);
+	}
+
+	free(sum[0]);
+	free(count[0]);
+
+	return 0;
+}
+
 
 static int get_number_of_zones() {
 	int i = 0;
@@ -932,6 +1063,37 @@ static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD 
 		from += stridefrom;
 	}
 	return 0;
+}
+
+static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
+		unsigned long *sum[3], int *count[3]) {
+	int layer;
+	int side = round_to_int(zone->half_side * 2.0);
+	// start coordinates on the displayed image, but images are read upside-down
+	int startx = round_to_int(zone->centre.x - zone->half_side) + zone->mpregparam[frame].x;
+	int starty = round_to_int(zone->centre.y - zone->half_side) + zone->mpregparam[frame].y;
+
+	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
+		/* this zone is partly outside the image, I don't think there's
+		 * much we can do for it, it just has to be ignored for this
+		 * image for the stacking. */
+		return;
+	}
+
+	for (layer = 0; layer < fit->naxes[2]; layer++) {
+		WORD *from = fit->pdata[layer];
+		unsigned long *to = sum[layer];
+		int stridefrom = fit->rx - side;
+		int x, y, i = (fit->ry - starty - side - 1) * fit->rx + startx;
+
+		for (x = 0; x < side; ++x) {
+			for (y = 0; y < side; ++y) {
+				to[i] += from[i];
+				count[i]++;
+			}
+			i += stridefrom;
+		}
+	}
 }
 
 int point_is_inside_zone(int px, int py, stacking_zone *zone) {
@@ -1004,3 +1166,22 @@ static void filter_closest_list_owned(struct weighted_AP *list_for_this_point,
 	}
 }
 #endif
+
+/* 1. sort images indices from the list of best quality for zones *
+ * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
+ * image for the concerned zone. To speed up the look-up, we create an index here.
+ * */
+BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images) {
+	int i;
+	BYTE *index = malloc(nb_seq_images);
+	// finding the nth element of an unsorted set: sort it, it's easier
+	int *indices = apregdata_best(com.stacking_zones[zone_idx].mpregparam, nb_seq_images);
+
+	// output: index with ones if image is among the best
+	for (i = 0; i < nb_seq_images; i++)
+		index[indices[i]] = i < nb_best;
+
+	free(indices);
+	return index;
+}
+

@@ -105,7 +105,7 @@ static void build_planetary_zone_dataset(sequence *seq, stacking_zone *zone, pld
 	int i;
 	for (i = 0; i < seq->number; i++) {
 		plot->data[i].x = (double)i;
-		plot->data[i].y = zone->regparam[i].quality;
+		plot->data[i].y = zone->mpregparam[i].quality;
 	}
 }
 
@@ -561,7 +561,7 @@ void drawPlot() {
 	} else if (com.stacking_zone_focus >= 0) {
 		// planetary data per zone display
 		stacking_zone *zone = &com.stacking_zones[com.stacking_zone_focus];
-		if (zone && zone->regparam) {
+		if (zone && zone->mpregparam) {
 			plot_data = alloc_plot_data(seq->number);
 			build_planetary_zone_dataset(seq, zone, plot_data);
 		}

@@ -139,6 +139,7 @@ void add_stacking_zone(double x, double y, double half_side) {
 		com.stacking_zones_size = 40;
 		com.stacking_zones = malloc(com.stacking_zones_size * sizeof(stacking_zone));
 		com.stacking_zones[0].centre.x = -1.0; 
+		com.stacking_zones[0].mpregparam = NULL;
 	}
 
 	int i = 0;
@@ -154,10 +155,11 @@ void add_stacking_zone(double x, double y, double half_side) {
 	zone->centre.x = x;
 	zone->centre.y = y;
 	zone->half_side = half_side;
-	zone->regparam = NULL;
+	zone->mpregparam = NULL;
 	fprintf(stdout, "Added stacking zone %d at %4g,%4g. Half side: %g\n", i, x, y, half_side);
 
 	com.stacking_zones[i+1].centre.x = -1.0; 
+	com.stacking_zones[i+1].mpregparam = NULL;
 
 	activate_mpp_processing_button();
 }
@@ -203,9 +205,9 @@ void planetary_click_in_image(double x, double y) {
 			}
 
 			if (closest_zone != -1) {
-				if (com.stacking_zones[closest_zone].regparam) {
-					free(com.stacking_zones[closest_zone].regparam);
-					com.stacking_zones[closest_zone].regparam = NULL;
+				if (com.stacking_zones[closest_zone].mpregparam) {
+					free(com.stacking_zones[closest_zone].mpregparam);
+					com.stacking_zones[closest_zone].mpregparam = NULL;
 				}
 				// replace by last zone
 				memcpy(&com.stacking_zones[closest_zone],
