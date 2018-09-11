@@ -301,6 +301,8 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 		fprintf(stderr, "cannot do the multi-point registration if no zone is defined\n");
 		return -1;
 	}
+	regdata *regparam = args->seq->regparam[args->layer];
+	if (!regparam) return -1;
 	WORD **buffer = calloc(nb_zones, sizeof(WORD *));
 	double *max = calloc(nb_zones, sizeof(double));
 
@@ -315,6 +317,10 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 			stacking_zone *zone = &com.stacking_zones[zone_idx];
+			stacking_zone shifted_zone = { .centre =
+				{ .x = zone->centre.x - regparam[frame].shiftx,
+					.y = zone->centre.y + regparam[frame].shifty },
+				.half_side = zone->half_side };
 			int side = round_to_int(zone->half_side * 2.0);
 
 			if (!zone->mpregparam) {
@@ -335,7 +341,8 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 				buffer[zone_idx] = malloc(side * side * sizeof(WORD));
 			}
 
-			if (!copy_image_zone_to_buffer(&fit, zone, buffer[zone_idx], args->layer)) {
+			if (!copy_image_zone_to_buffer(&fit, &shifted_zone,
+						buffer[zone_idx], args->layer)) {
 				zone->mpregparam[frame].quality =
 					QualityEstimateBuf(buffer[zone_idx], side, side);
 				if (max[zone_idx] < zone->mpregparam[frame].quality)
@@ -586,9 +593,10 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 		fits fit = { 0 };
 		int i;
 		if (abort) continue;
-		if (!args->filtering_criterion(args->seq, args->layer,
+		/* this filtering is required for global mode, not for local */
+		/*if (!args->filtering_criterion(args->seq, args->layer,
 					frame, args->filtering_parameter) || abort)
-			continue;
+			continue;*/
 
 		if (seq_read_frame(args->seq, frame, &fit)) {
 			abort = 1;
@@ -878,9 +886,7 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 	struct weighted_AP *closest_zones_map;	// list of nb_closest_AP AP (fixed) for each pixel
 
 	nb_zones = get_number_of_zones();
-	nb_images = round_to_int((double)args->seq->number * args->filtering_parameter);
-	// TODO ^ filtering parameter has to be the ratio of images to be stacked, not a
-	// quality value
+	nb_images = round_to_int((double)args->seq->number * args->filtering_percent / 100.0);
 	
 	/* 1. sort images indices from the list of best quality for zones *
 	 * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
@@ -955,6 +961,10 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 		set_progress_bar_data(NULL, frame/(double)args->seq->number);
 	}
 
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++)
+		free(best_zones[zone_idx]);
+	free(best_zones);
+
 	fprintf(stdout, "multipoint stacking ended, creating final image\n");
 
 	/* 4. compute averages for the zones and merge with the reference image for areas
@@ -962,16 +972,25 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 	 */
 	if (!abort) {
 		int i, minzones = nb_images / 3 + 1;	// at least 1
+		int from_mpp = 0, from_both = 0, from_ref = 0;
 		nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
 		double *buf = malloc(nbdata * sizeof(double));
 		for (i = 0; i < nbdata; i++) {
-			if (count[0][i] > minzones)
+			if (count[0][i] > minzones) {
 				buf[i] = (double)sum[0][i] / (double)count[0][i];
-			else if (count[0][i] > 0)
+				from_mpp++;
+			} else if (count[0][i] > 0) {
 				buf[i] = ((double)refimage.data[i] +
 						(double)sum[0][i] / (double)count[0][i]) / 2.0;
-			else buf[i] = (double)refimage.data[i];
+				from_both++;
+			} else {
+				buf[i] = (double)refimage.data[i];
+				from_ref++;
+			}
 		}
+		fprintf(stdout, "pixels from best local zones: %d\n", from_mpp);
+		fprintf(stdout, "pixels from best local zones mixed with reference: %d\n", from_both);
+		fprintf(stdout, "pixels from reference image (global): %d\n", from_ref);
 
 		// find the max
 		double max = 0.0;
@@ -1007,6 +1026,8 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 
 static int get_number_of_zones() {
 	int i = 0;
+	if (!com.stacking_zones)
+		return 0;
 	while (com.stacking_zones[i].centre.x >= 0.0) i++;
 	return i;
 }
@@ -1080,6 +1101,7 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 		return;
 	}
 
+	// here might be the bug, to be tested
 	for (layer = 0; layer < fit->naxes[2]; layer++) {
 		WORD *from = fit->pdata[layer];
 		unsigned long *to = sum[layer];
@@ -1167,7 +1189,7 @@ static void filter_closest_list_owned(struct weighted_AP *list_for_this_point,
 }
 #endif
 
-/* 1. sort images indices from the list of best quality for zones *
+/* Sort images indices from the list of best quality for zones *
  * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
  * image for the concerned zone. To speed up the look-up, we create an index here.
  * */

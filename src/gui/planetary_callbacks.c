@@ -39,6 +39,7 @@ static gboolean seqimage_range_mouse_pressed = FALSE;
 static gboolean add_zones_mode = FALSE;
 static gboolean remove_zones_mode = FALSE;
 static double lowest_accepted_quality = 0.0;
+static double percent_images_to_keep = 0.0;
 
 static double get_overlapamout() {
 	double val;
@@ -71,7 +72,8 @@ gboolean on_seqimage_button_release(GtkWidget *widget,
 
 void on_bestimage_changed(GtkRange *range, gpointer user_data) {
 	if (!sequence_is_loaded()) return;
-	lowest_accepted_quality = compute_lowest_accepted_quality(gtk_range_get_value(range));
+	percent_images_to_keep = gtk_range_get_value(range);
+	lowest_accepted_quality = compute_lowest_accepted_quality(percent_images_to_keep);
 	plot_set_filtering_threshold(lowest_accepted_quality);
 }
 
@@ -246,6 +248,7 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	args->layer = gtk_combo_box_get_active(cbbt_layers);
 	args->filtering_criterion = stack_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
+	args->filtering_percent = percent_images_to_keep;
 	args->nb_closest_AP = 5;	// min(this, nb_AP) will be used
 	args->max_distance = 250.0;	// AP farther than this will be ignored
 	//args->own_distance_f = 0.5;	// unused
@@ -432,6 +435,7 @@ void on_selectedzonecombo_changed(GtkComboBox *widget, gpointer user_data) {
 	if (zone_id < 0) return;
 	if (zone_id == 0) {
 		drawPlot();
+		redraw(com.cvport, REMAP_NONE);		// un-highlight prev selected zone
 		return;
 	}
 
