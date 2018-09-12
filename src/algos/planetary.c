@@ -394,7 +394,12 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	//retval = the_multipoint_ecc_registration(args);
 	if (retval) return GINT_TO_POINTER(retval);
 
-	/* multi-point stacking: stack with local shifts */
+	/* reference image stacking: stack global images with local shifts.
+	 * This image is used for areas of the result where there is no zone defined */
+	retval = the_global_multipoint_barycentric_sum_stacking(args);
+	if (retval) return GINT_TO_POINTER(retval);
+
+	/* multi-point stacking: stack zones with local shifts and creates the result in gfit */
 	retval = the_local_multipoint_sum_stacking(args);
 
 	/* registering the generic stacking idle with the required args */
@@ -840,8 +845,8 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
 		/* copying result into gfit, code copied from sum_stacking_finalize_hook() */
 		nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
 		int i, layer;
-		unsigned long max = 0L;	// max value of the image's channels
 		// find the max first
+		unsigned long max = 0L;	// max value of the image's channels
 #ifdef _OPENMP
 #pragma omp parallel for reduction(max:max)
 #endif
@@ -859,15 +864,16 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
 		if (max > USHRT_MAX)
 			ratio = USHRT_MAX_DOUBLE / (double)max;
 
-		nbdata = args->seq->ry * args->seq->rx;
-		for (layer=0; layer<args->seq->nb_layers; ++layer){
-			unsigned long* from = sum[layer];
-			WORD *to = gfit.pdata[layer];
-			for (i=0; i < nbdata; ++i) {
-				if (ratio == 1.0)
-					*to++ = round_to_WORD(*from++);
-				else	*to++ = round_to_WORD((double)(*from++) * ratio);
-			}
+		double norm_ratio = 1.0 / (double)max;
+		args->global_image = malloc(sizeof(double) * nbdata);
+
+		unsigned long* from = sum[0];
+		WORD *to = gfit.data;
+		for (i=0; i < nbdata; ++i) {
+			if (ratio == 1.0)
+				to[i] = round_to_WORD(from[i]);
+			else	to[i] = round_to_WORD((double)(from[i]) * ratio);
+			args->global_image[i] = from[i] * norm_ratio;
 		}
 	}
 
@@ -887,6 +893,7 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 
 	nb_zones = get_number_of_zones();
 	nb_images = round_to_int((double)args->seq->number * args->filtering_percent / 100.0);
+	fprintf(stdout, "keeping %d best images for each zone\n", nb_images);
 	
 	/* 1. sort images indices from the list of best quality for zones *
 	 * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
@@ -974,43 +981,48 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 		int i, minzones = nb_images / 3 + 1;	// at least 1
 		int from_mpp = 0, from_both = 0, from_ref = 0;
 		nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
-		double *buf = malloc(nbdata * sizeof(double));
-		for (i = 0; i < nbdata; i++) {
-			if (count[0][i] > minzones) {
-				buf[i] = (double)sum[0][i] / (double)count[0][i];
-				from_mpp++;
-			} else if (count[0][i] > 0) {
-				buf[i] = ((double)refimage.data[i] +
-						(double)sum[0][i] / (double)count[0][i]) / 2.0;
-				from_both++;
-			} else {
-				buf[i] = (double)refimage.data[i];
-				from_ref++;
-			}
-		}
-		fprintf(stdout, "pixels from best local zones: %d\n", from_mpp);
-		fprintf(stdout, "pixels from best local zones mixed with reference: %d\n", from_both);
-		fprintf(stdout, "pixels from reference image (global): %d\n", from_ref);
 
-		// find the max
-		double max = 0.0;
+		// normalize the sum to the contribution count
+		// find the max to normalize to 0..1
+		double max = 0.0, invmax, *buf = malloc(nbdata * sizeof(double));
 #ifdef _OPENMP
 #pragma omp parallel for reduction(max:max)
 #endif
-		for (i=0; i < nbdata; ++i)
+		for (i = 0; i < nbdata; i++) {
+			buf[i] = (double)sum[0][i] / (double)count[0][i];
 			if (buf[i] > max)
 				max = buf[i];
+		}
+
+		invmax = 1.0 / max;
+		for (i = 0; i < nbdata; i++)
+			buf[i] *= invmax;
+
+		for (i = 0; i < nbdata; i++) {
+			if (count[0][i] > minzones) {
+				// already in buffy
+				from_mpp++;
+			} else if (count[0][i] > 0) {
+				buf[i] = (args->global_image[i] + buf[i]) / 2.0;
+				from_both++;
+			} else {
+				buf[i] = args->global_image[i];
+				from_ref++;
+			}
+		}
+		fprintf(stdout, " pixels from best local zones: %d\n", from_mpp);
+		fprintf(stdout, " pixels from best local zones mixed with reference: %d\n", from_both);
+		fprintf(stdout, " pixels from reference image (global): %d\n", from_ref);
 
 		// make a copy of the reference image to gfit to initialize it
 		clearfits(&gfit);
 		fits *fit = &gfit;
 		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers))
 			return -1;
-		gfit.hi = round_to_WORD(max);
+		gfit.hi = USHRT_MAX;
 
 		double ratio = 1.0;
-		if (max > USHRT_MAX_DOUBLE)
-			ratio = USHRT_MAX_DOUBLE / (double)max;
+		ratio = USHRT_MAX_DOUBLE;
 
 		for (i = 0; i < nbdata; i++)
 			fit->data[i] = round_to_WORD(buf[i] * ratio);
@@ -1019,7 +1031,7 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 
 	free(sum[0]);
 	free(count[0]);
-
+	free(args->global_image);
 	return 0;
 }
 
@@ -1091,8 +1103,8 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 	int layer;
 	int side = round_to_int(zone->half_side * 2.0);
 	// start coordinates on the displayed image, but images are read upside-down
-	int startx = round_to_int(zone->centre.x - zone->half_side) + zone->mpregparam[frame].x;
-	int starty = round_to_int(zone->centre.y - zone->half_side) + zone->mpregparam[frame].y;
+	int startx = round_to_int(zone->centre.x - zone->half_side + zone->mpregparam[frame].x);
+	int starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
 
 	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
 		/* this zone is partly outside the image, I don't think there's
@@ -1101,17 +1113,18 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 		return;
 	}
 
-	// here might be the bug, to be tested
 	for (layer = 0; layer < fit->naxes[2]; layer++) {
 		WORD *from = fit->pdata[layer];
 		unsigned long *to = sum[layer];
 		int stridefrom = fit->rx - side;
 		int x, y, i = (fit->ry - starty - side - 1) * fit->rx + startx;
+		int *lcount = count[layer];
 
 		for (x = 0; x < side; ++x) {
 			for (y = 0; y < side; ++y) {
 				to[i] += from[i];
-				count[i]++;
+				lcount[i]++;
+				i++;
 			}
 			i += stridefrom;
 		}

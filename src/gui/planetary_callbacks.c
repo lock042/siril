@@ -39,7 +39,7 @@ static gboolean seqimage_range_mouse_pressed = FALSE;
 static gboolean add_zones_mode = FALSE;
 static gboolean remove_zones_mode = FALSE;
 static double lowest_accepted_quality = 0.0;
-static double percent_images_to_keep = 0.0;
+static double percent_images_to_keep = 100.0;
 
 static double get_overlapamout() {
 	double val;
@@ -254,6 +254,7 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	//args->own_distance_f = 0.5;	// unused
 	args->output_filename = strdup(gtk_entry_get_text(output_file));
 	args->output_overwrite = gtk_toggle_button_get_active(overwrite);
+	args->global_image = NULL;
 	start_in_new_thread(the_multipoint_processing, args);
 	return FALSE;
 }

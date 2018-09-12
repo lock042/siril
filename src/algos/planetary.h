@@ -22,6 +22,8 @@ struct mpr_args {
 	
 	char *output_filename;	// the file name for stacking result
 	gboolean output_overwrite;
+
+	double *global_image;	// the global image buffer as normalized double
 };
 
 char *get_reference_image_name(sequence *seq, int layer);
