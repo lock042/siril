@@ -70,6 +70,60 @@
  *
  */
 
+/* The currentmpp stacking algorithm explained:
+ * 0. register_cog
+ * registration of all frames with cog
+ * 	evaluates image quality -> seq->regparam[layer][frame].quality
+ * 	evaluates image shift -> seq->regparam[layer][frame].shiftxy
+ * 	selects best frame -> seq->reference_image
+ * - image shifts are given relative to the best image
+ * 
+ * 1. creation of the reference frame used for display and AP placing
+ * (in sequence_analysis_thread_func after the register_cog call)
+ * - sum stacking of the images with quality above 0.75 (variable number of
+ *   images), using regparam shifts computed above, aligned with best image
+ * 	-> image saved in refimage
+ * 
+ * 2. the_multipoint_quality_analysis
+ * evaluates quality of each zone for each image and saves it in mpregparam
+ * zone is taken from zone->centre.x - seq->regparam[layer][frame].shiftx and
+ * zone->centre.y + seq->regparam[layer][frame].shifty
+ * 	quality -> mpregparam[frame].quality, normalized
+ * no registration data computed
+ * 
+ * 3. the_multipoint_dft_registration
+ * aligns each zone with the same zone of the reference image, using the global
+ * registration data as a starting point.
+ * Image zone is taken from zone->centre.x - seq->regparam[layer][frame].shiftx and
+ * zone->centre.y + seq->regparam[layer][frame].shifty
+ * The resulting shifts are added to the regparam shifts and saved like that:
+ * 	zone->mpregparam[frame].x = (double)shiftx - regparam[frame].shiftx;
+ * 	zone->mpregparam[frame].y = (double)shifty + regparam[frame].shifty;
+ * 
+ * 4. the_global_multipoint_barycentric_sum_stacking
+ * takes the best frames as given by the global quality in seq->regparam and
+ * stacks a normalized reference image that takes into account the displacement of
+ * zones with a weighted distance (called barycentric) approach.
+ * The 5 nearest zones are computed for each pixel. Then for each pixel, the shift
+ * for each zone (mpregparam[frame].x) is weighted with the distance of the zone,
+ * giving a shift that follows the context.
+ * Stacked image is built by taking pixels of each image with + shiftx and -
+ * shifty shifts.
+ * 	-> image data is saved in gfit(ushort) and global_image(double)
+ * 
+ * 5. the_local_multipoint_sum_stacking
+ * composes the stacks of the global image created above and of the zone-evaluated
+ * quality created image.
+ * For each zone, the best x% of images are selected. If an image is part of the
+ * best of a zone, its zone is extracted and added to the result. The zone
+ * extraction uses zone->centre.x + mpregparam[frame].x and
+ * zone->centre.y - mpregparam[frame].y.
+ * Result is normalized with the number of contributions per pixel. If the number
+ * 0, the global image is used. If it's lower than a threshold (nb_images / 3 +
+ * 1), it is blended between the global image and the local image stack.
+ * 	-> resulting meerged image is multiplied by 65535 and saved in gfit.
+ */
+
 /* TODO:
  * extra read for zones for the registration, does it make sens DFT-wise?
  *   probably not
@@ -293,6 +347,7 @@ gpointer the_multipoint_analysis(gpointer ptr) {
 	return GINT_TO_POINTER(retval);
 }
 
+/* evaluates quality of each zone for each image and saves it in mpregparam */
 static int the_multipoint_quality_analysis(struct mpr_args *args) {
 	int retval = 0, frame, zone_idx, abort = 0;
 
@@ -570,12 +625,10 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 				stop_timer_elapsed_mus());
 		// the plan creation time should be long only the first time a zone size is used
 
-		copy_image_zone_to_fftw(&refimage, zone, ref[zone_idx],
-				args->layer);
-
+		copy_image_zone_to_fftw(&refimage, zone, ref[zone_idx], args->layer);
 		fftw_execute_dft(fplan[zone_idx], ref[zone_idx], in[zone_idx]);
-
 	}
+
 	// in out and convol can probably be freed here, or even allocated once and reused
 	// for the above loop
 	if (wisdom_file) {
@@ -598,7 +651,7 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 		fits fit = { 0 };
 		int i;
 		if (abort) continue;
-		/* this filtering is required for global mode, not for local */
+		/* TODO: this filtering is required for global mode, not for local */
 		/*if (!args->filtering_criterion(args->seq, args->layer,
 					frame, args->filtering_parameter) || abort)
 			continue;*/
@@ -888,7 +941,6 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
  * If it works well, it will have to be exploded as a generic processing function. */
 static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 	int frame, zone_idx, nb_zones, nb_images, abort = 0;
-	regdata *regparam = args->seq->regparam[args->layer];
 	struct weighted_AP *closest_zones_map;	// list of nb_closest_AP AP (fixed) for each pixel
 
 	nb_zones = get_number_of_zones();
@@ -1104,7 +1156,7 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 	int side = round_to_int(zone->half_side * 2.0);
 	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side + zone->mpregparam[frame].x);
-	int starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
+	int starty = round_to_int(zone->centre.y - zone->half_side - zone->mpregparam[frame].y);
 
 	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
 		/* this zone is partly outside the image, I don't think there's
