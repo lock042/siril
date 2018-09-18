@@ -1155,10 +1155,12 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 	int layer;
 	int side = round_to_int(zone->half_side * 2.0);
 	// start coordinates on the displayed image, but images are read upside-down
-	int startx = round_to_int(zone->centre.x - zone->half_side + zone->mpregparam[frame].x);
-	int starty = round_to_int(zone->centre.y - zone->half_side - zone->mpregparam[frame].y);
+	int src_startx = round_to_int(zone->centre.x - zone->half_side + zone->mpregparam[frame].x);
+	int src_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
+	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
+	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
 
-	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
+	if (src_startx < 0 || src_startx >= fit->rx - side || src_starty < 0 || src_starty >= fit->ry - side) {
 		/* this zone is partly outside the image, I don't think there's
 		 * much we can do for it, it just has to be ignored for this
 		 * image for the stacking. */
@@ -1168,17 +1170,19 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 	for (layer = 0; layer < fit->naxes[2]; layer++) {
 		WORD *from = fit->pdata[layer];
 		unsigned long *to = sum[layer];
-		int stridefrom = fit->rx - side;
-		int x, y, i = (fit->ry - starty - side - 1) * fit->rx + startx;
+		int x, y, stridefrom = fit->rx - side;
+		int i = (fit->ry - src_starty - side - 1) * fit->rx + src_startx;
+		int o = (fit->ry - dst_starty - side - 1) * fit->rx + dst_startx;
 		int *lcount = count[layer];
 
-		for (x = 0; x < side; ++x) {
-			for (y = 0; y < side; ++y) {
-				to[i] += from[i];
-				lcount[i]++;
-				i++;
+		for (y = 0; y < side; ++y) {
+			for (x = 0; x < side; ++x) {
+				to[o] += from[i];
+				lcount[o]++;
+				i++; o++;
 			}
 			i += stridefrom;
+			o += stridefrom;
 		}
 	}
 }
