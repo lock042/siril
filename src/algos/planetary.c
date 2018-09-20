@@ -1150,20 +1150,20 @@ static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD 
 	return 0;
 }
 
+/* copy the zone from an image to the same zone shifted in the stacked image */
 static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
 		unsigned long *sum[3], int *count[3]) {
 	int layer;
 	int side = round_to_int(zone->half_side * 2.0);
-	// start coordinates on the displayed image, but images are read upside-down
-	int src_startx = round_to_int(zone->centre.x - zone->half_side + zone->mpregparam[frame].x);
-	int src_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
-	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
-	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
+	int src_startx = round_to_int(zone->centre.x - zone->half_side);
+	int src_starty = round_to_int(zone->centre.y - zone->half_side);
+	int dst_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
+	int dst_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
 
-	if (src_startx < 0 || src_startx >= fit->rx - side || src_starty < 0 || src_starty >= fit->ry - side) {
-		/* this zone is partly outside the image, I don't think there's
-		 * much we can do for it, it just has to be ignored for this
-		 * image for the stacking. */
+	if (dst_startx < 0 || dst_startx >= fit->rx - side ||
+			dst_starty < 0 || dst_starty >= fit->ry - side) {
+		/* this zone is partly outside the image, we could partially
+		 * read it, but for now we just ignore it for stacking */
 		return;
 	}
 
