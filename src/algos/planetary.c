@@ -502,9 +502,11 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 
 	for (frame = 0; frame < args->seq->number; frame++) {
 		fits fit = { 0 };
-		if (!args->filtering_criterion(args->seq, args->layer,
+		if (abort) continue;
+		/* TODO: this filtering is required for global mode, not for local */
+		/*if (!args->filtering_criterion(args->seq, args->layer,
 					frame, args->filtering_parameter) || abort)
-			continue;
+			continue;*/
 
 		if (seq_read_frame(args->seq, frame, &fit)) {
 			abort = 1;
@@ -515,13 +517,14 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 		/* reading zones in the reference image */
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 			reg_ecc reg_param = { 0 };
+			if (abort) continue;
 			zone = &com.stacking_zones[zone_idx];
 			stacking_zone shifted_zone = { .centre =
 				{ .x = zone->centre.x - regparam[frame].shiftx,
 					.y = zone->centre.y + regparam[frame].shifty },
 				.half_side = zone->half_side };
 			int side = round_to_int(zone->half_side * 2.0);
-			WORD *buffer = malloc(side * side * sizeof(WORD));
+			WORD *buffer = malloc(side * side * sizeof(WORD));	// TODO: prealloc
 			if (!buffer) {
 				fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
 				abort = 1;
@@ -550,8 +553,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 				zone->mpregparam[frame].x = -reg_param.dx - regparam[frame].shiftx;
 				zone->mpregparam[frame].y = -reg_param.dy + regparam[frame].shifty;
 				fprintf(stdout, "frame %d, zone %d shifts: %f,%f\n", frame, zone_idx,
-						zone->mpregparam[frame].x,
-						zone->mpregparam[frame].y);
+						reg_param.dx, reg_param.dy);
 			}
 			free(buffer);
 		}
@@ -716,8 +718,8 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 
 			/* shitfs for this image and this zone is (shiftx, shifty) + the global shifts */
 			fprintf(stdout, "frame %d, zone %d adjustment shifts: %d,%d\n", frame, zone_idx, shiftx, shifty);
-			zone->mpregparam[frame].x = (double)shiftx - regparam[frame].shiftx;
-			zone->mpregparam[frame].y = (double)shifty + regparam[frame].shifty;
+			zone->mpregparam[frame].x = (double)shiftx + regparam[frame].shiftx;
+			zone->mpregparam[frame].y = (double)shifty - regparam[frame].shifty;
 		}
 
 		clearfits(&fit);
@@ -1010,6 +1012,34 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 				 * a mask from the zones, process the mask to unsharpen it
 				 * and make it follow the path of the turbulence, and then
 				 * use the mask to copy the data. */
+#ifdef DEBUG_MPP
+				// to see what's happening with the shifts, use this
+				int side = round_to_int(zone->half_side * 2.0);
+				stacking_zone shifted_zone = { .centre =
+					{ .x = zone->centre.x + zone->mpregparam[frame].x,
+						.y = zone->centre.y - zone->mpregparam[frame].y },
+					.half_side = zone->half_side };
+
+				WORD *buffer = malloc(side * side * sizeof(WORD));	// TODO: prealloc
+				if (!buffer) {
+					fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+					continue;
+				}
+
+				copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
+				if (zone_idx == 0) {
+					char tmpfn[100];	// this is for debug purposes
+					sprintf(tmpfn, "/tmp/zone_%d_image_%d.fit", zone_idx, frame);
+					fits *tmp = NULL;
+					new_fit_image(&tmp, side, side, 1);
+					tmp->data = buffer;
+					tmp->pdata[0] = tmp->data;
+					tmp->pdata[1] = tmp->data;
+					tmp->pdata[2] = tmp->data;
+					savefits(tmpfn, tmp);
+				}
+#endif
+
 			}
 			zone_idx++;
 		}
@@ -1138,14 +1168,14 @@ static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD 
 	}
 
 	WORD *from = fit->pdata[layer] + (fit->ry - starty - side - 1) * fit->rx + startx;
-	int stridefrom = fit->rx - side;
+	int stride = fit->rx - side;
 	int i, j;
 
 	for (i = 0; i < side; ++i) {
 		for (j = 0; j < side; ++j) {
 			*dest++ = *from++;
 		}
-		from += stridefrom;
+		from += stride;
 	}
 	return 0;
 }
@@ -1155,13 +1185,13 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 		unsigned long *sum[3], int *count[3]) {
 	int layer;
 	int side = round_to_int(zone->half_side * 2.0);
-	int src_startx = round_to_int(zone->centre.x - zone->half_side);
-	int src_starty = round_to_int(zone->centre.y - zone->half_side);
-	int dst_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
-	int dst_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
+	int src_startx = round_to_int(zone->centre.x - zone->half_side + zone->mpregparam[frame].x);
+	int src_starty = round_to_int(zone->centre.y - zone->half_side - zone->mpregparam[frame].y);
+	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
+	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
 
-	if (dst_startx < 0 || dst_startx >= fit->rx - side ||
-			dst_starty < 0 || dst_starty >= fit->ry - side) {
+	if (src_startx < 0 || src_startx >= fit->rx - side ||
+			src_starty < 0 || src_starty >= fit->ry - side) {
 		/* this zone is partly outside the image, we could partially
 		 * read it, but for now we just ignore it for stacking */
 		return;
@@ -1170,10 +1200,10 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 	for (layer = 0; layer < fit->naxes[2]; layer++) {
 		WORD *from = fit->pdata[layer];
 		unsigned long *to = sum[layer];
-		int x, y, stridefrom = fit->rx - side;
+		int *lcount = count[layer];
+		int x, y, stride = fit->rx - side;
 		int i = (fit->ry - src_starty - side - 1) * fit->rx + src_startx;
 		int o = (fit->ry - dst_starty - side - 1) * fit->rx + dst_startx;
-		int *lcount = count[layer];
 
 		for (y = 0; y < side; ++y) {
 			for (x = 0; x < side; ++x) {
@@ -1181,8 +1211,8 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 				lcount[o]++;
 				i++; o++;
 			}
-			i += stridefrom;
-			o += stridefrom;
+			i += stride;
+			o += stride;
 		}
 	}
 }

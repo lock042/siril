@@ -560,8 +560,8 @@ int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
 	Mat im(im_rows, im_cols, CV_16UC1, image);
 	Mat warp_matrix(3, 3, CV_32FC1);
 	WARP_MODE warp_mode = WARP_MODE_TRANSLATION;	// for tests
-	int number_of_iterations = 50;
-	double termination_eps = 0.001;
+	int number_of_iterations = 2000;
+	double termination_eps = 0.002;
 	int retvalue = 0;
 
 	setIdentity(warp_matrix);
