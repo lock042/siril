@@ -872,8 +872,8 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
 				//fprintf(stdout, "%d,%d weight is %g\n", x, y, weight);
 
 				// then do the regular sum stacking with shift
-				int nx = round_to_int(x + shiftx);
-				int ny = round_to_int(y - shifty);
+				int nx = round_to_int(x - shiftx);
+				int ny = round_to_int(y + shifty);
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 					int ii = ny * fit.rx + nx;	// index in source image
 					int layer;
@@ -1185,7 +1185,7 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 		unsigned long *sum[3], int *count[3]) {
 	int layer;
 	int side = round_to_int(zone->half_side * 2.0);
-	int src_startx = round_to_int(zone->centre.x - zone->half_side + zone->mpregparam[frame].x);
+	int src_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
 	int src_starty = round_to_int(zone->centre.y - zone->half_side - zone->mpregparam[frame].y);
 	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
 	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
