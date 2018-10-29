@@ -125,6 +125,8 @@
  */
 
 /* TODO:
+ * dismiss failed zones
+ * handle coloured images
  * extra read for zones for the registration, does it make sens DFT-wise?
  *   probably not
  * sub-pixel phase correlation is possible and explained in the method section here
@@ -163,14 +165,17 @@
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "gui/progress_and_log.h"
 #include "gui/planetary_callbacks.h"
 #include "gui/callbacks.h"
 #include "gui/plot.h"
+#include "opencv/opencv.h"
 #include "opencv/ecc/ecc.h"
 
 #define FFTW_WISDOM_FILE "fftw_wisdom"
 #define DEBUG_MPP
+//#define USE_SEQUENCE_REF_IMAGE
 
 static fits refimage;
 static char *refimage_filename;
@@ -192,7 +197,13 @@ static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_co
 static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer);
 static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
 		unsigned long *sum[3], int *count[3]);
+static void add_buf_zone_to_stacking_sum(WORD *buf, int layer, const stacking_zone *zone,
+		int frame, unsigned long *sum[3], int *count[3], unsigned int rx, unsigned int ry);
 static BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images);
+
+#if defined DEBUG_MPP || defined DEBUG_MPP1
+static void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size);
+#endif
 
 /* First step: running the global registration and building the reference image */
 void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
@@ -251,8 +262,10 @@ static gpointer sequence_analysis_thread_func(gpointer p) {
 	free(reg_args);
 
 	stack_args->retval = stack_summing_generic(stack_args);
-	if (stack_args->retval)
+	if (stack_args->retval) {
+		free(stack_args);
 		return GINT_TO_POINTER(-1);
+	}
 
 	/* the reference image is now in gfit */
 	copyfits(&gfit, &refimage, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
@@ -443,10 +456,12 @@ gpointer the_multipoint_processing(gpointer ptr) {
 		retval = the_multipoint_quality_analysis(args);
 		if (retval) return GINT_TO_POINTER(retval);
 	}
+	siril_log_message("zones will be stacked using %s\n",
+			args->using_homography ? "homography" : "translation only");
 
 	/* multi-point registration: compute the local shifts */
-	retval = the_multipoint_dft_registration(args);
-	//retval = the_multipoint_ecc_registration(args);
+	//retval = the_multipoint_dft_registration(args);
+	retval = the_multipoint_ecc_registration(args);
 	if (retval) return GINT_TO_POINTER(retval);
 
 	/* reference image stacking: stack global images with local shifts.
@@ -489,6 +504,13 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 		fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
 		return -1;
 	}
+#ifdef USE_SEQUENCE_REF_IMAGE
+	fits reffits = { 0 };
+	if (seq_read_frame(args->seq, args->seq->reference_image, &reffits))
+		return -1;
+	fprintf(stdout, "Using the reference image from sequence (%d) instead "
+			"of the stacked reference\n", args->seq->reference_image);
+#endif
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 		zone = &com.stacking_zones[zone_idx];
 		int side = round_to_int(zone->half_side * 2.0);
@@ -497,8 +519,15 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 			fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
 			return -1;
 		}
+#ifdef USE_SEQUENCE_REF_IMAGE
+		copy_image_zone_to_buffer(&reffits, zone, references[zone_idx], args->layer);
+#else
 		copy_image_zone_to_buffer(&refimage, zone, references[zone_idx], args->layer);
+#endif
 	}
+#ifdef USE_SEQUENCE_REF_IMAGE
+	clearfits(&reffits);
+#endif
 
 	for (frame = 0; frame < args->seq->number; frame++) {
 		fits fit = { 0 };
@@ -508,11 +537,11 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 					frame, args->filtering_parameter) || abort)
 			continue;*/
 
-		if (seq_read_frame(args->seq, frame, &fit)) {
+		if (seq_read_frame(args->seq, frame, &fit) || image_find_minmax(&fit)) {
 			abort = 1;
 			continue;
 		}
-		fprintf(stdout, "aligning zones for image %d\n", frame);
+		fprintf(stdout, "\naligning zones for image %d\n", frame);
 
 		/* reading zones in the reference image */
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
@@ -528,33 +557,52 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 			if (!buffer) {
 				fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
 				abort = 1;
-				clearfits(&fit);
 				continue;
 			}
 
+			// read the zone data to buffer
 			copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
-#ifdef DEBUG_MPP
-			if (zone_idx == 0) {
-				char tmpfn[100];	// this is for debug purposes
-				sprintf(tmpfn, "/tmp/partial_%d.fit", frame);
-				fits *tmp = NULL;
-				new_fit_image(&tmp, side, side, 1);
-				tmp->data = buffer;
-				tmp->pdata[0] = tmp->data;
-				tmp->pdata[1] = tmp->data;
-				tmp->pdata[2] = tmp->data;
-				savefits(tmpfn, tmp);
-			}
+#ifdef DEBUG_MPP1
+			save_buffer_tmp(frame, zone_idx, buffer, side);
 #endif
-			if (findTransformBuf(references[zone_idx], side, side,
-						buffer, side, side, &reg_param)) {
-				siril_log_message(_("Cannot perform ECC alignment for frame %d\n"), frame);
-			} else {
-				zone->mpregparam[frame].x = -reg_param.dx - regparam[frame].shiftx;
-				zone->mpregparam[frame].y = -reg_param.dy + regparam[frame].shifty;
-				fprintf(stdout, "frame %d, zone %d shifts: %f,%f\n", frame, zone_idx,
-						reg_param.dx, reg_param.dy);
+			if (!zone->mpregparam) {
+				zone->mpregparam = calloc(args->seq->number, sizeof(struct ap_regdata));
+				if (!zone->mpregparam) {
+					fprintf(stderr, "memory allocation failed\n");
+					abort = 1;
+					continue;
+				}
 			}
+
+			int regretval; 
+			if (args->using_homography) {
+				if (!zone->mpregparam[frame].transform)
+					zone->mpregparam[frame].transform = malloc(sizeof(Homography));
+				regretval = ecc_find_transform_buf(references[zone_idx], buffer,
+						side, fit.maxi, &reg_param,
+						zone->mpregparam[frame].transform);
+				if (regretval) {
+					free(zone->mpregparam[frame].transform);
+					zone->mpregparam[frame].transform = NULL;
+					// TODO can we use the downsampled results? we need a backup
+				}
+			} else {
+				regretval = ecc_find_translation_buf(references[zone_idx], buffer,
+						side, fit.maxi, &reg_param);
+				if (zone->mpregparam[frame].transform)
+					free(zone->mpregparam[frame].transform);
+				zone->mpregparam[frame].transform = NULL;
+			}
+			if (regretval) {
+				fprintf(stdout, "ECC alignment failed for full def zone %d of frame %d\n", zone_idx, frame);
+			} else {
+				// in ecc registration + sum stacking it's - and -
+				zone->mpregparam[frame].x = reg_param.dx + regparam[frame].shiftx;
+				zone->mpregparam[frame].y = -reg_param.dy + regparam[frame].shifty;
+				fprintf(stdout, "frame %d, zone %d local shifts: %f,%f\n",
+						frame, zone_idx, reg_param.dx, reg_param.dy);
+			}
+
 			free(buffer);
 		}
 		clearfits(&fit);
@@ -610,6 +658,15 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 		if (fftw_import_wisdom_from_filename(wisdom_file))
 			fprintf(stdout, "FFTW wisdom restored\n");
 	}
+
+#ifdef USE_SEQUENCE_REF_IMAGE
+	fits reffits = { 0 };
+	if (seq_read_frame(args->seq, args->seq->reference_image, &reffits))
+		return -1;
+	fprintf(stdout, "Using the reference image from sequence (%d) instead "
+			"of the stacked reference\n", args->seq->reference_image);
+#endif
+
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 		zone = &com.stacking_zones[zone_idx];
 		int side = round_to_int(zone->half_side * 2.0);
@@ -627,9 +684,17 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 				stop_timer_elapsed_mus());
 		// the plan creation time should be long only the first time a zone size is used
 
+#ifdef USE_SEQUENCE_REF_IMAGE
+		copy_image_zone_to_fftw(&reffits, zone, ref[zone_idx], args->layer);
+#else
+		// use the refimage stacked from the best of sequence
 		copy_image_zone_to_fftw(&refimage, zone, ref[zone_idx], args->layer);
+#endif
 		fftw_execute_dft(fplan[zone_idx], ref[zone_idx], in[zone_idx]);
 	}
+#ifdef USE_SEQUENCE_REF_IMAGE
+	clearfits(&reffits);
+#endif
 
 	// in out and convol can probably be freed here, or even allocated once and reused
 	// for the above loop
@@ -1007,38 +1072,53 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 		while (zone_idx < nb_zones) {
 			if (best_zones[zone_idx][frame]) {
 				stacking_zone *zone = &com.stacking_zones[zone_idx];
-				add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
+				// TODO: iterate over channels
+				if (args->using_homography && zone->mpregparam[frame].transform) {
+					// ECC registration with image transformation
+					int side = round_to_int(zone->half_side * 2.0);
+					WORD *buffer = malloc(side * side * sizeof(WORD)); // TODO: prealloc
+					if (!buffer) {
+						fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+						abort = 1;
+						break;
+					}
+
+					// read the zone data to buffer
+					// TODO: add the global registration translation to the transform
+					copy_image_zone_to_buffer(&fit, zone, buffer, args->layer);
+					cvTransformBuf(buffer, side, zone->mpregparam[frame].transform);
+					add_buf_zone_to_stacking_sum(buffer, 0, zone, frame,
+							sum, count, fit.rx, fit.ry);
+#ifdef DEBUG_MPP
+					save_buffer_tmp(frame, zone_idx, buffer, side);
+#endif
+					free(buffer);
+				} else if (!args->using_homography) {
+					// DFT registration or ECC with translation
+					add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
+#ifdef DEBUG_MPP
+					// to see what's happening with the shifts, use this
+					int side = round_to_int(zone->half_side * 2.0);
+					stacking_zone shifted_zone = { .centre =
+						{ .x = zone->centre.x - zone->mpregparam[frame].x,
+							.y = zone->centre.y + zone->mpregparam[frame].y },
+						.half_side = zone->half_side };
+
+					WORD *buffer = malloc(side * side * sizeof(WORD));
+					if (!buffer) {
+						fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+						break;
+					}
+
+					copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
+					save_buffer_tmp(frame, zone_idx, buffer, side);
+					free(buffer);
+#endif
+				}
 				/* TODO someday: instead of copying data like this, create
 				 * a mask from the zones, process the mask to unsharpen it
 				 * and make it follow the path of the turbulence, and then
 				 * use the mask to copy the data. */
-#ifdef DEBUG_MPP
-				// to see what's happening with the shifts, use this
-				int side = round_to_int(zone->half_side * 2.0);
-				stacking_zone shifted_zone = { .centre =
-					{ .x = zone->centre.x + zone->mpregparam[frame].x,
-						.y = zone->centre.y - zone->mpregparam[frame].y },
-					.half_side = zone->half_side };
-
-				WORD *buffer = malloc(side * side * sizeof(WORD));	// TODO: prealloc
-				if (!buffer) {
-					fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
-					continue;
-				}
-
-				copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
-				if (zone_idx == 0) {
-					char tmpfn[100];	// this is for debug purposes
-					sprintf(tmpfn, "/tmp/zone_%d_image_%d.fit", zone_idx, frame);
-					fits *tmp = NULL;
-					new_fit_image(&tmp, side, side, 1);
-					tmp->data = buffer;
-					tmp->pdata[0] = tmp->data;
-					tmp->pdata[1] = tmp->data;
-					tmp->pdata[2] = tmp->data;
-					savefits(tmpfn, tmp);
-				}
-#endif
 
 			}
 			zone_idx++;
@@ -1186,7 +1266,7 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 	int layer;
 	int side = round_to_int(zone->half_side * 2.0);
 	int src_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
-	int src_starty = round_to_int(zone->centre.y - zone->half_side - zone->mpregparam[frame].y);
+	int src_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
 	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
 	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
 
@@ -1214,6 +1294,36 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 			i += stride;
 			o += stride;
 		}
+	}
+}
+
+/* copy a buffer representing an area into the sum of pixels being stacked.
+ * It's done only for one layer. rx and ry are the dimensions of the stacked
+ * image and of sum and count matrices.
+ */
+static void add_buf_zone_to_stacking_sum(WORD *buf, int layer, const stacking_zone *zone,
+		int frame, unsigned long *sum[3], int *count[3], unsigned int rx, unsigned int ry) {
+	int side = round_to_int(zone->half_side * 2.0);
+	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
+	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
+
+	unsigned long *to = sum[layer];
+	int *lcount = count[layer];
+	int x, y, stride = rx- side;
+	int i = 0;
+	int o = (ry - dst_starty - side - 1) * rx + dst_startx;
+
+	for (y = 0; y < side; ++y) {
+		for (x = 0; x < side; ++x) {
+			if (buf[i]) {
+				// TODO: is this a good check for empty pixels?
+				to[o] += buf[i];
+				lcount[o]++;
+			}
+			i++; o++;
+		}
+		i += side;
+		o += stride;
 	}
 }
 
@@ -1306,3 +1416,18 @@ BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images) {
 	return index;
 }
 
+#if defined DEBUG_MPP || defined DEBUG_MPP1
+static void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size) {
+	char tmpfn[100];	// this is for debug purposes
+	sprintf(tmpfn, "/tmp/zone_%d_image_%d.fit", zone_idx, frame_index);
+	fits *tmp = NULL;
+	new_fit_image(&tmp, square_size, square_size, 1);
+	tmp->data = buffer;
+	tmp->pdata[0] = tmp->data;
+	tmp->pdata[1] = tmp->data;
+	tmp->pdata[2] = tmp->data;
+	savefits(tmpfn, tmp);
+	tmp->data = NULL; // don't free the original buffer
+	clearfits(tmp);
+}
+#endif

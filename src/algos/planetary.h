@@ -13,6 +13,7 @@ struct mpr_args {
 	seq_image_filter filtering_criterion;
 	double filtering_parameter;	// the best quality
 	double filtering_percent;	// the percentage of images to keep
+	int using_homography;		// using translation or homography
 
 	/* configuration for stacking */
 	int nb_closest_AP;	// max number of closest AP to use

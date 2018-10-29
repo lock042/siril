@@ -40,6 +40,10 @@ struct reg_ecc_struct {
 	float dy;
 };
 
+int ecc_find_translation_buf(WORD *reference, WORD *image, int size, double im_max, // input args
+		reg_ecc *reg_param); // output args
+int ecc_find_transform_buf(WORD *reference, WORD *image, int size, double im_max, // input args
+		reg_ecc *reg_param, Homography *transform); // output args
 int findTransform(fits *reference, fits *image, int layer, reg_ecc *reg_param);
 int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
 		WORD *image, int im_rows, int im_cols, reg_ecc *reg_param);

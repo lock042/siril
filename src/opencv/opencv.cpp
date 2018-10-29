@@ -83,6 +83,19 @@ int cvResizeGaussian_data8(uint8_t *dataIn, int rx, int ry, uint8_t *dataOut,
 	return 0;
 }
 
+/* resize an image in buffer. Returns a newly allocated buffer of dimension destx * desty */
+WORD *cvResizeGaussian_buf(WORD *buf, int srcx, int srcy, int destx, int desty) {
+	Mat in(srcx, srcy, CV_16UC1, buf);
+	Mat out(destx, desty, CV_16UC1);
+	resize(in, out, out.size(), 0, 0, OPENCV_LINEAR);
+	in.release();
+	int datasize = destx * desty * sizeof(WORD);
+	WORD *outbuf = (WORD*)malloc(datasize);
+	memcpy(outbuf, out.data, datasize);
+	out.release();
+	return outbuf;
+}
+
 /* resizes image to the sizes toX * toY, and stores it back in image */
 int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
 	assert(image->data);
@@ -226,7 +239,7 @@ static void convert_H_to_MatH(Homography *from, Mat &to) {
 	to.at<double>(2, 2) = from->h22;
 }
 
-static void convert_MatH_to_H(Mat from, Homography *to) {
+void convert_MatH_to_H(Mat from, Homography *to) {
 	to->h00 = from.at<double>(0, 0);
 	to->h01 = from.at<double>(0, 1);
 	to->h02 = from.at<double>(0, 2);
@@ -235,7 +248,7 @@ static void convert_MatH_to_H(Mat from, Homography *to) {
 	to->h12 = from.at<double>(1, 2);
 	to->h20 = from.at<double>(2, 0);
 	to->h21 = from.at<double>(2, 1);
-    to->h22 = from.at<double>(2, 2);
+	to->h22 = from.at<double>(2, 2);
 }
 
 int cvCalculH(s_star *star_array_img,
@@ -295,6 +308,16 @@ int cvApplyScaleToH(Homography *H1, double s) {
 	H.release();
 	result.release();
 	return 0;
+}
+
+void cvTransformBuf(WORD *image, int size, Homography *Hom) {
+	Mat im(size, size, CV_16UC1, image);
+	Mat out(size, size, CV_16UC1);	// let's make it the same size for now
+	Mat H = Mat::eye(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+
+	warpPerspective(im, out, H, Size(size, size), INTER_LANCZOS4 + WARP_INVERSE_MAP);
+	memcpy(image, out.data, size*size*sizeof(WORD));
 }
 
 int cvTransformImage(fits *image, point ref, Homography Hom, int interpolation) {

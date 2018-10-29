@@ -39,6 +39,12 @@
  //
  //M*/
 
+/* the start of this file comes from OpenCV 3, the end is siril's code */
+
+/* An example of the ECC algorithm usage can be found here:
+ * https://docs.opencv.org/3.3.0/d0/d7f/image_alignment_8cpp-example.html
+ */
+
 #include <cassert>
 #include <iostream>
 #include <opencv2/core/core.hpp>
@@ -46,8 +52,9 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "opencv/ecc/ecc.h"
+#include "opencv/opencv.h"
 
-#undef ECC_DEBUG
+#define ECC_DEBUG
 
 /****************************************************************************************\
 *                                       Image Alignment (ECC algorithm)                  *
@@ -553,14 +560,19 @@ double findTransform_ECC(InputArray templateImage, InputArray inputImage,
 	return rho;
 }
 
+
+/*******************************************************
+ *        S I R I L             C O D E                *
+ *******************************************************/
+
 int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
 		WORD *image, int im_rows, int im_cols, reg_ecc *reg_param)
 {
 	Mat ref(ref_rows, ref_cols, CV_16UC1, reference);
 	Mat im(im_rows, im_cols, CV_16UC1, image);
-	Mat warp_matrix(3, 3, CV_32FC1);
+	Mat warp_matrix = Mat::eye(3, 3, CV_64F);
 	WARP_MODE warp_mode = WARP_MODE_TRANSLATION;	// for tests
-	int number_of_iterations = 2000;
+	int number_of_iterations = 50;
 	double termination_eps = 0.002;
 	int retvalue = 0;
 
@@ -607,4 +619,128 @@ int findTransform(fits *reference, fits *image, int layer, reg_ecc *reg_param)
 {
 	return findTransformBuf(reference->pdata[layer], reference->ry, reference->rx,
 			image->pdata[layer], image->ry, image->rx, reg_param);
+}
+
+/* finds the translation with ECC between a reference image and a tested image,
+ * both monochrome, the same size and square of side size. It first downscales
+ * the images to estimate the translation then refines it with the full images.
+ */
+int ecc_find_translation_buf(WORD *reference, WORD *image, int size, double im_max, // input args
+		reg_ecc *reg_param) // output args
+{
+	// 1. create the input images
+	Mat ref(size, size, CV_16UC1, reference);
+	Mat im(size, size, CV_16UC1, image);
+	ref.convertTo(ref, CV_32FC1, 1.0/im_max);
+	im.convertTo(im, CV_32FC1, 1.0/im_max);
+
+	// 2. create the downscaled images
+	int down_size = size / 2;
+	Mat down_ref(down_size, down_size, CV_32FC1);
+	Mat down_im(down_size, down_size, CV_32FC1);
+	resize(im, down_im, down_im.size(), 0, 0, OPENCV_LINEAR);
+	resize(ref, down_ref, down_ref.size(), 0, 0, OPENCV_LINEAR);
+
+	// 3. find basic transform for downscaled
+	Mat warp_matrix = Mat::eye(2, 3, CV_32F); // 64 not supported
+	WARP_MODE motion_type = WARP_MODE_TRANSLATION;
+	TermCriteria criteria(TermCriteria::COUNT+TermCriteria::EPS, 200, 0.008);
+	double ecc;
+
+	ecc = findTransform_ECC(down_ref, down_im, warp_matrix, motion_type, criteria, noArray());
+#ifdef ECC_DEBUG
+	std::cout << "ecc down = " << ecc << std::endl;
+	std::cout << "result down = " << std::endl << warp_matrix << std::endl;
+#endif
+	if (ecc < 0.3) {
+		// failure
+		return -1;
+	}
+	// since we use it for an image twice as big, translation is twice as big too
+	warp_matrix.at<float>(0, 2) *= 2.0f;
+	warp_matrix.at<float>(1, 2) *= 2.0f;
+
+	// 4. find the best transfrom between full-size images
+	criteria.maxCount = 1200;
+	criteria.epsilon = 0.002;
+
+	ecc = findTransform_ECC(ref, im, warp_matrix, motion_type, criteria, noArray());
+#ifdef ECC_DEBUG
+	std::cout << "ecc = " << ecc << std::endl;
+	std::cout << "result = " << std::endl << warp_matrix << std::endl;
+#endif
+	if (ecc < 0.8) {
+		// failure
+		return -1;
+	}
+	// 5. copy result
+	reg_param->dx = warp_matrix.at<float>(0, 2);
+	reg_param->dy = warp_matrix.at<float>(1, 2);
+	return 0;
+}
+
+/* finds the transform with ECC between a reference image and a tested image,
+ * both monochrome, the same size and square of side size. It first downscales
+ * the images to estimate a translation and computes a 2D transformation
+ * (homography) using the full images.
+ */
+int ecc_find_transform_buf(WORD *reference, WORD *image, int size, double im_max, // input args
+		reg_ecc *reg_param, Homography *transform) // output args
+{
+	// 1. create the input images
+	Mat ref(size, size, CV_16UC1, reference);
+	Mat im(size, size, CV_16UC1, image);
+	ref.convertTo(ref, CV_32FC1, 1.0/im_max);
+	im.convertTo(im, CV_32FC1, 1.0/im_max);
+
+	// 2. create the downscaled images
+	int down_size = size / 2;
+	Mat down_ref(down_size, down_size, CV_32FC1);
+	Mat down_im(down_size, down_size, CV_32FC1);
+	resize(im, down_im, down_im.size(), 0, 0, OPENCV_LINEAR);
+	resize(ref, down_ref, down_ref.size(), 0, 0, OPENCV_LINEAR);
+
+	// 3. find basic transform for downscaled
+	Mat warp_matrix = Mat::eye(2, 3, CV_64F);
+	WARP_MODE motion_type = WARP_MODE_TRANSLATION;
+	TermCriteria criteria(TermCriteria::COUNT+TermCriteria::EPS, 300, 0.006);
+	double ecc;
+
+	ecc = findTransform_ECC(down_ref, down_im, warp_matrix, motion_type, criteria, noArray());
+#ifdef ECC_DEBUG
+	std::cout << "ecc down = " << ecc << std::endl;
+	std::cout << "result down = " << std::endl << warp_matrix << std::endl;
+#endif
+	if (ecc < 0.3) {
+		// failure
+		return -1;
+	}
+	// since we use it for an image twice as big, translation is twice as big too
+	reg_param->dx = warp_matrix.at<float>(0, 2) * 2.0f;
+	reg_param->dy = warp_matrix.at<float>(1, 2) * 2.0f;
+
+	// 4. find the best transfrom between full-size images
+	criteria.maxCount = 2000;
+	criteria.epsilon = 0.001;
+	motion_type = WARP_MODE_HOMOGRAPHY;
+	Mat warp_matrix_full = Mat::eye(3, 3, CV_64F);
+	/*for (int i = 0; i < 2; i++)
+		for (int j = 0; j < 3; j++)
+			warp_matrix_full.at<float>(i, j) = warp_matrix.at<float>(i, j);*/
+	warp_matrix_full.at<float>(0, 2) = warp_matrix.at<float>(0, 2) * 2.0f;
+	warp_matrix_full.at<float>(1, 2) = warp_matrix.at<float>(1, 2) * 2.0f;
+
+	ecc = findTransform_ECC(ref, im, warp_matrix_full, motion_type, criteria, noArray());
+#ifdef ECC_DEBUG
+	std::cout << "ecc = " << ecc << std::endl;
+	std::cout << "result = " << std::endl << warp_matrix_full << std::endl;
+#endif
+	if (ecc < 0.9) {
+		// failure
+		return -1;
+	}
+
+	// 5. copy result
+	convert_MatH_to_H(warp_matrix_full, transform);
+	return 0;
 }

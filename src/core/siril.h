@@ -491,9 +491,18 @@ struct gradient_struct {
 	double boxvalue[3];
 };
 
+typedef struct Homo {
+	double h00, h01, h02;
+	double h10, h11, h12;
+	double h20, h21, h22;
+	int pair_matched;
+	int Inliers;
+} Homography;
+
 struct ap_regdata {
 	float x, y;
 	double quality;
+	Homography *transform;
 };
 
 struct stacking_zone_struct {
@@ -648,14 +657,6 @@ struct image_stats {
 
 	int _nb_refs;	// reference counting for data management
 };
-
-typedef struct Homo {
-	double h00, h01, h02;
-	double h10, h11, h12;
-	double h20, h21, h22;
-	int pair_matched;
-	int Inliers;
-} Homography;
 
 #if 0
 /* TODO: this structure aims to allow the composition of several 1-channel images and make

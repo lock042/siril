@@ -118,6 +118,7 @@ void update_zones_list() {
 		combo = GTK_COMBO_BOX(lookup_widget("selectedzonecombo"));
 		combotext = GTK_COMBO_BOX_TEXT(combo);
 	}
+	if (!com.stacking_zones) return;
 	int previous_selection = gtk_combo_box_get_active(combo);
 
 	gtk_combo_box_text_remove_all(combotext);
@@ -249,6 +250,7 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	args->filtering_criterion = stack_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
 	args->filtering_percent = percent_images_to_keep;
+	args->using_homography = FALSE;	// TRUE is not working yet, translation only
 	args->nb_closest_AP = 5;	// min(this, nb_AP) will be used
 	args->max_distance = 250.0;	// AP farther than this will be ignored
 	//args->own_distance_f = 0.5;	// unused

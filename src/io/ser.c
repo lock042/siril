@@ -879,6 +879,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 	}
 
 	fits_flip_top_to_bottom(fit);
+	fit->maxi = -1.0;
 	return 0;
 }
 

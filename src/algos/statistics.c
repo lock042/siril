@@ -375,6 +375,7 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
 		}
 	}
 	if (stat->ngoodpix == 0L) {
+		// TODO: a black image should not fail that much?
 		if (free_data) free(data);
 		if (stat_is_local) free(stat);
 		return NULL;

@@ -99,12 +99,9 @@ static int regcog_finalize_hook(struct generic_seq_args *args) {
 		double ref_y = rcdata->current_regdata[q_index].shifty;
 		for (i = 0; i < args->seq->number; i++) {
 			if (rcdata->current_regdata[i].quality < 0.0) continue;
-
 			rcdata->current_regdata[i].shiftx = ref_x - rcdata->current_regdata[i].shiftx;
-			/* for Y, FITS are upside-down */
-			if (args->seq->type == SEQ_REGULAR)
-				rcdata->current_regdata[i].shifty = ref_y + rcdata->current_regdata[i].shifty;
-			else rcdata->current_regdata[i].shifty = ref_y - rcdata->current_regdata[i].shifty;
+			rcdata->current_regdata[i].shifty = ref_y - rcdata->current_regdata[i].shifty;
+			// ref_y is the wrong sign visually, but images are displayed upside-down
 		}
 		siril_log_message(_("Registration finished.\n"));
 		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index);
