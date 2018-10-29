@@ -906,45 +906,44 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
 		int pixel = 0;	// index in sum[0]
 		for (y = 0; y < fit.ry; y++) {
 			for (x = 0; x < fit.rx; x++) {
-				struct weighted_AP *list_for_this_AP = closest_zones_map + (x + y * args->seq->rx) * args->nb_closest_AP;
+				struct weighted_AP *list_for_this_pixel = closest_zones_map + (x + y * args->seq->rx) * args->nb_closest_AP;
 				int i;
-				double weight = 0.0, sumx = 0.0, sumy = 0.0, shiftx, shifty;
+				double total_weight = 0.0, sumx = 0.0, sumy = 0.0, shiftx, shifty;
 
 				for (i = 0; i < args->nb_closest_AP; i++) {
+					if (list_for_this_pixel[i].distance < 0.0)
+						continue;
 					double this_weight;
-					int zone_index = list_for_this_AP[i].zone_index;
+					if (list_for_this_pixel[i].distance <= 1.0)
+						this_weight = args->max_distance;
+					else this_weight = args->max_distance / list_for_this_pixel[i].distance;
+					int zone_index = list_for_this_pixel[i].zone_index;
 					struct ap_regdata *regparam_zone_image = 
 						&com.stacking_zones[zone_index].mpregparam[frame];
-					if (list_for_this_AP[i].distance < 0.0)
-						continue;
-					if (list_for_this_AP[i].distance <= 1.0)
-						this_weight = args->max_distance;
-					else this_weight = args->max_distance / list_for_this_AP[i].distance;
 
-					weight += this_weight;
+					total_weight += this_weight;
 					sumx += regparam_zone_image->x * this_weight;
 					sumy += regparam_zone_image->y * this_weight;
 				}
 				// if zones are too far away, which will happen for pixels
 				// away from the planet, just take the global shift
-				if (weight == 0.0) {
+				if (total_weight == 0.0) {
 					shiftx = regparam[frame].shiftx;
 					shifty = regparam[frame].shifty;
 				} else {
-					shiftx = sumx / weight;
-					shifty = sumy / weight;
+					shiftx = sumx / total_weight;
+					shifty = sumy / total_weight;
 				}
-				//fprintf(stdout, "%d,%d weight is %g\n", x, y, weight);
 
 				// then do the regular sum stacking with shift
 				int nx = round_to_int(x - shiftx);
-				int ny = round_to_int(y + shifty);
+				int ny = round_to_int(y - shifty);
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 					int ii = ny * fit.rx + nx;	// index in source image
 					int layer;
 					for (layer = 0; layer < args->seq->nb_layers; ++layer) {
 #ifdef _OPENMP
-#pragma omp atomic
+//#pragma omp atomic
 #endif
 						sum[layer][pixel] += fit.pdata[layer][ii];
 					}
