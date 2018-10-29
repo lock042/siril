@@ -70,7 +70,7 @@
  *
  */
 
-/* The currentmpp stacking algorithm explained:
+/* The currentmpp stacking algorithm explained (out of date):
  * 0. register_cog
  * registration of all frames with cog
  * 	evaluates image quality -> seq->regparam[layer][frame].quality
@@ -962,7 +962,8 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
 	fprintf(stdout, "barycentre stacking ended, creating final image\n");
 
 	if (!abort) {
-		/* copying result into gfit, code copied from sum_stacking_finalize_hook() */
+		/* copying result into gfit and args->global_image
+		 * code copied from sum_stacking_finalize_hook() */
 		nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
 		int i, layer;
 		// find the max first
@@ -1344,11 +1345,12 @@ static void check_closest_list(struct weighted_AP *list_for_this_point,
 	for (i = 0; i < max_AP; i++) {
 		double ap_dist = list_for_this_point[i].distance;
 		if (ap_dist >= 0) {
+			// we search the max to replace it by the new
 			if (ap_dist > max) {
 				max = ap_dist;
 				max_idx = i;
 			}
-			if (distance > ap_dist)
+			if (distance < ap_dist)
 				found_closer = 1;
 		}
 		else {
