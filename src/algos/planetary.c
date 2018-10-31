@@ -125,7 +125,6 @@
  */
 
 /* TODO:
- * dismiss failed zones
  * handle coloured images
  * extra read for zones for the registration, does it make sens DFT-wise?
  *   probably not
@@ -595,6 +594,9 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 			}
 			if (regretval) {
 				fprintf(stdout, "ECC alignment failed for full def zone %d of frame %d\n", zone_idx, frame);
+				// setting the quality to -1 will remove it from stacking, but it
+				// may trigger the sequence quality reanalysis
+				zone->mpregparam[frame].quality = -1.0;
 			} else {
 				// in ecc registration + sum stacking it's - and -
 				zone->mpregparam[frame].x = reg_param.dx + regparam[frame].shiftx;
@@ -920,6 +922,8 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
 					int zone_index = list_for_this_pixel[i].zone_index;
 					struct ap_regdata *regparam_zone_image = 
 						&com.stacking_zones[zone_index].mpregparam[frame];
+					if (regparam_zone_image->quality < 0.0)
+						continue;
 
 					total_weight += this_weight;
 					sumx += regparam_zone_image->x * this_weight;
@@ -1068,60 +1072,62 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 		 * From each image we add the pixels of the best zones to the sum and keep track
 		 * of how many times we add each pixel to keep track of the average
 		 */
-		zone_idx = 0;
-		while (zone_idx < nb_zones) {
-			if (best_zones[zone_idx][frame]) {
-				stacking_zone *zone = &com.stacking_zones[zone_idx];
-				// TODO: iterate over channels
-				if (args->using_homography && zone->mpregparam[frame].transform) {
-					// ECC registration with image transformation
-					int side = round_to_int(zone->half_side * 2.0);
-					WORD *buffer = malloc(side * side * sizeof(WORD)); // TODO: prealloc
-					if (!buffer) {
-						fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
-						abort = 1;
-						break;
-					}
+		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+			if (!best_zones[zone_idx][frame])
+				continue;
 
-					// read the zone data to buffer
-					// TODO: add the global registration translation to the transform
-					copy_image_zone_to_buffer(&fit, zone, buffer, args->layer);
-					cvTransformBuf(buffer, side, zone->mpregparam[frame].transform);
-					add_buf_zone_to_stacking_sum(buffer, 0, zone, frame,
-							sum, count, fit.rx, fit.ry);
-#ifdef DEBUG_MPP
-					save_buffer_tmp(frame, zone_idx, buffer, side);
-#endif
-					free(buffer);
-				} else if (!args->using_homography) {
-					// DFT registration or ECC with translation
-					add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
-#ifdef DEBUG_MPP
-					// to see what's happening with the shifts, use this
-					int side = round_to_int(zone->half_side * 2.0);
-					stacking_zone shifted_zone = { .centre =
-						{ .x = zone->centre.x - zone->mpregparam[frame].x,
-							.y = zone->centre.y + zone->mpregparam[frame].y },
-						.half_side = zone->half_side };
-
-					WORD *buffer = malloc(side * side * sizeof(WORD));
-					if (!buffer) {
-						fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
-						break;
-					}
-
-					copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
-					save_buffer_tmp(frame, zone_idx, buffer, side);
-					free(buffer);
-#endif
+			stacking_zone *zone = &com.stacking_zones[zone_idx];
+			// TODO: iterate over channels
+			if (args->using_homography && zone->mpregparam[frame].transform) {
+				// ECC registration with image transformation
+				int side = round_to_int(zone->half_side * 2.0);
+				WORD *buffer = malloc(side * side * sizeof(WORD)); // TODO: prealloc
+				if (!buffer) {
+					fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+					abort = 1;
+					break;
 				}
-				/* TODO someday: instead of copying data like this, create
-				 * a mask from the zones, process the mask to unsharpen it
-				 * and make it follow the path of the turbulence, and then
-				 * use the mask to copy the data. */
 
+				// read the zone data to buffer
+				regdata *regparam = args->seq->regparam[args->layer];
+				stacking_zone shifted_zone = { .centre =
+					{ .x = zone->centre.x - regparam[frame].shiftx,
+						.y = zone->centre.y + regparam[frame].shifty },
+					.half_side = zone->half_side };
+				copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
+				cvTransformBuf(buffer, side, zone->mpregparam[frame].transform);
+				add_buf_zone_to_stacking_sum(buffer, 0, zone, frame,
+						sum, count, fit.rx, fit.ry);
+#ifdef DEBUG_MPP
+				save_buffer_tmp(frame, zone_idx, buffer, side);
+#endif
+				free(buffer);
+			} else if (!args->using_homography) {
+				// DFT registration or ECC with translation
+				add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
+#ifdef DEBUG_MPP
+				// to see what's happening with the shifts, use this
+				int side = round_to_int(zone->half_side * 2.0);
+				stacking_zone shifted_zone = { .centre =
+					{ .x = zone->centre.x - zone->mpregparam[frame].x,
+						.y = zone->centre.y + zone->mpregparam[frame].y },
+					.half_side = zone->half_side };
+
+				WORD *buffer = malloc(side * side * sizeof(WORD));
+				if (!buffer) {
+					fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
+					break;
+				}
+
+				copy_image_zone_to_buffer(&fit, &shifted_zone, buffer, args->layer);
+				save_buffer_tmp(frame, zone_idx, buffer, side);
+				free(buffer);
+#endif
 			}
-			zone_idx++;
+			/* TODO someday: instead of copying data like this, create
+			 * a mask from the zones, process the mask to unsharpen it
+			 * and make it follow the path of the turbulence, and then
+			 * use the mask to copy the data. */
 		}
 
 		clearfits(&fit);

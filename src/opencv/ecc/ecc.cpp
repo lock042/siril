@@ -570,7 +570,7 @@ int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
 {
 	Mat ref(ref_rows, ref_cols, CV_16UC1, reference);
 	Mat im(im_rows, im_cols, CV_16UC1, image);
-	Mat warp_matrix = Mat::eye(3, 3, CV_64F);
+	Mat warp_matrix = Mat::eye(3, 3, CV_32F);
 	WARP_MODE warp_mode = WARP_MODE_TRANSLATION;	// for tests
 	int number_of_iterations = 50;
 	double termination_eps = 0.002;
@@ -661,7 +661,7 @@ int ecc_find_translation_buf(WORD *reference, WORD *image, int size, double im_m
 	warp_matrix.at<float>(1, 2) *= 2.0f;
 
 	// 4. find the best transfrom between full-size images
-	criteria.maxCount = 1200;
+	criteria.maxCount = 1000;
 	criteria.epsilon = 0.002;
 
 	ecc = findTransform_ECC(ref, im, warp_matrix, motion_type, criteria, noArray());
@@ -701,7 +701,7 @@ int ecc_find_transform_buf(WORD *reference, WORD *image, int size, double im_max
 	resize(ref, down_ref, down_ref.size(), 0, 0, OPENCV_LINEAR);
 
 	// 3. find basic transform for downscaled
-	Mat warp_matrix = Mat::eye(2, 3, CV_64F);
+	Mat warp_matrix = Mat::eye(2, 3, CV_32F); // 64 not supported
 	WARP_MODE motion_type = WARP_MODE_TRANSLATION;
 	TermCriteria criteria(TermCriteria::COUNT+TermCriteria::EPS, 300, 0.006);
 	double ecc;
@@ -723,7 +723,7 @@ int ecc_find_transform_buf(WORD *reference, WORD *image, int size, double im_max
 	criteria.maxCount = 2000;
 	criteria.epsilon = 0.001;
 	motion_type = WARP_MODE_HOMOGRAPHY;
-	Mat warp_matrix_full = Mat::eye(3, 3, CV_64F);
+	Mat warp_matrix_full = Mat::eye(3, 3, CV_32F);
 	/*for (int i = 0; i < 2; i++)
 		for (int j = 0; j < 3; j++)
 			warp_matrix_full.at<float>(i, j) = warp_matrix.at<float>(i, j);*/
