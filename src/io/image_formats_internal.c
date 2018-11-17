@@ -37,81 +37,243 @@
 #define O_BINARY 0
 #endif
 
+static int bmp32tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry, fits *fit) {
+	unsigned long datasize;
+	int i, j;
+	WORD *rdata, *gdata, *bdata, *olddata;
+
+	datasize = rx * ry;
+
+	olddata = fit->data;
+	if ((fit->data = realloc(fit->data, 3 * datasize * sizeof(WORD))) == NULL) {
+		printf("readbmp: could not alloc fit data\n");
+		if (olddata)
+			free(fit->data);
+		return 1;
+	}
+
+	rdata = fit->pdata[RLAYER] = fit->data;
+	gdata = fit->pdata[GLAYER] = fit->data + datasize;
+	bdata = fit->pdata[BLAYER] = fit->data + 2 * datasize;
+	for (i = 0; i < ry; i++) {
+		for (j = 0; j < rx; j++) {
+			*bdata++ = (WORD) *rvb++;
+			*gdata++ = (WORD) *rvb++;
+			*rdata++ = (WORD) *rvb++;
+			rvb++;
+		}
+	}
+	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	fit->naxis = 3;
+	fit->rx = rx;
+	fit->ry = ry;
+	fit->naxes[0] = rx;
+	fit->naxes[1] = ry;
+	fit->naxes[2] = 3;
+	fit->binning_x = fit->binning_y = 1;
+	return 0;
+}
+
+static int bmp24tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry, fits *fit) {
+	int i, j;
+	WORD *rdata, *gdata, *bdata, *olddata;
+
+	int padsize = (4 - (rx * 3) % 4) % 4;
+	int newdatasize = ry * rx;
+
+	olddata = fit->data;
+	if ((fit->data = realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
+		printf("readbmp: could not alloc fit data\n");
+		if (olddata)
+			free(fit->data);
+		return 1;
+	}
+	rdata = fit->pdata[RLAYER] = fit->data;
+	gdata = fit->pdata[GLAYER] = fit->data + newdatasize;
+	bdata = fit->pdata[BLAYER] = fit->data + 2 * newdatasize;
+	for (i = 0; i < ry; i++) {
+		for (j = 0; j < rx; j++) {
+			*bdata++ = *rvb++;
+			*gdata++ = *rvb++;
+			*rdata++ = *rvb++;
+		}
+		rvb += padsize;
+	}
+	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	fit->naxis = 3;
+	fit->rx = rx;
+	fit->ry = ry;
+	fit->naxes[0] = rx;
+	fit->naxes[1] = ry;
+	fit->naxes[2] = 3;
+	fit->binning_x = fit->binning_y = 1;
+	return 0;
+}
+
+static int bmp16tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry, fits *fit) {
+	int i;
+	WORD *rdata, *gdata, *bdata, *olddata;
+
+	int newdatasize = ry * rx;
+
+	olddata = fit->data;
+	if ((fit->data = realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
+		printf("readbmp: could not alloc fit data\n");
+		if (olddata)
+			free(fit->data);
+		return 1;
+	}
+	rdata = fit->pdata[RLAYER] = fit->data;
+	gdata = fit->pdata[GLAYER] = fit->data + newdatasize;
+	bdata = fit->pdata[BLAYER] = fit->data + 2 * newdatasize;
+	for (i = 0; i < ry * rx; i++) {
+		unsigned char buf0 = *rvb++;
+		unsigned char buf1 = *rvb++;
+		unsigned pixel_data = buf0 | buf1 << 8;
+
+        *rdata++ = ((pixel_data & 0x7c00) >> 10) * 255.0 / 31.0 + 0.5;
+        *gdata++ = ((pixel_data & 0x03e0) >> 5) * 255.0 / 31.0 + 0.5;
+        *bdata++ = ((pixel_data & 0x001f) >> 0) * 255.0 / 31.0 + 0.5;
+
+	}
+	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	fit->naxis = 3;
+	fit->rx = rx;
+	fit->ry = ry;
+	fit->naxes[0] = rx;
+	fit->naxes[1] = ry;
+	fit->naxes[2] = 3;
+	fit->binning_x = fit->binning_y = 1;
+	return 0;
+}
+
+static int bmp8tofits(unsigned char *rgb, unsigned long rx, unsigned long ry, fits *fit) {
+	unsigned long nbdata, padsize;
+	int i, j;
+	WORD *data, *olddata;
+
+	padsize = (4 - (rx % 4)) % 4;
+	nbdata = rx * ry;
+
+	olddata = fit->data;
+	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
+		printf("readbmp: could not alloc fit data\n");
+		if (olddata)
+			free(fit->data);
+		return 1;
+	}
+	data = fit->pdata[BW_LAYER] = fit->data;
+	for (i = 0; i < ry; i++) {
+		for (j = 0; j < rx; j++) {
+			*data++ = (WORD) *rgb++;
+		}
+		rgb += padsize;
+	}
+	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	fit->rx = rx;
+	fit->ry = ry;
+	fit->naxes[0] = rx;
+	fit->naxes[1] = ry;
+	fit->naxes[2] = 1;
+	fit->naxis = 2;
+	fit->binning_x = fit->binning_y = 1;
+	return 0;
+}
+
+static void get_image_size(BYTE *header, unsigned long *width,
+		unsigned long *height) {
+	unsigned long bitmapinfoheader = 0;
+	unsigned long lx = 0, ly = 0;
+	unsigned short sx = 0, sy = 0;
+
+	memcpy(&bitmapinfoheader, header + 14, 4);
+	printf("test: %lu\n", bitmapinfoheader);
+	if (bitmapinfoheader == 12) {
+		memcpy(&sx, header + 18, 2);
+		memcpy(&sy, header + 20, 2);
+		*width = (unsigned long) sx;
+		*height = (unsigned long) sy;
+	} else {
+		memcpy(&lx, header + 18, 4);
+		memcpy(&ly, header + 22, 4);
+		*width = lx;
+		*height = ly;
+	}
+}
+
 /* reads a BMP image at filename `name', and stores it into the fit argument */
 int readbmp(const char *name, fits *fit) {
 	BYTE header[256];
-	int fd, nbplane, padsize;
-	int count, lx, ly;
+	FILE *file;
+	long int count;
 	unsigned char *buf;
-	unsigned int nbdata, data_offset;
-	gboolean inverted = FALSE;
-	char *msg;
+	unsigned long data_offset = 0;
+	unsigned long width = 0, height = 0;
+	unsigned long nbdata, padsize;
+	unsigned short nbplane = 0;
 
-	if ((fd = g_open(name, O_RDONLY | O_BINARY, 0)) == -1) {
-		msg = siril_log_message(_("Error opening BMP.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+	if ((file = g_fopen(name, "rb")) == NULL) {
+		siril_log_message(_("Error opening BMP.\n"));
 		return -1;
 	}
 
-	if ((count = read(fd, header, 54)) != 54) {
-		fprintf(stderr, "readbmp: %d header bytes read instead of 54\n", count);
+	if ((count = fread(header, 1, 54, file)) != 54) {
+		fprintf(stderr, "readbmp: %ld header bytes read instead of 54\n", count);
 		perror("readbmp");
-		close(fd);
+		fclose(file);
 		return -1;
 	}
-	lx = 256 * header[19] + header[18];
-	ly = 256 * header[23] + header[22];
-	nbplane = header[28] / 8;
-	padsize = (4 - (lx * nbplane) % 4) % 4;
-	nbdata = lx * ly * nbplane + ly * padsize;
-	data_offset = header[10];		//get the offset value
-	lseek(fd, data_offset, SEEK_SET);
+
+/*	memcpy(&compression, header + 30, 4);*/
+
+	get_image_size(header, &width, &height);
+	memcpy(&nbplane, header + 28, 2);
+	nbplane = nbplane / 8;
+	memcpy(&data_offset, header + 10, 4);
+
+	padsize = (4 - (width * nbplane) % 4) % 4;
+	nbdata = width * height * nbplane + height * padsize;
+
+	fseek(file, data_offset, SEEK_SET);
 	if (nbplane == 1) {
 		buf = malloc(nbdata + 1024);
-		if ((count = read(fd, buf, 1024)) != 1024) {
-			fprintf(stderr, "readbmp: %d byte read instead of 1024\n", count);
+		if ((count = fread(buf, 1, 1024, file)) != 1024) {
+			fprintf(stderr, "readbmp: %ld byte read instead of 1024\n", count);
 			perror("readbmp: failed to read the lut");
 			free(buf);
-			close(fd);
+			fclose(file);
 			return -1;
 		}
 	} else {
 		buf = malloc(nbdata);
 	}
 
-	if ((count = read(fd, buf, nbdata)) != nbdata) {
-		fprintf(stderr, "readbmp: %d read, %u expected\n", count, nbdata);
-		perror("readbmp");
-		free(buf);
-		close(fd);
-		return -1;
-	}
-	close(fd);
+	fread(buf, 1, nbdata, file);
+	fclose(file);
 
 	switch (nbplane) {
 	case 1:
-		bmp8tofits(buf, lx, ly, fit);
+		bmp8tofits(buf, width, height, fit);
+		break;
+	case 2:
+		bmp16tofits48(buf, width, height, fit);
 		break;
 	case 3:
-		bmp24tofits48(buf, lx, ly, fit);
+		bmp24tofits48(buf, width, height, fit);
 		break;
 	case 4:
-		if (header[30]) /*For the position of alpha channel*/
-			inverted = TRUE; /* Gimp gives 32bits with header[30]=3, Photoshop is 0 : NEED TO BE OPTIMIZED*/
-		bmp32tofits48(buf, lx, ly, fit, inverted);
+		bmp32tofits48(buf, width, height, fit);
 		break;
 	default:
-		msg =
-				siril_log_message(
-						_("Sorry but Siril cannot open this kind of BMP. Try to convert it before.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Sorry but Siril cannot "
+				"open this kind of BMP. Try to convert it before.\n"));
 	}
 	free(buf);
 	char *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading BMP: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
 	g_free(basename);
-	return nbplane;
+	return (int) nbplane;
 }
 
 int savebmp(const char *name, fits *fit) {
@@ -132,18 +294,17 @@ int savebmp(const char *name, fits *fit) {
 			0, 0, 0, 0, 	//important colors
 			};
 	unsigned int width = fit->rx, height = fit->ry;
+	double norm;
 
 	FILE *f;
 
-	unsigned char *gbuf[3] = { com.graybuf[RLAYER] + width * (height - 1) * 4,
-			com.graybuf[GLAYER] + width * (height - 1) * 4, com.graybuf[BLAYER]
-					+ width * (height - 1) * 4 };
+	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
 	int padsize = (4 - (width * 3) % 4) % 4;
 	int datasize = width * height * 3 + padsize * height;
 	int filesize = datasize + sizeof(bmpfileheader) + sizeof(bmpinfoheader);
 	int i, j;
-	unsigned char red, blue, green;
+	WORD red, blue, green;
 	unsigned char pixel[3];
 
 	bmpfileheader[2] = (unsigned char) (filesize);
@@ -173,156 +334,41 @@ int savebmp(const char *name, fits *fit) {
 
 	f = g_fopen(filename, "wb");
 	if (f == NULL) {
-		char *msg = siril_log_message(_("Can't create BMP file.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Can't create BMP file.\n"));
 		free(filename);
 		return 1;
 	}
+
+	norm = (fit->orig_bitpix > BYTE_IMG ?
+			UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE : 1.0);
 
 	fwrite(bmpfileheader, sizeof(bmpfileheader), 1, f);
 	fwrite(bmpinfoheader, sizeof(bmpinfoheader), 1, f);
 
 	for (i = 0; i < height; i++) {
 		for (j = 0; j < width; j++) {
-			red = *gbuf[RLAYER];
-			gbuf[RLAYER] += 4;
+			red = *gbuf[RLAYER]++;
 			if (fit->naxes[2] == 3) {
-				green = *gbuf[GLAYER];
-				blue = *gbuf[BLAYER];
-				gbuf[GLAYER] += 4;
-				gbuf[BLAYER] += 4;
+				green = *gbuf[GLAYER]++;
+				blue = *gbuf[BLAYER]++;
 			} else {
 				green = red;
 				blue = red;
 			}
 
-			pixel[0] = blue; /* swap Blue and Red */
-			pixel[1] = green;
-			pixel[2] = red;
+			pixel[0] = round_to_BYTE(blue * norm); /* swap Blue and Red */
+			pixel[1] = round_to_BYTE(green * norm);
+			pixel[2] = round_to_BYTE(red * norm);
 
 			fwrite(pixel, sizeof(pixel), 1, f);
 		}
 		if (padsize != 0)
 			fwrite("0", 1, padsize, f);		//We fill the end of width with 0
-		gbuf[RLAYER] -= width * 8;
-		if (fit->naxes[2] == 3) {
-			gbuf[GLAYER] -= width * 8;
-			gbuf[BLAYER] -= width * 8;
-		}
 	}
 	fclose(f);
 	siril_log_message(_("Saving BMP: file %s, %ld layer(s), %ux%u pixels\n"), filename,
 			fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
-	return 0;
-}
-
-int bmp32tofits48(unsigned char *rvb, int rx, int ry, fits *fit,
-		gboolean inverted) {
-	int datasize, i, j;
-	WORD *rdata, *gdata, *bdata, *olddata;
-
-	datasize = rx * ry;
-
-	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, 3 * datasize * sizeof(WORD))) == NULL) {
-		printf("readbmp: could not alloc fit data\n");
-		if (olddata)
-			free(fit->data);
-		return 1;
-	}
-
-	rdata = fit->pdata[RLAYER] = fit->data;
-	gdata = fit->pdata[GLAYER] = fit->data + datasize;
-	bdata = fit->pdata[BLAYER] = fit->data + 2 * datasize;
-	for (i = 0; i < ry; i++) {
-		for (j = 0; j < rx; j++) {
-			if (inverted)
-				rvb++;
-			*bdata++ = (WORD) *rvb++;
-			*gdata++ = (WORD) *rvb++;
-			*rdata++ = (WORD) *rvb++;
-			if (!inverted)
-				rvb++;
-		}
-	}
-	fit->bitpix = BYTE_IMG;
-	fit->naxis = 3;
-	fit->rx = rx;
-	fit->ry = ry;
-	fit->naxes[0] = rx;
-	fit->naxes[1] = ry;
-	fit->naxes[2] = 3;
-	fit->binning_x = fit->binning_y = 1;
-	return 0;
-}
-
-int bmp24tofits48(unsigned char *rvb, int rx, int ry, fits *fit) {
-	int i, j;
-	WORD *rdata, *gdata, *bdata, *olddata;
-
-	int padsize = (4 - (rx * 3) % 4) % 4;
-	int newdatasize = ry * rx;
-
-	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
-		printf("readbmp: could not alloc fit data\n");
-		if (olddata)
-			free(fit->data);
-		return 1;
-	}
-	rdata = fit->pdata[RLAYER] = fit->data;
-	gdata = fit->pdata[GLAYER] = fit->data + newdatasize;
-	bdata = fit->pdata[BLAYER] = fit->data + 2 * newdatasize;
-	for (i = 0; i < ry; i++) {
-		for (j = 0; j < rx; j++) {
-			*bdata++ = *rvb++;
-			*gdata++ = *rvb++;
-			*rdata++ = *rvb++;
-		}
-		rvb += padsize;
-	}
-	fit->bitpix = BYTE_IMG;
-	fit->naxis = 3;
-	fit->rx = rx;
-	fit->ry = ry;
-	fit->naxes[0] = rx;
-	fit->naxes[1] = ry;
-	fit->naxes[2] = 3;
-	fit->binning_x = fit->binning_y = 1;
-	return 0;
-}
-
-int bmp8tofits(unsigned char *rgb, int rx, int ry, fits *fit) {
-	int nbdata, padsize;
-	int i, j;
-	WORD *data, *olddata;
-
-	padsize = (4 - (rx % 4)) % 4;
-	nbdata = rx * ry;
-
-	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
-		printf("readbmp: could not alloc fit data\n");
-		if (olddata)
-			free(fit->data);
-		return 1;
-	}
-	data = fit->pdata[BW_LAYER] = fit->data;
-	for (i = 0; i < ry; i++) {
-		for (j = 0; j < rx; j++) {
-			*data++ = (WORD) *rgb++;
-		}
-		rgb += padsize;
-	}
-	fit->bitpix = BYTE_IMG;
-	fit->rx = rx;
-	fit->ry = ry;
-	fit->naxes[0] = rx;
-	fit->naxes[1] = ry;
-	fit->naxes[2] = 1;
-	fit->naxis = 2;
-	fit->binning_x = fit->binning_y = 1;
 	return 0;
 }
 
@@ -336,27 +382,25 @@ int bmp8tofits(unsigned char *rgb, int rx, int ry, fits *fit) {
  */
 /* This method loads a pnm or pgm binary file into the fits image passed as argument. */
 int import_pnm_to_fits(const char *filename, fits *fit) {
-	FILE *fd;
-	char buf[256], *msg;
+	FILE *file;
+	char buf[256];
 	int i, j, max_val;
 	size_t stride;
 
-	if ((fd = g_fopen(filename, "rb")) == NULL) {
-		msg = siril_log_message(_("Sorry but Siril cannot open this file.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+	if ((file = g_fopen(filename, "rb")) == NULL) {
+		siril_log_message(_("Sorry but Siril cannot open this file.\n"));
 		return -1;
 	}
-	if (fgets(buf, 256, fd) == NULL) {
+	if (fgets(buf, 256, file) == NULL) {
 		perror("reading pnm file");
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
 	if (buf[0] != 'P' || buf[1] < '5' || buf[1] > '6' || buf[2] != '\n') {
-		msg = siril_log_message(
+		siril_log_message(
 				_("Wrong magic cookie in PNM file, ASCII types and"
 						" b&w bitmaps are not supported.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
 	if (buf[1] == '6') {
@@ -368,8 +412,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	}
 
 	do {
-		if (fgets(buf, 256, fd) == NULL) {
-			fclose(fd);
+		if (fgets(buf, 256, file) == NULL) {
+			fclose(file);
 			return -1;
 		}
 	} while (buf[0] == '#');
@@ -377,7 +421,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	while (buf[i] >= '0' && buf[i] <= '9')
 		i++;
 	if (i == 0) {
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
 	buf[i] = '\0';
@@ -386,19 +430,19 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	while (buf[j] >= '0' && buf[j] <= '9')
 		j++;
 	if (j == i) {
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
 	if (buf[j] != '\n') {
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
 	buf[j] = '\0';
 	fit->ry = atoi(buf + i);
 
 	do {
-		if (fgets(buf, 256, fd) == NULL) {
-			fclose(fd);
+		if (fgets(buf, 256, file) == NULL) {
+			fclose(file);
 			return -1;
 		}
 	} while (buf[0] == '#');
@@ -406,13 +450,13 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	while (buf[i] >= '0' && buf[i] <= '9')
 		i++;
 	if (buf[i] != '\n') {
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
 	buf[i] = '\0';
 	max_val = atoi(buf);
 	if (max_val < UCHAR_MAX) {
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
 	if (max_val == UCHAR_MAX) {
@@ -428,7 +472,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
 		if (fit->data == NULL || tmpbuf == NULL) {
 			fprintf(stderr, "error allocating fits image data\n");
-			fclose(fd);
+			fclose(file);
 			if (olddata && !fit->data)
 				free(olddata);
 			if (tmpbuf)
@@ -436,10 +480,9 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			fit->data = NULL;
 			return -1;
 		}
-		if (fread(tmpbuf, stride, fit->ry, fd) < fit->ry) {
-			msg = siril_log_message(_("Error reading 8-bit PPM image data.\n"));
-			show_dialog(msg, _("Error"), "dialog-error");
-			fclose(fd);
+		if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
+			siril_log_message(_("Error reading 8-bit PPM image data.\n"));
+			fclose(file);
 			free(tmpbuf);
 			free(fit->data);
 			fit->data = NULL;
@@ -462,16 +505,15 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
 			if (fit->data == NULL) {
 				fprintf(stderr, "error allocating fits image data\n");
-				fclose(fd);
+				fclose(file);
 				if (olddata)
 					free(olddata);
 				return -1;
 			}
-			if (fread(fit->data, stride, fit->ry, fd) < fit->ry) {
-				msg = siril_log_message(
+			if (fread(fit->data, stride, fit->ry, file) < fit->ry) {
+				siril_log_message(
 						_("Error reading 16-bit gray PPM image data.\n"));
-				show_dialog(msg, _("Error"), "dialog-error");
-				fclose(fd);
+				fclose(file);
 				free(fit->data);
 				fit->data = NULL;
 				return -1;
@@ -492,7 +534,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
 			if (fit->data == NULL || tmpbuf == NULL) {
 				fprintf(stderr, "error allocating fits image data\n");
-				fclose(fd);
+				fclose(file);
 				if (olddata && !fit->data)
 					free(olddata);
 				if (tmpbuf)
@@ -500,11 +542,10 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 				fit->data = NULL;
 				return -1;
 			}
-			if (fread(tmpbuf, stride, fit->ry, fd) < fit->ry) {
-				msg = siril_log_message(
+			if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
+				siril_log_message(
 						_("Error reading 16-bit color PPM image data.\n"));
-				show_dialog(msg, _("Error"), "dialog-error");
-				fclose(fd);
+				fclose(file);
 				free(tmpbuf);
 				free(fit->data);
 				fit->data = NULL;
@@ -517,13 +558,12 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		fit->binning_x = fit->binning_y = 1;
 		fits_flip_top_to_bottom(fit);
 	} else {
-		msg = siril_log_message(_("Not handled max value for PNM: %d.\n"),
+		siril_log_message(_("Not handled max value for PNM: %d.\n"),
 				max_val);
-		show_dialog(msg, _("Error"), "dialog-error");
-		fclose(fd);
+		fclose(file);
 		return -1;
 	}
-	fclose(fd);
+	fclose(file);
 	char *basename = g_path_get_basename(filename);
 	siril_log_message(_("Reading NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
@@ -535,17 +575,19 @@ static int saveppm(const char *name, fits *fit) {
 	FILE *fp = g_fopen(name, "wb");
 	int i;
 	int ndata = fit->rx * fit->ry;
+	double norm;
 	const char *comment = "# CREATOR : SIRIL";
 
 	fprintf(fp, "P6\n%s\n%u %u\n%u\n", comment, fit->rx, fit->ry, USHRT_MAX);
 	WORD *gbuf[3] =
 			{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	fits_flip_top_to_bottom(fit);
+	norm = (fit->orig_bitpix > BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	for (i = 0; i < ndata; i++) {
 		WORD color[3];
-		color[0] = *gbuf[RLAYER]++;
-		color[1] = *gbuf[GLAYER]++;
-		color[2] = *gbuf[BLAYER]++;
+		color[0] = *gbuf[RLAYER]++ * norm;
+		color[1] = *gbuf[GLAYER]++ * norm;
+		color[2] = *gbuf[BLAYER]++ * norm;
 
 		/* change endianness in place */
 		/* FIX ME : For a small amount of files (for example,
@@ -569,6 +611,7 @@ static int savepgm(const char *name, fits *fit) {
 	FILE *fp;
 	int i;
 	int ndata = fit->rx * fit->ry;
+	double norm;
 	WORD *gbuf = fit->pdata[RLAYER];
 	const char *comment = "# CREATOR : SIRIL";
 
@@ -578,8 +621,9 @@ static int savepgm(const char *name, fits *fit) {
 	fprintf(fp, "P5\n%s\n%u %u\n%u\n", comment, fit->rx, fit->ry, USHRT_MAX);
 
 	fits_flip_top_to_bottom(fit);
+	norm = (fit->orig_bitpix > BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	for (i = 0; i < ndata; i++) {
-		WORD tmp = *gbuf++;
+		WORD tmp = *gbuf++ * norm;
 		/* change endianness in place */
 		WORD data[1];
 		data[0] = (tmp >> 8) | (tmp << 8);
@@ -632,7 +676,7 @@ static int pictofit(WORD *buf, fits *fit) {
 #endif
 	for (i = 0; i < nbdata; i++)
 		data[i] = buf[i];
-	fit->bitpix = SHORT_IMG;
+	fit->bitpix = fit->orig_bitpix = SHORT_IMG;
 	fit->naxes[0] = fit->rx;
 	fit->naxes[1] = fit->ry;
 	fit->naxes[2] = 1;
@@ -672,7 +716,7 @@ static int pictofitrgb(WORD *buf, fits *fit) {
 	for (i = 0; i < nbdata; i++)
 		data[BLAYER][i] = buf[i + (nbdata * BLAYER)];
 
-	fit->bitpix = SHORT_IMG;
+	fit->bitpix = fit->orig_bitpix = SHORT_IMG;
 	fit->naxis = 3;
 	fit->naxes[0] = fit->rx;
 	fit->naxes[1] = fit->ry;
@@ -682,21 +726,18 @@ static int pictofitrgb(WORD *buf, fits *fit) {
 
 static int _pic_read_header(struct pic_struct *pic_file) {
 	char header[290];
-	if (!pic_file || pic_file->fd <= 0)
+	if (!pic_file || !pic_file->file)
 		return -1;
-	if (sizeof(header) != read(pic_file->fd, header, sizeof(header))) {
+	if (sizeof(header) != fread(header, 1, sizeof(header), pic_file->file)) {
 		perror("read");
 		return -1;
 	}
 
-	memcpy(&pic_file->magic[0], header, 2);
-	memcpy(&pic_file->magic[1], header + 2, 2);
+	memcpy(&pic_file->magic, header, 4);
 
-	if (!((pic_file->magic[0] == 0x31fc) && (pic_file->magic[1] == 0x0122))) {
-		char *msg =
-				siril_log_message(
-						_("Wrong magic cookie in PIC file. This image is not supported.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+	if (pic_file->magic != 0x12231fc) {
+		siril_log_message(_("Wrong magic cookie in PIC file. "
+				"This image is not supported.\n"));
 		return -1;
 	}
 
@@ -717,9 +758,9 @@ static int _pic_close_file(struct pic_struct *pic_file) {
 	int retval = 0;
 	if (!pic_file)
 		return retval;
-	if (pic_file->fd > 0) {
-		retval = close(pic_file->fd);
-		pic_file->fd = -1;
+	if (pic_file->file) {
+		retval = fclose(pic_file->file);
+		pic_file->file = NULL;
 	}
 	if (pic_file->date)
 		free(pic_file->date);
@@ -734,17 +775,15 @@ int readpic(const char *name, fits *fit) {
 	char header[290];
 	struct pic_struct *pic_file;
 	WORD *buf;
-	char *msg;
 	int retval = 0;
 	unsigned int nbdata;
 
 	memset(&header, 0, sizeof(header));
 	pic_file = calloc(1, sizeof(struct pic_struct));
 
-	if ((pic_file->fd = g_open(name, O_RDONLY | O_BINARY, 0)) == -1) {
-		msg = siril_log_message(
+	if ((pic_file->file = g_fopen(name, "rb")) == NULL) {
+		siril_log_message(
 				_("Sorry but Siril cannot open the PIC file: %s.\n"), name);
-		show_dialog(msg, _("Error"), "dialog-error");
 		free(pic_file);
 		return -1;
 	}
@@ -760,17 +799,16 @@ int readpic(const char *name, fits *fit) {
 
 	nbdata = fit->rx * fit->ry;
 	assert(nbdata > 0);
-	lseek(pic_file->fd, sizeof(header), SEEK_SET);
+	fseek(pic_file->file, sizeof(header), SEEK_SET);
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 
-	if ((read(pic_file->fd, buf, nbdata * pic_file->nbplane * sizeof(WORD)))
+	if ((fread(buf, 1, nbdata * pic_file->nbplane * sizeof(WORD), pic_file->file))
 			!= nbdata * pic_file->nbplane * sizeof(WORD)) {
 		siril_log_message(_("Cannot Read the data\n"));
 		free(buf);
 		_pic_close_file(pic_file);
 		return -1;
 	}
-	close(pic_file->fd);
 
 	switch (pic_file->nbplane) {
 	case 1:
@@ -781,8 +819,7 @@ int readpic(const char *name, fits *fit) {
 		break;
 	default:
 		retval = -1;
-		msg = siril_log_message(_("Sorry but Siril cannot open this file.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Sorry but Siril cannot open this file.\n"));
 	}
 
 	char *basename = g_path_get_basename(name);

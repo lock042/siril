@@ -102,7 +102,7 @@ int *status) /* error status */
 		*noise1 = xnoise;
 	}
 
-	if (minvalue || maxvalue || noise3) {
+	if (minvalue || maxvalue || noise2 || noise3 || noise5) {
 		FnNoise5_ushort(array, nx, ny, nullcheck, nullvalue, &ngood, &minval,
 				&maxval, &xnoise2, &xnoise3, &xnoise5, status);
 
@@ -770,7 +770,7 @@ int *status) /* error status */
 	} else if (nrows == 1) {
 		xnoise = diffs[0];
 	} else {
-		qsort(diffs, nrows, sizeof(double), FnCompare_double);
+		quicksort_d(diffs, nrows);
 		xnoise = (diffs[(nrows - 1) / 2] + diffs[nrows / 2]) / 2.;
 	}
 

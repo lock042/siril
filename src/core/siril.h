@@ -6,6 +6,7 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <glib/gprintf.h>
 #include <gtk/gtk.h>
 #include <fitsio.h>	// fitsfile
 #include <gsl/gsl_histogram.h>
@@ -17,6 +18,16 @@
 #define _(String) gettext (String)
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
+
+
+#ifdef SIRIL_OUTPUT_DEBUG
+#define DEBUG_TEST 1
+#else
+#define DEBUG_TEST 0
+#endif
+
+#define siril_debug_print(fmt, ...) \
+   do { if (DEBUG_TEST) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 
 #undef max
 #define max(a,b) \
@@ -178,6 +189,8 @@ typedef struct registration_data regdata;
 typedef struct layer_info_struct layer_info;
 typedef struct sequ sequence;
 typedef struct single_image single;
+typedef struct wcs_struct wcs_info;
+typedef struct dft_struct dft_info;
 typedef struct ffit fits;
 typedef struct libraw_config libraw;
 typedef struct phot_config phot;
@@ -190,6 +203,7 @@ typedef struct gradient_struct gradient;
 typedef struct historic_struct historic;
 typedef struct dateTime_struct dateTime;
 typedef struct fwhm_struct fitted_PSF;
+typedef struct star_finder_struct star_finder_params;
 
 /* global structures */
 
@@ -288,11 +302,15 @@ struct imdata {
 /* preprocessing data from GUI */
 struct preprocessing_data {
 	struct timeval t_start;
+	fits *dark, *offset, *flat;
+	gboolean is_sequence;
+	sequence *seq;
 	gboolean autolevel;
 	double sigma[2];
 	gboolean is_cfa;
 	gboolean debayer;
 	gboolean compatibility;
+	gboolean equalize_cfa;
 	float normalisation;
 	int retval;
 };
@@ -300,10 +318,9 @@ struct preprocessing_data {
 /* registration data, exists once for each image and each layer */
 struct registration_data {
 	float shiftx, shifty;	// we could have a subpixel precision, but is it needed? saved
-	float rot_centre_x, rot_centre_y;	// coordinates for the rotation centre, saved
-	float angle;		// angle for the rotation, saved
 	fitted_PSF *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
+	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set 
 	double quality;
 };
 
@@ -318,11 +335,17 @@ struct sequ {
 	unsigned int rx;	// first image width
 	unsigned int ry;	// first image height
 	int bitpix;		// image pixel format, from fits
+	double data_max; // data_max used for cdata conversion
 	layer_info *layers;	// info about layers, may be null if nb_layers is unknown
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
 	regdata **regparam;	// *regparam[nb_layers], may be null if nb_layers is unknown
 	imstats ***stats;	// statistics of the images for each layer, may be null too
+	/* in the case of a CFA sequence, depending on the opening mode, we cannot store
+	 * and use everything that was in the seqfile, so we back them up here */
+	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
+	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
+
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum
 	int end;		// imgparam[number-1]->filenum
@@ -330,6 +353,7 @@ struct sequ {
 
 	sequence_type type;
 	struct ser_struct *ser_file;
+	gboolean cfa_opened_monochrome;	// in case the CFA SER was opened in monochrome mode
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
 	struct film_struct *film_file;
 	char *ext;		// extension of video, NULL if not video
@@ -375,6 +399,21 @@ struct single_image {
 	char *ppprefix;		// prefix for filename output of preprocessing
 };
 
+struct wcs_struct {
+	unsigned int equinox;
+	double crpix1, crpix2;
+	double crval1, crval2;
+	char objctra[FLEN_VALUE];
+	char objctdec[FLEN_VALUE];
+};
+
+struct dft_struct {
+	double norm[3];			// Normalization value
+	char type[FLEN_VALUE];		// spectrum, phase
+	char ord[FLEN_VALUE];		// regular, centered
+	unsigned int rx, ry;		// padding: original value of picture size
+};
+
 struct ffit {
 	unsigned int rx;	// image width	(naxes[0])
 	unsigned int ry;	// image height	(naxes[1])
@@ -399,6 +438,7 @@ struct ffit {
 	/* data obtained from the FITS file */
 	WORD lo;	// MIPS-LO key in FITS file, which is "Lower visualization cutoff"
 	WORD hi;	// MIPS-HI key in FITS file, which is "Upper visualization cutoff"
+	double data_max; // used to check if 32b float is between 0 and 1
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
 	char date_obs[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss observation start, UT
@@ -411,15 +451,15 @@ struct ffit {
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
 	double cvf; // Conversion factor (e-/adu)
 
+	/* Plate Solving data */
+	wcs_info wcs;
+
 	/* data used in the Fourier space */
-	double dft_norm[3];			// Normalization value
-	char dft_type[FLEN_VALUE];		// spectrum, phase
-	char dft_ord[FLEN_VALUE];		// regular, centered
-	unsigned int dft_rx, dft_ry;		// padding: original value of picture size
+	dft_info dft;
 	
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
-	double mini, maxi;	// max of the stats->max[3]
+	double mini, maxi;	// min and max of the stats->max[3]
 
 	fitsfile *fptr;		// file descriptor. Only used for file read and write.
 	WORD *data;		// 16-bit image data (depending on image type)
@@ -489,6 +529,14 @@ struct dateTime_struct {
 	int ms;
 };
 
+struct star_finder_struct {
+	int radius;
+	double sigma;
+	double roundness;
+};
+
+/* The global data structure of siril, the only with gfit and the gtk builder,
+ * declared in main.c */
 struct cominf {
 	/* current version of GTK, through GdkPixmap, doesn't handle gray images, so
 	 * graybufs are the same size than the rgbbuf with 3 times the same value */
@@ -510,11 +558,15 @@ struct cominf {
 	sliders_mode sliders;		// 0: min/max, 1: MIPS-LO/HI, 2: user
 	int preprostatus;
 	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
+	gboolean prepro_equalize_cfa;  // Use to save if flat will be equalized in preprocessing
 	gboolean show_excluded;		// show excluded images in sequences
 	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
 
+	/* positions of all windows */
+	rectangle main_w_pos;
+	rectangle rgb_w_pos;
+
 	/* selection rectangle for registration, FWHM, PSF */
-	gboolean drawn;			// true if the selection rectangle has been drawn TO REMOVE!
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
 	gint startX, startY;		// where the mouse was originally clicked to
 	rectangle selection;		// coordinates of the selection rectangle
@@ -530,7 +582,6 @@ struct cominf {
 	gchar *initfile;			// the path of the init file
 	
 	char *ext;		// FITS extension used in SIRIL
-	int len_ext;
 
 	int reg_settings;		// Use to save registration method in the init file
 	
@@ -540,7 +591,7 @@ struct cominf {
 
 	stackconf stack;
 	
-	int filter;
+	int filter;			// file extension filter for open/save dialogs
 
 	/* history of the command line. This is a circular buffer (cmd_history)
 	 * of size cmd_hist_size, position to be written is cmd_hist_current and
@@ -556,7 +607,8 @@ struct cominf {
 	int hist_size;			// allocated size
 	int hist_current;		// current index
 	int hist_display;		// displayed index
-	gchar *swap_dir;
+	gchar *swap_dir;		// swap directory
+	GSList *script_path;	// script path directories
 
 	libraw raw_set;			// the libraw settings
 	struct debayer_config debayer;	// debayer settings
@@ -567,6 +619,7 @@ struct cominf {
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
 
+	star_finder_params starfinder_conf;	// star finder settings, from GUI or init file
 	fitted_PSF **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
 	int selected_star;		// current selected star in the GtkListStore
@@ -576,10 +629,16 @@ struct cominf {
 	int grad_nb_boxes, grad_size_boxes;
 	gboolean grad_boxes_drawn;
 
+	int max_thread;			// maximum of thread used for parallel execution
+
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
 	gboolean run_thread;		// the main thread loop condition
-	int max_thread;			// maximum of thread used
+
+	gboolean headless;		// pure console, no GUI
+	gboolean script;		// scripts execution
+	gboolean stop_script;		// abort script execution
+	GThread *script_thread;		// reads a script and executes its commands
 };
 
 /* this structure is used to characterize the statistics of the image */

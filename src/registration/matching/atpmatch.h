@@ -2,6 +2,7 @@
 #define ATPMATCH_H
 
 #include "core/siril.h"
+#include "misc.h"
 
 /*
  *
@@ -72,7 +73,7 @@
     * trying to match up sets of triangles.  If AT_MATCH_RATIO
     * is set to 1.0, then all triangles will be used.
     */
-#define AT_MATCH_RATIO    0.8
+#define AT_MATCH_RATIO    0.9
 
    /*
     * We require AT LEAST this many matched pairs of stars to
@@ -98,11 +99,9 @@
     * as an effective "sigma".  Throw out any pairs with
     * discrepancy more than AT_MATCH_NSIGMA*"sigma".
     *
-    * Values of 0.60-0.70 work well for AT_MATCH_PERCENTILE
-    * Values of 2-3                     AT_MATCH_NSIGMA
     */
-#define AT_MATCH_PERCENTILE   0.70
-#define AT_MATCH_NSIGMA       3.0
+#define AT_MATCH_PERCENTILE   0.35
+#define AT_MATCH_NSIGMA       10.0
 
    /*
     * We go through a loop of
@@ -115,7 +114,7 @@
     * The user can modify this limit via the "max_iter"
     * command-line argument.
     */
-#define AT_MATCH_MAXITER      3
+#define AT_MATCH_MAXITER      5
 
 
    /*
@@ -183,6 +182,7 @@ typedef struct s_star {
 	double x;               /* star's "X" coordinate */
 	double y;               /* star's "Y" coordinate */
 	double mag;             /* some measure of star's brightness */
+	double BV;              /* only used for BV calibration */
 	int match_id;           /* ID of star in other list which matches */
 struct s_star *next;    /* we use linked lists internally */
 } s_star;

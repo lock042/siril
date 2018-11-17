@@ -30,6 +30,8 @@
 #endif
 
 #include <stdio.h>
+#include <ctype.h>
+#include <math.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -38,6 +40,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <psapi.h>
+#include <direct.h>
+#include <shlobj.h>
 #else
 #include <sys/resource.h>
 #endif
@@ -52,10 +56,9 @@
 #include <sys/sysctl.h>
 #include <mach/vm_statistics.h>
 #endif
-#include <ctype.h>
 #include <string.h>
 #include <assert.h>
-#include <math.h>
+#include <fitsio.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -211,9 +214,19 @@ int get_extension_index(const char *filename) {
  * @return extension pointed from the filename itself or NULL
  */
 const char *get_filename_ext(const char *filename) {
-	const char *dot = strrchr(filename, '.');
-	if (!dot || dot == filename)
+	gchar *basename;
+	int len;
+	const char *dot, *p;
+
+	basename = g_path_get_basename(filename);
+	len = strlen(filename) - strlen(basename);
+	g_free(basename);
+
+	p = filename + len;
+	dot = strrchr(p, '.');
+	if (!dot || dot == p) {
 		return NULL;
+	}
 	return dot + 1;
 }
 
@@ -223,7 +236,7 @@ const char *get_filename_ext(const char *filename) {
  * @return 1 if file is readable (not actually opened to verify)
  */
 int is_readable_file(const char *filename) {
-	struct stat sts;
+	GStatBuf sts;
 	if (g_stat(filename, &sts))
 		return 0;
 	if (S_ISREG (sts.st_mode)
@@ -348,6 +361,8 @@ int changedir(const char *dir, gchar **err) {
 				"to write in this directory: %s\n"), "red", dir);
 		retval = 4;
 	} else {
+		/* sequences are invalidate when cwd is changed */
+		close_sequence(FALSE);
 		if (!g_chdir(dir)) {
 			/* do we need to search for sequences in the directory now? We still need to
 			 * press the check seq button to display the list, and this is also done there. */
@@ -357,7 +372,8 @@ int changedir(const char *dir, gchar **err) {
 			com.wd = g_get_current_dir();
 			siril_log_message(_("Setting CWD (Current "
 					"Working Directory) to '%s'\n"), com.wd);
-			set_GUI_CWD();
+			if (!com.script)
+				set_GUI_CWD();
 			update_used_memory();
 			retval = 0;
 		} else {
@@ -370,6 +386,20 @@ int changedir(const char *dir, gchar **err) {
 		*err = error;
 	}
 	return retval;
+}
+/**
+ * If Windows OS, converts a filename from UTF-8 to the system codepage. Do nothing on other system
+ * @param path to convert
+ * @return converted filename
+ */
+gchar *get_locale_filename(const gchar *path) {
+	gchar *str;
+#ifdef _WIN32
+	str = g_win32_locale_filename_from_utf8(path);
+#else // _WIN32
+	str = g_strdup(path);
+#endif // _WIN32
+	return str;
 }
 
 #ifdef _WIN32
@@ -437,17 +467,26 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	struct dirent **list;
 	int number_of_loaded_sequences = 0;
 	int index_of_seq_to_load = -1;
+	char *seqname = NULL;
 
 	// clear the previous list
 	seqcombo = GTK_COMBO_BOX_TEXT(
 			gtk_builder_get_object(builder, "sequence_list_combobox"));
 	gtk_combo_box_text_remove_all(seqcombo);
 
+	if (sequence_name_to_select) {
+	       if (ends_with(sequence_name_to_select, ".seq"))
+		       seqname = strdup(sequence_name_to_select);
+	       else {
+		       seqname = malloc(strlen(sequence_name_to_select) + 5);
+		       sprintf(seqname, "%s.seq", sequence_name_to_select);
+	       }
+	}
+
 #ifdef _WIN32
-	number_of_loaded_sequences = ListSequences(com.wd, sequence_name_to_select, seqcombo, &index_of_seq_to_load);
+	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load);
 #else
 	int i, n;
-	char filename[256];
 
 	n = scandir(com.wd, &list, 0, alphasort);
 	if (n < 0)
@@ -459,14 +498,11 @@ int update_sequences_list(const char *sequence_name_to_select) {
 		if ((suf = strstr(list[i]->d_name, ".seq")) && strlen(suf) == 4) {
 			sequence *seq = readseqfile(list[i]->d_name);
 			if (seq != NULL) {
-				strncpy(filename, list[i]->d_name, 255);
 				free_sequence(seq, TRUE);
+				char *filename = list[i]->d_name;
 				gtk_combo_box_text_append_text(seqcombo, filename);
-				if (sequence_name_to_select
-						&& !strncmp(filename, sequence_name_to_select,
-								strlen(filename))) {
+				if (seqname && !strcmp(filename, seqname))
 					index_of_seq_to_load = number_of_loaded_sequences;
-				}
 				++number_of_loaded_sequences;
 			}
 		}
@@ -475,6 +511,8 @@ int update_sequences_list(const char *sequence_name_to_select) {
 		free(list[i]);
 	free(list);
 #endif
+
+	if (seqname) free(seqname);
 
 	if (!number_of_loaded_sequences) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
@@ -718,6 +756,32 @@ int get_available_memory_in_MB() {
 #endif
 
 /**
+ *
+ * @param filename
+ * @param size
+ */
+#ifdef _WIN32
+/* stolen from gimp which in turn stole from glib 2.35 */
+gchar *get_special_folder(int csidl) {
+	wchar_t path[MAX_PATH + 1];
+	HRESULT hr;
+	LPITEMIDLIST pidl = NULL;
+	BOOL b;
+	gchar *retval = NULL;
+
+	hr = SHGetSpecialFolderLocation(NULL, csidl, &pidl);
+	if (hr == S_OK) {
+		b = SHGetPathFromIDListW(pidl, path);
+		if (b)
+			retval = g_utf16_to_utf8(path, -1, NULL, NULL, NULL);
+		CoTaskMemFree(pidl);
+	}
+
+	return retval;
+}
+#endif
+
+/**
  * Expands the ~ in filenames
  * @param[in] filename input filename
  * @param[in] size maximum size of the filename
@@ -754,27 +818,6 @@ WORD get_normalized_value(fits *fit) {
 	if (fit->maxi <= UCHAR_MAX)
 		return UCHAR_MAX;
 	return USHRT_MAX;
-}
-
-/**
- * This function reads a text file and displays it in the
- * show_data_dialog
- * @param path filename to display
- * @param title text shown as dialog title
- */
-void read_and_show_textfile(char *path, char *title) {
-	char line[64] = "";
-	char txt[1024] = "";
-
-	FILE *f = g_fopen(path, "r");
-	if (!f) {
-		show_dialog(_("File not found"), _("Error"), "dialog-error");
-		return;
-	}
-	while (fgets(line, sizeof(line), f) != NULL)
-		strcat(txt, line);
-	show_data_dialog(txt, title);
-	fclose(f);
 }
 
 /**
@@ -849,7 +892,7 @@ void quicksort_s(WORD *a, int n) {
 /**
  * Removes extension of the filename
  * @param filename file path with extension
- * @return filename without extension
+ * @return newly allocated filename without extension
  */
 char *remove_ext_from_filename(const char *filename) {
 	size_t filelen;
@@ -1032,4 +1075,109 @@ double encodeJD(dateTime dt) {
 	} else {
 		return jd1 + 2 - (dt.year / 100) + (dt.year / 400);
 	}
+}
+
+/**
+ * Compares a and b like strcmp()
+ * @param a a gconstpointer
+ * @param b a gconstpointer
+ * @return an integer less than, equal to, or greater than zero, if a is than b .
+ */
+gint strcompare(gconstpointer *a, gconstpointer *b) {
+	gchar *collate_key1, *collate_key2;
+	gint result;
+
+	const gchar *s1 = (const gchar *)a;
+	const gchar *s2 = (const gchar *)b;
+
+	collate_key1  = g_utf8_collate_key_for_filename(s1, strlen(s1));
+	collate_key2  = g_utf8_collate_key_for_filename(s2, strlen(s2));
+
+	result = g_strcmp0(collate_key1, collate_key2);
+	g_free(collate_key1);
+	g_free(collate_key2);
+
+	return result;
+}
+
+/**
+ * Check how many files a process can have open and try to extend the limit if possible.
+ * The max files depends of the Operating System and of cfitsio (NMAXFILES)
+ * @param nb_frames number of file processed
+ * @param nb_allowed_file the maximum of file that can be opened
+ * @return TRUE if the system can open all the files, FALSE otherwise
+ */
+gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
+	int open_max, maxfile, MAX_NO_FILE_CFITSIO, MAX_NO_FILE;
+	float version;
+
+	/* get the limit of cfitsio */
+	fits_get_version(&version);
+	MAX_NO_FILE_CFITSIO = (version < 3.45) ? 1000 : 10000;
+
+	/* get the OS limit and extend it if possible */
+#ifdef _WIN32
+	MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, 2048);
+	open_max = _getmaxstdio();
+	if (open_max < MAX_NO_FILE) {
+		/* extend the limit to 2048 if possible
+		 * 2048 is the maximum on WINDOWS */
+		_setmaxstdio(MAX_NO_FILE);
+		open_max = _getmaxstdio();
+	}
+#else
+	struct rlimit rlp;
+
+/* we first set the limit to the CFITSIO limit */
+	MAX_NO_FILE = MAX_NO_FILE_CFITSIO;
+	if (getrlimit(RLIMIT_NOFILE, &rlp) == 0) {
+		MAX_NO_FILE = (rlp.rlim_max == RLIM_INFINITY) ?
+						MAX_NO_FILE_CFITSIO : rlp.rlim_max;
+
+		if (rlp.rlim_cur != RLIM_INFINITY) {
+			open_max = rlp.rlim_cur;
+			MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, MAX_NO_FILE);
+			if (open_max < MAX_NO_FILE) {
+				rlp.rlim_cur = MAX_NO_FILE;
+				/* extend the limit to NMAXFILES if possible */
+				int retval = setrlimit(RLIMIT_NOFILE, &rlp);
+				if (!retval) {
+					getrlimit(RLIMIT_NOFILE, &rlp);
+					open_max = rlp.rlim_cur;
+				}
+			}
+		} else { // no soft limits
+			open_max = MAX_NO_FILE;
+		}
+	} else {
+		open_max = sysconf(_SC_OPEN_MAX); // if no sucess with getrlimit, try with sysconf
+	}
+#endif // _WIN32
+
+	maxfile = min(open_max, MAX_NO_FILE);
+	siril_debug_print("Maximum of files that will be opened=%d\n", maxfile);
+	*nb_allowed_file = maxfile;
+
+	return nb_frames < maxfile;
+}
+
+/**
+ * Get the active window on toplevels
+ * @return the GtkWindow activated
+ */
+GtkWindow *siril_get_active_window() {
+	GtkWindow *win = NULL;
+	GList *list, *l;
+
+	list = gtk_window_list_toplevels();
+
+	for (l = list; l; l = l->next) {
+		if (gtk_window_is_active((GtkWindow *) l->data)) {
+			win = (GtkWindow *) l->data;
+			break;
+		}
+	}
+
+	g_list_free(list);
+	return win;
 }

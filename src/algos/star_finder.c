@@ -30,6 +30,7 @@
 #include "core/proto.h"
 #include "algos/Def_Wavelet.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "algos/PSF.h"
 #include "gui/PSF_list.h"
@@ -46,7 +47,7 @@ static WORD Compute_threshold(fits *fit, double starfinder, int layer, WORD *nor
 
 	stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC);
 	if (!stat) {
-		siril_log_message(_("Error: no data computed.\n"));
+		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 0;
 	}
 	threshold = (WORD) stat->median + starfinder * (WORD) stat->sigma;
@@ -57,7 +58,7 @@ static WORD Compute_threshold(fits *fit, double starfinder, int layer, WORD *nor
 	return threshold;
 }
 
-static gboolean is_star(fitted_PSF *result, starFinder *sf) {
+static gboolean is_star(fitted_PSF *result, star_finder_params *sf) {
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
 		return FALSE;
 	if (isnan(result->x0) || isnan(result->y0))
@@ -78,7 +79,7 @@ static gboolean is_star(fitted_PSF *result, starFinder *sf) {
 	return TRUE;
 }
 
-static void get_structure(starFinder *sf) {
+static void get_structure(star_finder_params *sf) {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
 			*spin_roundness = NULL;
 
@@ -92,6 +93,47 @@ static void get_structure(starFinder *sf) {
 	sf->roundness = gtk_spin_button_get_value(spin_roundness);
 }
 
+void init_peaker_GUI() {
+	/* TODO someday: read values from conf file and set them in the GUI.
+	 * Until then, storing values in com.starfinder_conf instead of getting
+	 * them in the GUI while running the peaker.
+	 * see also init_peaker_default below */
+	get_structure(&com.starfinder_conf);
+}
+
+void init_peaker_default() {
+	/* values taken from siril3.glade */
+	com.starfinder_conf.radius = 10;
+	com.starfinder_conf.sigma = 1.0;
+	com.starfinder_conf.roundness = 0.5;
+}
+
+void on_spin_sf_radius_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	com.starfinder_conf.radius = (int)gtk_spin_button_get_value(spinbutton);
+}
+
+void on_spin_sf_threshold_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	com.starfinder_conf.sigma = gtk_spin_button_get_value(spinbutton);
+}
+
+void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	com.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
+}
+
+void update_peaker_GUI() {
+	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
+			*spin_roundness = NULL;
+
+	if (spin_radius == NULL) {
+		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
+		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
+		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
+	}
+	gtk_spin_button_set_value(spin_radius, (double) com.starfinder_conf.radius);
+	gtk_spin_button_set_value(spin_sigma, com.starfinder_conf.sigma);
+	gtk_spin_button_set_value(spin_roundness, com.starfinder_conf.roundness);
+}
+
 /*
  This is an implementation of a simple peak detector algorithm which
  identifies any pixel that is greater than any of its eight neighbors.
@@ -101,7 +143,7 @@ static void get_structure(starFinder *sf) {
  */
 
 /* returns a NULL-ended array of FWHM info */
-fitted_PSF **peaker(fits *fit, int layer, starFinder *sf, rectangle *area) {
+fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	int areaX0 = 0;
@@ -112,21 +154,14 @@ fitted_PSF **peaker(fits *fit, int layer, starFinder *sf, rectangle *area) {
 	double bg;
 	WORD threshold, norm;
 	WORD **wave_image, **real_image;
-	fits *wave_fit;
+	fits wave_fit = { 0 };
 	fitted_PSF **results;
 	struct timeval t_start, t_end;
 
 	assert(nx > 0 && ny > 0);
 
-	wave_fit = calloc(1, sizeof(fits));
-	if (wave_fit == NULL) {
-		printf("Memory allocation failed: peaker\n");
-		return NULL;
-	}
-
 	results = malloc((MAX_STARS + 1) * sizeof(fitted_PSF *));
 	if (results == NULL) {
-		free(wave_fit);
 		printf("Memory allocation failed: peaker\n");
 		return NULL;
 	}
@@ -135,30 +170,29 @@ fitted_PSF **peaker(fits *fit, int layer, starFinder *sf, rectangle *area) {
 	gettimeofday(&t_start, NULL);
 
 	results[0] = NULL;
-	get_structure(sf);
 	threshold = Compute_threshold(fit, sf->sigma, layer, &norm, &bg);
 
-	copyfits(fit, wave_fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
-	get_wavelet_layers(wave_fit, WAVELET_SCALE, 2, TO_PAVE_BSPLINE, layer);
+	copyfits(fit, &wave_fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
+	get_wavelet_layers(&wave_fit, WAVELET_SCALE, 2, TO_PAVE_BSPLINE, layer);
 
 	/* FILL wavelet image upside-down */
 	wave_image = malloc(ny * sizeof(WORD *));
 	if (wave_image == NULL) {
-		free(wave_fit);
 		free(results);
-		printf("Memory allocation failed: peaker\n");
+		clearfits(&wave_fit);
+		fprintf(stderr, "Memory allocation failed: peaker\n");
 		return NULL;
 	}
 	for (k = 0; k < ny; k++)
-		wave_image[ny - k - 1] = wave_fit->pdata[layer] + k * nx;
+		wave_image[ny - k - 1] = wave_fit.pdata[layer] + k * nx;
 
 	/* FILL real image upside-down */
 	real_image = malloc(ny * sizeof(WORD *));
 	if (real_image == NULL) {
-		free(wave_fit);
 		free(results);
 		free(wave_image);
-		printf("Memory allocation failed: peaker\n");
+		clearfits(&wave_fit);
+		fprintf(stderr, "Memory allocation failed: peaker\n");
 		return NULL;
 	}
 	for (k = 0; k < ny; k++)
@@ -171,9 +205,6 @@ fitted_PSF **peaker(fits *fit, int layer, starFinder *sf, rectangle *area) {
 		areaY1 = area->h + areaY0;
 	}
 
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
-#endif
 	for (y = sf->radius + areaY0; y < areaY1 - sf->radius; y++) {
 		int x;
 		for (x = sf->radius + areaX0; x < areaX1 - sf->radius; x++) {
@@ -220,17 +251,14 @@ fitted_PSF **peaker(fits *fit, int layer, starFinder *sf, rectangle *area) {
 						psf_update_units(fit, &cur_star);
 						if (is_star(cur_star, sf)) {
 							cur_star->xpos = x + cur_star->x0 - sf->radius - 1;
-							cur_star->ypos = y + cur_star->y0 - sf->radius - 1;
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-							{
-								if (nbstars < MAX_STARS) {
-									results[nbstars] = cur_star;
-									results[nbstars + 1] = NULL;
-									nbstars++;
-								}
+							cur_star->ypos = y + cur_star->y0 - sf->radius;
+							if (nbstars < MAX_STARS) {
+								results[nbstars] = cur_star;
+								results[nbstars + 1] = NULL;
+//								printf("%lf\t\t%lf\t\t%lf\n", cur_star->xpos, cur_star->ypos, cur_star->mag);
+								nbstars++;
 							}
+
 						}
 					}
 					gsl_matrix_free(z);
@@ -243,15 +271,16 @@ fitted_PSF **peaker(fits *fit, int layer, starFinder *sf, rectangle *area) {
 		free(results);
 		results = NULL;
 	}
-	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
 	sort_stars(results, nbstars);
-	sf->nb_stars = nbstars;
 	free(wave_image);
 	free(real_image);
-	clearfits(wave_fit);
+	clearfits(&wave_fit);
 
 	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
+	if (showtime)
+		show_time(t_start, t_end);
+	if (nb_stars)
+		*nb_stars = nbstars;
 	return results;
 }
 
@@ -296,7 +325,7 @@ fitted_PSF *add_star(fits *fit, int layer, int *index) {
 		free(result);
 		result = NULL;
 		char *msg = siril_log_message(_("This star has already been picked !\n"));
-		show_dialog(msg, _("Peaker"), "dialog-information");
+		siril_message_dialog( GTK_MESSAGE_INFO, _("Peaker"), msg);
 	} else {
 		if (i < MAX_STARS) {
 			result->xpos = result->x0 + com.selection.x;
@@ -349,6 +378,13 @@ int compare_stars(const void* star1, const void* star2) {
 void sort_stars(fitted_PSF **stars, int total) {
 	if (*(&stars))
 		qsort(*(&stars), total, sizeof(fitted_PSF*), compare_stars);
+}
+
+void free_fitted_stars(fitted_PSF **stars) {
+	int i = 0;
+	while (stars && stars[i])
+		free(stars[i++]);
+	free(stars);
 }
 
 void FWHM_average(fitted_PSF **stars, float *FWHMx, float *FWHMy, int max) {

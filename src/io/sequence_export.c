@@ -62,7 +62,8 @@ static gpointer export_sequence(gpointer ptr) {
 	float cur_nb = 0.f, nb_frames;
 	unsigned int out_width, out_height, in_width, in_height, nbdata = 0;
 	uint8_t *data;
-	fits fit, destfit;
+	fits fit = { 0 };
+	fits destfit = { 0 };
 	char filename[256], dest[256];
 	struct ser_struct *ser_file = NULL;
 	GSList *timestamp = NULL;
@@ -71,11 +72,9 @@ static gpointer export_sequence(gpointer ptr) {
 	struct mp4_struct *mp4_file = NULL;
 #endif
 	struct exportseq_args *args = (struct exportseq_args *)ptr;
-	norm_coeff coeff;
-	memset(&fit, 0, sizeof(fits));
-	memset(&destfit, 0, sizeof(fits));
+	norm_coeff coeff = { 0 };
 
-	reglayer = get_registration_layer();
+	reglayer = get_registration_layer(args->seq);
 	siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
 	if (args->crop) {
 		in_width  = args->crop_area.w;
@@ -177,6 +176,7 @@ static gpointer export_sequence(gpointer ptr) {
 		stackargs.nb_images_to_stack = args->seq->number;
 		stackargs.filtering_criterion = stack_filter_all;
 		stackargs.normalize = ADDITIVE_SCALING;
+		stackargs.reglayer = reglayer;
 
 		// build image indices used by normalization
 		stackargs.image_indices = malloc(stackargs.nb_images_to_stack * sizeof(int));
@@ -230,6 +230,7 @@ static gpointer export_sequence(gpointer ptr) {
 			destfit.fptr = NULL;
 			nbdata = fit.rx * fit.ry;
 			destfit.data = calloc(nbdata * fit.naxes[2], sizeof(WORD));
+			destfit.stats = NULL;
 			if (!destfit.data) {
 				fprintf(stderr, "Could not allocate memory for the export, aborting\n");
 				retval = -1;
@@ -343,7 +344,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 free_and_reset_progress_bar:
 	clearfits(&fit);	// in case of goto
-	clearfits(&destfit);
+	free(destfit.data);
 	if (args->normalize) {
 		free(coeff.offset);
 		free(coeff.scale);
@@ -376,7 +377,7 @@ free_and_reset_progress_bar:
 	free(args->basename);
 	free(args);
 	args = NULL;
-	gdk_threads_add_idle(end_generic, args);
+	siril_add_idle(end_generic, args);
 	return NULL;
 }
 
@@ -406,18 +407,23 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 
 	// filtering
 	switch (gtk_combo_box_get_active(stack_type)) {
-		case 0:
+		case ALL_IMAGES:
 			args->filtering_criterion = stack_filter_all;
 			break;
-		case 1:
+		case SELECTED_IMAGES:
 			args->filtering_criterion = stack_filter_included;
 			break;
-		case 2:
+		case BEST_PSF_IMAGES:
 			percent = gtk_adjustment_get_value(stackadj);
 			args->filtering_criterion = stack_filter_fwhm;
 			args->filtering_parameter = compute_highest_accepted_fwhm(percent);
 			break;
-		case 3:
+		case BEST_ROUND_IMAGES:
+			percent = gtk_adjustment_get_value(stackadj);
+			args->filtering_criterion = stack_filter_roundness;
+			args->filtering_parameter = compute_lowest_accepted_roundness(percent);
+			break;
+		case BEST_QUALITY_IMAGES:
 			percent = gtk_adjustment_get_value(stackadj);
 			args->filtering_criterion = stack_filter_quality;
 			args->filtering_parameter = compute_highest_accepted_quality(percent);

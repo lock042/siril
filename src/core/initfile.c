@@ -26,8 +26,6 @@
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 #ifdef _WIN32
-#include <direct.h>
-#include <shlobj.h>
 #define DATADIR datadir
 /* Constant available since Shell32.dll 4.72 */
 #ifndef CSIDL_APPDATA
@@ -50,6 +48,7 @@ static const char *keywords[] = { "working-directory", "libraw-settings",
 static int readinitfile() {
 	config_t config;
 	const char *dir = NULL, *swap_dir = NULL, *extension = NULL;
+	GSList *list = NULL;
 
 	if (!com.initfile)
 		return 1;
@@ -73,6 +72,7 @@ static int readinitfile() {
 			writeinitfile();
 		}
 	}
+	else set_GUI_CWD();
 
 	/* Libraw setting */
 	config_setting_t *raw_setting = config_lookup(&config, keywords[RAW]);
@@ -113,6 +113,7 @@ static int readinitfile() {
 	config_setting_t *prepro_setting = config_lookup(&config, keywords[PRE]);
 	if (prepro_setting) {
 		config_setting_lookup_bool(prepro_setting, "cfa", &com.prepro_cfa);
+		config_setting_lookup_bool(prepro_setting, "equalize_cfa", &com.prepro_equalize_cfa);
 	}
 
 	/* Registration setting */
@@ -146,13 +147,41 @@ static int readinitfile() {
 	/* Misc setting */
 	config_setting_t *misc_setting = config_lookup(&config, keywords[MISC]);
 	if (misc_setting) {
-		config_setting_lookup_bool(misc_setting, "confirm",
-				&com.dontShowConfirm);
-		config_setting_lookup_bool(misc_setting, "darktheme",
-				&com.have_dark_theme);
+
+		config_setting_lookup_bool(misc_setting, "confirm",	&com.dontShowConfirm);
+		config_setting_lookup_bool(misc_setting, "darktheme", &com.have_dark_theme);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		config_setting_lookup_string(misc_setting, "extension", &extension);
-		set_GUI_misc();
+
+		misc_setting = config_lookup(&config, "misc-settings.scripts_paths");
+		if (misc_setting != NULL) {
+			unsigned int count = config_setting_length(misc_setting);
+			unsigned int i;
+			const char *tmp = NULL;
+
+			for (i = 0; i < count; ++i) {
+				tmp = config_setting_get_string_elem(misc_setting, i);
+				list = g_slist_append(list, g_strdup(tmp));
+			}
+
+			if (!com.script)
+				set_GUI_misc();
+		}
+		misc_setting = config_lookup(&config, "misc-settings.main_w_pos");
+		if (misc_setting != NULL) {
+			com.main_w_pos.x = config_setting_get_int_elem(misc_setting, 0);
+			com.main_w_pos.y = config_setting_get_int_elem(misc_setting, 1);
+			com.main_w_pos.w = config_setting_get_int_elem(misc_setting, 2);
+			com.main_w_pos.h = config_setting_get_int_elem(misc_setting, 3);
+		}
+		misc_setting = config_lookup(&config, "misc-settings.rgb_w_pos");
+		if (misc_setting != NULL) {
+			com.rgb_w_pos.x = config_setting_get_int_elem(misc_setting, 0);
+			com.rgb_w_pos.y = config_setting_get_int_elem(misc_setting, 1);
+			com.rgb_w_pos.w = config_setting_get_int_elem(misc_setting, 2);
+			com.rgb_w_pos.h = config_setting_get_int_elem(misc_setting, 3);
+		}
+
 	}
 	if (swap_dir && swap_dir[0] != '\0') {
 		if (com.swap_dir)
@@ -169,6 +198,7 @@ static int readinitfile() {
 	} else {
 		com.ext = strdup(".fit");
 	}
+	com.script_path = list;
 	return 0;
 }
 
@@ -246,6 +276,9 @@ static void _save_preprocessing(config_t *config, config_setting_t *root) {
 
 	prepro_setting = config_setting_add(prepro_group, "cfa", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(prepro_setting, com.prepro_cfa);
+
+	prepro_setting = config_setting_add(prepro_group, "equalize_cfa", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(prepro_setting, com.prepro_equalize_cfa);
 }
 
 static void _save_registration(config_t *config, config_setting_t *root) {
@@ -291,6 +324,7 @@ static void _save_photometry(config_t *config, config_setting_t *root) {
 
 static void _save_misc(config_t *config, config_setting_t *root) {
 	config_setting_t *misc_group, *misc_setting;
+	GSList *list = com.script_path;
 
 	misc_group = config_setting_add(root, keywords[MISC], CONFIG_TYPE_GROUP);
 
@@ -308,6 +342,32 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 	misc_setting = config_setting_add(misc_group, "darktheme",
 			CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.have_dark_theme);
+
+	misc_setting = config_setting_add(misc_group, "scripts_paths",
+			CONFIG_TYPE_LIST);
+	while (list) {
+		config_setting_set_string_elem(misc_setting, -1, (char *)list->data);
+		list = list->next;
+	}
+	misc_setting = config_setting_add(misc_group, "main_w_pos",
+			CONFIG_TYPE_LIST);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.x);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.y);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.w);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.h);
+	misc_setting = config_setting_add(misc_group, "rgb_w_pos",
+			CONFIG_TYPE_LIST);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.x);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.y);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.w);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.h);
+}
+
+static int siril_config_write_file(config_t *config, const char *filename) {
+	gchar *fname = get_locale_filename(filename);
+	int ret = config_write_file(config, fname);
+	g_free(fname);
+	return ret;
 }
 
 /**
@@ -330,40 +390,18 @@ int writeinitfile() {
 	_save_photometry(&config, root);
 	_save_misc(&config, root);
 
-	if (!config_write_file(&config, com.initfile)) {
+	if (!siril_config_write_file(&config, com.initfile)) {
 		fprintf(stderr, "Error while writing file.\n");
 		config_destroy(&config);
 		return 1;
 	}
 	config_destroy(&config);
-
 	return 0;
 }
 
-#ifdef _WIN32
-/* stolen from gimp which in turn stole from glib 2.35 */
-static gchar *get_special_folder(int csidl) {
-	wchar_t path[MAX_PATH + 1];
-	HRESULT hr;
-	LPITEMIDLIST pidl = NULL;
-	BOOL b;
-	gchar *retval = NULL;
-
-	hr = SHGetSpecialFolderLocation(NULL, csidl, &pidl);
-	if (hr == S_OK) {
-		b = SHGetPathFromIDListW(pidl, path);
-		if (b)
-			retval = g_utf16_to_utf8(path, -1, NULL, NULL, NULL);
-		CoTaskMemFree(pidl);
-	}
-
-	return retval;
-}
-#endif
-
 int checkinitfile() {
 	gchar *home = NULL;
-	struct stat sts;
+	GStatBuf sts;
 
 	// try to read the file given on command line
 	if (com.initfile && !readinitfile()) {

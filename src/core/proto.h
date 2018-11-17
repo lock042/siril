@@ -18,15 +18,16 @@
 
 /****************** image_format_fits.h ******************/
 int	readfits(const char *filename, fits *fit, char *realname);
+double get_exposure_from_fitsfile(fitsfile *fptr);
+int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void	clearfits(fits *);
 int	readfits_partial(const char *filename, int layer, fits *fit, const rectangle *area, gboolean read_date);
 int	read_opened_fits_partial(sequence *seq, int layer, int index, WORD *buffer, const rectangle *area);
-int	fits_get_date_obs(const char *name, fits *f);
 int 	savefits(const char *, fits *);
-void 	save_fits_header(fits *);
 int	copyfits(fits *from, fits *to, unsigned char oper, int layer);
 int	copy_fits_metadata(fits *from, fits *to);
 int	save1fits16(const char *filename, fits *fit, int layer);
+int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status);
 
 void	rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
 void	rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);
@@ -41,9 +42,6 @@ void	keep_first_channel_from_fits(fits *fit);
 /* BMP */
 int 	readbmp(const char *, fits *);
 int 	savebmp(const char *, fits *);
-int	bmp32tofits48(unsigned char *rvb, int rx, int ry, fits *fitr, gboolean inverted);
-int	bmp24tofits48(unsigned char *rvb, int rx, int ry, fits *fitr);
-int	bmp8tofits(unsigned char *rvb, int rx, int ry, fits *fitr);
 
 /* PNM */
 int 	import_pnm_to_fits(const char *filename, fits *fit);
@@ -51,7 +49,7 @@ int	saveNetPBM(const char *name, fits *fit);
 
 /* PIC */
 struct pic_struct {
-	unsigned short magic[2];
+	unsigned long magic;
 	unsigned short width;
 	unsigned short height;
 	unsigned short bin[6];
@@ -62,7 +60,7 @@ struct pic_struct {
 	char *time;		
 
 	// internal stuff
-	int fd;
+	FILE *file;
 };
 int	readpic(const char *name, fits *fit);
 
@@ -103,10 +101,14 @@ const char *get_filename_ext(const char *filename);
 
 gchar *siril_get_startup_dir();
 int	changedir(const char *dir, gchar **err);
+gchar *get_locale_filename(const gchar *path);
 int	update_sequences_list(const char *sequence_name_to_select);
 void	update_used_memory();
 double test_available_space(double seq_size);
 int	get_available_memory_in_MB();
+#ifdef _WIN32
+gchar *get_special_folder(int csidl);
+#endif
 void	expand_home_in_filename(char *filename, int size);
 WORD	get_normalized_value(fits*);
 void	read_and_show_textfile(char*, char*);
@@ -119,6 +121,9 @@ char*	format_basename(char *root);
 float	computePente(WORD *lo, WORD *hi);
 void	load_css_style_sheet (char *path);
 double	encodeJD(dateTime dt);
+gint strcompare(gconstpointer *a, gconstpointer *b);
+gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
+GtkWindow *siril_get_active_window();
 
 /****************** quantize.h ***************/
 int fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -130,7 +135,7 @@ int fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 /* crop sequence data from GUI */
 struct crop_sequence_data {
 	sequence *seq;
-	rectangle *area;
+	rectangle area;
 	const char *prefix;
 	int retvalue;
 };
@@ -156,6 +161,7 @@ struct banding_data {
 /* Noise data from GUI */
 struct noise_data {
 	gboolean verbose;
+	gboolean use_idle;
 	fits *fit;
 	double bgnoise[3];
 	struct timeval t_start;
@@ -177,15 +183,13 @@ int	soper(fits *a, double scalar, char oper);
 int	imoper(fits *a, fits *b, char oper);
 int sub_background(fits* image, fits* background, int layer);
 int 	addmax(fits *a, fits *b);
-int	fdiv(fits *a, fits *b, float scalar);
-int ndiv(fits *a, fits *b);
-int fmul(fits *a, float coeff);
+int	siril_fdiv(fits *a, fits *b, float scalar);
+int siril_ndiv(fits *a, fits *b);
 double 	gaussienne(double sigma, int size, double *gauss);
 int 	unsharp(fits *,double sigma, double mult, gboolean verbose);
 int	crop(fits *fit, rectangle *bounds);
 int 	shift(int sx, int sy);
 double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
-double contrast(fits* fit, int layer) ;
 int 	loglut(fits *fit, int dir);
 int	ddp(fits *a, int lev, float coef, float sig);
 int	visu(fits *fit, int low, int high);
@@ -193,7 +197,6 @@ int	fill(fits *fit, int level, rectangle *arearg);
 int 	off(fits *a, int level);
 void 	mirrorx(fits *fit, gboolean verbose);
 void 	mirrory(fits *fit, gboolean verbose);
-void 	fits_rotate_pi(fits *fit);
 int	lrgb(fits *l, fits *r, fits *g, fits *b, fits *lrgb);
 gpointer seqpreprocess(gpointer empty);
 void	initialize_preprocessing();
@@ -204,12 +207,14 @@ int	verbose_resize_gaussian(fits *, int, int, int);
 int	verbose_rotate_image(fits *, double, int, int);
 double gauss_cvf(double p);
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
+int extract_plans(fits *fit, int Nbr_Plan, int Type);
 gpointer median_filter(gpointer p);
 void apply_banding_to_sequence(struct banding_data *banding_args);
 gpointer BandingEngineThreaded(gpointer p);
 int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation);
 gpointer noise(gpointer p);
 gpointer LRdeconv(gpointer p);
+void compute_grey_flat(fits *fit);
 
 /****************** seqfile.h ******************/
 sequence * readseqfile(const char *name);
@@ -229,7 +234,7 @@ void	sequence_list_change_selection(gchar *path, gboolean new_value);
 void	sequence_list_change_selection_index(int index);
 void	sequence_list_change_current();
 void	sequence_list_change_reference();
-void	fill_sequence_list(sequence *seq, int layer);
+void	fill_sequence_list(sequence *seq, int layer, gboolean as_idle);
 void	clear_sequence_list();
 
 /****************** statistics_list.h ******************/

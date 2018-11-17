@@ -27,6 +27,7 @@
 #include "core/proto.h"
 #include "algos/statistics.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -34,6 +35,7 @@
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
 #include "core/undo.h"
+#include "core/processing.h"
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
@@ -56,10 +58,12 @@ void free_image_data() {
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 	clearfits(&gfit);
-	clear_stars_list();
+	if (!com.headless) {
+		clear_stars_list();
+		delete_selected_area();
+		clear_sampling_setting_box();	// clear focal and pixel pitch info
+	}
 	clear_histograms();
-	delete_selected_area();
-	clear_sampling_setting_box();	// clear focal and pixel pitch info
 
 	for (vport=0; vport<MAXGRAYVPORT; vport++) {
 		if (com.graybuf[vport]) {
@@ -73,7 +77,8 @@ void free_image_data() {
 		com.surface_stride[vport] = 0;
 		com.surface_height[vport] = 0;
 	}
-	activate_tab(RED_VPORT);
+	if (!com.headless)
+		activate_tab(RED_VPORT);
 	if (com.rgbbuf) {
 		free(com.rgbbuf);
 		com.rgbbuf = NULL;
@@ -87,17 +92,25 @@ void free_image_data() {
 		com.uniq = NULL;
 	}
 
-	/* TODO: free alignment preview data */
-	for (i=0; i<PREVIEW_NB; i++) {
-		if (com.preview_surface[i]) {
-			cairo_surface_destroy(com.preview_surface[i]);
-			com.preview_surface[i] = NULL;
+	if (!com.headless) {
+		/* free alignment preview data */
+		for (i=0; i<PREVIEW_NB; i++) {
+			if (com.preview_surface[i]) {
+				cairo_surface_destroy(com.preview_surface[i]);
+				com.preview_surface[i] = NULL;
+			}
+		}
+		if (com.refimage_surface) {
+			cairo_surface_destroy(com.refimage_surface);
+			com.refimage_surface = NULL;
 		}
 	}
-	if (com.refimage_surface) {
-		cairo_surface_destroy(com.refimage_surface);
-		com.refimage_surface = NULL;
-	}
+}
+
+static gboolean end_read_single_image(gpointer p) {
+	set_GUI_CAMERA();
+	set_GUI_photometry();
+	return FALSE;
 }
 
 /* Reads an image from disk and stores it in the user allocated destination
@@ -113,7 +126,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
 		char *msg = siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		set_cursor_waiting(FALSE);
 		free(realname);
 		return 1;
@@ -132,10 +145,15 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 		*realname_out = realname;
 	else
 		free(realname);
-	set_GUI_CAMERA();
-	set_GUI_photometry();
 	com.filter = (int)imagetype;
+	siril_add_idle(end_read_single_image, NULL);
 	return retval;
+}
+
+static gboolean end_open_single_image(gpointer arg) {
+	char *name = (char *)arg;
+	open_single_image_from_gfit(name);
+	return FALSE;
 }
 
 /* This function is used to load a single image, meaning outside a sequence,
@@ -147,9 +165,8 @@ int open_single_image(const char* filename) {
 	int retval;
 	char *realname;
 
-	close_single_image();	// close the previous image and free resources
-	free_image_data();	// free everything anyway
 	close_sequence(FALSE);	// closing a sequence if loaded
+	close_single_image();	// close the previous image and free resources
 
 	retval = read_single_image(filename, &gfit, &realname);
 	
@@ -158,16 +175,28 @@ int open_single_image(const char* filename) {
 		return 0;
 	}
 	if (retval == 2) {
-		show_dialog(_("This file could not be opened because its extension is not supported.\n"), _("Error"), "dialog-error");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error oppening file"),
+				_("This file could not be opened because "
+						"its extension is not supported."));
 		return 1;
 	}
 	if (retval == 1) {
-		show_dialog(_("There was an error when opening this image. See the log for more information."), _("Error"), "dialog-error");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error oppening file"),
+				_("There was an error when opening this image. "
+						"See the log for more information."));
 		return 1;
 	}
 
 	fprintf(stdout, "Loading image OK, now displaying\n");
-	open_single_image_from_gfit(realname);
+
+	/* Now initializing com struct */
+	com.seq.current = UNRELATED_IMAGE;
+	com.uniq = calloc(1, sizeof(single));
+	com.uniq->filename = realname;
+	com.uniq->nb_layers = gfit.naxes[2];
+	com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
+	com.uniq->fit = &gfit;
+	siril_add_idle(end_open_single_image, realname);
 	return 0;
 }
 
@@ -178,12 +207,7 @@ int open_single_image(const char* filename) {
 void open_single_image_from_gfit(char *realname) {
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
-	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->filename = realname;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
-	com.uniq->fit = &gfit;
+
 	initialize_display_mode();
 
 	init_layers_hi_and_lo_values(MIPSLOHI);		// If MIPS-LO/HI exist we load these values. If not it is min/max
@@ -301,9 +325,11 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 /* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
 void adjust_cutoff_from_updated_gfit() {
 	invalidate_stats_from_fit(&gfit);
-	update_gfit_histogram_if_needed();
-	init_layers_hi_and_lo_values(com.sliders);
-	set_cutoff_sliders_values();
+	if (!com.script) {
+		update_gfit_histogram_if_needed();
+		init_layers_hi_and_lo_values(com.sliders);
+		set_cutoff_sliders_values();
+	}
 }
 
 void unique_free_preprocessing_data(single *uniq) {

@@ -58,7 +58,7 @@ static int bayer_stacking_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-static int bayer_stacking_image_hook(struct generic_seq_args *args, int i, fits *fit, rectangle *_) {
+static int bayer_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
 	struct bayer_stacking_data *ssdata = args->user;
 	int shiftx, shifty, nx, ny, x, y, ii;
 	int pixel = 0;	// pixel index in result image

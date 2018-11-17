@@ -60,7 +60,6 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	uint32 rowsperstrip;
 	uint16 config;
 	unsigned long nrow, row;
-	char *msg;
 
 	TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetField(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
@@ -69,8 +68,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
 	WORD *gbuf[3] = {*data, *data, *data};
 	if (nsamples == 4) {
-		msg = siril_log_message(_("Alpha channel is ignored.\n"));
-		show_dialog(msg, _("Warning"), "dialog-warning");
+		siril_log_message(_("Alpha channel is ignored.\n"));
 	}
 	if ((nsamples == 3) || (nsamples == 4)) {
 		gbuf[1] = *data + npixels;
@@ -85,8 +83,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 		switch(config){
 			case PLANARCONFIG_CONTIG:
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow*scanline) < 0){
-					msg = siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
-					show_dialog(msg, _("Error"), "dialog-error");
+					siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = -1;
 					break;
 				}
@@ -103,8 +100,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 					nsamples = 3;
 				for (j=0; j<nsamples; j++){	//loop on the layer
 					if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j), buf, nrow*scanline) < 0){
-						msg = siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
-						show_dialog(msg, _("Error"), "dialog-error");
+						siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
 						retval = -1;
 						break;
 					}
@@ -113,8 +109,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 				}
 				break;
 			default:
-				msg = siril_log_message(_("Unknown TIFF file.\n"));
-				show_dialog(msg, _("Error"), "dialog-error");
+				siril_log_message(_("Unknown TIFF file.\n"));
 				retval = -1;
 		}
 	}
@@ -125,7 +120,6 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples, WORD **data) {
 	uint32 npixels;
 	int retval = nsamples;
-	char *msg;
 
 	npixels = width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
@@ -155,8 +149,7 @@ static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 			}
 		}
 		else {
-			msg = siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
-			show_dialog(msg, _("Error"), "dialog-error");
+			siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
 			retval = -1;
 		}
 		_TIFFfree(raster);
@@ -186,7 +179,6 @@ static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
  * If file loading fails, the argument is untouched.
  */
 int readtif(const char *name, fits *fit) {
-	char *msg;
 	int retval = 0;
 	uint32 height, width, npixels;
 	uint16 nbits, nsamples, color;
@@ -225,8 +217,7 @@ int readtif(const char *name, fits *fit) {
 			break;
 
 		default :
-			msg = siril_log_message(_("Siril only works with 8/16-bit TIFF format.\n"));
-			show_dialog(msg, _("Warning"), "dialog-warning");
+			siril_log_message(_("Siril only works with 8/16-bit TIFF format.\n"));
 			retval = -1;
 	}
 	TIFFClose(tif);
@@ -255,6 +246,7 @@ int readtif(const char *name, fits *fit) {
 			fit->pdata[BLAYER]=fit->data + npixels * 2;
 		}
 		fit->bitpix = (nbits == 8) ? BYTE_IMG : USHORT_IMG;
+		fit->orig_bitpix = fit->bitpix;
 		retval = nsamples;
 	}
 	if (nbits==16) mirrorx(fit, FALSE);
@@ -270,12 +262,12 @@ int readtif(const char *name, fits *fit) {
 
 int savetif(const char *name, fits *fit, uint16 bitspersample){
 	int retval = 0;
-	char *msg;
 	char *filename;
 	unsigned char *buf8;
 	WORD *buf16;
 	uint32 width, height, row, col, n;
 	uint16 nsamples;
+	double norm;
 
 	mirrorx(fit, FALSE);
 
@@ -287,8 +279,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	TIFF* tif = Siril_TIFFOpen(filename, "w");
 
 	if (tif == NULL) {
-		msg = siril_log_message(_("Siril cannot create TIFF file.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Siril cannot create TIFF file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -344,8 +335,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
 	else {
 		TIFFClose(tif);
-		msg = siril_log_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
 		free(filename);
 		return 1;
 	}
@@ -356,13 +346,13 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	switch (bitspersample) {
 	case 8:
 		buf8 = _TIFFmalloc(width * sizeof(unsigned char) * nsamples);
+		norm = fit->orig_bitpix > BYTE_IMG ? UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE : 1.0;
 		for (row = 0; row < height; row++) {
 			for (col = 0; col < width; col++) {
 				for (n = 0; n < nsamples; n++) {
 					/* UCHAR_MAX / USHRT_MAX is constant, it's 1/255
 					 * This operation should be speed-up by doing a shift */
-					buf8[col * nsamples + n] = (*gbuf[n]++) * UCHAR_MAX_DOUBLE
-							/ USHRT_MAX_DOUBLE;
+					buf8[col * nsamples + n] = (*gbuf[n]++) * norm;
 				}
 			}
 			TIFFWriteScanline(tif, buf8, row, 0);
@@ -371,10 +361,12 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 		break;
 	case 16:
 		buf16 = _TIFFmalloc(width * sizeof(WORD) * nsamples);
+		norm = (fit->orig_bitpix > BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
+
 		for (row = 0; row < height; row++) {
 			for (col = 0; col < width; col++) {
 				for (n = 0; n < nsamples; n++)
-					buf16[col * nsamples + n] = (*gbuf[n]++);
+					buf16[col * nsamples + n] = (*gbuf[n]++) * norm;
 			}
 			TIFFWriteScanline(tif, buf16, row, 0);
 		}
@@ -408,8 +400,7 @@ int readjpg(const char* name, fits *fit){
 
 
 	if ((f = g_fopen(name, "rb")) == NULL){
-		char *msg = siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return -1;
 	}
 	cinfo.err = jpeg_std_error(&jerr);
@@ -436,7 +427,7 @@ int readjpg(const char* name, fits *fit){
 	jpeg_destroy_decompress(&cinfo);
 	if (data != NULL){
 		clearfits(fit);	
-		fit->bitpix = BYTE_IMG;
+		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 		if (cinfo.output_components==1)
 			fit->naxis = 2;
 		else
@@ -450,7 +441,7 @@ int readjpg(const char* name, fits *fit){
 		fit->pdata[RLAYER]=fit->data;
 		fit->pdata[GLAYER]=fit->data + npixels;
 		fit->pdata[BLAYER]=fit->data + npixels * 2;
-		fit->binning_x=fit->binning_y=1;
+		fit->binning_x = fit->binning_y = 1;
 	}
 	mirrorx(fit, FALSE);
 	gchar *basename = g_path_get_basename(name);
@@ -464,11 +455,12 @@ int readjpg(const char* name, fits *fit){
 int savejpg(const char *name, fits *fit, int quality){
 	FILE *f;
 	int i, j;
-	unsigned char red, blue, green;
+	WORD red, blue, green;
 	struct jpeg_compress_struct cinfo;    // Basic info for JPEG properties.
 	struct jpeg_error_mgr jerr;           // In case of error.
 	JSAMPROW row_pointer[1];              // Pointer to JSAMPLE row[s].
 	int row_stride;                       // Physical row width in image buffer.
+	double norm;
 
 	//## ALLOCATE AND INITIALIZE JPEG COMPRESSION OBJECT
 	cinfo.err = jpeg_std_error(&jerr);
@@ -481,8 +473,7 @@ int savejpg(const char *name, fits *fit, int quality){
 
 	//## OPEN FILE FOR DATA DESTINATION:
 	if ((f = g_fopen(filename, "wb")) == NULL) {
-		char *msg = siril_log_message(_("Siril cannot create JPG file.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Siril cannot create JPG file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -491,13 +482,11 @@ int savejpg(const char *name, fits *fit, int quality){
 	//## SET PARAMETERS FOR COMPRESSION:
 	cinfo.image_width  = fit->rx;   // |-- Image width and height in pixels.
 	cinfo.image_height = fit->ry;   // |
-	cinfo.input_components = 3;     // Number of color components per pixel.
-	cinfo.in_color_space = JCS_RGB; // Colorspace of input image as RGB.
+	cinfo.input_components = fit->naxes[2];     // Number of color components per pixel.
+	cinfo.in_color_space = (fit->naxes[2] == 3) ? JCS_RGB : JCS_GRAYSCALE; // Colorspace of input image as RGB.
 
-	unsigned char *gbuf[3]={
-		com.graybuf[RLAYER]+cinfo.image_width*(cinfo.image_height-1)*4,
-		com.graybuf[GLAYER]+cinfo.image_width*(cinfo.image_height-1)*4,
-		com.graybuf[BLAYER]+cinfo.image_width*(cinfo.image_height-1)*4 };
+	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
+
 	jpeg_set_defaults(&cinfo);
 	jpeg_set_quality(&cinfo, quality, TRUE);
 
@@ -505,37 +494,27 @@ int savejpg(const char *name, fits *fit, int quality){
 	unsigned char *image_buffer = (unsigned char*) malloc(
 			cinfo.image_width * cinfo.image_height * cinfo.num_components);
 
+	norm = (fit->orig_bitpix > BYTE_IMG ?
+			UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE : 1.0);
+
 	for (i = (cinfo.image_height - 1); i >= 0; i--) {
 		for (j = 0; j < cinfo.image_width; j++) {
-			int pixelIdx = ((i * cinfo.image_width) + j)
-					* cinfo.input_components;
-			red = *gbuf[RLAYER];
-			gbuf[RLAYER] += 4;
-			if (fit->naxes[2] == 3) {
-				green = *gbuf[GLAYER];
-				blue = *gbuf[BLAYER];
-				gbuf[GLAYER] += 4;
-				gbuf[BLAYER] += 4;
-			} else {
-				green = red;
-				blue = red;
+			int pixelIdx = ((i * cinfo.image_width) + j) * cinfo.input_components;
+			red = *gbuf[RLAYER]++;
+			image_buffer[pixelIdx + 0] = round_to_BYTE(red * norm);         // r |-- Set r,g,b components to
+			if (cinfo.input_components == 3) {
+				green = *gbuf[GLAYER]++;
+				blue = *gbuf[BLAYER]++;
+				image_buffer[pixelIdx + 1] = round_to_BYTE(green * norm); // g |   make this pixel
+				image_buffer[pixelIdx + 2] = round_to_BYTE(blue * norm);  // b |
 			}
-			image_buffer[pixelIdx + 0] = red;   // r |-- Set r,g,b components to
-			image_buffer[pixelIdx + 1] = green;       // g |   make this pixel
-			image_buffer[pixelIdx + 2] = blue;        // b |
 		}
-		if (fit->naxes[2] == 3) {
-			gbuf[GLAYER] -= cinfo.image_width * 8;
-			gbuf[BLAYER] -= cinfo.image_width * 8;
-		}
-		gbuf[RLAYER] -= cinfo.image_width * 8;
 	}
 	//## START COMPRESSION:
 	jpeg_start_compress(&cinfo, TRUE);
-	row_stride = cinfo.image_width * 3;        // JSAMPLEs per row in image_buffer
+	row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
 
-	while (cinfo.next_scanline < cinfo.image_height)
-	{
+	while (cinfo.next_scanline < cinfo.image_height) {
 		row_pointer[0] = &image_buffer[cinfo.next_scanline * row_stride];
 		(void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
 	}
@@ -572,8 +551,7 @@ int readpng(const char *name, fits* fit) {
 	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL,
 			NULL);
 	if (!png) {
-		char *msg = siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return -1;
 	}
 
@@ -646,7 +624,7 @@ int readpng(const char *name, fits* fit) {
 				*buf[BLAYER]++ = ptr[2];
 			}
 		}
-		fit->bitpix = BYTE_IMG;
+		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	}
 	// We define the number of channel we have
 	switch (color_type) {
@@ -679,6 +657,7 @@ int readpng(const char *name, fits* fit) {
 		else
 			fit->naxis = 3;
 		fit->bitpix = (bit_depth == 8) ? BYTE_IMG : USHORT_IMG;
+		fit->orig_bitpix = fit->bitpix;
 		fit->data = data;
 		fit->pdata[RLAYER] = fit->data;
 		fit->pdata[GLAYER] = fit->data + npixels;
@@ -701,9 +680,10 @@ int readpng(const char *name, fits* fit) {
 // Save PNG image (colour)
 // ------------------------------------------
 static int32_t save_colour_file(const char *filename,
-		const WORD *p_image_data, uint32_t width, uint32_t height,
+		const void *p_image_data, uint32_t width, uint32_t height,
 		uint32_t bytes_per_sample) {
 	int32_t ret = -1;
+	int row_stride;
 	png_image image; // The control structure used by libpng
 
 	// Initialize the 'png_image' structure.
@@ -711,17 +691,19 @@ static int32_t save_colour_file(const char *filename,
 	image.version = PNG_IMAGE_VERSION;
 	image.width = width;
 	image.height = height;
-	image.format = PNG_FORMAT_BGR;
+	image.format = PNG_FORMAT_RGB;
 	if (bytes_per_sample == 2) {
 		image.format |= PNG_FORMAT_FLAG_LINEAR;
 	}
 
 	FILE *p_png_file = g_fopen(filename, "wb");
+	row_stride = image.width * -3;
 
 	if (p_png_file != NULL) {
-		png_image_write_to_stdio(&image, p_png_file, 0,  // convert_to_8bit
-				(png_bytep) (p_image_data), image.width * -3,  // row_stride
+		png_image_write_to_stdio(&image, p_png_file, 0,
+				(png_bytep) (p_image_data), row_stride,  // row_stride
 				NULL);  // colormap
+
 		ret = 0;
 		fclose(p_png_file);
 	}
@@ -732,9 +714,10 @@ static int32_t save_colour_file(const char *filename,
 // ------------------------------------------
 // Save PNG image (mono B, G or R)
 // ------------------------------------------
-static int32_t save_mono_file(const char *filename, const WORD *p_image_data,
+static int32_t save_mono_file(const char *filename, const void *p_image_data,
 		uint32_t width, uint32_t height, uint32_t bytes_per_sample) {
 	int32_t ret = -1;
+	int row_stride;
 	png_image image; // The control structure used by libpng
 
 	// Initialize the 'png_image' structure.
@@ -750,10 +733,11 @@ static int32_t save_mono_file(const char *filename, const WORD *p_image_data,
 	}
 
 	FILE *p_png_file = g_fopen(filename, "wb");
+	row_stride = image.width * -1;
 
 	if (p_png_file != NULL) {
 		png_image_write_to_stdio(&image, p_png_file, 0,  // convert_to_8bit
-				(png_bytep) p_image_data, image.width * -1,  // row_stride
+				(png_bytep) p_image_data, row_stride,  // row_stride
 				NULL);  // colormap
 		ret = 0;
 		fclose(p_png_file);
@@ -762,17 +746,36 @@ static int32_t save_mono_file(const char *filename, const WORD *p_image_data,
 	return ret;
 }
 
-static WORD *fits_to_bgrbgr(fits *image) {
+static WORD *convert_data(fits *image) {
 	int ndata = image->rx * image->ry;
+	int ch = image->naxes[2];
 	int i, j;
 
-	WORD *bgrbgr = malloc(ndata * 3 * sizeof(WORD));
-	for (i = 0, j = 0; i < ndata * 3; i += 3, j++) {
-		bgrbgr[i + 0] = image->pdata[BLAYER][j];
-		bgrbgr[i + 1] = image->pdata[GLAYER][j];
-		bgrbgr[i + 2] = image->pdata[RLAYER][j];
+	WORD *buffer = malloc(ndata * ch * sizeof(WORD));
+	for (i = 0, j = 0; i < ndata * ch; i += ch, j++) {
+		buffer[i + 0] = image->pdata[RLAYER][j];
+		if (ch > 1) {
+			buffer[i + 1] = image->pdata[GLAYER][j];
+			buffer[i + 2] = image->pdata[BLAYER][j];
+		}
 	}
-	return bgrbgr;
+	return buffer;
+}
+
+static uint8_t *convert_data8(fits *image) {
+	int ndata = image->rx * image->ry;
+	int ch = image->naxes[2];
+	int i, j;
+
+	uint8_t *buffer = malloc(ndata * ch * sizeof(WORD));
+	for (i = 0, j = 0; i < ndata * ch; i += ch, j++) {
+		buffer[i + 0] = (uint8_t)image->pdata[RLAYER][j];
+		if (ch > 1) {
+			buffer[i + 1] = (uint8_t) image->pdata[GLAYER][j];
+			buffer[i + 2] = (uint8_t) image->pdata[BLAYER][j];
+		}
+	}
+	return buffer;
 }
 
 int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
@@ -788,14 +791,28 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	if (is_colour) {
 		// Create colour PNG file
-		WORD *data = fits_to_bgrbgr(fit);
-		ret = save_colour_file(filename, data, width, height,
-				bytes_per_sample);
-		free(data);
+		if (bytes_per_sample == 2) {
+			WORD *data = convert_data(fit);
+			ret = save_colour_file(filename, data, width, height,
+					bytes_per_sample);
+			free(data);
+		} else {
+			uint8_t *data = convert_data8(fit);
+			ret = save_colour_file(filename, data, width, height,
+					bytes_per_sample);
+			free(data);
+		}
 	} else {
 		// Create monochrome PNG file
-		ret = save_mono_file(filename, fit->data, width, height,
-				bytes_per_sample);
+		if (bytes_per_sample == 2) {
+			ret = save_mono_file(filename, fit->data, width, height,
+					bytes_per_sample);
+		} else {
+			uint8_t *data = convert_data8(fit);
+			ret = save_mono_file(filename, data, width, height,
+					bytes_per_sample);
+			free(data);
+		}
 	}
 	siril_log_message(_("Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"),
 			filename, fit->naxes[2], fit->rx, fit->ry);
@@ -833,35 +850,6 @@ static void get_FITS_date(time_t date, char *date_obs) {
 	}
 }
 
-#if defined(_WIN32) && (defined(__MINGW32__) || !defined(_MSC_VER) || (_MSC_VER <= 1310))
-static char *raw_fname(const gchar *path) {
-	gchar *str;
-	wchar_t *wpath;
-
-	wpath = g_utf8_to_utf16(path, -1, NULL, NULL, NULL);
-	if (wpath == NULL)
-		return NULL;
-
-	// use the short DOS 8.3 path name to avoid problems converting UTF-16 filenames to the ANSI filenames expected by standard libraw_open_file
-	DWORD shortlen = GetShortPathNameW(wpath, 0, 0);
-
-	if (shortlen) {
-		LPWSTR shortpath = g_new(WCHAR, shortlen);
-		GetShortPathNameW(wpath, shortpath, shortlen);
-		int slen = WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS,
-				shortpath, shortlen, 0, 0, 0, 0);
-		str = g_new(gchar, slen + 1);
-		WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS, shortpath, shortlen,
-				str, slen, 0, 0);
-		g_free(shortpath);
-	} else {
-		str = NULL;
-	}
-	g_free(wpath);
-	return str;
-}
-#endif // _WIN32
-
 static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 /* libraw_open_wfile is not defined for all windows compilers */
 #if defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)
@@ -876,9 +864,9 @@ static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 	g_free(wname);
 	return ret;
 #elif defined(_WIN32)
-	gchar *fname = raw_fname(name);
-	int ret = libraw_open_file(rawdata, fname);
-	g_free(fname);
+	gchar *localefilename = g_win32_locale_filename_from_utf8(name);
+	int ret = libraw_open_file(rawdata, localefilename);
+	g_free(localefilename);
 	return ret;
 #else
 	return(libraw_open_file(rawdata, name));
@@ -1022,7 +1010,7 @@ static int readraw(const char *name, fits *fit) {
 	
 	if (data != NULL) {
 		clearfits(fit);
-		fit->bitpix = USHORT_IMG;
+		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
 		fit->rx = (unsigned int) width;
 		fit->ry = (unsigned int) height;
 		fit->naxes[0] = (long) width;
@@ -1167,7 +1155,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 			}
 		}
 		pattern[j++] = '\0';
-		siril_log_message(_("Bayer pattern: %s\n"), pattern);
+		siril_log_message(_("CFA pattern: %s\n"), pattern);
 	}
 
 	data = (WORD*) calloc(1, npixels * sizeof(WORD));
@@ -1190,7 +1178,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	
 	if (data != NULL) {
 		clearfits(fit);
-		fit->bitpix = USHORT_IMG;
+		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
 		fit->rx = (unsigned int) (width);
 		fit->ry = (unsigned int) (height);
 		fit->naxes[0] = (long) (width);

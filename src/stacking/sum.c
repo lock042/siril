@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/processing.h"
 #include "core/proto.h"		// FITS functions
+#include "io/sequence.h"
 #include "stacking.h"
 #include "algos/demosaicing.h"
 #include "gui/progress_and_log.h"
@@ -63,7 +64,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-static int sum_stacking_image_hook(struct generic_seq_args *args, int i, fits *fit, rectangle *_) {
+static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
 	struct sum_stacking_data *ssdata = args->user;
 	int shiftx, shifty, nx, ny, x, y, ii, layer;
 	int pixel = 0;	// index in sum[0]
@@ -126,7 +127,20 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	fits *fit = &gfit;
 	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, nb_layers))
 		return -1;
+
+	/* We copy metadata from reference to the final fit */
+	if (args->seq->type == SEQ_REGULAR) {
+		int ref = 0;
+		if (args->seq->reference_image > 0)
+			ref = args->seq->reference_image;
+		if (!seq_open_image(args->seq, ref)) {
+			import_metadata_from_fitsfile(args->seq->fptr[ref], &gfit);
+			seq_close_image(args->seq, ref);
+		}
+	}
+
 	gfit.exposure = ssdata->exposure;
+	gfit.bitpix = gfit.orig_bitpix = USHORT_IMG;	// TO BE FIXED
 	
 	if (ssdata->debayer) {
 		/* normalize each pixel with the number of contributions */
@@ -138,7 +152,6 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 					ssdata->sum[0][i] /= ssdata->contributions[0][i];
 		} else {
 			double dmax = 0.0;
-
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static)
 #endif

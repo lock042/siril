@@ -110,7 +110,7 @@ int read_single_sequence(char *realname, int imagetype) {
 	if (check_only_one_film_seq(realname)) retval = 1;
 	else {
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
-	const char *ext;
+		const char *ext;
 #endif
 		switch (imagetype) {
 			case TYPESER:
@@ -153,8 +153,9 @@ int read_single_sequence(char *realname, int imagetype) {
  * corresponding sequence files.
  * Called when changing wd with name == NULL or when an explicit root name is
  * given in the GUI or when searching for sequences.
+ * force clears the stats in the seqfile.
  */
-int check_seq(int force) {
+int check_seq(int recompute_stats) {
 	char *basename;
 	int curidx, fixed;
 	GDir *dir;
@@ -274,7 +275,7 @@ int check_seq(int force) {
 				char msg[200];
 				sprintf(msg, _("sequence %d, found: %d to %d"),
 						i+1, sequences[i]->beg, sequences[i]->end);
-				if (!buildseqfile(sequences[i], force) && retval)
+				if (!buildseqfile(sequences[i], recompute_stats) && retval)
 					retval = 0;	// at least one succeeded to be created
 			}
 			free_sequence(sequences[i], TRUE);
@@ -283,6 +284,8 @@ int check_seq(int force) {
 		return retval;
 	}
 	free(sequences);
+	//TODO: to be translated
+	fprintf(stderr, "No sequence found, verify working directory or change FITS extension in settings (current is %s)\n", com.ext);
 	return 1;	// no sequence found
 }
 
@@ -379,18 +382,14 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		/* initialize sequence-related runtime data */
 		seq->rx = fit->rx; seq->ry = fit->ry;
 		seq->bitpix = fit->orig_bitpix;	// for partial read
+		seq->data_max = fit->data_max; // for partial read
 		fprintf(stdout, "bitpix for the sequence is set as %d\n", seq->bitpix);
-
-		/* FIXME: when we load a demosaiced SER video after the seqfile was
-		 * created with seq->nb_layers = 1 (raw mode), seq->nb_layer is overwritten
-		 * and all regdata as well. Should we set another flag ?
-		 */
-		if (seq->nb_layers == -1 || seq->nb_layers != fit->naxes[2]) {
+		if (seq->nb_layers == -1) {
 			seq->nb_layers = fit->naxes[2];
-			seq->regparam = calloc(seq->nb_layers, sizeof(regdata *));
+			seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
 			seq->layers = calloc(seq->nb_layers, sizeof(layer_info));
-			writeseqfile(seq);
 		}
+		seq->needs_saving = TRUE;
 
 		if (load_ref_into_gfit) {
 			seq->current = image_to_load;
@@ -417,7 +416,7 @@ static void free_cbbt_layers() {
 int set_seq(const char *name){
 	sequence *seq = NULL;
 	char *basename;
-	
+
 	if ((seq = readseqfile(name)) == NULL) {
 		fprintf(stderr, "could not load sequence %s\n", name);
 		return 1;
@@ -459,7 +458,7 @@ int set_seq(const char *name){
 	seqsetnum(seq->current);	// set limits for spin button and display loaded filenum
 	set_layers_for_assign();	// set default layers assign and populate combo box
 	set_layers_for_registration();	// set layers in the combo box for registration
-	fill_sequence_list(seq, 0);	// display list of files in the sequence
+	fill_sequence_list(seq, 0, FALSE);// display list of files in the sequence
 	set_output_filename_to_sequence_name();
 	sliders_mode_set_state(com.sliders);
 	initialize_display_mode();
@@ -562,7 +561,7 @@ double seq_compute_size(sequence *seq) {
 	double frame_size = 0;
 	int nb_of_frame = 0;
 	char filename[256];
-	struct stat sts;
+	GStatBuf sts;
 	int ref;
 
 	switch(seq->type) {
@@ -690,7 +689,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest) {
 			dest->pdata[2] = seq->internal_fits[index]->pdata[2];
 			break;
 	}
-	invalidate_stats_from_fit(dest);
+	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
 	return 0;
 }
@@ -874,7 +873,7 @@ int seq_open_image(sequence *seq, int index) {
 				return 1;
 
 			fit_sequence_get_image_filename(seq, index, filename, TRUE);
-			fits_open_diskfile(&seq->fptr[index], filename, READONLY, &status);
+			siril_fits_open_diskfile(&seq->fptr[index], filename, READONLY, &status);
 			if (status) {
 				fits_report_error(stderr, status);
 				return status;
@@ -882,7 +881,7 @@ int seq_open_image(sequence *seq, int index) {
 			/* should we check image parameters here? such as bitpix or naxis */
 			break;
 		case SEQ_SER:
-			assert(seq->ser_file->fd > 0);
+			assert(seq->ser_file->file == NULL);
 			break;
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
 		case SEQ_AVI:
@@ -950,7 +949,7 @@ static void set_fwhm_star_as_star_list_with_layer(sequence *seq, int layer) {
 
 // cannot be called in the worker thread
 void set_fwhm_star_as_star_list(sequence *seq) {
-	int layer = get_registration_layer();
+	int layer = get_registration_layer(seq);
 	set_fwhm_star_as_star_list_with_layer(seq, layer);
 }
 
@@ -1059,41 +1058,74 @@ void initialize_sequence(sequence *seq, gboolean is_zeroed) {
  * initialize_sequence() must be called on it right after free_sequence()
  * (= do it for com.seq) */
 void free_sequence(sequence *seq, gboolean free_seq_too) {
-	int i, j;
+	int layer, j;
 	
 	if (seq == NULL) return;
-	if (seq->nb_layers > 0 && (seq->regparam || seq->stats)) {
-		for (i = 0; i < seq->nb_layers; i++) {
-			if ((seq->regparam && seq->regparam[i]) ||
-					(seq->stats && seq->stats[i])) {
+	// free regparam
+	if (seq->nb_layers > 0 && seq->regparam) {
+		for (layer = 0; layer < seq->nb_layers; layer++) {
+			if (seq->regparam[layer]) {
 				for (j = 0; j < seq->number; j++) {
-					if (seq->regparam && seq->regparam[i] &&
-							seq->regparam[i][j].fwhm_data &&
-							(seq->photometry[0] != NULL &&
-							 seq->regparam[i][j].fwhm_data != seq->photometry[0][j])) // avoid double free
-						free(seq->regparam[i][j].fwhm_data);
-
-					if (seq->stats && seq->stats[i] && seq->stats[i][j])
-						free_stats(seq->stats[i][j]);
+					if (seq->regparam[layer][j].fwhm_data &&
+							(!seq->photometry[0] ||
+							 seq->regparam[layer][j].fwhm_data != seq->photometry[0][j])) // avoid double free
+						free(seq->regparam[layer][j].fwhm_data);
 				}
-				if (seq->regparam && seq->regparam[i])
-					free(seq->regparam[i]);
-				if (seq->stats && seq->stats[i])
-					free(seq->stats[i]);
+				free(seq->regparam[layer]);
 			}
 		}
-		if (seq->regparam) free(seq->regparam);
-		if (seq->stats) free(seq->stats);
+		free(seq->regparam);
+	}
+	// free stats
+	if (seq->nb_layers > 0 && seq->stats) {
+		for (layer = 0; layer < seq->nb_layers; layer++) {
+			if (seq->stats[layer]) {
+				for (j = 0; j < seq->number; j++) {
+					if (seq->stats[layer][j])
+						free_stats(seq->stats[layer][j]);
+				}
+				free(seq->stats[layer]);
+			}
+		}
+		free(seq->stats);
+	}
+	// free backup regparam
+	if (seq->nb_layers > 0 && seq->regparam_bkp) {
+		for (layer = 0; layer < seq->nb_layers; layer++) {
+			if (seq->regparam_bkp[layer]) {
+				for (j = 0; j < seq->number; j++) {
+					if (seq->regparam_bkp[layer][j].fwhm_data &&
+							(!seq->photometry[0] ||
+							 seq->regparam_bkp[layer][j].fwhm_data != seq->photometry[0][j])) // avoid double free
+						free(seq->regparam_bkp[layer][j].fwhm_data);
+				}
+				free(seq->regparam_bkp[layer]);
+			}
+		}
+		free(seq->regparam_bkp);
+	}
+	// free backup stats
+	if (seq->nb_layers > 0 && seq->stats_bkp) {
+		for (layer = 0; layer < seq->nb_layers; layer++) {
+			if (seq->stats_bkp[layer]) {
+				for (j = 0; j < seq->number; j++) {
+					if (seq->stats_bkp[layer][j])
+						free_stats(seq->stats_bkp[layer][j]);
+				}
+				free(seq->stats_bkp[layer]);
+			}
+		}
+		free(seq->stats_bkp);
 	}
 
-	for (i=0; i<seq->number; i++) {
-		if (seq->fptr && seq->fptr[i]) {
+	for (j=0; j<seq->number; j++) {
+		if (seq->fptr && seq->fptr[j]) {
 			int status = 0;
-			fits_close_file(seq->fptr[i], &status);
+			fits_close_file(seq->fptr[j], &status);
 		}
 		if (seq->imgparam) {
-			if (seq->imgparam[i].date_obs)
-				free(seq->imgparam[i].date_obs);
+			if (seq->imgparam[j].date_obs)
+				free(seq->imgparam[j].date_obs);
 		}
 	}
 	if (seq->seqname)	free(seq->seqname);
@@ -1103,14 +1135,14 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 
 #ifdef _OPENMP
 	if (seq->fd_lock) {
-		for (i=0; i<seq->number; i++) {
-			omp_destroy_lock(&seq->fd_lock[i]);
+		for (j=0; j<seq->number; j++) {
+			omp_destroy_lock(&seq->fd_lock[j]);
 		}
 		free(seq->fd_lock);
 	}
 #endif
 
-		if (seq->ser_file) {
+	if (seq->ser_file) {
 		ser_close_file(seq->ser_file);	// frees the data too
 		free(seq->ser_file);
 	}
@@ -1123,8 +1155,8 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 
 	if (seq->internal_fits) {
 		// Compositing still uses references to the images in the sequence
-		//for (i=0; i<seq->number; i++)
-		//	clearfits(seq->internal_fits[i]);
+		//for (j=0; j<seq->number; j++)
+		//	clearfits(seq->internal_fits[j]);
 		free(seq->internal_fits);
 	}
 	/* Here this is a bit tricky. An internal sequence is a single image. So some
@@ -1136,8 +1168,8 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 	if (seq->type != SEQ_INTERNAL)
 		undo_flush();
 
-	for (i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
-		free_photometry_set(seq, i);
+	for (j = 0; j < MAX_SEQPSF && seq->photometry[j]; j++) {
+		free_photometry_set(seq, j);
 	}
 
 	sequence_free_preprocessing_data(seq);
@@ -1177,13 +1209,15 @@ void close_sequence(int loading_another) {
 	fprintf(stdout, "MODE: closing sequence\n");
 	if (sequence_is_loaded()) {
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
-		clear_sequence_list();
+		if (!com.headless)
+			clear_sequence_list();
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
 		free_sequence(&com.seq, FALSE);
-		clear_stars_list();
+		if (!com.headless)
+			clear_stars_list();
 		initialize_sequence(&com.seq, FALSE);
-		if (!loading_another) {
+		if (!loading_another && !com.headless) {
 			// unselect the sequence in the sequence list
 			GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
 			gtk_combo_box_set_active(seqcombo, -1);
@@ -1207,7 +1241,7 @@ int sequence_find_refimage(sequence *seq) {
 			if (seq->regparam[layer][0].fwhm > 0.0) {
 				use_fwhm = TRUE;
 				best_val = 1000000.0;
-			} else if (seq->regparam[layer][0].quality <= 0.0) {
+			} else if (seq->regparam[layer][0].quality > 0.0) {
 				use_fwhm = FALSE;
 				best_val = 0.0;
 			}
@@ -1216,18 +1250,14 @@ int sequence_find_refimage(sequence *seq) {
 			for (image = 0; image < seq->number; image++) {
 				if (!seq->imgparam[image].incl)
 					continue;
-				if (use_fwhm) {
-					if (seq->regparam[layer][image].fwhm > 0 &&
-						       	seq->regparam[layer][image].fwhm < best_val) {
-						best_val = seq->regparam[layer][image].fwhm;
-						best = image;
-					}
-				} else {
-					if (seq->regparam[layer][image].quality > 0 &&
-						       	seq->regparam[layer][image].quality > best_val) {
-						best_val = seq->regparam[layer][image].quality;
-						best = image;
-					}
+				if (use_fwhm && seq->regparam[layer][image].fwhm > 0 &&
+						seq->regparam[layer][image].fwhm < best_val) {
+					best_val = seq->regparam[layer][image].fwhm;
+					best = image;
+				} else if (seq->regparam[layer][image].quality > 0 &&
+						seq->regparam[layer][image].quality > best_val) {
+					best_val = seq->regparam[layer][image].quality;
+					best = image;
 				}
 			}
 		}
@@ -1312,12 +1342,12 @@ int internal_sequence_find_index(sequence *seq, fits *fit) {
 gboolean end_crop_sequence(gpointer p) {
 	struct crop_sequence_data *args = (struct crop_sequence_data *) p;
 
-	stop_processing_thread();// can it be done here in case there is no thread?
+	stop_processing_thread();
 	if (!args->retvalue) {
 		char *rseqname = malloc(
-				strlen(args->prefix) + strlen(com.seq.seqname) + 5);
+				strlen(args->prefix) + strlen(args->seq->seqname) + 5);
 
-		sprintf(rseqname, "%s%s.seq", args->prefix, com.seq.seqname);
+		sprintf(rseqname, "%s%s.seq", args->prefix, args->seq->seqname);
 		check_seq(0);
 		update_sequences_list(rseqname);
 		free(rseqname);
@@ -1341,9 +1371,9 @@ gpointer crop_sequence(gpointer p) {
 
 		ser_file = malloc(sizeof(struct ser_struct));
 		if (ser_file == NULL) {
-			printf("memory error: crop_sequence\n");
+			fprintf(stderr, "memory error: crop_sequence\n");
 			args->retvalue = 1;
-			gdk_threads_add_idle(end_crop_sequence, args);
+			siril_add_idle(end_crop_sequence, args);
 		}
 		sprintf(dest, "%s%s.ser", args->prefix, args->seq->seqname);
 		if (ser_create_file(dest, ser_file, TRUE, com.seq.ser_file)) {
@@ -1351,10 +1381,10 @@ gpointer crop_sequence(gpointer p) {
 			free(ser_file);
 			ser_file = NULL;
 			args->retvalue = 1;
-			gdk_threads_add_idle(end_crop_sequence, args);
+			siril_add_idle(end_crop_sequence, args);
 		}
 	}
-
+	set_progress_bar_data(_("Processing..."), PROGRESS_RESET);
 	for (frame = 0, cur_nb = 0.f; frame < args->seq->number; frame++) {
 		if (!get_thread_run())
 			break;
@@ -1364,7 +1394,7 @@ gpointer crop_sequence(gpointer p) {
 		if (!ret) {
 			char dest[256], filename[256];
 
-			crop(&fit, args->area);
+			crop(&fit, &(args->area));
 			switch (args->seq->type) {
 			case SEQ_REGULAR:
 				fit_sequence_get_image_filename(args->seq, frame, filename,
@@ -1394,7 +1424,8 @@ gpointer crop_sequence(gpointer p) {
 		ser_write_and_close(ser_file);
 		free(ser_file);
 	}
-	gdk_threads_add_idle(end_crop_sequence, args);
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	siril_add_idle(end_crop_sequence, args);
 	return 0;
 }
 
@@ -1452,7 +1483,7 @@ struct seqpsf_data {
  * area is the area from which fit was extracted from the full frame.
  * when the framing is set to follow star, args->area is centered on the found star
  */
-int seqpsf_image_hook(struct generic_seq_args *args, int index, fits *fit, rectangle *area) {
+int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	struct seqpsf_data *data = malloc(sizeof(struct seqpsf_data));
 	data->image_index = index;
@@ -1504,7 +1535,7 @@ gboolean end_seqpsf(gpointer p) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	sequence *seq = args->seq;
 	int layer = args->layer_for_partial;
-	int photometry_index;
+	int photometry_index = 0;
 	gboolean displayed_warning = FALSE, write_to_regdata = FALSE;
 	gboolean dont_stop_thread;
 
@@ -1539,8 +1570,11 @@ gboolean end_seqpsf(gpointer p) {
 
 		if (write_to_regdata) {
 			seq->regparam[layer][data->image_index].fwhm_data = data->psf;
-			if (data->psf)
+			if (data->psf) {
 				seq->regparam[layer][data->image_index].fwhm = data->psf->fwhmx;
+				seq->regparam[layer][data->image_index].roundness =
+					data->psf->fwhmy / data->psf->fwhmx;
+			}
 		}
 
 		// for photometry use: store data in seq->photometry
@@ -1568,7 +1602,7 @@ gboolean end_seqpsf(gpointer p) {
 		 * in case seqpsf is called for registration. */
 		// update the list in the GUI
 		if (seq->type != SEQ_INTERNAL)
-			fill_sequence_list(seq, layer);
+			fill_sequence_list(seq, layer, FALSE);
 
 		set_layers_for_registration();	// update display of available reg data
 		drawPlot();

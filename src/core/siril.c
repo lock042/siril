@@ -45,6 +45,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
@@ -58,6 +59,7 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/cosmetic_correction.h"
 #include "algos/statistics.h"
+#include "algos/plateSolver.h"
 #include "opencv/opencv.h"
 
 #define MAX_ITER 15
@@ -75,6 +77,7 @@ int threshlo(fits *fit, int level) {
 			buf++;
 		}
 	}
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
@@ -88,6 +91,7 @@ int threshhi(fits *fit, int level) {
 			buf++;
 		}
 	}
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
@@ -102,6 +106,7 @@ int nozero(fits *fit, int level) {
 			buf++;
 		}
 	}
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
@@ -144,6 +149,7 @@ int soper(fits *a, double scalar, char oper) {
 			break;
 		}
 	}
+	invalidate_stats_from_fit(a);
 	return 0;
 }
 
@@ -181,11 +187,12 @@ int imoper(fits *a, fits *b, char oper) {
 			break;
 		case OPER_DIV:
 			for (i = 0; i < n; ++i) {
-				gbuf[i] = round_to_WORD(gbuf[i] / buf[i]);
+				gbuf[i] = (buf[i] == 0) ? 0 : round_to_WORD(gbuf[i] / buf[i]);
 			}
 			break;
 		}
 	}
+	invalidate_stats_from_fit(a);
 	return 0;
 }
 
@@ -203,7 +210,7 @@ int sub_background(fits* image, fits* background, int layer) {
 		char *msg = siril_log_message(
 				_("Images don't have the same size (w = %d|%d, h = %d|%d)\n"),
 				image->rx, background->rx, image->ry, background->ry);
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		return 1;
 	}
 	ndata = image->rx * image->ry;
@@ -224,6 +231,7 @@ int sub_background(fits* image, fits* background, int layer) {
 		image_buf[i] = round_to_WORD(pxl_image[i] * USHRT_MAX_DOUBLE);
 	}
 
+	invalidate_stats_from_fit(image);
 	// We free memory
 	free_stats(stat);
 	free(pxl_image);
@@ -250,11 +258,12 @@ int addmax(fits *a, fits *b) {
 				gbuf[layer][i] = buf[layer][i];
 		}
 	}
+	invalidate_stats_from_fit(a);
 	return 0;
 }
 
-/* If fdiv is ok, function returns 0. If overflow, fdiv returns 1*/
-int fdiv(fits *a, fits *b, float coef) {
+/* If siril_fdiv is ok, function returns 0. If overflow, siril_fdiv returns 1*/
+int siril_fdiv(fits *a, fits *b, float coef) {
 	int i, layer;
 	int retvalue = 0;
 	double temp;
@@ -276,12 +285,13 @@ int fdiv(fits *a, fits *b, float coef) {
 			gbuf[i] = round_to_WORD(temp);
 		}
 	}
+	invalidate_stats_from_fit(a);
 	return retvalue;
 }
 
 /* normalized division a/b, stored in a, with max value equal to the original
  * max value of a, for each layer. */
-int ndiv(fits *a, fits *b) {
+int siril_ndiv(fits *a, fits *b) {
 	double *div;
 	int layer, i, nb_pixels;
 	if (a->rx != b->rx || a->ry != b->ry || a->naxes[2] != b->naxes[2]) {
@@ -309,6 +319,7 @@ int ndiv(fits *a, fits *b) {
 		}
 	}
 
+	invalidate_stats_from_fit(a);
 	free(div);
 	return 0;
 }
@@ -376,6 +387,8 @@ int crop(fits *fit, rectangle *bounds) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
+	invalidate_stats_from_fit(fit);
+	invalidate_WCS_keywords(fit);
 
 	return 0;
 }
@@ -412,6 +425,7 @@ int shift(int sx, int sy) {
 				gfit.rx * gfit.ry * sizeof(WORD));
 	}
 	free(tmpfit.data);
+	invalidate_stats_from_fit(&gfit);
 
 	return 0;
 }
@@ -467,25 +481,8 @@ int loglut(fits *fit, int dir) {
 				buf[layer][i] = exp(temp / normalisation);
 		}
 	}
+	invalidate_stats_from_fit(fit);
 	return 0;
-}
-
-double contrast(fits* fit, int layer) {
-	int i;
-	WORD *buf = fit->pdata[layer];
-	double contrast = 0.0;
-	imstats *stat = statistics(NULL, -1, fit, layer, &com.selection, STATS_BASIC);
-	if (!stat) {
-		siril_log_message(_("Error: no data computed.\n"));
-		return -1.0;
-	}
-	double mean = stat->mean;
-	free_stats(stat);
-
-	for (i = 0; i < fit->rx * fit->ry; i++)
-		contrast += SQR((double )buf[i] - mean);
-	contrast /= (fit->rx * fit->ry);
-	return contrast;
 }
 
 int ddp(fits *a, int level, float coeff, float sigma) {
@@ -495,9 +492,10 @@ int ddp(fits *a, int level, float coeff, float sigma) {
 	unsharp(&fit, sigma, 0, FALSE);
 	soper(&fit, (double) level, OPER_ADD);
 	nozero(&fit, 1);
-	fdiv(a, &fit, level);
+	siril_fdiv(a, &fit, level);
 	soper(a, (double) coeff, OPER_MUL);
 	clearfits(&fit);
+	invalidate_stats_from_fit(a);
 	return 0;
 }
 
@@ -547,6 +545,7 @@ int fill(fits *fit, int level, rectangle *arearg) {
 			buf += stridebuf;
 		}
 	}
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
@@ -572,6 +571,7 @@ int off(fits *fit, int level) {
 				buf[layer][i] = val + level;
 		}
 	}
+	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
@@ -603,28 +603,12 @@ void mirrorx(fits *fit, gboolean verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
-}
-
-void mirrory(fits *fit, gboolean verbose) {
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_color_message(_("Vertical mirror: processing...\n"), "red");
-		gettimeofday(&t_start, NULL);
-	}
-
-	fits_flip_top_to_bottom(fit);
-	fits_rotate_pi(fit);
-
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
+	invalidate_WCS_keywords(fit);
 }
 
 /* this method rotates the image 180 degrees, useful after german mount flip.
  * fit->rx, fit->ry, fit->naxes[2] and fit->pdata[*] are required to be assigned correctly */
-void fits_rotate_pi(fits *fit) {
+static void fits_rotate_pi(fits *fit) {
 	int i, line, axis, line_size;
 	WORD *line1, *line2, *src, *dst, swap;
 
@@ -664,6 +648,24 @@ void fits_rotate_pi(fits *fit) {
 	}
 	free(line1);
 	free(line2);
+}
+
+void mirrory(fits *fit, gboolean verbose) {
+	struct timeval t_start, t_end;
+
+	if (verbose) {
+		siril_log_color_message(_("Vertical mirror: processing...\n"), "red");
+		gettimeofday(&t_start, NULL);
+	}
+
+	fits_flip_top_to_bottom(fit);
+	fits_rotate_pi(fit);
+
+	if (verbose) {
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+	}
+	invalidate_WCS_keywords(fit);
 }
 
 /* This function fills the data in the lrgb image with LRGB information from l, r, g and b
@@ -744,7 +746,7 @@ int lrgb(fits *l, fits *r, fits *g, fits *b, fits *lrgb) {
 static double evaluateNoiseOfCalibratedImage(fits *fit, fits *dark, double k) {
 	double noise = 0;
 	fits *dark_tmp = NULL, *fit_tmp = NULL;
-	int chan;
+	int chan, ret = 0;
 
 	if (new_fit_image(&dark_tmp, dark->rx, dark->ry, 1)) {
 		return -1.0;
@@ -758,12 +760,17 @@ static double evaluateNoiseOfCalibratedImage(fits *fit, fits *dark, double k) {
 	copyfits(fit, fit_tmp, CP_ALLOC | CP_EXTRACT, 0);
 
 	soper(dark_tmp, k, OPER_MUL);
-	imoper(fit_tmp, dark_tmp, OPER_SUB);
+	ret = imoper(fit_tmp, dark_tmp, OPER_SUB);
+	if (ret) {
+		clearfits(dark_tmp);
+		clearfits(fit_tmp);
+		return -1.0;
+	}
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		imstats *stat = statistics(NULL, -1, fit_tmp, chan, NULL, STATS_NOISE);
 		if (!stat) {
-			siril_log_message(_("Error: no data computed.\n"));
+			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 0.0;
 		}
 		noise += stat->bgnoise;
@@ -806,18 +813,23 @@ static double goldenSectionSearch(fits *brut, fits *dark, double a, double b,
 }
 
 static int preprocess(fits *brut, fits *offset, fits *dark, fits *flat, float level) {
+	int ret = 0;
 
 	if (com.preprostatus & USE_OFFSET) {
-		imoper(brut, offset, OPER_SUB);
+		ret = imoper(brut, offset, OPER_SUB);
+		if (ret)
+			return ret;
 	}
 
 	/* if dark optimization, the master-dark has already been subtracted */
 	if ((com.preprostatus & USE_DARK) && !(com.preprostatus & USE_OPTD)) {
-		imoper(brut, dark, OPER_SUB);
+		ret = imoper(brut, dark, OPER_SUB);
+		if (ret)
+			return ret;
 	}
 
 	if (com.preprostatus & USE_FLAT) {
-		fdiv(brut, flat, level);
+		siril_fdiv(brut, flat, level);
 	}
 
 	return 0;
@@ -827,7 +839,13 @@ static int darkOptimization(fits *brut, fits *dark, fits *offset) {
 	double k;
 	double lo = 0.0;
 	double up = 2.0;
+	int ret = 0;
 	fits *dark_tmp = NULL;
+
+	if (brut->rx != dark->rx ||
+			brut->ry != dark->ry) {
+		return -1;
+	}
 
 	if (new_fit_image(&dark_tmp, dark->rx, dark->ry, 1))
 		return -1;
@@ -841,14 +859,18 @@ static int darkOptimization(fits *brut, fits *dark, fits *offset) {
 
 	siril_log_message(_("Dark optimization: %.3lf\n"), k);
 	/* Multiply coefficient to master-dark */
-	if (com.preprostatus & USE_OFFSET)
-		imoper(dark_tmp, offset, OPER_SUB);
+	if (com.preprostatus & USE_OFFSET) {
+		ret = imoper(dark_tmp, offset, OPER_SUB);
+		if (ret) {
+			clearfits(dark_tmp);
+			return ret;
+		}
+	}
 	soper(dark_tmp, k, OPER_MUL);
-	imoper(brut, dark_tmp, OPER_SUB);
+	ret = imoper(brut, dark_tmp, OPER_SUB);
 
 	clearfits(dark_tmp);
-
-	return 0;
+	return ret;
 }
 
 // idle function executed at the end of the sequence preprocessing
@@ -862,16 +884,20 @@ static gboolean end_sequence_prepro(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(args->t_start, t_end);
 	update_used_memory();
-	if (!args->retval && !single_image_is_loaded()) {
-		// load the new sequence
-		char *ppseqname = malloc(
-				strlen(com.seq.ppprefix) + strlen(com.seq.seqname) + 5);
-		sprintf(ppseqname, "%s%s.seq", com.seq.ppprefix, com.seq.seqname);
-		check_seq(0);
-		update_sequences_list(ppseqname);
-		free(ppseqname);
+	if (args->is_sequence) {
+		if (!args->retval) {
+			// load the new sequence
+			char *ppseqname = malloc(
+					strlen(args->seq->ppprefix) + strlen(args->seq->seqname) + 5);
+			sprintf(ppseqname, "%s%s.seq", args->seq->ppprefix,
+					args->seq->seqname);
+			check_seq(0);
+			update_sequences_list(ppseqname);
+			free(ppseqname);
+		}
+		sequence_free_preprocessing_data(args->seq);
+		free(args->seq->ppprefix);
 	}
-	sequence_free_preprocessing_data(&com.seq);
 #ifdef MAC_INTEGRATION
 	GtkosxApplication *osx_app = gtkosx_application_get();
 	gtkosx_application_attention_request(osx_app, INFO_REQUEST);
@@ -886,26 +912,31 @@ static gboolean end_sequence_prepro(gpointer p) {
 gpointer seqpreprocess(gpointer p) {
 	char dest_filename[256], msg[256];
 	fits *dark, *offset, *flat, *fit = NULL;
+	int ret = 0;
 	struct preprocessing_data *args = (struct preprocessing_data *) p;
 
-	if (single_image_is_loaded()) {
-		dark = com.uniq->dark;
-		offset = com.uniq->offset;
-		flat = com.uniq->flat;
-	} else if (sequence_is_loaded()) {
-		dark = com.seq.dark;
-		offset = com.seq.offset;
-		flat = com.seq.flat;
-	} else
-		return GINT_TO_POINTER(1);
+	dark = args->dark;
+	offset = args->offset;
+	flat = args->flat;
+	args->retval = 0;
+
+	// remove old sequence
+	if (args->is_sequence) {
+		char *ppseqname = malloc(
+				strlen(args->seq->ppprefix) + strlen(args->seq->seqname) + 5);
+		sprintf(ppseqname, "%s%s.seq", args->seq->ppprefix, args->seq->seqname);
+		unlink(ppseqname);
+		free(ppseqname);
+	}
 
 	if (com.preprostatus & USE_FLAT) {
+		if (args->equalize_cfa) {
+			compute_grey_flat(flat);
+		}
 		if (args->autolevel) {
-			/* TODO: evaluate the layer to apply but generally RLAYER is a good choice.
-			 * Indeed, if it is image from APN, CFA picture are in black & white */
 			imstats *stat = statistics(NULL, -1, flat, RLAYER, NULL, STATS_BASIC);
 			if (!stat) {
-				siril_log_message(_("Error: no data computed.\n"));
+				siril_log_message(_("Error: statistics computation failed.\n"));
 				return GINT_TO_POINTER(1);
 			}
 			args->normalisation = stat->mean;
@@ -915,7 +946,7 @@ gpointer seqpreprocess(gpointer p) {
 		}
 	}
 
-	if (single_image_is_loaded()) {
+	if (!args->is_sequence) {
 		snprintf(msg, 255, _("Pre-processing image %s"), com.uniq->filename);
 		msg[255] = '\0';
 		set_progress_bar_data(msg, 0.5);
@@ -926,10 +957,23 @@ gpointer seqpreprocess(gpointer p) {
 		copyfits(com.uniq->fit, fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 		copy_fits_metadata(com.uniq->fit, fit);
 
-		if ((com.preprostatus & USE_OPTD) && (com.preprostatus & USE_DARK))
-			darkOptimization(fit, dark, offset);
+		if ((com.preprostatus & USE_OPTD) && (com.preprostatus & USE_DARK)) {
+			ret = darkOptimization(fit, dark, offset);
+			if (ret) {
+				set_progress_bar_data(msg, PROGRESS_NONE);
+				clearfits(fit);
+				free(fit);
+				return(GINT_TO_POINTER(1));
+			}
+		}
 
-		preprocess(fit, offset, dark, flat, args->normalisation);
+		ret = preprocess(fit, offset, dark, flat, args->normalisation);
+		if (ret) {
+			set_progress_bar_data(msg, PROGRESS_NONE);
+			clearfits(fit);
+			free(fit);
+			return(GINT_TO_POINTER(1));
+		}
 
 		if ((com.preprostatus & USE_COSME) && (com.preprostatus & USE_DARK)) {
 			if (dark->naxes[2] == 1) {
@@ -971,11 +1015,15 @@ gpointer seqpreprocess(gpointer p) {
 		deviant_pixel *dev = NULL;
 
 		// creating a SER file if the input data is SER
-		if (com.seq.type == SEQ_SER) {
+		if (args->seq->type == SEQ_SER) {
 			char new_ser_filename[256];
 			new_ser_file = calloc(1, sizeof(struct ser_struct));
-			snprintf(new_ser_filename, 255, "%s%s", com.seq.ppprefix, com.seq.ser_file->filename);
-			ser_create_file(new_ser_filename, new_ser_file, TRUE, com.seq.ser_file);
+			snprintf(new_ser_filename, 255, "%s%s", args->seq->ppprefix, args->seq->ser_file->filename);
+			if (ser_create_file(new_ser_filename, new_ser_file, TRUE, args->seq->ser_file)) {
+				free(new_ser_file);
+				new_ser_file = NULL;
+				return GINT_TO_POINTER(1);
+			}
 		}
 
 		if ((com.preprostatus & USE_COSME) && (com.preprostatus & USE_DARK)) {
@@ -990,52 +1038,62 @@ gpointer seqpreprocess(gpointer p) {
 
 		/* allocating memory to new fits */
 		fit = calloc(1, sizeof(fits));
-		if (fit == NULL) {
-			printf("Error: allocating memory to fit.\n");
+		if (!fit) {
+			fprintf(stderr, "Error: allocating memory to fit.\n");
+			siril_add_idle(end_sequence_prepro, args);
 			return GINT_TO_POINTER(1);
 		}
 
-		for (i = 0; i < com.seq.number; i++) {
+		for (i = 0; i < args->seq->number; i++) {
 			if (!get_thread_run())
 				break;
-			seq_get_image_filename(&com.seq, i, source_filename);
+			seq_get_image_filename(args->seq, i, source_filename);
 			snprintf(msg, 255, _("Loading and pre-processing image %d/%d (%s)"),
-					i + 1, com.seq.number, source_filename);
+					i + 1, args->seq->number, source_filename);
 			msg[255] = '\0';
 			set_progress_bar_data(msg,
-					(double) (i + 1) / (double) com.seq.number);
-			if (seq_read_frame(&com.seq, i, fit)) {
+					(double) (i + 1) / (double) args->seq->number);
+			if (seq_read_frame(args->seq, i, fit)) {
 				snprintf(msg, 255, _("Could not read one of the raw files: %s."
 						" Aborting preprocessing."), source_filename);
 				msg[255] = '\0';
 				set_progress_bar_data(msg, PROGRESS_RESET);
 				args->retval = 1;
-				if (com.seq.type == SEQ_SER) {
-					ser_write_and_close(new_ser_file);
-					free(new_ser_file);
-					new_ser_file = NULL;
-				}
-				gdk_threads_add_idle(end_sequence_prepro, args);
-				return GINT_TO_POINTER(1);
+				break;
 			}
-			if ((com.preprostatus & USE_OPTD) && (com.preprostatus & USE_DARK))
-				darkOptimization(fit, dark, offset);
+			if ((com.preprostatus & USE_OPTD) && (com.preprostatus & USE_DARK)) {
+				ret = darkOptimization(fit, dark, offset);
+				if (ret) {
+					set_progress_bar_data(msg, PROGRESS_NONE);
+					clearfits(fit);
+					free(fit);
+					siril_add_idle(end_sequence_prepro, args);
+					return GINT_TO_POINTER(ret);
+				}
+			}
 
-			preprocess(fit, offset, dark, flat, args->normalisation);
+			ret = preprocess(fit, offset, dark, flat, args->normalisation);
+			if (ret) {
+				set_progress_bar_data(msg, PROGRESS_NONE);
+				clearfits(fit);
+				free(fit);
+				siril_add_idle(end_sequence_prepro, args);
+				return GINT_TO_POINTER(ret);
+			}
 
 			if ((com.preprostatus & USE_COSME) && (com.preprostatus & USE_DARK) && (dark->naxes[2] == 1))
 				cosmeticCorrection(fit, dev, icold + ihot, args->is_cfa);
 
-			if (args->debayer && com.seq.type == SEQ_REGULAR) {
+			if (args->debayer && args->seq->type == SEQ_REGULAR) {
 				debayer_if_needed(TYPEFITS, fit, args->compatibility, TRUE);
 			}
 
-			snprintf(dest_filename, 255, "%s%s", com.seq.ppprefix,
+			snprintf(dest_filename, 255, "%s%s", args->seq->ppprefix,
 					source_filename);
 			dest_filename[255] = '\0';
-			snprintf(msg, 255, "Saving image %d/%d (%s)", i + 1, com.seq.number,
+			snprintf(msg, 255, "Saving image %d/%d (%s)", i + 1, args->seq->number,
 					dest_filename);
-			if (com.seq.type == SEQ_SER) {
+			if (args->seq->type == SEQ_SER) {
 				ser_write_frame_from_fit(new_ser_file, fit, i);
 			} else {
 				savefits(dest_filename, fit);
@@ -1044,7 +1102,7 @@ gpointer seqpreprocess(gpointer p) {
 		}
 		free(fit);
 		// closing SER file if it applies
-		if (com.seq.type == SEQ_SER && (new_ser_file != NULL)) {
+		if (args->seq->type == SEQ_SER && (new_ser_file != NULL)) {
 			ser_write_and_close(new_ser_file);
 			free(new_ser_file);
 			new_ser_file = NULL;
@@ -1052,9 +1110,8 @@ gpointer seqpreprocess(gpointer p) {
 		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 		if (dev) free(dev);
 	}
-	args->retval = 0;
-	gdk_threads_add_idle(end_sequence_prepro, args);
-	return GINT_TO_POINTER(0);
+	siril_add_idle(end_sequence_prepro, args);
+	return GINT_TO_POINTER(args->retval);
 }
 
 /* computes the background value using the histogram and/or median value.
@@ -1070,7 +1127,7 @@ double background(fits* fit, int reqlayer, rectangle *selection) {
 
 	imstats* stat = statistics(NULL, -1, fit, layer, selection, STATS_BASIC);
 	if (!stat) {
-		siril_log_message(_("Error: no data computed.\n"));
+		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 0.0;
 	}
 	bg = stat->median;
@@ -1116,6 +1173,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	gettimeofday(&t_start, NULL);
 
 	retvalue = cvResizeGaussian(&gfit, toX, toY, interpolation);
+	invalidate_WCS_keywords(&gfit);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -1160,6 +1218,8 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
+	invalidate_WCS_keywords(&gfit);
+
 	return 0;
 }
 
@@ -1167,14 +1227,10 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
  * extracts plan "Plan" in fit parameters */
 
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer) {
-	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
-			"b_rawdata.wave" }, *dir[3];
-	const char *tmpdir;
-	int chan, start, end;
-	wave_transf_des Wavelet[3];
+	int chan, start, end, retval = 0;
+	wave_transf_des wavelet[3];
 
 	assert(fit->naxes[2] <= 3);
-	tmpdir = g_get_tmp_dir();
 
 	float *Imag = f_vector_alloc(fit->ry * fit->rx);
 	if (Imag == NULL)
@@ -1188,34 +1244,42 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 		start = reqlayer;
 		end = start + 1;
 	}
+
 	for (chan = start; chan < end; chan++) {
 		int Nl, Nc;
 
-		dir[chan] = g_build_filename(tmpdir, File_Name_Transform[chan], NULL);
-		if (wavelet_transform_file(Imag, fit->ry, fit->rx, dir[chan], Type, Nbr_Plan,
-				fit->pdata[chan])) {
-			free((char *) Imag);
-			g_free(dir[chan]);
-			return 1;
+		if (wavelet_transform(Imag, fit->ry, fit->rx, &wavelet[chan],
+					Type, Nbr_Plan, fit->pdata[chan])) {
+			retval = 1;
+			break;
 		}
-		if (wave_io_read(dir[chan], &Wavelet[chan])) {
-			free((char *) Imag);
-			g_free(dir[chan]);
-			return 1;
-		}
-		Nl = Wavelet[chan].Nbr_Ligne;
-		Nc = Wavelet[chan].Nbr_Col;
-		pave_2d_extract_plan(Wavelet[chan].Pave.Data, Imag, Nl, Nc, Plan);
+		Nl = wavelet[chan].Nbr_Ligne;
+		Nc = wavelet[chan].Nbr_Col;
+		pave_2d_extract_plan(wavelet[chan].Pave.Data, Imag, Nl, Nc, Plan);
 		reget_rawdata(Imag, Nl, Nc, fit->pdata[chan]);
-		g_free(dir[chan]);
+		wave_io_free(&wavelet[chan]);
 	}
 
 	/* Free */
-	if (Imag)
-		free((char *) Imag);
-	for (chan = start; chan < end; chan++) {
-		wave_io_free(&Wavelet[chan]);
+	free(Imag);
+	return retval;
+}
+
+int extract_plans(fits *fit, int Nbr_Plan, int Type) {
+	int i;
+
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+
+	for (i = 0; i < Nbr_Plan; i++) {
+		char filename[256], msg[256];
+
+		g_snprintf(filename, sizeof(filename), "layer%02d", i);
+		snprintf(msg, 256, _("Extracting %s..."), filename);
+		set_progress_bar_data(msg, (float)i / Nbr_Plan);
+		get_wavelet_layers(fit, Nbr_Plan, i, Type, -1);
+		savefits(filename, fit);
 	}
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_DONE);
 	return 0;
 }
 
@@ -1246,23 +1310,23 @@ gpointer median_filter(gpointer p) {
 	int ny = args->fit->ry;
 	int radius = (args->ksize - 1) / 2;
 	double norm = (double) get_normalized_value(args->fit);
-
+	double cur, total;
 	assert(nx > 0 && ny > 0);
 
 	struct timeval t_start, t_end;
 
-	siril_log_color_message(_("Median Filter: processing...\n"), "red");
+	char *msg = siril_log_color_message(_("Median Filter: processing...\n"), "red");
+	msg[strlen(msg) - 1] = '\0';
+	set_progress_bar_data(msg, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 
 	do {
-		if (args->iterations != 1)
-			siril_log_message(_("Iteration #%d...\n"), iter + 1);
-		for (layer = 0; layer < com.uniq->nb_layers; layer++) {
+		for (layer = 0; layer < args->fit->naxes[2]; layer++) {
 			/* FILL image upside-down */
 			WORD **image = malloc(ny * sizeof(WORD *));
 			if (image == NULL) {
 				printf("median filter: error allocating data\n");
-				gdk_threads_add_idle(end_median_filter, args);
+				siril_add_idle(end_median_filter, args);
 				return GINT_TO_POINTER(1);
 			}
 			for (i = 0; i < ny; i++)
@@ -1271,13 +1335,18 @@ gpointer median_filter(gpointer p) {
 			for (y = 0; y < ny; y++) {
 				if (!get_thread_run())
 					break;
+				total = ny * args->iterations;
+				cur = (double) y + (ny * iter);
+				if (y & 15)	// every 16 iterations
+					set_progress_bar_data(NULL, cur / total);
 				for (x = 0; x < nx; x++) {
 					WORD *data = calloc(args->ksize * args->ksize,
 							sizeof(WORD));
 					if (data == NULL) {
 						printf("median filter: error allocating data\n");
 						free(image);
-						gdk_threads_add_idle(end_median_filter, args);
+						siril_add_idle(end_median_filter, args);
+						set_progress_bar_data(_("Median filter failed"), PROGRESS_DONE);
 						return GINT_TO_POINTER(1);
 					}
 					i = 0;
@@ -1322,9 +1391,11 @@ gpointer median_filter(gpointer p) {
 		}
 		iter++;
 	} while (iter < args->iterations && get_thread_run());
+	invalidate_stats_from_fit(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	gdk_threads_add_idle(end_median_filter, args);
+	set_progress_bar_data(_("Median filter applied"), PROGRESS_DONE);
+	siril_add_idle(end_median_filter, args);
 
 	return GINT_TO_POINTER(0);
 }
@@ -1339,6 +1410,7 @@ static int fmul_layer(fits *a, int layer, float coeff) {
 	for (i = 0; i < a->rx * a->ry; ++i) {
 		buf[i] = round_to_WORD(buf[i] * coeff);
 	}
+	invalidate_stats_from_fit(a);
 	return 0;
 }
 
@@ -1346,7 +1418,7 @@ static int fmul_layer(fits *a, int layer, float coeff) {
  *      B A N D I N G      R E D U C T I O N      M A N A G E M E N T        *
  ****************************************************************************/
 
-int banding_image_hook(struct generic_seq_args *args, int i, fits *fit, rectangle *_) {
+int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
 	struct banding_data *banding_args = (struct banding_data *)args->user;
 	return BandingEngine(fit, banding_args->sigma, banding_args->amount,
 			banding_args->protect_highlights, banding_args->applyRotation);
@@ -1406,13 +1478,13 @@ gpointer BandingEngineThreaded(gpointer p) {
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	gdk_threads_add_idle(end_BandingEngine, args);
+	siril_add_idle(end_BandingEngine, args);
 	
 	return GINT_TO_POINTER(retval);
 }
 
 int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation) {
-	int chan, row, i;
+	int chan, row, i, ret = 0;
 	WORD *line, *fixline;
 	double minimum = DBL_MAX, globalsigma = 0.0;
 	fits *fiximage = NULL;
@@ -1428,7 +1500,7 @@ int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highl
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD);
 		if (!stat) {
-			siril_log_message(_("Error: no data computed.\n"));
+			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
 		double background = stat->median;
@@ -1477,13 +1549,13 @@ int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highl
 	}
 	for (chan = 0; chan < fit->naxes[2]; chan++)
 		fmul_layer(fiximage, chan, amount);
-	imoper(fit, fiximage, OPER_ADD);
+	ret = imoper(fit, fiximage, OPER_ADD);
 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
-	if (applyRotation)
+	if ((!ret) && applyRotation)
 		cvRotateImage(fit, -90.0, -1, OPENCV_LINEAR);
-	return 0;
+	return ret;
 }
 
 /*****************************************************************************
@@ -1518,7 +1590,7 @@ int backgroundnoise(fits* fit, double sigma[]) {
 
 		imstats *stat = statistics(NULL, -1, waveimage, layer, NULL, STATS_BASIC);
 		if (!stat) {
-			siril_log_message(_("Error: no data computed.\n"));
+			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
 		sigma0 = stat->sigma;
@@ -1583,22 +1655,11 @@ int backgroundnoise(fits* fit, double sigma[]) {
 
 gboolean end_noise(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
-	stop_processing_thread();// can it be done here in case there is no thread?
-	int chan, nb_chan;
-	struct timeval t_end;
-
-	nb_chan = args->fit->naxes[2];
-
-	if (!args->retval) {
-		double norm = (double) get_normalized_value(args->fit);
-		for (chan = 0; chan < nb_chan; chan++)
-			siril_log_message(
-					_("Background noise value (channel: #%d): %0.3lf (%.3e)\n"), chan,
-					args->bgnoise[chan], args->bgnoise[chan] / norm);
-	}
+	stop_processing_thread();
 	set_cursor_waiting(FALSE);
 	update_used_memory();
 	if (args->verbose) {
+		struct timeval t_end;
 		gettimeofday(&t_end, NULL);
 		show_time(args->t_start, t_end);
 	}
@@ -1621,16 +1682,26 @@ gpointer noise(gpointer p) {
 		imstats *stat = statistics(NULL, -1, args->fit, chan, NULL, STATS_NOISE);
 		if (!stat) {
 			args->retval = 1;
-			siril_log_message(_("Error: no data computed.\n"));
+			siril_log_message(_("Error: statistics computation failed.\n"));
 			break;
 		}
 		args->bgnoise[chan] = stat->bgnoise;
 		free_stats(stat);
 	}
 
-	gdk_threads_add_idle(end_noise, args);
+	if (!args->retval) {
+		double norm = (double) get_normalized_value(args->fit);
+		for (chan = 0; chan < args->fit->naxes[2]; chan++)
+			siril_log_message(
+					_("Background noise value (channel: #%d): %0.3lf (%.3e)\n"), chan,
+					args->bgnoise[chan], args->bgnoise[chan] / norm);
+	}
 
-	return GINT_TO_POINTER(args->retval);
+	int retval = args->retval;
+	if (args->use_idle)
+		siril_add_idle(end_noise, args);
+
+	return GINT_TO_POINTER(retval);
 }
 
 gpointer LRdeconv(gpointer p) {
@@ -1645,9 +1716,42 @@ gpointer LRdeconv(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
-	gdk_threads_add_idle(end_generic, args);
+	siril_add_idle(end_generic, args);
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	return 0;
+}
+
+void compute_grey_flat(fits *fit) {
+	double mean[4];
+	double diag1, diag2, coeff1, coeff2;
+	int config;
+
+	/* compute means of 4 channels */
+	compute_means_from_flat_cfa(fit, mean);
+
+	/* compute coefficients */
+
+	/* looking for green diagonal */
+	diag1 = mean[0] / mean[3];
+	diag2 = mean[1] / mean[2];
+
+	/* BAYER_FILTER_RGGB
+	 * BAYER_FILTER_BGGR */
+	if (fabs(1 - diag1) < fabs(1 - diag2)) {
+		coeff1 = mean[1] / mean[0];
+		coeff2 = mean[2] / mean[3];
+		config = 0;
+	} /* BAYER_FILTER_GBRG
+	 * BAYER_FILTER_GRBG */
+	else {
+		coeff1 = mean[0] / mean[1];
+		coeff2 = mean[3] / mean[2];
+		config = 1;
+	}
+
+	/* apllies coefficients to cfa image */
+	equalize_cfa_fit_with_coeffs(fit, coeff1, coeff2, config);
+
 }

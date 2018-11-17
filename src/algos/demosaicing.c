@@ -27,6 +27,7 @@
 #include "core/proto.h"
 #include "gui/callbacks.h"
 #include "algos/demosaicing.h"
+#include "algos/statistics.h"
 
 /* width and height are sizes of the original image */
 static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
@@ -43,7 +44,7 @@ static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
 				newbuf[i + 0] = buf[col + row * width];
 				tmp = (double) buf[1 + col + row * width];
 				tmp += (double) buf[col + (1 + row) * width];
-				tmp /= 2.0;
+				tmp *= 0.5;
 				newbuf[i + 1] = round_to_WORD(tmp);
 				newbuf[i + 2] = buf[1 + col + (1 + row) * width];
 				break;
@@ -51,7 +52,7 @@ static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
 				newbuf[i + 2] = buf[col + row * width];
 				tmp = (double) buf[1 + col + row * width];
 				tmp += (double) buf[(col + row * width) + width];
-				tmp /= 2.0;
+				tmp *= 0.5;
 				newbuf[i + 1] = round_to_WORD(tmp);
 				newbuf[i + 0] = buf[(1 + col + row * width) + width];
 				break;
@@ -60,7 +61,7 @@ static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
 				newbuf[i + 0] = buf[(col + row * width) + width];
 				tmp = (double) buf[col + row * width];
 				tmp += (double) buf[(1 + col + row * width) + width];
-				tmp /= 2.0;
+				tmp *= 0.5;
 				newbuf[i + 1] = round_to_WORD(tmp);
 				break;
 			case BAYER_FILTER_GRBG:
@@ -68,7 +69,7 @@ static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
 				newbuf[i + 2] = buf[(col + row * width) + width];
 				tmp = (double) buf[col + row * width];
 				tmp += (double) buf[(1 + col + row * width) + width];
-				tmp /= 2.0;
+				tmp *= 0.5;
 				newbuf[i + 1] = round_to_WORD(tmp);
 				break;
 			}
@@ -865,6 +866,7 @@ int debayer(fits* fit, interpolation_method interpolation) {
 	int xtrans[6][6] = { 0 };
 
 	retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
+	full_stats_invalidation_from_fit(fit);
 
 	newbuf = debayer_buffer(buf, &width, &height, interpolation,
 			com.debayer.bayer_pattern, xtrans);

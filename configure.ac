@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [0])
 m4_define([siril_minor_version], [9])
-m4_define([siril_micro_version], [8])
-m4_define([siril_prerelease_version], [006])
+m4_define([siril_micro_version], [10])
+m4_define([siril_prerelease_version], [beta2])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -68,7 +68,7 @@ dnl check math lib
 AC_CHECK_LIB(m, log, LIBS="$LIBS -lm")
 
 dnl check GTK
-PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.6.0)
+PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.12.0)
 
 dnl check fftw3
 PKG_CHECK_MODULES(FFTW, [fftw3])
@@ -150,6 +150,21 @@ dnl checking libcurl
 PKG_CHECK_MODULES(CURL, [libcurl],
 		  [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl ])],
 		  AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+		  
+dnl ================================================================
+dnl Collect some arguments.
+dnl ================================================================
+AC_ARG_ENABLE(debug,
+              [AC_HELP_STRING([--enable-debug],
+                              [enable debug build [default=no]])],,
+              [enable_debug="no"])
+
+AM_CONDITIONAL([SIRIL_DEBUG],[test "x$enable_debug" = "xyes"])
+
+if test "x$enable_debug" = "xyes"; then
+   AC_DEFINE([SIRIL_OUTPUT_DEBUG], [1], [Using debug output])
+fi
+
 
 dnl Compute the canonical host-system type variable (need config.guess and config.sub)
 AC_CANONICAL_HOST
@@ -260,13 +275,11 @@ fi
 
 if test `uname` != "Darwin"; then
 	if (test "$platform_win32" = "yes" || test "os_win32" = "yes" ) ; then
-		LDFLAGS="$LDFLAGS -Wl,--export-all-symbols -mwindows"
-		AC_SUBST(EXTRA_LIBS,'-lpsapi')
-	else
-		LDFLAGS="$LDFLAGS -rdynamic"
+		AC_SUBST(EXTRA_LIBS,'-lpsapi')	
 	fi
 fi
 
+AC_SUBST([AM_LDFLAGS])
+
 AC_CONFIG_FILES([Makefile src/Makefile po/Makefile.in])
 AC_OUTPUT
-

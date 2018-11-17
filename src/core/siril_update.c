@@ -30,6 +30,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "core/siril_update.h"
 
@@ -184,12 +185,12 @@ static gchar *parse_changelog(gchar *changelog) {
 	strResult = g_string_append(strResult, "\n\n");
 	/* we start at line 3 */
 	i = 3;
-	while (i < nargs && token[i][0] == '*') {
+	while (i < nargs && token[i][0] != '\0') {
 		strResult = g_string_append(strResult, token[i]);
 		strResult = g_string_append(strResult, "\n");
 		i++;
 	}
-
+	g_strfreev(token);
 	return g_string_free(strResult, FALSE);
 }
 
@@ -246,20 +247,21 @@ static gboolean end_update_idle(gpointer p) {
 	gint ret;
 	char *msg;
 	gchar *changelog = NULL;
-	const char *data = NULL;
+	gchar *data = NULL;
 	version_number current_version, last_version_available;
-	static char *icon[] = { "dialog-information", "dialog-error" };
+//	static char *icon[] = { "dialog-information-symbolic", "dialog-error-symbolic" };
+	static GtkMessageType type[] = { GTK_MESSAGE_INFO, GTK_MESSAGE_ERROR };
 	struct _update_data *args = (struct _update_data *) p;
 
 	if (args->content == NULL) {
 		switch(args->code) {
 		case 0:
-			msg = siril_log_message(_("Unable to check updates !! "
+			msg = siril_log_message(_("Unable to check updates! "
 					"Please Check your network connection\n"));
 			break;
 		default:
-		msg = siril_log_message(_("Unable to check updates !! Error: %ld\n"),
-				args->code);
+			msg = siril_log_message(_("Unable to check updates! Error: %ld\n"),
+					args->code);
 		}
 		ret = 1;
 	} else {
@@ -283,7 +285,7 @@ static gboolean end_update_idle(gpointer p) {
 		}
 		ret = 0;
 	}
-	show_txt_and_data_dialog(msg, data, _("Software Update"), icon[ret]);
+	siril_data_dialog(type[ret], _("Software Update"), msg, data);
 
 	/* free data */
 	g_free(args->content);

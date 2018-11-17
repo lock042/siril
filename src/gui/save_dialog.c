@@ -33,9 +33,11 @@
 
 
 static image_type whichminisave = TYPEUNDEF;
+#ifdef _WIN32
+static GtkFileChooserNative *saveDialog = NULL;
+#else
 static GtkWidget *saveDialog = NULL;
-static GtkWindow *saveParent = NULL;
-
+#endif
 
 static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 		const gchar *pattern, gboolean set_default) {
@@ -86,7 +88,7 @@ static void set_filters_save_dialog(GtkFileChooser *chooser) {
 static int get_filetype(const gchar *filter) {
 	gchar **string;
 	int type = TYPEUNDEF;
-	int i=0;
+	int i = 0;
 
 	string = g_strsplit_set(filter, "*(),.", -1);
 
@@ -117,14 +119,6 @@ static int get_filetype(const gchar *filter) {
 	return type;
 }
 
-static GtkWindow *get_windows_toplevel(GtkWidget *widget) {
-	GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
-	if (GTK_IS_WINDOW(toplevel)) {
-		return GTK_WINDOW(toplevel);
-	}
-	return NULL;
-}
-
 static void prepare_savepopup(int type) {
 	static GtkNotebook* notebookFormat = NULL;
 	static GtkWidget *savepopup = NULL;
@@ -138,7 +132,7 @@ static void prepare_savepopup(int type) {
 		savetxt = lookup_widget("filenameframe");
 	}
 
-	gtk_window_set_transient_for (GTK_WINDOW(savepopup), saveParent);
+	gtk_window_set_transient_for (GTK_WINDOW(savepopup), siril_get_active_window());
 
 	switch (type) {
 	case TYPEBMP:
@@ -161,6 +155,7 @@ static void prepare_savepopup(int type) {
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving TIFF"));
 		tab = PAGE_TIFF;
 		break;
+	default:
 	case TYPEFITS:
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
 		tab = PAGE_FITS;
@@ -171,38 +166,52 @@ static void prepare_savepopup(int type) {
 	gtk_notebook_set_current_page(notebookFormat, tab);
 }
 
-static void init_dialog(GtkWindow *parent) {
+static void init_dialog() {
+	GtkWindow *parent;
 	if (saveDialog == NULL) {
 		GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SAVE;
+		parent = siril_get_active_window();
 
+#ifdef _WIN32
+		saveDialog = gtk_file_chooser_native_new("Save File", parent, action,
+				_("_Save"), _("_Cancel"));
+#else
 		saveDialog = gtk_file_chooser_dialog_new(_("Save File"), parent, action,
 				_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"),
-				GTK_RESPONSE_ACCEPT,
-				NULL);
+				GTK_RESPONSE_ACCEPT, NULL);
+#endif				
 	}
 }
 
 static void close_dialog() {
 	if (saveDialog != NULL) {
+#ifdef _WIN32
+		g_object_unref(saveDialog);
+#else
 		gtk_widget_destroy(saveDialog);
+#endif
 		saveDialog = NULL;
 	}
 }
 
-static int save_dialog(GtkWindow *parent) {
+static int save_dialog() {
 	GtkFileChooser *chooser;
 	GtkFileFilter *filter;
 	GtkEntry *savetext;
 	gint res;
 
-	init_dialog(parent);
+	init_dialog();
 
 	chooser = GTK_FILE_CHOOSER(saveDialog);
 
 	gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
 	set_filters_save_dialog(chooser);
 
+#ifdef _WIN32
+	res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(saveDialog));
+#else
 	res = gtk_dialog_run(GTK_DIALOG(saveDialog));
+#endif	
 	if (res == GTK_RESPONSE_ACCEPT) {
 
 		gchar *filename = gtk_file_chooser_get_filename(chooser);
@@ -261,6 +270,7 @@ static void initialize_data(gpointer p) {
 
 static gpointer minisavedial(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
+	uint32_t bytes_per_sample;
 
 	if (args->filename[0] != '\0') {
 		switch (whichminisave) {
@@ -279,7 +289,8 @@ static gpointer minisavedial(gpointer p) {
 #endif
 #ifdef HAVE_LIBPNG
 		case TYPEPNG:
-			savepng(args->filename, &gfit, 2, gfit.naxes[2] == 3);
+			bytes_per_sample = gfit.orig_bitpix > BYTE_IMG ? 2 : 1;
+			savepng(args->filename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
 			break;
 #endif
 		case TYPEFITS:
@@ -316,7 +327,7 @@ static gpointer minisavedial(gpointer p) {
 			break;
 		}
 	}
-	gdk_threads_add_idle(end_save, args);
+	siril_add_idle(end_save, args);
 
 	return NULL;
 }
@@ -530,20 +541,17 @@ void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 
 void on_save1_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	static GtkWidget *savepopup = NULL;
-	GtkWidget *w;
 
 	if (savepopup == NULL) {
 		savepopup = lookup_widget("savepopup");
 	}
-	w = GTK_WIDGET(menuitem);
-	saveParent = get_windows_toplevel(w);
 
-	int res = save_dialog(saveParent);
+	int res = save_dialog();
 	if (res == GTK_RESPONSE_ACCEPT) {
 		/* now it is not needed for some formats */
 		if (whichminisave != TYPEBMP && whichminisave != TYPEPNG
 				&& whichminisave != TYPEPNM) {
-				gtk_window_set_transient_for (GTK_WINDOW(savepopup), saveParent);
+				gtk_window_set_transient_for (GTK_WINDOW(savepopup), siril_get_active_window());
 				gtk_widget_show(savepopup);
 				close_dialog();
 		}

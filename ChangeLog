@@ -1,16 +1,41 @@
-siril 0.9.9
-xx/xx/xx
+siril 0.9.10
+xxxxxxxx
 
+* Preserve FITS keywords in sum stacked image
+* Check if the number of FITS can be stacked by Siril on the system
+* Fixed crash on sequence export with normalization
+* Scripts with Windows end of line (CR+LF) are now usable
+* Added RGB flat normalisation for CFA images and command GREY_FLAT
+* Added command SETFINDSTAR to define sigma and roundness parameters
+* Make command SEQCROP scriptable
+* New astrometric tool
+* Improved global registration and fixed a bug
+* Fixed crash on startup on Windows with a session owning a wide char
+* Fixed issue with wide chars on Windows
+* Redesigned all dialog windows to conform to GNOME guideness
+* Added ability to join SER files
+
+siril 0.9.9
+06/07/18
+
+* Major update of the command line, with completion and documentation in the GUI, enhanced scripting capability by running commands from a file and also allowing it to be run with no X11 server running with the -s command line option
+* Added commands to stack and register a sequence
+* Image statistics, including auto-stretch parameters and stacking normalization, are now cached in the seq file for better performance
+* Global star registration now runs in parallel
+* Workflow improvement by adding demosaicing as last part of the preprocessing
+* Added a filtering method for stacking based on star roundness
+* Added an option to normalize stacked images to 16-bit with average rejection algorithm
+* All GUI save functions are now done in another thread
+* Improved histogram transformation GUI
+* Improved support of various FITS pixel formats
+* Preserve known FITS keywords in the stacked image by average method
+* Added native open and save dialogues for Windows users
+* Various Windows bug fixes in SER handling
 * Fixed wrong handling of scale variations in Drizzle case
-* Fixed bug in the about OS X menu
-* Fixed bug in 8bit images autostretch display
-* Save statistics and autostretch parameters for better performance
-* Rewrite of FITS reading
-* Run all GUI save functions in another thread
-* Workflow improvement by adding demosaic as last part of the preprocessing
-* Add 'stack sequence' command
-* Add 'coregister sequence' command
-* Add a filtering method based on roundness
+* Fixed 8-bit images auto-stretch display
+* Fixed BMP support
+* Fixed issues in PNG and TIFF 8-bit export
+* Fixed the "About" OS X menu
 
 siril 0.9.8.3
 02/19/18

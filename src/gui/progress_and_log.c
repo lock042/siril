@@ -41,20 +41,16 @@ static void progress_bar_set_text(const char *text) {
 	gtk_progress_bar_set_text(pbar, text);
 }
 
-/* http://developer.gnome.org/gtk3/3.4/GtkProgressBar.html */
+/* http://developer.gnome.org/gtk3/stable/GtkProgressBar.html */
 static void progress_bar_set_percent(double percent) {
 	static GtkProgressBar *pbar = NULL;
 	if (pbar == NULL)
 		pbar = GTK_PROGRESS_BAR(
 				gtk_builder_get_object(builder, "progressbar1"));
 	if (percent == PROGRESS_PULSATE) {
-#ifdef _OPENMP
-#pragma omp critical
-#endif
 		gtk_progress_bar_pulse(pbar);
 	}
 	else {
-		assert(percent >= 0.0 && percent <= 1.0);
 		gtk_progress_bar_set_fraction(pbar, percent);
 	}
 }
@@ -80,16 +76,22 @@ static gboolean progress_bar_idle_callback(gpointer p) {
 // Thread-safe progress bar update.
 // text can be NULL, percent can be -1 for pulsating, -2 for nothing, or between 0 and 1 for percent
 void set_progress_bar_data(const char *text, double percent) {
-	struct progress_bar_idle_data *data;
-	g_mutex_lock(&com.mutex);
-	//fprintf(stdout, "progress: %s, %g\n", text ? text : "NULL", percent);
-	data = malloc(sizeof(struct progress_bar_idle_data));
-	data->progress_bar_text = text ? strdup(text) : NULL;
-	data->progress_bar_percent = percent;
-	assert(percent == PROGRESS_PULSATE || percent == PROGRESS_NONE ||
-			(percent >= 0.0 && percent <= 1.0));
-	gdk_threads_add_idle(progress_bar_idle_callback, data);
-	g_mutex_unlock(&com.mutex);
+	if (com.headless) {
+		if (percent < 0.0) percent = 1.0;
+		if (text)
+			fprintf(stdout, "progress: %s, %4.2lf%%\n", text, percent*100.0);
+		else fprintf(stdout, "\033[A\33[2KT\rprogress: %4.2lf%%\n", percent*100.0);
+		// Warning: I don't know how to do that in other OS than GNU
+		// On OS-X it works. On Windows ... well, I doubt it will be used
+	} else {
+		struct progress_bar_idle_data *data;
+		data = malloc(sizeof(struct progress_bar_idle_data));
+		data->progress_bar_text = text ? strdup(text) : NULL;
+		data->progress_bar_percent = percent;
+		assert(percent == PROGRESS_PULSATE || percent == PROGRESS_NONE ||
+				(percent >= 0.0 && percent <= 1.0));
+		gdk_threads_add_idle(progress_bar_idle_callback, data);
+	}
 }
 
 /*
@@ -188,7 +190,8 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 	new_msg->timestamp = strdup(timestamp);
 	new_msg->message = strdup(msg);
 	new_msg->color = color;
-	gdk_threads_add_idle(idle_messaging, new_msg);
+	if (!com.headless)	// avoid adding things in lost memory
+		gdk_threads_add_idle(idle_messaging, new_msg);
 
 	return msg;
 }
@@ -214,19 +217,80 @@ char* siril_log_color_message(const char* format, const char* color, ...) {
 }
 
 void show_time(struct timeval t_start, struct timeval t_end) {
+	show_time_msg(t_start, t_end, _("Execution time"));
+}
+
+void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
 	float time = (float) (((t_end.tv_sec - t_start.tv_sec) * 1000000L
 			+ t_end.tv_usec) - t_start.tv_usec) / 1000000.0;
 
 	if (time > 60.f) {
 		int min = (int) time / 60;
 		int sec = (int) time % 60 + 1;
-		siril_log_color_message(_("Execution time: %d min %.2d s.\n"), "green",
-				min, sec);
+		siril_log_color_message(_("%s: %d min %.2d s.\n"), "green",
+				msg, min, sec);
 	} else if (time < 1.f) {
 		float ms = time * 1000.f;
-		siril_log_color_message(_("Execution time: %.2f ms.\n"), "green", ms);
+		siril_log_color_message(_("%s: %.2f ms.\n"), "green", msg, ms);
 	} else {
-		siril_log_color_message(_("Execution time: %.2f s.\n"), "green", time);
+		siril_log_color_message(_("%s: %.2f s.\n"), "green", msg, time);
 	}
 }
 
+struct _cursor_data {
+	gboolean change;
+	GdkCursorType cursor_type;
+};
+
+/* thread-safe cursor change */
+static gboolean idle_set_cursor(gpointer garg) {
+	struct _cursor_data *arg = (struct _cursor_data *)garg;
+	GdkCursor *cursor;
+	GdkCursor *new;
+	GdkDisplay *display;
+	GdkScreen *screen;
+	GList *list;
+
+	display = gdk_display_get_default ();
+	new = gdk_cursor_new_for_display(display, arg->cursor_type);
+	screen = gdk_screen_get_default();
+	list = gdk_screen_get_toplevel_windows(screen);
+
+	if (arg->change) {
+		cursor = new;
+	} else {
+		cursor = NULL;
+	}
+	while (list) {
+		GdkWindow *window = GDK_WINDOW(list->data);
+		gdk_window_set_cursor(window, cursor);
+		gdk_display_sync(gdk_window_get_display(window));
+		gdk_display_flush(display);
+		list = g_list_next(list);
+	}
+	g_list_free(list);
+	free(arg);
+	return FALSE;
+}
+
+void set_cursor_waiting(gboolean waiting) {
+	struct _cursor_data *arg = malloc(sizeof (struct _cursor_data));
+
+	arg->change = waiting;
+	arg->cursor_type = GDK_WATCH;
+
+	if (com.script)
+		gdk_threads_add_idle(idle_set_cursor, arg);
+	else idle_set_cursor(arg);
+}
+
+void set_cursor(GdkCursorType cursor_type, gboolean change) {
+	struct _cursor_data *arg = malloc(sizeof (struct _cursor_data));
+
+	arg->change = change;
+	arg->cursor_type = cursor_type;
+
+	if (com.script)
+		gdk_threads_add_idle(idle_set_cursor, arg);
+	else idle_set_cursor(arg);
+}

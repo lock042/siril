@@ -19,13 +19,13 @@
  */
 
 #include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <complex.h>
 #include <fftw3.h>
 #include <assert.h>
 #include <float.h>
+#include <math.h>
 #include <gtk/gtk.h>
 #ifdef MAC_INTEGRATION
 #include "gtkmacintegration/gtkosxapplication.h"
@@ -33,6 +33,7 @@
 
 #include "core/siril.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/plot.h"
 #include "gui/progress_and_log.h"
 #include "core/proto.h"
@@ -41,7 +42,6 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/match.h"
 #include "registration/matching/atpmatch.h"
-#include "algos/star_finder.h"
 #include "stacking/stacking.h"
 #include "algos/PSF.h"
 #include "gui/PSF_list.h"
@@ -51,7 +51,6 @@
 #include "opencv/opencv.h"
 #include "opencv/ecc/ecc.h"
 
-#define MAX_STARS_FITTED 2000
 #undef DEBUG
 
 static char *tooltip_text[] = { N_("One Star Registration: This is the simplest method to register deep-sky images. "
@@ -76,8 +75,7 @@ void _reg_selected_area_callback() {
 	update_reg_interface(TRUE);
 }
 
-static struct registration_method *reg_methods[NUMBER_OF_METHOD];
-static gpointer register_thread_func(gpointer p);
+static struct registration_method *reg_methods[NUMBER_OF_METHODS];
 static gboolean end_register_idle(gpointer p);
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
@@ -164,17 +162,18 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
 		args->seq->regparam[args->layer][frame].quality -= q_min;
 		args->seq->regparam[args->layer][frame].quality /= diff;
 		/* if thread has been manually stopped, some values will be < 0 */
-		if (args->seq->regparam[args->layer][frame].quality < 0)
+		if ((args->seq->regparam[args->layer][frame].quality < 0)
+				|| isnan(args->seq->regparam[args->layer][frame].quality))
 			args->seq->regparam[args->layer][frame].quality = -1.0;
 	}
 }
 
-/* register images: calculate shift in images to be aligned with the reference image;
- * images are not modified, only shift parameters are saved in regparam in the sequence.
- * layer is the layer on which the registration will be done, green by default (set in siril_init())
+/* Calculate shift in images to be aligned with the reference image, using
+ * discrete Fourrier transform on a square selected area and matching the
+ * phases.
  */
 int register_shift_dft(struct registration_args *args) {
-	fits fit_ref, fit;
+	fits fit_ref = { 0 }, fit = { 0 };
 	int frame, size, sqsize;
 	fftw_complex *ref, *in, *out, *convol;
 	fftw_plan p, q;
@@ -197,14 +196,12 @@ int register_shift_dft(struct registration_args *args) {
 	else
 		nb_frames = (float) args->seq->selnum;
 
-	if (!args->seq->regparam) {
-		fprintf(stderr, "regparam should have been created before\n");
-		return -1;
-	}
 	if (args->seq->regparam[args->layer]) {
 		siril_log_message(
 				_("Recomputing already existing registration for this layer\n"));
 		current_regdata = args->seq->regparam[args->layer];
+		/* we reset all values as we may register different images */
+		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
 		current_regdata = calloc(args->seq->number, sizeof(regdata));
 		if (current_regdata == NULL) {
@@ -219,13 +216,13 @@ int register_shift_dft(struct registration_args *args) {
 	set_progress_bar_data(
 			_("Register DFT: loading and processing reference frame"),
 			PROGRESS_NONE);
-	memset(&fit_ref, 0, sizeof(fits));
 	ret = seq_read_frame_part_simple_debayer(args->seq, args->layer, ref_image, &fit_ref,
 			&args->selection, FALSE, args->bayer_drizzle);
 
 	if (ret) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
+		args->seq->regparam[args->layer] = NULL;
 		free(current_regdata);
 		clearfits(&fit_ref);
 		return ret;
@@ -260,7 +257,6 @@ int register_shift_dft(struct registration_args *args) {
 
 	cur_nb = 0.f;
 
-	memset(&fit, 0, sizeof(fits));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) firstprivate(fit) schedule(static) \
 	if((args->seq->type == SEQ_REGULAR && fits_is_reentrant()) || args->seq->type == SEQ_SER)
@@ -279,7 +275,7 @@ int register_shift_dft(struct registration_args *args) {
 			char tmpmsg[1024], tmpfilename[256];
 
 			seq_get_image_filename(args->seq, frame, tmpfilename);
-			g_snprintf(tmpmsg, 1024, _("Register: processing image %s\n"),
+			g_snprintf(tmpmsg, 1024, _("Register: processing image %s"),
 					tmpfilename);
 			set_progress_bar_data(tmpmsg, PROGRESS_NONE);
 			if (!(seq_read_frame_part(args->seq, args->layer, frame, &fit,
@@ -365,8 +361,7 @@ int register_shift_dft(struct registration_args *args) {
 				fftw_free(out2);
 			} else {
 				//report_fits_error(ret, error_buffer);
-				if (current_regdata == args->seq->regparam[args->layer])
-					args->seq->regparam[args->layer] = NULL;
+				args->seq->regparam[args->layer] = NULL;
 				free(current_regdata);
 				abort = ret = 1;
 				continue;
@@ -405,18 +400,20 @@ int register_shift_fwhm(struct registration_args *args) {
 	double fwhm_min = DBL_MAX;
 	int fwhm_index = -1;
 	regdata *current_regdata;
-	/* First and longest step: get the minimization data on one star for all
-	 * images to register, which provides FWHM but also star coordinates */
-	// TODO: detect that it was already computed, and don't do it again
-	// -> should be done at a higher level and passed in the args
+
 	framing_mode framing = ORIGINAL_FRAME;
 	if (args->follow_star)
 		framing = FOLLOW_STAR_FRAME;
 
+	/* First and longest step: get the minimization data on one star for all
+	 * images to register, which provides FWHM but also star coordinates */
+	// TODO: detect that it was already computed, and don't do it again
+	// -> should be done at a higher level and passed in the args
 	if (seqpsf(args->seq, args->layer, TRUE, args->process_all_frames,
 				framing, FALSE, args->bayer_drizzle))
 		return 1;
 
+	// regparam is managed in seqpsf idle function already
 	current_regdata = args->seq->regparam[args->layer];
 
 	if (args->process_all_frames)
@@ -429,8 +426,6 @@ int register_shift_fwhm(struct registration_args *args) {
 	if (!current_regdata[ref_image].fwhm_data) {
 		siril_log_message(
 				_("Registration PSF: failed to compute PSF for reference frame at least\n"));
-		if (current_regdata != args->seq->regparam[args->layer])
-			free(current_regdata);
 		return -1;
 	}
 	reference_xpos = current_regdata[ref_image].fwhm_data->xpos;
@@ -474,7 +469,6 @@ int register_shift_fwhm(struct registration_args *args) {
 		set_progress_bar_data(NULL, cur_nb / nb_frames);
 	}
 
-	args->seq->regparam[args->layer] = current_regdata;
 	if (args->x2upscale)
 		args->seq->upscale_at_stacking = 2.0;
 	else
@@ -486,325 +480,6 @@ int register_shift_fwhm(struct registration_args *args) {
 	return 0;
 }
 
-static void print_alignment_results(Homography H, float FWHMx, float FWHMy) {
-	double rotation, scale, scaleX, scaleY;
-	point shift;
-	double inliers;
-
-	/* Matching information */
-	siril_log_color_message(_("Matching stars: done\n"), "green");
-	siril_log_message(_("%d pair matches.\n"), H.pair_matched);
-	inliers = 1.0 - ((((double) H.pair_matched - (double) H.Inliers)) / (double) H.pair_matched);
-	siril_log_message(_("Inliers:%*.3f\n"), 11, inliers);
-
-	/* Scale */
-	scaleX = sqrt(H.h00 * H.h00 + H.h01 * H.h01);
-	scaleY = sqrt(H.h10 * H.h10 + H.h11 * H.h11);
-	scale = (scaleX + scaleY) * 0.5;
-	siril_log_message(_("scaleX:%*.3f\n"), 12, scaleX);
-	siril_log_message(_("scaleY:%*.3f\n"), 12, scaleY);
-	siril_log_message(_("scale:%*.3f\n"), 13, scale);
-
-	/* Rotation */
-	rotation = -atan2(H.h01, H.h00);
-	siril_log_message(_("rotation:%+*.2f deg\n"), 9, rotation * 180 / M_PI);
-
-	/* Translation */
-	shift.x = -H.h02;
-	shift.y = -H.h12;
-	siril_log_message(_("dx:%+*.2f px\n"), 15, shift.x);
-	siril_log_message(_("dy:%+*.2f px\n"), 15, shift.y);
-	siril_log_message(_("FWHMx:%*.2f px\n"), 12, FWHMx);
-	siril_log_message(_("FWHMy:%*.2f px\n"), 12, FWHMy);
-}
-
-int register_star_alignment(struct registration_args *args) {
-	int frame, ref_image, ret, i;
-	int abort = 0;
-	int fitted_stars, failed, skipped;
-	float nb_frames, cur_nb;
-	float FWHMx, FWHMy;
-	fitted_PSF **stars, **refstars;
-	Homography H;
-	regdata *current_regdata;
-	starFinder sf;
-	fits fit;
-	point ref;
-	struct ser_struct *new_ser = NULL;
-
-	memset(&fit, 0, sizeof(fits));
-	memset(&sf, 0, sizeof(starFinder));
-	memset(&H, 0, sizeof(Homography));
-
-	if (!args->seq->regparam) {
-		fprintf(stderr, "regparam should have been created before\n");
-		return -1;
-	}
-	if (args->seq->regparam[args->layer]) {
-		siril_log_message(
-				_("Recomputing already existing registration for this layer\n"));
-		current_regdata = args->seq->regparam[args->layer];
-		/* we reset all values as we built another sequence */
-		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
-	} else {
-		current_regdata = calloc(args->seq->number, sizeof(regdata));
-		if (current_regdata == NULL) {
-			printf("Error allocating registration data\n");
-			return -2;
-		}
-	}
-
-	if (args->process_all_frames)
-		nb_frames = (float) args->seq->number;
-	else
-		nb_frames = (float) args->seq->selnum;
-
-	/* loading reference frame */
-	ref_image = sequence_find_refimage(args->seq);
-
-	/* first we're looking for stars in reference image */
-	ret = seq_read_frame(args->seq, ref_image, &fit);
-	if (ret) {
-		siril_log_message(_("Could not load reference image\n"));
-		if (current_regdata == args->seq->regparam[args->layer])
-			args->seq->regparam[args->layer] = NULL;
-		free(current_regdata);
-		return 1;
-	}
-	siril_log_color_message(_("Reference Image:\n"), "green");
-
-	if ((args->selection.w != 0) && (args->selection.h != 0) && args->matchSelection) {
-		com.stars = peaker(&fit, args->layer, &sf, &args->selection);
-	}
-	else {
-		com.stars = peaker(&fit, args->layer, &sf, NULL);
-	}
-
-	if (sf.nb_stars < AT_MATCH_MINPAIRS) {
-		siril_log_message(
-				_("There are not enough stars in reference image to perform alignment\n"));
-		if (current_regdata == args->seq->regparam[args->layer])
-			args->seq->regparam[args->layer] = NULL;
-		free(current_regdata);
-		return 1;
-	}
-	redraw(com.cvport, REMAP_NONE); // draw stars
-
-	ref.x = fit.rx;
-	ref.y = fit.ry;
-	if (args->x2upscale) {
-		if (args->translation_only) {
-			args->seq->upscale_at_stacking = 2.0;
-		} else {
-			ref.x *= 2.0;
-			ref.y *= 2.0;
-		}
-	}
-	else {
-		if (args->translation_only) {
-			args->seq->upscale_at_stacking = 1.0;
-		}
-	}
-
-	/* we copy com.stars to refstars in case user take a look to another image of the sequence
-	 * that would destroy com.stars
-	 */
-	i = 0;
-	refstars = malloc((MAX_STARS + 1) * sizeof(fitted_PSF *));
-	while (i < MAX_STARS && com.stars[i]) {
-		fitted_PSF *tmp = malloc(sizeof(fitted_PSF));
-		memcpy(tmp, com.stars[i], sizeof(fitted_PSF));
-		refstars[i] = tmp;
-		refstars[i+1] = NULL;
-		i++;
-	}
-
-	if (sf.nb_stars > MAX_STARS_FITTED) {
-		fitted_stars = MAX_STARS_FITTED;
-		siril_log_color_message(_("Reference Image: Limiting to %d brightest stars\n"), "green", MAX_STARS_FITTED);
-	} else {
-		fitted_stars = sf.nb_stars;
-	}
-	FWHM_average(refstars, &FWHMx, &FWHMy, fitted_stars);
-	siril_log_message(_("FWHMx:%*.2f px\n"), 12, FWHMx);
-	siril_log_message(_("FWHMy:%*.2f px\n"), 12, FWHMy);
-	current_regdata[ref_image].fwhm = FWHMx;
-
-	/* then we compare to other frames */
-	if (args->process_all_frames)
-		args->new_total = args->seq->number;
-	else args->new_total = args->seq->selnum;
-
-	if (!args->translation_only) {
-		// allocate destination sequence data
-		args->imgparam = calloc(args->new_total, sizeof(imgdata));
-		args->regparam = calloc(args->new_total, sizeof(regdata));
-	}
-
-	if (args->seq->type == SEQ_SER) {
-		char dest[256];
-
-		new_ser = malloc(sizeof(struct ser_struct));
-
-		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
-		if (ptr)
-			snprintf(dest, 255, "%s%s.ser", args->prefix, ptr + 1);
-		else
-			snprintf(dest, 255, "%s%s.ser", args->prefix, args->seq->seqname);
-
-		/* Here the last argument is NULL because we do not want copy SER file
-		 * from the original. Indeed in the demosaicing case this would lead to
-		 * a wrong file (B&W and not in RAW data). Moreover, header informations
-		 * (like fps, local and UTC time, ...) have no sense now since some frames
-		 * could be removed from the sequence.
-		 */
-		ser_create_file(dest, new_ser, TRUE, NULL);
-	}
-
-	skipped = 0;
-	failed = 0;
-	for (frame = 0, cur_nb = 0.f; frame < args->seq->number; frame++) {
-		if (!abort) {
-			if (args->run_in_thread && !get_thread_run()) {
-				abort = 1;
-				continue;
-			}
-			if (!args->process_all_frames && !args->seq->imgparam[frame].incl) {
-				skipped++;
-				continue;
-			}
-
-			clearfits(&fit);
-			ret = seq_read_frame(args->seq, frame, &fit);
-			if (!ret) {
-				char dest[256], filename[256];
-				int nbpoints;
-
-				if (args->translation_only) {
-					/* if "translation only", we choose to initialize all frames
-					 * to exclude status. If registration is ok, the status is
-					 * set to include */
-					args->seq->imgparam[frame].incl = !SEQUENCE_DEFAULT_INCLUDE;
-				}
-
-				if (frame != ref_image) {
-					if (args->seq->type == SEQ_SER) {
-						siril_log_color_message(_("Frame %d:\n"), "bold", frame);
-					}
-					stars = peaker(&fit, args->layer, &sf, NULL);
-					if (sf.nb_stars < AT_MATCH_MINPAIRS) {
-						siril_log_message(
-								_("Not enough stars. Image %d skipped\n"), frame);
-						args->new_total--;
-						failed++;
-						cur_nb += 1.f;
-						continue;
-					}
-
-					if (sf.nb_stars > fitted_stars) {
-						if (sf.nb_stars > MAX_STARS_FITTED) {
-							siril_log_color_message(_("Target Image: Limiting to %d brightest stars\n"), "green", MAX_STARS_FITTED);
-						}
-						nbpoints = fitted_stars;
-					}
-					else {
-						nbpoints = sf.nb_stars;
-					}
-
-					if (new_star_match(stars, refstars, nbpoints, &H)) {
-						siril_log_color_message(_("Cannot perform star matching. Image %d skipped\n"),
-								"red", frame);
-						args->new_total--;
-						failed++;
-						i = 0;
-						while (i < MAX_STARS && stars[i])
-							free(stars[i++]);
-						free(stars);
-						cur_nb += 1.f;
-						continue;
-					}
-
-					FWHM_average(stars, &FWHMx, &FWHMy, nbpoints);
-					print_alignment_results(H, FWHMx, FWHMy);
-					current_regdata[frame].fwhm = FWHMx;
-
-					if (!args->translation_only) {
-						fits_flip_top_to_bottom(&fit);	// this is because in cvTransformImage, rotation center point is at (0, 0)
-						if (args->x2upscale) {
-							double upscale = 2.0;
-
-							cvResizeGaussian(&fit, fit.rx * upscale, fit.ry * upscale, OPENCV_NEAREST);
-
-							cvApplyScaleToH(&H, upscale);
-						}
-						cvTransformImage(&fit, ref, H, args->interpolation);
-						fits_flip_top_to_bottom(&fit);
-					}
-
-					i = 0;
-					while (i < MAX_STARS && stars[i])
-						free(stars[i++]);
-					free(stars);
-				}
-				else {
-					if (args->x2upscale && !args->translation_only) {
-						cvResizeGaussian(&fit, fit.rx * 2, fit.ry * 2, OPENCV_NEAREST);
-					}
-				}
-
-				if (!args->translation_only) {
-					if (args->seq->type == SEQ_SER) {
-						ser_write_frame_from_fit(new_ser, &fit,
-								frame - failed - skipped);
-						args->imgparam[frame - failed - skipped].filenum =
-							frame - failed - skipped;
-					} else {
-						fit_sequence_get_image_filename(args->seq, frame, filename, TRUE);
-						snprintf(dest, 256, "%s%s", args->prefix, filename);
-						savefits(dest, &fit);
-						args->imgparam[frame - failed - skipped].filenum = args->seq->imgparam[frame].filenum;
-					}
-					args->imgparam[frame - failed - skipped].incl = SEQUENCE_DEFAULT_INCLUDE;
-					args->regparam[frame - failed - skipped].fwhm = current_regdata[frame].fwhm;	// not FWHMx because of the ref frame
-				} else {
-					current_regdata[frame].shiftx = +H.h02;
-					current_regdata[frame].shifty = -H.h12;
-					args->seq->imgparam[frame].incl = SEQUENCE_DEFAULT_INCLUDE;
-				}
-
-				cur_nb += 1.f;
-				set_progress_bar_data(NULL, cur_nb / nb_frames);
-			}
-		}
-	}
-
-	i = 0;
-	while (i < MAX_STARS && refstars[i])
-		free(refstars[i++]);
-	free(refstars);
-
-	if (args->seq->type == SEQ_SER) {
-		ser_write_and_close(new_ser);
-		free(new_ser);
-	}
-	args->seq->regparam[args->layer] = current_regdata;
-	update_used_memory();
-	if (!abort) {
-		siril_log_message(_("Registration finished.\n"));
-		siril_log_color_message(_("%d images processed.\n"), "green",
-				args->new_total + failed);
-		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green",
-				failed, args->new_total);
-		args->load_new_sequence = !args->translation_only;
-	}
-	else {
-		siril_log_message(_("Registration aborted.\n"));
-		args->load_new_sequence = FALSE;
-	}
-
-	return args->new_total == 0;
-}
-
 int register_ecc(struct registration_args *args) {
 	int frame, ref_image, ret, failed = 0;
 	float nb_frames, cur_nb;
@@ -814,13 +489,9 @@ int register_ecc(struct registration_args *args) {
 	int q_index = -1;
 	int abort = 0;
 
-	if (!args->seq->regparam) {
-		fprintf(stderr, "regparam should have been created before\n");
-		return -1;
-	}
 	if (args->seq->regparam[args->layer]) {
 		current_regdata = args->seq->regparam[args->layer];
-		/* we reset all values as we built another sequence */
+		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
 		current_regdata = calloc(args->seq->number, sizeof(regdata));
@@ -844,8 +515,7 @@ int register_ecc(struct registration_args *args) {
 	ret = seq_read_frame(args->seq, ref_image, &ref);
 	if (ret) {
 		siril_log_message(_("Could not load reference image\n"));
-		if (current_regdata == args->seq->regparam[args->layer])
-			args->seq->regparam[args->layer] = NULL;
+		args->seq->regparam[args->layer] = NULL;
 		free(current_regdata);
 		return 1;
 	}
@@ -883,7 +553,7 @@ int register_ecc(struct registration_args *args) {
 			char tmpmsg[1024], tmpfilename[256];
 
 			seq_get_image_filename(args->seq, frame, tmpfilename);
-			g_snprintf(tmpmsg, 1024, _("Register: processing image %s\n"),
+			g_snprintf(tmpmsg, 1024, _("Register: processing image %s"),
 					tmpfilename);
 			set_progress_bar_data(tmpmsg, PROGRESS_NONE);
 
@@ -971,15 +641,24 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	writeinitfile();
 }
 
-int get_registration_layer() {
-	int reglayer;
-	GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-
-	if (!sequence_is_loaded())
+/* for now, the sequence argument is used only when executing a script */
+int get_registration_layer(sequence *seq) {
+	if (!com.script) {
+		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
+		int reglayer = gtk_combo_box_get_active(registbox);
+		if (!seq || !seq->regparam || seq->nb_layers < 0)
+			return -1;
+		return reglayer;
+	} else {
+		// find first available regdata
+		if (!seq || !seq->regparam || seq->nb_layers < 0)
+			return -1;
+		int i;
+		for (i = 0; i < seq->nb_layers; i++)
+			if (seq->regparam[i])
+				return i;
 		return -1;
-	reglayer = gtk_combo_box_get_active(registbox);
-
-	return reglayer;
+	}
 }
 
 /* Selects the "register all" or "register selected" according to the number of
@@ -1156,6 +835,13 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
+	if (!com.seq.regparam) {
+		fprintf(stderr, "regparam should have been created before\n");
+		// means that a call to seq_check_basic_data() or
+		// check_or_allocate_regparam() is missing somewhere else
+		return;
+	}
+
 	/* getting the selected registration method */
 	method = get_selected_registration_method();
 
@@ -1163,7 +849,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 			&& method->sel != REQUIRES_NO_SELECTION) {
 		msg = siril_log_message(
 				_("All prerequisites are not filled for registration. Select a rectangle first.\n"));
-		show_dialog(msg, _("Warning"), "dialog-warning");
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), msg);
 		return;
 	}
 	// TODO: check for reentrance
@@ -1186,6 +872,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
+	reg_args->reference_image = sequence_find_refimage(&com.seq);
 	reg_args->process_all_frames = gtk_toggle_button_get_active(regall);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
@@ -1197,8 +884,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		double size = seq_compute_size(reg_args->seq);
 		double diff = test_available_space(size * 4.0); //FIXME: 4 is only ok for x2 Drizzle
 		if (diff < 0.0) {
-			msg = siril_log_message(_("Not enough disk space to perform Drizzle operation !!\n"));
-			show_dialog(msg, _("Error"), "dialog-error");
+			msg = siril_log_message(_("Not enough disk space to perform Drizzle operation!\n"));
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough disk space"), msg);
 			free(reg_args);
 			return;
 		}
@@ -1212,99 +899,64 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->run_in_thread = TRUE;
 	reg_args->prefix = gtk_entry_get_text(
 			GTK_ENTRY(gtk_builder_get_object(builder, "regseqname_entry")));
+	reg_args->load_new_sequence = TRUE;
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"red", method->name);
 	msg[strlen(msg) - 1] = '\0';
-	gettimeofday(&(reg_args->t_start), NULL);
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_new_thread(register_thread_func, reg_args);
 }
 
-// worker thread
-static gpointer register_thread_func(gpointer p) {
+// worker thread function for the registration
+gpointer register_thread_func(gpointer p) {
 	struct registration_args *args = (struct registration_args *) p;
+
 	args->retval = args->func(args);
-	gdk_threads_add_idle(end_register_idle, args);
-	return GINT_TO_POINTER(args->retval);	// not used anyway
+
+	if (args->seq->reference_image == -1) {
+		// set new reference image: should we do it all the time?
+		// also done in generated sequence in global.c
+		args->seq->reference_image = sequence_find_refimage(args->seq);
+	}
+	writeseqfile(args->seq);
+	siril_add_idle(end_register_idle, args);
+	return GINT_TO_POINTER(args->retval);
 }
 
-// end of registration, GTK thread
+// end of registration, GTK thread. Executed when started from the GUI and in
+// the graphical command line but not from a script (headless mode)
 static gboolean end_register_idle(gpointer p) {
-	struct timeval t_end;
 	struct registration_args *args = (struct registration_args *) p;
 	stop_processing_thread();
 	if (!args->retval) {
-		writeseqfile(args->seq);
-		fill_sequence_list(args->seq, com.cvport);
-		set_layers_for_registration();	// update display of available reg data
-
-		/* Load new sequence. Only star alignment method uses new sequence. */
-		if (args->func == &register_star_alignment) {
-			if (args->load_new_sequence) {
-				sequence *seq;
-				if (!(seq = malloc(sizeof(sequence)))) {
-					fprintf(stderr, "could not allocate new sequence\n");
-					goto failed_end;
-				}
-				initialize_sequence(seq, FALSE);
-
-				/* we are not interested in the whole path */
-				gchar *seqname = g_path_get_basename (com.seq.seqname);
-				char *rseqname = malloc(
-						strlen(args->prefix) + strlen(seqname) + 5);
-
-				sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
-				g_free(seqname);
-				g_unlink(rseqname);	// remove previous to overwrite
-				char *newname = remove_ext_from_filename(rseqname);
-				seq->seqname = newname;
-				seq->number = args->new_total;
-				seq->selnum = args->new_total;
-				seq->fixed = args->seq->fixed;
-				seq->nb_layers = args->seq->nb_layers;
-				seq->rx = args->seq->rx;
-				seq->ry = args->seq->ry;
-				seq->imgparam = args->imgparam;
-				seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
-				seq->regparam[args->layer] = args->regparam;
-				seq->layers = calloc(seq->nb_layers, sizeof(layer_info));
-				seq->beg = seq->imgparam[0].filenum;
-				seq->end = seq->imgparam[seq->number-1].filenum;
-				seq->type = args->seq->type;
-				seq->current = -1;
-				seq->needs_saving = TRUE;
-				writeseqfile(seq);
-
-				free_sequence(args->seq, FALSE);	// probably com.seq
-
-				/* copy the new over com.seq to leave it in a usable state,
-				 * even if it will be freed in update_sequences_list to be
-				 * reloaded from the file */
-				memcpy(&com.seq, seq, sizeof(sequence));
-
-				update_sequences_list(rseqname);
-				free(rseqname);
-			}
-			clear_stars_list();
+		if (!args->load_new_sequence) {
+			fill_sequence_list(args->seq, com.cvport, FALSE);
+			set_layers_for_registration();	// update display of available reg data
+		}
+		else {
+			check_seq(0);
+			update_sequences_list(args->new_seq_name);
 		}
 	}
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
-	drawPlot();
-failed_end:
-	update_stack_interface(TRUE);
-	adjust_sellabel();
+
+//	if (!args->load_new_sequence) {	// already done in set_seq()
+		drawPlot();
+		update_stack_interface(TRUE);
+		adjust_sellabel();
+//	}
 	update_used_memory();
 	set_cursor_waiting(FALSE);
+
 #ifdef MAC_INTEGRATION
 	GtkosxApplication *osx_app = gtkosx_application_get();
 	gtkosx_application_attention_request(osx_app, INFO_REQUEST);
 	g_object_unref (osx_app);
 #endif
-	gettimeofday(&t_end, NULL);
-	show_time(args->t_start, t_end);
+
 	free(args);
 	return FALSE;
 }

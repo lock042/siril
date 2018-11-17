@@ -37,8 +37,8 @@
 #include "algos/statistics.h"
 #include "io/single_image.h"
 
-static char *MIPSHI[] = {"MIPS-HI", "CWHITE", NULL };
-static char *MIPSLO[] = {"MIPS-LO", "CBLACK", NULL };
+static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
+static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
 static char *PixSizeX[] = { "XPIXSZ", "XPIXELSZ", NULL };
 static char *PixSizeY[] = { "YPIXSZ", "YPIXELSZ", NULL };
 static char *BinX[] = { "XBINNING", "BINX", NULL };
@@ -74,23 +74,102 @@ static void read_fits_date_obs_header(fits *fit) {
 	}
 }
 
+/* This only work on FITS with naxis=2 */
+static int fit_stats(fits *fit, double *mini, double *maxi) {
+	int status = 0;
+	int ii;
+	long totpix, fpixel[2];
+	double *pix, sum = 0.;
+
+	double meanval = 0., minval = 1.E33, maxval = -1.E33;
+
+	fits_get_img_dim(fit->fptr, &(fit->naxis), &status);
+	fits_get_img_size(fit->fptr, 2, fit->naxes, &status);
+
+	if (status || fit->naxis != 2) {
+		siril_debug_print("fit_stats: NAXIS = %d. Only 2-D images are supported.\n",
+				fit->naxis);
+		return (1);
+	}
+
+	pix = (double *) malloc(fit->naxes[0] * sizeof(double)); /* memory for 1 row */
+
+	if (pix == NULL) {
+		printf("Memory allocation error\n");
+		return (1);
+	}
+
+	totpix = fit->naxes[0] * fit->naxes[1];
+	fpixel[0] = 1; /* read starting with first pixel in each row */
+
+	/* process image one row at a time; increment row # in each loop */
+	for (fpixel[1] = 1; fpixel[1] <= fit->naxes[1]; fpixel[1]++) {
+		/* give starting pixel coordinate and number of pixels to read */
+		if (fits_read_pix(fit->fptr, TDOUBLE, fpixel, fit->naxes[0], 0, pix, 0,
+				&status))
+			break; /* jump out of loop on error */
+
+		for (ii = 0; ii < fit->naxes[0]; ii++) {
+			sum += pix[ii]; /* accumlate sum */
+			if (pix[ii] < minval)
+				minval = pix[ii]; /* find min and  */
+			if (pix[ii] > maxval)
+				maxval = pix[ii]; /* max values    */
+		}
+	}
+	free(pix);
+
+	if (status) {
+		fits_report_error(stderr, status); /* print any error message */
+	} else {
+		if (totpix > 0)
+			meanval = sum / totpix;
+		siril_debug_print("  sum of pixels = %g\n", sum);
+		siril_debug_print("  mean value    = %g\n", meanval);
+		siril_debug_print("  minimum value = %g\n", minval);
+		siril_debug_print("  maximum value = %g\n", maxval);
+		*maxi = maxval;
+		*mini = minval;
+	}
+	return status;
+}
+
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
 static void read_fits_header(fits *fit) {
 	/* about the status argument: http://heasarc.gsfc.nasa.gov/fitsio/c/c_user/node28.html */
 	int status = 0;
-	int zero;
+	double zero, mini, maxi;
+
+	fit_stats(fit, &mini, &maxi);
 
 	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSHI, &fit->hi);
 	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->lo);
 
+	if (fit->orig_bitpix == SHORT_IMG) {
+		if (fit->lo)
+			fit->lo += 32768;
+		if (fit->hi)
+			fit->hi += 32768;
+	}
+
 	status = 0;
-	fits_read_key(fit->fptr, TINT, "BSCALE", &zero, NULL, &status);
-	if (!status && 1 != zero)
-		siril_log_message(
-				_("Loaded FITS file has a BSCALE different than 1 (%d)\n"), zero);
+	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &zero, NULL, &status);
+	if (!status && 1.0 != zero) {
+		siril_log_message(_("Loaded FITS file has "
+				"a BSCALE different than 1 (%lf)\n"), zero);
+		status = 0;
+		/* We reset the scaling factors as we don't use it */
+		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+	}
 	status = 0;
-	fits_read_key(fit->fptr, TINT, "BZERO", &zero, NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "BZERO", &zero, NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->data_max), NULL, &status);
+	if (status == KEY_NO_EXIST) {
+		fit->data_max = maxi;
+	}
 
 	/*******************************************************************
 	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
@@ -150,30 +229,55 @@ static void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "CVF", &(fit->cvf), NULL, &status);
 
 	/*******************************************************************
+	 * ******************* PLATE SOLVING KEYWORDS **********************
+	 * ****************************************************************/
+	status = 0;
+	fits_read_key(fit->fptr, TUINT, "EQUINOX", &(fit->wcs.equinox), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix1), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix2), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval1), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), NULL, &status);
+
+
+	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************
 	 * ****************************************************************/
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR0", &(fit->dft_norm[0]), NULL,
+	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR0", &(fit->dft.norm[0]), NULL,
 			&status);
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR1", &(fit->dft_norm[1]), NULL,
+	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR1", &(fit->dft.norm[1]), NULL,
 			&status);
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR2", &(fit->dft_norm[2]), NULL,
-			&status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "DFT_ORD", &(fit->dft_ord), NULL,
+	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR2", &(fit->dft.norm[2]), NULL,
 			&status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "DFT_TYPE", &(fit->dft_type), NULL,
+	fits_read_key(fit->fptr, TSTRING, "DFT_ORD", &(fit->dft.ord), NULL,
 			&status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TUSHORT, "DFT_RX", &(fit->dft_rx), NULL, &status);
-	fits_read_key(fit->fptr, TUSHORT, "DFT_RY", &(fit->dft_ry), NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "DFT_TYPE", &(fit->dft.type), NULL,
+			&status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TUSHORT, "DFT_RX", &(fit->dft.rx), NULL, &status);
+	fits_read_key(fit->fptr, TUSHORT, "DFT_RY", &(fit->dft.ry), NULL, &status);
 }
 
 /* copy the complete header in a heap-allocated string */
@@ -227,40 +331,10 @@ static char *copy_header(fits *fit) {
 	if (!header)
 		return NULL;
 	if (!sequence_is_loaded() || com.seq.current == 0)
-		fprintf(stdout, "%s", header);// don't display for all frames of a sequence
+		siril_debug_print("%s", header);// don't display for all frames of a sequence
 	return header;
 }
 
-static gchar *fits_fname(const gchar *path) {
-	gchar *str;
-#ifdef _WIN32
-	wchar_t *wpath;
-
-	wpath = g_utf8_to_utf16(path, -1, NULL, NULL, NULL);
-	if (wpath == NULL)
-		return NULL;
-
-	// use the short DOS 8.3 path name to avoid problems converting UTF-16 filenames to the ANSI filenames expected by CFITTSIO
-	DWORD shortlen = GetShortPathNameW(wpath, 0, 0);
-
-	if (shortlen) {
-		LPWSTR shortpath = g_new(WCHAR, shortlen);
-		GetShortPathNameW(wpath, shortpath, shortlen);
-		int slen = WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS,
-				shortpath, shortlen, 0, 0, 0, 0);
-		str = g_new(gchar, slen + 1);
-		WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS, shortpath, shortlen,
-				str, slen, 0, 0);
-		g_free(shortpath);
-	} else {
-		str = NULL;
-	}
-	g_free(wpath);
-#else // _WIN32
-	str = g_strdup(path);
-#endif // _WIN32
-	return str;
-}
 
 static void report_fits_error(int status) {
 	if (status) {
@@ -271,22 +345,16 @@ static void report_fits_error(int status) {
 	}
 }
 
-static int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status) {
-	gchar *fname = fits_fname(filename);
-	fits_open_diskfile(fptr, fname, iomode, status);
-	g_free(fname);
-	return *status;
-}
-
 /* convert FITS data formats to siril native.
  * nbdata is the number of pixels, w * h.
  * from is not freed, to must be allocated and can be the same as from */
-static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nbdata) {
+static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nbdata, gboolean values_above_1) {
 	int i;
 	int8_t *sdata8;
 	BYTE *data8;
 	int16_t *data16;
 	double *pixels_double;
+	double norm = 1.0;
 	long *sdata32;	// TO BE TESTED on 32-bit arch, seems to be a cfitsio bug
 	unsigned long *data32;
 
@@ -331,8 +399,10 @@ static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nb
 			 * double image. Sometimes it's normalized between 0
 			 * and 1, but sometimes, DATAMIN and DATAMAX give the range.
 			 */
-			for (i = 0; i < nbdata; i++)
-				to[i] = round_to_WORD(USHRT_MAX_DOUBLE * pixels_double[i]);
+			if (!values_above_1) norm = USHRT_MAX_DOUBLE;
+			for (i = 0; i < nbdata; i++) {
+				to[i] = round_to_WORD(norm * pixels_double[i]);
+			}
 			break;
 
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -354,7 +424,6 @@ static int read_fits_with_convert(fits* fit, const char* filename) {
 	long orig[3] = { 1L, 1L, 1L };
 	// orig ^ gives the coordinate in each dimension of the first pixel to be read
 	unsigned int nbdata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	char *msg = NULL;
 
 	switch (fit->bitpix) {
 	case SBYTE_IMG:	// UNTESTED, may not exist while reading data
@@ -364,20 +433,35 @@ static int read_fits_with_convert(fits* fit, const char* filename) {
 		fits_read_pix(fit->fptr, datatype, orig, nbdata, &zero,
 				data8, &zero, &status);
 		if (status) break;
-		convert_data(fit->bitpix, data8, fit->data, nbdata);
+		convert_data(fit->bitpix, data8, fit->data, nbdata, FALSE);
 		free(data8);
 		fit->bitpix = USHORT_IMG;
 		break;
 	case SHORT_IMG:
 		fits_read_pix(fit->fptr, TSHORT, orig, nbdata, &zero,
 				fit->data, &zero, &status);
-		convert_data(fit->bitpix, fit->data, fit->data, nbdata);
+		if (status) break;
+		convert_data(fit->bitpix, fit->data, fit->data, nbdata, FALSE);
 		fit->bitpix = USHORT_IMG;
 		break;
 	case USHORT_IMG:
+		// siril 0.9 native, no conversion required
 		fits_read_pix(fit->fptr, TUSHORT, orig, nbdata, &zero,
 				fit->data, &zero, &status);
-		// siril 0.9 native, no conversion required
+		if (status == NUM_OVERFLOW) {
+			// in case there are errors, we try short data
+			status = 0;
+			fits_read_pix(fit->fptr, TSHORT, orig, nbdata, &zero, fit->data,
+					&zero, &status);
+			if (status)
+				break;
+			convert_data(SHORT_IMG, fit->data, fit->data, nbdata, FALSE);
+			if (fit->lo)
+				fit->lo += 32768;
+			if (fit->hi)
+				fit->hi += 32768;
+			fit->bitpix = USHORT_IMG;
+		}
 		break;
 	case ULONG_IMG:		// 32-bit unsigned integer pixels
 	case LONG_IMG:		// 32-bit signed integer pixels
@@ -387,7 +471,7 @@ static int read_fits_with_convert(fits* fit, const char* filename) {
 		fits_read_pix(fit->fptr, datatype, orig, nbdata, &zero,
 				pixels_long, &zero, &status);
 		if (status) break;
-		convert_data(fit->bitpix, pixels_long, fit->data, nbdata);
+		convert_data(fit->bitpix, pixels_long, fit->data, nbdata, FALSE);
 		free(pixels_long);
 		fit->bitpix = USHORT_IMG;
 		break;
@@ -397,20 +481,18 @@ static int read_fits_with_convert(fits* fit, const char* filename) {
 		fits_read_pix(fit->fptr, TDOUBLE, orig, nbdata, &zero,
 				pixels_double, &zero, &status);
 		if (status) break;
-		convert_data(fit->bitpix, pixels_double, fit->data, nbdata);
+		convert_data(fit->bitpix, pixels_double, fit->data, nbdata, fit->data_max > 1.0);
 		free(pixels_double);
 		fit->bitpix = USHORT_IMG;
 		break;
 	case LONGLONG_IMG:	// 64-bit integer pixels
 	default:
-		msg = siril_log_message(_("FITS image format %d is not supported by Siril.\n"), fit->bitpix);
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("FITS image format %d is not supported by Siril.\n"), fit->bitpix);
 		return -1;
 	}
 
 	if (status) {
-		msg = siril_log_message(_("Fitsio error reading data, file: %s.\n"), filename);
-		show_dialog(msg, _("Error"), "dialog-error");
+		siril_log_message(_("Fitsio error reading data, file: %s.\n"), filename);
 		report_fits_error(status);
 		return -1;
 	}
@@ -418,186 +500,17 @@ static int read_fits_with_convert(fits* fit, const char* filename) {
 	return 0;
 }
 
-// return 0 on success, fills realname if not NULL with the opened file's name
-int readfits(const char *filename, fits *fit, char *realname) {
-	int status, retval;
-	char *name = NULL, *msg = NULL;
-	gchar *basename;
-	image_type imagetype;
-	unsigned int offset, nbdata;
-
-	fit->naxes[2] = 1; //initialization of the axis number before opening : NEED TO BE OPTIMIZED
-
-	if (stat_file(filename, &imagetype, &name)) {
-		msg = siril_log_message(_("%s.[any_allowed_extension] not found.\n"),
-				filename);
-		show_dialog(msg, _("Error"), "dialog-error");
-		free(name);
-		return 1;
-	}
-	if (imagetype != TYPEFITS) {
-		msg = siril_log_message(
-				_("The file %s is not a FITS file or doesn't exists with FITS extensions.\n"),
-						filename);
-		show_dialog(msg, _("Error"), "dialog-error");
-		free(name);
-		return 1;
-	}
-
-	if (realname)
-		strcpy(realname, name);
-
-	status = 0;
-	siril_fits_open_diskfile(&(fit->fptr), name, READONLY, &status);
-	if (status) {
-		report_fits_error(status);
-		free(name);
-		return status;
-	}
-	free(name);
-
-	status = 0;
-	fits_get_img_param(fit->fptr, 3, &(fit->bitpix), &(fit->naxis), fit->naxes, &status);
-	if (status) {
-		msg = siril_log_message(
-				_("FITSIO error getting image parameters, file %s.\n"), filename);
-		show_dialog(msg, _("Error"), "dialog-error");
-		report_fits_error(status);
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		return status;
-	}
-
-	/* since USHORT_IMG is a cfitsio trick and doesn't really exist in the
-	 * file, when we read it, the bitpix is given as SHORT_IMG. If BZERO is
-	 * 2^15, it means that it is USHORT data and we force the bitpix to it
-	 * in order to read it properly. Same thing for LONG and ULONG.
-	 * https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/node23.html
-	 */
-	status = 0;
-	fits_read_key(fit->fptr, TUINT, "BZERO", &offset, NULL, &status);
-	if (!status) {
-		if (fit->bitpix == SHORT_IMG && offset == 32768)
-			fit->bitpix = USHORT_IMG;
-		else if (fit->bitpix == LONG_IMG && offset == 2147483648)
-			fit->bitpix = ULONG_IMG;
-	} else {
-		/* but some software just put unsigned 16-bit data in the file
-		 * and don't set the BZERO keyword... */
-		if (fit->bitpix == SHORT_IMG)
-			fit->bitpix = USHORT_IMG;
-	}
-
-	// and we store the original bitpix to reuse it during later partial
-	// reads when we have no access to the header or a fits * struct.
-	fit->orig_bitpix = fit->bitpix;
-
-	fit->rx = fit->naxes[0];
-	fit->ry = fit->naxes[1];
-	nbdata = fit->rx * fit->ry;
-
-	if (fit->naxis == 3 && fit->naxes[2] != 3) {
-		msg = siril_log_message(_("Unsupported FITS image with %ld channels.\n"),
-				fit->naxes[2]);
-		show_dialog(msg, _("Error"), "dialog-error");
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		return -1;
-	}
-	// comment the above if and uncomment below for tests with 4 channels or more
-	//if (fit->naxis == 3) fit->naxes[2] = 3;
-
-	if (fit->naxis == 2 && fit->naxes[2] == 0) {
-		fit->naxes[2] = 1;
-		/* naxes[2] is set to 1 because:
-		 * - it doesn't matter, since naxis is 2, it's not used
-		 * - it's very convenient to use it in multiplications as the number of layers
-		 */
-	}
-	if (fit->bitpix == LONGLONG_IMG) {
-		msg = siril_log_message(
-				_("FITS images with 64 bits signed integer per pixel.channel are not supported.\n"));
-		show_dialog(msg, _("Error"), "dialog-error");
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		return -1;
-	}
-
-	/* realloc fit->data to the image size */
-	WORD *olddata = fit->data;
-	if ((fit->data = realloc(fit->data, nbdata * fit->naxes[2] * sizeof(WORD)))
-			== NULL) {
-		fprintf(stderr, "readfits: error realloc %s %lu\n", filename,
-				nbdata * fit->naxes[2]);
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		if (olddata)
-			free(olddata);
-		return -1;
-	}
-
-	if (fit->naxis == 3) {
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + nbdata;
-		fit->pdata[BLAYER] = fit->data + nbdata * 2;
-	} else {
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data;
-		fit->pdata[BLAYER] = fit->data;
-	}
-
-	read_fits_header(fit);	// stores useful header data in fit
-
-	retval = read_fits_with_convert(fit, filename);
-
-	if (!retval) {
-		// copy the entire header
-		if (fit->header)
-			free(fit->header);
-		fit->header = copy_header(fit);
-
-		if (gtk_widget_get_visible(lookup_widget("data_dialog")))// update data if already shown
-			show_FITS_header(fit);
-
-		basename = g_path_get_basename(filename);
-		siril_log_message(_("Reading FITS: file %s, %ld layer(s), %ux%u pixels\n"),
-				basename, fit->naxes[2], fit->rx, fit->ry);
-		g_free(basename);
-	}
-
-	status = 0;
-	fits_close_file(fit->fptr, &status);
-	return retval;
-}
-
-// reset a fit data structure, deallocates everything in it and zero the data
-void clearfits(fits *fit) {
-	if (fit == NULL)
-		return;
-	if (fit->data)
-		free(fit->data);
-	if (fit->header)
-		free(fit->header);
-	if (fit->stats) {
-		int i;
-		for (i = 0; i < fit->naxes[2]; i++)
-			free_stats(fit->stats[i]);
-		free(fit->stats);
-	}
-	memset(fit, 0, sizeof(fits));
-}
-
 /* This function reads partial data on one layer from the opened FITS and
  * convert it to siril's format (USHORT) */
-static int internal_read_partial_fits(fitsfile *fptr, unsigned int ry, int bitpix, WORD *dest,
-		int layer, const rectangle *area) {
+static int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
+		int bitpix, WORD *dest, gboolean values_above_1, int layer,
+		const rectangle *area) {
 	int datatype;
 	BYTE *data8;
 	double *pixels_double;
 	long *pixels_long;
 	long fpixel[3], lpixel[3], inc[3] = { 1L, 1L, 1L };
 	int zero = 0, status = 0;
-	char *msg;
 
 	/* fpixel is first pixel, lpixel is last pixel, starts with value 1 */
 	fpixel[0] = area->x + 1;        // in siril, it starts with 0
@@ -617,13 +530,13 @@ static int internal_read_partial_fits(fitsfile *fptr, unsigned int ry, int bitpi
 			fits_read_subset(fptr, datatype, fpixel, lpixel, inc, &zero, data8,
 					&zero, &status);
 			if (status) break;
-			convert_data(bitpix, data8, dest, nbdata);
+			convert_data(bitpix, data8, dest, nbdata, FALSE);
 			free(data8);
 			break;
 		case SHORT_IMG:
 			fits_read_subset(fptr, TSHORT, fpixel, lpixel, inc, &zero, dest,
 					&zero, &status);
-			convert_data(bitpix, dest, dest, nbdata);
+			convert_data(bitpix, dest, dest, nbdata, FALSE);
 			break;
 		case USHORT_IMG:
 			fits_read_subset(fptr, TUSHORT, fpixel, lpixel, inc, &zero, dest,
@@ -637,7 +550,7 @@ static int internal_read_partial_fits(fitsfile *fptr, unsigned int ry, int bitpi
 			fits_read_subset(fptr, datatype, fpixel, lpixel, inc, &zero,
 					pixels_long, &zero, &status);
 			if (status) break;
-			convert_data(bitpix, pixels_long, dest, nbdata);
+			convert_data(bitpix, pixels_long, dest, nbdata, FALSE);
 			free(pixels_long);
 			break;
 		case DOUBLE_IMG:	// 64-bit floating point pixels
@@ -646,265 +559,60 @@ static int internal_read_partial_fits(fitsfile *fptr, unsigned int ry, int bitpi
 			fits_read_subset(fptr, TDOUBLE, fpixel, lpixel, inc, &zero, pixels_double,
 					&zero, &status);
 			if (status) break;
-			convert_data(bitpix, pixels_double, dest, nbdata);
+			convert_data(bitpix, pixels_double, dest, nbdata, values_above_1);
 			free(pixels_double);
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
 		default:
-			msg = siril_log_message(_("FITS image format %d is not supported by Siril.\n"), bitpix);
-			show_dialog(msg, _("Error"), "dialog-error");
+			siril_log_message(_("FITS image format %d is not supported by Siril.\n"), bitpix);
 			return -1;
 	}
 	return status;
 }
 
-/* Read a rectangular section of a FITS image in Siril's format, pointed by its
- * exact filename. Only layer layer is read.
- * Returned fit->data is upside-down. */
-int readfits_partial(const char *filename, int layer, fits *fit,
-		const rectangle *area, gboolean do_photometry) {
-	int status;
-	unsigned int nbdata, offset;
-
-	status = 0;
-	if (siril_fits_open_diskfile(&(fit->fptr), filename, READONLY, &status)) {
-		report_fits_error(status);
-		return status;
-	}
-
-	status = 0;
-	fits_get_img_param(fit->fptr, 3, &(fit->bitpix), &(fit->naxis), fit->naxes,
-			&status);
-	if (status) {
-		report_fits_error(status);
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		return status;
-	}
-	status = 0;
-	fits_read_key(fit->fptr, TUINT, "BZERO", &offset, NULL, &status);
-	if (fit->bitpix == SHORT_IMG && offset == 32768)
-		fit->bitpix = USHORT_IMG;
-	else if (fit->bitpix == LONG_IMG && offset == 2147483648)
-		fit->bitpix = ULONG_IMG;
-	fit->orig_bitpix = fit->bitpix;
-
-	if (do_photometry) {
-		read_fits_date_obs_header(fit);
-		status = 0;
-		__tryToFindKeywords(fit->fptr, TDOUBLE, Exposure, &fit->exposure);
-	}
-
-	if (fit->naxis == 2 && fit->naxes[2] == 0)
-		fit->naxes[2] = 1;	// see readfits for the explanation
-	if (layer > fit->naxes[2] - 1) {
-		siril_log_message(
-				_("FITS read partial: there is no layer %d in the image %s\n"),
-				layer + 1, filename);
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		return -1;
-	}
-
-	if (fit->naxis == 3 && fit->naxes[2] != 3) {
-		siril_log_message(_("Unsupported FITS image format (%ld axes).\n"),
-				fit->naxes[2]);
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		return -1;
-	}
-
-	nbdata = area->w * area->h;
-	/* realloc fit->data to the image size */
-	WORD *olddata = fit->data;
-	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
-		fprintf(stderr, "readfits: error realloc %s %u\n", filename, nbdata);
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		if (olddata)
-			free(olddata);
-		return -1;
-	}
-	fit->pdata[RLAYER] = fit->data;
-	fit->pdata[GLAYER] = fit->data;
-	fit->pdata[BLAYER] = fit->data;
-
-	status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
-			fit->bitpix, fit->data, layer, area);
-
-	if (status) {
-		report_fits_error(status);
-		status = 0;
-		fits_close_file(fit->fptr, &status);
-		return -1;
-	}
-
-	fit->naxes[0] = area->w;
-	fit->naxes[1] = area->h;
-	fit->rx = fit->naxes[0];
-	fit->ry = fit->naxes[1];
-	fit->naxes[2] = 1;	
-	fit->naxis = 2;
-
-	status = 0;
-	fits_close_file(fit->fptr, &status);
-	fprintf(stdout, _("Loaded partial FITS file %s\n"), filename);
-	return 0;
+static int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status) {
+	gchar *localefilename = get_locale_filename(filename);
+	fits_create_diskfile(fptr, localefilename, status);
+	g_free(localefilename);
+	return *status;
 }
 
-/* read subset of an opened fits file.
- * The rectangle's coordinates x,y start at 0,0 for first pixel in the image.
- * layer and index also start at 0.
- * buffer has to be allocated with enough space to store the area.
- */
-int read_opened_fits_partial(sequence *seq, int layer, int index, WORD *buffer,
-		const rectangle *area) {
-	int status;
-
-	if (!seq || !seq->fptr || !seq->fptr[index]) {
-		printf("data initialization error in read fits partial\n");
-		return 1;
-	}
-	if (area->x < 0 || area->y < 0 || area->x >= seq->rx || area->y >= seq->ry
-			|| area->w <= 0 || area->h <= 0 || area->x + area->w > seq->rx
-			|| area->y + area->h > seq->ry) {
-		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size\n");
-		return 1;
-	}
-
-#ifdef _OPENMP
-	assert(seq->fd_lock);
-	omp_set_lock(&seq->fd_lock[index]);
-#endif
-
-	status = internal_read_partial_fits(seq->fptr[index], seq->ry, seq->bitpix, buffer, layer, area);
-
-#ifdef _OPENMP
-	omp_unset_lock(&seq->fd_lock[index]);
-#endif
-	if (status)
-		return 1;
-
-	/* reverse the read data, because it's stored upside-down */
-	WORD *swap = malloc(area->w * sizeof(WORD));
-	int i;
-	for (i = 0; i < area->h/2 ; i++) {
-		memcpy(swap, buffer + i*area->w, area->w*sizeof(WORD));
-		memcpy(buffer + i*area->w, buffer + (area->h - i - 1)*area->w, area->w*sizeof(WORD));
-		memcpy(buffer + (area->h - i - 1)*area->w, swap, area->w*sizeof(WORD));
-	}
-	free(swap);
-
-	return 0;
-}
-
-int fits_get_date_obs(const char *name, fits *f) {
+static void save_wcs_keywords(fits *fit) {
 	int status = 0;
-	if (siril_fits_open_diskfile(&(f->fptr), name, READONLY, &status)) {
-		report_fits_error(status);
-		return status;
+
+	if (fit->wcs.equinox > 0) {
+		fits_update_key(fit->fptr, TUINT, "EQUINOX", &(fit->wcs.equinox),
+						"Equatorial equinox", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TA",
+				"the coordinate type for the first axis", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TA",
+				"the coordinate type for the second axis", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix1),
+				"axis1 reference pixel", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix2),
+				"axis2 reference pixel", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval1),
+				"axis1 reference value", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2),
+				"axis2 reference value", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra),
+				"image center R.A. (hms)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec),
+				"image center declination (dms)", &status);
 	}
-
-	read_fits_date_obs_header(f);
-
-	status = 0;
-	fits_close_file(f->fptr, &status);
-	return status;
 }
 
-/* creates, saves and closes the file associated to f, overwriting previous  */
-int savefits(const char *name, fits *f) {
-	int status, i;
-	long orig[3] = { 1L, 1L, 1L }, pixel_count;
-	char filename[256], *msg;
-	BYTE *data8;
-
-	f->naxes[0] = f->rx;
-	f->naxes[1] = f->ry;
-
-	if (f->naxis == 3 && f->naxes[2] != 3) {
-		printf("Trying to save a FITS color file with more than 3 channels?");
-		return 1;
-	}
-
-	if (!ends_with(name, com.ext)) {
-		snprintf(filename, 255, "%s%s", name, com.ext);
-	} else {
-		snprintf(filename, 255, "%s", name);
-	}
-
-	g_unlink(filename); /* Delete old file if it already exists */
-
-	status = 0;
-	if (fits_create_diskfile(&(f->fptr), filename, &status)) { /* create new FITS file */
-		report_fits_error(status);
-		return 1;
-	}
-	status = 0;
-	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
-		report_fits_error(status);
-		return 1;
-	}
-
-	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
-
-	status = 0;
-	switch (f->bitpix) {
-	case BYTE_IMG:
-		data8 = calloc(pixel_count, sizeof(BYTE));
-		WORD norm = get_normalized_value(f);
-		for (i = 0; i < pixel_count; i++) {
-			if (norm == USHRT_MAX)
-				data8[i] = conv_to_BYTE(f->data[i]);
-			else
-				data8[i] = (BYTE) (f->data[i]);
-		}
-		if (fits_write_pix(f->fptr, TBYTE, orig, pixel_count, data8, &status)) {
-			report_fits_error(status);
-			if (data8)
-				free(data8);
-			return 1;
-		}
-		free(data8);
-		break;
-	case SHORT_IMG:
-		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, f->data, &status)) {
-			report_fits_error(status);
-			return 1;
-		}
-		break;
-	case USHORT_IMG:
-		if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, f->data, &status)) {
-			report_fits_error(status);
-			return 1;
-		}
-		break;
-	case LONG_IMG:
-	case LONGLONG_IMG:
-	case FLOAT_IMG:
-	case DOUBLE_IMG:
-	default:
-		msg = siril_log_message(
-				_("ERROR: trying to save a FITS image "
-				"with an unsupported format (%d).\n"), f->bitpix);
-		show_dialog(msg, _("Error"), "dialog-error");
-		fits_close_file(f->fptr, &status);
-		return 1;
-	}
-
-	if (!status)
-		save_fits_header(f);
-	status = 0;
-	fits_close_file(f->fptr, &status);
-	if (!status)
-		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels\n"),
-				filename, f->naxes[2], f->rx, f->ry);
-	return 0;
-}
-
-void save_fits_header(fits *fit) {
+static void save_fits_header(fits *fit) {
 	int i, status = 0;
-	int zero;
+	double zero;
 	unsigned int offset = 0;
 	char comment[FLEN_COMMENT];
 
@@ -918,19 +626,19 @@ void save_fits_header(fits *fit) {
 	switch (fit->bitpix) {
 	case BYTE_IMG:
 	case SHORT_IMG:
-		zero = 0;
+		zero = 0.0;
 		break;
 	default:
 	case USHORT_IMG:
-		zero = 32768;
+		zero = 32768.0;
 		break;
 	}
-	fits_update_key(fit->fptr, TUINT, "BZERO", &zero,
+	fits_update_key(fit->fptr, TDOUBLE, "BZERO", &zero,
 			"offset data range to that of unsigned short", &status);
 
 	status = 0;
-	zero = 1;
-	fits_update_key(fit->fptr, TUINT, "BSCALE", &zero, "default scaling factor",
+	zero = 1.0;
+	fits_update_key(fit->fptr, TDOUBLE, "BSCALE", &zero, "default scaling factor",
 			&status);
 
 	/*******************************************************************
@@ -1024,6 +732,12 @@ void save_fits_header(fits *fit) {
 				"Conversion factor (e-/adu)", &status);
 
 	/*******************************************************************
+	 * ******************* PLATE SOLVING KEYWORDS **********************
+	 * ****************************************************************/
+
+	save_wcs_keywords(fit);
+
+	/*******************************************************************
 	 * ******************** PROGRAMM KEYWORDS **************************
 	 * ****************************************************************/
 
@@ -1051,49 +765,489 @@ void save_fits_header(fits *fit) {
 	 * ****************************************************************/
 
 	status = 0;
-	if (fit->dft_type[0] != '\0') {
-		if (fit->dft_type[0] == 'S')
+	if (fit->dft.type[0] != '\0') {
+		if (fit->dft.type[0] == 'S')
 			strcpy(comment, "Module of a Discrete Fourier Transform");
-		else if (fit->dft_type[0] == 'P')
+		else if (fit->dft.type[0] == 'P')
 			strcpy(comment, "Phase of a Discrete Fourier Transform");
 		else
 			status = 1;			// should not happen
-		fits_update_key(fit->fptr, TSTRING, "DFT_TYPE", &(fit->dft_type),
+		fits_update_key(fit->fptr, TSTRING, "DFT_TYPE", &(fit->dft.type),
 				comment, &status);
 	}
 
 	status = 0;
-	if (fit->dft_ord[0] != '\0') {
-		if (fit->dft_ord[0] == 'C')
+	if (fit->dft.ord[0] != '\0') {
+		if (fit->dft.ord[0] == 'C')
 			strcpy(comment, "Low spatial freq. are located at image center");
-		else if (fit->dft_ord[0] == 'R')
+		else if (fit->dft.ord[0] == 'R')
 			strcpy(comment, "High spatial freq. are located at image center");
 		else
 			status = 1;			// should not happen
-		fits_update_key(fit->fptr, TSTRING, "DFT_ORD", &(fit->dft_ord), comment,
+		fits_update_key(fit->fptr, TSTRING, "DFT_ORD", &(fit->dft.ord), comment,
 				&status);
 	}
 
 	for (i = 0; i < fit->naxes[2]; i++) {
-		if (fit->dft_norm[i] > 0.) {
+		if (fit->dft.norm[i] > 0.) {
 			char str1[] = "DFT_NOR";
 			char str2[] = "Normalisation value for channel #";
 			char key_str[FLEN_KEYWORD], comment_str[FLEN_VALUE];
 			sprintf(key_str, "%s%d", str1, i);
 			sprintf(comment_str, "%s%d", str2, i);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, key_str, &(fit->dft_norm[i]),
+			fits_update_key(fit->fptr, TDOUBLE, key_str, &(fit->dft.norm[i]),
 					comment_str, &status);
 		}
 	}
 
 	status = 0;
-	if (fit->dft_rx) { /* may not be initialized */
-		fits_update_key(fit->fptr, TUSHORT, "DFT_RX", &(fit->dft_rx),
+	if (fit->dft.rx) { /* may not be initialized */
+		fits_update_key(fit->fptr, TUSHORT, "DFT_RX", &(fit->dft.rx),
 				"Original width size", &status);
-		fits_update_key(fit->fptr, TUSHORT, "DFT_RY", &(fit->dft_ry),
+		fits_update_key(fit->fptr, TUSHORT, "DFT_RY", &(fit->dft.ry),
 				"Original height size", &status);
 	}
+}
+
+/********************** public functions ************************************/
+
+double get_exposure_from_fitsfile(fitsfile *fptr) {
+	double exp = 0.0;
+
+	__tryToFindKeywords(fptr, TDOUBLE, Exposure, &exp);
+	return exp;
+}
+
+int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
+	fits from = { 0 };
+
+	from.fptr = fptr;
+
+	read_fits_header(&from);
+	copy_fits_metadata(&from, to);
+	return 0;
+}
+
+// return 0 on success, fills realname if not NULL with the opened file's name
+int readfits(const char *filename, fits *fit, char *realname) {
+	int status, retval;
+	char *name = NULL;
+	gchar *basename;
+	image_type imagetype;
+	unsigned int nbdata;
+	double offset;
+
+	fit->naxes[2] = 1; //initialization of the axis number before opening : NEED TO BE OPTIMIZED
+
+	if (stat_file(filename, &imagetype, &name)) {
+		siril_log_message(_("%s.[any_allowed_extension] not found.\n"),
+				filename);
+		free(name);
+		return 1;
+	}
+	if (imagetype != TYPEFITS) {
+		siril_log_message(
+				_("The file %s is not a FITS file or doesn't exists with FITS extensions.\n"),
+						filename);
+		free(name);
+		return 1;
+	}
+
+	if (realname)
+		strcpy(realname, name);
+
+	status = 0;
+	siril_fits_open_diskfile(&(fit->fptr), name, READONLY, &status);
+	if (status) {
+		report_fits_error(status);
+		free(name);
+		return status;
+	}
+	free(name);
+
+	status = 0;
+	fits_get_img_param(fit->fptr, 3, &(fit->bitpix), &(fit->naxis), fit->naxes, &status);
+	if (status) {
+		siril_log_message(
+				_("FITSIO error getting image parameters, file %s.\n"), filename);
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return status;
+	}
+
+	/* since USHORT_IMG is a cfitsio trick and doesn't really exist in the
+	 * file, when we read it, the bitpix is given as SHORT_IMG. If BZERO is
+	 * 2^15, it means that it is USHORT data and we force the bitpix to it
+	 * in order to read it properly. Same thing for LONG and ULONG.
+	 * https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/node23.html
+	 */
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "BZERO", &offset, NULL, &status);
+	if (!status) {
+		if (fit->bitpix == SHORT_IMG && offset != 0.0) {
+			fit->bitpix = USHORT_IMG;
+		}
+		else if (fit->bitpix == LONG_IMG && offset != 0.0)
+			fit->bitpix = ULONG_IMG;
+	} else {
+		/* but some software just put unsigned 16-bit data in the file
+		 * and don't set the BZERO keyword... */
+		if (status == KEY_NO_EXIST && fit->bitpix == SHORT_IMG)
+			fit->bitpix = USHORT_IMG;
+	}
+	// and we store the original bitpix to reuse it during later partial
+	// reads when we have no access to the header or a fits * struct.
+	fit->orig_bitpix = fit->bitpix;
+
+	fit->rx = fit->naxes[0];
+	fit->ry = fit->naxes[1];
+	nbdata = fit->rx * fit->ry;
+
+	if (fit->naxis == 3 && fit->naxes[2] != 3) {
+		siril_log_message(_("Unsupported FITS image with %ld channels.\n"),
+				fit->naxes[2]);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+	// comment the above if and uncomment below for tests with 4 channels or more
+	//if (fit->naxis == 3) fit->naxes[2] = 3;
+
+	if (fit->naxis == 2 && fit->naxes[2] == 0) {
+		fit->naxes[2] = 1;
+		/* naxes[2] is set to 1 because:
+		 * - it doesn't matter, since naxis is 2, it's not used
+		 * - it's very convenient to use it in multiplications as the number of layers
+		 */
+	}
+	if (fit->bitpix == LONGLONG_IMG) {
+		siril_log_message(
+				_("FITS images with 64 bits signed integer per pixel.channel are not supported.\n"));
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	/* realloc fit->data to the image size */
+	WORD *olddata = fit->data;
+	if ((fit->data = realloc(fit->data, nbdata * fit->naxes[2] * sizeof(WORD)))
+			== NULL) {
+		fprintf(stderr, "readfits: error realloc %s %lu\n", filename,
+				nbdata * fit->naxes[2]);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		if (olddata)
+			free(olddata);
+		return -1;
+	}
+
+	if (fit->naxis == 3) {
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + nbdata;
+		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+	} else {
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data;
+		fit->pdata[BLAYER] = fit->data;
+	}
+
+	read_fits_header(fit);	// stores useful header data in fit
+
+	retval = read_fits_with_convert(fit, filename);
+
+	if (!retval) {
+		// copy the entire header
+		if (fit->header)
+			free(fit->header);
+		fit->header = copy_header(fit);
+
+		basename = g_path_get_basename(filename);
+		siril_log_message(_("Reading FITS: file %s, %ld layer(s), %ux%u pixels\n"),
+				basename, fit->naxes[2], fit->rx, fit->ry);
+		g_free(basename);
+	}
+
+	status = 0;
+	fits_close_file(fit->fptr, &status);
+	return retval;
+}
+
+int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status) {
+	gchar *localefilename = get_locale_filename(filename);
+	fits_open_diskfile(fptr, localefilename, iomode, status);
+	g_free(localefilename);
+	return *status;
+}
+
+// reset a fit data structure, deallocates everything in it and zero the data
+void clearfits(fits *fit) {
+	if (fit == NULL)
+		return;
+	if (fit->data)
+		free(fit->data);
+	if (fit->header)
+		free(fit->header);
+	if (fit->stats) {
+		int i;
+		for (i = 0; i < fit->naxes[2]; i++)
+			free_stats(fit->stats[i]);
+		free(fit->stats);
+	}
+	memset(fit, 0, sizeof(fits));
+}
+
+/* Read a rectangular section of a FITS image in Siril's format, pointed by its
+ * exact filename. Only layer layer is read.
+ * Returned fit->data is upside-down. */
+int readfits_partial(const char *filename, int layer, fits *fit,
+		const rectangle *area, gboolean do_photometry) {
+	int status;
+	unsigned int nbdata;
+	double offset, data_max = 0.0;
+	double mini, maxi;
+
+	status = 0;
+	if (siril_fits_open_diskfile(&(fit->fptr), filename, READONLY, &status)) {
+		report_fits_error(status);
+		return status;
+	}
+
+	status = 0;
+	fits_get_img_param(fit->fptr, 3, &(fit->bitpix), &(fit->naxis), fit->naxes,
+			&status);
+	if (status) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return status;
+	}
+
+	fit_stats(fit, &mini, &maxi);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "BZERO", &offset, NULL, &status);
+	if (!status) {
+		if (fit->bitpix == SHORT_IMG && offset != 0.0) {
+			fit->bitpix = USHORT_IMG;
+		}
+		else if (fit->bitpix == LONG_IMG && offset != 0.0)
+			fit->bitpix = ULONG_IMG;
+	} else {
+		/* but some software just put unsigned 16-bit data in the file
+		 * and don't set the BZERO keyword... */
+		if (status == KEY_NO_EXIST && fit->bitpix == SHORT_IMG)
+			fit->bitpix = USHORT_IMG;
+	}
+	fit->orig_bitpix = fit->bitpix;
+
+	if (do_photometry) {
+		read_fits_date_obs_header(fit);
+		status = 0;
+		__tryToFindKeywords(fit->fptr, TDOUBLE, Exposure, &fit->exposure);
+	}
+
+	if (fit->naxis == 2 && fit->naxes[2] == 0)
+		fit->naxes[2] = 1;	// see readfits for the explanation
+	if (layer > fit->naxes[2] - 1) {
+		siril_log_message(_("FITS read partial: there is no layer %d in the image %s\n"),
+				layer + 1, filename);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	if (fit->naxis == 3 && fit->naxes[2] != 3) {
+		siril_log_message(_("Unsupported FITS image format (%ld axes).\n"),
+				fit->naxes[2]);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	status = 0;
+	if (fit->bitpix == FLOAT_IMG)
+		fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
+	if (status == KEY_NO_EXIST) {
+		data_max = maxi;
+	}
+
+
+	nbdata = area->w * area->h;
+	/* realloc fit->data to the image size */
+	WORD *olddata = fit->data;
+	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
+		fprintf(stderr, "readfits: error realloc %s %u\n", filename, nbdata);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		if (olddata)
+			free(olddata);
+		return -1;
+	}
+	fit->pdata[RLAYER] = fit->data;
+	fit->pdata[GLAYER] = fit->data;
+	fit->pdata[BLAYER] = fit->data;
+
+	status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
+			fit->bitpix, fit->data, data_max > 1.0, layer, area);
+
+	if (status) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	fit->naxes[0] = area->w;
+	fit->naxes[1] = area->h;
+	fit->rx = fit->naxes[0];
+	fit->ry = fit->naxes[1];
+	fit->naxes[2] = 1;	
+	fit->naxis = 2;
+
+	status = 0;
+	fits_close_file(fit->fptr, &status);
+	fprintf(stdout, _("Loaded partial FITS file %s\n"), filename);
+	return 0;
+}
+
+/* read subset of an opened fits file.
+ * The rectangle's coordinates x,y start at 0,0 for first pixel in the image.
+ * layer and index also start at 0.
+ * buffer has to be allocated with enough space to store the area.
+ */
+int read_opened_fits_partial(sequence *seq, int layer, int index, WORD *buffer,
+		const rectangle *area) {
+	int status;
+
+	if (!seq || !seq->fptr || !seq->fptr[index]) {
+		printf("data initialization error in read fits partial\n");
+		return 1;
+	}
+	if (area->x < 0 || area->y < 0 || area->x >= seq->rx || area->y >= seq->ry
+			|| area->w <= 0 || area->h <= 0 || area->x + area->w > seq->rx
+			|| area->y + area->h > seq->ry) {
+		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size\n");
+		return 1;
+	}
+
+#ifdef _OPENMP
+	assert(seq->fd_lock);
+	omp_set_lock(&seq->fd_lock[index]);
+#endif
+
+	status = internal_read_partial_fits(seq->fptr[index], seq->ry, seq->bitpix, buffer, seq->data_max > 1.0, layer, area);
+
+#ifdef _OPENMP
+	omp_unset_lock(&seq->fd_lock[index]);
+#endif
+	if (status)
+		return 1;
+
+	/* reverse the read data, because it's stored upside-down */
+	WORD *swap = malloc(area->w * sizeof(WORD));
+	int i;
+	for (i = 0; i < area->h/2 ; i++) {
+		memcpy(swap, buffer + i*area->w, area->w*sizeof(WORD));
+		memcpy(buffer + i*area->w, buffer + (area->h - i - 1)*area->w, area->w*sizeof(WORD));
+		memcpy(buffer + (area->h - i - 1)*area->w, swap, area->w*sizeof(WORD));
+	}
+	free(swap);
+
+	return 0;
+}
+
+/* creates, saves and closes the file associated to f, overwriting previous  */
+int savefits(const char *name, fits *f) {
+	int status, i;
+	long orig[3] = { 1L, 1L, 1L }, pixel_count;
+	char filename[256];
+	BYTE *data8;
+
+	f->naxes[0] = f->rx;
+	f->naxes[1] = f->ry;
+
+	if (f->naxis == 3 && f->naxes[2] != 3) {
+		printf("Trying to save a FITS color file with more than 3 channels?");
+		return 1;
+	}
+
+	if (!ends_with(name, com.ext)) {
+		snprintf(filename, 255, "%s%s", name, com.ext);
+	} else {
+		snprintf(filename, 255, "%s", name);
+	}
+
+	g_unlink(filename); /* Delete old file if it already exists */
+
+	status = 0;
+	if (siril_fits_create_diskfile(&(f->fptr), filename, &status)) { /* create new FITS file */
+		report_fits_error(status);
+		return 1;
+	}
+	status = 0;
+	/* some float cases where it is USHORT saved as float */
+	if (f->data_max > 1.0 && f->data_max <= USHRT_MAX) {
+		f->bitpix = USHORT_IMG;
+	}
+	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
+
+	status = 0;
+	switch (f->bitpix) {
+	case BYTE_IMG:
+		data8 = calloc(pixel_count, sizeof(BYTE));
+		WORD norm = get_normalized_value(f);
+		for (i = 0; i < pixel_count; i++) {
+			if (norm == USHRT_MAX)
+				data8[i] = conv_to_BYTE(f->data[i]);
+			else
+				data8[i] = (BYTE) (f->data[i]);
+		}
+		if (fits_write_pix(f->fptr, TBYTE, orig, pixel_count, data8, &status)) {
+			report_fits_error(status);
+			if (data8)
+				free(data8);
+			return 1;
+		}
+		free(data8);
+		break;
+	case SHORT_IMG:
+		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, f->data, &status)) {
+			report_fits_error(status);
+			return 1;
+		}
+		break;
+	case USHORT_IMG:
+		if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, f->data, &status)) {
+			report_fits_error(status);
+			return 1;
+		}
+		break;
+	case LONG_IMG:
+	case LONGLONG_IMG:
+	case FLOAT_IMG:
+	case DOUBLE_IMG:
+	default:
+		siril_log_message(_("ERROR: trying to save a FITS image "
+				"with an unsupported format (%d).\n"), f->bitpix);
+		fits_close_file(f->fptr, &status);
+		return 1;
+	}
+
+	if (!status)
+		save_fits_header(f);
+	status = 0;
+	fits_close_file(f->fptr, &status);
+	if (!status)
+		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels\n"),
+				filename, f->naxes[2], f->rx, f->ry);
+	return 0;
 }
 
 /* Duplicates some of a fits data into another, with various options; the third
@@ -1216,8 +1370,8 @@ int copy_fits_metadata(fits *from, fits *to) {
 	strncpy(to->instrume, from->instrume, FLEN_VALUE);
 	strncpy(to->telescop, from->telescop, FLEN_VALUE);
 	strncpy(to->observer, from->observer, FLEN_VALUE);
-	strncpy(to->dft_type, from->dft_type, FLEN_VALUE);
-	strncpy(to->dft_ord, from->dft_ord, FLEN_VALUE);
+	strncpy(to->dft.type, from->dft.type, FLEN_VALUE);
+	strncpy(to->dft.ord, from->dft.ord, FLEN_VALUE);
 	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE);
 
 	to->focal_length = from->focal_length;
@@ -1226,11 +1380,11 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->aperture = from->aperture;
 	to->ccd_temp = from->ccd_temp;
 	to->cvf = from->cvf;
-	to->dft_norm[0] = from->dft_norm[0];
-	to->dft_norm[1] = from->dft_norm[1];
-	to->dft_norm[2] = from->dft_norm[2];
-	to->dft_rx = from->dft_rx;
-	to->dft_ry = from->dft_ry;
+	to->dft.norm[0] = from->dft.norm[0];
+	to->dft.norm[1] = from->dft.norm[1];
+	to->dft.norm[2] = from->dft.norm[2];
+	to->dft.rx = from->dft.rx;
+	to->dft.ry = from->dft.ry;
 
 	return 0;
 }

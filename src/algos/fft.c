@@ -31,6 +31,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "io/single_image.h"
+#include "algos/statistics.h"
 #include "algos/fft.h"
 
 void fft_to_spectra(fits* fit, fftw_complex *frequency_repr, double *as,
@@ -109,12 +110,12 @@ double normalisation_spectra(fits* fit, double *modulus, double* phase,
 void save_dft_information_in_gfit(fits *fit) {
 	int i;
 
-	strcpy(gfit.dft_ord, fit->dft_type);
-	strcpy(gfit.dft_ord, fit->dft_ord);
+	strcpy(gfit.dft.ord, fit->dft.type);
+	strcpy(gfit.dft.ord, fit->dft.ord);
 	for (i = 0; i < fit->naxes[2]; i++)
-		gfit.dft_norm[i] = fit->dft_norm[i];
-	gfit.dft_rx = fit->dft_rx;
-	gfit.dft_ry = fit->dft_ry;
+		gfit.dft.norm[i] = fit->dft.norm[i];
+	gfit.dft.rx = fit->dft.rx;
+	gfit.dft.ry = fit->dft.ry;
 }
 
 void FFTD(fits *fit, fits *x, fits *y, int type_order, int layer) {
@@ -150,13 +151,13 @@ void FFTD(fits *fit, fits *x, fits *y, int type_order, int layer) {
 	fft_to_spectra(fit, frequency_repr, modulus, phase);
 
 	//We normalize the modulus and the phase
-	x->dft_norm[layer] = normalisation_spectra(fit, modulus, phase, xbuf, ybuf,
+	x->dft.norm[layer] = normalisation_spectra(fit, modulus, phase, xbuf, ybuf,
 			type_order);
 	if (type_order == 0)
-		strcpy(x->dft_ord, "CENTERED");
+		strcpy(x->dft.ord, "CENTERED");
 	else
-		strcpy(x->dft_ord, "REGULAR");
-	strcpy(y->dft_ord, x->dft_ord);
+		strcpy(x->dft.ord, "REGULAR");
+	strcpy(y->dft.ord, x->dft.ord);
 
 	free(modulus);
 	free(phase);
@@ -184,7 +185,7 @@ void FFTI(fits *fit, fits *xfit, fits *yfit, int type_order, int layer) {
 			if (type_order == 0)
 				change_symmetry(fit, i, j, &x, &y);
 			modulus[j * width + i] = (double) xbuf[y * width + x]
-					* (xfit->dft_norm[layer]);
+					* (xfit->dft.norm[layer]);
 			phase[j * width + i] = (double) ybuf[y * width + x]
 					* (2 * M_PI / USHRT_MAX_DOUBLE);
 			phase[j * width + i] -= M_PI;
@@ -207,6 +208,7 @@ void FFTI(fits *fit, fits *xfit, fits *yfit, int type_order, int layer) {
 		gbuf[i] = round_to_WORD(pxl);
 	}
 	delete_selected_area();
+	invalidate_stats_from_fit(fit);
 
 	free(modulus);
 	free(phase);
@@ -267,11 +269,11 @@ gpointer fourier_transform(gpointer p) {
 		for (chan = 0; chan < args->fit->naxes[2]; chan++)
 			FFTD(args->fit, tmp1, tmp2, args->type_order, chan);
 		/* we save the original size in the FITS HEADER */
-		tmp1->dft_rx = tmp2->dft_rx = width;
-		tmp1->dft_ry = tmp2->dft_ry = height;
-		strcpy(tmp1->dft_type, "SPECTRUM");
+		tmp1->dft.rx = tmp2->dft.rx = width;
+		tmp1->dft.ry = tmp2->dft.ry = height;
+		strcpy(tmp1->dft.type, "SPECTRUM");
 		savefits(args->modulus, tmp1);
-		strcpy(tmp2->dft_type, "PHASE");
+		strcpy(tmp2->dft.type, "PHASE");
 		savefits(args->phase, tmp2);
 
 		/* We display the modulus on screen */
@@ -285,39 +287,40 @@ gpointer fourier_transform(gpointer p) {
 		tmp = calloc(1, sizeof(fits));
 		if (readfits(args->modulus, tmp, NULL)) {
 			free(tmp);
-			gdk_threads_add_idle(end_fourier_transform, args);
+			siril_add_idle(end_fourier_transform, args);
 			return GINT_TO_POINTER(1);
 		}
 		tmp1 = calloc(1, sizeof(fits));
 		if (readfits(args->phase, tmp1, NULL)) {
 			free(tmp);
 			free(tmp1);
-			gdk_threads_add_idle(end_fourier_transform, args);
+			siril_add_idle(end_fourier_transform, args);
 			return GINT_TO_POINTER(1);
 		}
-		if (tmp->dft_ord[0] == 'C')		// CENTERED
+		if (tmp->dft.ord[0] == 'C')		// CENTERED
 			args->type_order = 0;
-		else if (tmp->dft_ord[0] == 'R')	// REGULAR
+		else if (tmp->dft.ord[0] == 'R')	// REGULAR
 			args->type_order = 1;
 		else {
 			free(tmp);
 			free(tmp1);
 			siril_log_message(_("There is something wrong in your files\n"));
-			gdk_threads_add_idle(end_fourier_transform, args);
+			siril_add_idle(end_fourier_transform, args);
 			return GINT_TO_POINTER(1);
 		}
 		new_fit_image(&tmp2, tmp->rx, tmp->ry, tmp->naxes[2]);
 		for (chan = 0; chan < args->fit->naxes[2]; chan++)
 			FFTI(tmp2, tmp, tmp1, args->type_order, chan);
-		new_fit_image(&args->fit, tmp->dft_rx, tmp->dft_ry,
+		new_fit_image(&args->fit, tmp->dft.rx, tmp->dft.ry,
 				tmp->naxes[2]);
 		for (chan = 0; chan < args->fit->naxes[2]; chan++) {
 			from[chan] = tmp2->pdata[chan];
 			to[chan] = args->fit->pdata[chan];
 			memcpy(to[chan], from[chan],
-					tmp->dft_rx * tmp->dft_ry * sizeof(WORD));
+					tmp->dft.rx * tmp->dft.ry * sizeof(WORD));
 		}
 	}
+	invalidate_stats_from_fit(args->fit);
 	clearfits(tmp);
 	clearfits(tmp1);
 	clearfits(tmp2);
@@ -327,7 +330,7 @@ gpointer fourier_transform(gpointer p) {
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	gdk_threads_add_idle(end_fourier_transform, args);
+	siril_add_idle(end_fourier_transform, args);
 
 	return GINT_TO_POINTER(0);
 }
