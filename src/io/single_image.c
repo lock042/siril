@@ -28,6 +28,7 @@
 #include "algos/statistics.h"
 #include "gui/gui.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -59,7 +60,7 @@ void free_image_data() {
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 	clearfits(&gfit);
-	if (!com.script) {
+	if (!com.headless) {
 		clear_stars_list();
 		delete_selected_area();
 		clear_sampling_setting_box();	// clear focal and pixel pitch info
@@ -78,7 +79,7 @@ void free_image_data() {
 		com.surface_stride[vport] = 0;
 		com.surface_height[vport] = 0;
 	}
-	if (!com.script)
+	if (!com.headless)
 		activate_tab(RED_VPORT);
 	if (com.rgbbuf) {
 		free(com.rgbbuf);
@@ -92,8 +93,8 @@ void free_image_data() {
 		free(com.uniq);
 		com.uniq = NULL;
 	}
- 
-	if (!com.script) {
+
+	if (!com.headless) {
 		/* free alignment preview data */
 		for (i=0; i<PREVIEW_NB; i++) {
 			if (com.preview_surface[i]) {
@@ -127,7 +128,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
 		char *msg = siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		set_cursor_waiting(FALSE);
 		free(realname);
 		return 1;
@@ -166,8 +167,8 @@ int open_single_image(const char* filename) {
 	int retval;
 	char *realname;
 
-	close_single_image();	// close the previous image and free resources
 	close_sequence(FALSE);	// closing a sequence if loaded
+	close_single_image();	// close the previous image and free resources
 
 	retval = read_single_image(filename, &gfit, &realname);
 	
@@ -176,11 +177,15 @@ int open_single_image(const char* filename) {
 		return 0;
 	}
 	if (retval == 2) {
-		show_dialog(_("This file could not be opened because its extension is not supported.\n"), _("Error"), "dialog-error-symbolic");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error oppening file"),
+				_("This file could not be opened because "
+						"its extension is not supported."));
 		return 1;
 	}
 	if (retval == 1) {
-		show_dialog(_("There was an error when opening this image. See the log for more information."), _("Error"), "dialog-error-symbolic");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error oppening file"),
+				_("There was an error when opening this image. "
+						"See the log for more information."));
 		return 1;
 	}
 

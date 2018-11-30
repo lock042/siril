@@ -32,6 +32,7 @@
 #include "gui/image_display.h"
 #include "gui/gui.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/histogram.h"
 #include "io/single_image.h"
 #include "algos/colors.h"
@@ -283,6 +284,54 @@ void xyz_to_rgb(double x, double y, double z, double *r, double *g, double *b) {
 	*r = (*r > 0.0031308) ? 1.055 * (pow(*r, (1 / 2.4))) - 0.055 : 12.92 * (*r);
 	*g = (*g > 0.0031308) ? 1.055 * (pow(*g, (1 / 2.4))) - 0.055 : 12.92 * (*g);
 	*b = (*b > 0.0031308) ? 1.055 * (pow(*b, (1 / 2.4))) - 0.055 : 12.92 * (*b);
+}
+
+// color index to temperature in kelvin
+double BV_to_T(double BV) {
+	double T;
+
+	// make sure BV is within its bounds [-0.4, 2] otherwise the math doesnt work
+	if (BV < -0.4) {
+		BV = -0.4;
+	} else if (BV > 2) {
+		BV = 2;
+	}
+
+	// http://www.wikiwand.com/en/Color_index
+	T = 4600 * ((1 / ((0.92 * BV) + 1.7)) + (1 / ((0.92 * BV) + 0.62)));
+
+	return T;
+}
+
+
+int equalize_cfa_fit_with_coeffs(fits *fit, double coeff1, double coeff2,
+		int config) {
+	int row, col;
+	double tmp1, tmp2;
+	WORD *data;
+
+	data = fit->data;
+
+	for (row = 0; row < fit->ry - 1; row += 2) {
+		for (col = 0; col < fit->rx - 1; col += 2) {
+			if (config == 0) {
+				tmp1 = (double) data[1 + col + row * fit->rx] / coeff1;
+				data[1 + col + row * fit->rx] = round_to_WORD(tmp1);
+
+				tmp2 = (double) data[col + (1 + row) * fit->rx] / coeff2;
+				data[col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
+
+			} else {
+				tmp1 = (double) data[col + row * fit->rx] / coeff1;
+				data[col + row * fit->rx] = round_to_WORD(tmp1);
+
+				tmp2 = (double) data[1 + col + (1 + row) * fit->rx] / coeff2;
+				data[1 + col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
+
+			}
+		}
+	}
+	return 0;
 }
 
 // idle function executed at the end of the extract_channels processing
@@ -552,8 +601,8 @@ void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
 
 	if ((!com.selection.h) || (!com.selection.w)) {
-		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"dialog-warning-symbolic");
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the background area before"));
 		return;
 	}
 
@@ -672,8 +721,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	height = (int) gtk_spin_button_get_value(selection_black_value[3]);
 
 	if ((!width) || (!height)) {
-		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"dialog-warning-symbolic");
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"), _("Make a selection of the background area before"));
 		return;
 	}
 	black_selection.x = gtk_spin_button_get_value(selection_black_value[0]);
@@ -708,8 +756,8 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
-		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"dialog-warning-symbolic");
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the white reference area before"));
 		return;
 	}
 
@@ -881,8 +929,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
 
 	if (!black_selection.w || !black_selection.h) {
-		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"dialog-warning-symbolic");
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"), _("Make a selection of the background area before"));
 		return;
 	}
 
@@ -892,8 +939,8 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	white_selection.h = gtk_spin_button_get_value(selection_white_value[3]);
 
 	if ((!white_selection.w || !white_selection.h) && !is_manual) {
-		show_dialog(_("Make a selection of the background area before"), "Warning",
-				"dialog-warning-symbolic");
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the white reference area before"));
 		return;
 	}
 
@@ -922,4 +969,58 @@ void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 	GtkWidget *manual_components = lookup_widget("grid25");
 	gtk_widget_set_sensitive(manual_components,
 			gtk_toggle_button_get_active(togglebutton));
+}
+
+static int pos_to_neg(fits *fit) {
+	WORD norm;
+	int chan, i;
+	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER],
+			fit->pdata[BLAYER] };
+
+	norm = get_normalized_value(fit);
+	for (chan = 0; chan < fit->naxes[2]; chan ++) {
+		for (i = 0; i < fit->rx * fit->ry; i++) {
+			buf[chan][i] = norm - buf[chan][i];
+		}
+	}
+
+	return 0;
+}
+
+void on_menu_negative_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+	undo_save_state("Processing: Negative Transformation");
+	pos_to_neg(&gfit);
+	redraw(com.cvport, REMAP_ALL);
+	redraw_previews();
+	update_gfit_histogram_if_needed();
+	set_cursor_waiting(FALSE);
+}
+
+void on_menuitem_asinh_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	gtk_widget_show(lookup_widget("asinh_dialog"));
+}
+
+void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
+	gtk_widget_hide(lookup_widget("asinh_dialog"));
+}
+
+void on_asinh_Apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkRange *stretch, *black_point;
+	GtkToggleButton *checkbutton;
+	double beta, offset;
+
+	checkbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
+	stretch = GTK_RANGE(lookup_widget("scale_asinh"));
+	black_point = GTK_RANGE(lookup_widget("black_point_asinh"));
+
+	set_cursor_waiting(TRUE);
+	beta = gtk_range_get_value(stretch);
+	offset = gtk_range_get_value(black_point);
+	undo_save_state("Processing: Asinh Transformation: %7.1lf/%lf", beta, offset);
+	asinhlut(&gfit, beta, offset, gtk_toggle_button_get_active(checkbutton));
+	adjust_cutoff_from_updated_gfit();
+	redraw(com.cvport, REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }

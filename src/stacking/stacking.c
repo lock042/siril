@@ -112,8 +112,7 @@ int stack_median(struct stacking_args *args) {
 	memset(&fit, 0, sizeof(fits));
 
 	if (args->seq->type != SEQ_REGULAR && args->seq->type != SEQ_SER) {
-		char *msg = siril_log_message(_("Median stacking is only supported for FITS images and SER sequences.\n"));
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("Median stacking is only supported for FITS images and SER sequences.\n"));
 		return -1;
 	}
 	if (nb_frames < 2) {
@@ -797,8 +796,7 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 	reglayer = args->reglayer;
 
 	if (args->seq->type != SEQ_REGULAR && args->seq->type != SEQ_SER) {
-		char *msg = siril_log_message(_("Rejection stacking is only supported for FITS images and SER sequences.\nUse \"Sum Stacking\" instead.\n"));
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("Rejection stacking is only supported for FITS images and SER sequences.\nUse \"Sum Stacking\" instead.\n"));
 		return -1;
 	}
 	if (nb_frames < 2) {
@@ -872,10 +870,12 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 			exposure += get_exposure_from_fitsfile(args->seq->fptr[image_index]);
 		}
 		/* We copy metadata from reference to the final fit */
-		int ref = 0;
-		if (args->seq->reference_image > 0)
-			ref = args->seq->reference_image;
-		import_metadata_from_fitsfile(args->seq->fptr[ref], &fit);
+		if (args->seq->type == SEQ_REGULAR) {
+			int ref = 0;
+			if (args->seq->reference_image > 0)
+				ref = args->seq->reference_image;
+			import_metadata_from_fitsfile(args->seq->fptr[ref], &fit);
+		}
 
 		update_used_memory();
 	}
@@ -1181,7 +1181,7 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 				retval = -1;
 				break;
 			}
-			if (y & 4)	// every 16 iterations
+			if (y & 15)	// every 16 iterations
 				set_progress_bar_data(NULL, (double)cur_nb/total);
 
 			double sigma = -1.0;
@@ -1436,6 +1436,21 @@ free_and_close:
  * changing all return values and adding the idle everywhere. */
 gpointer stack_function_handler(gpointer p) {
 	struct stacking_args *args = (struct stacking_args *)p;
+	int nb_allowed_files;
+
+	/* first of all we need to check if we can process the files */
+	if (args->seq->type == SEQ_REGULAR) {
+		if (!allow_to_open_files(args->nb_images_to_stack, &nb_allowed_files)) {
+			siril_log_message(_("Your system does not allow to open more than %d files at the same time. "
+						"You may consider either to enhance this limit (the method depends of "
+						"your Operating System) or to convert your FITS sequence into a SER "
+						"sequence before stacking, or to stack with the \"sum\" method.\n"),
+					nb_allowed_files);
+			args->retval = -1;
+			siril_add_idle(end_stacking, args);
+			return GINT_TO_POINTER(args->retval);
+		}
+	}
 	// 1. normalization
 	do_normalization(args);	// does nothing if NO_NORM
 	// 2. up-scale
@@ -1601,6 +1616,7 @@ static void _show_bgnoise(gpointer p) {
 	struct noise_data *args = malloc(sizeof(struct noise_data));
 	args->fit = com.uniq->fit;
 	args->verbose = FALSE;
+	args->use_idle = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
 
 	start_in_new_thread(noise, args);
@@ -1648,7 +1664,8 @@ static void remove_tmp_drizzle_files(struct stacking_args *args, gboolean remove
 }
 
 void clean_end_stacking(struct stacking_args *args) {
-	_show_summary(args);
+	if (!args->retval)
+		_show_summary(args);
 	remove_tmp_drizzle_files(args, TRUE);
 }
 
@@ -1682,7 +1699,7 @@ gboolean end_stacking(gpointer p) {
 
 		/* save stacking result */
 		if (args->output_filename != NULL && args->output_filename[0] != '\0') {
-			struct stat st;
+			GStatBuf st;
 			if (!g_stat(args->output_filename, &st)) {
 				int failed = !args->output_overwrite;
 				if (!failed) {

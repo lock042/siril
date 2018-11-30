@@ -276,7 +276,7 @@ static WORD* reassign_to_non_null_data(WORD *data, long inputlen, long outputlen
 	for (i = 0; i < inputlen; i++) {
 		if (data[i] > 0) {
 			if (j >= outputlen) {
-				assert(0);
+				//assert(0);
 				fprintf(stderr, "\n- stats MISMATCH in sizes (in: %ld, out: %ld), THIS IS A BUG: seqfile is wrong *********\n\n", inputlen, outputlen);
 				break;
 			}
@@ -503,6 +503,46 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 	}
 }
 
+int compute_means_from_flat_cfa(fits *fit, double mean[4]) {
+	int row, col, c, i = 0;
+	WORD *data;
+	unsigned int width, height;
+	unsigned int startx, starty;
+
+	mean[0] = mean[1] = mean[2] = mean[3] = 0.0;
+	data = fit->data;
+	width = fit->rx;
+	height = fit->ry;
+
+	/* due to vignetting it is better to take an area in the
+	 * center of the flat image
+	 */
+	startx = width / 3;
+	starty = height / 3;
+
+	/* make sure it does start at the beginning of CFA pattern */
+	startx = startx % 2 == 0 ? startx : startx + 1;
+	starty = starty % 2 == 0 ? starty : starty + 1;
+
+	siril_debug_print("Computing stat in (%d, %d, %d, %d)\n", startx, starty,
+			width - 1 - startx, height - 1 - starty);
+
+	/* Compute mean of each channel */
+	for (row = starty; row < height - 1 - starty; row += 2) {
+		for (col = startx; col < width - 1 - startx; col += 2) {
+			mean[0] += (double) data[col + row * width];
+			mean[1] += (double) data[1 + col + row * width];
+			mean[2] += (double) data[col + (1 + row) * width];
+			mean[3] += (double) data[1 + col + (1 + row) * width];
+			i++;
+		}
+	}
+
+	for (c = 0; c < 4; c++) {
+		mean[c] /= (double) i;
+	}
+	return 0;
+}
 
 /****************** statistics caching and data management *****************/
 

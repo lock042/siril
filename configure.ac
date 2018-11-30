@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [0])
 m4_define([siril_minor_version], [9])
-m4_define([siril_micro_version], [9])
-m4_define([siril_prerelease_version], [1])
+m4_define([siril_micro_version], [10])
+m4_define([siril_prerelease_version], [beta3])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -105,8 +105,11 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 	PKG_CHECK_MODULES([OPENCV], [opencv >= 3.0],
 			  [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
 			  [PKG_CHECK_MODULES([OPENCV], [opencv >= 2.0],
-			  [OPENCV_LIBS="-lopencv_core -lopencv_imgproc"],
-			  AC_MSG_ERROR([opencv not found. Not using some image processing.]))]
+					     [OPENCV_LIBS="-lopencv_core -lopencv_imgproc"],
+					     [PKG_CHECK_MODULES([OPENCV], [opencv4],
+								[OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
+								AC_MSG_ERROR([opencv not found. Not using some image processing.]))]
+					     )]
 			  )
 else
 	AC_MSG_ERROR([no C++ compiler found])

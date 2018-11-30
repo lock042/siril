@@ -32,6 +32,7 @@
 #include "gui/gui.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "algos/PSF.h"
 #include "gui/PSF_list.h"
@@ -104,9 +105,9 @@ void init_peaker_GUI() {
 
 void init_peaker_default() {
 	/* values taken from siril3.glade */
-	com.starfinder_conf.radius = 7;
+	com.starfinder_conf.radius = 10;
 	com.starfinder_conf.sigma = 1.0;
-	com.starfinder_conf.roundness = 0.6;
+	com.starfinder_conf.roundness = 0.5;
 }
 
 void on_spin_sf_radius_changed(GtkSpinButton *spinbutton, gpointer user_data) {
@@ -119,6 +120,20 @@ void on_spin_sf_threshold_changed(GtkSpinButton *spinbutton, gpointer user_data)
 
 void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	com.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
+}
+
+void update_peaker_GUI() {
+	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
+			*spin_roundness = NULL;
+
+	if (spin_radius == NULL) {
+		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
+		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
+		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
+	}
+	gtk_spin_button_set_value(spin_radius, (double) com.starfinder_conf.radius);
+	gtk_spin_button_set_value(spin_sigma, com.starfinder_conf.sigma);
+	gtk_spin_button_set_value(spin_roundness, com.starfinder_conf.roundness);
 }
 
 /*
@@ -238,10 +253,11 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 						psf_update_units(fit, &cur_star);
 						if (is_star(cur_star, sf)) {
 							cur_star->xpos = x + cur_star->x0 - sf->radius - 1;
-							cur_star->ypos = y + cur_star->y0 - sf->radius - 1;
+							cur_star->ypos = y + cur_star->y0 - sf->radius;
 							if (nbstars < MAX_STARS) {
 								results[nbstars] = cur_star;
 								results[nbstars + 1] = NULL;
+//								printf("%lf\t\t%lf\t\t%lf\n", cur_star->xpos, cur_star->ypos, cur_star->mag);
 								nbstars++;
 							}
 
@@ -311,7 +327,7 @@ fitted_PSF *add_star(fits *fit, int layer, int *index) {
 		free(result);
 		result = NULL;
 		char *msg = siril_log_message(_("This star has already been picked !\n"));
-		show_dialog(msg, _("Peaker"), "dialog-information-symbolic");
+		siril_message_dialog( GTK_MESSAGE_INFO, _("Peaker"), msg);
 	} else {
 		if (i < MAX_STARS) {
 			result->xpos = result->x0 + com.selection.x;
@@ -364,6 +380,13 @@ int compare_stars(const void* star1, const void* star2) {
 void sort_stars(fitted_PSF **stars, int total) {
 	if (*(&stars))
 		qsort(*(&stars), total, sizeof(fitted_PSF*), compare_stars);
+}
+
+void free_fitted_stars(fitted_PSF **stars) {
+	int i = 0;
+	while (stars && stars[i])
+		free(stars[i++]);
+	free(stars);
 }
 
 void FWHM_average(fitted_PSF **stars, float *FWHMx, float *FWHMy, int max) {

@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <string.h>
 #include "callbacks.h"
+#include "core/pipe.h"
 
 /*
  * Progress bar static functions
@@ -83,6 +84,11 @@ void set_progress_bar_data(const char *text, double percent) {
 		else fprintf(stdout, "\033[A\33[2KT\rprogress: %4.2lf%%\n", percent*100.0);
 		// Warning: I don't know how to do that in other OS than GNU
 		// On OS-X it works. On Windows ... well, I doubt it will be used
+
+		/* progress update to the named pipe */
+		char buf[30];
+		snprintf(buf, 30, "progress: %4.2lf%%\n", percent*100.0);
+		pipe_send_message(PIPE_PROGRESS, PIPE_NA, buf);
 	} else {
 		struct progress_bar_idle_data *data;
 		data = malloc(sizeof(struct progress_bar_idle_data));
@@ -181,6 +187,7 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 	}
 
 	fprintf(stdout, "log: %s", msg);
+	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
 	now_sec = time(NULL);
 	now = localtime(&now_sec);
 	g_snprintf(timestamp, sizeof(timestamp), "%.2d:%.2d:%.2d: ", now->tm_hour,

@@ -62,6 +62,7 @@ static int readinitfile() {
 			writeinitfile();
 		}
 	}
+	else set_GUI_CWD();
 
 	/* Libraw setting */
 	config_setting_t *raw_setting = config_lookup(&config, keywords[RAW]);
@@ -102,6 +103,7 @@ static int readinitfile() {
 	config_setting_t *prepro_setting = config_lookup(&config, keywords[PRE]);
 	if (prepro_setting) {
 		config_setting_lookup_bool(prepro_setting, "cfa", &com.prepro_cfa);
+		config_setting_lookup_bool(prepro_setting, "equalize_cfa", &com.prepro_equalize_cfa);
 	}
 
 	/* Registration setting */
@@ -155,6 +157,21 @@ static int readinitfile() {
 			if (!com.script)
 				set_GUI_misc();
 		}
+		misc_setting = config_lookup(&config, "misc-settings.main_w_pos");
+		if (misc_setting != NULL) {
+			com.main_w_pos.x = config_setting_get_int_elem(misc_setting, 0);
+			com.main_w_pos.y = config_setting_get_int_elem(misc_setting, 1);
+			com.main_w_pos.w = config_setting_get_int_elem(misc_setting, 2);
+			com.main_w_pos.h = config_setting_get_int_elem(misc_setting, 3);
+		}
+		misc_setting = config_lookup(&config, "misc-settings.rgb_w_pos");
+		if (misc_setting != NULL) {
+			com.rgb_w_pos.x = config_setting_get_int_elem(misc_setting, 0);
+			com.rgb_w_pos.y = config_setting_get_int_elem(misc_setting, 1);
+			com.rgb_w_pos.w = config_setting_get_int_elem(misc_setting, 2);
+			com.rgb_w_pos.h = config_setting_get_int_elem(misc_setting, 3);
+		}
+
 	}
 	if (swap_dir && swap_dir[0] != '\0') {
 		if (com.swap_dir)
@@ -251,6 +268,9 @@ static void _save_preprocessing(config_t *config, config_setting_t *root) {
 
 	prepro_setting = config_setting_add(prepro_group, "cfa", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(prepro_setting, com.prepro_cfa);
+
+	prepro_setting = config_setting_add(prepro_group, "equalize_cfa", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(prepro_setting, com.prepro_equalize_cfa);
 }
 
 static void _save_registration(config_t *config, config_setting_t *root) {
@@ -321,6 +341,25 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 		config_setting_set_string_elem(misc_setting, -1, (char *)list->data);
 		list = list->next;
 	}
+	misc_setting = config_setting_add(misc_group, "main_w_pos",
+			CONFIG_TYPE_LIST);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.x);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.y);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.w);
+	config_setting_set_int_elem(misc_setting, -1, com.main_w_pos.h);
+	misc_setting = config_setting_add(misc_group, "rgb_w_pos",
+			CONFIG_TYPE_LIST);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.x);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.y);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.w);
+	config_setting_set_int_elem(misc_setting, -1, com.rgb_w_pos.h);
+}
+
+static int siril_config_write_file(config_t *config, const char *filename) {
+	gchar *fname = get_locale_filename(filename);
+	int ret = config_write_file(config, fname);
+	g_free(fname);
+	return ret;
 }
 
 /**
@@ -343,35 +382,98 @@ int writeinitfile() {
 	_save_photometry(&config, root);
 	_save_misc(&config, root);
 
-	if (!config_write_file(&config, com.initfile)) {
+	if (!siril_config_write_file(&config, com.initfile)) {
 		fprintf(stderr, "Error while writing file.\n");
 		config_destroy(&config);
 		return 1;
 	}
 	config_destroy(&config);
-
 	return 0;
 }
 
 int checkinitfile() {
-	gchar *configdir;
+	gchar *home = NULL;
+	GStatBuf sts;
 
 	// try to read the file given on command line
 	if (com.initfile && !readinitfile()) {
 		return 0;
 	}
 
-	configdir = get_siril_config_directory();
-	if (!configdir) return -1;
-	com.initfile = g_build_filename(configdir, CFG_FILE, NULL);
-	g_free(configdir);
+	// no file given on command line, set initfile to default location
+#ifdef _WIN32
+	home = g_build_filename (get_special_folder (CSIDL_APPDATA),
+			"siril", NULL);
+	if( g_mkdir_with_parents( home, 1 ) == 0 ) {
+		fprintf( stderr, "Created homefolder %s!\n", home );
+	} else {
+		fprintf( stderr, "Failed to create homefolder %s!\n", com.initfile );
+	}
+#else
+	const gchar *tmp = g_get_home_dir();
+	if (tmp == NULL) {
+		fprintf(stderr,
+				"Could not get the environment variable $HOME, no config file.\n");
+		return 1;
+	}
+	home = g_strdup(tmp);
+#endif
 
-	if (readinitfile()) {
+#if (defined(__APPLE__) && defined(__MACH__))
+	fprintf(stderr, "Creating initfile in Application Support.\n");
+	gchar *homefolder;
+	homefolder = g_build_filename(g_get_home_dir(),
+			"Library", "Application Support", "siril", NULL);
+	if (g_mkdir_with_parents(homefolder, 0755) == 0) {
+		com.initfile = g_build_filename(homefolder, CFG_FILE, NULL);
+		fprintf(stderr, "The initfile name is %s.\n", com.initfile);
+	} else {
+		fprintf(stderr, "Failed to create homefolder %s.\n", homefolder);
+	}
+
+#elif defined (_WIN32)
+	com.initfile = g_build_filename(home, CFG_FILE, NULL);
+#else
+	com.initfile = g_new(gchar, strlen(home) + 20);
+	sprintf(com.initfile, "%s/.siril/%s", home, CFG_FILE);
+#endif
+	if (readinitfile()) {	// couldn't read it
+		char filename[255];
+
+		set_GUI_CWD();
 		// if that fails, check and create the default ini file
+#if (defined(__APPLE__) && defined(__MACH__))
+		snprintf(filename, 255, "%s", homefolder);
+		g_free(homefolder);
+#elif defined (_WIN32)
+		snprintf(filename, 255, "%s", home);
+#else
+		snprintf(filename, 255, "%s/.siril", home);
+#endif
+		g_free(home);
+		if (g_stat(filename, &sts) != 0) {
+			if (errno == ENOENT) {
+				if (g_mkdir(filename, 0755)) {
+					fprintf(stderr, "Could not create dir %s, please check\n",
+							filename);
+					return 1;
+				}
+				com.swap_dir = g_strdup(g_get_tmp_dir());
+				com.ext = strdup(".fit");
+				return (writeinitfile());
+			}
+		}
+
+		if (!(S_ISDIR(sts.st_mode))) {
+			fprintf(stderr,
+					"There is a file named %s, that is not a directory.\n"
+							"Remove or rename it first\n", filename);
+			return 1;
+		}
+
 		com.swap_dir = g_strdup(g_get_tmp_dir());
 		com.ext = strdup(".fit");
 		return (writeinitfile());
 	}
 	return 0;
 }
-

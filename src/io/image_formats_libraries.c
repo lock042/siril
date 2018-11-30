@@ -43,6 +43,7 @@
 #include <libraw/libraw.h>
 #endif
 
+#include "algos/geometry.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "gui/gui.h"
@@ -61,7 +62,6 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	uint32 rowsperstrip;
 	uint16 config;
 	unsigned long nrow, row;
-	char *msg;
 
 	TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetField(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
@@ -70,8 +70,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
 	WORD *gbuf[3] = {*data, *data, *data};
 	if (nsamples == 4) {
-		msg = siril_log_message(_("Alpha channel is ignored.\n"));
-		show_dialog(msg, _("Warning"), "dialog-warning-symbolic");
+		siril_log_message(_("Alpha channel is ignored.\n"));
 	}
 	if ((nsamples == 3) || (nsamples == 4)) {
 		gbuf[1] = *data + npixels;
@@ -86,8 +85,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 		switch(config){
 			case PLANARCONFIG_CONTIG:
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow*scanline) < 0){
-					msg = siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
-					show_dialog(msg, _("Error"), "dialog-error-symbolic");
+					siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = -1;
 					break;
 				}
@@ -104,8 +102,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 					nsamples = 3;
 				for (j=0; j<nsamples; j++){	//loop on the layer
 					if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j), buf, nrow*scanline) < 0){
-						msg = siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
-						show_dialog(msg, _("Error"), "dialog-error-symbolic");
+						siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
 						retval = -1;
 						break;
 					}
@@ -114,8 +111,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 				}
 				break;
 			default:
-				msg = siril_log_message(_("Unknown TIFF file.\n"));
-				show_dialog(msg, _("Error"), "dialog-error-symbolic");
+				siril_log_message(_("Unknown TIFF file.\n"));
 				retval = -1;
 		}
 	}
@@ -126,7 +122,6 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples, WORD **data) {
 	uint32 npixels;
 	int retval = nsamples;
-	char *msg;
 
 	npixels = width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
@@ -156,8 +151,7 @@ static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 			}
 		}
 		else {
-			msg = siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
-			show_dialog(msg, _("Error"), "dialog-error-symbolic");
+			siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
 			retval = -1;
 		}
 		_TIFFfree(raster);
@@ -187,7 +181,6 @@ static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
  * If file loading fails, the argument is untouched.
  */
 int readtif(const char *name, fits *fit) {
-	char *msg;
 	int retval = 0;
 	uint32 height, width, npixels;
 	uint16 nbits, nsamples, color;
@@ -226,8 +219,7 @@ int readtif(const char *name, fits *fit) {
 			break;
 
 		default :
-			msg = siril_log_message(_("Siril only works with 8/16-bit TIFF format.\n"));
-			show_dialog(msg, _("Warning"), "dialog-warning-symbolic");
+			siril_log_message(_("Siril only works with 8/16-bit TIFF format.\n"));
 			retval = -1;
 	}
 	TIFFClose(tif);
@@ -272,7 +264,6 @@ int readtif(const char *name, fits *fit) {
 
 int savetif(const char *name, fits *fit, uint16 bitspersample){
 	int retval = 0;
-	char *msg;
 	char *filename;
 	unsigned char *buf8;
 	WORD *buf16;
@@ -290,8 +281,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	TIFF* tif = Siril_TIFFOpen(filename, "w");
 
 	if (tif == NULL) {
-		msg = siril_log_message(_("Siril cannot create TIFF file.\n"));
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("Siril cannot create TIFF file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -347,8 +337,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
 	else {
 		TIFFClose(tif);
-		msg = siril_log_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
 		free(filename);
 		return 1;
 	}
@@ -413,8 +402,7 @@ int readjpg(const char* name, fits *fit){
 
 
 	if ((f = g_fopen(name, "rb")) == NULL){
-		char *msg = siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return -1;
 	}
 	cinfo.err = jpeg_std_error(&jerr);
@@ -487,8 +475,7 @@ int savejpg(const char *name, fits *fit, int quality){
 
 	//## OPEN FILE FOR DATA DESTINATION:
 	if ((f = g_fopen(filename, "wb")) == NULL) {
-		char *msg = siril_log_message(_("Siril cannot create JPG file.\n"));
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("Siril cannot create JPG file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -566,8 +553,7 @@ int readpng(const char *name, fits* fit) {
 	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL,
 			NULL);
 	if (!png) {
-		char *msg = siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return -1;
 	}
 
@@ -640,7 +626,6 @@ int readpng(const char *name, fits* fit) {
 				*buf[BLAYER]++ = ptr[2];
 			}
 		}
-		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	}
 	// We define the number of channel we have
 	switch (color_type) {
@@ -672,7 +657,7 @@ int readpng(const char *name, fits* fit) {
 			fit->naxis = 2;
 		else
 			fit->naxis = 3;
-		fit->bitpix = (bit_depth == 8) ? BYTE_IMG : USHORT_IMG;
+		fit->bitpix = (bit_depth == 16) ? USHORT_IMG : BYTE_IMG;
 		fit->orig_bitpix = fit->bitpix;
 		fit->data = data;
 		fit->pdata[RLAYER] = fit->data;
@@ -866,35 +851,6 @@ static void get_FITS_date(time_t date, char *date_obs) {
 	}
 }
 
-#if defined(_WIN32) && (defined(__MINGW32__) || !defined(_MSC_VER) || (_MSC_VER <= 1310))
-static char *raw_fname(const gchar *path) {
-	gchar *str;
-	wchar_t *wpath;
-
-	wpath = g_utf8_to_utf16(path, -1, NULL, NULL, NULL);
-	if (wpath == NULL)
-		return NULL;
-
-	// use the short DOS 8.3 path name to avoid problems converting UTF-16 filenames to the ANSI filenames expected by standard libraw_open_file
-	DWORD shortlen = GetShortPathNameW(wpath, 0, 0);
-
-	if (shortlen) {
-		LPWSTR shortpath = g_new(WCHAR, shortlen);
-		GetShortPathNameW(wpath, shortpath, shortlen);
-		int slen = WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS,
-				shortpath, shortlen, 0, 0, 0, 0);
-		str = g_new(gchar, slen + 1);
-		WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS, shortpath, shortlen,
-				str, slen, 0, 0);
-		g_free(shortpath);
-	} else {
-		str = NULL;
-	}
-	g_free(wpath);
-	return str;
-}
-#endif // _WIN32
-
 static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 /* libraw_open_wfile is not defined for all windows compilers */
 #if defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)
@@ -909,9 +865,9 @@ static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 	g_free(wname);
 	return ret;
 #elif defined(_WIN32)
-	gchar *fname = raw_fname(name);
-	int ret = libraw_open_file(rawdata, fname);
-	g_free(fname);
+	gchar *localefilename = g_win32_locale_filename_from_utf8(name);
+	int ret = libraw_open_file(rawdata, localefilename);
+	g_free(localefilename);
 	return ret;
 #else
 	return(libraw_open_file(rawdata, name));
@@ -1200,7 +1156,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 			}
 		}
 		pattern[j++] = '\0';
-		siril_log_message(_("Bayer pattern: %s\n"), pattern);
+		siril_log_message(_("CFA pattern: %s\n"), pattern);
 	}
 
 	data = (WORD*) calloc(1, npixels * sizeof(WORD));

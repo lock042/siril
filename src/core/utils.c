@@ -30,6 +30,8 @@
 #endif
 
 #include <stdio.h>
+#include <ctype.h>
+#include <math.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -54,10 +56,9 @@
 #include <sys/sysctl.h>
 #include <mach/vm_statistics.h>
 #endif
-#include <ctype.h>
 #include <string.h>
 #include <assert.h>
-#include <math.h>
+#include <fitsio.h>
 
 #include "core/siril.h"
 #include "core/proto.h"		// defines this file's functions
@@ -248,7 +249,7 @@ const char *get_filename_ext(const char *filename) {
  * @return 1 if file is readable (not actually opened to verify)
  */
 int is_readable_file(const char *filename) {
-	struct stat sts;
+	GStatBuf sts;
 	if (g_stat(filename, &sts))
 		return 0;
 	if (S_ISREG (sts.st_mode)
@@ -398,6 +399,20 @@ int changedir(const char *dir, gchar **err) {
 		*err = error;
 	}
 	return retval;
+}
+/**
+ * If Windows OS, converts a filename from UTF-8 to the system codepage. Do nothing on other system
+ * @param path to convert
+ * @return converted filename
+ */
+gchar *get_locale_filename(const gchar *path) {
+	gchar *str;
+#ifdef _WIN32
+	str = g_win32_locale_filename_from_utf8(path);
+#else // _WIN32
+	str = g_strdup(path);
+#endif // _WIN32
+	return str;
 }
 
 #ifdef _WIN32
@@ -819,27 +834,6 @@ WORD get_normalized_value(fits *fit) {
 }
 
 /**
- * This function reads a text file and displays it in the
- * show_data_dialog
- * @param path filename to display
- * @param title text shown as dialog title
- */
-void read_and_show_textfile(char *path, char *title) {
-	char line[64] = "";
-	char txt[1024] = "";
-
-	FILE *f = g_fopen(path, "r");
-	if (!f) {
-		show_dialog(_("File not found"), _("Error"), "dialog-error-symbolic");
-		return;
-	}
-	while (fgets(line, sizeof(line), f) != NULL)
-		strcat(txt, line);
-	show_data_dialog(txt, title);
-	fclose(f);
-}
-
-/**
  * Switch the two parameters of the function:
  * Useful in Dynamic PSF (PSF.c)
  * @param a first parameter to switch
@@ -1103,64 +1097,6 @@ gint strcompare(gconstpointer *a, gconstpointer *b) {
 	return result;
 }
 
-/* create the siril config directory if it does not exist and return the name
- * if available, NULL otherwise, on all systems.
- * To be g_freed! */
-gchar *get_siril_config_directory() {
-	struct stat sts;
-	gchar *configdir;	// the path of the configuration directory
-
-#ifdef _WIN32
-	// AppData/siril directory
-	configdir = g_build_filename(get_special_folder(CSIDL_APPDATA), "siril", NULL);
-#else
-	const gchar *tmp = g_get_home_dir();
-	if (!tmp) {
-		fprintf(stderr, "Could not get the environment variable $HOME.\n");
-		return NULL;
-	}
-#if (defined(__APPLE__) && defined(__MACH__))
-	configdir = g_build_filename(tmp, "Library", "Application Support",
-			"siril", NULL);
-#else
-	configdir = g_build_filename(tmp, ".siril", NULL);
-#endif
-#endif
-
-	/* then, test if it exists and create it if not */
-	if (g_stat(configdir, &sts) != 0) {
-		if (errno == ENOENT) {
-			fprintf(stdout, _("Creating Siril configuration directory %s\n"), configdir);
-			if (g_mkdir(configdir, 0755)) {
-				fprintf(stderr, "Could not create dir %s, please help me!\n",
-						configdir);
-				free(configdir);
-				return NULL;
-			}
-			return configdir;
-		}
-	}
-
-	if (!(S_ISDIR(sts.st_mode))) {
-		fprintf(stderr, "There is a file named %s, where Siril wants to create its "
-			       "configuration directory. Please move or remove this file.\n",
-				configdir);
-		free(configdir);
-		return NULL;
-	}
-
-	return configdir;
-}
-
-gchar *get_configdir_file_path(const char* file) {
-	gchar *filename;
-	gchar *configdir = get_siril_config_directory();
-	if (!configdir) return NULL;
-	filename = g_build_filename(configdir, file, NULL);
-	g_free(configdir);
-	return filename;
-}
-
 /* linux-specific high-resolution timer */
 static struct timespec start, stop;
 
@@ -1183,3 +1119,84 @@ long stop_timer_elapsed_mus() {
 #endif
 }
 
+/**
+ * Check how many files a process can have open and try to extend the limit if possible.
+ * The max files depends of the Operating System and of cfitsio (NMAXFILES)
+ * @param nb_frames number of file processed
+ * @param nb_allowed_file the maximum of file that can be opened
+ * @return TRUE if the system can open all the files, FALSE otherwise
+ */
+gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
+	int open_max, maxfile, MAX_NO_FILE_CFITSIO, MAX_NO_FILE;
+	float version;
+
+	/* get the limit of cfitsio */
+	fits_get_version(&version);
+	MAX_NO_FILE_CFITSIO = (version < 3.45) ? 1000 : 10000;
+
+	/* get the OS limit and extend it if possible */
+#ifdef _WIN32
+	MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, 2048);
+	open_max = _getmaxstdio();
+	if (open_max < MAX_NO_FILE) {
+		/* extend the limit to 2048 if possible
+		 * 2048 is the maximum on WINDOWS */
+		_setmaxstdio(MAX_NO_FILE);
+		open_max = _getmaxstdio();
+	}
+#else
+	struct rlimit rlp;
+
+/* we first set the limit to the CFITSIO limit */
+	MAX_NO_FILE = MAX_NO_FILE_CFITSIO;
+	if (getrlimit(RLIMIT_NOFILE, &rlp) == 0) {
+		MAX_NO_FILE = (rlp.rlim_max == RLIM_INFINITY) ?
+						MAX_NO_FILE_CFITSIO : rlp.rlim_max;
+
+		if (rlp.rlim_cur != RLIM_INFINITY) {
+			open_max = rlp.rlim_cur;
+			MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, MAX_NO_FILE);
+			if (open_max < MAX_NO_FILE) {
+				rlp.rlim_cur = MAX_NO_FILE;
+				/* extend the limit to NMAXFILES if possible */
+				int retval = setrlimit(RLIMIT_NOFILE, &rlp);
+				if (!retval) {
+					getrlimit(RLIMIT_NOFILE, &rlp);
+					open_max = rlp.rlim_cur;
+				}
+			}
+		} else { // no soft limits
+			open_max = MAX_NO_FILE;
+		}
+	} else {
+		open_max = sysconf(_SC_OPEN_MAX); // if no sucess with getrlimit, try with sysconf
+	}
+#endif // _WIN32
+
+	maxfile = min(open_max, MAX_NO_FILE);
+	siril_debug_print("Maximum of files that will be opened=%d\n", maxfile);
+	*nb_allowed_file = maxfile;
+
+	return nb_frames < maxfile;
+}
+
+/**
+ * Get the active window on toplevels
+ * @return the GtkWindow activated
+ */
+GtkWindow *siril_get_active_window() {
+	GtkWindow *win = NULL;
+	GList *list, *l;
+
+	list = gtk_window_list_toplevels();
+
+	for (l = list; l; l = l->next) {
+		if (gtk_window_is_active((GtkWindow *) l->data)) {
+			win = (GtkWindow *) l->data;
+			break;
+		}
+	}
+
+	g_list_free(list);
+	return win;
+}

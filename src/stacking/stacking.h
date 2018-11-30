@@ -74,6 +74,7 @@ void stack_fill_list_of_unfiltered_images(struct stacking_args *args);
 double compute_highest_accepted_fwhm(double percent);
 double compute_lowest_accepted_quality(double percent);
 int compute_nb_filtered_images(struct stacking_args *stack_args);
+double compute_lowest_accepted_roundness(double percent);
 
 int stack_median(struct stacking_args *args);
 int stack_mean_with_rejection(struct stacking_args *args);
@@ -92,7 +93,7 @@ int stack_filter_fwhm(sequence *seq, int layer, int nb_img, double max_fwhm);
 int stack_filter_roundness(sequence *seq, int layer, int nb_img, double min_rnd);
 int stack_filter_quality(sequence *seq, int layer, int nb_img, double max_quality);
 
-/* normalization functions, normalize.c */
+	/* normalization functions, normalize.c */
 int do_normalization(struct stacking_args *args);
 
 #endif

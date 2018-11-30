@@ -59,20 +59,24 @@
 #include "algos/Def_Math.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/gradient.h"
+#include "algos/demosaicing.h"
 #include "algos/fft.h"
 #include "algos/quality.h"
 #include "algos/cosmetic_correction.h"
 #include "algos/statistics.h"
+#include "algos/geometry.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
+#include "registration/matching/match.h"
 #include "opencv/opencv.h"
 
 static char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
-command commande[] = {
+static command commands[] = {
 	/* name,	nbarg,	usage,		function pointer, definition, scriptable */
 	{"addmax",	1,	"addmax filename",	process_addmax, STR_ADDMAX, FALSE},
+	{"asinh",	1,	"asinh stretch",	process_asinh, STR_ASINH, TRUE},
 	
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE},
 	{"bgnoise", 0, "bgnoise", process_bgnoise, STR_BGNOISE, TRUE},
@@ -107,6 +111,7 @@ command commande[] = {
 	{"fixbanding", 2, "fixbanding amount sigma", process_fixbanding, STR_FIXBANDING, TRUE},
 
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE},
+	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE},
 
 	{"help", 0, "help", process_help, STR_HELP, FALSE},
 	{"histo", 1, "histo channel (channel=0, 1, 2 with 0: red, 1: green, 2: blue)", process_histo, STR_HISTO, TRUE},
@@ -134,7 +139,7 @@ command commande[] = {
 	
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE},
 	
-	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-flip]", process_preprocess, STR_PREPROCESS, TRUE},
+	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-flip] [-equalize_cfa]", process_preprocess, STR_PREPROCESS, TRUE},
 	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
 	
 	{"register", 1, "register sequence [-norot] [-drizzle]", process_register, STR_REGISTER, TRUE},
@@ -159,7 +164,7 @@ command commande[] = {
 	{"savetif8", 1, "savetif8 filename", process_savetif, STR_SAVETIF8, TRUE},
 #endif
 	{"select", 2, "select from to", process_select, STR_SELECT, FALSE},
-	{"seqcrop", 0, "seqcrop", process_seq_crop, STR_SEQCROP, FALSE}, // TODO: add seqname
+	{"seqcrop", 1, "seqcrop sequencename [x y width height]", process_seq_crop, STR_SEQCROP, TRUE},
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma", process_findcosme, STR_SEQFIND_COSME, TRUE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE},
 	{"seqpsf", 0, "seqpsf", process_seq_psf, STR_SEQPSF, FALSE},
@@ -167,6 +172,7 @@ command commande[] = {
 	{"setcpu", 1, "setcpu number", process_set_cpu, STR_SETCPU, TRUE},
 #endif
 	{"setext", 1, "setext extension", process_set_ext, STR_SETEXT, TRUE},
+	{"setfindstar", 2, "setfindstar sigma roundness", process_set_findstar, STR_SETFINDSTAR, TRUE},
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE},
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE},
 	{"split", 3, "split R G B", process_split, STR_SPLIT, TRUE},
@@ -286,13 +292,15 @@ int process_savejpg(int nb){
 #ifdef HAVE_LIBPNG
 int process_savepng(int nb){
 	char filename[256];
+	uint32_t bytes_per_sample;
 
 	if (!single_image_is_loaded()) return 1;
 
 	strcpy(filename, word[1]);
 	strcat(filename, ".png");
 	set_cursor_waiting(TRUE);
-	savepng(filename, &gfit, 2, gfit.naxes[2] == 3);
+	bytes_per_sample = gfit.orig_bitpix > BYTE_IMG ? 2 : 1;
+	savepng(filename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
 	set_cursor_waiting(FALSE);
 	return 0;
 }
@@ -408,6 +416,17 @@ int process_gauss(int nb){
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
+	return 0;
+}
+
+int process_grey_flat(int nb) {
+	if (!single_image_is_loaded()) return 1;
+
+	compute_grey_flat(&gfit);
+	adjust_cutoff_from_updated_gfit();
+	redraw(com.cvport, REMAP_ALL);
+	redraw_previews();
+
 	return 0;
 }
 
@@ -592,7 +611,19 @@ int process_wavelet(int nb) {
 int process_log(int nb){
 	if (!single_image_is_loaded()) return 1;
 
-	loglut(&gfit, LOG);
+	loglut(&gfit);
+	adjust_cutoff_from_updated_gfit();
+	redraw(com.cvport, REMAP_ALL);
+	redraw_previews();
+	return 0;
+}
+
+int process_asinh(int nb) {
+	if (!single_image_is_loaded()) return 1;
+
+	double beta = atof(word[1]);
+
+	asinhlut(&gfit, beta, 0, FALSE);
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
@@ -652,7 +683,7 @@ int process_ls(int nb){
 
 	/* List the entries */
 	for (i = 0; i < n; ++i) {
-		struct stat entrystat;
+		GStatBuf entrystat;
 		gchar *filename;
 		const char *ext;
 		if (list[i]->d_name[0] == '.')
@@ -836,6 +867,21 @@ int process_set_ext(int nb) {
 	return 0;
 }
 
+int process_set_findstar(int nb) {
+	double sigma = atof(word[1]);
+	double roundness = atof(word[2]);
+	int retval = 0;
+
+	if (sigma >= 0.05 && roundness >= 0 && roundness <= 0.9) {
+		com.starfinder_conf.sigma = sigma;
+		com.starfinder_conf.roundness = roundness;
+	} else {
+		siril_log_message(_("Wrong parameter values. Sigma must be >= 0.05 and roundness between 0 and 0.9.\n"));
+		retval = 1;
+	}
+	return retval;
+}
+
 int process_unset_mag_seq(int nb) {
 	if (!sequence_is_loaded()) {
 		siril_log_message(_("This command can be used only when a sequence is loaded\n"));
@@ -912,13 +958,63 @@ int process_seq_crop(int nb) {
 		return 1;
 	}
 
-	if (com.selection.w != 0 || com.selection.h != 0)
+	rectangle area;
+	sequence *seq;
+	gchar *file;
+
+	if ((!com.selection.h) || (!com.selection.w)) {
+		if (nb == 6) {
+			if (atoi(word[2]) < 0 || atoi(word[3]) < 0) {
+				siril_log_message(_("Crop: x and y must be positive values.\n"));
+				return 1;
+			}
+			if (atoi(word[4]) <= 0 || atoi(word[5]) <= 0) {
+				siril_log_message(_("Crop: width and height must be greater than 0.\n"));
+				return 1;
+			}
+			area.x = atoi(word[2]);
+			area.y = atoi(word[3]);
+			area.w = atoi(word[4]);
+			area.h = atoi(word[5]);
+		}
+		else {
+			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
+			return 1;
+		}
+	} else {
+		memcpy(&area, &com.selection, sizeof(rectangle));
+	}
+
+	file = g_strdup(word[1]);
+	if (!ends_with(file, ".seq")) {
+		str_append(&file, ".seq");
+	}
+
+	if (!existseq(file)) {
+		if (check_seq(FALSE)) {
+			siril_log_message(_("No sequence %s found.\n"), file);
+			return 1;
+		}
+	}
+	seq = readseqfile(file);
+	if (seq == NULL) {
+		siril_log_message(_("No sequence %s found.\n"), file);
 		return 1;
+	}
+	if (seq_check_basic_data(seq, FALSE) == -1) {
+		free(seq);
+		return 1;
+	}
+	if (atoi(word[4]) > seq->rx || atoi(word[5]) > seq->ry) {
+		siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"),
+				seq->rx, seq->ry);
+		return 1;
+	}
 
 	struct crop_sequence_data *args = malloc(sizeof(struct crop_sequence_data));
 
-	args->seq = &com.seq;
-	args->area = &com.selection;
+	args->seq = seq;
+	args->area = area;
 	args->prefix = "cropped_";
 
 	set_cursor_waiting(TRUE);
@@ -953,6 +1049,7 @@ int process_bgnoise(int nb){
 
 	args->fit = &gfit;
 	args->verbose = TRUE;
+	args->use_idle = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
 	set_cursor_waiting(TRUE);
 
@@ -1112,6 +1209,10 @@ int process_fill2(int nb){
 			area.y = atoi(word[3]);
 			area.w = atoi(word[4]);
 			area.h = atoi(word[5]);
+			if ((area.w + area.x > gfit.rx) || (area.h + area.y > gfit.ry)) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return 1;
+			}
 		}
 		else {
 			siril_log_message(_("Fill2: select a region or provide x, y, width, height\n"));
@@ -1369,6 +1470,10 @@ int process_fill(int nb){
 			area.y = atoi(word[3]);
 			area.w = atoi(word[4]);
 			area.h = atoi(word[5]);
+			if ((area.w + area.x > gfit.rx) || (area.h + area.y > gfit.ry)) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return 1;
+			}
 		}
 		else {
 			area.w = gfit.rx; area.h = gfit.ry;
@@ -1406,6 +1511,7 @@ int process_scnr(int nb){
 	}
 
 	if (!single_image_is_loaded()) return 1;
+	if (gfit.naxes[2] == 1) return 1;
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
 	
@@ -1639,7 +1745,6 @@ int process_convertraw(int nb) {
 	GDir *dir;
 	GError *error = NULL;
 	const gchar *file;
-	char *tmpmsg;
 	GList *list = NULL;
 
 	struct timeval t_start;
@@ -1657,8 +1762,7 @@ int process_convertraw(int nb) {
 	}
 
 	if((dir = g_dir_open(com.wd, 0, &error)) == NULL){
-		tmpmsg = siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
-		show_dialog(tmpmsg, _("Error"), "dialog-error-symbolic");
+		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
 		set_cursor_waiting(FALSE);
 		return 1;
@@ -1687,8 +1791,7 @@ int process_convertraw(int nb) {
 	struct _convert_data *args;
 	set_cursor_waiting(TRUE);
 	if (!com.wd) {
-		tmpmsg = siril_log_message(_("Conversion: no working directory set.\n"));
-		show_dialog(tmpmsg, _("Warning"), "dialog-warning-symbolic");
+		siril_log_message(_("Conversion: no working directory set.\n"));
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
@@ -1809,6 +1912,7 @@ int process_register(int nb) {
 }
 
 struct _stackall_data {
+	struct timeval t_start;
 	const gchar *file;
 	stack_method method;
 	double sig[2];
@@ -1833,7 +1937,6 @@ static int stack_one_seq(struct _stackall_data *arg) {
 		args.filtering_parameter = 0.0;
 		args.nb_images_to_stack = seq->number;
 		args.image_indices = malloc(seq->number * sizeof(int));
-		gettimeofday(&args.t_start, NULL);
 		args.max_number_of_rows = stack_get_max_number_of_rows(seq, seq->number);
 		// the three below: used only if method is average w/ rejection
 		args.sig[0] = arg->sig[0];
@@ -1862,15 +1965,15 @@ static int stack_one_seq(struct _stackall_data *arg) {
 		// 2. up-scale
 		upscale_sequence(&args); // does nothing if args->seq->upscale_at_stacking <= 1.05
 		// 3. stack
-		retval = arg->method(&args);
+		retval = args.retval = arg->method(&args);
 
-		struct noise_data noise_args = { .fit = &gfit, .verbose = TRUE };
-		noise(&noise_args);
 		clean_end_stacking(&args);
-
 		free_sequence(seq, TRUE);
 		free(args.image_indices);
+
 		if (!retval) {
+			struct noise_data noise_args = { .fit = &gfit, .verbose = FALSE, .use_idle = FALSE };
+			noise(&noise_args);
 			if (savefits(filename, &gfit))
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", filename);
@@ -1888,6 +1991,7 @@ static gpointer stackall_worker(gpointer garg) {
 	GDir *dir;
 	GError *error = NULL;
 	const gchar *file;
+	struct timeval t_end;
 	struct _stackall_data *arg = (struct _stackall_data *)garg;
 
 	if (!com.script)
@@ -1909,9 +2013,12 @@ static gpointer stackall_worker(gpointer garg) {
 			stack_one_seq(arg);
 		}
 	}
+
+	siril_log_message(_("Stacked %d sequences successfully.\n"), arg->number_of_loaded_sequences);
+	gettimeofday(&t_end, NULL);
+	show_time(arg->t_start, t_end);
 	g_dir_close(dir);
 	free(arg);
-	siril_log_message(_("Stacked %d sequences successfully.\n"), arg->number_of_loaded_sequences);
 	siril_add_idle(end_generic, NULL);
 	return NULL;
 }
@@ -1973,6 +2080,7 @@ int process_stackall(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
+	gettimeofday(&arg->t_start, NULL);
 
 	start_in_new_thread(stackall_worker, arg);
 	return 0;
@@ -1981,6 +2089,8 @@ int process_stackall(int nb) {
 static gpointer stackone_worker(gpointer garg) {
 	char *suf;
 	int retval = 0;
+	struct timeval t_end;
+
 	struct _stackall_data *arg = (struct _stackall_data *)garg;
 
 	siril_log_message(_("Looking for sequences in current working directory...\n"));
@@ -1988,9 +2098,12 @@ static gpointer stackone_worker(gpointer garg) {
 	if ((suf = strstr(arg->file, ".seq")) && strlen(suf) == 4) {
 		retval = stack_one_seq(arg);
 	}
-	free(arg);
 	if (!retval)
 		siril_log_message(_("Stacked sequence successfully.\n"));
+
+	gettimeofday(&t_end, NULL);
+	show_time(arg->t_start, t_end);
+	free(arg);
 	siril_add_idle(end_generic, NULL);
 	return NULL;
 }
@@ -2083,6 +2196,7 @@ int process_stackone(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
+	gettimeofday(&arg->t_start, NULL);
 
 	start_in_new_thread(stackone_worker, arg);
 	return 0;
@@ -2091,12 +2205,13 @@ int process_stackone(int nb) {
 // preprocess sequencename -bias= -dark= -flat= -cfa -debayer
 int process_preprocess(int nb) {
 	struct preprocessing_data *args = malloc(sizeof(struct preprocessing_data));
-	int nb_command_max = 7;
+	int nb_command_max = 8;
 
 	com.preprostatus = 0;
 	gboolean is_cfa = FALSE;
 	gboolean do_debayer = FALSE;
 	gboolean flip = FALSE;
+	gboolean equalize_cfa = FALSE;
 	gchar *file;
 	fits *master_bias = NULL;
 	fits *master_dark = NULL;
@@ -2169,6 +2284,8 @@ int process_preprocess(int nb) {
 				do_debayer = TRUE;
 			} else if (!strcmp(word[i], "-flip")) {
 				flip = TRUE;
+			} else if (!strcmp(word[i], "-equalize_cfa")) {
+				equalize_cfa = TRUE;
 			}
 		}
 	}
@@ -2189,13 +2306,14 @@ int process_preprocess(int nb) {
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 
-	args->sigma[0] = -1.00; /* cold pixels */
+	args->sigma[0] = -1.00; /* cold pixels: it is better to deactive it */
 	args->sigma[1] =  3.00; /* hot poxels */
 
 	args->compatibility = flip;
 
 	args->debayer = do_debayer;
 	args->is_cfa = is_cfa;
+	args->equalize_cfa = equalize_cfa;
 
 	args->offset = args->seq->offset;
 	args->dark = args->seq->dark;
@@ -2250,7 +2368,7 @@ int process_set_cpu(int nb){
 #endif
 
 int process_help(int nb){
-	command *current = commande;
+	command *current = commands;
 	siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
 	while (current->process) {
 		siril_log_message("%s\n", current->usage);
@@ -2323,8 +2441,8 @@ static int executeCommand(int wordnb) {
 	int i;
 	// search for the command in the list
 	if (word[0] == NULL) return 1;
-	i = sizeof(commande)/sizeof(command);
-	while (strcasecmp (commande[--i].name, word[0])) {
+	i = sizeof(commands)/sizeof(command);
+	while (strcasecmp (commands[--i].name, word[0])) {
 		if (i == 0) {
 			siril_log_message(_("Unknown command: '%s' or not implemented yet\n"), word[0]);
 			return 1 ;
@@ -2332,22 +2450,22 @@ static int executeCommand(int wordnb) {
 	}
 
 	// verify argument count
-	if (wordnb - 1 < commande[i].nbarg) {
-		siril_log_message(_("Usage: %s\n"), commande[i].usage);
+	if (wordnb - 1 < commands[i].nbarg) {
+		siril_log_message(_("Usage: %s\n"), commands[i].usage);
 		return 1;
 	}
 
 	// verify if command is scriptable
 	if (com.script) {
-		if (!commande[i].scriptable) {
-			siril_log_message(_("This command cannot be used in a script: %s\n"), commande[i].name);
+		if (!commands[i].scriptable) {
+			siril_log_message(_("This command cannot be used in a script: %s\n"), commands[i].name);
 			return 1;
 		}
 	}
 
 	// process the command
 	siril_log_color_message(_("Running command: %s\n"), "salmon", word[0]);
-	return commande[i].process(wordnb);
+	return commands[i].process(wordnb);
 }
 
 gboolean end_script(gpointer p) {
@@ -2537,7 +2655,7 @@ void init_completion_command() {
 	g_signal_connect(G_OBJECT(completion), "match-selected", G_CALLBACK(on_match_selected), NULL);
 
 	/* Populate the completion database. */
-	command *current = commande;
+	command *current = commands;
 
 	while (current->process){
 		gtk_list_store_append(model, &iter);
@@ -2558,50 +2676,51 @@ void on_GtkCommandHelper_clicked(GtkButton *button, gpointer user_data) {
 
 	entry = GTK_ENTRY(lookup_widget("command"));
 	text = gtk_entry_get_text(entry);
-	if (*text != 0) {
-		command *current = commande;
+	if (*text == '\0')
+		return;
 
-		command_line = g_strsplit_set(text, " ", -1);
-		while (current->process) {
-			if (!g_ascii_strcasecmp(current->name, command_line[0])) {
-				gchar **token;
+	command *current = commands;
 
-				token = g_strsplit_set(current->usage, " ", -1);
-				str = g_string_new(token[0]);
-				str = g_string_prepend(str, "<span foreground=\"red\"><b>");
-				str = g_string_append(str, "</b>");
-				if (token[1] != NULL) {
-					str = g_string_append(str, current->usage + strlen(token[0]));
-				}
-				str = g_string_append(str, "</span>\n\n\t");
-				str = g_string_append(str, _(current->definition));
-				str = g_string_append(str, "\n\n<b>");
-				str = g_string_append(str, _("Can be used in a script: "));
-				str = g_string_append(str, "<span foreground=\"red\">");
-				if (current->scriptable) {
-					str = g_string_append(str, _("YES"));
-				} else {
-					str = g_string_append(str, _("NO"));
-				}
-				str = g_string_append(str, "</span></b>");
-				helper = g_string_free(str, FALSE);
-				g_strfreev(token);
-				break;
+	command_line = g_strsplit_set(text, " ", -1);
+	while (current->process) {
+		if (!g_ascii_strcasecmp(current->name, command_line[0])) {
+			gchar **token;
+
+			token = g_strsplit_set(current->usage, " ", -1);
+			str = g_string_new(token[0]);
+			str = g_string_prepend(str, "<span foreground=\"red\"><b>");
+			str = g_string_append(str, "</b>");
+			if (token[1] != NULL) {
+				str = g_string_append(str, current->usage + strlen(token[0]));
 			}
-			current++;
+			str = g_string_append(str, "</span>\n\n\t");
+			str = g_string_append(str, _(current->definition));
+			str = g_string_append(str, "\n\n<b>");
+			str = g_string_append(str, _("Can be used in a script: "));
+			str = g_string_append(str, "<span foreground=\"red\">");
+			if (current->scriptable) {
+				str = g_string_append(str, _("YES"));
+			} else {
+				str = g_string_append(str, _("NO"));
+			}
+			str = g_string_append(str, "</span></b>");
+			helper = g_string_free(str, FALSE);
+			g_strfreev(token);
+			break;
 		}
-		if (!helper) {
-			helper = g_strdup(_("No help for this command"));
-		}
-
-		g_strfreev(command_line);
-
-		popover = popover_new(lookup_widget("command"), helper);
-#if GTK_MAJOR_VERSION >= 3 && GTK_MINOR_VERSION < 22
-		gtk_widget_show(popover);
-#else
-		gtk_popover_popup(GTK_POPOVER(popover));
-#endif
-		g_free(helper);
+		current++;
 	}
+	if (!helper) {
+		helper = g_strdup(_("No help for this command"));
+	}
+
+	g_strfreev(command_line);
+
+	popover = popover_new(lookup_widget("command"), helper);
+#if GTK_CHECK_VERSION(3, 22, 0)
+	gtk_widget_show(popover);
+#else
+	gtk_popover_popup(GTK_POPOVER(popover));
+#endif
+	g_free(helper);
 }

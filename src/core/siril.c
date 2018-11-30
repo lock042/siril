@@ -45,6 +45,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/histogram.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
@@ -59,6 +60,7 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/cosmetic_correction.h"
 #include "algos/statistics.h"
+#include "algos/plateSolver.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 
@@ -210,7 +212,7 @@ int sub_background(fits* image, fits* background, int layer) {
 		char *msg = siril_log_message(
 				_("Images don't have the same size (w = %d|%d, h = %d|%d)\n"),
 				image->rx, background->rx, image->ry, background->ry);
-		show_dialog(msg, _("Error"), "dialog-error-symbolic");
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		return 1;
 	}
 	ndata = image->rx * image->ry;
@@ -346,52 +348,6 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
 	return 0;
 }
 
-/* inplace cropping of the image in fit
- * fit->data is not realloc, only fit->pdata points to a different area and
- * data is correctly written to this new area, which makes this function
- * quite dangerous to use when fit is used for something else afterwards.
- */
-int crop(fits *fit, rectangle *bounds) {
-	int i, j, layer;
-	int newnbdata;
-	struct timeval t_start, t_end;
-
-	memset(&t_start, 0, sizeof(struct timeval));
-	memset(&t_end, 0, sizeof(struct timeval));
-
-	if (fit == &gfit) {
-		siril_log_color_message(_("Crop: processing...\n"), "red");
-		gettimeofday(&t_start, NULL);
-	}
-
-	newnbdata = bounds->w * bounds->h;
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		WORD *from = fit->pdata[layer]
-				+ (fit->ry - bounds->y - bounds->h) * fit->rx + bounds->x;
-		fit->pdata[layer] = fit->data + layer * newnbdata;
-		WORD *to = fit->pdata[layer];
-		int stridefrom = fit->rx - bounds->w;
-
-		for (i = 0; i < bounds->h; ++i) {
-			for (j = 0; j < bounds->w; ++j) {
-				*to++ = *from++;
-			}
-			from += stridefrom;
-		}
-	}
-	fit->rx = fit->naxes[0] = bounds->w;
-	fit->ry = fit->naxes[1] = bounds->h;
-
-	if (fit == &gfit) {
-		clear_stars_list();
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-	invalidate_stats_from_fit(fit);
-
-	return 0;
-}
-
 /* takes the image in gfit, copies it in a temporary fit to shift it, and copy it back into gfit */
 /* TODO: it can be done in the same, thus avoiding to allocate, it just needs to care
  * about the sign of sx and sy to avoid data overwriting in the same allocated space. */
@@ -461,23 +417,57 @@ double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
 	return e;
 }
 
-int loglut(fits *fit, int dir) {
+int loglut(fits *fit) {
 	// This function maps fit with a log LUT
 	int i, layer;
-	gdouble normalisation, temp;
-	WORD *buf[3] =
-			{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-	assert(fit->naxes[2] <= 3);
+	WORD *buf[3] = { fit->pdata[RLAYER],
+			fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
-	normalisation = USHRT_MAX_DOUBLE / log(USHRT_MAX_DOUBLE);
+	double norm = USHRT_MAX_DOUBLE / log(USHRT_MAX_DOUBLE);
 
 	for (i = 0; i < fit->ry * fit->rx; i++) {
 		for (layer = 0; layer < fit->naxes[2]; ++layer) {
-			temp = buf[layer][i] + 1;
-			if (dir == LOG)
-				buf[layer][i] = normalisation * log(temp);
+			double px = (double)buf[layer][i];
+			px = (px == 0.0) ? 1.0 : px;
+			buf[layer][i] = round_to_WORD(norm * log(px));
+		}
+	}
+	invalidate_stats_from_fit(fit);
+	return 0;
+}
+
+int asinhlut(fits *fit, double beta, double offset, gboolean RGBspace) {
+	int i, layer;
+	WORD *buf[3] = { fit->pdata[RLAYER],
+			fit->pdata[GLAYER], fit->pdata[BLAYER] };
+	double norm;
+
+	norm = get_normalized_value(fit);
+
+	for (i = 0; i < fit->ry * fit->rx; i++) {
+		double x, k;
+		if (fit->naxes[2] > 1) {
+			double r, g, b;
+
+			r = (double) buf[RLAYER][i] / norm;
+			g = (double) buf[GLAYER][i] / norm;
+			b = (double) buf[BLAYER][i] / norm;
+			/* RGB space */
+			if (RGBspace)
+				x = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 			else
-				buf[layer][i] = exp(temp / normalisation);
+				x = 0.3333 * r + 0.3333 * g + 0.3333 * b;
+		} else {
+			x = buf[RLAYER][i] / norm;
+		}
+
+		k = asinh(beta * x) / (x * asinh(beta));
+
+		for (layer = 0; layer < fit->naxes[2]; ++layer) {
+			double px = (double) buf[layer][i] / norm;
+			px -= offset;
+			px *= k;
+			buf[layer][i] = round_to_WORD(px * norm);
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -574,96 +564,7 @@ int off(fits *fit, int level) {
 	return 0;
 }
 
-void mirrorx(fits *fit, gboolean verbose) {
-	int line, axis, line_size;
-	WORD *swapline, *src, *dst;
-	struct timeval t_start, t_end;
 
-	if (verbose) {
-		siril_log_color_message(_("Horizontal mirror: processing...\n"), "red");
-		gettimeofday(&t_start, NULL);
-	}
-
-	line_size = fit->rx * sizeof(WORD);
-	swapline = malloc(line_size);
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->pdata[axis] + line * fit->rx;
-			dst = fit->pdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(swapline, src, line_size);
-			memcpy(src, dst, line_size);
-			memcpy(dst, swapline, line_size);
-		}
-	}
-	free(swapline);
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-}
-
-void mirrory(fits *fit, gboolean verbose) {
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_color_message(_("Vertical mirror: processing...\n"), "red");
-		gettimeofday(&t_start, NULL);
-	}
-
-	fits_flip_top_to_bottom(fit);
-	fits_rotate_pi(fit);
-
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-}
-
-/* this method rotates the image 180 degrees, useful after german mount flip.
- * fit->rx, fit->ry, fit->naxes[2] and fit->pdata[*] are required to be assigned correctly */
-void fits_rotate_pi(fits *fit) {
-	int i, line, axis, line_size;
-	WORD *line1, *line2, *src, *dst, swap;
-
-	line_size = fit->rx * sizeof(WORD);
-	line1 = malloc(line_size);
-	line2 = malloc(line_size);
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->pdata[axis] + line * fit->rx;
-			dst = fit->pdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(line1, src, line_size);
-			for (i = 0; i < fit->rx / 2; i++) {
-				swap = line1[i];
-				line1[i] = line1[fit->rx - i - 1];
-				line1[fit->rx - i - 1] = swap;
-			}
-			memcpy(line2, dst, line_size);
-			for (i = 0; i < fit->rx / 2; i++) {
-				swap = line2[i];
-				line2[i] = line2[fit->rx - i - 1];
-				line2[fit->rx - i - 1] = swap;
-			}
-			memcpy(src, line2, line_size);
-			memcpy(dst, line1, line_size);
-		}
-		if (fit->ry & 1) {
-			/* swap the middle line */
-			src = fit->pdata[axis] + line * fit->rx;
-			for (i = 0; i < fit->rx / 2; i++) {
-				swap = src[i];
-				src[i] = src[fit->rx - i - 1];
-				src[fit->rx - i - 1] = swap;
-			}
-		}
-	}
-	free(line1);
-	free(line2);
-}
 
 /* This function fills the data in the lrgb image with LRGB information from l, r, g and b
  * images. Layers are not aligned, images need to be all of the same size.
@@ -856,17 +757,17 @@ static int darkOptimization(fits *brut, fits *dark, fits *offset) {
 
 	siril_log_message(_("Dark optimization: %.3lf\n"), k);
 	/* Multiply coefficient to master-dark */
-	if (com.preprostatus & USE_OFFSET)
+	if (com.preprostatus & USE_OFFSET) {
 		ret = imoper(dark_tmp, offset, OPER_SUB);
 		if (ret) {
 			clearfits(dark_tmp);
 			return ret;
 		}
+	}
 	soper(dark_tmp, k, OPER_MUL);
-	ret =  imoper(brut, dark_tmp, OPER_SUB);
+	ret = imoper(brut, dark_tmp, OPER_SUB);
 
 	clearfits(dark_tmp);
-
 	return ret;
 }
 
@@ -927,9 +828,10 @@ gpointer seqpreprocess(gpointer p) {
 	}
 
 	if (com.preprostatus & USE_FLAT) {
+		if (args->equalize_cfa) {
+			compute_grey_flat(flat);
+		}
 		if (args->autolevel) {
-			/* TODO: evaluate the layer to apply but generally RLAYER is a good choice.
-			 * Indeed, if it is image from APN, CFA picture are in black & white */
 			imstats *stat = statistics(NULL, -1, flat, RLAYER, NULL, STATS_BASIC);
 			if (!stat) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
@@ -1136,86 +1038,6 @@ void show_FITS_header(fits *fit) {
 		show_data_dialog(fit->header, "FITS Header");
 }
 
-/* These functions do not more than resize_gaussian and rotate_image
- * except for console outputs. 
- * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
-	int retvalue;
-	const char *str_inter;
-	struct timeval t_start, t_end;
-
-	switch (interpolation) {
-	case OPENCV_NEAREST:
-		str_inter = _("Nearest-Neighbor");
-		break;
-	default:
-	case OPENCV_LINEAR:
-		str_inter = _("Bilinear");
-		break;
-	case OPENCV_AREA:
-		str_inter = _("Pixel Area Relation");
-		break;
-	case OPENCV_CUBIC:
-		str_inter = _("Bicubic");
-		break;
-	case OPENCV_LANCZOS4:
-		str_inter = _("Lanczos4");
-		break;
-	}
-
-	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
-			"red", str_inter);
-
-	gettimeofday(&t_start, NULL);
-
-	retvalue = cvResizeGaussian(&gfit, toX, toY, interpolation);
-
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-
-	return retvalue;
-}
-
-int verbose_rotate_image(fits *image, double angle, int interpolation,
-		int cropped) {
-	const char *str_inter;
-	struct timeval t_start, t_end;
-
-	switch (interpolation) {
-	case -1:
-		str_inter = _("No");
-		break;
-	case OPENCV_NEAREST:
-		str_inter = _("Nearest-Neighbor");
-		break;
-	default:
-	case OPENCV_LINEAR:
-		str_inter = _("Bilinear");
-		break;
-	case OPENCV_AREA:
-		str_inter = _("Pixel Area Relation");
-		break;
-	case OPENCV_CUBIC:
-		str_inter = _("Bicubic");
-		break;
-	case OPENCV_LANCZOS4:
-		str_inter = _("Lanczos4");
-		break;
-	}
-
-	siril_log_color_message(
-			_("Rotation (%s interpolation, angle=%g): processing...\n"), "red",
-			str_inter, angle);
-	gettimeofday(&t_start, NULL);
-
-	cvRotateImage(&gfit, angle, interpolation, cropped);
-
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-
-	return 0;
-}
-
 /* This function computes wavelets with the number of Nbr_Plan and
  * extracts plan "Plan" in fit parameters */
 
@@ -1330,7 +1152,7 @@ gpointer median_filter(gpointer p) {
 					break;
 				total = ny * args->iterations;
 				cur = (double) y + (ny * iter);
-				if (y & 4)	// every 16 iterations
+				if (y & 15)	// every 16 iterations
 					set_progress_bar_data(NULL, cur / total);
 				for (x = 0; x < nx; x++) {
 					WORD *data = calloc(args->ksize * args->ksize,
@@ -1649,10 +1471,10 @@ int backgroundnoise(fits* fit, double sigma[]) {
 gboolean end_noise(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
 	stop_processing_thread();
-	struct timeval t_end;
 	set_cursor_waiting(FALSE);
 	update_used_memory();
 	if (args->verbose) {
+		struct timeval t_end;
 		gettimeofday(&t_end, NULL);
 		show_time(args->t_start, t_end);
 	}
@@ -1690,9 +1512,11 @@ gpointer noise(gpointer p) {
 					args->bgnoise[chan], args->bgnoise[chan] / norm);
 	}
 
-	siril_add_idle(end_noise, args);
+	int retval = args->retval;
+	if (args->use_idle)
+		siril_add_idle(end_noise, args);
 
-	return GINT_TO_POINTER(args->retval);
+	return GINT_TO_POINTER(retval);
 }
 
 gpointer LRdeconv(gpointer p) {
@@ -1712,4 +1536,37 @@ gpointer LRdeconv(gpointer p) {
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	return 0;
+}
+
+void compute_grey_flat(fits *fit) {
+	double mean[4];
+	double diag1, diag2, coeff1, coeff2;
+	int config;
+
+	/* compute means of 4 channels */
+	compute_means_from_flat_cfa(fit, mean);
+
+	/* compute coefficients */
+
+	/* looking for green diagonal */
+	diag1 = mean[0] / mean[3];
+	diag2 = mean[1] / mean[2];
+
+	/* BAYER_FILTER_RGGB
+	 * BAYER_FILTER_BGGR */
+	if (fabs(1 - diag1) < fabs(1 - diag2)) {
+		coeff1 = mean[1] / mean[0];
+		coeff2 = mean[2] / mean[3];
+		config = 0;
+	} /* BAYER_FILTER_GBRG
+	 * BAYER_FILTER_GRBG */
+	else {
+		coeff1 = mean[0] / mean[1];
+		coeff2 = mean[3] / mean[2];
+		config = 1;
+	}
+
+	/* apllies coefficients to cfa image */
+	equalize_cfa_fit_with_coeffs(fit, coeff1, coeff2, config);
+
 }

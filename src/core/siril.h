@@ -6,6 +6,7 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <glib/gprintf.h>
 #include <gtk/gtk.h>
 #include <fitsio.h>	// fitsfile
 #include <gsl/gsl_histogram.h>
@@ -26,7 +27,7 @@
 #endif
 
 #define siril_debug_print(fmt, ...) \
-            do { if (DEBUG_TEST) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
+   do { if (DEBUG_TEST) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 
 #undef max
 #define max(a,b) \
@@ -186,6 +187,8 @@ typedef struct registration_data regdata;
 typedef struct layer_info_struct layer_info;
 typedef struct sequ sequence;
 typedef struct single_image single;
+typedef struct wcs_struct wcs_info;
+typedef struct dft_struct dft_info;
 typedef struct ffit fits;
 typedef struct libraw_config libraw;
 typedef struct phot_config phot;
@@ -306,6 +309,7 @@ struct preprocessing_data {
 	gboolean is_cfa;
 	gboolean debayer;
 	gboolean compatibility;
+	gboolean equalize_cfa;
 	float normalisation;
 	int retval;
 };
@@ -330,6 +334,7 @@ struct sequ {
 	unsigned int rx;	// first image width
 	unsigned int ry;	// first image height
 	int bitpix;		// image pixel format, from fits
+	double data_max; // data_max used for cdata conversion
 	layer_info *layers;	// info about layers, may be null if nb_layers is unknown
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
@@ -393,6 +398,21 @@ struct single_image {
 	char *ppprefix;		// prefix for filename output of preprocessing
 };
 
+struct wcs_struct {
+	unsigned int equinox;
+	double crpix1, crpix2;
+	double crval1, crval2;
+	char objctra[FLEN_VALUE];
+	char objctdec[FLEN_VALUE];
+};
+
+struct dft_struct {
+	double norm[3];			// Normalization value
+	char type[FLEN_VALUE];		// spectrum, phase
+	char ord[FLEN_VALUE];		// regular, centered
+	unsigned int rx, ry;		// padding: original value of picture size
+};
+
 struct ffit {
 	unsigned int rx;	// image width	(naxes[0])
 	unsigned int ry;	// image height	(naxes[1])
@@ -417,6 +437,7 @@ struct ffit {
 	/* data obtained from the FITS file */
 	WORD lo;	// MIPS-LO key in FITS file, which is "Lower visualization cutoff"
 	WORD hi;	// MIPS-HI key in FITS file, which is "Upper visualization cutoff"
+	double data_max; // used to check if 32b float is between 0 and 1
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
 	char date_obs[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss observation start, UT
@@ -429,15 +450,15 @@ struct ffit {
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
 	double cvf; // Conversion factor (e-/adu)
 
+	/* Plate Solving data */
+	wcs_info wcs;
+
 	/* data used in the Fourier space */
-	double dft_norm[3];			// Normalization value
-	char dft_type[FLEN_VALUE];		// spectrum, phase
-	char dft_ord[FLEN_VALUE];		// regular, centered
-	unsigned int dft_rx, dft_ry;		// padding: original value of picture size
+	dft_info dft;
 	
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
-	double mini, maxi;	// max of the stats->max[3]
+	double mini, maxi;	// min and max of the stats->max[3]
 
 	fitsfile *fptr;		// file descriptor. Only used for file read and write.
 	WORD *data;		// 16-bit image data (depending on image type)
@@ -565,8 +586,13 @@ struct cominf {
 	sliders_mode sliders;		// 0: min/max, 1: MIPS-LO/HI, 2: user
 	int preprostatus;
 	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
+	gboolean prepro_equalize_cfa;  // Use to save if flat will be equalized in preprocessing
 	gboolean show_excluded;		// show excluded images in sequences
 	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
+
+	/* positions of all windows */
+	rectangle main_w_pos;
+	rectangle rgb_w_pos;
 
 	/* selection rectangle for registration, FWHM, PSF */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)

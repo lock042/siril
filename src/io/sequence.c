@@ -57,6 +57,7 @@
 #include "algos/PSF.h"
 #include "algos/quality.h"
 #include "algos/statistics.h"
+#include "algos/geometry.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 
@@ -384,6 +385,7 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		/* initialize sequence-related runtime data */
 		seq->rx = fit->rx; seq->ry = fit->ry;
 		seq->bitpix = fit->orig_bitpix;	// for partial read
+		seq->data_max = fit->data_max; // for partial read
 		fprintf(stdout, "bitpix for the sequence is set as %d\n", seq->bitpix);
 		if (seq->nb_layers == -1) {
 			seq->nb_layers = fit->naxes[2];
@@ -562,7 +564,7 @@ double seq_compute_size(sequence *seq) {
 	double frame_size = 0;
 	int nb_of_frame = 0;
 	char filename[256];
-	struct stat sts;
+	GStatBuf sts;
 	int ref;
 
 	switch(seq->type) {
@@ -1117,13 +1119,13 @@ void close_sequence(int loading_another) {
 	fprintf(stdout, "MODE: closing sequence\n");
 	if (sequence_is_loaded()) {
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
-		if (!com.script)
+		if (!com.headless)
 			clear_sequence_list();
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
 		free_sequence(&com.seq, FALSE);
 		initialize_sequence(&com.seq, FALSE);
-		if (!com.script)
+		if (!com.headless)
 			clear_stars_list();
 
 		if (com.stacking_zones)
@@ -1132,7 +1134,7 @@ void close_sequence(int loading_another) {
 		if (com.siril_mode == MODE_PLANETARY)
 			update_zones_list();
 
-		if (!loading_another && !com.script) {
+		if (!loading_another && !com.headless) {
 			// unselect the sequence in the sequence list
 			GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
 			gtk_combo_box_set_active(seqcombo, -1);
@@ -1260,9 +1262,9 @@ gboolean end_crop_sequence(gpointer p) {
 	stop_processing_thread();
 	if (!args->retvalue) {
 		char *rseqname = malloc(
-				strlen(args->prefix) + strlen(com.seq.seqname) + 5);
+				strlen(args->prefix) + strlen(args->seq->seqname) + 5);
 
-		sprintf(rseqname, "%s%s.seq", args->prefix, com.seq.seqname);
+		sprintf(rseqname, "%s%s.seq", args->prefix, args->seq->seqname);
 		check_seq(0);
 		update_sequences_list(rseqname);
 		free(rseqname);
@@ -1286,7 +1288,7 @@ gpointer crop_sequence(gpointer p) {
 
 		ser_file = malloc(sizeof(struct ser_struct));
 		if (ser_file == NULL) {
-			printf("memory error: crop_sequence\n");
+			fprintf(stderr, "memory error: crop_sequence\n");
 			args->retvalue = 1;
 			siril_add_idle(end_crop_sequence, args);
 		}
@@ -1299,7 +1301,7 @@ gpointer crop_sequence(gpointer p) {
 			siril_add_idle(end_crop_sequence, args);
 		}
 	}
-
+	set_progress_bar_data(_("Processing..."), PROGRESS_RESET);
 	for (frame = 0, cur_nb = 0.f; frame < args->seq->number; frame++) {
 		if (!get_thread_run())
 			break;
@@ -1309,7 +1311,7 @@ gpointer crop_sequence(gpointer p) {
 		if (!ret) {
 			char dest[256], filename[256];
 
-			crop(&fit, args->area);
+			crop(&fit, &(args->area));
 			switch (args->seq->type) {
 			case SEQ_REGULAR:
 				fit_sequence_get_image_filename(args->seq, frame, filename,
@@ -1339,6 +1341,7 @@ gpointer crop_sequence(gpointer p) {
 		ser_write_and_close(ser_file);
 		free(ser_file);
 	}
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	siril_add_idle(end_crop_sequence, args);
 	return 0;
 }

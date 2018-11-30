@@ -639,21 +639,25 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		/* com.stars is a NULL-terminated array */
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
-		cairo_set_line_width(cr, 1.5);
+		cairo_set_line_width(cr, 1.5 / zoom);
 
 		while (com.stars[i]) {
 			// by design Sx>Sy, we redefine FWHM to be sure to have the value in px
 			double size = sqrt(com.stars[i]->sx / 2.) * 2 * sqrt(log(2.) * 3);
 
 			if (i == com.selected_star) {
-				cairo_set_line_width(cr, 2);
+				// We draw horizontal and vertical lines to show the star
+				cairo_set_line_width(cr, 2.0 / zoom);
 				cairo_set_source_rgba(cr, 0.0, 0.4, 1.0, 0.6);
-				cairo_rectangle(cr, com.stars[i]->xpos - 1.5 * size,
-						com.stars[i]->ypos - 1.5 * size, 3 * size, 3 * size);
+				cairo_move_to(cr, com.stars[i]->xpos, 0);
+				cairo_line_to(cr, com.stars[i]->xpos, image_height);
+				cairo_stroke(cr);
+				cairo_move_to(cr, 0, com.stars[i]->ypos);
+				cairo_line_to(cr, image_width, com.stars[i]->ypos);
 				cairo_stroke(cr);
 
-				cairo_set_line_width(cr, 1.5/zoom);
 				cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
+				cairo_set_line_width(cr, 1.5 / zoom);
 			}
 			cairo_arc(cr, com.stars[i]->xpos, com.stars[i]->ypos, size, 0., 2. * M_PI);
 			cairo_stroke(cr);
@@ -668,7 +672,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
 					com.seq.photometry_colors[i][1],
 					com.seq.photometry_colors[i][2], 1.0);
-			cairo_set_line_width(cr, 2.0/zoom);
+			cairo_set_line_width(cr, 2.0 / zoom);
 			fitted_PSF *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
 				double size = sqrt(the_psf->sx / 2.) * 2 * sqrt(log(2.) * 2) + 0.5;
@@ -749,10 +753,10 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	if (com.grad && com.grad_boxes_drawn) {
 		int i = 0;
 		cairo_set_dash(cr, NULL, 0, 0);
-		cairo_set_line_width(cr, 1.5);
 		cairo_set_source_rgba(cr, 0.2, 1.0, 0.3, 1.0);
 		while (i < com.grad_nb_boxes) {
 			if (com.grad[i].boxvalue[0] != -1.0) {
+				cairo_set_line_width(cr, 1.5 / zoom);
 				cairo_rectangle(cr, com.grad[i].centre.x - com.grad_size_boxes,
 						com.grad[i].centre.y - com.grad_size_boxes,
 						com.grad_size_boxes, com.grad_size_boxes);

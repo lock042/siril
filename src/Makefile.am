@@ -2,31 +2,35 @@
 
 bin_PROGRAMS = siril
 
-AM_CPPFLAGS = -DPACKAGE_DATA_DIR='"$(datadir)/${PACKAGE}"' -DPACKAGE_DOC_DIR='"${datarootdir}/doc/${PACKAGE}"' -DLOCALEDIR='"${localedir}"' $(FFMPEG_CFLAGS) $(GTK_CFLAGS) ${GTK_MAC_CFLAGS} $(LIBTIFF_CFLAGS) $(LIBPNG_CFLAGS) $(FFTW_CFLAGS) $(CFITSIO_CFLAGS) $(GSL_CFLAGS) $(FFMS2_CFLAGS) $(LIBCONFIG_CFLAGS) -I $(top_builddir)/deps/kplot
+AM_CPPFLAGS = -DPACKAGE_DATA_DIR='"$(datadir)/${PACKAGE}"' -DPACKAGE_DOC_DIR='"${datarootdir}/doc/${PACKAGE}"' -DLOCALEDIR='"${localedir}"' ${OPENCV_CFLAGS} $(FFMPEG_CFLAGS) $(GTK_CFLAGS) ${GTK_MAC_CFLAGS} $(LIBTIFF_CFLAGS) $(LIBPNG_CFLAGS) $(FFTW_CFLAGS) $(CFITSIO_CFLAGS) $(GSL_CFLAGS) $(FFMS2_CFLAGS) $(LIBCONFIG_CFLAGS) -I $(top_builddir)/deps/kplot
 
 siril_SOURCES = \
 	main.c \
-	core/siril.c core/siril.h core/command.c core/command.h core/command_def.h \
-       	core/proto.h core/undo.c core/undo.h core/utils.c core/processing.c \
+	core/siril.c core/siril.h core/command.c core/command.h core/command_def.h core/proto.h \
+	core/undo.c core/undo.h core/utils.c core/processing.c core/pipe.c core/pipe.h \
 	core/initfile.c core/initfile.h core/siril_update.c core/siril_update.h \
 	io/conversion.c io/conversion.h io/ser.c io/ser.h io/films.c io/films.h \
 	io/image_formats_libraries.c io/image_formats_internal.c io/image_format_fits.c \
 	io/sequence.c io/sequence.h io/seqfile.c io/single_image.c io/single_image.h \
 	io/mp4_output.h io/mp4_output.c io/sequence_export.c gui/gui.c gui/gui.h \
 	gui/callbacks.c gui/callbacks.h gui/planetary_callbacks.c gui/planetary_callbacks.h \
-	gui/histogram.c gui/histogram.h \
+	gui/histogram.c gui/histogram.h gui/message_dialog.c gui/message_dialog.h \
 	gui/save_dialog.c gui/save_dialog.h gui/PSF_list.h gui/PSF_list.c \
 	gui/sequence_list.c gui/registration_preview.c gui/image_display.c gui/image_display.h \
 	gui/statistics_list.c gui/script_menu.c gui/script_menu.h gui/plot.c gui/plot.h \
 	gui/gnuplot_i/gnuplot_i.c gui/gnuplot_i/gnuplot_i.h \
 	gui/progress_and_log.c gui/progress_and_log.h \
+	gui/about_dialog.c \
 	registration/registration.c registration/registration.h registration/global.c registration/cog.c \
 	registration/matching/match.c registration/matching/atpmatch.c registration/matching/misc.c \
+	registration/matching/project_coords.c registration/matching/project_coords.h registration/matching/degtorad.h registration/matching/apply_match.c \
 	stacking/stacking.c stacking/stacking.h stacking/sum.c stacking/sum.h stacking/normalization.c \
 	algos/gradient.c algos/gradient.h algos/quality.c algos/quality.h \
 	algos/statistics.c algos/statistics.h \
 	algos/fft.c algos/fft.h \
-	algos/colors.c algos/colors.h algos/demosaicing.c algos/demosaicing.h \
+	algos/colors.c algos/colors.h \
+	algos/geometry.c algos/geometry.h \
+	algos/demosaicing.c algos/demosaicing.h \
 	algos/pave.c algos/transform.c algos/io_wave.c algos/reconstr.c \
 	algos/Def_Math.h algos/Def_Wavelet.h algos/Def_Mem.h \
 	algos/PSF.c algos/PSF.h algos/star_finder.c algos/star_finder.h \
@@ -34,6 +38,7 @@ siril_SOURCES = \
 	algos/quantize.c \
 	algos/photometry.h algos/photometry.c \
 	algos/planetary.c algos/planetary.h \
+	algos/plateSolver.c algos/plateSolver.h \
 	compositing/compositing.c compositing/compositing.h compositing/filters.c compositing/filters.h compositing/align_rgb.c compositing/align_rgb.h
 
 siril_LDADD =  $(top_builddir)/deps/kplot/libkplot.a $(FFMPEG_LIBS) $(GTK_LIBS) ${GTK_MAC_LIBS} $(LIBRAW_LIBS) $(LIBTIFF_LIBS) $(LIBPNG_LIBS) $(FFTW_LIBS) $(CFITSIO_LIBS) $(GSL_LIBS) $(FFMS2_LIBS) $(LIBCONFIG_LIBS) $(CURL_LIBS) $(EXTRA_LIBS)
