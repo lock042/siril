@@ -12,6 +12,7 @@ src/algos/photometry.c
 src/algos/plateSolver.c
 src/algos/quality.c
 src/algos/reconstr.c
+src/algos/rgradient.c
 src/algos/star_finder.c
 src/algos/statistics.c
 src/algos/transform.c
@@ -21,6 +22,7 @@ src/compositing/filters.c
 src/core/command.c
 src/core/command_def.h
 src/core/initfile.c
+src/core/pipe.c
 src/core/processing.c
 src/core/siril.c
 src/core/siril_update.c
@@ -33,10 +35,12 @@ src/gui/message_dialog.c
 src/gui/plot.c
 src/gui/progress_and_log.c
 src/gui/registration_preview.c
+src/gui/saturation.c
 src/gui/save_dialog.c
 src/gui/script_menu.c
 src/gui/sequence_list.c
 src/gui/statistics_list.c
+src/gui/wavelets.c
 src/io/conversion.c
 src/io/films.c
 src/io/image_format_fits.c

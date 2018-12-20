@@ -166,7 +166,7 @@ gboolean is_redo_available() {
     return (com.history && (com.hist_display < com.hist_current - 1));
 }
 
-int undo_save_state(char *message, ...) {
+int undo_save_state(fits *fit, char *message, ...) {
 	gchar *filename;
 	char histo[FLEN_VALUE];
 	va_list args;
@@ -178,12 +178,12 @@ int undo_save_state(char *message, ...) {
 		else
 			vsnprintf(histo, FLEN_VALUE, message, args);
 
-		if (undo_build_swapfile(&gfit, &filename)) {
+		if (undo_build_swapfile(fit, &filename)) {
 			va_end(args);
 			return 1;
 		}
 
-		undo_add_item(&gfit, filename, histo);
+		undo_add_item(fit, filename, histo);
 
 		/* update menus */
 		update_MenuItem();
@@ -200,12 +200,13 @@ int undo_display_data(int dir) {
 	case UNDO:
 		if (is_undo_available()) {
 			if (com.hist_current == com.hist_display) {
-				undo_save_state(NULL);
+				undo_save_state(&gfit, NULL);
 				com.hist_display--;
 			}
 			com.hist_display--;
 			undo_get_data(&gfit, com.history[com.hist_display]);
 			update_gfit_histogram_if_needed();
+			invalidate_stats_from_fit(&gfit);
 			redraw(com.cvport, REMAP_ALL);
 			redraw_previews();
 		}
@@ -215,6 +216,7 @@ int undo_display_data(int dir) {
 			com.hist_display++;
 			undo_get_data(&gfit, com.history[com.hist_display]);
 			update_gfit_histogram_if_needed();
+			invalidate_stats_from_fit(&gfit);
 			redraw(com.cvport, REMAP_ALL);
 			redraw_previews();
 		}

@@ -26,12 +26,15 @@
 #endif
 #endif
 #include <string.h>
+#include <locale.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/command.h"
 #include "core/processing.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "script_menu.h"
 
@@ -56,6 +59,7 @@ static GSList *initialize_script_paths(){
 		g_free(path);
 	}
 #else
+	list = g_slist_append(list, g_build_filename(PACKAGE_DATA_DIR, "scripts", NULL));	
 	list = g_slist_append(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
 	list = g_slist_append(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
 #endif
@@ -208,6 +212,7 @@ int initialize_script_menu() {
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
 				gtk_widget_show(separator);
 			}
+			siril_log_message(_("Searching scripts in: %s...\n"), script->data);
 			while (list) {
 				nb_item ++;
 				/* write an item per script file */
@@ -243,3 +248,44 @@ void fill_script_paths_list() {
 	com.script_path = list;
 	writeinitfile();
 }
+
+
+/* Get Scripts menu */
+
+#define GET_SCRIPTS_URL "https://free-astro.org/index.php?title=Siril:scripts"
+
+void on_help_get_scripts_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	gboolean ret;
+	const char *locale = setlocale(LC_MESSAGES, NULL);
+	const char *supported_languages[] = { "fr", "it", NULL }; // en is NULL: default language
+	gchar *lang = NULL;
+	int i = 0;
+
+	if (locale) {
+		while (supported_languages[i]) {
+			if (!strncmp(locale, supported_languages[i], 2)) {
+				lang = g_strndup(locale, 2);
+				break;
+			}
+			i++;
+		}
+	}
+	gchar *url = g_build_path("/", GET_SCRIPTS_URL, lang, NULL);
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+	GtkWidget* win = lookup_widget("control_window");
+	ret = gtk_show_uri_on_window(GTK_WINDOW(win), url,
+			gtk_get_current_event_time(), NULL);
+#else
+	ret = gtk_show_uri(gdk_screen_get_default(), url,
+			gtk_get_current_event_time(), NULL);
+#endif
+	if (!ret) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not show link"),
+				_("Please go to <a href=\""GET_SCRIPTS_URL"\">"GET_SCRIPTS_URL"</a> "
+								"by copying the link."));
+	}
+	g_free(url);
+	g_free(lang);
+}
+

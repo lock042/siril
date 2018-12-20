@@ -134,6 +134,31 @@ static int fit_stats(fits *fit, double *mini, double *maxi) {
 	return status;
 }
 
+/* copy the complete header in a heap-allocated string */
+static void fits_read_history(fitsfile *fptr, GSList **history, int *status) {
+	int i, hdupos, nkeys;
+	char card[FLEN_CARD];
+	GSList *list = NULL;
+
+	fits_get_hdu_num(fptr, &hdupos); /*Get the current HDU position */
+	for (; !*status; hdupos++) {
+		fits_get_hdrspace(fptr, &nkeys, NULL, status);
+		for (i = 1; i <= nkeys; i++) {
+			int cardlen;
+			if (fits_read_record(fptr, i, card, status))
+				break;
+			cardlen = strlen(card);
+			if (!strncmp(card, "HISTORY", 7)) {
+				list = g_slist_append(list, g_strdup(card + 8));
+			}
+		}
+		fits_movrel_hdu(fptr, 1, NULL, status);
+	}
+	if (*history)
+		g_slist_free_full(*history, free);
+	*history = list;
+}
+
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
 static void read_fits_header(fits *fit) {
@@ -278,6 +303,9 @@ static void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TUSHORT, "DFT_RX", &(fit->dft.rx), NULL, &status);
 	fits_read_key(fit->fptr, TUSHORT, "DFT_RY", &(fit->dft.ry), NULL, &status);
+
+	status = 0;
+	fits_read_history(fit->fptr, &(fit->history), &status);
 }
 
 /* copy the complete header in a heap-allocated string */
@@ -334,7 +362,6 @@ static char *copy_header(fits *fit) {
 		siril_debug_print("%s", header);// don't display for all frames of a sequence
 	return header;
 }
-
 
 static void report_fits_error(int status) {
 	if (status) {
@@ -753,6 +780,15 @@ static void save_fits_header(fits *fit) {
 	 * ****************************************************************/
 
 	status = 0;
+	if (fit->history) {
+		GSList *list = fit->history;
+		while (list) {
+			fits_write_history(fit->fptr, (char *)list->data, &status);
+			list = list->next;
+		}
+	}
+
+	status = 0;
 	if (com.history) {
 		for (i = 0; i < com.hist_display; i++) {
 			if (com.history[i].history[0] != '\0')
@@ -989,6 +1025,8 @@ void clearfits(fits *fit) {
 		free(fit->data);
 	if (fit->header)
 		free(fit->header);
+	if (fit->history)
+		g_slist_free_full(fit->history, free);
 	if (fit->stats) {
 		int i;
 		for (i = 0; i < fit->naxes[2]; i++)
@@ -1188,7 +1226,7 @@ int savefits(const char *name, fits *f) {
 	}
 	status = 0;
 	/* some float cases where it is USHORT saved as float */
-	if (f->data_max > 1.0 && f->data_max <= USHRT_MAX) {
+	if (f->bitpix > BYTE_IMG && f->data_max > 1.0 && f->data_max <= USHRT_MAX) {
 		f->bitpix = USHORT_IMG;
 	}
 	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
@@ -1299,6 +1337,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->pdata[1] = NULL;
 		to->pdata[2] = NULL;
 		to->header = NULL;
+		to->history = NULL;
 	}
 
 	if ((oper & CP_ALLOC)) {

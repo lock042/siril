@@ -441,6 +441,7 @@ struct ffit {
 	double data_max; // used to check if 32b float is between 0 and 1
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
+	gboolean unbinned;
 	char date_obs[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss observation start, UT
 	char date[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss creation of file, UT
 	char instrume[FLEN_VALUE];		// INSTRUME key
@@ -465,6 +466,8 @@ struct ffit {
 	WORD *data;		// 16-bit image data (depending on image type)
 	WORD *pdata[3];		// pointers on data, per layer data access (RGB)
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
+
+	GSList *history;	// Former HISTORY comments of FITS file
 };
 
 /* This structure is used for all the elements in the box libraw_settings.

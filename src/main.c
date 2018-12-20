@@ -46,6 +46,7 @@
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/command.h"
+#include "core/pipe.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "gui/callbacks.h"
@@ -100,7 +101,8 @@ static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
 	gtkosx_application_set_window_menu(osx_app, GTK_MENU_ITEM(window_menu));
 
 	gui_add_osx_to_app_menu(osx_app, "help_item1", 0);
-	gui_add_osx_to_app_menu(osx_app, "help_update", 1);
+	gui_add_osx_to_app_menu(osx_app, "help_get_scripts", 1);
+	gui_add_osx_to_app_menu(osx_app, "help_update", 2);
 	sep = gtk_separator_menu_item_new();
 	gtkosx_application_insert_app_menu_item(osx_app, sep, 2);
 	gui_add_osx_to_app_menu(osx_app, "settings", 3);
@@ -136,7 +138,8 @@ void usage(const char *command) {
     printf("\nUsage:  %s [OPTIONS] [IMAGE_FILE_TO_OPEN]\n\n", command);
     puts("    -d, --directory CWD        changing the current working directory as the argument");
     puts("    -s, --script    SCRIPTFILE run the siril commands script in console mode");
-    puts("    -i                         load configuration from file name instead of the default configuration file");
+    puts("    -i              INITFILE   load configuration from file name instead of the default configuration file");
+    puts("    -p                         run in console mode with command and log stream through named pipes");
     puts("    -f, --format               print all supported image file formats (depending on installed libraries)");
     puts("    -v, --version              print program name and version and exit");
     puts("    -h, --help                 show this message");
@@ -191,7 +194,7 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, signal_handled);
 
 	while (1) {
-		signed char c = getopt(argc, argv, "i:hfvd:s:");
+		signed char c = getopt(argc, argv, "i:phfvd:s:");
 		if (c == '?') {
 			for (i = 1; i < argc; i++) {
 				if (argv[i][1] == '-') {
@@ -232,7 +235,7 @@ int main(int argc, char *argv[]) {
 				forcecwd = TRUE;
 				break;
 			case 's':
-				start_script = optarg;
+			case 'p':
 				com.script = TRUE;
 				com.headless = TRUE;
 				/* need to force cwd to the current dir if no option -d */
@@ -240,6 +243,8 @@ int main(int argc, char *argv[]) {
 					cwd_forced = g_get_current_dir();
 					forcecwd = TRUE;
 				}
+				if (c == 's')
+					start_script = optarg;
 				break;
 			default:
 				fprintf(stderr, _("unknown command line parameter '%c'\n"), argv[argc - 1][1]);
@@ -418,10 +423,16 @@ int main(int argc, char *argv[]) {
 			_("disabled"), com.max_thread = 1
 #endif
 			);
+
 	if (!com.headless) {
 		update_spinCPU(com.max_thread);
 
-		if (com.have_dark_theme) {
+		GtkSettings *settings;
+		gboolean prefere_dark;
+		settings = gtk_settings_get_default();
+		g_object_get(settings, "gtk-application-prefer-dark-theme", &prefere_dark, NULL);
+		if (prefere_dark || com.have_dark_theme) {
+			com.have_dark_theme = TRUE;
 			/* Put dark icons */
 			printf("Loading dark theme...\n");
 			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_anticlock_button")), lookup_widget("rotate90-acw_dark"));
@@ -462,20 +473,27 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (com.headless) {
-		FILE* fp = g_fopen(start_script, "r");
-		if (fp == NULL) {
-			siril_log_message(_("File [%s] does not exist\n"), start_script);
-			exit(1);
+		if (start_script) {
+			FILE* fp = g_fopen(start_script, "r");
+			if (fp == NULL) {
+				siril_log_message(_("File [%s] does not exist\n"), start_script);
+				exit(1);
+			}
+			execute_script(fp);
 		}
-		execute_script(fp);
+		else {
+			pipe_start();
+			read_pipe(NULL);
+		}
 	}
 	else gtk_main();
 
 	/* quit Siril */
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
+	pipe_stop();		// close the pipes and their threads
 #ifdef MAC_INTEGRATION
-		g_object_unref(osx_app);
+	g_object_unref(osx_app);
 #endif //MAC_INTEGRATION
 	return 0;
 }

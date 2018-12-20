@@ -4,6 +4,7 @@
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
+#include <glib.h>
 
 typedef
 struct {
@@ -74,6 +75,7 @@ int	process_wavelet(int nb);
 //int	process_animate(int nb);
 //
 int	process_log(int nb);
+int	process_asinh(int nb);
 int	process_ls(int nb);
 int	process_cdg(int nb);
 int	process_clear(int nb);
@@ -83,6 +85,7 @@ int process_convertraw(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrory(int nb);
 int	process_resample(int nb);
+int process_rgradient(int nb);
 int	process_rl(int nb);
 int	process_rotate(int nb);
 int	process_rotatepi(int nb);

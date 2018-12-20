@@ -4,6 +4,7 @@
 #define STR_NONE ""
 
 #define STR_ADDMAX N_("Computes a new image IMG with IMG_1 and IMG_2. The pixel of IMG_1 is replaced by the pixel at the same coordinates of IMG_2 if the intensity of 2 is greater than 1")
+#define STR_ASINH N_("ASINH command stretches the image for show faint objects, while simultaneously, preserve the structure of bright objects of the field")
 
 #define STR_BG N_("Returns the background level of the image loaded in memory")
 #define STR_BGNOISE N_("Returns the background noise level")
@@ -65,6 +66,7 @@
 
 #define STR_REGISTER N_("Performs geometric transforms on images of the sequence given in argument so that they may be superimposed on the reference image. The output sequence name starts with the prefix \"r_\". Using stars for registration, this algorithm only works with deepsky images. The option \"-norot\" performs a translation only with no new sequence built while the option \"-drizzle\" applies a x2 drizzle on the images")
 #define STR_RESAMPLE N_("Resamples image with a factor \"factor\"")
+#define STR_RGRADIENT N_("Creates two images, with a radial shift (\"dR\" in pixels) and a rotational shift (\"dalpha\" in degrees) with respect to the point (\"xc\", \"yc\"). Between these two images, the shifts have the same amplitude, but an opposite sign. The two images are then added to create the final image. This process is also called Larson Sekanina filter")
 #define STR_RL N_("Restores an image using the Richardson-Lucy method. \"Iterations\" is the number of iterations to be performed (typically between 10 and 50). \"Sigma\" is the size of the kernel to be applied")
 #define STR_RMGREEN N_("Chromatic noise reduction filter. It removes green noise in the current image. This filter is based on PixInsight's SCNR Average Neutral algorithm and it is the same filter used by HLVG plugin in Photoshop. \"Type\"=1 stands for Average Neutral Protection, while \"type\"=2 stands for Maximum Neutral Protection")
 #define STR_ROTATE N_("Rotates the image of an angle of \"degree\" value")

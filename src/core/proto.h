@@ -148,6 +148,12 @@ struct median_filter_data {
 	int iterations;
 };
 
+/* rgradient filter data from GUI */
+struct rgradient_filter_data {
+	fits *fit;
+	double xc, yc, dR, da;
+};
+
 /* Banding data from GUI */
 struct banding_data {
 	fits *fit;
@@ -187,24 +193,20 @@ int	siril_fdiv(fits *a, fits *b, float scalar);
 int siril_ndiv(fits *a, fits *b);
 double 	gaussienne(double sigma, int size, double *gauss);
 int 	unsharp(fits *,double sigma, double mult, gboolean verbose);
-int	crop(fits *fit, rectangle *bounds);
 int 	shift(int sx, int sy);
 double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
-int 	loglut(fits *fit, int dir);
+int 	loglut(fits *fit);
+int asinhlut(fits *fit, double beta, double offset, gboolean RGBspace);
 int	ddp(fits *a, int lev, float coef, float sig);
 int	visu(fits *fit, int low, int high);
 int	fill(fits *fit, int level, rectangle *arearg);
 int 	off(fits *a, int level);
-void 	mirrorx(fits *fit, gboolean verbose);
-void 	mirrory(fits *fit, gboolean verbose);
 int	lrgb(fits *l, fits *r, fits *g, fits *b, fits *lrgb);
 gpointer seqpreprocess(gpointer empty);
 void	initialize_preprocessing();
 double	background(fits* fit, int reqlayer, rectangle *selection);
 int backgroundnoise(fits* fit, double sigma[]);
 void	show_FITS_header(fits *);
-int	verbose_resize_gaussian(fits *, int, int, int);
-int	verbose_rotate_image(fits *, double, int, int);
 double gauss_cvf(double p);
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
 int extract_plans(fits *fit, int Nbr_Plan, int Type);

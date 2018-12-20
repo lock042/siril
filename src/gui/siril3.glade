@@ -273,6 +273,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step_increment">0.01</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_black_point_asinh">
+    <property name="upper">0.20000000000000001</property>
+    <property name="step_increment">0.01</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_extract_w">
     <property name="lower">2</property>
     <property name="upper">9</property>
@@ -336,6 +341,16 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="lower">2</property>
     <property name="upper">6</property>
     <property name="value">6</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_rad_rgradient">
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_rot_rgradient">
+    <property name="upper">90</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -428,6 +443,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   </object>
   <object class="GtkAdjustment" id="adjustment5">
     <property name="upper">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_asinh">
+    <property name="lower">1</property>
+    <property name="upper">1000</property>
+    <property name="value">1</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -544,13 +566,15 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Color saturation</property>
     <property name="resizable">False</property>
+    <property name="modal">True</property>
     <property name="window_position">center</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">rgb_window</property>
     <accel-groups>
       <group name="accelgroup1"/>
     </accel-groups>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="close" handler="on_satu_dialog_close" swapped="no"/>
+    <signal name="delete-event" handler="on_satu_cancel_clicked" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -565,7 +589,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="satu_cancel">
-                <property name="label">gtk-close</property>
+                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -579,14 +603,14 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="satu_Apply">
+              <object class="GtkButton" id="satu_close">
                 <property name="label">gtk-apply</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="has_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_satu_Apply_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_satu_apply_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -631,6 +655,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="round_digits">2</property>
                 <property name="digits">2</property>
                 <property name="value_pos">right</property>
+                <signal name="button-release-event" handler="on_scale_satu_button_release_event" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -653,6 +678,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <item translatable="yes">Magenta / Pink</item>
                   <item translatable="yes">Global</item>
                 </items>
+                <signal name="changed" handler="on_combo_saturation_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -680,6 +706,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="active">True</property>
                 <property name="draw_indicator">True</property>
+                <signal name="toggled" handler="on_preserve_bg_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -697,7 +724,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">satu_Apply</action-widget>
+      <action-widget response="0">satu_close</action-widget>
     </action-widgets>
   </object>
   <object class="GtkAdjustment" id="adjustment_scale_b">
@@ -4125,24 +4152,43 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                         <child>
                           <object class="GtkComboBoxText" id="ComboBoxIPSCatalog">
                             <property name="visible">True</property>
+                            <property name="sensitive">False</property>
                             <property name="can_focus">False</property>
                             <property name="tooltip_text" translatable="yes">Choose the online catalogue against one want to compare the image.
 * TYCHO-2 catalogue contains positions, proper motions, and two-color photometric data for 2,539,913 of the brightest stars in the Milky Way.
 * NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC-2 and USNO-B1 catalogues, supplemented by photometric information from the 2MASS final release point source catalogue.
 * Gaia Data Release 2 was released on 25 April 2018. The five-parameter astrometric solution, positions on the sky (α, δ), parallaxes, and proper motions, are given for more than 1.3 billion sources, with a limiting magnitude of G = 21.
-* The Bright Star Catalogue is a star catalogue that lists all stars of stellar magnitude 6.5 or brighter, which is roughly every star visible to the naked eye from Earth. The catalog contains 9,110 objects</property>
-                            <property name="active">0</property>
+* PPMXL is a catalog of positions, proper motions, 2MASS- and optical photometry of 900 million stars and galaxies.
+* The Bright Star Catalogue is a star catalogue that lists all stars of stellar magnitude 6.5 or brighter, which is roughly every star visible to the naked eye from Earth. The catalog contains 9,110 objects.</property>
+                            <property name="active">1</property>
                             <items>
                               <item>TYCHO2</item>
                               <item>NOMAD</item>
                               <item>Gaia DR2</item>
+                              <item>PPMXL</item>
                               <item>Bright stars</item>
                             </items>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="top_attach">0</property>
-                            <property name="width">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="GtkCheckButton_OnlineCat">
+                            <property name="label" translatable="yes">Auto</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">False</property>
+                            <property name="tooltip_text" translatable="yes">The online catalogue is automatically determined using the approximation of the Field Of View and magnitude.</property>
+                            <property name="halign">start</property>
+                            <property name="active">True</property>
+                            <property name="draw_indicator">True</property>
+                            <signal name="toggled" handler="on_GtkCheckButton_OnlineCat_toggled" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="top_attach">0</property>
                           </packing>
                         </child>
                       </object>
@@ -4605,6 +4651,162 @@ This is useful when modulation parameter is different to 1 helping the whole pro
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkDialog" id="asinh_dialog">
+    <property name="width_request">400</property>
+    <property name="can_focus">False</property>
+    <property name="border_width">5</property>
+    <property name="title" translatable="yes">Asinh Transformation</property>
+    <property name="resizable">False</property>
+    <property name="modal">True</property>
+    <property name="window_position">center</property>
+    <property name="type_hint">normal</property>
+    <property name="transient_for">main_window</property>
+    <accel-groups>
+      <group name="accelgroup1"/>
+    </accel-groups>
+    <signal name="close" handler="on_asinh_dialog_close" swapped="no"/>
+    <signal name="delete-event" handler="on_asinh_cancel_clicked" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <object class="GtkButton" id="asinh_cancel">
+                <property name="label">gtk-cancel</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_asinh_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="asinh_Apply">
+                <property name="label">gtk-apply</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_asinh_ok_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkGrid">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label176">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Stretch factor: </property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="scale_asinh">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">The parameter stretch factor allows to adjust the non-linearity factor.</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">adjustment_asinh</property>
+                <property name="round_digits">1</property>
+                <property name="value_pos">right</property>
+                <signal name="button-release-event" handler="on_scale_asinh_button_release_event" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label177">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Black Point: </property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="black_point_asinh">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Constant value that is subtracted from the image.</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">adj_black_point_asinh</property>
+                <property name="round_digits">5</property>
+                <property name="digits">5</property>
+                <property name="value_pos">right</property>
+                <signal name="button-release-event" handler="on_black_point_asinh_button_release_event" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="checkbutton_RGBspace">
+                <property name="label" translatable="yes">Use RGB working space</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">True</property>
+                <signal name="toggled" handler="on_asinh_RGBspace_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="0">asinh_Apply</action-widget>
+    </action-widgets>
   </object>
   <object class="GtkDialog" id="canon_fixbanding_dialog">
     <property name="width_request">300</property>
@@ -6653,12 +6855,13 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="height_request">400</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Histograms</property>
+    <property name="modal">True</property>
     <property name="destroy_with_parent">True</property>
     <property name="transient_for">main_window</property>
     <accel-groups>
       <group name="accelgroup1"/>
     </accel-groups>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="delete-event" handler="on_button_histo_close_clicked" swapped="no"/>
     <signal name="show" handler="on_histogram_window_show" swapped="no"/>
     <child type="titlebar">
       <placeholder/>
@@ -6781,6 +6984,7 @@ Uncheck if images come from a monochrome sensor.</property>
                         <property name="digits">7</property>
                         <property name="draw_value">False</property>
                         <property name="has_origin">False</property>
+                        <signal name="button-release-event" handler="on_scale_midtones_button_release_event" swapped="no"/>
                         <signal name="enter-notify-event" handler="on_scale_midtones_enter_notify_event" swapped="no"/>
                         <signal name="key-release-event" handler="on_scale_key_release_event" swapped="no"/>
                         <signal name="leave-notify-event" handler="on_scale_midtones_leave_notify_event" swapped="no"/>
@@ -6806,6 +7010,7 @@ Uncheck if images come from a monochrome sensor.</property>
                         <property name="digits">5</property>
                         <property name="draw_value">False</property>
                         <property name="has_origin">False</property>
+                        <signal name="button-release-event" handler="on_scale_shadows_button_release_event" swapped="no"/>
                         <signal name="key-release-event" handler="on_scale_key_release_event" swapped="no"/>
                         <signal name="value-changed" handler="on_scale_shadows_value_changed" swapped="no"/>
                       </object>
@@ -6826,6 +7031,7 @@ Uncheck if images come from a monochrome sensor.</property>
                         <property name="digits">5</property>
                         <property name="draw_value">False</property>
                         <property name="has_origin">False</property>
+                        <signal name="button-release-event" handler="on_scale_highlights_button_release_event" swapped="no"/>
                         <signal name="key-release-event" handler="on_scale_key_release_event" swapped="no"/>
                         <signal name="value-changed" handler="on_scale_highlights_value_changed" swapped="no"/>
                       </object>
@@ -6844,69 +7050,6 @@ Uncheck if images come from a monochrome sensor.</property>
             <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkButtonBox" id="dialog-action_area18">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button_histo_reset">
-                <property name="label">gtk-cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Reset</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_histo_reset_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_histo_close">
-                <property name="label">gtk-close</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Close</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_histo_close_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_histo_apply">
-                <property name="label">gtk-apply</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="has_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Apply histogram transformation</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_button_histo_apply_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="padding">10</property>
-            <property name="pack_type">end</property>
-            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -7039,7 +7182,7 @@ Uncheck if images come from a monochrome sensor.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">6</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -7137,7 +7280,7 @@ Uncheck if images come from a monochrome sensor.</property>
                 <property name="hexpand">True</property>
                 <property name="has_frame">False</property>
                 <property name="width_chars">10</property>
-                <property name="text">0.0000000</property>
+                <property name="text">0.5000000</property>
                 <property name="input_purpose">number</property>
                 <signal name="changed" handler="on_histoMidEntry_changed" swapped="no"/>
               </object>
@@ -7180,11 +7323,79 @@ Uncheck if images come from a monochrome sensor.</property>
                 <property name="top_attach">2</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkButton" id="button_histo_reset">
+                <property name="label">gtk-revert-to-saved</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Reset</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_button_histo_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">7</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButtonBox" id="dialog-action_area18">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <object class="GtkButton" id="button_histo_close">
+                <property name="label">gtk-close</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Close</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_button_histo_close_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_histo_apply">
+                <property name="label">gtk-apply</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="has_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Apply histogram transformation</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_button_histo_apply_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">10</property>
+            <property name="pack_type">end</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
@@ -7397,17 +7608,207 @@ Uncheck if images come from a monochrome sensor.</property>
       </object>
     </child>
   </object>
+  <object class="GtkDialog" id="rgradient_dialog">
+    <property name="width_request">400</property>
+    <property name="can_focus">False</property>
+    <property name="border_width">5</property>
+    <property name="title" translatable="yes">Rotational Gradient</property>
+    <property name="resizable">False</property>
+    <property name="window_position">center</property>
+    <property name="type_hint">normal</property>
+    <property name="transient_for">main_window</property>
+    <accel-groups>
+      <group name="accelgroup1"/>
+    </accel-groups>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="box_rgradient">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <object class="GtkButton" id="rgradient_cancel">
+                <property name="label">gtk-close</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_rgradient_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="rgradient_Apply">
+                <property name="label">gtk-apply</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">The rotational gradient will be applied.</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_rgradient_Apply_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkGrid" id="grid_rgradient">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label178">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Radial shift: </property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="scale_radial_rgradient">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Radial shift used to compute rotational gradient.</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">adj_rad_rgradient</property>
+                <property name="round_digits">1</property>
+                <property name="digits">2</property>
+                <property name="value_pos">right</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label179">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Rotational shift: </property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="scale_rot_rgradient">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Rotational shift used to compute rotational gradient.</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">adj_rot_rgradient</property>
+                <property name="round_digits">2</property>
+                <property name="digits">2</property>
+                <property name="value_pos">right</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_rgradient_xc">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">X coordinate of the center of polar coordinates.</property>
+                <property name="halign">start</property>
+                <property name="width_chars">7</property>
+                <property name="text">1.00</property>
+                <property name="input_purpose">number</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_rgradient_yc">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Y coordinate of the center of polar coordinates.</property>
+                <property name="halign">start</property>
+                <property name="width_chars">7</property>
+                <property name="text">1.00</property>
+                <property name="input_purpose">number</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_rgradient_xc">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">X centre:</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_rgradient_yc">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Y centre:</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="0">rgradient_Apply</action-widget>
+    </action-widgets>
+  </object>
   <object class="GtkDialog" id="savepopup">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
     <property name="window_position">center</property>
-    <property name="type_hint">normal</property>
+    <property name="type_hint">dialog</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="urgency_hint">True</property>
     <property name="transient_for">main_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="show" handler="on_savepopup_show" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -7485,8 +7886,8 @@ Uncheck if images come from a monochrome sensor.</property>
                     <property name="margin_right">11</property>
                     <property name="invisible_char">•</property>
                     <property name="width_chars">26</property>
+                    <signal name="activate" handler="on_savetxt_activate" swapped="no"/>
                     <signal name="changed" handler="on_savetxt_changed" swapped="no"/>
-                    <signal name="key-press-event" handler="on_savetxt_key_press_event" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -7631,13 +8032,12 @@ Uncheck if images come from a monochrome sensor.</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkRadioButton" id="radiobuttonCompZip">
-                                        <property name="label" translatable="yes">ZIP</property>
+                                      <object class="GtkRadioButton" id="radiobuttonCompDeflate">
+                                        <property name="label" translatable="yes">Deflate compression</property>
                                         <property name="visible">True</property>
-                                        <property name="sensitive">False</property>
                                         <property name="can_focus">False</property>
                                         <property name="receives_default">False</property>
-                                        <property name="tooltip_text" translatable="yes">Not available</property>
+                                        <property name="tooltip_text" translatable="yes">Deflate compression</property>
                                         <property name="halign">start</property>
                                         <property name="draw_indicator">True</property>
                                         <property name="group">radiobuttonCompNone</property>
@@ -7705,6 +8105,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                         <property name="can_focus">True</property>
                                         <property name="wrap_mode">word</property>
                                         <property name="accepts_tab">False</property>
+                                        <property name="monospace">True</property>
                                       </object>
                                     </child>
                                   </object>
@@ -7750,6 +8151,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                         <property name="can_focus">True</property>
                                         <property name="wrap_mode">word</property>
                                         <property name="accepts_tab">False</property>
+                                        <property name="monospace">True</property>
                                       </object>
                                     </child>
                                   </object>
@@ -8808,6 +9210,7 @@ PixInsight, and probably others ...)</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
+                            <property name="column_spacing">10</property>
                             <child>
                               <object class="GtkLabel" id="label63">
                                 <property name="visible">True</property>
@@ -8839,14 +9242,13 @@ PixInsight, and probably others ...)</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="tooltip_text" translatable="yes">Clear all the fields. If you save your image after, the header will not contain any data about the focal or sensor size.</property>
-                                <property name="halign">end</property>
-                                <property name="hexpand">False</property>
+                                <property name="halign">start</property>
                                 <property name="use_stock">True</property>
                                 <signal name="clicked" handler="on_button_clear_sample_clicked" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
-                                <property name="top_attach">4</property>
+                                <property name="top_attach">5</property>
                               </packing>
                             </child>
                             <child>
@@ -8884,15 +9286,16 @@ PixInsight, and probably others ...)</property>
                               </object>
                               <packing>
                                 <property name="left_attach">0</property>
-                                <property name="top_attach">3</property>
+                                <property name="top_attach">4</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkComboBoxText" id="combobinning">
                                 <property name="visible">True</property>
+                                <property name="sensitive">False</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">If the binning is not automatically loaded, using file's header, you can update this combo box.</property>
-                                <property name="halign">end</property>
+                                <property name="halign">start</property>
                                 <property name="active">0</property>
                                 <items>
                                   <item>1x1</item>
@@ -8908,7 +9311,7 @@ PixInsight, and probably others ...)</property>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
-                                <property name="top_attach">3</property>
+                                <property name="top_attach">4</property>
                               </packing>
                             </child>
                             <child>
@@ -8916,14 +9319,14 @@ PixInsight, and probably others ...)</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="hexpand">True</property>
-                                <property name="label" translatable="yes">FWHM will be updated</property>
+                                <property name="label" translatable="yes">FWHM will be converted into arcsec</property>
                                 <attributes>
                                   <attribute name="foreground" value="#cccc00000000"/>
                                 </attributes>
                               </object>
                               <packing>
                                 <property name="left_attach">0</property>
-                                <property name="top_attach">4</property>
+                                <property name="top_attach">5</property>
                               </packing>
                             </child>
                             <child>
@@ -8953,6 +9356,22 @@ PixInsight, and probably others ...)</property>
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="top_attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="toggleButtonUnbinned">
+                                <property name="label" translatable="yes">Binning is not in the pixel size value</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">False</property>
+                                <property name="tooltip_text" translatable="yes">Check this button if binning is not taken into account in the pixel size value. In this case, the binning value in the combo box below will be used.</property>
+                                <property name="draw_indicator">True</property>
+                                <signal name="toggled" handler="on_toggleButtonUnbinned_toggled" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left_attach">0</property>
+                                <property name="top_attach">3</property>
+                                <property name="width">2</property>
                               </packing>
                             </child>
                           </object>
@@ -10146,10 +10565,14 @@ WARNING: ensure you have a good reason to change this value because it may degra
     <property name="title" translatable="yes">Wavelets control</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
+    <property name="window_position">center</property>
     <property name="type_hint">normal</property>
     <property name="urgency_hint">True</property>
     <property name="transient_for">main_window</property>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <accel-groups>
+      <group name="accelgroup1"/>
+    </accel-groups>
+    <signal name="delete-event" handler="on_button_cancel_w_clicked" swapped="no"/>
     <signal name="hide" handler="on_wavelets_dialog_hide" swapped="no"/>
     <child>
       <placeholder/>
@@ -10164,7 +10587,7 @@ WARNING: ensure you have a good reason to change this value because it may degra
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="button_cancel_w">
+              <object class="GtkButton" id="button_close_w">
                 <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -10181,7 +10604,7 @@ WARNING: ensure you have a good reason to change this value because it may degra
             </child>
             <child>
               <object class="GtkButton" id="button_ok_w">
-                <property name="label">gtk-ok</property>
+                <property name="label">gtk-apply</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="has_focus">True</property>
@@ -10223,7 +10646,6 @@ WARNING: ensure you have a good reason to change this value because it may degra
                       <object class="GtkGrid" id="grid33">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="hexpand">True</property>
                         <property name="row_spacing">10</property>
                         <property name="column_spacing">5</property>
                         <property name="row_homogeneous">True</property>
@@ -10232,7 +10654,7 @@ WARNING: ensure you have a good reason to change this value because it may degra
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="tooltip_text" translatable="yes">Select an algorithm type to perform wavelets</property>
-                            <property name="halign">end</property>
+                            <property name="halign">start</property>
                             <property name="hexpand">True</property>
                             <property name="active">1</property>
                             <items>
@@ -10246,27 +10668,10 @@ WARNING: ensure you have a good reason to change this value because it may degra
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="button_compute_w">
-                            <property name="label">gtk-execute</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Compute wavelets</property>
-                            <property name="halign">end</property>
-                            <property name="hexpand">True</property>
-                            <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_button_compute_w_clicked" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">2</property>
-                          </packing>
-                        </child>
-                        <child>
                           <object class="GtkLabel" id="label131">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="halign">start</property>
+                            <property name="halign">end</property>
                             <property name="label" translatable="yes">Type:</property>
                           </object>
                           <packing>
@@ -10278,12 +10683,12 @@ WARNING: ensure you have a good reason to change this value because it may degra
                           <object class="GtkLabel" id="label132">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="halign">start</property>
+                            <property name="halign">end</property>
                             <property name="label" translatable="yes">Nb of plans:</property>
                           </object>
                           <packing>
-                            <property name="left_attach">0</property>
-                            <property name="top_attach">1</property>
+                            <property name="left_attach">2</property>
+                            <property name="top_attach">0</property>
                           </packing>
                         </child>
                         <child>
@@ -10291,10 +10696,11 @@ WARNING: ensure you have a good reason to change this value because it may degra
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="tooltip_text" translatable="yes">Number of wavelet layers that will be used</property>
-                            <property name="halign">end</property>
+                            <property name="halign">start</property>
                             <property name="hexpand">False</property>
                             <property name="width_chars">1</property>
                             <property name="max_width_chars">2</property>
+                            <property name="text">6</property>
                             <property name="input_purpose">number</property>
                             <property name="adjustment">adj_plans_w</property>
                             <property name="snap_to_ticks">True</property>
@@ -10302,12 +10708,26 @@ WARNING: ensure you have a good reason to change this value because it may degra
                             <property name="value">6</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">1</property>
+                            <property name="left_attach">3</property>
+                            <property name="top_attach">0</property>
                           </packing>
                         </child>
                         <child>
-                          <placeholder/>
+                          <object class="GtkButton" id="button_compute_w">
+                            <property name="label">gtk-execute</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Compute wavelets</property>
+                            <property name="halign">center</property>
+                            <property name="use_stock">True</property>
+                            <signal name="clicked" handler="on_button_compute_w_clicked" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">1</property>
+                            <property name="width">4</property>
+                          </packing>
                         </child>
                       </object>
                     </child>
@@ -10317,6 +10737,8 @@ WARNING: ensure you have a good reason to change this value because it may degra
                   <object class="GtkLabel" id="label130">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="margin_top">10</property>
+                    <property name="margin_bottom">10</property>
                     <property name="label" translatable="yes">Compute wavelets</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -10363,8 +10785,9 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="hexpand">True</property>
                         <property name="adjustment">adj_w0</property>
                         <property name="round_digits">1</property>
-                        <property name="draw_value">False</property>
+                        <property name="digits">2</property>
                         <property name="value_pos">right</property>
+                        <signal name="button-release-event" handler="on_scale_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -10378,8 +10801,9 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="hexpand">True</property>
                         <property name="adjustment">adj_w1</property>
                         <property name="round_digits">1</property>
-                        <property name="draw_value">False</property>
+                        <property name="digits">2</property>
                         <property name="value_pos">right</property>
+                        <signal name="button-release-event" handler="on_scale_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -10393,8 +10817,9 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="hexpand">True</property>
                         <property name="adjustment">adj_w2</property>
                         <property name="round_digits">1</property>
-                        <property name="draw_value">False</property>
+                        <property name="digits">2</property>
                         <property name="value_pos">right</property>
+                        <signal name="button-release-event" handler="on_scale_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -10408,8 +10833,9 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="hexpand">True</property>
                         <property name="adjustment">adj_w3</property>
                         <property name="round_digits">1</property>
-                        <property name="draw_value">False</property>
+                        <property name="digits">2</property>
                         <property name="value_pos">right</property>
+                        <signal name="button-release-event" handler="on_scale_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -10423,8 +10849,9 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="hexpand">True</property>
                         <property name="adjustment">adj_w4</property>
                         <property name="round_digits">1</property>
-                        <property name="draw_value">False</property>
+                        <property name="digits">2</property>
                         <property name="value_pos">right</property>
+                        <signal name="button-release-event" handler="on_scale_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -10438,8 +10865,9 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="hexpand">True</property>
                         <property name="adjustment">adj_w5</property>
                         <property name="round_digits">1</property>
-                        <property name="draw_value">False</property>
+                        <property name="digits">2</property>
                         <property name="value_pos">right</property>
+                        <signal name="button-release-event" handler="on_scale_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -10519,158 +10947,20 @@ WARNING: ensure you have a good reason to change this value because it may degra
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSpinButton" id="spin_w0">
+                      <object class="GtkButton" id="button_reset_w">
+                        <property name="label">gtk-revert-to-saved</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="width_chars">4</property>
-                        <property name="max_width_chars">5</property>
-                        <property name="input_purpose">number</property>
-                        <property name="adjustment">adj_w0</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spin_w_changed" swapped="no"/>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Reset changes</property>
+                        <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_button_reset_w_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spin_w1">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">4</property>
-                        <property name="max_width_chars">5</property>
-                        <property name="input_purpose">number</property>
-                        <property name="adjustment">adj_w1</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spin_w_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spin_w2">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">4</property>
-                        <property name="max_width_chars">5</property>
-                        <property name="input_purpose">number</property>
-                        <property name="adjustment">adj_w2</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spin_w_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spin_w3">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">4</property>
-                        <property name="max_width_chars">5</property>
-                        <property name="input_purpose">number</property>
-                        <property name="adjustment">adj_w3</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spin_w_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spin_w4">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">4</property>
-                        <property name="max_width_chars">5</property>
-                        <property name="input_purpose">number</property>
-                        <property name="adjustment">adj_w4</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spin_w_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spin_w5">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">4</property>
-                        <property name="max_width_chars">5</property>
-                        <property name="input_purpose">number</property>
-                        <property name="adjustment">adj_w5</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spin_w_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">5</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox" id="box67">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="homogeneous">True</property>
-                        <child>
-                          <object class="GtkButton" id="button_reset_w">
-                            <property name="label">gtk-undo</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Reset changes</property>
-                            <property name="halign">center</property>
-                            <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_button_reset_w_clicked" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="button_apply_w">
-                            <property name="label">gtk-apply</property>
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Performs transformation</property>
-                            <property name="halign">center</property>
-                            <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_button_apply_w_clicked" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
+                        <property name="left_attach">0</property>
                         <property name="top_attach">6</property>
+                        <property name="width">2</property>
                       </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                   </object>
                 </child>
@@ -10680,6 +10970,8 @@ WARNING: ensure you have a good reason to change this value because it may degra
               <object class="GtkLabel" id="label133">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_top">10</property>
+                <property name="margin_bottom">10</property>
                 <property name="label" translatable="yes">Adjust</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -10702,6 +10994,7 @@ WARNING: ensure you have a good reason to change this value because it may degra
     <property name="pixbuf">pixmaps/rotate-cw_dark.png</property>
   </object>
   <object class="GtkAdjustment" id="rotation_angle">
+    <property name="lower">-359.99000000000001</property>
     <property name="upper">359.99000000000001</property>
     <property name="step_increment">0.01</property>
     <property name="page_increment">10</property>
@@ -10830,6 +11123,7 @@ WARNING: ensure you have a good reason to change this value because it may degra
                 <property name="climb_rate">0.01</property>
                 <property name="digits">2</property>
                 <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spinbutton_rotation_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -11030,6 +11324,15 @@ WARNING: ensure you have a good reason to change this value because it may degra
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem_asinh">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Asinh Transformation...</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_menuitem_asinh_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem_histo">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -11054,21 +11357,21 @@ WARNING: ensure you have a good reason to change this value because it may degra
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="removegreen">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Remove Green Noise...</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_removegreen_activate" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkMenuItem" id="menuitem_satu">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Color Saturation...</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_menuitem_satu_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="removegreen">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Remove Green Noise...</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_removegreen_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -11138,6 +11441,15 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="label" translatable="yes">Median Filter...</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_menuitem_medianfilter_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem_rgradient">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Rotational Gradient...</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_menuitem_rgradient_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -11383,6 +11695,15 @@ WARNING: ensure you have a good reason to change this value because it may degra
                         <property name="label" translatable="yes">Check For Updates</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_help_update_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="help_get_scripts">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Get scripts</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_help_get_scripts_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>

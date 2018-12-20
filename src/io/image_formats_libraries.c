@@ -43,6 +43,7 @@
 #include <libraw/libraw.h>
 #endif
 
+#include "algos/geometry.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "gui/callbacks.h"
@@ -156,6 +157,16 @@ static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	}
 	else retval = -1;
 	return retval;
+}
+
+static uint16_t get_compression_mode() {
+	GtkToggleButton *button;
+
+	button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
+	if (gtk_toggle_button_get_active(button))
+		return (uint16_t) COMPRESSION_ADOBE_DEFLATE;
+	else
+		return (uint16_t) COMPRESSION_NONE;
 }
 
 static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
@@ -321,7 +332,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, -1));
 	TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
 	TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, nsamples);
-	TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+	TIFFSetField(tif, TIFFTAG_COMPRESSION, get_compression_mode());
 	TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, img_desc);
 	TIFFSetField(tif, TIFFTAG_COPYRIGHT, img_copy);
 	TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
@@ -624,7 +635,6 @@ int readpng(const char *name, fits* fit) {
 				*buf[BLAYER]++ = ptr[2];
 			}
 		}
-		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	}
 	// We define the number of channel we have
 	switch (color_type) {
@@ -656,7 +666,7 @@ int readpng(const char *name, fits* fit) {
 			fit->naxis = 2;
 		else
 			fit->naxis = 3;
-		fit->bitpix = (bit_depth == 8) ? BYTE_IMG : USHORT_IMG;
+		fit->bitpix = (bit_depth == 16) ? USHORT_IMG : BYTE_IMG;
 		fit->orig_bitpix = fit->bitpix;
 		fit->data = data;
 		fit->pdata[RLAYER] = fit->data;

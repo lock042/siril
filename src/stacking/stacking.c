@@ -54,7 +54,7 @@
 #undef STACK_DEBUG
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
-		NULL, NULL, NULL, -1.0, 0, NULL, { '\0' }, NULL, FALSE, { 0, 0 }, -1, 0, { 0, 0 }, NO_REJEC, NO_NORM, { NULL, NULL, NULL}, FALSE, -1
+		NULL, NULL, -1, NULL, -1.0, 0, NULL, { '\0' }, NULL, FALSE, { 0, 0 }, -1, 0, { 0, 0 }, NO_REJEC, NO_NORM, { NULL, NULL, NULL}, FALSE, -1
 };
 
 stack_method stacking_methods[] = {
@@ -455,7 +455,8 @@ int stack_median(struct stacking_args *args) {
 				retval = -1;
 				break;
 			}
-			set_progress_bar_data(NULL, (double)cur_nb/total);
+			if (!(y % 16))	// every 16 iterations
+				set_progress_bar_data(NULL, (double)cur_nb/total);
 
 			for (x = 0; x < naxes[0]; ++x){
 				int ii;
@@ -870,12 +871,8 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 			exposure += get_exposure_from_fitsfile(args->seq->fptr[image_index]);
 		}
 		/* We copy metadata from reference to the final fit */
-		if (args->seq->type == SEQ_REGULAR) {
-			int ref = 0;
-			if (args->seq->reference_image > 0)
-				ref = args->seq->reference_image;
-			import_metadata_from_fitsfile(args->seq->fptr[ref], &fit);
-		}
+		if (args->seq->type == SEQ_REGULAR)
+			import_metadata_from_fitsfile(args->seq->fptr[args->ref_image], &fit);
 
 		update_used_memory();
 	}
@@ -1181,7 +1178,7 @@ int stack_mean_with_rejection(struct stacking_args *args) {
 				retval = -1;
 				break;
 			}
-			if (y & 15)	// every 16 iterations
+			if (!(y % 16))	// every 16 iterations
 				set_progress_bar_data(NULL, (double)cur_nb/total);
 
 			double sigma = -1.0;
@@ -1940,18 +1937,22 @@ int stack_get_max_number_of_rows(sequence *seq, int nb_images_to_stack) {
  * to be already allocated to the correct size at least */
 void stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 	int i, j;
-	int ref_image = args->seq->reference_image;
-	for (i=0, j=0; i<args->seq->number; i++) {
+	for (i = 0, j = 0; i < args->seq->number; i++) {
 		if (args->filtering_criterion(
 					args->seq, i,
 					args->filtering_parameter)) {
 			args->image_indices[j] = i;
 			j++;
 		}
-		else if (i == ref_image) {
+		else if (i == args->ref_image) {
 			siril_log_color_message(_("The reference image is not in the selected set of images. "
 					"To avoid issues, please change it or change the filtering parameters.\n"), "red");
+			args->ref_image = -1;
 		}
+	}
+	if (args->ref_image == -1) {
+		args->ref_image = args->image_indices[0];
+		siril_log_message(_("Using image %d as temporary reference image\n"), args->ref_image);
 	}
 	g_assert(j <= args->nb_images_to_stack);
 }
@@ -2077,6 +2078,13 @@ double compute_lowest_accepted_roundness(double percent) {
 	return lowest_accepted;
 }
 
+void on_stacksel_changed(GtkComboBox *widget, gpointer user_data) {
+	update_stack_interface(TRUE);
+}
+
+void on_spinbut_percent_change(GtkSpinButton *spinbutton, gpointer user_data) {
+	update_stack_interface(TRUE);
+}
 
 /* Activates or not the stack button if there are 2 or more selected images,
  * all data related to stacking is set in stackparam, except the method itself,
@@ -2107,8 +2115,11 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 	if (!sequence_is_loaded()) return;
 	stackparam.seq = &com.seq;
 
-	if (!dont_change_stack_type && stackparam.seq->selnum < stackparam.seq->number)
+	if (!dont_change_stack_type && stackparam.seq->selnum < stackparam.seq->number) {
+		g_signal_handlers_block_by_func(stack_type, on_stacksel_changed, NULL);
 		gtk_combo_box_set_active(stack_type, SELECTED_IMAGES);
+		g_signal_handlers_unblock_by_func(stack_type, on_stacksel_changed, NULL);
+	}
 
 	gtk_widget_set_visible(cfa, sequence_is_loaded() && com.seq.nb_layers == 1);
 
@@ -2128,6 +2139,11 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(norm_to_16, stackparam.seq->bitpix < SHORT_IMG);
 	}
+
+	if (com.seq.reference_image == -1)
+		com.seq.reference_image = sequence_find_refimage(&com.seq);
+	stackparam.ref_image = com.seq.reference_image;
+	ref_image = stackparam.ref_image;	// easier to manipulate
 
 	switch (gtk_combo_box_get_active(stack_type)) {
 	case ALL_IMAGES:
@@ -2149,15 +2165,9 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		gtk_widget_set_sensitive(stack[1], FALSE);
 		break;
 	case BEST_PSF_IMAGES:
-		/* First we must check if the sequence has this kind of data
-		 * available before allowing the option to be selected. */
 		channel = get_registration_layer(&com.seq);
-		ref_image = sequence_find_refimage(&com.seq);
-		if (channel < 0) {
-			stackparam.nb_images_to_stack = 0;
-		} else if (stackparam.seq->regparam[channel] == NULL) {
-			stackparam.nb_images_to_stack = 0;
-		} else if (stackparam.seq->regparam[channel][ref_image].fwhm == 0.0) {
+		if (channel < 0 || !stackparam.seq->regparam[channel] || 
+				stackparam.seq->regparam[channel][ref_image].fwhm == 0.0) {
 			stackparam.nb_images_to_stack = 0;
 		} else {
 			percent = gtk_adjustment_get_value(stackadj);
@@ -2182,15 +2192,9 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		break;
 
 	case BEST_ROUND_IMAGES:
-		/* First we must check if the sequence has this kind of data
-		 * available before allowing the option to be selected. */
 		channel = get_registration_layer(&com.seq);
-		ref_image = sequence_find_refimage(&com.seq);
-		if (channel < 0) {
-			stackparam.nb_images_to_stack = 0;
-		} else if (stackparam.seq->regparam[channel] == NULL) {
-			stackparam.nb_images_to_stack = 0;
-		} else if (stackparam.seq->regparam[channel][ref_image].roundness == 0.0) {
+		if (channel < 0 || !stackparam.seq->regparam[channel] ||
+				stackparam.seq->regparam[channel][ref_image].roundness == 0.0) {
 			stackparam.nb_images_to_stack = 0;
 		} else {
 			percent = gtk_adjustment_get_value(stackadj);
@@ -2213,22 +2217,28 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		break;
 
 	case BEST_QUALITY_IMAGES:
-		percent = gtk_adjustment_get_value(stackadj);
-		stackparam.filtering_criterion = stack_filter_quality;
-		stackparam.filtering_parameter = compute_highest_accepted_quality(
-				percent);
-		stackparam.nb_images_to_stack = compute_nb_filtered_images();
-		sprintf(stackparam.description, _("Stacking images of the sequence "
-				"with a quality higher or equal than %g (%d)\n"),
-				stackparam.filtering_parameter, stackparam.nb_images_to_stack);
-		gtk_widget_set_sensitive(stack[0], TRUE);
-		gtk_widget_set_sensitive(stack[1], TRUE);
-		if (stackparam.filtering_parameter > 0.0)
-			sprintf(labelbuffer, _("Based on quality > %.2f (%d images)"),
-					stackparam.filtering_parameter,	stackparam.nb_images_to_stack);
-		else
-			sprintf(labelbuffer, _("Based on quality"));
-		gtk_label_set_text(GTK_LABEL(stack[1]), labelbuffer);
+		channel = get_registration_layer(&com.seq);
+		if (channel < 0 || !stackparam.seq->regparam[channel] ||
+				stackparam.seq->regparam[channel][ref_image].quality == 0.0) {
+			stackparam.nb_images_to_stack = 0;
+		} else {
+			percent = gtk_adjustment_get_value(stackadj);
+			stackparam.filtering_criterion = stack_filter_quality;
+			stackparam.filtering_parameter = compute_highest_accepted_quality(
+					percent);
+			stackparam.nb_images_to_stack = compute_nb_filtered_images();
+			sprintf(stackparam.description, _("Stacking images of the sequence "
+						"with a quality higher or equal than %g (%d)\n"),
+					stackparam.filtering_parameter, stackparam.nb_images_to_stack);
+			gtk_widget_set_sensitive(stack[0], TRUE);
+			gtk_widget_set_sensitive(stack[1], TRUE);
+			if (stackparam.filtering_parameter > 0.0)
+				sprintf(labelbuffer, _("Based on quality > %.2f (%d images)"),
+						stackparam.filtering_parameter,	stackparam.nb_images_to_stack);
+			else
+				sprintf(labelbuffer, _("Based on quality"));
+			gtk_label_set_text(GTK_LABEL(stack[1]), labelbuffer);
+		}
 		break;
 
 	default:	// could it be -1?
@@ -2248,14 +2258,6 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		}
 		gtk_widget_set_sensitive(go_stack, FALSE);
 	}
-}
-
-void on_stacksel_changed(GtkComboBox *widget, gpointer user_data) {
-	update_stack_interface(TRUE);
-}
-
-void on_spinbut_percent_change(GtkSpinButton *spinbutton, gpointer user_data) {
-	update_stack_interface(TRUE);
 }
 
 /*****************************************************************

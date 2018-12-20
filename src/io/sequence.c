@@ -55,6 +55,7 @@
 #include "algos/quality.h"
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
+#include "algos/geometry.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 
