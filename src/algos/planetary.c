@@ -20,108 +20,124 @@
 
 /* This is the main file for the multi-point planetary processing */
 
-/* stacking process:
- * 1. compute parameters:
- *  - zone size: can it be guessed from the quality values? Are they a good
- *  indicator of SNR? Otherwise, we may count the number of pixels above a
- *  threshold to estimate the size of the planet in pixels and the samping of the
- *  acquisition. Zone size should depend on sampling, SNR and sky quality.
- *  - overlap, the number of pixels that are common between two zones and of the
- *  number of pixel in the zones, as a percentage. It depends on how much the
- *  images move, how much spaced the zones are (which depends on their size)
- *  because the more zones are far apart, the more shear might appear if they
- *  don't align. The value should not be higher than 50%, which would mean that
- *  the centre of two zones are both in the two zones. It's probably wiser to have
- *  the centres only in one zone.
- *  - extra read for zones, when trying to align zones, even if we read them in
- *  images taking into account the global shifts from the first registration, they
- *  might not perfectly fit. This value indicates how many pixels extra half side
- *  we need to read for each zone. This depends probably on the same data as the
- *  overlap, with emphasis on the standard deviation of the set of shifts.
- *  - sigma low and high of the stacking may be guesses from quality standard
- *  deviation?
- *
- *  Then show these values in the GUI and wait for user input. When the user
- *  changes the zone size, it may update the overlap amount in automatic mode.
- *
- * 2. place the stacking zones
- *  for the automatic mode, we will have to run a filter on the reference image to
- *  find points of interest. The points should not be on the planet's edge, but
- *  since it's a high contrast zone, it needs to be filtered out. The points
- *  should be spaced in a way that somewhat respect the overlap parameter
- *
- * 3. do the mpp stacking
- *  - each zone has to be read, with the extra read borders, on each image of the
- *  X best percent selected by user, to run a DFT registration on them. This gives
- *  local shifts, or zone shifts. A texture of the size of the reference image is
- *  used to store the cumulated number of zones that contain each pixel. This
- *  helps managing the variable pixel count in the stack.
- *  - average stacking with rejection is then run almost normally, with the blocks
- *  computed for multi-threading almost as usual, but taking into account the
- *  overlap that will add some pixels to each pixel stacks.
- *    For each pixel, we get for each image the pixels of each zone slided with
- *    the local shift (there may be several zones that contain the pixel in
- *    overlapping zones) or globally shifted pixel if the pixel is not in a zone.
- *
- * There may be a way do to the zones registration and the stacking at the same
- * time, but this gets complicated with the stacking blocks for the
- * multi-threading. Separating in two as explained above should not give an
- * unreasonable speed penalty.
- *
- */
-
-/* The currentmpp stacking algorithm explained (out of date):
- * 0. register_cog
- * registration of all frames with cog
- * 	evaluates image quality -> seq->regparam[layer][frame].quality
- * 	evaluates image shift -> seq->regparam[layer][frame].shiftxy
+/**************************** DOCUMENTATION ****************************
+ * I. THE ALGORITHM
+ * 1. Analysis of the sequence
+ * -> provides global registration and quality value for all frames
+ * Uses the register_cog (centre of gravity) registration function that
+ * computes both values (see regcog_image_hook() in registration/cog.c)
+ * 	image quality -> seq->regparam[layer][frame].quality
+ * 	image shift -> seq->regparam[layer][frame].shiftx|y
  * 	selects best frame -> seq->reference_image
- * - image shifts are given relative to the best image
+ * - image shifts are given relative to image of highest quality
+ * - quality is normalized between 0 and 1, defaults to -1
  * 
- * 1. creation of the reference frame used for display and AP placing
- * (in sequence_analysis_thread_func after the register_cog call)
- * - sum stacking of the images with quality above 0.75 (variable number of
- *   images), using regparam shifts computed above, aligned with best image
- * 	-> image saved in refimage
+ * 2. Creation of the reference frame used for display and placing AP
+ * -> creates the reference image, saves it and displays it immediately
+ * Makes a sum stacking of the images with quality above 0.75 (variable number
+ * of images), using regparam shifts computed above
+ * - image is also copied refimage, making it available for the next processing
+ *   steps even if not displayed
+ *
+ * Operations 1. and 2. are done in the analysis thread that runs the function
+ * sequence_analysis_thread_func()
  * 
- * 2. the_multipoint_quality_analysis
- * evaluates quality of each zone for each image and saves it in mpregparam
- * zone is taken from zone->centre.x - seq->regparam[layer][frame].shiftx and
- * zone->centre.y + seq->regparam[layer][frame].shifty
- * 	quality -> mpregparam[frame].quality, normalized
- * no registration data computed
+ * 3. Adding the alignment points (AP), a.k.a. stacking zones, a.k.a. boxes
+ * -> User adds boxes manually or uses the automatic placement algorithm
+ *
+ * 4. Evaluating stacking zones' quality
+ * -> evaluates the quality of each zone for each image and keep it in memory
+ * Zones are extracted from frames with coordinates centred on
+ * (zone->centre.x - seq->regparam[layer][frame].shiftx,
+ *  zone->centre.y + seq->regparam[layer][frame].shifty) and with a size
+ * depending on the evaluated zone. Zones are always square.
+ * 	zone quality -> zone->mpregparam[frame].quality
+ * Zone quality is then normalized for all zones of all frames.
+ * This is done in the_multipoint_quality_analysis() below.
+ * From this step, quality for a zone over the sequence can be displayed in the
+ * GUI, in addition to the global image quality. This step is done in
+ * the_multipoint_processing(), the main mpp processing function, but can also
+ * be triggered by the user before launching the main processing.
  * 
- * 3. the_multipoint_dft_registration
- * aligns each zone with the same zone of the reference image, using the global
- * registration data as a starting point.
- * Image zone is taken from zone->centre.x - seq->regparam[layer][frame].shiftx and
- * zone->centre.y + seq->regparam[layer][frame].shifty
+ * 5. Aligning stacking zones
+ * -> computes shifts for all zones of all frames relative to the same zone
+ *    from the reference image, using global registration data as a starting
+ *    point.
+ * Zones are extracted from frames with coordinates centred on
+ * (zone->centre.x - seq->regparam[layer][frame].shiftx,
+ *  zone->centre.y + seq->regparam[layer][frame].shifty) and with a size
+ * depending on the evaluated zone.
  * The resulting shifts are added to the regparam shifts and saved like that:
- * 	zone->mpregparam[frame].x = (double)shiftx - regparam[frame].shiftx;
- * 	zone->mpregparam[frame].y = (double)shifty + regparam[frame].shifty;
+ * 	zone->mpregparam[frame].x =  shiftx - regparam[frame].shiftx;
+ * 	zone->mpregparam[frame].y = -shifty + regparam[frame].shifty;
+ * We could do it only for the best zones to save time, since at this stage we
+ * already have filtering information, but if the registration of a zone fails,
+ * the next best one would be used in stacking.
+ * This is currently done with the ECC algorithm, in
+ * the_multipoint_ecc_registration(). Before that it was done with DFT phase
+ * correlation in the_multipoint_dft_registration().
  * 
- * 4. the_global_multipoint_barycentric_sum_stacking
- * takes the best frames as given by the global quality in seq->regparam and
- * stacks a normalized reference image that takes into account the displacement of
- * zones with a weighted distance (called barycentric) approach.
- * The 5 nearest zones are computed for each pixel. Then for each pixel, the shift
- * for each zone (mpregparam[frame].x) is weighted with the distance of the zone,
- * giving a shift that follows the context.
+ * 6. Preparing the background image
+ * -> an optional step that creates the image that will be used where no
+ *    stacking zone has been defined
+ * This could be the reference image, but we tried something different with a
+ * global multi-point stacked image. It is computed by taking the best frames
+ * as given by the global quality in seq->regparam and stacking a normalized
+ * reference image that takes into account the displacement of zones with a
+ * weighted distance (called barycentric) approach. Results are in general
+ * slightly better than the reference image but may show some artifacts.
+ * This is defined in the_global_multipoint_barycentric_sum_stacking().
+ * The 5 nearest zones are computed for each pixel. Then for each pixel, the
+ * shift for each zone (mpregparam[frame].x) is weighted with the distance of
+ * the zone, giving a shift that follows the context.
  * Stacked image is built by taking pixels of each image with + shiftx and -
  * shifty shifts.
- * 	-> image data is saved in gfit(ushort) and global_image(double)
+ * - image data is saved in gfit(ushort) and global_image(double)
  * 
- * 5. the_local_multipoint_sum_stacking
- * composes the stacks of the global image created above and of the zone-evaluated
- * quality created image.
- * For each zone, the best x% of images are selected. If an image is part of the
- * best of a zone, its zone is extracted and added to the result. The zone
- * extraction uses zone->centre.x + mpregparam[frame].x and
- * zone->centre.y - mpregparam[frame].y.
- * Result is normalized with the number of contributions per pixel. If the number
- * 0, the global image is used. If it's lower than a threshold (nb_images / 3 +
- * 1), it is blended between the global image and the local image stack.
- * 	-> resulting meerged image is multiplied by 65535 and saved in gfit.
+ * 7. Stacking the final image
+ * -> for each zone, stacks the best image of the sequence and blends them with
+ *    the background image
+ * For each zone, the best x% of images are selected. If an image is part of
+ * the best of a zone, its zone is extracted and added to the result.
+ * Zones are extracted from frames with coordinates centred on
+ * (zone->centre.x - seq->mpregparam[frame].x,
+ *  zone->centre.y + seq->mpregparam[frame].y) and with a size
+ * depending on the evaluated zone.
+ * Stacking result is normalized with the number of contributions per pixel,
+ * since the number of zones stacked on it can vary. If there were no
+ * contribution of zones on a pixel, the background image is used. If there are
+ * less than a threshold (nb_images / 3 + 1), the result is blended with the
+ * background image.
+ * This is defined in the_local_multipoint_sum_stacking().
+ * - resulting image is multiplied by 65535 and saved in gfit (the image that
+ *   is displayed)
+ */
+
+ 
+/* Determining zone placement parameters for automation:
+ *  - AP position: given by some feature detection algorithm.
+ *  - zone size: can it be guessed from the quality values? We could count the
+ *  number of pixels above the background level to estimate the size of the
+ *  planet in pixels. Zone size should depend on image quality and noise. When
+ *  an AP is placed, we could iteratively grow the zone around it until a
+ *  minimum quality or contrast is reached.
+ *  - overlap: the number of pixels that are common between two zones and of
+ *  the number of pixel in the zones, as a percentage. A global setting of
+ *  turbulence strength could drive this value, as more turbulence causes shear
+ *  to appear at zones' borders. Overalap blends them and appear better. The
+ *  value should not be higher than 50%, which would mean that the centre of
+ *  two zones are both in the two zones. It's probably wiser to have the AP
+ *  only in one zone.
+ *  - extra read for zones: when trying to align zones, even if we read them in
+ *  images taking into account the shifts from the global registration, they
+ *  might not perfectly fit. This value indicates how many pixels extra in the
+ *  half-side of the zones read from the reference image we need to read. This
+ *  depends probably on the same data as the overlap, with emphasis on the
+ *  standard deviation of the set of shifts. This depends on the registration
+ *  algorithm used, some may not allow different sample sizes.
+ *
+ *  In automatic mode, if the user changes the zone size, we could update the
+ *  overlap amount.
  */
 
 /* TODO:
@@ -138,8 +154,9 @@
  * GUI mode switch: maybe next start, maybe fork+exec?
  * remove menuitemcolor and menuitemgray in planetary mode
  * chain hi/lo/mode when RGB vport is modified
- * make a background thread that precomputes FFTW wisdom, it's too slow for big zones
- * restrict zone size (see FFTW comment below) to some values
+ * FFTW-related, if we keep DFT registration it for mpp:
+ *    make a background thread that precomputes FFTW wisdom, it's too slow for big zones
+ *    restrict zone size (see FFTW comment below) to some values
  * restrict zones inside the image
  * allow the sequence list to be ellipsized because it can be huge -> feature not found!
  * displays 'No sequence selected' when selecting a sequence that has no global regdata

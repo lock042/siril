@@ -57,14 +57,14 @@ static int regcog_prepare_hook(struct generic_seq_args *args) {
 static int regcog_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
 	struct regcog_data *rcdata = args->user;
 	struct registration_args *regargs = rcdata->regargs;
-	double shiftx, shifty, quality;
+	double centre_x, centre_y, quality;
 	int retval;
 
 	// Compute barycentre for the image
-	retval = FindCentre(fit, regargs->layer, &shiftx, &shifty);
+	retval = FindCentre(fit, regargs->layer, &centre_x, &centre_y);
 	if (retval) return retval;
-	rcdata->current_regdata[in_index].shiftx = (float)shiftx;
-	rcdata->current_regdata[in_index].shifty = (float)shifty;
+	rcdata->current_regdata[in_index].shiftx = (float)centre_x;
+	rcdata->current_regdata[in_index].shifty = (float)centre_y;
 
 	// Compute quality for the image
 	// Warning: QualityEstimate modifies fit on this layer
