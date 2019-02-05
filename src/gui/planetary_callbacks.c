@@ -27,13 +27,14 @@
 #include "io/single_image.h"
 #include "stacking/stacking.h"
 #include "algos/planetary.h"
+#include "algos/statistics.h"
+#include "registration/registration.h"
 #include "plot.h"
 #include "gui.h"
 #include "callbacks.h"
 #include "image_display.h"
+#include "progress_and_log.h"
 #include "planetary_callbacks.h"
-#include "algos/statistics.h"
-
 
 static gboolean seqimage_range_mouse_pressed = FALSE;
 static gboolean add_zones_mode = FALSE;
@@ -223,6 +224,44 @@ void planetary_click_in_image(double x, double y) {
 			}
 		}
 	}
+}
+
+/* First step: running the global registration and building the reference image */
+void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
+	if (!sequence_is_loaded()) return;
+	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(
+			gtk_builder_get_object(builder, "comboboxreglayer"));
+	GtkSpinButton *kernelsz = GTK_SPIN_BUTTON(
+			gtk_builder_get_object(builder, "kernelspin"));
+	GtkToggleButton *save_precomp = GTK_TOGGLE_BUTTON(
+			gtk_builder_get_object(builder, "store_precomp_checkbox"));
+
+	struct registration_args *reg_args;
+	reg_args = calloc(1, sizeof(struct registration_args));
+	reg_args->func = get_selected_registration_method()->method_ptr;
+	reg_args->seq = &com.seq;
+	reg_args->reference_image = sequence_find_refimage(&com.seq);
+	reg_args->process_all_frames = FALSE;
+	reg_args->follow_star = FALSE;
+	reg_args->match_selection = FALSE;
+	reg_args->translation_only = TRUE;
+	reg_args->x2upscale = FALSE;
+	reg_args->kernel_size = gtk_spin_button_get_value_as_int(kernelsz);
+	reg_args->layer = gtk_combo_box_get_active(cbbt_layers);
+	reg_args->run_in_thread = TRUE;
+	reg_args->load_new_sequence = FALSE;
+	if (gtk_toggle_button_get_active(save_precomp)) {
+		char *newname = malloc(strlen(com.seq.seqname)) + 10;
+		sprintf(newname, "%s-precomp%d", com.seq.seqname, reg_args->kernel_size);
+		reg_args->new_seq_name = newname;
+	} else reg_args->new_seq_name = NULL;
+
+	char *msg = siril_log_color_message(_("Starting sequence analysis\n"), "red");
+	msg[strlen(msg) - 1] = '\0';
+	set_progress_bar_data(msg, PROGRESS_RESET);
+	set_cursor_waiting(TRUE);
+
+	start_in_new_thread(sequence_analysis_thread_func, reg_args);
 }
 
 /* clicking on registration, only start registration */

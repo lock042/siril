@@ -196,7 +196,6 @@
 static fits refimage;
 static char *refimage_filename;
 
-static gpointer sequence_analysis_thread_func(gpointer p);
 static gboolean end_reference_image_stacking(gpointer p);
 
 static int the_multipoint_quality_analysis(struct mpr_args *args);
@@ -221,38 +220,10 @@ static BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images);
 static void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size);
 #endif
 
-/* First step: running the global registration and building the reference image */
-void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
-	if (!sequence_is_loaded()) return;
-	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(
-			gtk_builder_get_object(builder, "comboboxreglayer"));
-
-	struct registration_args *reg_args;
-	reg_args = calloc(1, sizeof(struct registration_args));
-	reg_args->func = register_cog;
-	reg_args->seq = &com.seq;
-	reg_args->reference_image = sequence_find_refimage(&com.seq);
-	reg_args->process_all_frames = FALSE;
-	reg_args->follow_star = FALSE;
-	reg_args->matchSelection = FALSE;
-	reg_args->translation_only = TRUE;
-	reg_args->x2upscale = FALSE;
-	reg_args->layer = gtk_combo_box_get_active(cbbt_layers);
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE;
-
-	char *msg = siril_log_color_message(_("Starting sequence analysis\n"), "red");
-	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
-	set_cursor_waiting(TRUE);
-
-	start_in_new_thread(sequence_analysis_thread_func, reg_args);
-}
-
-static gpointer sequence_analysis_thread_func(gpointer p) {
+gpointer sequence_analysis_thread_func(gpointer p) {
 	struct registration_args *reg_args = (struct registration_args *) p;
 
-	// COG registration
+	/* registration, as defined in on_planetary_analysis_clicked() */
 	reg_args->retval = reg_args->func(reg_args);
 
 	if (reg_args->retval)

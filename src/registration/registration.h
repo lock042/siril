@@ -18,9 +18,10 @@ struct registration_args {
 	int retval;			// retval of func
 	gboolean run_in_thread;		// true if the registration was run in a thread
 	gboolean follow_star;		// follow star position between frames
-	gboolean matchSelection;	// Match stars found in the seleciton of reference image
+	gboolean match_selection;	// Match stars found in the seleciton of reference image
 	rectangle selection;		// the selection rectangle
 	gboolean x2upscale;		// apply an x2 upscale for pseudo drizzle
+	int kernel_size;		// kernel size for methods that use one
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean translation_only;	// don't rotate images => no new sequence
@@ -57,7 +58,7 @@ struct registration_method {
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
-void initialize_registration_methods();
+void initialize_registration_methods(gboolean deepsky);
 struct registration_method * get_selected_registration_method();
 int register_shift_dft(struct registration_args *args);
 int register_shift_fwhm(struct registration_args *args);

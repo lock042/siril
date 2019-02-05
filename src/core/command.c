@@ -41,6 +41,7 @@
 #include "core/command_def.h"
 #include "core/proto.h"
 #include "core/undo.h"
+#include "core/imoper.h"
 #include "core/initfile.h"
 #include "core/processing.h"
 #include "io/conversion.h"
@@ -1864,7 +1865,7 @@ int process_register(int nb) {
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->process_all_frames = TRUE;
 	reg_args->follow_star = FALSE;
-	reg_args->matchSelection = FALSE;
+	reg_args->match_selection = FALSE;
 	reg_args->translation_only = FALSE;
 	reg_args->x2upscale = FALSE;
 

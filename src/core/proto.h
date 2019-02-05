@@ -181,25 +181,11 @@ struct RL_data {
 };
 
 
-int 	threshlo(fits *fit, int level);
-int 	threshhi(fits *fit, int level);
-int 	nozero(fits *fit, int level);
-int	soper(fits *a, double scalar, char oper);
-int	imoper(fits *a, fits *b, char oper);
-int sub_background(fits* image, fits* background, int layer);
-int 	addmax(fits *a, fits *b);
-int	siril_fdiv(fits *a, fits *b, float scalar);
-int siril_ndiv(fits *a, fits *b);
-double 	gaussienne(double sigma, int size, double *gauss);
 int 	unsharp(fits *,double sigma, double mult, gboolean verbose);
 int 	shift(int sx, int sy);
 double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
-int 	loglut(fits *fit);
-int asinhlut(fits *fit, double beta, double offset, gboolean RGBspace);
-int	ddp(fits *a, int lev, float coef, float sig);
 int	visu(fits *fit, int low, int high);
 int	fill(fits *fit, int level, rectangle *arearg);
-int 	off(fits *a, int level);
 int	lrgb(fits *l, fits *r, fits *g, fits *b, fits *lrgb);
 gpointer seqpreprocess(gpointer empty);
 void	initialize_preprocessing();

@@ -59,9 +59,6 @@
 #include "io/single_image.h"
 #include "algos/star_finder.h"
 
-#define GLADE_FILE "siril3.glade"
-#define PLANETARY_GLADE_FILE "siril_planetary3.glade"
-
 /* the global variables of the whole project */
 cominfo com;	// the main data struct
 fits gfit;	// currently loaded image

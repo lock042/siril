@@ -116,9 +116,8 @@ static void uninit_gui() {
 	builder = NULL;
 }
 
-/* load new GUI mode: TRUE for planetary, FALSE for the deep-sky.
- * frees everything of the previous mode stored in com.planetary before loading
- * the new mode.
+/* load new GUI mode: planetary or deep-sky.
+ * releases the old GUI before loading the new mode.
  */
 void init_gui(enum _siril_mode new_mode) {
 	gchar *siril_path = NULL;
@@ -227,15 +226,15 @@ void init_gui(enum _siril_mode new_mode) {
 		/* initialize command completion */
 		init_completion_command();
 
-		/* initialize registration methods */
-		initialize_registration_methods();
-
 		/* initialize stacking methods */
 		initialize_stacking_methods();
 
 		// This crashes for an unknown reason
 		//init_peaker_GUI();
 	}
+
+	/* initialize registration methods */
+	initialize_registration_methods(com.siril_mode == MODE_DEEP_SKY);
 
 	/* initialize preprocessing */
 	initialize_preprocessing();

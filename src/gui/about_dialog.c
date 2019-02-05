@@ -19,7 +19,8 @@
  */
 
 #include "core/siril.h"
-#include "gui/callbacks.h"
+#include "callbacks.h"
+#include "gui.h"
 
 static const gchar* copyright = N_("Copyright © 2004-2011 François Meyer\n"
 		"Copyright © 2012-2018 team free-astro");

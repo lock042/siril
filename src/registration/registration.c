@@ -90,31 +90,39 @@ struct registration_method *new_reg_method(const char *name, registration_functi
 	return reg;
 }
 
-void initialize_registration_methods() {
+void initialize_registration_methods(gboolean deepsky) {
 	GtkComboBoxText *regcombo;
 	int i = 0, j = 0;
 	GString *tip;
 	gchar *ctip;
 
-	reg_methods[i++] = new_reg_method(_("One Star Registration (deep-sky)"),
-			&register_shift_fwhm, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Global Star Alignment (deep-sky)"),
-			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
-			&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+	if (deepsky) {
+		reg_methods[i++] = new_reg_method(_("One Star Registration (deep-sky)"),
+				&register_shift_fwhm, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[i++] = new_reg_method(_("Global Star Alignment (deep-sky)"),
+				&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[i++] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
+				&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+	} else {
+		reg_methods[i++] = new_reg_method(_("Centre of gravity (planetay - full disk)"),
+				&register_cog, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
+		// TODO: new steepest gradient method goes there
+	}
 	reg_methods[i++] = new_reg_method(_("Enhanced Correlation Coefficient (planetary - surfaces)"),
 			&register_ecc, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i] = NULL;
 
-	tip = g_string_new ("");
-	for (j = 0; j < i; j ++) {
-		g_string_append(tip, _(tooltip_text[j]));
-		if (j < i - 1)
-			g_string_append(tip, "\n\n");
+	if (deepsky) {
+		tip = g_string_new ("");
+		for (j = 0; j < i; j ++) {
+			g_string_append(tip, _(tooltip_text[j]));
+			if (j < i - 1)
+				g_string_append(tip, "\n\n");
+		}
+		ctip = g_string_free (tip, FALSE);
+		gtk_widget_set_tooltip_text(lookup_widget("comboboxregmethod"), ctip);
+		g_free(ctip);
 	}
-	ctip = g_string_free (tip, FALSE);
-	gtk_widget_set_tooltip_text(lookup_widget("comboboxregmethod"), ctip);
-	g_free(ctip);
 
 	/* fill comboboxregmethod */
 	regcombo = GTK_COMBO_BOX_TEXT(
@@ -127,8 +135,11 @@ void initialize_registration_methods() {
 				reg_methods[i]->name);
 		i++;
 	}
-	if (i > 0) {
-		gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), com.reg_settings);
+	if (deepsky) {
+		if (i > 0)
+			gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), com.reg_settings);
+	} else {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), 0);
 	}
 
 	/* register to the new area selected event */
@@ -872,7 +883,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
 	reg_args->process_all_frames = gtk_toggle_button_get_active(regall);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
-	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
+	reg_args->match_selection = gtk_toggle_button_get_active(matchSel);
 	reg_args->translation_only = gtk_toggle_button_get_active(no_translate);
 	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
 	/* Here we should test available free disk space for Drizzle operation */

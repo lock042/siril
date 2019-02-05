@@ -27,6 +27,7 @@ struct mpr_args {
 	double *global_image;	// the global image buffer as normalized double
 };
 
+gpointer sequence_analysis_thread_func(gpointer p);
 char *get_reference_image_name(sequence *seq, int layer);
 int refimage_is_set();
 const fits *get_refimage();

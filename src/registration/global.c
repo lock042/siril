@@ -90,7 +90,7 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 	siril_log_color_message(_("Reference Image:\n"), "green");
 
-	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
+	if (regargs->match_selection && regargs->selection.w > 0 && regargs->selection.h > 0) {
 		com.stars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE);
 	}
 	else {
@@ -215,7 +215,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		if (args->seq->type == SEQ_SER) {
 			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
 		}
-		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
+		if (regargs->match_selection && regargs->selection.w > 0 && regargs->selection.h > 0) {
 			stars = peaker(fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE);
 		}
 		else {

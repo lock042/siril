@@ -36,6 +36,7 @@
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/undo.h"
+#include "core/imoper.h"
 #include "callbacks.h"
 #include "gui.h"
 #include "PSF_list.h"

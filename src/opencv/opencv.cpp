@@ -394,7 +394,7 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 
 	Mat in(image->ry, image->rx, type, image->data);
 	Mat out, contrast;
-	GaussianBlur(in, out, Size(), sigma);
+	GaussianBlur(in, out, Size(), sigma);	// Size() ??
 	if (fabs(amount) > 0.0) {
 		Mat sharpened = in * (1 + amount) + out * (-amount);
 		out = sharpened.clone();
