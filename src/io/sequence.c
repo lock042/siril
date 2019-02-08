@@ -971,6 +971,9 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 	int layer, j;
 	
 	if (seq == NULL) return;
+	if (seq->needs_saving)
+		writeseqfile(seq);
+
 	// free regparam
 	if (seq->nb_layers > 0 && seq->regparam) {
 		for (layer = 0; layer < seq->nb_layers; layer++) {
@@ -1121,8 +1124,6 @@ void close_sequence(int loading_another) {
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
 		if (!com.headless)
 			clear_sequence_list();
-		if (com.seq.needs_saving)
-			writeseqfile(&com.seq);
 		free_sequence(&com.seq, FALSE);
 		initialize_sequence(&com.seq, FALSE);
 		if (!com.headless)

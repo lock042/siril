@@ -69,6 +69,17 @@ static WORD *fits_to_bgrbgr(fits *image) {
 	return bgrbgr;
 }
 
+static WORD *data_to_bgrbgr(WORD *image_data[3], int rx, int ry) {
+	int ndata = rx * ry;
+	WORD *bgrbgr = new WORD[ndata * 3];
+	for (int i = 0, j = 0; i < ndata * 3; i += 3, j++) {
+		bgrbgr[i + 0] = image_data[BLAYER][j];
+		bgrbgr[i + 1] = image_data[GLAYER][j];
+		bgrbgr[i + 2] = image_data[RLAYER][j];
+	}
+	return bgrbgr;
+}
+
 int cvResizeGaussian_data8(uint8_t *dataIn, int rx, int ry, uint8_t *dataOut,
 		int toX, int toY, int chan, int interpolation) {
 	int mode = (chan == 1 ? CV_8UC1 : CV_8UC3);
@@ -385,38 +396,6 @@ int cvTransformImage(fits *image, point ref, Homography Hom, int interpolation) 
 	return 0;
 }
 
-int cvUnsharpFilter(fits* image, double sigma, double amount) {
-	assert(image->data);
-	assert(image->rx);
-	int type = CV_16U;
-	if (image->naxes[2] != 1)
-		type = CV_16UC3;
-
-	Mat in(image->ry, image->rx, type, image->data);
-	Mat out, contrast;
-	GaussianBlur(in, out, Size(), sigma);	// Size() ??
-	if (fabs(amount) > 0.0) {
-		Mat sharpened = in * (1 + amount) + out * (-amount);
-		out = sharpened.clone();
-		sharpened.release();
-	}
-
-	memcpy(image->data, out.data,
-			image->rx * image->ry * sizeof(WORD) * image->naxes[2]);
-	if (image->naxes[2] == 1) {
-		image->pdata[0] = image->data;
-		image->pdata[1] = image->data;
-		image->pdata[2] = image->data;
-	} else {
-		image->pdata[0] = image->data;
-		image->pdata[1] = image->data + (image->rx * image->ry);
-		image->pdata[2] = image->data + (image->rx * image->ry) * 2;
-	}
-	in.release();
-	invalidate_stats_from_fit(image);
-	return 0;
-}
-
 int cvComputeFinestScale(fits *image) {
 	assert(image->data);
 	assert(image->rx);
@@ -566,6 +545,41 @@ int cvLucyRichardson(fits *image, double sigma, int iterations) {
 
 }
 
+// exposing GaussianBlur
+int cvUnsharpFilter(fits* image, double sigma, double amount) {
+	assert(image->data);
+	assert(image->rx);
+	int type = CV_16U;
+	if (image->naxes[2] != 1)
+		type = CV_16UC3;
+
+	Mat in(image->ry, image->rx, type, image->data);
+	Mat out, contrast;
+	GaussianBlur(in, out, Size(), sigma);	// Size() ??
+	if (fabs(amount) > 0.0) {
+		Mat sharpened = in * (1 + amount) + out * (-amount);
+		out = sharpened.clone();
+		sharpened.release();
+	}
+
+	memcpy(image->data, out.data,
+			image->rx * image->ry * sizeof(WORD) * image->naxes[2]);
+	if (image->naxes[2] == 1) {
+		image->pdata[0] = image->data;
+		image->pdata[1] = image->data;
+		image->pdata[2] = image->data;
+	} else {
+		image->pdata[0] = image->data;
+		image->pdata[1] = image->data + (image->rx * image->ry);
+		image->pdata[2] = image->data + (image->rx * image->ry) * 2;
+	}
+	in.release();
+	invalidate_stats_from_fit(image);
+	return 0;
+}
+
+/* This function was used for automatic AP placement. It blurs the image,
+ * converts it to monochrome and runs the Laplacian on it. */
 int cvLaplacian(fits *image) {
 	assert(image->data);
 	assert(image->rx);
@@ -601,4 +615,26 @@ int cvLaplacian(fits *image) {
 	invalidate_stats_from_fit(image);
 
 	return 0;
+}
+
+/* convert a 3-channel FITS to a monochrome buffer
+ * (this allocates and frees a buffer the same size of image data) */
+void cvToMonochrome(WORD *image_data[3], int rx, int ry, WORD *output) {
+	WORD *bgrbgr = data_to_bgrbgr(image_data, rx, ry);
+	Mat in(ry, rx, CV_16UC3, bgrbgr);
+	Mat out(ry, rx, CV_16UC3, output); // can this be done?
+	cvtColor(in, out, COLOR_BGR2GRAY); 
+	delete[] bgrbgr;
+	in.release();
+	out.release();
+}
+
+/* get the gaussian filtered image data for the given image */
+void cvGaussian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output) {
+	Mat in(ry, rx, CV_16UC1, image_data);
+	Mat out(ry, rx, CV_16UC1, output);
+
+	GaussianBlur(in, out, Size(kernel_size, kernel_size), 0, 0, BORDER_DEFAULT);
+	in.release();
+	out.release();
 }

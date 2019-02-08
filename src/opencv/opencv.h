@@ -30,10 +30,14 @@ int cvCalculH(s_star *star_array_img,
 int cvApplyScaleToH(Homography *H1, double scale);
 void cvTransformBuf(WORD *image, int size, Homography *Hom);
 int cvTransformImage(fits *, point, Homography, int);
-int cvUnsharpFilter(fits*, double, double);
 int cvComputeFinestScale(fits *image);
 int cvLucyRichardson(fits *image, double sigma, int iterations);
+
+int cvUnsharpFilter(fits*, double, double);
 int cvLaplacian(fits *image);
+
+void cvGaussian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output);
+void cvToMonochrome(WORD *image_data[3], int rx, int ry, WORD *output);
 #ifdef __cplusplus
 }
 #endif

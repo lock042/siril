@@ -1102,7 +1102,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 
 int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area) {
-	if (new_fit_image(&fit, area->w, area->h, 1))
+	if (new_fit_image(&fit, area->w, area->h, 1, NULL))
 		return -1;
 	return ser_read_opened_partial(ser_file, layer, frame_no, fit->pdata[0], area);
 }

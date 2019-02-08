@@ -22,6 +22,7 @@ struct registration_args {
 	rectangle selection;		// the selection rectangle
 	gboolean x2upscale;		// apply an x2 upscale for pseudo drizzle
 	int kernel_size;		// kernel size for methods that use one
+	gboolean use_caching;		// use or create pre-computed data
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean translation_only;	// don't rotate images => no new sequence
@@ -30,7 +31,7 @@ struct registration_args {
 	regdata *regparam;		// regparam for the new sequence
 	const gchar *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
-	const gchar *new_seq_name;
+	const gchar *new_seq_name;	// name of the new sequence to load
 	opencv_interpolation interpolation; // type of rotation interpolation
 };
 

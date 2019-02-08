@@ -250,11 +250,7 @@ void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->layer = gtk_combo_box_get_active(cbbt_layers);
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;
-	if (gtk_toggle_button_get_active(save_precomp)) {
-		char *newname = malloc(strlen(com.seq.seqname)) + 10;
-		sprintf(newname, "%s-precomp%d", com.seq.seqname, reg_args->kernel_size);
-		reg_args->new_seq_name = newname;
-	} else reg_args->new_seq_name = NULL;
+	reg_args->use_caching = gtk_toggle_button_get_active(save_precomp);
 
 	char *msg = siril_log_color_message(_("Starting sequence analysis\n"), "red");
 	msg[strlen(msg) - 1] = '\0';

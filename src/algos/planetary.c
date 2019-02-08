@@ -968,7 +968,7 @@ static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args)
 
 		clearfits(&gfit);
 		fits *fit = &gfit;
-		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers))
+		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, NULL))
 			return -1;
 		gfit.hi = round_to_WORD(max);
 
@@ -1173,7 +1173,7 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 		// make a copy of the reference image to gfit to initialize it
 		clearfits(&gfit);
 		fits *fit = &gfit;
-		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers))
+		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, NULL))
 			return -1;
 		gfit.hi = USHRT_MAX;
 
@@ -1416,11 +1416,7 @@ static void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int squ
 	char tmpfn[100];	// this is for debug purposes
 	sprintf(tmpfn, "/tmp/zone_%d_image_%d.fit", zone_idx, frame_index);
 	fits *tmp = NULL;
-	new_fit_image(&tmp, square_size, square_size, 1);
-	tmp->data = buffer;
-	tmp->pdata[0] = tmp->data;
-	tmp->pdata[1] = tmp->data;
-	tmp->pdata[2] = tmp->data;
+	new_fit_image(&tmp, square_size, square_size, 1, buffer);
 	savefits(tmpfn, tmp);
 	tmp->data = NULL; // don't free the original buffer
 	clearfits(tmp);

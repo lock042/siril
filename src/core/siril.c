@@ -288,10 +288,10 @@ static double evaluateNoiseOfCalibratedImage(fits *fit, fits *dark, double k) {
 	fits *dark_tmp = NULL, *fit_tmp = NULL;
 	int chan, ret = 0;
 
-	if (new_fit_image(&dark_tmp, dark->rx, dark->ry, 1)) {
+	if (new_fit_image(&dark_tmp, dark->rx, dark->ry, 1, NULL)) {
 		return -1.0;
 	}
-	if (new_fit_image(&fit_tmp, fit->rx, fit->ry, 1)) {
+	if (new_fit_image(&fit_tmp, fit->rx, fit->ry, 1, NULL)) {
 		clearfits(dark_tmp);
 		return -1.0;
 	}
@@ -387,7 +387,7 @@ static int darkOptimization(fits *brut, fits *dark, fits *offset) {
 		return -1;
 	}
 
-	if (new_fit_image(&dark_tmp, dark->rx, dark->ry, 1))
+	if (new_fit_image(&dark_tmp, dark->rx, dark->ry, 1, NULL))
 		return -1;
 	copyfits(dark, dark_tmp, CP_ALLOC | CP_EXTRACT, 0);
 
@@ -492,7 +492,7 @@ gpointer seqpreprocess(gpointer p) {
 		set_progress_bar_data(msg, 0.5);
 
 		if (new_fit_image(&fit, com.uniq->fit->rx, com.uniq->fit->ry,
-				com.uniq->fit->naxes[2]))
+				com.uniq->fit->naxes[2], NULL))
 			return GINT_TO_POINTER(1);
 		copyfits(com.uniq->fit, fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 		copy_fits_metadata(com.uniq->fit, fit);
@@ -951,7 +951,7 @@ int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highl
 		cvRotateImage(fit, 90.0, -1, OPENCV_LINEAR);
 	}
 
-	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2]))
+	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], NULL))
 		return 1;
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {

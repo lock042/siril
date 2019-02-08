@@ -258,7 +258,7 @@ gpointer fourier_transform(gpointer p) {
 		/* We transform the image in a squared picture */
 		if (args->fit->rx != args->fit->ry) {
 			int size = max(width, height);
-			if (new_fit_image(&tmp, size, size, args->fit->naxes[2]))
+			if (new_fit_image(&tmp, size, size, args->fit->naxes[2], NULL))
 				return GINT_TO_POINTER(1);
 			for (chan = 0; chan < args->fit->naxes[2]; chan++) {
 				from[chan] = args->fit->pdata[chan];
@@ -269,9 +269,9 @@ gpointer fourier_transform(gpointer p) {
 		}
 		/* ******************************************* */
 		new_fit_image(&tmp1, args->fit->rx, args->fit->ry,
-				args->fit->naxes[2]);
+				args->fit->naxes[2], NULL);
 		new_fit_image(&tmp2, args->fit->rx, args->fit->ry,
-				args->fit->naxes[2]);
+				args->fit->naxes[2], NULL);
 		for (chan = 0; chan < args->fit->naxes[2]; chan++)
 			FFTD(args->fit, tmp1, tmp2, args->type_order, chan);
 		/* we save the original size in the FITS HEADER */
@@ -314,11 +314,11 @@ gpointer fourier_transform(gpointer p) {
 			siril_add_idle(end_fourier_transform, args);
 			return GINT_TO_POINTER(1);
 		}
-		new_fit_image(&tmp2, tmp->rx, tmp->ry, tmp->naxes[2]);
+		new_fit_image(&tmp2, tmp->rx, tmp->ry, tmp->naxes[2], NULL);
 		for (chan = 0; chan < args->fit->naxes[2]; chan++)
 			FFTI(tmp2, tmp, tmp1, args->type_order, chan);
 		new_fit_image(&args->fit, tmp->dft.rx, tmp->dft.ry,
-				tmp->naxes[2]);
+				tmp->naxes[2], NULL);
 		for (chan = 0; chan < args->fit->naxes[2]; chan++) {
 			from[chan] = tmp2->pdata[chan];
 			to[chan] = args->fit->pdata[chan];

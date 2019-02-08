@@ -1175,7 +1175,7 @@ int process_new(int nb){
 	close_single_image();
 
 	fits *fit = &gfit;
-	if (new_fit_image(&fit, width, height, layers))
+	if (new_fit_image(&fit, width, height, layers, NULL))
 		return 1;
 	memset(gfit.data, 0, width*height*layers*sizeof(WORD));
 

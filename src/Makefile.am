@@ -39,7 +39,7 @@ siril_SOURCES = \
 	algos/cosmetic_correction.c algos/cosmetic_correction.h \
 	algos/quantize.c \
 	algos/photometry.h algos/photometry.c \
-	algos/planetary.c algos/planetary.h \
+	algos/planetary.c algos/planetary.h algos/planetary_caching.c algos/planetary_caching.h \
 	algos/plateSolver.c algos/plateSolver.h \
 	compositing/compositing.c compositing/compositing.h compositing/filters.c compositing/filters.h compositing/align_rgb.c compositing/align_rgb.h
 

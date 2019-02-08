@@ -106,7 +106,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 
 	clearfits(&gfit);
 	fits *fit = &gfit;
-	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers))
+	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, NULL))
 		return -1;
 
 	/* We copy metadata from reference to the final fit */

@@ -25,16 +25,20 @@
 #include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 #include "core/proto.h"	// writeseqfile
-#include "opencv/opencv.h"
+#include "algos/planetary_caching.h"
 
 struct regsd_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
+	struct planetary_cache *cache;
 };
 
 static int regsd_prepare_hook(struct generic_seq_args *args) {
 	struct regsd_data *rsdata = args->user;
 	struct registration_args *regargs = rsdata->regargs;
+	rsdata->cache = calloc(1, sizeof(struct planetary_cache));
+	rsdata->cache->use_cached = regargs->use_caching;
+	rsdata->cache->cache_data = regargs->use_caching;
 
 	if (args->seq->regparam[regargs->layer]) {
 		siril_log_message(
@@ -55,22 +59,9 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 static int regsd_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
 	struct regsd_data *rsdata = args->user;
 	struct registration_args *regargs = rsdata->regargs;
-	WORD *monochrome_data;
+	
+	WORD * gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
 
-	// convert image to monochrome
-	if (args->seq->nb_layers == 3) {
-		// rgb_to_xyz() ?
-		// cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) 
-	} else {
-		monochrome_data = fit->data;
-	}
-	
-	// apply gaussian filter
-	// cvUnsharpFilter(fit, 0.0, 0.0); regargs->kernel_size;
-	// cv2.GaussianBlur(frame,
-	//	(self.configuration.frames_gauss_width, self.configuration.frames_gauss_width),
-	//	0) 
-	
 	// apply laplacian
 	// cv2.Laplacian(
 	// 	frame[::self.configuration.align_frames_sampling_stride,
@@ -139,10 +130,10 @@ int register_sd(struct registration_args *regargs) {
 	args->finalize_hook = regsd_finalize_hook;
 	args->idle_function = NULL;
 	args->stop_on_error = TRUE;
-	args->description = _("Centre of gravity registration");
+	args->description = _("Steepest descent registration");
 	args->has_output = regargs->new_seq_name != NULL;
 	args->force_ser_output = TRUE;
-	args->already_in_a_thread = TRUE;	// ?
+	args->already_in_a_thread = FALSE;	// ?
 	args->parallel = TRUE;
 
 	struct regsd_data *rsdata = calloc(1, sizeof(struct regsd_data));

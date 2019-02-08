@@ -1532,8 +1532,9 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 }
 
 /* creates a new fit image from scratch (NULL fit) or into a fits * previously
- * allocated, with non-cleared (random) data. */
-int new_fit_image(fits **fit, int width, int height, int nblayer) {
+ * allocated. Data is allocated and non-cleared (random) if extdata is NULL,
+ * extdata is referenced for it otherwise. */
+int new_fit_image(fits **fit, int width, int height, int nblayer, WORD *extdata) {
 	gint npixels;
 	WORD *data;
 	assert(width > 0);
@@ -1541,18 +1542,22 @@ int new_fit_image(fits **fit, int width, int height, int nblayer) {
 	assert(nblayer == 1 || nblayer == 3);
 
 	npixels = width * height;
-	data = malloc(npixels * nblayer * sizeof(WORD));
-	if (data == NULL) {
-		fprintf(stderr, "Could not allocate memory\n");
-		return -1;
+	if (!extdata) {
+		data = malloc(npixels * nblayer * sizeof(WORD));
+		if (data == NULL) {
+			fprintf(stderr, "Could not allocate memory\n");
+			return -1;
+		}
 	}
+	else data = extdata;
 
 	if (*fit)
 		clearfits(*fit);
 	else {
 		*fit = calloc(1, sizeof(fits));
 		if (!*fit) {
-			free(data);
+			if (!extdata)
+				free(data);
 			return -1;
 		}
 	}
