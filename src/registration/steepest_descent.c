@@ -39,6 +39,7 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 	rsdata->cache = calloc(1, sizeof(struct planetary_cache));
 	rsdata->cache->use_cached = regargs->use_caching;
 	rsdata->cache->cache_data = regargs->use_caching;
+	init_caching(args->seq->seqname, rsdata->cache, regargs->kernel_size);
 
 	if (args->seq->regparam[regargs->layer]) {
 		siril_log_message(
@@ -78,6 +79,8 @@ static int regsd_image_hook(struct generic_seq_args *args, int out_index, int in
 static int regsd_finalize_hook(struct generic_seq_args *args) {
 	struct regsd_data *rsdata = args->user;
 	struct registration_args *regargs = rsdata->regargs;
+	finalize_caching(rsdata->cache);
+	free(rsdata->cache);
 	if (!args->retval) {
 		args->seq->regparam[regargs->layer] = rsdata->current_regdata;
 		/* find best frame and normalize quality */

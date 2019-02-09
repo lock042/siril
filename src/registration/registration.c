@@ -55,22 +55,22 @@
 
 #undef DEBUG
 
-static char *tooltip_text[] = { N_("One Star Registration: This is the simplest method to register deep-sky images. "
-		"Because only one star is concerned for register, images are aligned using shifting "
-		"(at a fraction of pixel). No rotation or scaling are performed. "
-		"Shifts at pixel precision are saved in seq file."),
-		N_("Global Star Alignment: This is a more powerful and accurate algorithm (but also slower) "
-		"to perform deep-sky images. The global matching is based on triangle similarity method for automatically "
-		"identify common stars in each image. "
+static char *tooltip_text[] = {
+	N_("One Star Registration: This is the simplest method to register deep-sky images. "
+		"Because only one star is used for registration, images are aligned using shifting, "
+		"at a fraction of pixels. No rotation or scaling are performed."),
+	N_("Global Star Alignment: This is a more powerful and accurate algorithm (but also slower) "
+		"to deep-sky images registration. The global matching is based on triangle similarity "
+		"method for identifying common stars in images. "
 		"A new sequence is created with the prefix of your choice (r_ by default)."),
-		N_("Image Pattern Alignment: This is a simple registration by translation method "
-		"using cross correlation in the spatial domain. This method is fast and is used to register "
+	N_("Image Pattern Alignment: This registration methood computes translation using phase "
+		"correlation in the Fourier spatial domain. This method is fast and is used to register "
 		"planetary movies. It can also be used for some deep-sky images registration. "
-		"Shifts at pixel precision are saved in seq file."),
-		N_("Enhanced Correlation Coefficient Maximization: It is based on the enhanced correlation "
-		"coefficient maximization algorithm. This method is more complex and slower than Image Pattern Alignment "
-		"but no selection is required. It is good for moon surface images registration. Only translation is taken "
-		"into account yet.")
+		"Shifts are at pixel precision."),
+	N_("Enhanced Correlation Coefficient Maximization: This is a cross-correlation algorithm "
+		"implementation. This method is more precise and slower than Image Pattern Alignment "
+		"but has no selection requirement. It can be used for moon or sun surface images "
+		"registration. Shifts are at pixel precision.")
 };
 /* callback for the selected area event */
 void _reg_selected_area_callback() {
@@ -106,7 +106,8 @@ void initialize_registration_methods(gboolean deepsky) {
 	} else {
 		reg_methods[i++] = new_reg_method(_("Centre of gravity (planetay - full disk)"),
 				&register_cog, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
-		// TODO: new steepest gradient method goes there
+		reg_methods[i++] = new_reg_method(_("Steepest descent (planetary - surfaces)"),
+				&register_sd, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
 	}
 	reg_methods[i++] = new_reg_method(_("Enhanced Correlation Coefficient (planetary - surfaces)"),
 			&register_ecc, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);

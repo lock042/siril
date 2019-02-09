@@ -17,7 +17,7 @@ struct planetary_cache {
 	struct ser_struct *ser_laplacian;
 };
 
-void init_caching(const char *seqname, struct planetary_cache *args);
+void init_caching(const char *seqname, struct planetary_cache *args, int kernel_size);
 void finalize_caching(struct planetary_cache *args);
 WORD * get_gaussian_data_for_image(int index, fits *fit, struct planetary_cache *args);
 

@@ -234,7 +234,7 @@ void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *kernelsz = GTK_SPIN_BUTTON(
 			gtk_builder_get_object(builder, "kernelspin"));
 	GtkToggleButton *save_precomp = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(builder, "store_precomp_checkbox"));
+			gtk_builder_get_object(builder, "store_precomp_checkbutton"));
 
 	struct registration_args *reg_args;
 	reg_args = calloc(1, sizeof(struct registration_args));

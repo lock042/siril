@@ -34,7 +34,9 @@
 static void disable_cache_reading(struct planetary_cache *args);
 static void disable_cache_writing(struct planetary_cache *args);
 
-void init_caching(const char *seqname, struct planetary_cache *args) {
+void init_caching(const char *seqname, struct planetary_cache *args, int kernel_size) {
+	args->kernel_size = kernel_size;
+
 	if (args->use_cached) {
 		char *gaussian_seqname = malloc(strlen(seqname) + 20);
 		sprintf(gaussian_seqname, "%s-gaussian%d.ser", seqname, args->kernel_size);
@@ -46,6 +48,7 @@ void init_caching(const char *seqname, struct planetary_cache *args) {
 			free(gaussian_seqname);
 			return;
 		}
+		siril_log_message("using cache (%s) to get gaussian filtered images\n", gaussian_seqname);
 		free(gaussian_seqname);
 
 		/* same as above for the laplacian */
@@ -59,6 +62,7 @@ void init_caching(const char *seqname, struct planetary_cache *args) {
 			free(laplacian_seqname);
 			return;
 		}
+		siril_log_message("using cache (%s) to get laplacian filtered images\n", laplacian_seqname);
 		free(laplacian_seqname);
 	}
 
@@ -73,6 +77,7 @@ void init_caching(const char *seqname, struct planetary_cache *args) {
 			disable_cache_writing(args);
 			return;
 		}
+		siril_log_message("saving gaussian filtered images to cache (%s)\n", gaussian_seqname);
 		free(gaussian_seqname);
 
 		/* same as above for the laplacian */
@@ -86,6 +91,7 @@ void init_caching(const char *seqname, struct planetary_cache *args) {
 			return;
 		}
 		free(laplacian_seqname);
+		siril_log_message("saving laplacian filtered images to cache (%s)\n", laplacian_seqname);
 	}
 }
 
@@ -133,14 +139,14 @@ static void disable_cache_writing(struct planetary_cache *args) {
 WORD * get_gaussian_data_for_image(int index, fits *fit, struct planetary_cache *args) {
 	if (args->use_cached && args->seq_gaussian) {
 		// getting the data from cache
-		fits fit = { 0 };
-		if (seq_read_frame(args->seq_gaussian, index, &fit)) {
+		fits cachedfit = { 0 };
+		if (seq_read_frame(args->seq_gaussian, index, &cachedfit)) {
 			disable_cache_reading(args);
 			goto computing_it;
 		}
-		WORD *buf = fit.data;
-		fit.data = NULL;
-		clearfits(&fit);
+		WORD *buf = cachedfit.data;
+		cachedfit.data = NULL;
+		clearfits(&cachedfit);
 		return buf;
 	}
 	else {

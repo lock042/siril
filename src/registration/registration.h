@@ -66,6 +66,7 @@ int register_shift_fwhm(struct registration_args *args);
 int register_star_alignment(struct registration_args *args);
 int register_ecc(struct registration_args *args);
 int register_cog(struct registration_args *regargs);
+int register_sd(struct registration_args *regargs);
 
 void normalizeQualityData(struct registration_args *args, double q_min, double q_max);
 
