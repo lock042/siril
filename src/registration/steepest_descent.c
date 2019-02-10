@@ -26,11 +26,13 @@
 #include "stacking/stacking.h"
 #include "core/proto.h"	// writeseqfile
 #include "algos/planetary_caching.h"
+#include "algos/laplacian_quality.h"
 
 struct regsd_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
 	struct planetary_cache *cache;
+	// TODO: add reference frame data
 };
 
 static int regsd_prepare_hook(struct generic_seq_args *args) {
@@ -41,10 +43,11 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 	rsdata->cache->cache_data = regargs->use_caching;
 	init_caching(args->seq->seqname, rsdata->cache, regargs->kernel_size);
 
-	if (args->seq->regparam[regargs->layer]) {
+	/* TODO: check that layer = 0 is alright here */
+	if (args->seq->regparam[0]) {
 		siril_log_message(
 				_("Recomputing already existing registration for this layer\n"));
-		rsdata->current_regdata = args->seq->regparam[regargs->layer];
+		rsdata->current_regdata = args->seq->regparam[0];
 		/* we reset all values as we may register different images */
 		memset(rsdata->current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
@@ -63,16 +66,8 @@ static int regsd_image_hook(struct generic_seq_args *args, int out_index, int in
 	
 	WORD * gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
 
-	// apply laplacian
-	// cv2.Laplacian(
-	// 	frame[::self.configuration.align_frames_sampling_stride,
-	//	::self.configuration.align_frames_sampling_stride], cv2.CV_32F)
-	
-	// compute shift
+	// compute shift using the steepest descent algorithm
 
-	// compute quality
-
-	// save image if enabled
 	return 0;
 }
 
@@ -82,7 +77,7 @@ static int regsd_finalize_hook(struct generic_seq_args *args) {
 	finalize_caching(rsdata->cache);
 	free(rsdata->cache);
 	if (!args->retval) {
-		args->seq->regparam[regargs->layer] = rsdata->current_regdata;
+		args->seq->regparam[0] = rsdata->current_regdata;
 		/* find best frame and normalize quality */
 
 		/* get shifts relative to the reference image */
@@ -111,7 +106,8 @@ int register_sd(struct registration_args *regargs) {
 		args->filtering_criterion = stack_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	args->layer = regargs->layer;
+	//args->layer = regargs->layer;
+	args->layer = 0;
 
 	/* check if it's already computed before doing it for nothing */
 	if (args->seq->regparam[args->layer]) {
@@ -120,6 +116,7 @@ int register_sd(struct registration_args *regargs) {
 			if (args->filtering_criterion(args->seq, args->layer, i, 0) &&
 					args->seq->regparam[args->layer][i].quality < 0.0)
 				break;
+			// TODO: check shifts too ^
 		}
 		if (i == args->seq->number) {
 			siril_log_message(_("Registration data already available, not recomputing.\n"));
@@ -127,6 +124,32 @@ int register_sd(struct registration_args *regargs) {
 		}
 	}
 
+	/* first pass: compute frame quality, using laplacian of gaussian
+	 * filtered frames. This also builds the cache. */
+	args->prepare_hook = lapl_prepare_hook;
+	args->image_hook = lapl_image_hook;
+	args->save_hook = NULL;
+	args->finalize_hook = lapl_finalize_hook;
+	args->idle_function = NULL;
+	args->stop_on_error = TRUE;
+	args->description = _("Image quality computation");
+	args->has_output = FALSE;
+	args->already_in_a_thread = TRUE;	// ?
+	args->parallel = TRUE;
+
+	struct lapl_data *ldata = malloc(sizeof(struct lapl_data));
+	if (!ldata) {
+		free(args);
+		return -1;
+	}
+	ldata->use_caching = regargs->use_caching;
+	ldata->kernel_size = regargs->kernel_size;
+	args->user = ldata;
+	generic_sequence_worker(args);
+	if (args->retval)
+		return args->retval;
+
+	/* second pass: compute frame shifts relative to best frame */
 	args->prepare_hook = regsd_prepare_hook;
 	args->image_hook = regsd_image_hook;
 	args->save_hook = NULL;
@@ -134,9 +157,8 @@ int register_sd(struct registration_args *regargs) {
 	args->idle_function = NULL;
 	args->stop_on_error = TRUE;
 	args->description = _("Steepest descent registration");
-	args->has_output = regargs->new_seq_name != NULL;
-	args->force_ser_output = TRUE;
-	args->already_in_a_thread = FALSE;	// ?
+	args->has_output = FALSE;
+	args->already_in_a_thread = TRUE;	// ?
 	args->parallel = TRUE;
 
 	struct regsd_data *rsdata = calloc(1, sizeof(struct regsd_data));

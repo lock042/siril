@@ -77,22 +77,11 @@ static int regcog_finalize_hook(struct generic_seq_args *args) {
 	struct regcog_data *rcdata = args->user;
 	struct registration_args *regargs = rcdata->regargs;
 	if (!args->retval) {
+		int i;
 		args->seq->regparam[regargs->layer] = rcdata->current_regdata;
 
 		/* find best frame and normalize quality */
-		int i, q_index;
-		double q_max = 0, q_min = DBL_MAX;
-		for (i = 0; i < args->seq->number; i++) {
-			double qual = rcdata->current_regdata[i].quality;
-			if (qual <= 0.0)
-				continue;
-			if (qual > q_max) {
-				q_max = qual;
-				q_index = i;
-			}
-			q_min = min(q_min, qual);
-		}
-		normalizeQualityData(regargs, q_min, q_max);
+		int q_index = normalize_quality_data(rcdata->current_regdata, args->seq->number);
 
 		/* get shifts relative to the reference image */
 		double ref_x = rcdata->current_regdata[q_index].shiftx;

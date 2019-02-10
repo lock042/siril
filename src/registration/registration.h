@@ -68,7 +68,8 @@ int register_ecc(struct registration_args *args);
 int register_cog(struct registration_args *regargs);
 int register_sd(struct registration_args *regargs);
 
-void normalizeQualityData(struct registration_args *args, double q_min, double q_max);
+void normalizeQualityData(regdata *regparam, int size, double q_min, double q_max);
+int normalize_quality_data(regdata *regdata, int size);
 
 void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);

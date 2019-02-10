@@ -145,7 +145,7 @@ double QualityEstimateBuf(WORD *buffer, int width, int height) {
 		// 3x3 smoothing
 		new_image = _smooth_image_16(buf, x_samples, y_samples);
 
-#ifdef DEBUG
+#ifdef DEBUG_QUALITY
 		/*******************************/
 		char filename[1024];
 		FILE *out;
@@ -301,14 +301,12 @@ static unsigned short *_smooth_image_16(unsigned short *buf, int width,
 	return new_buff;
 }
 
-// Scan the region given by (x1,y1) - (x2,y2) and return the barycentre (centre of brightness)
-
-// For a pixel to be counted it's orthogonal neighbours must all be above the threshold. This
-// prevents hot pixels and isolated pixels from counting.
-// Also, a horizontal gap of 3 or more pixels will cause the last counted pixel to be un-counted.
-
-static int _FindCentre_Barycentre(fits *fit, int layer, int x1, int y1, int x2, int y2,
-		double *x_avg, double *y_avg) {
+// Scan the region given by (x1,y1) - (x2,y2) and return its barycentre (centre
+// of brightness).
+// For a pixel to be counted, its orthogonal neighbours must all be above the
+// hard-coded threshold. This excludes background and isolated pixels.
+static int _FindCentre_Barycentre(fits *fit, int layer, int x1, int y1,
+		int x2, int y2, double *x_avg, double *y_avg) {
 	int img_width = fit->rx;
 	int img_height = fit->ry;
 	int x, y;

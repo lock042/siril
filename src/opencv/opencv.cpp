@@ -580,7 +580,7 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 
 /* This function was used for automatic AP placement. It blurs the image,
  * converts it to monochrome and runs the Laplacian on it. */
-int cvLaplacian(fits *image) {
+int cvLaplacian_old(fits *image) {
 	assert(image->data);
 	assert(image->rx);
 	assert(image->ry);
@@ -622,7 +622,7 @@ int cvLaplacian(fits *image) {
 void cvToMonochrome(WORD *image_data[3], int rx, int ry, WORD *output) {
 	WORD *bgrbgr = data_to_bgrbgr(image_data, rx, ry);
 	Mat in(ry, rx, CV_16UC3, bgrbgr);
-	Mat out(ry, rx, CV_16UC3, output); // can this be done?
+	Mat out(ry, rx, CV_16UC1, output); // can this be done?
 	cvtColor(in, out, COLOR_BGR2GRAY); 
 	delete[] bgrbgr;
 	in.release();
@@ -638,3 +638,13 @@ void cvGaussian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output)
 	in.release();
 	out.release();
 }
+
+void cvLaplacian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output) {
+	Mat in(ry, rx, CV_16UC1, image_data);
+	Mat out(ry, rx, CV_16UC1, output);
+
+	Laplacian(in, out, CV_16U, 5, 1, 0, BORDER_DEFAULT);
+	in.release();
+	out.release();
+}
+

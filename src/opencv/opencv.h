@@ -34,7 +34,8 @@ int cvComputeFinestScale(fits *image);
 int cvLucyRichardson(fits *image, double sigma, int iterations);
 
 int cvUnsharpFilter(fits*, double, double);
-int cvLaplacian(fits *image);
+int cvLaplacian_old(fits *image);
+void cvLaplacian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output);
 
 void cvGaussian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output);
 void cvToMonochrome(WORD *image_data[3], int rx, int ry, WORD *output);

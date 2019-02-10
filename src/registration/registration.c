@@ -163,7 +163,7 @@ struct registration_method *get_selected_registration_method() {
 }
 
 /* normalizes quality for the sequence between 0.0 and 1.0 */
-void normalizeQualityData(struct registration_args *args, double q_min, double q_max) {
+void normalizeQualityData(regdata *regparam, int size, double q_min, double q_max) {
 	int frame;
 	double diff = q_max - q_min;
 
@@ -173,14 +173,32 @@ void normalizeQualityData(struct registration_args *args, double q_min, double q
 		diff = q_max;
 	}
 
-	for (frame = 0; frame < args->seq->number; ++frame) {
-		args->seq->regparam[args->layer][frame].quality -= q_min;
-		args->seq->regparam[args->layer][frame].quality /= diff;
+	for (frame = 0; frame < size; ++frame) {
+		regparam[frame].quality -= q_min;
+		regparam[frame].quality /= diff;
 		/* if thread has been manually stopped, some values will be < 0 */
-		if ((args->seq->regparam[args->layer][frame].quality < 0)
-				|| isnan(args->seq->regparam[args->layer][frame].quality))
-			args->seq->regparam[args->layer][frame].quality = -1.0;
+		if ((regparam[frame].quality < 0)
+				|| isnan(regparam[frame].quality))
+			regparam[frame].quality = -1.0;
 	}
+}
+
+/* sorts a regdata set, returns best image */
+int normalize_quality_data(regdata *regparam, int size) {
+	int i, q_index;
+	double q_max = 0, q_min = DBL_MAX;
+	for (i = 0; i < size; i++) {
+		double qual = regparam[i].quality;
+		if (qual <= 0.0)
+			continue;
+		if (qual > q_max) {
+			q_max = qual;
+			q_index = i;
+		}
+		q_min = min(q_min, qual);
+	}
+	normalizeQualityData(regparam, size, q_min, q_max);
+	return q_index;
 }
 
 /* Calculate shift in images to be aligned with the reference image, using
@@ -397,7 +415,7 @@ int register_shift_dft(struct registration_args *args) {
 			args->seq->upscale_at_stacking = 2.0;
 		else
 			args->seq->upscale_at_stacking = 1.0;
-		normalizeQualityData(args, q_min, q_max);
+		normalizeQualityData(args->seq->regparam[args->layer], args->seq->number, q_min, q_max);
 		update_used_memory();
 		siril_log_message(_("Registration finished.\n"));
 		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index);
@@ -625,7 +643,7 @@ int register_ecc(struct registration_args *args) {
 	else
 		args->seq->upscale_at_stacking = 1.0;
 
-	normalizeQualityData(args, q_min, q_max);
+	normalizeQualityData(args->seq->regparam[args->layer], args->seq->number, q_min, q_max);
 	clearfits(&ref);
 	update_used_memory();
 	siril_log_message(_("Registration finished.\n"));

@@ -156,6 +156,7 @@ computing_it:
 			// convert to monochrome first
 			WORD *monochrome_data;
 			if (fit->naxes[2] == 3) {
+				monochrome_data = malloc(fit->rx * fit->ry * sizeof(WORD));
 				cvToMonochrome(fit->pdata, fit->rx, fit->ry, monochrome_data);
 			} else {
 				monochrome_data = fit->data;
@@ -178,4 +179,41 @@ computing_it:
 		}
 	}
 }
+
+WORD * get_laplacian_data_for_image(int index, WORD *gaussian_data,
+		int width, int height, struct planetary_cache *args) {
+	if (args->use_cached && args->seq_laplacian) {
+		// getting the data from cache
+		fits cachedfit = { 0 };
+		if (seq_read_frame(args->seq_laplacian, index, &cachedfit)) {
+			disable_cache_reading(args);
+			goto computing_it;
+		}
+		WORD *buf = cachedfit.data;
+		cachedfit.data = NULL;
+		clearfits(&cachedfit);
+		return buf;
+	}
+	else {
+		// compute laplacian for gaussian_data
+computing_it:
+		{
+			WORD *buf = malloc(width * height * sizeof(WORD));
+			cvLaplacian(gaussian_data, width, height, args->kernel_size, buf);
+
+			// store the data in cache, with a fits envelope
+			if (args->cache_data && args->ser_laplacian) {
+				fits cachefit = { 0 }, *cachefitptr = &cachefit;
+				if (new_fit_image(&cachefitptr, width, height, 1, buf)) {
+					disable_cache_writing(args);
+				}
+				else ser_write_frame_from_fit(args->ser_laplacian, cachefitptr, index);
+				cachefit.data = NULL;
+				clearfits(cachefitptr);
+			}
+			return buf;
+		}
+	}
+}
+
 
