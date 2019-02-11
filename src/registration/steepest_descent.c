@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
 #include "core/siril.h"
 #include "core/processing.h"
 #include "registration.h"
@@ -27,14 +28,18 @@
 #include "core/proto.h"	// writeseqfile
 #include "algos/planetary_caching.h"
 #include "algos/laplacian_quality.h"
+#include "io/sequence.h"
 
 struct regsd_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
 	struct planetary_cache *cache;
-	// TODO: add reference frame data
+	WORD *reference_image;	// gaussian filtered data for the reference image
 };
 
+/* TODO:
+ * ensure that ref image is set
+ */
 static int regsd_prepare_hook(struct generic_seq_args *args) {
 	struct regsd_data *rsdata = args->user;
 	struct registration_args *regargs = rsdata->regargs;
@@ -57,6 +62,24 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 			return -2;
 		}
 	}
+
+	/* Get reference frame */
+	int ref_idx = args->seq->reference_image;
+	rsdata->reference_image = get_gaussian_data_for_image(ref_idx, NULL, rsdata->cache);
+	if (!rsdata->reference_image) {
+		fits fit = { 0 };
+		if (seq_read_frame(args->seq, ref_idx, &fit)) {
+			// TODO: meaningful message
+			clearfits(&fit);
+			return 1;
+		}
+		rsdata->reference_image = get_gaussian_data_for_image(ref_idx, &fit, rsdata->cache);
+		clearfits(&fit);
+		if (!rsdata->reference_image) {
+			// TODO: meaningful message
+			return 1;
+		}
+	}
 	return 0;
 }
 
@@ -65,9 +88,28 @@ static int regsd_image_hook(struct generic_seq_args *args, int out_index, int in
 	struct registration_args *regargs = rsdata->regargs;
 	
 	WORD * gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
+	if (!gaussian_data) {
+		// TODO: meaningful message
+		fprintf(stderr, "could not get gaussian data for the image\n");
+		return 1;
+	}
 
 	// compute shift using the steepest descent algorithm
+	int max_radius = 50;
+	rectangle area = { .x = max_radius, .y = max_radius,
+		.w = fit->rx - max_radius * 2, .h = fit->ry - max_radius * 2};
+	int shiftx, shifty, error;
+	error = search_local_match_gradient(rsdata->reference_image, gaussian_data,
+			fit->rx, fit->ry, &area, max_radius, 1, &shiftx, &shifty);
+	if (error) {
+		// TODO: meaningful message
+		fprintf(stderr, "could not match with steepest gradient\n");
+		// TODO: handle failed images
+		return 1;
+	}
 
+	rsdata->current_regdata[in_index].shiftx = -shiftx;
+	rsdata->current_regdata[in_index].shifty = shifty;
 	return 0;
 }
 
@@ -173,3 +215,89 @@ int register_sd(struct registration_args *regargs) {
 	return args->retval;
 }
 
+/* makes the sum of differences between pixels of the reference image and the
+ * tested image, on the given area.
+ * width and height are the size of the image, sampling occurs one every
+ * 'stride' pixels, stride has to be lower than the area width
+ */
+static unsigned long compute_deviation(WORD *ref_frame, WORD *frame,
+		int width, int height, rectangle *area, int stride) {
+	unsigned long sum = 0ul;
+	int x, y;
+	int i = area->y * width + area->x;
+	for (y = 0; y < area->h; y++) {
+		for (x = 0; x < area->w; x += stride) {
+			sum += abs(ref_frame[i] - frame[i]);
+			i++;
+		}
+		i += width - area->w + 1;
+	}
+	return sum;
+}
+
+/* The steepest descent image alignment algorithm.
+ * Compares areas of a reference frame and the tested frame and looks for the best shift
+ * between the two.
+ * Sampling occurs one every 'stride' pixels, stride has to be lower than the area width.
+ */
+int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int height,
+		rectangle *area, int search_width, int sampling_stride,
+		int *dx_result, int *dy_result)
+{
+	int dx_min = 0, dy_min = 0;
+	int iterations = 0;
+
+        // Initialize the global optimum with the value at dy=dx=0.
+	unsigned long deviation_min = compute_deviation(ref_frame, frame, width, height,
+			area, sampling_stride);
+
+	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
+	// current optimum reaches beyond the search area.
+	while (max(abs(dy_min), abs(dx_min)) < search_width-1) {
+		int dx, dy;
+		// Go through the neighbours of radius 1 and compute the difference
+		// (deviation) between the shifted frame and the corresponding box in
+		// the mean frame. Find the minimum "deviation_min_1".
+		int dx_min_1, dy_min_1;
+		unsigned long deviation_min_1 = ULONG_MAX;
+		for (dx = dx_min - 1; dx <= dx_min+1; dx++) {
+			for (dy = dy_min - 1; dy <= dy_min+1; dy++) {
+				unsigned long deviation;
+				rectangle test_area = {
+					.x = area->x + dx, .y = area->y + dy,
+					.w = area->w, .h = area->h };
+
+				deviation = compute_deviation(ref_frame, frame, width,
+						height, &test_area, sampling_stride);
+
+				if (deviation < deviation_min_1) {
+					deviation_min_1 = deviation;
+					dx_min_1 = dx;
+					dy_min_1 = dy;
+				}
+			}
+		}
+
+		// If for the current center the match is better than for all neighboring
+		// points, a local optimum is found.
+		if (deviation_min_1 >= deviation_min) {
+			*dx_result = dx_min;
+			*dy_result = dy_min;
+			fprintf(stdout, "found shift after %d iterations (%d, %d)\n", iterations, dx, dy);
+			return 0;
+		}
+
+		// Otherwise, update the current optimum and continue.
+		deviation_min = deviation_min_1;
+		dx_min = dx_min_1;
+		dy_min = dy_min_1;
+		iterations++;
+		fprintf(stdout, "iteration %d, deviation %lu for shifts (%d, %d)\n",
+				iterations, deviation_min, dx, dy);
+	}
+	// If within the maximum search radius no optimum could be found, return [0, 0].
+	*dx_result = 0;
+	*dy_result = 0;
+	fprintf(stdout, "shift not found after %d iterations\n", iterations);
+	return -1;
+}

@@ -39,7 +39,7 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 
 	if (args->use_cached) {
 		char *gaussian_seqname = malloc(strlen(seqname) + 20);
-		sprintf(gaussian_seqname, "%s-gaussian%d.ser", seqname, args->kernel_size);
+		sprintf(gaussian_seqname, "%s-gaussian%d.seq", seqname, args->kernel_size);
 
 		if (!(args->seq_gaussian = readseqfile(gaussian_seqname)) ||
 				seq_check_basic_data(args->seq_gaussian, FALSE) == -1) {
@@ -53,7 +53,7 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 
 		/* same as above for the laplacian */
 		char *laplacian_seqname = malloc(strlen(seqname) + 20);
-		sprintf(laplacian_seqname, "%s-laplacian%d.ser", seqname, args->kernel_size);
+		sprintf(laplacian_seqname, "%s-laplacian%d.seq", seqname, args->kernel_size);
 
 		if (!(args->seq_laplacian = readseqfile(laplacian_seqname)) ||
 				seq_check_basic_data(args->seq_laplacian, FALSE) == -1) {
@@ -96,13 +96,21 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 }
 
 static void finalize_cache_reading(struct planetary_cache *args) {
-	if (args->seq_gaussian)
+	gboolean had_one_seq = FALSE;
+	if (args->seq_gaussian) {
 		free_sequence(args->seq_gaussian, TRUE);
+		had_one_seq = TRUE;
+	}
 	args->seq_gaussian = NULL;
 
-	if (args->seq_laplacian)
+	if (args->seq_laplacian) {
 		free_sequence(args->seq_laplacian, TRUE);
+		had_one_seq = TRUE;
+	}
 	args->seq_laplacian = NULL;
+
+	if (had_one_seq)
+		check_seq(FALSE);
 }
 
 static void finalize_cache_writing(struct planetary_cache *args) {
@@ -152,31 +160,31 @@ WORD * get_gaussian_data_for_image(int index, fits *fit, struct planetary_cache 
 	else {
 		// compute gaussian for fit
 computing_it:
-		{
-			// convert to monochrome first
-			WORD *monochrome_data;
-			if (fit->naxes[2] == 3) {
-				monochrome_data = malloc(fit->rx * fit->ry * sizeof(WORD));
-				cvToMonochrome(fit->pdata, fit->rx, fit->ry, monochrome_data);
-			} else {
-				monochrome_data = fit->data;
-			}
-
-			WORD *buf = malloc(fit->rx * fit->ry * sizeof(WORD));
-			cvGaussian(monochrome_data, fit->rx, fit->ry, args->kernel_size, buf);
-
-			// store the data in cache, with a fits envelope
-			if (args->cache_data && args->ser_gaussian) {
-				fits cachefit = { 0 }, *cachefitptr = &cachefit;
-				if (new_fit_image(&cachefitptr, fit->rx, fit->ry, 1, buf)) {
-					disable_cache_writing(args);
-				}
-				else ser_write_frame_from_fit(args->ser_gaussian, cachefitptr, index);
-				cachefit.data = NULL;
-				clearfits(cachefitptr);
-			}
-			return buf;
+		if (!fit)
+			return NULL;
+		// convert to monochrome first
+		WORD *monochrome_data;
+		if (fit->naxes[2] == 3) {
+			monochrome_data = malloc(fit->rx * fit->ry * sizeof(WORD));
+			cvToMonochrome(fit->pdata, fit->rx, fit->ry, monochrome_data);
+		} else {
+			monochrome_data = fit->data;
 		}
+
+		WORD *buf = malloc(fit->rx * fit->ry * sizeof(WORD));
+		cvGaussian(monochrome_data, fit->rx, fit->ry, args->kernel_size, buf);
+
+		// store the data in cache, with a fits envelope
+		if (args->cache_data && args->ser_gaussian) {
+			fits cachefit = { 0 }, *cachefitptr = &cachefit;
+			if (new_fit_image(&cachefitptr, fit->rx, fit->ry, 1, buf)) {
+				disable_cache_writing(args);
+			}
+			else ser_write_frame_from_fit(args->ser_gaussian, cachefitptr, index);
+			cachefit.data = NULL;
+			clearfits(cachefitptr);
+		}
+		return buf;
 	}
 }
 
