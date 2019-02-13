@@ -46,7 +46,7 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 			fprintf(stderr, "failed not load sequence %s, not using cached data\n", gaussian_seqname);
 			disable_cache_reading(args);
 			free(gaussian_seqname);
-			return;
+			goto cache_writing;
 		}
 		siril_log_message("using cache (%s) to get gaussian filtered images\n", gaussian_seqname);
 		free(gaussian_seqname);
@@ -60,13 +60,14 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 			fprintf(stderr, "failed not load sequence %s, not using cached data\n", laplacian_seqname);
 			disable_cache_reading(args);
 			free(laplacian_seqname);
-			return;
+			goto cache_writing;
 		}
 		siril_log_message("using cache (%s) to get laplacian filtered images\n", laplacian_seqname);
 		free(laplacian_seqname);
 	}
 
-	else if (args->cache_data) {
+cache_writing:
+	if (args->cache_data) {
 		char *gaussian_seqname = malloc(strlen(seqname) + 20);
 		sprintf(gaussian_seqname, "%s-gaussian%d.ser", seqname, args->kernel_size);
 
@@ -90,41 +91,41 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 			disable_cache_writing(args);
 			return;
 		}
-		free(laplacian_seqname);
 		siril_log_message("saving laplacian filtered images to cache (%s)\n", laplacian_seqname);
+		free(laplacian_seqname);
 	}
 }
 
 static void finalize_cache_reading(struct planetary_cache *args) {
-	gboolean had_one_seq = FALSE;
 	if (args->seq_gaussian) {
 		free_sequence(args->seq_gaussian, TRUE);
-		had_one_seq = TRUE;
 	}
 	args->seq_gaussian = NULL;
 
 	if (args->seq_laplacian) {
 		free_sequence(args->seq_laplacian, TRUE);
-		had_one_seq = TRUE;
 	}
 	args->seq_laplacian = NULL;
-
-	if (had_one_seq)
-		check_seq(FALSE);
 }
 
 static void finalize_cache_writing(struct planetary_cache *args) {
+	gboolean had_some_seq = FALSE;
 	if (args->ser_gaussian) {
 		ser_write_and_close(args->ser_gaussian);
 		free(args->ser_gaussian);
+		had_some_seq = TRUE;
 	}
 	args->ser_gaussian = NULL;
 
 	if (args->ser_laplacian) {
 		ser_write_and_close(args->ser_laplacian);
 		free(args->ser_laplacian);
+		had_some_seq = TRUE;
 	}
 	args->ser_laplacian = NULL;
+
+	if (had_some_seq)
+		check_seq(FALSE);
 }
 
 void finalize_caching(struct planetary_cache *args) {

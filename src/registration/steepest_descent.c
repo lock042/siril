@@ -216,20 +216,28 @@ int register_sd(struct registration_args *regargs) {
 }
 
 /* makes the sum of differences between pixels of the reference image and the
- * tested image, on the given area.
- * width and height are the size of the image, sampling occurs one every
+ * tested image, on the given areas.
+ * width and height are the size of both images, sampling occurs one every
  * 'stride' pixels, stride has to be lower than the area width
+ * areas must have same width and height
  */
 static unsigned long compute_deviation(WORD *ref_frame, WORD *frame,
-		int width, int height, rectangle *area, int stride) {
+		int width, int height, rectangle *ref_area, rectangle *area,
+		int stride) {
 	unsigned long sum = 0ul;
 	int x, y;
+	int ref_i = ref_area->y * width + ref_area->x;
 	int i = area->y * width + area->x;
 	for (y = 0; y < area->h; y++) {
 		for (x = 0; x < area->w; x += stride) {
-			sum += abs(ref_frame[i] - frame[i]);
-			i++;
+			// implementing abs() with unsigned data type
+			if (ref_frame[ref_i] > frame[i])
+				sum += ref_frame[ref_i] - frame[i];
+			else sum += frame[i] - ref_frame[ref_i];
+			ref_i += stride;
+			i += stride;
 		}
+		ref_i += width - area->w + 1;
 		i += width - area->w + 1;
 	}
 	return sum;
@@ -244,12 +252,12 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		rectangle *area, int search_width, int sampling_stride,
 		int *dx_result, int *dy_result)
 {
-	int dx_min = 0, dy_min = 0;
-	int iterations = 0;
+	int iterations = 0;	// for stats
 
         // Initialize the global optimum with the value at dy=dx=0.
+	int dx_min = 0, dy_min = 0;
 	unsigned long deviation_min = compute_deviation(ref_frame, frame, width, height,
-			area, sampling_stride);
+			area, area, sampling_stride);
 
 	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
 	// current optimum reaches beyond the search area.
@@ -258,17 +266,18 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		// Go through the neighbours of radius 1 and compute the difference
 		// (deviation) between the shifted frame and the corresponding box in
 		// the mean frame. Find the minimum "deviation_min_1".
-		int dx_min_1, dy_min_1;
+		int dx_min_1 = INT_MAX, dy_min_1 = INT_MAX;
 		unsigned long deviation_min_1 = ULONG_MAX;
 		for (dx = dx_min - 1; dx <= dx_min+1; dx++) {
 			for (dy = dy_min - 1; dy <= dy_min+1; dy++) {
 				unsigned long deviation;
+				if (dy == 0 && dx == 0) continue;
 				rectangle test_area = {
-					.x = area->x + dx, .y = area->y + dy,
+					.x = area->x - dx, .y = area->y - dy,
 					.w = area->w, .h = area->h };
 
 				deviation = compute_deviation(ref_frame, frame, width,
-						height, &test_area, sampling_stride);
+						height, area, &test_area, sampling_stride);
 
 				if (deviation < deviation_min_1) {
 					deviation_min_1 = deviation;
@@ -283,7 +292,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		if (deviation_min_1 >= deviation_min) {
 			*dx_result = dx_min;
 			*dy_result = dy_min;
-			fprintf(stdout, "found shift after %d iterations (%d, %d)\n", iterations, dx, dy);
+			fprintf(stdout, "found shift after %d iterations (%d, %d)\n", iterations, dx_min, dy_min);
 			return 0;
 		}
 
@@ -293,7 +302,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		dy_min = dy_min_1;
 		iterations++;
 		fprintf(stdout, "iteration %d, deviation %lu for shifts (%d, %d)\n",
-				iterations, deviation_min, dx, dy);
+				iterations, deviation_min, dx_min, dy_min);
 	}
 	// If within the maximum search radius no optimum could be found, return [0, 0].
 	*dx_result = 0;
