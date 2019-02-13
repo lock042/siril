@@ -643,7 +643,9 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 
 	/* reading zones in the reference image, single threaded init */
 	fprintf(stdout, "loading reference zones\n");
-	gchar *wisdom_file = get_configdir_file_path(FFTW_WISDOM_FILE);
+	//gchar *wisdom_file = get_configdir_file_path(FFTW_WISDOM_FILE);
+	// TO BE FIXED IF USED AGAIN SOME DAY
+	gchar *wisdom_file = "/tmp/"FFTW_WISDOM_FILE;
 	if (wisdom_file) {
 		if (fftw_import_wisdom_from_filename(wisdom_file))
 			fprintf(stdout, "FFTW wisdom restored\n");
