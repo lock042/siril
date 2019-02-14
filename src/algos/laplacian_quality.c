@@ -62,6 +62,7 @@ int lapl_image_hook(struct generic_seq_args *args, int out_index, int in_index, 
 	// optional: apply downsampling?
 
 	ldata->current_regdata[in_index].quality = variance(laplacian_data, fit->rx * fit->ry);
+	//fprintf(stdout, "variance for %d: %g\n", in_index, ldata->current_regdata[in_index].quality);
 
 	free(laplacian_data);
 	free(gaussian_data);
@@ -93,6 +94,7 @@ int lapl_finalize_hook(struct generic_seq_args *args) {
 double variance(WORD *set, int size) {
 	int i;
 	unsigned long sum = 0ul, squared_sum = 0ul;
+	// could be parallelized with sum reductions, is it worth it?
 	for (i = 0; i < size; i++) {
 		sum += set[i];
 		squared_sum += set[i] * set[i];

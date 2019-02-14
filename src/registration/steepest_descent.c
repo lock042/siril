@@ -50,11 +50,15 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 
 	/* TODO: check that layer = 0 is alright here */
 	if (args->seq->regparam[0]) {
+		int i;
 		siril_log_message(
 				_("Recomputing already existing registration for this layer\n"));
 		rsdata->current_regdata = args->seq->regparam[0];
-		/* we reset all values as we may register different images */
-		memset(rsdata->current_regdata, 0, args->seq->number * sizeof(regdata));
+		/* we reset all shift values as we may register different images */
+		for (i = 0; i < args->seq->number; i++) {
+			rsdata->current_regdata[i].shiftx = 0.0;
+			rsdata->current_regdata[i].shifty = 0.0;
+		}
 	} else {
 		rsdata->current_regdata = calloc(args->seq->number, sizeof(regdata));
 		if (rsdata->current_regdata == NULL) {
@@ -290,7 +294,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		// If for the current center the match is better than for all neighboring
 		// points, a local optimum is found.
 		if (deviation_min_1 >= deviation_min) {
-			*dx_result = dx_min;
+			*dx_result = -dx_min;
 			*dy_result = dy_min;
 			fprintf(stdout, "found shift after %d iterations (%d, %d)\n", iterations, dx_min, dy_min);
 			return 0;
@@ -301,8 +305,8 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		dx_min = dx_min_1;
 		dy_min = dy_min_1;
 		iterations++;
-		fprintf(stdout, "iteration %d, deviation %lu for shifts (%d, %d)\n",
-				iterations, deviation_min, dx_min, dy_min);
+		/*fprintf(stdout, "iteration %d, deviation %lu for shifts (%d, %d)\n",
+				iterations, deviation_min, dx_min, dy_min);*/
 	}
 	// If within the maximum search radius no optimum could be found, return [0, 0].
 	*dx_result = 0;

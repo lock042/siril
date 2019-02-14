@@ -64,6 +64,8 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 		}
 		siril_log_message("using cache (%s) to get laplacian filtered images\n", laplacian_seqname);
 		free(laplacian_seqname);
+
+		args->cache_data = FALSE;	// if we read from it, we don't write to it
 	}
 
 cache_writing:
