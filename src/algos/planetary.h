@@ -37,6 +37,4 @@ void update_refimage_on_layer_change(sequence *seq, int layer);
 gpointer the_multipoint_analysis(gpointer ptr);
 gpointer the_multipoint_processing(gpointer ptr);
 
-int point_is_inside_zone(int px, int py, stacking_zone *zone);
-
 #endif

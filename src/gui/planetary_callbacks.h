@@ -2,6 +2,7 @@
 #define _PLANETARY_CALLBACKS_H
 
 void update_zones_list();
+gboolean end_mpp_analysis(gpointer arg);
 
 void planetary_click_in_image(double x, double y);
 

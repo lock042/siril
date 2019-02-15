@@ -102,7 +102,7 @@ void update_zones_list() {
 
 	int i = 0;
 	char buf[30];
-	while (com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1) {
+	while (get_zone_available(i)) {
 		i++;
 		snprintf(buf, 30, "%s %d", _("zone"), i);
 		gtk_combo_box_text_append_text(combotext, buf);
@@ -110,6 +110,11 @@ void update_zones_list() {
 	if (i > previous_selection)
 		gtk_combo_box_set_active(combo, previous_selection);
 	else 	gtk_combo_box_set_active(combo, 0);	// global
+}
+
+gboolean end_mpp_analysis(gpointer arg) {
+	update_zones_list();
+	return end_generic(arg);
 }
 
 /* First step: running the global registration and building the reference image */

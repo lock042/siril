@@ -190,6 +190,7 @@ int register_sd(struct registration_args *regargs) {
 	}
 	ldata->use_caching = regargs->use_caching;
 	ldata->kernel_size = regargs->kernel_size;
+	ldata->for_zones = FALSE;
 	args->user = ldata;
 	generic_sequence_worker(args);
 	if (args->retval)

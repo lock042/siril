@@ -4,6 +4,7 @@
 #include "core/siril.h"
 
 int get_number_of_zones();
+gboolean get_zone_available(int zone_idx);
 int get_side(const stacking_zone *zone);
 int point_is_inside_zone(int px, int py, const stacking_zone *zone);
 gboolean zone_is_too_close(int x, int y, int size);

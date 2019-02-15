@@ -41,6 +41,11 @@ int get_number_of_zones() {
 	return i;
 }
 
+gboolean get_zone_available(int zone_idx) {
+	return zone_idx < (com.stacking_zones_size - 1) &&
+		com.stacking_zones[zone_idx].centre.x >= 0.0;
+}
+
 int get_side(const stacking_zone *zone) {
 	return round_to_int(zone->half_side * 2.0);
 }

@@ -177,6 +177,7 @@
 #include "core/processing.h"
 #include "core/proto.h"
 #include "algos/quality.h"
+#include "algos/laplacian_quality.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -185,6 +186,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/planetary_callbacks.h"
 #include "gui/callbacks.h"
+#include "gui/zones.h"
 #include "gui/plot.h"
 #include "opencv/opencv.h"
 #include "opencv/ecc/ecc.h"
@@ -198,7 +200,8 @@ static char *refimage_filename;
 
 static gboolean end_reference_image_stacking(gpointer p);
 
-static int the_multipoint_quality_analysis(struct mpr_args *args);
+static int the_laplace_multipoint_quality_analysis(struct mpr_args *args);
+static int the_siril_multipoint_quality_analysis(struct mpr_args *args);
 
 static int the_multipoint_ecc_registration(struct mpr_args *args);
 static int the_multipoint_dft_registration(struct mpr_args *args);
@@ -206,7 +209,6 @@ static int the_multipoint_dft_registration(struct mpr_args *args);
 static int the_global_multipoint_barycentric_sum_stacking(struct mpr_args *args);
 static int the_local_multipoint_sum_stacking(struct mpr_args *args);
 
-static int get_number_of_zones();
 static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_complex *dest,
 		int layer);
 static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer);
@@ -341,14 +343,18 @@ void update_refimage_on_layer_change(sequence *seq, int layer) {
 /*********************** ANALYSIS *************************/
 gpointer the_multipoint_analysis(gpointer ptr) {
 	struct mpr_args *args = (struct mpr_args*)ptr;
-	int retval = the_multipoint_quality_analysis(args);
-	siril_add_idle(end_generic, NULL);
+	int retval = the_laplace_multipoint_quality_analysis(args);
+	siril_add_idle(end_mpp_analysis, NULL);
 	free(args);
 	return GINT_TO_POINTER(retval);
 }
 
 /* evaluates quality of each zone for each image and saves it in mpregparam */
-static int the_multipoint_quality_analysis(struct mpr_args *args) {
+static int the_laplace_multipoint_quality_analysis(struct mpr_args *args) {
+	return laplace_quality_for_zones(args->seq, FALSE, TRUE, 3);
+}
+
+static int the_siril_multipoint_quality_analysis(struct mpr_args *args) {
 	int retval = 0, frame, zone_idx, abort = 0;
 
 	int nb_zones = get_number_of_zones();
@@ -376,7 +382,7 @@ static int the_multipoint_quality_analysis(struct mpr_args *args) {
 				{ .x = zone->centre.x - regparam[frame].shiftx,
 					.y = zone->centre.y + regparam[frame].shifty },
 				.half_side = zone->half_side };
-			int side = round_to_int(zone->half_side * 2.0);
+			int side = get_side(zone);
 
 			if (!zone->mpregparam) {
 				zone->mpregparam = calloc(args->seq->number, sizeof(struct ap_regdata));
@@ -440,7 +446,7 @@ gpointer the_multipoint_processing(gpointer ptr) {
 			com.stacking_zones[0].mpregparam[0].quality < 0.0 ||
 			com.stacking_zones[0].mpregparam[0].quality > 1.0) {
 		// TODO: do this in the registration instead to improve performance
-		retval = the_multipoint_quality_analysis(args);
+		retval = the_laplace_multipoint_quality_analysis(args);
 		if (retval) return GINT_TO_POINTER(retval);
 	}
 	siril_log_message("zones will be stacked using %s\n",
@@ -500,7 +506,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 #endif
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 		zone = &com.stacking_zones[zone_idx];
-		int side = round_to_int(zone->half_side * 2.0);
+		int side = get_side(zone);
 		references[zone_idx] = malloc(side * side * sizeof(WORD));
 		if (!references[zone_idx]) {
 			fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
@@ -539,7 +545,7 @@ static int the_multipoint_ecc_registration(struct mpr_args *args) {
 				{ .x = zone->centre.x - regparam[frame].shiftx,
 					.y = zone->centre.y + regparam[frame].shifty },
 				.half_side = zone->half_side };
-			int side = round_to_int(zone->half_side * 2.0);
+			int side = get_side(zone);
 			WORD *buffer = malloc(side * side * sizeof(WORD));	// TODO: prealloc
 			if (!buffer) {
 				fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
@@ -661,7 +667,7 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 
 	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 		zone = &com.stacking_zones[zone_idx];
-		int side = round_to_int(zone->half_side * 2.0);
+		int side = get_side(zone);
 		int nb_pixels = side * side;
 		// allocate aligned DFT buffers with fftw_malloc
 		ref[zone_idx] = fftw_malloc(sizeof(fftw_complex) * nb_pixels);
@@ -728,7 +734,7 @@ static int the_multipoint_dft_registration(struct mpr_args *args) {
 		for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
 			if (abort) continue;
 			zone = &com.stacking_zones[zone_idx];
-			int side = round_to_int(zone->half_side * 2.0);
+			int side = get_side(zone);
 			int nb_pixels = side * side;
 			stacking_zone shifted_zone = { .centre =
 				{ .x = zone->centre.x - regparam[frame].shiftx,
@@ -1070,7 +1076,7 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 			// TODO: iterate over channels
 			if (args->using_homography && zone->mpregparam[frame].transform) {
 				// ECC registration with image transformation
-				int side = round_to_int(zone->half_side * 2.0);
+				int side = get_side(zone);
 				WORD *buffer = malloc(side * side * sizeof(WORD)); // TODO: prealloc
 				if (!buffer) {
 					fprintf(stderr, "Stacking: memory allocation failure for registration data\n");
@@ -1097,7 +1103,7 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 				add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
 #ifdef DEBUG_MPP
 				// to see what's happening with the shifts, use this
-				int side = round_to_int(zone->half_side * 2.0);
+				int side = get_side(zone);
 				stacking_zone shifted_zone = { .centre =
 					{ .x = zone->centre.x - zone->mpregparam[frame].x,
 						.y = zone->centre.y + zone->mpregparam[frame].y },
@@ -1194,18 +1200,10 @@ static int the_local_multipoint_sum_stacking(struct mpr_args *args) {
 }
 
 
-static int get_number_of_zones() {
-	int i = 0;
-	if (!com.stacking_zones)
-		return 0;
-	while (com.stacking_zones[i].centre.x >= 0.0) i++;
-	return i;
-}
-
 // copy the image zone into a double buffer, it remains upside-down
 static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_complex *dest,
 		int layer) {
-	int side = round_to_int(zone->half_side * 2.0);
+	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side);
 	int starty = round_to_int(zone->centre.y - zone->half_side);
@@ -1231,7 +1229,7 @@ static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_co
 
 // the same as above with a WORD buffer instead of double
 static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer) {
-	int side = round_to_int(zone->half_side * 2.0);
+	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side);
 	int starty = round_to_int(zone->centre.y - zone->half_side);
@@ -1260,7 +1258,7 @@ static int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD 
 static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
 		unsigned long *sum[3], int *count[3]) {
 	int layer;
-	int side = round_to_int(zone->half_side * 2.0);
+	int side = get_side(zone);
 	int src_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
 	int src_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
 	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
@@ -1299,7 +1297,7 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
  */
 static void add_buf_zone_to_stacking_sum(WORD *buf, int layer, const stacking_zone *zone,
 		int frame, unsigned long *sum[3], int *count[3], unsigned int rx, unsigned int ry) {
-	int side = round_to_int(zone->half_side * 2.0);
+	int side = get_side(zone);
 	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
 	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
 
@@ -1321,13 +1319,6 @@ static void add_buf_zone_to_stacking_sum(WORD *buf, int layer, const stacking_zo
 		i += side;
 		o += stride;
 	}
-}
-
-int point_is_inside_zone(int px, int py, stacking_zone *zone) {
-	int side = round_to_int(zone->half_side * 2.0);
-	int startx = round_to_int(zone->centre.x - zone->half_side);
-	int starty = round_to_int(zone->centre.y - zone->half_side);
-	return px > startx && px < startx + side && py > starty && py < starty + side;
 }
 
 /* we build a list of max_AP of the closest alignment points for a pixel. The
