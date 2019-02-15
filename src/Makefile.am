@@ -22,6 +22,7 @@ siril_SOURCES = \
 	gui/gnuplot_i/gnuplot_i.c gui/gnuplot_i/gnuplot_i.h \
 	gui/progress_and_log.c gui/progress_and_log.h \
 	gui/about_dialog.c \
+	gui/zones.c gui/zones.h \
 	registration/registration.c registration/registration.h \
 	registration/global.c registration/cog.c registration/steepest_descent.c \
 	registration/matching/match.c registration/matching/atpmatch.c registration/matching/misc.c \

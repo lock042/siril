@@ -19,7 +19,6 @@
  */
 
 #include <gtk/gtk.h>
-#include <math.h>
 #include <float.h>
 #include "core/siril.h"
 #include "core/proto.h"
@@ -35,10 +34,9 @@
 #include "image_display.h"
 #include "progress_and_log.h"
 #include "planetary_callbacks.h"
+#include "zones.h"
 
 static gboolean seqimage_range_mouse_pressed = FALSE;
-static gboolean add_zones_mode = FALSE;
-static gboolean remove_zones_mode = FALSE;
 static double lowest_accepted_quality = 0.0;
 static double percent_images_to_keep = 100.0;
 
@@ -78,30 +76,7 @@ void on_bestimage_changed(GtkRange *range, gpointer user_data) {
 	plot_set_filtering_threshold(lowest_accepted_quality);
 }
 
-
-void on_add_zones_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	add_zones_mode = gtk_toggle_button_get_active(togglebutton);
-	if (add_zones_mode)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("remove_zones")), FALSE);
-}
-
-void on_remove_zones_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	remove_zones_mode = gtk_toggle_button_get_active(togglebutton);
-	if (remove_zones_mode)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("add_zones")), FALSE);
-}
-
-static void remove_stacking_zones() {
-	if (com.stacking_zones) {
-		int i = 0;
-		while (com.stacking_zones[i].centre.x >= 0.0) {
-			com.stacking_zones[i].centre.x = -1.0;
-			i++;
-		}
-	}
-}
-
-static void activate_mpp_processing_button() {
+void activate_mpp_processing_button() {
 	static GtkWidget *stack_button = NULL;
 	int status = sequence_is_loaded() && refimage_is_set() &&
 		com.stacking_zones && com.stacking_zones[0].centre.x >= 0.0;
@@ -135,95 +110,6 @@ void update_zones_list() {
 	if (i > previous_selection)
 		gtk_combo_box_set_active(combo, previous_selection);
 	else 	gtk_combo_box_set_active(combo, 0);	// global
-}
-
-/* add a stacking zone centred around x,y with the given half side */
-void add_stacking_zone(double x, double y, double half_side) {
-	if (!com.stacking_zones_size || !com.stacking_zones) {
-		com.stacking_zones_size = 40;
-		com.stacking_zones = malloc(com.stacking_zones_size * sizeof(stacking_zone));
-		com.stacking_zones[0].centre.x = -1.0; 
-		com.stacking_zones[0].mpregparam = NULL;
-	}
-
-	int i = 0;
-	while (com.stacking_zones && com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1)
-		i++;
-	if (i == com.stacking_zones_size - 1) {
-		com.stacking_zones_size *= 2;
-		com.stacking_zones = realloc(com.stacking_zones,
-				com.stacking_zones_size * sizeof(stacking_zone));
-	}
-
-	stacking_zone *zone = &com.stacking_zones[i];
-	zone->centre.x = x;
-	zone->centre.y = y;
-	zone->half_side = half_side;
-	zone->mpregparam = NULL;
-	fprintf(stdout, "Added stacking zone %d at %4g,%4g. Half side: %g\n", i, x, y, half_side);
-
-	com.stacking_zones[i+1].centre.x = -1.0; 
-	com.stacking_zones[i+1].mpregparam = NULL;
-
-	activate_mpp_processing_button();
-}
-
-gboolean on_remove_all_zones_clicked(GtkButton *button, gpointer user_data) {
-	remove_stacking_zones();
-	update_zones_list();
-	redraw(com.cvport, REMAP_NONE);
-	return FALSE;
-}
-
-void planetary_click_in_image(double x, double y) {
-	int i = 0;
-	if (add_zones_mode) {
-		GtkAdjustment *sizeadj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_zonesize"));
-		double size = gtk_adjustment_get_value(sizeadj);
-		if (size > 0.0)
-			add_stacking_zone(x, y, size*0.5);
-		update_zones_list();
-	}
-	else if (remove_zones_mode) {
-		double closest_distance = DBL_MAX;
-		int closest_zone = -1;
-		if (com.stacking_zones) {
-			while (com.stacking_zones[i].centre.x >= 0.0) {
-				stacking_zone *zone = &com.stacking_zones[i];
-				double xdist = zone->centre.x - x;
-				double ydist = zone->centre.y - y;
-				double distance = sqrt(xdist * xdist + ydist * ydist);
-				// distance is good for circular zones, these are square
-				// but since a point can be in several zones, distance is
-				// a good first indicator
-				if (distance > zone->half_side * 1.414) {
-					i++;
-					continue;
-				}
-				if (distance < closest_distance &&
-						point_is_inside_zone((int)x, (int)y, zone)) {
-					closest_distance = distance;
-					closest_zone = i;
-				}
-				i++;
-			}
-
-			if (closest_zone != -1) {
-				if (com.stacking_zones[closest_zone].mpregparam) {
-					free(com.stacking_zones[closest_zone].mpregparam);
-					com.stacking_zones[closest_zone].mpregparam = NULL;
-				}
-				// replace by last zone
-				memcpy(&com.stacking_zones[closest_zone],
-						&com.stacking_zones[i-1],
-						sizeof(stacking_zone));
-				com.stacking_zones[i-1].centre.x = -1.0;
-
-				activate_mpp_processing_button();
-				update_zones_list();
-			}
-		}
-	}
 }
 
 /* First step: running the global registration and building the reference image */
@@ -369,19 +255,6 @@ static WORD Compute_threshold(fits *fit, int layer, WORD *norm) {
 	return threshold;
 }
 
-static gboolean zone_is_too_close(int x, int y, int size) {
-	if (com.stacking_zones) {
-		int i = 0;
-		while (com.stacking_zones[i].centre.x >= 0.0) {
-			if ((fabs(com.stacking_zones[i].centre.x - x) < size)
-					&& (fabs(com.stacking_zones[i].centre.y - y) < size))
-				return TRUE;
-			i++;
-		}
-	}
-	return FALSE;
-}
-
 static void auto_add_stacking_zones(fits *fit, int layer, int size) {
 	WORD **image;
 	WORD threshold, norm;
@@ -489,4 +362,3 @@ void on_selectedzonecombo_changed(GtkComboBox *widget, gpointer user_data) {
 		}
 	}
 }
-
