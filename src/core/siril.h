@@ -523,7 +523,7 @@ typedef struct Homo {
 struct ap_regdata {
 	float x, y;
 	double quality;
-	Homography *transform;
+	//Homography *transform;
 };
 
 struct stacking_zone_struct {

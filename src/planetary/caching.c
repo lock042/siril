@@ -25,7 +25,7 @@
  * obtained instead from the cache.
  */
 
-#include "planetary_caching.h"
+#include "caching.h"
 #include "io/sequence.h"
 #include "core/proto.h"
 #include "opencv/opencv.h"

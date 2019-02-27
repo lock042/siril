@@ -14,7 +14,7 @@ siril_SOURCES = \
 	io/image_formats_libraries.c io/image_formats_internal.c io/image_format_fits.c \
 	io/sequence.c io/sequence.h io/seqfile.c io/single_image.c io/single_image.h \
 	io/mp4_output.h io/mp4_output.c io/sequence_export.c gui/gui.c gui/gui.h \
-	gui/callbacks.c gui/callbacks.h gui/planetary_callbacks.c gui/planetary_callbacks.h \
+	gui/callbacks.c gui/callbacks.h \
 	gui/histogram.c gui/histogram.h gui/message_dialog.c gui/message_dialog.h \
 	gui/save_dialog.c gui/save_dialog.h gui/PSF_list.h gui/PSF_list.c \
 	gui/sequence_list.c gui/registration_preview.c gui/image_display.c gui/image_display.h \
@@ -29,7 +29,6 @@ siril_SOURCES = \
 	registration/matching/project_coords.c registration/matching/project_coords.h registration/matching/degtorad.h registration/matching/apply_match.c \
 	stacking/stacking.c stacking/stacking.h stacking/sum.c stacking/sum.h stacking/normalization.c \
 	algos/gradient.c algos/gradient.h algos/quality.c algos/quality.h \
-	algos/laplacian_quality.c algos/laplacian_quality.h \
 	algos/statistics.c algos/statistics.h \
 	algos/fft.c algos/fft.h \
 	algos/colors.c algos/colors.h \
@@ -41,9 +40,13 @@ siril_SOURCES = \
 	algos/cosmetic_correction.c algos/cosmetic_correction.h \
 	algos/quantize.c \
 	algos/photometry.h algos/photometry.c \
-	algos/planetary.c algos/planetary.h algos/planetary_caching.c algos/planetary_caching.h \
 	algos/plateSolver.c algos/plateSolver.h \
-	compositing/compositing.c compositing/compositing.h compositing/filters.c compositing/filters.h compositing/align_rgb.c compositing/align_rgb.h
+	compositing/compositing.c compositing/compositing.h compositing/filters.c compositing/filters.h compositing/align_rgb.c compositing/align_rgb.h \
+	planetary/planetary.c planetary/planetary.h planetary/gui.c planetary/gui.h \
+	planetary/quality.c planetary/quality.h planetary/laplacian_quality.c planetary/laplacian_quality.h \
+	planetary/caching.c planetary/caching.h \
+	planetary/registration.h planetary/registration_sd.c planetary/registration_ecc.c \
+	planetary/stacking.c planetary/stacking.h
 
 siril_LDADD =  $(top_builddir)/deps/kplot/libkplot.a $(FFMPEG_LIBS) $(GTK_LIBS) ${GTK_MAC_LIBS} $(LIBRAW_LIBS) $(LIBTIFF_LIBS) $(LIBPNG_LIBS) $(FFTW_LIBS) $(CFITSIO_LIBS) $(GSL_LIBS) $(FFMS2_LIBS) $(LIBCONFIG_LIBS) $(CURL_LIBS) $(EXTRA_LIBS)
 

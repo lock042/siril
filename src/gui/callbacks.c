@@ -45,7 +45,7 @@
 #include "progress_and_log.h"
 #include "image_display.h"
 #include "message_dialog.h"
-#include "planetary_callbacks.h"
+#include "planetary/gui.h"
 #include "plot.h"
 #include "algos/colors.h"
 #include "algos/PSF.h"

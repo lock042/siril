@@ -18,6 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* This is the steepest descent registration for full images.
+ * It is defined here as a generic registration method, but is used only 
+ * in planetary mode.
+ * It runs two passes on the sequence: the first computes image quality, the
+ * second computes the shifts. If caching is enabled, during the first pass,
+ * gaussian-filtered images are stored for later use.
+ */
+
 #include <stdlib.h>
 #include "core/siril.h"
 #include "core/processing.h"
@@ -26,8 +34,8 @@
 #include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 #include "core/proto.h"	// writeseqfile
-#include "algos/planetary_caching.h"
-#include "algos/laplacian_quality.h"
+#include "planetary/caching.h"
+#include "planetary/laplacian_quality.h"
 #include "io/sequence.h"
 
 struct regsd_data {

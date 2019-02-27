@@ -25,16 +25,16 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "stacking/stacking.h"
-#include "algos/planetary.h"
+#include "planetary.h"
+#include "gui.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
-#include "plot.h"
-#include "gui.h"
-#include "callbacks.h"
-#include "image_display.h"
-#include "progress_and_log.h"
-#include "planetary_callbacks.h"
-#include "zones.h"
+#include "gui/gui.h"
+#include "gui/image_display.h"
+#include "gui/callbacks.h"
+#include "gui/progress_and_log.h"
+#include "gui/zones.h"
+#include "gui/plot.h"
 
 static gboolean seqimage_range_mouse_pressed = FALSE;
 static double lowest_accepted_quality = 0.0;
@@ -176,7 +176,7 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	args->filtering_criterion = stack_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
 	args->filtering_percent = percent_images_to_keep;
-	args->using_homography = FALSE;	// TRUE is not working yet, translation only
+	//args->using_homography = FALSE;	// TRUE is not working yet, translation only
 	args->nb_closest_AP = 5;	// min(this, nb_AP) will be used
 	args->max_distance = 250.0;	// AP farther than this will be ignored
 	//args->own_distance_f = 0.5;	// unused

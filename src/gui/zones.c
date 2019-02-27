@@ -28,7 +28,7 @@
 #include "gui.h"
 #include "zones.h"
 #include "image_display.h"
-#include "planetary_callbacks.h"
+#include "planetary/gui.h"
 
 static gboolean add_zones_mode = FALSE;
 static gboolean remove_zones_mode = FALSE;

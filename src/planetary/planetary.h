@@ -13,7 +13,6 @@ struct mpr_args {
 	seq_image_filter filtering_criterion;
 	double filtering_parameter;	// the best quality
 	double filtering_percent;	// the percentage of images to keep
-	int using_homography;		// using translation or homography
 
 	/* configuration for stacking */
 	int nb_closest_AP;	// max number of closest AP to use
@@ -25,6 +24,8 @@ struct mpr_args {
 	gboolean output_overwrite;
 
 	double *global_image;	// the global image buffer as normalized double
+
+	fits *refimage;		// passing the static refimage
 };
 
 gpointer sequence_analysis_thread_func(gpointer p);
@@ -36,5 +37,9 @@ void update_refimage_on_layer_change(sequence *seq, int layer);
 
 gpointer the_multipoint_analysis(gpointer ptr);
 gpointer the_multipoint_processing(gpointer ptr);
+
+
+/* planetary helpers */
+int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer);
 
 #endif

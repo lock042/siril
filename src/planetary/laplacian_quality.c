@@ -23,7 +23,7 @@
 
 #include "core/siril.h"
 #include "core/processing.h"
-#include "algos/planetary_caching.h"
+#include "caching.h"
 #include "laplacian_quality.h"
 #include "gui/progress_and_log.h"
 #include "gui/zones.h"
