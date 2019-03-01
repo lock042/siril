@@ -97,6 +97,7 @@ int lapl_image_hook(struct generic_seq_args *args, int out_index, int in_index, 
 		for (zone_idx = 0; zone_idx < ldata->nb_zones; zone_idx++) {
 			stacking_zone *zone = &com.stacking_zones[zone_idx];
 			int side = get_side(zone);
+			// TODO: make sure zone is in image
 			rectangle shifted_zone = {
 				.x = zone->centre.x - ldata->current_regdata[in_index].shiftx,
 				.y = zone->centre.y + ldata->current_regdata[in_index].shifty,

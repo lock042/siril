@@ -112,7 +112,7 @@ static int regsd_image_hook(struct generic_seq_args *args, int out_index, int in
 		.w = fit->rx - max_radius * 2, .h = fit->ry - max_radius * 2};
 	int shiftx, shifty, error;
 	error = search_local_match_gradient(rsdata->reference_image, gaussian_data,
-			fit->rx, fit->ry, &area, max_radius, 1, &shiftx, &shifty);
+			fit->rx, fit->ry, &area, &area, max_radius, 1, &shiftx, &shifty);
 	if (error) {
 		// TODO: meaningful message
 		fprintf(stderr, "could not match with steepest gradient\n");
@@ -262,8 +262,8 @@ static unsigned long compute_deviation(WORD *ref_frame, WORD *frame,
  * Sampling occurs one every 'stride' pixels, stride has to be lower than the area width.
  */
 int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int height,
-		rectangle *area, int search_width, int sampling_stride,
-		int *dx_result, int *dy_result)
+		rectangle *ref_area, rectangle *area, int search_width,
+		int sampling_stride, int *dx_result, int *dy_result)
 {
 	int iterations = 0;	// for stats
 

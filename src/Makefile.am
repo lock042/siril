@@ -45,8 +45,8 @@ siril_SOURCES = \
 	planetary/planetary.c planetary/planetary.h planetary/gui.c planetary/gui.h \
 	planetary/quality.c planetary/quality.h planetary/laplacian_quality.c planetary/laplacian_quality.h \
 	planetary/caching.c planetary/caching.h \
-	planetary/registration.h planetary/registration_sd.c planetary/registration_ecc.c \
-	planetary/stacking.c planetary/stacking.h
+	planetary/registration.h planetary/registration_ecc.c \
+	planetary/stacking.c planetary/stacking.h planetary/sd_reg_and_stack.c
 
 siril_LDADD =  $(top_builddir)/deps/kplot/libkplot.a $(FFMPEG_LIBS) $(GTK_LIBS) ${GTK_MAC_LIBS} $(LIBRAW_LIBS) $(LIBTIFF_LIBS) $(LIBPNG_LIBS) $(FFTW_LIBS) $(CFITSIO_LIBS) $(GSL_LIBS) $(FFMS2_LIBS) $(LIBCONFIG_LIBS) $(CURL_LIBS) $(EXTRA_LIBS)
 

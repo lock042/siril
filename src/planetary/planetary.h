@@ -14,7 +14,8 @@ struct mpr_args {
 	double filtering_parameter;	// the best quality
 	double filtering_percent;	// the percentage of images to keep
 
-	/* configuration for stacking */
+	/* configuration for processing */
+	int kernel_size;	// kernel size for gaussian and laplacian
 	int nb_closest_AP;	// max number of closest AP to use
 	double max_distance;	// discard AP farther than this, in pixels
 	double own_distance_f;	// factor to the half-side of zone that gives

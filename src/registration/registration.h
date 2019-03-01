@@ -78,9 +78,9 @@ void get_the_registration_area(struct registration_args *reg_args,
 void fill_comboboxregmethod();
 gpointer register_thread_func(gpointer p);
 
-int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int
-		height, rectangle *area, int search_width, int sampling_stride,
-		int *dx_result, int *dy_result);
+int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int height,
+		rectangle *ref_area, rectangle *area, int search_width,
+		int sampling_stride, int *dx_result, int *dy_result);
 
 /** getter */
 int get_registration_layer(sequence *seq);

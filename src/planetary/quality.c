@@ -32,6 +32,7 @@
 #include "laplacian_quality.h"
 #include "quality.h"
 #include "gui.h"
+#include "stacking.h"
 #include "algos/quality.h"
 #include "io/sequence.h"
 #include "gui/progress_and_log.h"
@@ -133,4 +134,34 @@ int the_siril_multipoint_quality_analysis(struct mpr_args *args) {
 	return retval;
 }
 
+
+/* sort images indices from the list of best quality for zones *
+ * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
+ * image for the concerned zone. To speed up the look-up, we create an index here.
+ */
+void create_index_of_best_zones(BYTE ***best_zones, int nb_best, int nb_images) {
+	int zone_idx, nb_zones = get_number_of_zones();
+	*best_zones = malloc(nb_zones * sizeof(BYTE *));
+	for (zone_idx = 0; zone_idx < nb_zones; zone_idx++) {
+		(*best_zones)[zone_idx] = sort_zones_quality(zone_idx, nb_best, nb_images);
+	}
+}
+
+/* Sort images indices from the list of best quality for zones *
+ * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
+ * image for the concerned zone. To speed up the look-up, we create an index here.
+ * */
+BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images) {
+	int i;
+	BYTE *index = malloc(nb_seq_images);
+	// finding the nth element of an unsorted set: sort it, it's easier
+	int *indices = apregdata_best(com.stacking_zones[zone_idx].mpregparam, nb_seq_images);
+
+	// output: index with ones if image is among the best
+	for (i = 0; i < nb_seq_images; i++)
+		index[indices[i]] = i < nb_best;
+
+	free(indices);
+	return index;
+}
 

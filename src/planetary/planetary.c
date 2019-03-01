@@ -343,7 +343,7 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	/* multi-point registration: compute the local shifts */
 	//retval = the_multipoint_dft_registration(args);
 	//retval = the_multipoint_ecc_registration(args);
-	retval = the_multipoint_steepest_descent_registration(args);
+	retval = the_multipoint_steepest_descent_registration_and_stacking(args);
 	if (retval) return GINT_TO_POINTER(retval);
 
 	/* reference image stacking: stack global images with local shifts.
@@ -352,7 +352,7 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	//if (retval) return GINT_TO_POINTER(retval);
 
 	/* multi-point stacking: stack zones with local shifts and creates the result in gfit */
-	retval = the_old_local_multipoint_sum_stacking(args);
+	//retval = the_old_local_multipoint_sum_stacking(args);
 
 	/* registering the generic stacking idle with the required args */
 	struct stacking_args *stackargs = malloc(sizeof(struct stacking_args));;

@@ -23,7 +23,9 @@
 
 #include "planetary.h"
 #include "caching.h"
+#include "stacking.h"
 #include "io/sequence.h"
+#include "quality.h"
 #include "core/proto.h"
 #include "opencv/opencv.h"
 #include "opencv/ecc/ecc.h"
@@ -31,13 +33,9 @@
 #include "io/single_image.h"
 #include "gui/zones.h"
 
-static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
-		unsigned long *sum[3], int *count[3]);
-BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images);
-
 /* this function is a stacking sum that takes shifts from the multipoint registration instead
  * of taking them from the global registration.  Additionally, it takes only parts of images
- * defined as best for a zone instead of taking the best global images for the seuqence.
+ * defined as best for a zone instead of taking the best global images for the sequence.
  * If it works well, it will have to be exploded as a generic processing function. */
 int the_old_local_multipoint_sum_stacking(struct mpr_args *args) {
 	int frame, zone_idx, nb_zones, nb_images, abort = 0;
@@ -46,7 +44,7 @@ int the_old_local_multipoint_sum_stacking(struct mpr_args *args) {
 	nb_zones = get_number_of_zones();
 	nb_images = round_to_int((double)args->seq->number * args->filtering_percent / 100.0);
 	fprintf(stdout, "keeping %d best images for each zone\n", nb_images);
-	
+
 	/* 1. sort images indices from the list of best quality for zones *
 	 * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
 	 * image for the concerned zone. To speed up the look-up, we create an index here.
@@ -267,7 +265,7 @@ static void add_buf_zone_to_stacking_sum(WORD *buf, int layer, const stacking_zo
 #endif
 
 /* copy the zone from an image to the same zone shifted in the stacked image */
-static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
+void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
 		unsigned long *sum[3], int *count[3]) {
 	int layer;
 	int side = get_side(zone);
@@ -301,23 +299,5 @@ static void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone,
 			o += stride;
 		}
 	}
-}
-
-/* Sort images indices from the list of best quality for zones *
- * In com.stacking_zones[zone].mpregparam we have the normalized quality for each
- * image for the concerned zone. To speed up the look-up, we create an index here.
- * */
-BYTE * sort_zones_quality(int zone_idx, int nb_best, int nb_seq_images) {
-	int i;
-	BYTE *index = malloc(nb_seq_images);
-	// finding the nth element of an unsorted set: sort it, it's easier
-	int *indices = apregdata_best(com.stacking_zones[zone_idx].mpregparam, nb_seq_images);
-
-	// output: index with ones if image is among the best
-	for (i = 0; i < nb_seq_images; i++)
-		index[indices[i]] = i < nb_best;
-
-	free(indices);
-	return index;
 }
 
