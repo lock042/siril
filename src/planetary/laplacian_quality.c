@@ -30,6 +30,7 @@
 #include "registration/registration.h"
 #include "core/proto.h"	// writeseqfile
 #include "stacking/stacking.h"	// stack_filter_all
+#include "io/sequence.h"
 
 static double variance(WORD *set, int size);
 static double variance_area(WORD *image, int width, int height, rectangle *area);
@@ -37,7 +38,7 @@ static double variance_area(WORD *image, int width, int height, rectangle *area)
 int lapl_prepare_hook(struct generic_seq_args *args) {
 	struct lapl_data *ldata = args->user;
 	ldata->cache = calloc(1, sizeof(struct planetary_cache));
-	ldata->cache->use_cached = ldata->use_caching;
+	ldata->cache->use_cached = ldata->use_caching;	// TRUE?
 	ldata->cache->cache_data = ldata->use_caching;
 	init_caching(args->seq->seqname, ldata->cache, ldata->kernel_size);
 
@@ -97,17 +98,18 @@ int lapl_image_hook(struct generic_seq_args *args, int out_index, int in_index, 
 		for (zone_idx = 0; zone_idx < ldata->nb_zones; zone_idx++) {
 			stacking_zone *zone = &com.stacking_zones[zone_idx];
 			int side = get_side(zone);
-			// TODO: make sure zone is in image
 			rectangle shifted_zone = {
 				.x = zone->centre.x - ldata->current_regdata[in_index].shiftx,
 				.y = zone->centre.y + ldata->current_regdata[in_index].shifty,
 				.w = side, .h = side };
-
-			/* compute the quality for each zone */
-			zone->mpregparam[in_index].quality =
-				variance_area(laplacian_data, fit->rx, fit->ry, &shifted_zone);
-			if (ldata->max[zone_idx] < zone->mpregparam[in_index].quality)
-				ldata->max[zone_idx] = zone->mpregparam[in_index].quality;
+			if (is_area_in_image(&shifted_zone, args->seq)) {
+				/* compute the quality for each zone */
+				zone->mpregparam[in_index].quality =
+					variance_area(laplacian_data, fit->rx, fit->ry, &shifted_zone);
+				if (ldata->max[zone_idx] < zone->mpregparam[in_index].quality)
+					ldata->max[zone_idx] = zone->mpregparam[in_index].quality;
+			}
+			else zone->mpregparam[in_index].quality = -1.0;
 		}
 	}
 
@@ -180,17 +182,12 @@ static double variance_area(WORD *image, int width, int height, rectangle *area)
 	return (double)squared_sum / (mean * mean);
 }
 
-int laplace_quality_for_zones(sequence *seq, gboolean process_all_frames, gboolean use_caching, int kernel_size) {
+int laplace_quality_for_zones(sequence *seq, gboolean use_caching, int kernel_size) {
 	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
 	args->seq = seq;
 	args->partial_image = FALSE;
-	if (process_all_frames) {
-		args->filtering_criterion = stack_filter_all;
-		args->nb_filtered_images = seq->number;
-	} else {
-		args->filtering_criterion = stack_filter_included;
-		args->nb_filtered_images = seq->selnum;
-	}
+	args->filtering_criterion = stack_filter_included_and_registered;
+	args->nb_filtered_images = -1;
 	args->layer = 0;
 	args->prepare_hook = lapl_prepare_hook;
 	args->image_hook = lapl_image_hook;

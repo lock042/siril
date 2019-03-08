@@ -16,6 +16,7 @@ struct mpr_args {
 
 	/* configuration for processing */
 	int kernel_size;	// kernel size for gaussian and laplacian
+	gboolean use_caching;	// use or create pre-computed data
 	int nb_closest_AP;	// max number of closest AP to use
 	double max_distance;	// discard AP farther than this, in pixels
 	double own_distance_f;	// factor to the half-side of zone that gives
@@ -27,6 +28,7 @@ struct mpr_args {
 	double *global_image;	// the global image buffer as normalized double
 
 	fits *refimage;		// passing the static refimage
+
 };
 
 gpointer sequence_analysis_thread_func(gpointer p);

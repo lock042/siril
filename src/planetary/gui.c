@@ -155,10 +155,16 @@ void on_planetary_analysis_clicked(GtkButton *button, gpointer user_data) {
 gboolean on_mpreg_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(
 			gtk_builder_get_object(builder, "comboboxreglayer"));
+	GtkSpinButton *kernelsz = GTK_SPIN_BUTTON(
+			gtk_builder_get_object(builder, "kernelspin"));
+	GtkToggleButton *save_precomp = GTK_TOGGLE_BUTTON(
+			gtk_builder_get_object(builder, "store_precomp_checkbutton"));
 	struct mpr_args *args = malloc(sizeof(struct mpr_args));
 	args->seq = &com.seq;
 	args->layer = gtk_combo_box_get_active(cbbt_layers);
-	args->filtering_criterion = stack_filter_all;
+	args->filtering_criterion = stack_filter_included;
+	args->use_caching = gtk_toggle_button_get_active(save_precomp);
+	args->kernel_size = gtk_spin_button_get_value_as_int(kernelsz);
 	start_in_new_thread(the_multipoint_analysis, args);
 	return FALSE;
 }
@@ -169,6 +175,10 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 			gtk_builder_get_object(builder, "comboboxreglayer"));
 	GtkEntry *output_file = GTK_ENTRY(gtk_builder_get_object(builder, "entryresultfile"));
 	GtkToggleButton *overwrite = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "checkbutoverwrite"));
+	GtkSpinButton *kernelsz = GTK_SPIN_BUTTON(
+			gtk_builder_get_object(builder, "kernelspin"));
+	GtkToggleButton *save_precomp = GTK_TOGGLE_BUTTON(
+			gtk_builder_get_object(builder, "store_precomp_checkbutton"));
 
 	struct mpr_args *args = malloc(sizeof(struct mpr_args));
 	args->seq = &com.seq;
@@ -183,6 +193,8 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	args->output_filename = strdup(gtk_entry_get_text(output_file));
 	args->output_overwrite = gtk_toggle_button_get_active(overwrite);
 	args->global_image = NULL;
+	args->use_caching = gtk_toggle_button_get_active(save_precomp);
+	args->kernel_size = gtk_spin_button_get_value_as_int(kernelsz);
 	start_in_new_thread(the_multipoint_processing, args);
 	return FALSE;
 }

@@ -1853,6 +1853,13 @@ int stack_filter_included(sequence *seq, int layer, int nb_img, double any) {
 	return seq->imgparam[nb_img].incl;
 }
 
+int stack_filter_included_and_registered(sequence *seq, int layer, int nb_img, double any) {
+	return seq->imgparam[nb_img].incl &&
+		seq->regparam[layer] &&
+		!isnan(seq->regparam[layer][nb_img].shiftx) &&
+		!isnan(seq->regparam[layer][nb_img].shifty);
+}
+
 /* filter for deep-sky */
 int stack_filter_fwhm(sequence *seq, int layer, int nb_img, double max_fwhm) {
 	if (!seq->regparam) return 0;
@@ -1883,15 +1890,22 @@ int stack_filter_quality(sequence *seq, int layer, int nb_img, double max_qualit
 }
 
 /* browse the images to know how many fit the criterion, from global data */
-int compute_nb_filtered_images(struct stacking_args *stack_args) {
+int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion,
+		double filtering_parameter, int reglayer) {
 	int i, count = 0;
-	for (i = 0; i < com.seq.number; i++) {
-		if (stack_args->filtering_criterion(stack_args->seq,
-					stack_args->reglayer, i,
-					stack_args->filtering_parameter))
+	if (!seq->regparam[reglayer]) return 0;
+	for (i = 0; i < seq->number; i++) {
+		if (filtering_criterion(seq,
+					reglayer, i,
+					filtering_parameter))
 			count++;
 	}
 	return count;
+}
+
+int compute_nb_filtered_images_stack(struct stacking_args *stack_args) {
+	return compute_nb_filtered_images(&com.seq, stack_args->filtering_criterion,
+			stack_args->filtering_parameter, stack_args->reglayer);
 }
 
 int stack_get_max_number_of_rows(sequence *seq, int nb_images_to_stack) {
@@ -2141,7 +2155,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 			stackparam.filtering_parameter = compute_highest_accepted_fwhm(percent);
 			// sometimes this fails and returns 0.0 ^
 			if (stackparam.filtering_parameter > 0.0) {
-				stackparam.nb_images_to_stack = compute_nb_filtered_images(&stackparam);
+				stackparam.nb_images_to_stack = compute_nb_filtered_images_stack(&stackparam);
 				sprintf(stackparam.description, _("Stacking images of the sequence "
 							"with a FWHM lower or equal than %g (%d)\n"),
 						stackparam.filtering_parameter,	stackparam.nb_images_to_stack);
@@ -2173,7 +2187,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 			stackparam.filtering_criterion = stack_filter_roundness;
 			stackparam.filtering_parameter = compute_lowest_accepted_roundness(
 					percent);
-			stackparam.nb_images_to_stack = compute_nb_filtered_images(&stackparam);
+			stackparam.nb_images_to_stack = compute_nb_filtered_images_stack(&stackparam);
 			sprintf(stackparam.description, _("Stacking images of the sequence "
 						"with a roundness higher or equal than %g (%d)\n"),
 					stackparam.filtering_parameter, stackparam.nb_images_to_stack);
@@ -2193,7 +2207,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {	// was adjuststac
 		stackparam.filtering_criterion = stack_filter_quality;
 		stackparam.filtering_parameter = compute_lowest_accepted_quality(
 				percent);
-		stackparam.nb_images_to_stack = compute_nb_filtered_images(&stackparam);
+		stackparam.nb_images_to_stack = compute_nb_filtered_images_stack(&stackparam);
 		sprintf(stackparam.description, _("Stacking images of the sequence "
 				"with a quality higher or equal than %g (%d)\n"),
 				stackparam.filtering_parameter, stackparam.nb_images_to_stack);

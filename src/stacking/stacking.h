@@ -73,7 +73,9 @@ int stack_get_max_number_of_rows(sequence *seq, int nb_images_to_stack);
 void stack_fill_list_of_unfiltered_images(struct stacking_args *args);
 double compute_highest_accepted_fwhm(double percent);
 double compute_lowest_accepted_quality(double percent);
-int compute_nb_filtered_images(struct stacking_args *stack_args);
+int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion,
+		double filtering_parameter, int reglayer);
+int compute_nb_filtered_images_stack(struct stacking_args *stack_args);
 double compute_lowest_accepted_roundness(double percent);
 
 int stack_median(struct stacking_args *args);
@@ -89,6 +91,7 @@ void update_stack_interface(gboolean dont_change_stack_type);
 
 int stack_filter_all(sequence *seq, int layer, int nb_img, double any);
 int stack_filter_included(sequence *seq, int layer, int nb_img, double any);
+int stack_filter_included_and_registered(sequence *seq, int layer, int nb_img, double any);
 int stack_filter_fwhm(sequence *seq, int layer, int nb_img, double max_fwhm);
 int stack_filter_roundness(sequence *seq, int layer, int nb_img, double min_rnd);
 int stack_filter_quality(sequence *seq, int layer, int nb_img, double max_quality);

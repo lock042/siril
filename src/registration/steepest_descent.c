@@ -24,9 +24,13 @@
  * It runs two passes on the sequence: the first computes image quality, the
  * second computes the shifts. If caching is enabled, during the first pass,
  * gaussian-filtered images are stored for later use.
+ * Registration data is always stored on layer 0, because it uses a monochrome
+ * version of images so it does not depend on the layer.
  */
 
 #include <stdlib.h>
+#include <assert.h>
+#include <math.h>
 #include "core/siril.h"
 #include "core/processing.h"
 #include "registration.h"
@@ -43,11 +47,9 @@ struct regsd_data {
 	regdata *current_regdata;
 	struct planetary_cache *cache;
 	WORD *reference_image;	// gaussian filtered data for the reference image
+	int search_radius;
 };
 
-/* TODO:
- * ensure that ref image is set
- */
 static int regsd_prepare_hook(struct generic_seq_args *args) {
 	struct regsd_data *rsdata = args->user;
 	struct registration_args *regargs = rsdata->regargs;
@@ -56,67 +58,72 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 	rsdata->cache->cache_data = regargs->use_caching;
 	init_caching(args->seq->seqname, rsdata->cache, regargs->kernel_size);
 
-	/* TODO: check that layer = 0 is alright here */
-	if (args->seq->regparam[0]) {
-		int i;
-		siril_log_message(
-				_("Recomputing already existing registration for this layer\n"));
-		rsdata->current_regdata = args->seq->regparam[0];
-		/* we reset all shift values as we may register different images */
-		for (i = 0; i < args->seq->number; i++) {
-			rsdata->current_regdata[i].shiftx = 0.0;
-			rsdata->current_regdata[i].shifty = 0.0;
-		}
+	int ref_idx = args->seq->reference_image;
+	assert(ref_idx >= 0);
+
+	if (args->seq->regparam[args->layer]) {
+		siril_log_message(_("Recomputing already existing registration\n"));
+		rsdata->current_regdata = args->seq->regparam[args->layer];
 	} else {
-		rsdata->current_regdata = calloc(args->seq->number, sizeof(regdata));
+		int i;
+		rsdata->current_regdata = malloc(args->seq->number * sizeof(regdata));
 		if (rsdata->current_regdata == NULL) {
 			fprintf(stderr, "Error allocating registration data\n");
 			return -2;
 		}
+		for (i = 0; i < args->seq->number; i++) {
+			rsdata->current_regdata[i].shiftx = NAN;
+			rsdata->current_regdata[i].shifty = NAN;
+		}
 	}
 
 	/* Get reference frame */
-	int ref_idx = args->seq->reference_image;
 	rsdata->reference_image = get_gaussian_data_for_image(ref_idx, NULL, rsdata->cache);
 	if (!rsdata->reference_image) {
 		fits fit = { 0 };
 		if (seq_read_frame(args->seq, ref_idx, &fit)) {
-			// TODO: meaningful message
+			siril_log_color_message(_("Could not read reference image for steepest descent registration\n"), "red");
 			clearfits(&fit);
 			return 1;
 		}
 		rsdata->reference_image = get_gaussian_data_for_image(ref_idx, &fit, rsdata->cache);
 		clearfits(&fit);
 		if (!rsdata->reference_image) {
-			// TODO: meaningful message
+			siril_log_color_message(_("Could not read filtered reference image for steepest descent registration\n"), "red");
 			return 1;
 		}
 	}
 	return 0;
 }
 
-static int regsd_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+static int regsd_image_hook(struct generic_seq_args *args,
+		int out_index, int in_index, fits *fit, rectangle *_) {
 	struct regsd_data *rsdata = args->user;
 	struct registration_args *regargs = rsdata->regargs;
 	
-	WORD * gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
+	WORD *gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
 	if (!gaussian_data) {
-		// TODO: meaningful message
-		fprintf(stderr, "could not get gaussian data for the image\n");
+		siril_log_color_message(_("Could not get filtered image for steepest descent registration\n"), "red");
 		return 1;
 	}
 
 	// compute shift using the steepest descent algorithm
-	int max_radius = 50;
+	int max_radius = rsdata->search_radius;
 	rectangle area = { .x = max_radius, .y = max_radius,
 		.w = fit->rx - max_radius * 2, .h = fit->ry - max_radius * 2};
-	int shiftx, shifty, error;
+	int shiftx = 0, shifty, error;
+	// initialize shifts with the previous image's
+	if (in_index > 0 && !isnan(rsdata->current_regdata[in_index-1].shiftx)) {
+		shiftx = rsdata->current_regdata[in_index-1].shiftx;
+		shifty = rsdata->current_regdata[in_index-1].shifty;
+	}
 	error = search_local_match_gradient(rsdata->reference_image, gaussian_data,
 			fit->rx, fit->ry, &area, &area, max_radius, 1, &shiftx, &shifty);
 	if (error) {
-		// TODO: meaningful message
-		fprintf(stderr, "could not match with steepest gradient\n");
-		// TODO: handle failed images
+		siril_log_message(_("Image %d alignment failed\n"), in_index);
+		rsdata->current_regdata[in_index].quality = -1.0;
+		rsdata->current_regdata[in_index].shiftx = NAN;
+		rsdata->current_regdata[in_index].shifty = NAN;
 		return 1;
 	}
 
@@ -131,14 +138,8 @@ static int regsd_finalize_hook(struct generic_seq_args *args) {
 	finalize_caching(rsdata->cache);
 	free(rsdata->cache);
 	if (!args->retval) {
-		args->seq->regparam[0] = rsdata->current_regdata;
-		/* find best frame and normalize quality */
-
-		/* get shifts relative to the reference image */
-
+		args->seq->regparam[args->layer] = rsdata->current_regdata;
 		siril_log_message(_("Registration finished.\n"));
-		//siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index);
-		//args->seq->reference_image = q_index;
 		writeseqfile(args->seq);
 	} 
 	else {
@@ -160,7 +161,7 @@ int register_sd(struct registration_args *regargs) {
 		args->filtering_criterion = stack_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	//args->layer = regargs->layer;
+	/* we assume layer 0 for this registration */
 	args->layer = 0;
 
 	/* check if it's already computed before doing it for nothing */
@@ -170,7 +171,6 @@ int register_sd(struct registration_args *regargs) {
 			if (args->filtering_criterion(args->seq, args->layer, i, 0) &&
 					args->seq->regparam[args->layer][i].quality < 0.0)
 				break;
-			// TODO: check shifts too ^
 		}
 		if (i == args->seq->number) {
 			siril_log_message(_("Registration data already available, not recomputing.\n"));
@@ -186,9 +186,9 @@ int register_sd(struct registration_args *regargs) {
 	args->finalize_hook = lapl_finalize_hook;
 	args->idle_function = NULL;
 	args->stop_on_error = TRUE;
-	args->description = _("Image quality computation");
+	args->description = _("Steepest descent registration");
 	args->has_output = FALSE;
-	args->already_in_a_thread = TRUE;	// ?
+	args->already_in_a_thread = TRUE;
 	args->parallel = TRUE;
 
 	struct lapl_data *ldata = malloc(sizeof(struct lapl_data));
@@ -210,10 +210,10 @@ int register_sd(struct registration_args *regargs) {
 	args->save_hook = NULL;
 	args->finalize_hook = regsd_finalize_hook;
 	args->idle_function = NULL;
-	args->stop_on_error = TRUE;
+	args->stop_on_error = FALSE;
 	args->description = _("Steepest descent registration");
 	args->has_output = FALSE;
-	args->already_in_a_thread = TRUE;	// ?
+	args->already_in_a_thread = TRUE;
 	args->parallel = TRUE;
 
 	struct regsd_data *rsdata = calloc(1, sizeof(struct regsd_data));
@@ -222,6 +222,7 @@ int register_sd(struct registration_args *regargs) {
 		return -1;
 	}
 	rsdata->regargs = regargs;
+	rsdata->search_radius = 50;
 	args->user = rsdata;
 
 	generic_sequence_worker(args);
@@ -257,9 +258,10 @@ static unsigned long compute_deviation(WORD *ref_frame, WORD *frame,
 }
 
 /* The steepest descent image alignment algorithm.
- * Compares areas of a reference frame and the tested frame and looks for the best shift
- * between the two.
- * Sampling occurs one every 'stride' pixels, stride has to be lower than the area width.
+ * Compares areas of a reference frame and the tested frame and looks for the
+ * best shift between the two.
+ * Sampling occurs one every 'stride' pixels, stride has to be lower than the
+ * area width.
  */
 int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
@@ -267,10 +269,11 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 {
 	int iterations = 0;	// for stats
 
-        // Initialize the global optimum with the value at dy=dx=0.
-	int dx_min = 0, dy_min = 0;
-	unsigned long deviation_min = compute_deviation(ref_frame, frame, width, height,
-			area, area, sampling_stride);
+        // Initialize the global optimum with the value at dy=dx=0 or the values
+	// of the previous frame
+	int dx_min = *dx_result, dy_min = *dy_result;
+	unsigned long deviation_min = compute_deviation(ref_frame, frame, width,
+			height, area, area, sampling_stride);
 
 	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
 	// current optimum reaches beyond the search area.
@@ -281,16 +284,17 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		// the mean frame. Find the minimum "deviation_min_1".
 		int dx_min_1 = INT_MAX, dy_min_1 = INT_MAX;
 		unsigned long deviation_min_1 = ULONG_MAX;
-		for (dx = dx_min - 1; dx <= dx_min+1; dx++) {
-			for (dy = dy_min - 1; dy <= dy_min+1; dy++) {
+		for (dx = dx_min-1; dx <= dx_min+1; dx++) {
+			for (dy = dy_min-1; dy <= dy_min+1; dy++) {
 				unsigned long deviation;
 				if (dy == 0 && dx == 0) continue;
 				rectangle test_area = {
 					.x = area->x - dx, .y = area->y - dy,
 					.w = area->w, .h = area->h };
 
-				deviation = compute_deviation(ref_frame, frame, width,
-						height, area, &test_area, sampling_stride);
+				deviation = compute_deviation(ref_frame, frame,
+						width, height, area, &test_area,
+						sampling_stride);
 
 				if (deviation < deviation_min_1) {
 					deviation_min_1 = deviation;
@@ -300,8 +304,8 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 			}
 		}
 
-		// If for the current center the match is better than for all neighboring
-		// points, a local optimum is found.
+		// If for the current center the match is better than for all
+		// neighboring points, a local optimum is found.
 		if (deviation_min_1 >= deviation_min) {
 			*dx_result = -dx_min;
 			*dy_result = dy_min;
@@ -314,8 +318,6 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		dx_min = dx_min_1;
 		dy_min = dy_min_1;
 		iterations++;
-		/*fprintf(stdout, "iteration %d, deviation %lu for shifts (%d, %d)\n",
-				iterations, deviation_min, dx_min, dy_min);*/
 	}
 	// If within the maximum search radius no optimum could be found, return [0, 0].
 	*dx_result = 0;

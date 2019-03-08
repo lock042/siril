@@ -53,9 +53,22 @@ gpointer generic_sequence_worker(gpointer p) {
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 
-	if (args->nb_filtered_images > 0)	// XXX can it be zero?
+	if (args->nb_filtered_images > 0)
 		nb_frames = args->nb_filtered_images;
-	else 	nb_frames = args->seq->number;
+	else  nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion,
+			args->filtering_parameter, args->layer);
+	if (nb_frames <= 0) {
+		desc = g_string_new(args->description);
+		if (desc) {
+			siril_log_message(_(": could not find any image to process\n"));
+			msg = g_string_free(desc, FALSE);
+			siril_log_color_message(msg, "red");
+			g_free(msg);
+		}
+		args->retval = 1;
+		goto the_end;
+	}
+
 	nb_framesf = (float)nb_frames + 0.3f;	// leave margin for rounding errors and post processing
 	args->retval = 0;
 

@@ -1374,6 +1374,12 @@ void enforce_area_in_image(rectangle *area, sequence *seq) {
 		area->y = seq->ry - area->h;
 }
 
+gboolean is_area_in_image(rectangle *area, sequence *seq) {
+	return area->x >= 0 && area->y >= 0 &&
+		area->x + area->w <= seq->rx &&
+		area->y + area->h <= seq->ry;
+}
+
 /********************************************************************
  *                                             __                   *
  *                   ___  ___  __ _ _ __  ___ / _|                  *

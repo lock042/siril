@@ -52,7 +52,7 @@ gpointer the_multipoint_analysis(gpointer ptr) {
 
 /* evaluates quality of each zone for each image and saves it in mpregparam */
 int the_laplace_multipoint_quality_analysis(struct mpr_args *args) {
-	return laplace_quality_for_zones(args->seq, FALSE, TRUE, 3);
+	return laplace_quality_for_zones(args->seq, args->use_caching, args->kernel_size);
 }
 
 int the_siril_multipoint_quality_analysis(struct mpr_args *args) {
