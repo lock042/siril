@@ -93,6 +93,8 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 			return 1;
 		}
 	}
+	rsdata->current_regdata[ref_idx].shiftx = 0;
+	rsdata->current_regdata[ref_idx].shifty = 0;
 	return 0;
 }
 
@@ -101,6 +103,8 @@ static int regsd_image_hook(struct generic_seq_args *args,
 	struct regsd_data *rsdata = args->user;
 	struct registration_args *regargs = rsdata->regargs;
 	
+	if (in_index == args->seq->reference_image)
+		return 0;
 	WORD *gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
 	if (!gaussian_data) {
 		siril_log_color_message(_("Could not get filtered image for steepest descent registration\n"), "red");
@@ -111,7 +115,7 @@ static int regsd_image_hook(struct generic_seq_args *args,
 	int max_radius = rsdata->search_radius;
 	rectangle area = { .x = max_radius, .y = max_radius,
 		.w = fit->rx - max_radius * 2, .h = fit->ry - max_radius * 2};
-	int shiftx = 0, shifty, error;
+	int shiftx = 0, shifty = 0, error;
 	// initialize shifts with the previous image's
 	if (in_index > 0 && !isnan(rsdata->current_regdata[in_index-1].shiftx)) {
 		shiftx = rsdata->current_regdata[in_index-1].shiftx;
