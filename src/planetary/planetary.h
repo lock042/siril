@@ -44,5 +44,6 @@ gpointer the_multipoint_processing(gpointer ptr);
 
 /* planetary helpers */
 int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer);
+void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size);
 
 #endif

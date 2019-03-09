@@ -40,10 +40,12 @@
 #include "gui/zones.h"
 #include "registration/registration.h"
 
+#define DEBUG_MPP
+
 static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle);
 
 struct mppsd_data {
-	unsigned char **best_zones;	// index of best zones per image
+	BYTE **best_zones;	// index of best zones per image
 
 	/* registration data */
 	//struct mpr_args *mpr;
@@ -161,13 +163,24 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		}
 
 		zone->mpregparam[in_index].x = -shiftx + regparam[in_index].shiftx;
-		zone->mpregparam[in_index].y = shifty + regparam[in_index].shifty;
+		zone->mpregparam[in_index].y =  shifty + regparam[in_index].shifty;
 		fprintf(stdout, "frame %d, zone %d local shifts: %d,%d\n",
 				in_index, zone_idx, -shiftx, shifty);
 
 		/* AP stacking */
 		add_image_zone_to_stacking_sum(fit, zone, in_index,
 				mppdata->sum, mppdata->count);
+#ifdef DEBUG_MPP
+		// to see what's happening with the shifts, use this
+		int side = get_side(zone);
+		shifted_zone.centre.x = zone->centre.x - zone->mpregparam[in_index].x;
+		shifted_zone.centre.y = zone->centre.y + zone->mpregparam[in_index].y;
+		WORD *buffer = malloc(side * side * sizeof(WORD));
+		copy_image_zone_to_buffer(fit, &shifted_zone, buffer, args->layer);
+		save_buffer_tmp(in_index, zone_idx, buffer, side);
+		free(buffer);
+#endif
+
 	}
 
 	return 0;
@@ -290,7 +303,7 @@ static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle) {
 	int side = get_side(zone);
 	rectangle->x = zone->centre.x - zone->half_side;
 	rectangle->y = zone->centre.y - zone->half_side;
-	rectangle->w = rectangle->x + side;
-	rectangle->h = rectangle->y + side;
+	rectangle->w = side;
+	rectangle->h = side;
 }
 

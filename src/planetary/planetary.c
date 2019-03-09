@@ -194,17 +194,12 @@
 #include "opencv/ecc/ecc.h"
 
 #define FFTW_WISDOM_FILE "fftw_wisdom"
-#define DEBUG_MPP
 //#define USE_SEQUENCE_REF_IMAGE
 
 static fits refimage;
 static char *refimage_filename;
 
 static gboolean end_reference_image_stacking(gpointer p);
-
-#if defined DEBUG_MPP || defined DEBUG_MPP1
-static void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size);
-#endif
 
 gpointer sequence_analysis_thread_func(gpointer p) {
 	struct registration_args *reg_args = (struct registration_args *) p;
@@ -366,7 +361,6 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	return GINT_TO_POINTER(retval);
 }
 
-// the same as above with a WORD buffer instead of double
 int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer) {
 	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
@@ -393,9 +387,9 @@ int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, 
 	return 0;
 }
 
-#if defined DEBUG_MPP || defined DEBUG_MPP1
-static void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size) {
-	char tmpfn[100];	// this is for debug purposes
+// for debug purposes
+void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size) {
+	char tmpfn[100];
 	sprintf(tmpfn, "/tmp/zone_%d_image_%d.fit", zone_idx, frame_index);
 	fits *tmp = NULL;
 	new_fit_image(&tmp, square_size, square_size, 1, buffer);
@@ -403,4 +397,4 @@ static void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int squ
 	tmp->data = NULL; // don't free the original buffer
 	clearfits(tmp);
 }
-#endif
+
