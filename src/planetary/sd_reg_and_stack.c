@@ -104,6 +104,19 @@ static int mppsd_prepare_hook(struct generic_seq_args *args) {
 		mppdata->count[1] = NULL;
 		mppdata->count[2] = NULL;
 	}
+
+	// allocate the mpregparams in a thread-safe environment
+	int zone_idx;
+	for (zone_idx = 0; zone_idx < mppdata->nb_zones; zone_idx++) {
+		stacking_zone *zone = &com.stacking_zones[zone_idx];
+		if (!zone->mpregparam) {
+			zone->mpregparam = calloc(args->seq->number, sizeof(struct ap_regdata));
+			if (!zone->mpregparam) {
+				fprintf(stderr, "memory allocation failed\n");
+				return 1;
+			}
+		}
+	}
 	return 0;
 }
 
@@ -128,21 +141,17 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 
 		stacking_zone *zone = &com.stacking_zones[zone_idx];
 		stacking_zone shifted_zone = { .centre =
-			{ .x = zone->centre.x - regparam[in_index].shiftx,
-				.y = zone->centre.y + regparam[in_index].shifty },
+			{ .x = round_to_int(zone->centre.x - regparam[in_index].shiftx),
+				.y = round_to_int(zone->centre.y + regparam[in_index].shifty) },
 			.half_side = zone->half_side };
-
-		if (!zone->mpregparam) {
-			zone->mpregparam = calloc(args->seq->number, sizeof(struct ap_regdata));
-			if (!zone->mpregparam) {
-				fprintf(stderr, "memory allocation failed\n");
-				return 1;
-			}
-		}
 
 		/* AP registration */
 		int max_radius = mppdata->search_radius;
 		int shiftx = 0, shifty = 0, error;
+		if (in_index > 0 && !isnan(zone->mpregparam[in_index-1].x)) {
+			shiftx = zone->mpregparam[in_index-1].x;
+			shiftx = zone->mpregparam[in_index-1].y;
+		}
 		rectangle ref_area, im_area;
 		zone_to_rectangle(zone, &ref_area);
 		zone_to_rectangle(&shifted_zone, &im_area);
@@ -154,16 +163,19 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		else error = 1;
 
 		if (error) {
-			fprintf(stderr, "could not match zone %d of image %d with steepest gradient\n", zone_idx, in_index);
+			if (error == -1)
+				fprintf(stderr, "could not match zone %d of image %d with steepest gradient\n", zone_idx, in_index);
+			else if (error == 1)
+				fprintf(stderr, "zone %d was out of image %d, not aligning (steepest gradient)\n", zone_idx, in_index);
 			zone->mpregparam[in_index].x = NAN;
 			zone->mpregparam[in_index].y = NAN;
 			zone->mpregparam[in_index].quality = -1.0;
-			// TODO: handle failed APs: NAN or regparam shift?
+			// TODO: handle failed APs
 			continue;
 		}
 
-		zone->mpregparam[in_index].x = -shiftx + regparam[in_index].shiftx;
-		zone->mpregparam[in_index].y =  shifty + regparam[in_index].shifty;
+		zone->mpregparam[in_index].x =  shiftx + regparam[in_index].shiftx;
+		zone->mpregparam[in_index].y =  -shifty + regparam[in_index].shifty;
 		fprintf(stdout, "frame %d, zone %d local shifts: %d,%d\n",
 				in_index, zone_idx, -shiftx, shifty);
 
@@ -173,10 +185,12 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 #ifdef DEBUG_MPP
 		// to see what's happening with the shifts, use this
 		int side = get_side(zone);
-		shifted_zone.centre.x = zone->centre.x - zone->mpregparam[in_index].x;
-		shifted_zone.centre.y = zone->centre.y + zone->mpregparam[in_index].y;
+		// same coordinates as in add_image_zone_to_stacking_sum()
+		shifted_zone.centre.x = round_to_int(zone->centre.x - zone->mpregparam[in_index].x);
+		shifted_zone.centre.y = round_to_int(zone->centre.y + zone->mpregparam[in_index].y);
 		WORD *buffer = malloc(side * side * sizeof(WORD));
 		copy_image_zone_to_buffer(fit, &shifted_zone, buffer, args->layer);
+		// TODO: same thing but with the gaussian_data buffer instead of fit
 		save_buffer_tmp(in_index, zone_idx, buffer, side);
 		free(buffer);
 #endif

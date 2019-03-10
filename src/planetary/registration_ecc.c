@@ -98,8 +98,8 @@ int the_multipoint_ecc_registration(struct mpr_args *args) {
 			if (abort) continue;
 			zone = &com.stacking_zones[zone_idx];
 			stacking_zone shifted_zone = { .centre =
-				{ .x = zone->centre.x - regparam[frame].shiftx,
-					.y = zone->centre.y + regparam[frame].shifty },
+				{ .x = round_to_int(zone->centre.x - regparam[frame].shiftx),
+					.y = round_to_int(zone->centre.y + regparam[frame].shifty) },
 				.half_side = zone->half_side };
 			int side = get_side(zone);
 			WORD *buffer = malloc(side * side * sizeof(WORD));	// TODO: prealloc

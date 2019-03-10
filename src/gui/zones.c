@@ -20,9 +20,14 @@
 
 /* This file manages small selection areas called zones, used in multi-point
  * planetary processing and in background extraction.
- * Zones are stored in com.stacking_zones. */
+ * A zone is a square centred on a point, the side of this square is thus
+ * always odd.
+ * Zones are stored in com.stacking_zones.
+ * Uninitialized zones have a centre X coordinate of -1 and no mpregparam.
+ * */
 
 #include <math.h>
+#include <assert.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "gui.h"
@@ -37,24 +42,24 @@ int get_number_of_zones() {
 	int i = 0;
 	if (!com.stacking_zones)
 		return 0;
-	while (com.stacking_zones[i].centre.x >= 0.0) i++;
+	while (com.stacking_zones[i].centre.x >= 0) i++;
 	return i;
 }
 
 gboolean get_zone_available(int zone_idx) {
 	return zone_idx < (com.stacking_zones_size - 1) &&
-		com.stacking_zones[zone_idx].centre.x >= 0.0;
+		com.stacking_zones[zone_idx].centre.x >= 0;
 }
 
 int get_side(const stacking_zone *zone) {
-	return round_to_int(zone->half_side * 2.0);
+	return zone->half_side * 2 + 1;
 }
 
 int point_is_inside_zone(int px, int py, const stacking_zone *zone) {
-	int side = round_to_int(zone->half_side * 2.0);
-	int startx = round_to_int(zone->centre.x - zone->half_side);
-	int starty = round_to_int(zone->centre.y - zone->half_side);
-	return px > startx && px < startx + side && py > starty && py < starty + side;
+	int side = get_side(zone);
+	int startx = zone->centre.x - zone->half_side;
+	int starty = zone->centre.y - zone->half_side;
+	return px > startx && px <= startx + side && py > starty && py <= starty + side;
 }
 
 /***************** GUI stuff ********************/
@@ -74,24 +79,24 @@ void on_remove_zones_toggled(GtkToggleButton *togglebutton, gpointer user_data) 
 void remove_stacking_zones() {
 	if (com.stacking_zones) {
 		int i = 0;
-		while (com.stacking_zones[i].centre.x >= 0.0) {
-			com.stacking_zones[i].centre.x = -1.0;
+		while (com.stacking_zones[i].centre.x >= 0) {
+			com.stacking_zones[i].centre.x = -1;
 			i++;
 		}
 	}
 }
 
 /* add a stacking zone centred around x,y with the given half side */
-void add_stacking_zone(double x, double y, double half_side) {
+void add_stacking_zone(int x, int y, int half_side) {
 	if (!com.stacking_zones_size || !com.stacking_zones) {
 		com.stacking_zones_size = 40;
 		com.stacking_zones = malloc(com.stacking_zones_size * sizeof(stacking_zone));
-		com.stacking_zones[0].centre.x = -1.0;
+		com.stacking_zones[0].centre.x = -1;
 		com.stacking_zones[0].mpregparam = NULL;
 	}
 
 	int i = 0;
-	while (com.stacking_zones && com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1)
+	while (com.stacking_zones && com.stacking_zones[i].centre.x >= 0 && i < com.stacking_zones_size - 1)
 		i++;
 	if (i == com.stacking_zones_size - 1) {
 		com.stacking_zones_size *= 2;
@@ -104,9 +109,9 @@ void add_stacking_zone(double x, double y, double half_side) {
 	zone->centre.y = y;
 	zone->half_side = half_side;
 	zone->mpregparam = NULL;
-	fprintf(stdout, "Added stacking zone %d at %4g,%4g. Half side: %g\n", i, x, y, half_side);
+	fprintf(stdout, "Added stacking zone %d at %d,%d. Half side: %d\n", i, x, y, half_side);
 
-	com.stacking_zones[i+1].centre.x = -1.0;
+	com.stacking_zones[i+1].centre.x = -1;
 	com.stacking_zones[i+1].mpregparam = NULL;
 
 	activate_mpp_processing_button();
@@ -123,15 +128,16 @@ void planetary_click_in_image(double x, double y) {
 	int i = 0;
 	if (add_zones_mode) {
 		GtkAdjustment *sizeadj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_zonesize"));
-		double size = gtk_adjustment_get_value(sizeadj);
-		if (size > 0.0)
-			add_stacking_zone(x, y, size*0.5);
+		int half_size, size = round_to_int(gtk_adjustment_get_value(sizeadj));
+		assert(size > 0);
+		half_size = (size - 1) / 2;
+		add_stacking_zone(x, y, half_size);
 	}
 	else if (remove_zones_mode) {
 		double closest_distance = DBL_MAX;
 		int closest_zone = -1;
 		if (com.stacking_zones) {
-			while (com.stacking_zones[i].centre.x >= 0.0) {
+			while (com.stacking_zones[i].centre.x >= 0) {
 				stacking_zone *zone = &com.stacking_zones[i];
 				double xdist = zone->centre.x - x;
 				double ydist = zone->centre.y - y;
@@ -160,7 +166,7 @@ void planetary_click_in_image(double x, double y) {
 				memcpy(&com.stacking_zones[closest_zone],
 						&com.stacking_zones[i-1],
 						sizeof(stacking_zone));
-				com.stacking_zones[i-1].centre.x = -1.0;
+				com.stacking_zones[i-1].centre.x = -1;
 
 				activate_mpp_processing_button();
 				update_zones_list();
@@ -173,9 +179,9 @@ void planetary_click_in_image(double x, double y) {
 gboolean zone_is_too_close(int x, int y, int size) {
 	if (com.stacking_zones) {
 		int i = 0;
-		while (com.stacking_zones[i].centre.x >= 0.0) {
-			if ((fabs(com.stacking_zones[i].centre.x - x) < size)
-					&& (fabs(com.stacking_zones[i].centre.y - y) < size))
+		while (com.stacking_zones[i].centre.x >= 0) {
+			if ((abs(com.stacking_zones[i].centre.x - x) < size)
+					&& (abs(com.stacking_zones[i].centre.y - y) < size))
 				return TRUE;
 			i++;
 		}

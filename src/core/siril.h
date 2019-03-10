@@ -197,6 +197,7 @@ typedef struct cominf cominfo;
 typedef struct image_stats imstats;
 typedef struct rectangle_struct rectangle;
 typedef struct point_struct point;
+typedef struct int_point_struct point_i;
 typedef struct gradient_struct gradient;
 typedef struct stacking_zone_struct stacking_zone;
 typedef struct historic_struct historic;
@@ -507,6 +508,10 @@ struct point_struct {
 	double x, y;
 };
 
+struct int_point_struct {
+	int x, y;
+};
+
 struct gradient_struct {
 	point centre;
 	double boxvalue[3];
@@ -523,12 +528,11 @@ typedef struct Homo {
 struct ap_regdata {
 	float x, y;
 	double quality;
-	//Homography *transform;
 };
 
 struct stacking_zone_struct {
-	point centre;
-	double half_side;
+	point_i centre;
+	int half_side;
 	// a struct for each image, NULL if not yet evaluated
 	struct ap_regdata *mpregparam;
 };

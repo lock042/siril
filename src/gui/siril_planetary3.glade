@@ -4665,8 +4665,8 @@ WARNING: Reducing the ratio of memory allocated to computation will degrade perf
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_zonesize">
-    <property name="upper">2000</property>
-    <property name="value">50</property>
+    <property name="upper">2001</property>
+    <property name="value">51</property>
     <property name="step_increment">2</property>
     <property name="page_increment">20</property>
   </object>

@@ -126,8 +126,8 @@ int the_multipoint_dft_registration(struct mpr_args *args) {
 			int side = get_side(zone);
 			int nb_pixels = side * side;
 			stacking_zone shifted_zone = { .centre =
-				{ .x = zone->centre.x - regparam[frame].shiftx,
-					.y = zone->centre.y + regparam[frame].shifty },
+				{ .x = round_to_int(zone->centre.x - regparam[frame].shiftx),
+					.y = round_to_int(zone->centre.y + regparam[frame].shifty) },
 				.half_side = zone->half_side };
 
 			if (!zones[zone_idx]) {	// keep across images
@@ -207,8 +207,8 @@ static int copy_image_zone_to_fftw(fits *fit, const stacking_zone *zone, fftw_co
 		int layer) {
 	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
-	int startx = round_to_int(zone->centre.x - zone->half_side);
-	int starty = round_to_int(zone->centre.y - zone->half_side);
+	int startx = zone->centre.x - zone->half_side;
+	int starty = zone->centre.y - zone->half_side;
 	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
 		/* this zone is partly outside the image, I don't think there's
 		 * much we can do for it, it just has to be ignored for this

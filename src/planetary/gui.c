@@ -20,6 +20,7 @@
 
 #include <gtk/gtk.h>
 #include <float.h>
+#include <assert.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "io/sequence.h"
@@ -79,7 +80,7 @@ void on_bestimage_changed(GtkRange *range, gpointer user_data) {
 void activate_mpp_processing_button() {
 	static GtkWidget *stack_button = NULL;
 	int status = sequence_is_loaded() && refimage_is_set() &&
-		com.stacking_zones && com.stacking_zones[0].centre.x >= 0.0;
+		com.stacking_zones && com.stacking_zones[0].centre.x >= 0;
 	// we should also check that there are at least two images to stack
 	if (!stack_button)
 	       stack_button = lookup_widget("gostack_button");
@@ -291,7 +292,7 @@ static void auto_add_stacking_zones(fits *fit, int layer, int size) {
 	/* FILL real image upside-down */
 	image = malloc(ny * sizeof(WORD *));
 	if (image == NULL) {
-		fprintf(stderr, "Memory allocation failed: peaker\n");
+		fprintf(stderr, "Memory allocation failed\n");
 		return;
 	}
 	for (k = 0; k < ny; k++)
@@ -325,24 +326,28 @@ static void auto_add_stacking_zones(fits *fit, int layer, int size) {
 					nbzone++;
 					if (!zone_is_too_close(x, y, overlap))
 						add_stacking_zone(x, y, size);
-					update_zones_list();
 				}
 			}
 		}
 	}
-	if (nbzone) redraw(com.cvport, REMAP_ALL);
+	if (nbzone) {
+		update_zones_list();
+		redraw(com.cvport, REMAP_ALL);
+	}
 	free(image);
 }
 
 void on_autoposition_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkAdjustment *sizeadj = GTK_ADJUSTMENT(
 			gtk_builder_get_object(builder, "adjustment_zonesize"));
-	double size = gtk_adjustment_get_value(sizeadj);
+	int half_size, size = round_to_int(gtk_adjustment_get_value(sizeadj));
+	assert(size > 0);
+	half_size = (size - 1) / 2;
 
 	remove_stacking_zones();
 
 	// TODO: set layer
-	auto_add_stacking_zones(&gfit, 0, size * 0.5);
+	auto_add_stacking_zones(&gfit, 0, half_size);
 }
 
 void on_check_autopos_toggled(GtkToggleButton *togglebutton,
@@ -369,7 +374,7 @@ void on_selectedzonecombo_changed(GtkComboBox *widget, gpointer user_data) {
 
 	// show graph for a zone and highlight it
 	int i = 0;
-	while (com.stacking_zones[i].centre.x >= 0.0 && i < com.stacking_zones_size - 1) {
+	while (com.stacking_zones[i].centre.x >= 0 && i < com.stacking_zones_size - 1) {
 		i++;
 		if (i == zone_id) {
 			com.stacking_zone_focus = i-1;

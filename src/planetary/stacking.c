@@ -138,8 +138,8 @@ int the_old_local_multipoint_sum_stacking(struct mpr_args *args) {
 				// to see what's happening with the shifts, use this
 				int side = get_side(zone);
 				stacking_zone shifted_zone = { .centre =
-					{ .x = zone->centre.x - zone->mpregparam[frame].x,
-						.y = zone->centre.y + zone->mpregparam[frame].y },
+					{ .x = round_to_int(zone->centre.x - zone->mpregparam[frame].x),
+						.y = round_to_int(zone->centre.y + zone->mpregparam[frame].y) },
 					.half_side = zone->half_side };
 
 				WORD *buffer = malloc(side * side * sizeof(WORD));
@@ -240,8 +240,8 @@ int the_old_local_multipoint_sum_stacking(struct mpr_args *args) {
 static void add_buf_zone_to_stacking_sum(WORD *buf, int layer, const stacking_zone *zone,
 		int frame, unsigned long *sum[3], int *count[3], unsigned int rx, unsigned int ry) {
 	int side = get_side(zone);
-	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
-	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
+	int dst_startx = zone->centre.x - zone->half_side;
+	int dst_starty = zone->centre.y - zone->half_side;
 
 	unsigned long *to = sum[layer];
 	int *lcount = count[layer];
@@ -271,8 +271,8 @@ void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int fr
 	int side = get_side(zone);
 	int src_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
 	int src_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
-	int dst_startx = round_to_int(zone->centre.x - zone->half_side);
-	int dst_starty = round_to_int(zone->centre.y - zone->half_side);
+	int dst_startx = zone->centre.x - zone->half_side;
+	int dst_starty = zone->centre.y - zone->half_side;
 
 	if (src_startx < 0 || src_startx >= fit->rx - side ||
 			src_starty < 0 || src_starty >= fit->ry - side) {

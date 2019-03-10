@@ -264,6 +264,7 @@ static unsigned long compute_deviation(WORD *ref_frame, WORD *frame,
 /* The steepest descent image alignment algorithm.
  * Compares areas of a reference frame and the tested frame and looks for the
  * best shift between the two.
+ * The starting point for the search is provided in arguments dx and dy_result.
  * Sampling occurs one every 'stride' pixels, stride has to be lower than the
  * area width.
  */
