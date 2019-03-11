@@ -261,6 +261,49 @@ static unsigned long compute_deviation(WORD *ref_frame, WORD *frame,
 	return sum;
 }
 
+/* Search patterns used for steepest descent. The samples outside the main 3x3
+ * are here to help circumvent the local minimum problem.
+ */
+unsigned char search_pattern_9x9[] = {
+	0, 1, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 1,
+	0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 1, 0, 1, 1, 1, 0, 0, 0,
+	0, 0, 0, 1, 0, 1, 0, 0, 0,
+	0, 0, 0, 1, 1, 1, 0, 1, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 1, 0,
+};
+
+unsigned char search_pattern_7x7[] = {
+	0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 1,
+	0, 0, 1, 1, 1, 0, 0,
+	0, 0, 1, 0, 1, 0, 0,
+	0, 0, 1, 1, 1, 0, 0,
+	1, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0,
+};
+
+unsigned char search_pattern_5x5[] = {
+	0, 1, 0, 0, 0,
+	0, 1, 1, 1, 1,
+	0, 1, 0, 1, 0,
+	1, 1, 1, 1, 0,
+	0, 0, 0, 1, 0,
+};
+
+unsigned char search_pattern_3x3[] = {
+	1, 1, 1,
+	1, 0, 1,
+	1, 1, 1,
+};
+
+#define SEARCH_SIZE 5
+#define SEARCH_HALF_SIZE 2 // (SEARCH_SIZE-1)/2
+#define SEARCH_PATTERN search_pattern_5x5
+
 /* The steepest descent image alignment algorithm.
  * Compares areas of a reference frame and the tested frame and looks for the
  * best shift between the two.
@@ -283,28 +326,32 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
 	// current optimum reaches beyond the search area.
 	while (max(abs(dy_min), abs(dx_min)) < search_width-1) {
-		int dx, dy;
 		// Go through the neighbours of radius 1 and compute the difference
 		// (deviation) between the shifted frame and the corresponding box in
 		// the mean frame. Find the minimum "deviation_min_1".
 		int dx_min_1 = INT_MAX, dy_min_1 = INT_MAX;
 		unsigned long deviation_min_1 = ULONG_MAX;
-		for (dx = dx_min-1; dx <= dx_min+1; dx++) {
-			for (dy = dy_min-1; dy <= dy_min+1; dy++) {
-				unsigned long deviation;
-				if (dy == 0 && dx == 0) continue;
+		int dx, dy;
+		for (dx = -SEARCH_HALF_SIZE; dx <= SEARCH_HALF_SIZE; dx++) {
+			for (dy = -SEARCH_HALF_SIZE; dy <= SEARCH_HALF_SIZE; dy++) {
+				int filter_index = dx + SEARCH_HALF_SIZE + (dy + SEARCH_HALF_SIZE) * SEARCH_SIZE;
+				if (!SEARCH_PATTERN[filter_index])
+					continue;
+				int x = dx + dx_min, y = dy + dy_min;
+
 				rectangle test_area = {
-					.x = area->x - dx, .y = area->y - dy,
+					.x = area->x - x, .y = area->y - y,
 					.w = area->w, .h = area->h };
 
+				unsigned long deviation;
 				deviation = compute_deviation(ref_frame, frame,
 						width, height, area, &test_area,
 						sampling_stride);
 
 				if (deviation < deviation_min_1) {
 					deviation_min_1 = deviation;
-					dx_min_1 = dx;
-					dy_min_1 = dy;
+					dx_min_1 = x;
+					dy_min_1 = y;
 				}
 			}
 		}
