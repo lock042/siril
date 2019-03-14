@@ -7590,7 +7590,7 @@ WARNING: it will erase all registration and statistics data.	</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="tooltip_text" translatable="yes">If checked, the intermediate images used for registration will be stored on disk for faster access later. This data will not be deleted automatically and will be big.
-Unchecking this button will disable data storage and delete existing precomputed data from working directory for the selected sequence.</property>
+Unchecking this button will disable data storage and delete (NOT YET IMPLEMENTED) existing precomputed data from working directory for the selected sequence.</property>
                             <property name="active">True</property>
                             <property name="draw_indicator">True</property>
                           </object>

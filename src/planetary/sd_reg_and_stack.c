@@ -174,8 +174,8 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 			continue;
 		}
 
-		zone->mpregparam[in_index].x =  shiftx + regparam[in_index].shiftx;
-		zone->mpregparam[in_index].y =  -shifty + regparam[in_index].shifty;
+		zone->mpregparam[in_index].x =  -shiftx + regparam[in_index].shiftx;
+		zone->mpregparam[in_index].y =   shifty + regparam[in_index].shifty;
 		fprintf(stdout, "frame %d, zone %d local shifts: %d,%d\n",
 				in_index, zone_idx, -shiftx, shifty);
 
