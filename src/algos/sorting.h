@@ -12,6 +12,10 @@ double quickmedian (WORD *a, int n);
 double quickmedian_double(double *a, int n);
 double quickmedian_int (int *a, int n);
 
+
+/* Quick select based on Three Way Partition */
+double twpqs (WORD *a, int n);
+
 /* Histogram median for very large array of unsigned short */
 double histogram_median (WORD *a, int n);
 double histogram_median_double (double *a, int n);
