@@ -45,6 +45,29 @@
 
 const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 
+/*
+ * Sorting network for array of double of size 8 fast and robust
+ * Written by Emmanuel Brandt 2019-04
+ * over 60% faster than quicksort
+ * @param array of double (assuming size is 8)
+ * return median value as the average of middle to values od sorted array
+ * TODO: move to sorting.c once testing is complete
+ */
+#define sw(i,j) if(a[i] > a[j]) { register double t=a[i]; a[i]=a[j]; a[j]=t; }
+double sortnet8median_double (double *a)
+{
+	sw(0,1); sw(2,3); sw(4,5); sw(6,7);
+	sw(0,2); sw(1,3); sw(4,6); sw(5,7);
+	sw(1,2); sw(5,6);
+	sw(0,4); sw(1,5); sw(2,6); sw(3,7);
+	sw(2,4); sw(3,5);
+	sw(1,2); sw(3,4); sw(5,6);
+	
+	return (a[3]+a[4])/2.0; // median
+}
+#undef sw
+
+
 /* see also getMedian5x5 in algos/cosmetic_correction.c */
 static WORD getMedian3x3(gsl_matrix *in, const int xx, const int yy,
 		const int w, const int h) {
@@ -69,9 +92,11 @@ static WORD getMedian3x3(gsl_matrix *in, const int xx, const int yy,
 			}
 		}
 	}
-	start = 8 - n - 1;
-	quicksort_d(value, 8);
-	median = gsl_stats_median_from_sorted_data(value + start, 1, n);
+	
+	median = sortnet8median_double (value);
+	//start = 8 - n - 1;
+	//quicksort_d(value, 8);
+	//median = gsl_stats_median_from_sorted_data(value + start, 1, n);
 	free(value);
 	return median;
 }
