@@ -46,61 +46,33 @@
 const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 
 /*
- * Sorting network for array of double of size 8 fast and robust
- * Written by Emmanuel Brandt 2019-04
- * over 60% faster than quicksort
- * @param array of double (assuming size is 8)
- * return median value as the average of middle to values od sorted array
- * TODO: move to sorting.c once testing is complete
+ * Non linear 3x3 median filter
+ * Optimized by Emmanuel Brandt 2019-04
+ * @param xx,yy are area coordinates
+ * @param w,h are image width and height
+ * @return median of 3x3 area as double
  */
-#define sw(i,j) if(a[i] > a[j]) { register double t=a[i]; a[i]=a[j]; a[j]=t; }
-double sortnet8median_double (double *a)
+static double getMedian3x3(gsl_matrix *in, const int xx, const int yy,
+		const int w, const int h) 
 {
-	sw(0,1); sw(2,3); sw(4,5); sw(6,7);
-	sw(0,2); sw(1,3); sw(4,6); sw(5,7);
-	sw(1,2); sw(5,6);
-	sw(0,4); sw(1,5); sw(2,6); sw(3,7);
-	sw(2,4); sw(3,5);
-	sw(1,2); sw(3,4); sw(5,6);
-	
-	return (a[3]+a[4])/2.0; // median
-}
-#undef sw
+	int x, y, n=0;
+	double *value = calloc(9, sizeof(double));
 
+	for (y = yy - 1; y <= yy + 1; y++) 
+		for (x = xx - 1; x <= xx + 1; x++) 
+			value[n++] = gsl_matrix_get(in, y, x);
 
-/* see also getMedian5x5 in algos/cosmetic_correction.c */
-static WORD getMedian3x3(gsl_matrix *in, const int xx, const int yy,
-		const int w, const int h) {
-	int step, radius, x, y;
-	double *value, median;
-
-	step = 1;
-	radius = 1;
-
-	int n = 0;
-	int start;
-	value = calloc(8, sizeof(double));
-
-	for (y = yy - radius; y <= yy + radius; y += step) {
-		for (x = xx - radius; x <= xx + radius; x += step) {
-			if (y >= 0 && y < h && x >= 0 && x < w) {
-				// ^ limit to image bounds ^
-				// v exclude centre pixel v
-				if (x != xx || y != yy) {
-					value[n++] = gsl_matrix_get(in, y, x);
-				}
-			}
-		}
-	}
-	
-	median = sortnet8median_double (value);
-	//start = 8 - n - 1;
-	//quicksort_d(value, 8);
-	//median = gsl_stats_median_from_sorted_data(value + start, 1, n);
+    double median = twpqs_d (value,n);
+    
 	free(value);
 	return median;
 }
 
+/* 
+ * Remove hot pixel by median 3x3 filtering
+ * borders are excluded to avoid checking each pix coordinate
+ * Optimized by Emmanuel Brandt 2019-04
+ */
 static gsl_matrix *removeHotPixels(gsl_matrix *in) {
 	int width = in->size2;
 	int height = in->size1;
@@ -108,8 +80,8 @@ static gsl_matrix *removeHotPixels(gsl_matrix *in) {
 	gsl_matrix *out = gsl_matrix_alloc (in->size1, in->size2);
 
 	gsl_matrix_memcpy (out, in);
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < width; x++) {
+	for (y = 1; y < height-1; y++) { // exclude top bettom borders
+		for (x = 1; x < width-1; x++) {  // exclude right, left borders
 			double a = getMedian3x3(in, x, y, width, height);
 			gsl_matrix_set(out, y, x, a);
 		}
