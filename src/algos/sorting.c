@@ -407,14 +407,22 @@ double histogram_median_double (double *a, int n)
 WORD maximum (WORD *a, int n) 
 {
 	WORD m = a[0];
-	
 	for (int i=1; i<n; i++) 
-		if (a[i]>m)
-			m=a[i];
+		if (a[i]>m) m=a[i];
 	
 	return m;
 }
 
+
+// Same as maximum for double values
+double maximum_d (double *a, int n) 
+{
+	double m = a[0];
+	for (int i=1; i<n; i++) 
+		if (a[i]>m) m=a[i];
+	
+	return m;
+}
 /*
  * Three Way Partition Quick Select returns the median of an array of WORD of size n
  * Combines the three way partition algorithm or "Dutch Flag" from 
@@ -465,6 +473,44 @@ double twpqs (WORD *a, int n)
 			else
 				return (double) p;
 		}
+		p=a[(l+r)/2];
+	}
+}
+// Same as twpqs for double values
+double twpqs_d (double *a, int n) 
+{
+	int left, l, j, right, r, k=n/2;
+	double p=a[k], tmp;
+	
+	left=l=j=0;
+	right=r=n-1;
+	
+	while (left<=right) {
+		while (j<=r) { // 3 way partition < = >
+			if (a[j]<p) {
+				tmp=a[j]; a[j]=a[l]; a[l]=tmp; // swap a[j] a[l]
+				l+=1;
+				j+=1;
+			} else if (a[j]>p) {
+				tmp=a[j]; a[j]=a[r]; a[r]=tmp; // swap a[j] a[r]
+				r-=1;
+			} else 
+				j+=1;
+		}
+
+		if (k>r) {
+			left=l=j=r+1;
+			r=right;
+		} else if (k<l) {
+			r=right=l-1;
+			l=j=left;	
+		} else {
+			if (n%2==0 && k<=l)
+				return (p + maximum_d (a,k)) / 2.0;
+			else
+				return p;
+		}
+		
 		p=a[(l+r)/2];
 	}
 }
