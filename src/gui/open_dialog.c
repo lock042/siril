@@ -61,6 +61,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS";
 	gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 	gchar *pic_filter = "*.pic;*.PIC";
+	gchar *cpa_filter = "*.cpa;*.CPA";
 	gchar *ser_filter = "*.ser;*.SER";
 	if (whichdial != OD_CONVERT) {
 		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts)"),
@@ -136,6 +137,9 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			/* IRIS FILES */
 			gtk_filter_add(chooser, _("IRIS PIC Files (*.pic)"), pic_filter,
 					com.filter == TYPEPIC);
+			/* PRISM FILES */
+			gtk_filter_add(chooser, _("PRISM CPA Files (*.cpa)"), cpa_filter,
+					com.filter == TYPECPA);
 			/* SER FILES */
 			gtk_filter_add(chooser, _("SER files (*.ser)"), ser_filter,
 					com.filter == TYPESER);
@@ -146,6 +150,8 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			all_filter = g_string_append(all_filter, netpbm_filter);
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, pic_filter);
+			all_filter = g_string_append(all_filter, ";");
+			all_filter = g_string_append(all_filter, cpa_filter);
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, ser_filter);
 		}

@@ -64,6 +64,58 @@ struct pic_struct {
 };
 int	readpic(const char *name, fits *fit);
 
+/* CPA */
+struct cpa_struct {
+	/* header */
+	unsigned long signature;
+
+    unsigned short width;
+    unsigned short height;
+    unsigned short binX;
+    unsigned short binY;
+    // 2 * 8 * 3 bytes
+//    TabSeuilHaut   : Array[1..3] of Double;
+//    TabSeuilBas    : Array[1..3] of Double;
+    unsigned char data_type;
+    unsigned char nbplane;
+    // 8 bytes
+//    TimeDate       : TdateTime   ;
+    double exposure;
+    gboolean mirrorX;
+    gboolean mirrorY;
+    char telescope[81];
+    char observer[81];
+    char camera[81];
+    char filter[81];
+    char observatory[81];
+    double focal;
+    double alpha;
+    double delta;
+    double pixX;
+    double pixY;
+    int debX, debY;
+    int endX, endY;
+//    TypeCompression: Byte        ;
+//    NombreBitsComp : Byte        ;
+//
+//    Wavelength     : Double      ; // Longueur centrale du filtre
+//    Bandwidth      : Double      ; // Bande passante
+//    Flux           : Double      ; // Peut etre utilise pour decrire quel serait le flux une etoile de mg 0
+//    Diametre       : Double      ; // mm\B2
+//    Offset         : Double      ; // Offest de l'inage en ADU
+//    FacteurCVF     : Double      ; // Facteur de convertion en e-/ADU
+//    Seeing         : Double      ; // en arcsec
+//
+//    TemperatureCCD: Double ;
+//    TemperatureExt: Double ;
+//    Latitude,
+//    Longitude     : Double ;
+
+	FILE *file;
+};
+int	readcpa(const char *name, fits *fit);
+
+
 /****************** image_formats_libraries.h ******************/
 #ifdef HAVE_LIBTIFF
 int readtif(const char *name, fits *fit);

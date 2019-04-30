@@ -788,7 +788,6 @@ static int _pic_close_file(struct pic_struct *pic_file) {
 }
 
 int readpic(const char *name, fits *fit) {
-	char header[290] = { 0 };
 	struct pic_struct *pic_file;
 	WORD *buf;
 	int retval = 0;
@@ -814,7 +813,7 @@ int readpic(const char *name, fits *fit) {
 
 	nbdata = fit->rx * fit->ry;
 
-	fseek(pic_file->file, sizeof(header), SEEK_SET);
+	fseek(pic_file->file, 290, SEEK_SET);
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 
 	if ((fread(buf, 1, nbdata * pic_file->nbplane * sizeof(WORD), pic_file->file))
@@ -856,5 +855,124 @@ int readpic(const char *name, fits *fit) {
 	_pic_close_file(pic_file);
 	g_free(basename);
 	free(buf);
+	return retval;
+}
+
+static int cpa_read_header(struct cpa_struct *cpa_file) {
+	char header[1024];
+	if (!cpa_file || !cpa_file->file)
+		return -1;
+	if (sizeof(header) != fread(header, 1, sizeof(header), cpa_file->file)) {
+		perror("read");
+		return -1;
+	}
+	memcpy(&cpa_file->signature, header, 4);
+
+	if (cpa_file->signature != 0x07C1E1FD) {
+		siril_log_message(_("Bad file signature.\n"));
+		return -1;
+	}
+	memcpy(&cpa_file->width, header + 4, 2);
+	memcpy(&cpa_file->height, header + 6, 2);
+	memcpy(&cpa_file->binX, header + 8, 2);
+	memcpy(&cpa_file->binY, header + 10, 2);
+
+	memcpy(&cpa_file->data_type, header + 60, 1);
+	memcpy(&cpa_file->nbplane, header + 61, 1);
+
+	memcpy(&cpa_file->exposure, header + 70, 8);
+	memcpy(&cpa_file->mirrorX, header + 78, 1);
+	memcpy(&cpa_file->mirrorY, header + 79, 1);
+	memcpy(&cpa_file->telescope, header + 80, 81);
+	memcpy(&cpa_file->observer, header + 161, 81);
+	memcpy(&cpa_file->camera, header + 242, 81);
+	memcpy(&cpa_file->filter, header + 323, 81);
+	memcpy(&cpa_file->observatory, header + 404, 81);
+
+	memcpy(&cpa_file->focal, header + 485, 8);
+	memcpy(&cpa_file->alpha, header + 493, 8);
+	memcpy(&cpa_file->delta, header + 501, 8);
+	memcpy(&cpa_file->pixX, header + 509, 8);
+	memcpy(&cpa_file->pixY, header + 517, 8);
+
+	printf("%g\n", cpa_file->pixY);
+
+//	printf("%lf %lf\n", cpa_file->focal, cpa_file->alpha);
+	return 0;
+}
+
+static int cpatofit(WORD *buf, fits *fit) {
+	int nbdata;
+	int i;
+	WORD *data, *olddata = fit->data;
+
+	nbdata = fit->rx * fit->ry;
+	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
+		PRINT_ALLOC_ERR;
+		free(olddata);
+		return -1;
+	}
+	data = fit->pdata[BW_LAYER] = fit->data;
+	fit->pdata[GLAYER] = fit->data;
+	fit->pdata[BLAYER] = fit->data;
+
+	for (i = 0; i < nbdata; i++)
+		data[i] = buf[i];
+	fit->bitpix = fit->orig_bitpix = USHORT_IMG;
+	fit->naxes[0] = fit->rx;
+	fit->naxes[1] = fit->ry;
+	fit->naxes[2] = 1;
+	fit->naxis = 2;
+	return 1;
+}
+
+int	readcpa(const char *name, fits *fit) {
+	struct cpa_struct *cpa_file;
+	WORD *buf;
+	int retval = 0;
+	unsigned int nbdata;
+
+	cpa_file = calloc(1, sizeof(struct cpa_struct));
+
+	if ((cpa_file->file = g_fopen(name, "rb")) == NULL) {
+		siril_log_message(
+				_("Sorry but Siril cannot open the CPA file: %s.\n"), name);
+		free(cpa_file);
+		return -1;
+	}
+
+	cpa_read_header(cpa_file);
+
+	fit->rx = (unsigned int) cpa_file->width;
+	fit->ry = (unsigned int) cpa_file->height;
+	fit->binning_x = (unsigned int) cpa_file->binX;
+	fit->binning_y = (unsigned int) cpa_file->binY;
+
+	fit->exposure = cpa_file->exposure * 0.001;
+
+	nbdata = fit->rx * fit->ry;
+
+	fseek(cpa_file->file, 1024, SEEK_SET);
+	buf = malloc(nbdata * cpa_file->nbplane * sizeof(WORD));
+
+	switch (cpa_file->data_type) {
+	case 6:
+		if ((fread(buf, 1, nbdata * cpa_file->nbplane * sizeof(WORD),
+				cpa_file->file)) != nbdata * cpa_file->nbplane * sizeof(WORD)) {
+			siril_log_message(_("Cannot Read the data\n"));
+			free(buf);
+			// TODO CLOSE data
+			return -1;
+		}
+		break;
+	default:
+	}
+
+	if (cpa_file->nbplane == 1) {
+
+	} else {
+
+	}
+
 	return retval;
 }

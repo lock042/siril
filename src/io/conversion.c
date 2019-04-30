@@ -341,6 +341,8 @@ gchar *initialize_converters() {
 	string = g_string_new("BMP images, ");
 	supported_filetypes |= TYPEPIC;
 	string = g_string_append(string, _("PIC images (IRIS), "));
+	supported_filetypes |= TYPECPA;
+	string = g_string_append(string, _("CPA images (PRISM), "));
 	supported_filetypes |= TYPEPNM;
 	string = g_string_append(string, _("PGM and PPM binary images"));
 		
@@ -451,6 +453,8 @@ image_type get_type_for_extension(const char *extension) {
 		return TYPEPNM;
 	} else if ((supported_filetypes & TYPEPIC) && !g_ascii_strcasecmp(extension, "pic")){
 		return TYPEPIC;
+	} else if ((supported_filetypes & TYPECPA) && !g_ascii_strcasecmp(extension, "cpa")){
+			return TYPECPA;
 	} else if ((supported_filetypes & TYPERAW) && !check_for_raw_extensions(extension)) {
 		return TYPERAW;
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
@@ -934,6 +938,9 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest) {
 			break;
 		case TYPEPIC:
 			retval = (readpic(source, dest) < 0);
+			break;
+		case TYPECPA:
+			retval = (readcpa(source, dest) < 0);
 			break;
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
