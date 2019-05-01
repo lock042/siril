@@ -93,9 +93,11 @@ struct cpa_struct {
     double delta;
     double pixX;
     double pixY;
+
     /* 4 * 4 bytes */
     int debX, debY;
     int endX, endY;
+
     unsigned char type_of_compression;
     unsigned char nb_bits_comp;
 
@@ -108,10 +110,8 @@ struct cpa_struct {
 //    FacteurCVF     : Double      ; // Facteur de convertion en e-/ADU
 //    Seeing         : Double      ; // en arcsec
 //
-//    TemperatureCCD: Double ;
-//    TemperatureExt: Double ;
-//    Latitude,
-//    Longitude     : Double ;
+    double tempCCD, tempExt;
+    double latitude, longitude;
 
 	FILE *file;
 };

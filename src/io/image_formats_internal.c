@@ -46,7 +46,7 @@ static int bmp32tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 
 	olddata = fit->data;
 	if ((fit->data = realloc(fit->data, 3 * datasize * sizeof(WORD))) == NULL) {
-		printf("readbmp: could not alloc fit data\n");
+		PRINT_ALLOC_ERR;
 		if (olddata)
 			free(fit->data);
 		return 1;
@@ -83,7 +83,7 @@ static int bmp24tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 
 	olddata = fit->data;
 	if ((fit->data = realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
-		printf("readbmp: could not alloc fit data\n");
+		PRINT_ALLOC_ERR;
 		if (olddata)
 			free(fit->data);
 		return 1;
@@ -118,7 +118,7 @@ static int bmp16tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 
 	olddata = fit->data;
 	if ((fit->data = realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
-		printf("readbmp: could not alloc fit data\n");
+		PRINT_ALLOC_ERR;
 		if (olddata)
 			free(fit->data);
 		return 1;
@@ -157,7 +157,7 @@ static int bmp8tofits(unsigned char *rgb, unsigned long rx, unsigned long ry, fi
 
 	olddata = fit->data;
 	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
-		printf("readbmp: could not alloc fit data\n");
+		PRINT_ALLOC_ERR;
 		if (olddata)
 			free(fit->data);
 		return 1;
@@ -242,7 +242,7 @@ int readbmp(const char *name, fits *fit) {
 	if (nbplane == 1) {
 		buf = malloc(nbdata + 1024);
 		if (!buf) {
-			fprintf(stderr, "could not allocate buffer for BMP read\n");
+			PRINT_ALLOC_ERR;
 			fclose(file);
 			return -1;
 		}
@@ -256,7 +256,7 @@ int readbmp(const char *name, fits *fit) {
 	} else {
 		buf = malloc(nbdata);
 		if (!buf) {
-			fprintf(stderr, "could not allocate buffer for BMP read\n");
+			PRINT_ALLOC_ERR;
 			fclose(file);
 			return -1;
 		}
@@ -490,7 +490,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		olddata = fit->data;
 		fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
 		if (fit->data == NULL || tmpbuf == NULL) {
-			fprintf(stderr, "error allocating fits image data\n");
+			PRINT_ALLOC_ERR;
 			fclose(file);
 			if (olddata && !fit->data)
 				free(olddata);
@@ -523,7 +523,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			stride = fit->rx * sizeof(WORD);
 			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
 			if (fit->data == NULL) {
-				fprintf(stderr, "error allocating fits image data\n");
+				PRINT_ALLOC_ERR;
 				fclose(file);
 				if (olddata)
 					free(olddata);
@@ -552,7 +552,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			tmpbuf = malloc(stride * fit->ry);
 			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
 			if (fit->data == NULL || tmpbuf == NULL) {
-				fprintf(stderr, "error allocating fits image data\n");
+				PRINT_ALLOC_ERR;
 				fclose(file);
 				if (olddata && !fit->data)
 					free(olddata);
@@ -682,7 +682,7 @@ static int pictofit(WORD *buf, fits *fit) {
 
 	nbdata = fit->rx * fit->ry;
 	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
-		fprintf(stderr, "readpic: could not alloc fit data\n");
+		PRINT_ALLOC_ERR;
 		if (olddata)
 			free(olddata);
 		return -1;
@@ -709,7 +709,7 @@ static int pictofitrgb(WORD *buf, fits *fit) {
 
 	nbdata = fit->rx * fit->ry;
 	if ((fit->data = realloc(fit->data, nbdata * 3 * sizeof(WORD))) == NULL) {
-		fprintf(stderr, "readpic: could not alloc fit data\n");
+		PRINT_ALLOC_ERR;
 		if (olddata)
 			free(olddata);
 		return -1;
@@ -858,8 +858,10 @@ int readpic(const char *name, fits *fit) {
 	return retval;
 }
 
+#define HEADER_SIZE 1866
+
 static int cpa_read_header(struct cpa_struct *cpa_file) {
-	char header[1024];
+	char header[HEADER_SIZE];
 	if (!cpa_file || !cpa_file->file)
 		return -1;
 	if (sizeof(header) != fread(header, 1, sizeof(header), cpa_file->file)) {
@@ -895,10 +897,12 @@ static int cpa_read_header(struct cpa_struct *cpa_file) {
 	memcpy(&cpa_file->pixX, header + 509, 8);
 	memcpy(&cpa_file->pixY, header + 517, 8);
 
-	memcpy(&cpa_file->type_of_compression, header + 533, 1);
-	memcpy(&cpa_file->nb_bits_comp, header + 534, 1);
+	memcpy(&cpa_file->type_of_compression, header + 541, 1);
+	memcpy(&cpa_file->nb_bits_comp, header + 542, 1);
 
-	printf("%d-%d\n", cpa_file->type_of_compression,  cpa_file->nb_bits_comp);
+	memcpy(&cpa_file->tempCCD, header + 591, 8);
+	memcpy(&cpa_file->tempExt, header + 599, 8);
+//	printf("temp=%lf\n", cpa_file->tempCCD);
 
 	return 0;
 }
@@ -933,6 +937,7 @@ int	readcpa(const char *name, fits *fit) {
 	WORD *buf;
 	int retval = 0;
 	unsigned int nbdata;
+	size_t size;
 
 	cpa_file = calloc(1, sizeof(struct cpa_struct));
 
@@ -947,37 +952,34 @@ int	readcpa(const char *name, fits *fit) {
 
 	fit->rx = (unsigned int) cpa_file->width;
 	fit->ry = (unsigned int) cpa_file->height;
+	fit->naxes[0] = fit->rx;
+	fit->naxes[1] = fit->ry;
+/*	fit->naxes[2] = cpa_file->nbplane;
+	fit->naxis = 2;*/
 	fit->binning_x = (unsigned int) cpa_file->binX;
 	fit->binning_y = (unsigned int) cpa_file->binY;
-
 	fit->exposure = cpa_file->exposure * 0.001;
 
 	nbdata = fit->rx * fit->ry;
 
-	fseek(cpa_file->file, 1024, SEEK_SET);
+	fseek(cpa_file->file, HEADER_SIZE, SEEK_SET);
 	buf = malloc(nbdata * cpa_file->nbplane * sizeof(WORD));
 
 	switch (cpa_file->data_type) {
 	case 2:
 		// BYTE_IMG
+		retval = 1;
 		break;
 	case 6:
-		if ((fread(buf, 1, nbdata * cpa_file->nbplane * sizeof(WORD),
-				cpa_file->file)) != nbdata * cpa_file->nbplane * sizeof(WORD)) {
-			siril_log_message(_("Cannot Read the data\n"));
-			free(buf);
-			// TODO CLOSE data
-			return -1;
-		}
+		// USHORT_IMG
+		size = fread(buf, 1, nbdata * cpa_file->nbplane * sizeof(WORD),
+				cpa_file->file);
+		printf("size=%d\n", size);
+//		cpatofit(buf, fit);
+		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
 		break;
 	default:
-		break;
-	}
-
-	if (cpa_file->nbplane == 1) {
-
-	} else {
-
+		return 1;
 	}
 
 	return retval;
