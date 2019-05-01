@@ -895,9 +895,11 @@ static int cpa_read_header(struct cpa_struct *cpa_file) {
 	memcpy(&cpa_file->pixX, header + 509, 8);
 	memcpy(&cpa_file->pixY, header + 517, 8);
 
-	printf("%g\n", cpa_file->pixY);
+	memcpy(&cpa_file->type_of_compression, header + 533, 1);
+	memcpy(&cpa_file->nb_bits_comp, header + 534, 1);
 
-//	printf("%lf %lf\n", cpa_file->focal, cpa_file->alpha);
+	printf("%d-%d\n", cpa_file->type_of_compression,  cpa_file->nb_bits_comp);
+
 	return 0;
 }
 
@@ -956,6 +958,9 @@ int	readcpa(const char *name, fits *fit) {
 	buf = malloc(nbdata * cpa_file->nbplane * sizeof(WORD));
 
 	switch (cpa_file->data_type) {
+	case 2:
+		// BYTE_IMG
+		break;
 	case 6:
 		if ((fread(buf, 1, nbdata * cpa_file->nbplane * sizeof(WORD),
 				cpa_file->file)) != nbdata * cpa_file->nbplane * sizeof(WORD)) {
@@ -966,6 +971,7 @@ int	readcpa(const char *name, fits *fit) {
 		}
 		break;
 	default:
+		break;
 	}
 
 	if (cpa_file->nbplane == 1) {

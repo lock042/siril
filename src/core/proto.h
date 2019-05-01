@@ -93,11 +93,13 @@ struct cpa_struct {
     double delta;
     double pixX;
     double pixY;
+    /* 4 * 4 bytes */
     int debX, debY;
     int endX, endY;
-//    TypeCompression: Byte        ;
-//    NombreBitsComp : Byte        ;
-//
+    unsigned char type_of_compression;
+    unsigned char nb_bits_comp;
+
+    //
 //    Wavelength     : Double      ; // Longueur centrale du filtre
 //    Bandwidth      : Double      ; // Bande passante
 //    Flux           : Double      ; // Peut etre utilise pour decrire quel serait le flux une etoile de mg 0
