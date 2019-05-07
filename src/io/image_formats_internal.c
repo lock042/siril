@@ -923,10 +923,8 @@ static int cpatofit(WORD *buf, fits *fit) {
 	fit->pdata[BLAYER] = fit->data;
 
 	for (i = 0; i < nbdata; i++)
-		data[i] = buf[i];
-	fit->bitpix = fit->orig_bitpix = USHORT_IMG;
-	fit->naxes[0] = fit->rx;
-	fit->naxes[1] = fit->ry;
+		data[i] = 60000;
+
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
 	return 1;
@@ -954,8 +952,7 @@ int	readcpa(const char *name, fits *fit) {
 	fit->ry = (unsigned int) cpa_file->height;
 	fit->naxes[0] = fit->rx;
 	fit->naxes[1] = fit->ry;
-/*	fit->naxes[2] = cpa_file->nbplane;
-	fit->naxis = 2;*/
+
 	fit->binning_x = (unsigned int) cpa_file->binX;
 	fit->binning_y = (unsigned int) cpa_file->binY;
 	fit->exposure = cpa_file->exposure * 0.001;
@@ -972,11 +969,15 @@ int	readcpa(const char *name, fits *fit) {
 		break;
 	case 6:
 		// USHORT_IMG
-		size = fread(buf, 1, nbdata * cpa_file->nbplane * sizeof(WORD),
-				cpa_file->file);
-		printf("size=%d\n", size);
-//		cpatofit(buf, fit);
 		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
+
+		size = fread(buf, 1, nbdata * cpa_file->nbplane * sizeof(WORD),	cpa_file->file);
+		printf("size=%d\n", size);
+		if (cpa_file->nbplane > 1) {
+
+		} else {
+			cpatofit(buf, fit);
+		}
 		break;
 	default:
 		return 1;
