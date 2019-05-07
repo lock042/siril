@@ -63,7 +63,7 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 	float FWHMx, FWHMy;
 	char *units;
 	fits fit = { 0 };
-	int i, nb_stars;
+	int i, nb_stars = 0;
 
 	if (args->seq->regparam[regargs->layer]) {
 		siril_log_message(
@@ -95,10 +95,11 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 	else {
 		com.stars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE);
 	}
+
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
 
 
-	if (nb_stars < AT_MATCH_MINPAIRS) {
+	if (!com.stars || nb_stars < AT_MATCH_MINPAIRS) {
 		siril_log_message(
 				_("There are not enough stars in reference image to perform alignment\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -188,7 +189,7 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 static int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
-	int nbpoints, nb_stars;
+	int nbpoints, nb_stars = 0;
 	int retvalue = 1;
 	int nobj = 0;
 	int attempt = 1;
@@ -218,7 +219,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		}
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
 
-		if (nb_stars < AT_MATCH_MINPAIRS) {
+		if (!stars || nb_stars < AT_MATCH_MINPAIRS) {
 			siril_log_message(
 					_("Not enough stars. Image %d skipped\n"), filenum);
 			free_fitted_stars(stars);

@@ -22,6 +22,10 @@
 #include <config.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -58,6 +62,7 @@
 #include "algos/geometry.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
+
 
 /* com.seq is a static struct containing the sequence currently selected by the
  * user from the interface. It may change to be a pointer to any sequence
@@ -569,8 +574,25 @@ int64_t seq_compute_size(sequence *seq, int nb_frames) {
 	case SEQ_REGULAR:
 		ref = sequence_find_refimage(seq);
 		if (fit_sequence_get_image_filename(seq, ref, filename, TRUE)) {
-			if (!g_stat(filename, &sts)) {
-				frame_size = sts.st_size;       // force 64 bits
+			if (!g_lstat(filename, &sts)) {				
+#ifndef _WIN32
+				if ( S_ISLNK(sts.st_mode) )
+#else
+				if (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+#endif					
+				{
+					gchar *target_link = g_file_read_link(filename,NULL) ; 
+					if ( !g_lstat(target_link, &sts) )
+					{
+						frame_size = sts.st_size;       // force 64 bits
+					}
+					g_free(target_link);
+				}
+				else
+				{
+					frame_size = sts.st_size;       // force 64 bits
+				}
+
 				size = frame_size * nb_frames;
 			}
 		}
@@ -606,7 +628,7 @@ char *seq_get_image_filename(sequence *seq, int index, char *name_buf) {
 			if (!name_buf || index < 0 || index > seq->end) {
 				return NULL;
 			}
-			snprintf(name_buf, 255, _("%d from %s.ser"), index, seq->seqname);
+			snprintf(name_buf, 255, "%s_%d.ser", seq->seqname,  index);
 			name_buf[255] = '\0';
 			return name_buf;
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
@@ -1134,9 +1156,11 @@ void close_sequence(int loading_another) {
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
 		free_sequence(&com.seq, FALSE);
-		if (!com.headless)
-			clear_stars_list();
 		initialize_sequence(&com.seq, FALSE);
+		if (!com.headless) {
+			clear_stars_list();
+			update_stack_interface(TRUE);
+		}
 		if (!loading_another && !com.headless) {
 			// unselect the sequence in the sequence list
 			GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
