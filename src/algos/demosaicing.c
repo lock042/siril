@@ -852,7 +852,7 @@ WORD *debayer_buffer(WORD *buf, int *width, int *height,
 
 /* This function retrieve the xtrans matrix from the FITS header
  */
-static int retrieveXTRANSPattern(char *bayer, int xtrans[6][6]) {
+int retrieveXTRANSPattern(char *bayer, int xtrans[6][6]) {
 	int x, y, i = 0;
 	int len;
 
@@ -876,8 +876,9 @@ static int retrieveXTRANSPattern(char *bayer, int xtrans[6][6]) {
 				i++;
 			}
 		}
+		return 0;
 	}
-	return 0;
+	return 1;
 }
 
 int debayer(fits* fit, interpolation_method interpolation, gboolean stretch_cfa) {

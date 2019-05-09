@@ -30,6 +30,7 @@
 #include "io/single_image.h"
 #include "io/ser.h"
 #include "algos/cosmetic_correction.h"
+#include "algos/demosaicing.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
 
@@ -101,13 +102,13 @@ static WORD getAverage3x3(WORD *buf, const int xx, const int yy, const int w,
 		const int h, gboolean is_cfa) {
 	int step, radius, x, y;
 	double value = 0;
+	int n = 0;
 
 	if (is_cfa)
 		step = radius = 2;
 	else
 		step = radius = 1;
 
-	int n = 0;
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
 			if (y >= 0 && y < h) {
@@ -122,6 +123,36 @@ static WORD getAverage3x3(WORD *buf, const int xx, const int yy, const int w,
 	}
 	return round_to_WORD(value / n);
 }
+
+#define fcol(row, col) xtrans[(row) % 6][(col) % 6]
+
+static WORD getAverage_XTRANS(WORD *buf, const int xx, const int yy, const int w,
+		const int h, int xtrans[6][6]) {
+	int radius, x, y;
+	double sum = 0;
+	int n = 0;
+	int c = fcol(xx, yy);
+
+	radius = 2;
+
+	for (y = yy - radius; y <= yy + radius; y++) {
+		for (x = xx - radius; x <= xx + radius; x++) {
+			if (y >= 0 && y < h) {
+				if (x >= 0 && x < w) {
+					if ((x != xx) || (y != yy)) {
+						if (fcol(x, y) == c) {
+							sum = (double) buf[x + y * w];
+							n++;
+						}
+					}
+				}
+			}
+		}
+	}
+	return round_to_WORD(sum / n);
+}
+
+#undef fcol
 
 long count_deviant_pixels(fits *fit, double sig[2], long *icold, long *ihot) {
 	int i;
@@ -239,18 +270,30 @@ deviant_pixel *find_deviant_pixels(fits *fit, double sig[2], long *icold, long *
 
 int cosmeticCorrOnePoint(fits *fit, deviant_pixel dev, gboolean is_cfa) {
 	WORD *buf = fit->pdata[RLAYER];		// Cosmetic correction, as developed here, is only used on 1-channel images
-	WORD newpixel;
+	WORD newPixel;
 	int width = fit->rx;
 	int height = fit->ry;
 	int x = (int) dev.p.x;
 	int y = (int) dev.p.y;
+	int is_xtrans;
+	int xtrans[6][6] = { 0 };
 
-	if (dev.type == COLD_PIXEL)
-		newpixel = getMedian5x5(buf, x, y, width, height, is_cfa);
-	else
-		newpixel = getAverage3x3(buf, x, y, width, height, is_cfa);
+	is_xtrans = !retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
 
-	buf[x + y * fit->rx] = newpixel;
+	if (dev.type == COLD_PIXEL) {
+		if (is_xtrans) {
+			newPixel = getAverage_XTRANS(buf, x, y, width, height, xtrans);
+		} else {
+			newPixel = getMedian5x5(buf, x, y, width, height, is_cfa);
+		}
+	} else {
+		if (is_xtrans) {
+			newPixel = getAverage3x3(buf, x, y, width, height, is_cfa);
+		} else {
+			newPixel = getAverage_XTRANS(buf, x, y, width, height, xtrans);
+		}
+	}
+	buf[x + y * fit->rx] = newPixel;
 	invalidate_stats_from_fit(fit);
 	return 0;
 }
@@ -276,16 +319,29 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa)
 	WORD *buf = fit->pdata[RLAYER];		// Cosmetic correction, as developed here, is only used on 1-channel images
 	int width = fit->rx;
 	int height = fit->ry;
+	int is_xtrans;
+	int xtrans[6][6] = { 0 };
+
+	is_xtrans = !retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
 
 	for (i = 0; i < size; i++) {
 		WORD newPixel;
 		int xx = (int) dev[i].p.x;
 		int yy = (int) dev[i].p.y;
 
-		if (dev[i].type == COLD_PIXEL)
-			newPixel = getMedian5x5(buf, xx, yy, width, height, is_cfa);
-		else
-			newPixel = getAverage3x3(buf, xx, yy, width, height, is_cfa);
+		if (dev[i].type == COLD_PIXEL) {
+			if (is_xtrans) {
+				newPixel = getAverage_XTRANS(buf, xx, yy, width, height, xtrans);
+			} else {
+				newPixel = getMedian5x5(buf, xx, yy, width, height, is_cfa);
+			}
+		} else {
+			if (is_xtrans) {
+				newPixel = getAverage3x3(buf, xx, yy, width, height, is_cfa);
+			} else {
+				newPixel = getAverage_XTRANS(buf, xx, yy, width, height, xtrans);
+			}
+		}
 
 		buf[xx + yy * width] = newPixel;
 	}
@@ -383,6 +439,8 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot, dou
 	int x, y;
 	int width = fit->rx;
 	int height = fit->ry;
+	int is_xtrans;
+	int xtrans[6][6] = { 0 };
 	double bkg, avgDev;
 	double f0 = amount;
 	double f1 = 1 - f0;
@@ -399,13 +457,21 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot, dou
 	avgDev = stat->avgDev;
 	free_stats(stat);
 
+	is_xtrans = !retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
+
 	WORD *buf = fit->pdata[layer];
 
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
+			WORD a, m;
 			WORD pixel = buf[x + y * width];
-			WORD a = getAverage3x3(buf, x, y, width, height, is_cfa);
-			WORD m = getMedian5x5(buf, x, y, width, height, is_cfa);
+
+			if (is_xtrans) {
+				a = m = getAverage_XTRANS(buf, x, y, width, height, xtrans);
+			} else {
+				a = getAverage3x3(buf, x, y, width, height, is_cfa);
+				m = getMedian5x5(buf, x, y, width, height, is_cfa);
+			}
 
 			/* Hot autodetect */
 			if (sig[1] != -1.0) {
