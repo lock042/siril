@@ -3,7 +3,7 @@
 
 #include "core/siril.h"
 
-#define NUMBER_OF_METHODS 5
+#define NUMBER_OF_METHODS 6
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -23,6 +23,7 @@ struct registration_args {
 	gboolean x2upscale;		// apply an x2 upscale for pseudo drizzle
 	int kernel_size;		// kernel size for methods that use one
 	gboolean use_caching;		// use or create pre-computed data
+	gboolean cumul;			// cumul reg data with previous one
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean translation_only;	// don't rotate images => no new sequence
@@ -49,6 +50,12 @@ typedef enum {
 	PLANETARY_FULLDISK, PLANETARY_SURFACE
 } planetary_type;
 
+typedef enum {
+	REG_PAGE_GLOBAL,
+	REG_PAGE_COMET,
+	REG_PAGE_MISC
+} reg_notebook_page;
+
 /* used to register a registration method */
 struct registration_method {
 	const char *name;
@@ -67,6 +74,7 @@ int register_star_alignment(struct registration_args *args);
 int register_ecc(struct registration_args *args);
 int register_cog(struct registration_args *regargs);
 int register_sd(struct registration_args *regargs);
+int register_comet(struct registration_args *regargs);
 
 void normalizeQualityData(regdata *regparam, int size, double q_min, double q_max);
 int normalize_quality_data(regdata *regdata, int size);

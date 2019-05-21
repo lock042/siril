@@ -260,9 +260,7 @@ static void remap(int vport) {
 		com.graybuf[vport] = realloc(com.graybuf[vport],
 				com.surface_stride[vport] * gfit.ry * sizeof(guchar));
 		if (com.graybuf[vport] == NULL) {
-			fprintf(stderr,
-					"Could not allocate memory for gray buffer %d (out of memory?)\n",
-					vport);
+			PRINT_ALLOC_ERR;
 			if (oldbuf)
 				free(oldbuf);
 			return;
@@ -314,7 +312,7 @@ static void remap(int vport) {
 		size_t i;
 		gsl_histogram *histo;
 
-		compute_histo_for_gfit(1);
+		compute_histo_for_gfit();
 		histo = com.layers_hist[vport];
 		hist_nb_bins = gsl_histogram_bins(histo);
 		/*if (hist_nb_bins <= USHRT_MAX) {
@@ -649,6 +647,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 				// We draw horizontal and vertical lines to show the star
 				cairo_set_line_width(cr, 2.0 / zoom);
 				cairo_set_source_rgba(cr, 0.0, 0.4, 1.0, 0.6);
+
 				cairo_move_to(cr, com.stars[i]->xpos, 0);
 				cairo_line_to(cr, com.stars[i]->xpos, image_height);
 				cairo_stroke(cr);
@@ -675,7 +674,8 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			cairo_set_line_width(cr, 2.0 / zoom);
 			fitted_PSF *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
-				double size = sqrt(the_psf->sx / 2.) * 2 * sqrt(log(2.) * 2) + 0.5;
+				//double size = sqrt(the_psf->sx / 2.) * 2 * sqrt(log(2.) * 2) + 0.5;
+				double size = the_psf->sx;
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.phot_set.inner, 0.,
@@ -750,19 +750,16 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	}
 
 	/* draw background removal gradient selection boxes */
-	if (com.grad && com.grad_boxes_drawn) {
-		int i = 0;
-		cairo_set_dash(cr, NULL, 0, 0);
-		cairo_set_source_rgba(cr, 0.2, 1.0, 0.3, 1.0);
-		while (i < com.grad_nb_boxes) {
-			if (com.grad[i].boxvalue[0] != -1.0) {
-				cairo_set_line_width(cr, 1.5 / zoom);
-				cairo_rectangle(cr, com.grad[i].centre.x - com.grad_size_boxes,
-						com.grad[i].centre.y - com.grad_size_boxes,
-						com.grad_size_boxes, com.grad_size_boxes);
-				cairo_stroke(cr);
-			}
-			i++;
+	GSList *list;
+	for (list = com.grad_samples; list; list = list->next) {
+		background_sample *sample = (background_sample *)list->data;
+		if (sample->valid) {
+			int radius = (int) (sample->size / 2);
+			cairo_set_line_width(cr, 1.5 / zoom);
+			cairo_set_source_rgba(cr, 0.2, 1.0, 0.3, 1.0);
+			cairo_rectangle(cr, sample->position.x - radius, sample->position.y - radius,
+					sample->size, sample->size);
+			cairo_stroke(cr);
 		}
 	}
 

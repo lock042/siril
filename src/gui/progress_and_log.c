@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -203,6 +203,21 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 	return msg;
 }
 
+void initialize_log_tags() {
+	/* Create tags associated with the buffer for the output text. */
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget("output")));
+	/* Tag with weight bold and tag name "bold" . */
+	gtk_text_buffer_create_tag (tbuf, "bold", "weight", PANGO_WEIGHT_BOLD, NULL);
+	/* Tag with style normal */
+	gtk_text_buffer_create_tag (tbuf, "normal", "weight", PANGO_WEIGHT_NORMAL, NULL);
+	/* Couleur Tags */
+	gtk_text_buffer_create_tag (tbuf, "red", "foreground", "#e72828", NULL);
+	gtk_text_buffer_create_tag (tbuf, "salmon", "foreground", "#ff9898", NULL);
+	gtk_text_buffer_create_tag (tbuf, "green", "foreground", "#01b301", NULL);
+	gtk_text_buffer_create_tag (tbuf, "blue", "foreground", "#7a7af8", NULL);
+	gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
+}
+
 char* siril_log_message(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
@@ -228,25 +243,48 @@ void show_time(struct timeval t_start, struct timeval t_end) {
 }
 
 void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
-	float time = (float) (((t_end.tv_sec - t_start.tv_sec) * 1000000L
-			+ t_end.tv_usec) - t_start.tv_usec) / 1000000.0;
+	double start, end, diff;
 
-	if (time > 60.f) {
-		int min = (int) time / 60;
-		int sec = (int) time % 60 + 1;
-		siril_log_color_message(_("%s: %d min %.2d s.\n"), "green",
-				msg, min, sec);
-	} else if (time < 1.f) {
-		float ms = time * 1000.f;
-		siril_log_color_message(_("%s: %.2f ms.\n"), "green", msg, ms);
-	} else {
-		siril_log_color_message(_("%s: %.2f s.\n"), "green", msg, time);
+	start = (double) (t_start.tv_sec + t_start.tv_usec / 1.0E6);
+	end = (double) (t_end.tv_sec + t_end.tv_usec / 1.0E6);
+	diff = end - start;
+
+	if (diff >= 0.0) {
+		if (diff >= 3600.0) {
+			int hour = (int) diff / 3600;
+			int sec = (int) diff % 3600;
+			int min = sec / 60;
+			sec = sec % 60;
+			siril_log_color_message(_("%s: %d h %02d min %.2d s.\n"), "green",
+					msg, hour, min, sec);
+		} else if (diff >= 60.0) {
+			int min = (int) diff / 60;
+			int sec = (int) diff % 60;
+			siril_log_color_message(_("%s: %d min %02d s.\n"), "green", msg,
+					min, sec);
+		} else if (diff < 1.0) {
+			double ms = diff * 1.0E3;
+			siril_log_color_message(_("%s: %.2lf ms.\n"), "green", msg, ms);
+		} else {
+			siril_log_color_message(_("%s: %.2lf s.\n"), "green", msg, diff);
+		}
 	}
+}
+
+void get_min_sec_from_timevals(struct timeval t_start, struct timeval t_end,
+		int *min, int *sec) {
+	double start, end, diff;
+	start = (double)(t_start.tv_sec + t_start.tv_usec / 1.0E6);
+	end = (double)(t_end.tv_sec + t_end.tv_usec / 1.0E6);
+	diff = end - start;
+	*min = (int)diff / 60;
+	*sec = (int)diff % 60;
 }
 
 struct _cursor_data {
 	gboolean change;
-	GdkCursorType cursor_type;
+//	GdkCursorType cursor_type;
+	const gchar* cursor_name;
 };
 
 /* thread-safe cursor change */
@@ -256,10 +294,10 @@ static gboolean idle_set_cursor(gpointer garg) {
 	GdkCursor *new;
 	GdkDisplay *display;
 	GdkScreen *screen;
-	GList *list;
+	GList *list, *l;
 
 	display = gdk_display_get_default ();
-	new = gdk_cursor_new_for_display(display, arg->cursor_type);
+	new = gdk_cursor_new_from_name (display, arg->cursor_name);
 	screen = gdk_screen_get_default();
 	list = gdk_screen_get_toplevel_windows(screen);
 
@@ -268,12 +306,11 @@ static gboolean idle_set_cursor(gpointer garg) {
 	} else {
 		cursor = NULL;
 	}
-	while (list) {
-		GdkWindow *window = GDK_WINDOW(list->data);
+	for (l = list; l; l = l->next) {
+		GdkWindow *window = GDK_WINDOW(l->data);
 		gdk_window_set_cursor(window, cursor);
 		gdk_display_sync(gdk_window_get_display(window));
 		gdk_display_flush(display);
-		list = g_list_next(list);
 	}
 	g_list_free(list);
 	free(arg);
@@ -284,18 +321,18 @@ void set_cursor_waiting(gboolean waiting) {
 	struct _cursor_data *arg = malloc(sizeof (struct _cursor_data));
 
 	arg->change = waiting;
-	arg->cursor_type = GDK_WATCH;
+	arg->cursor_name = "progress";
 
 	if (com.script)
 		gdk_threads_add_idle(idle_set_cursor, arg);
 	else idle_set_cursor(arg);
 }
 
-void set_cursor(GdkCursorType cursor_type, gboolean change) {
+void set_cursor(const gchar* cursor_name) {
 	struct _cursor_data *arg = malloc(sizeof (struct _cursor_data));
 
-	arg->change = change;
-	arg->cursor_type = cursor_type;
+	arg->change = TRUE;
+	arg->cursor_name = cursor_name;
 
 	if (com.script)
 		gdk_threads_add_idle(idle_set_cursor, arg);

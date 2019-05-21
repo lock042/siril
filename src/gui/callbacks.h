@@ -2,15 +2,15 @@
 #define CALLBACKS_H
 
 #include <sys/time.h>
+#include <stdint.h>
 #include "core/siril.h"	// for sliders_mode
 
 GtkWidget *popover_new(GtkWidget *widget, const gchar *text);
 
 void test_and_allocate_reference_image(int vport);
 
-void initialize_scrollbars();
-void initialize_path_directory();
-void initialize_shortcuts();
+void initialize_all_GUI(gchar *path, gchar *files);
+void load_prefered_theme();
 void fill_about_dialog();
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
@@ -22,9 +22,8 @@ void adjust_refimage(int n);
 int adjust_sellabel();
 void set_GUI_CWD();
 void set_GUI_MEM(unsigned long size);
-void set_GUI_DiskSpace(double mem);
+void set_GUI_DiskSpace(int64_t mem);
 void set_GUI_misc();
-void initialize_preprocessing();
 void update_MenuItem();
 void sliders_mode_set_state(sliders_mode);
 int copy_rendering_settings_when_chained(gboolean from_GUI);
@@ -34,7 +33,6 @@ void update_photometry_interface();
 void set_libraw_settings_menu_available(gboolean);
 void clear_sampling_setting_box();
 void set_GUI_CAMERA();
-void set_GUI_LIBRAW();
 void set_GUI_photometry();
 
 typedef void (*selection_update_callback)();
@@ -56,22 +54,23 @@ void show_main_gray_window();
 void show_rgb_window();
 void hide_rgb_window();
 void hide_gray_window();
+GtkWindow *siril_get_active_window();
 
-void zoomcombo_update_display_for_zoom();
-void initialize_FITS_name_entries();
+void adjust_vport_size_to_image();
 void scrollbars_hadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void scrollbars_vadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void set_output_filename_to_sequence_name();
 void close_tab();
 void activate_tab(int vport);
 void control_window_switch_to_tab(main_tabs tab);
-void on_comboboxreglayer_changed(GtkComboBox *widget, gpointer user_data);
 
 void update_prepro_interface();
 
 void update_statusbar_convert();
 
 void update_spinCPU(int max);
+
+void save_all_windows_position();
 
 /*****************************************************************************
 *      P U B L I C      C A L L B A C K      F U N C T I O N S               *

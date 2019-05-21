@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -234,9 +234,18 @@ int readbmp(const char *name, fits *fit) {
 	padsize = (4 - (width * nbplane) % 4) % 4;
 	nbdata = width * height * nbplane + height * padsize;
 
-	fseek(file, data_offset, SEEK_SET);
+	if (fseek(file, data_offset, SEEK_SET) == -1) {
+		perror("BMP fseek for data");
+		fclose(file);
+		return -1;
+	}
 	if (nbplane == 1) {
 		buf = malloc(nbdata + 1024);
+		if (!buf) {
+			fprintf(stderr, "could not allocate buffer for BMP read\n");
+			fclose(file);
+			return -1;
+		}
 		if ((count = fread(buf, 1, 1024, file)) != 1024) {
 			fprintf(stderr, "readbmp: %ld byte read instead of 1024\n", count);
 			perror("readbmp: failed to read the lut");
@@ -246,9 +255,19 @@ int readbmp(const char *name, fits *fit) {
 		}
 	} else {
 		buf = malloc(nbdata);
+		if (!buf) {
+			fprintf(stderr, "could not allocate buffer for BMP read\n");
+			fclose(file);
+			return -1;
+		}
 	}
 
-	fread(buf, 1, nbdata, file);
+	if (nbdata != fread(buf, 1, nbdata, file)) {
+		fprintf(stderr, "readbmp: could not read all data\n");
+		free(buf);
+		fclose(file);
+		return -1;
+	}
 	fclose(file);
 
 	switch (nbplane) {
@@ -339,7 +358,7 @@ int savebmp(const char *name, fits *fit) {
 		return 1;
 	}
 
-	norm = (fit->orig_bitpix > BYTE_IMG ?
+	norm = (fit->orig_bitpix != BYTE_IMG ?
 			UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE : 1.0);
 
 	fwrite(bmpfileheader, sizeof(bmpfileheader), 1, f);
@@ -582,7 +601,7 @@ static int saveppm(const char *name, fits *fit) {
 	WORD *gbuf[3] =
 			{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	fits_flip_top_to_bottom(fit);
-	norm = (fit->orig_bitpix > BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
+	norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	for (i = 0; i < ndata; i++) {
 		WORD color[3];
 		color[0] = *gbuf[RLAYER]++ * norm;
@@ -621,7 +640,7 @@ static int savepgm(const char *name, fits *fit) {
 	fprintf(fp, "P5\n%s\n%u %u\n%u\n", comment, fit->rx, fit->ry, USHRT_MAX);
 
 	fits_flip_top_to_bottom(fit);
-	norm = (fit->orig_bitpix > BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
+	norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	for (i = 0; i < ndata; i++) {
 		WORD tmp = *gbuf++ * norm;
 		/* change endianness in place */
@@ -762,23 +781,19 @@ static int _pic_close_file(struct pic_struct *pic_file) {
 		retval = fclose(pic_file->file);
 		pic_file->file = NULL;
 	}
-	if (pic_file->date)
-		free(pic_file->date);
-	if (pic_file->time)
-		free(pic_file->time);
-	memset(pic_file, 0, sizeof(struct pic_struct));
+	g_free(pic_file->date);
+	g_free(pic_file->time);
 	free(pic_file);
 	return retval;
 }
 
 int readpic(const char *name, fits *fit) {
-	char header[290];
+	char header[290] = { 0 };
 	struct pic_struct *pic_file;
 	WORD *buf;
 	int retval = 0;
 	unsigned int nbdata;
 
-	memset(&header, 0, sizeof(header));
 	pic_file = calloc(1, sizeof(struct pic_struct));
 
 	if ((pic_file->file = g_fopen(name, "rb")) == NULL) {
@@ -798,7 +813,7 @@ int readpic(const char *name, fits *fit) {
 	fit->lo = pic_file->lo;
 
 	nbdata = fit->rx * fit->ry;
-	assert(nbdata > 0);
+
 	fseek(pic_file->file, sizeof(header), SEEK_SET);
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 
@@ -825,7 +840,6 @@ int readpic(const char *name, fits *fit) {
 	char *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading PIC: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
-	g_free(basename);
 	siril_log_message("(%d,%d)-(%d,%d) - Binning %dx%d\n", pic_file->bin[0],
 			pic_file->bin[1], pic_file->bin[2], pic_file->bin[3],
 			fit->binning_x, fit->binning_y);
@@ -840,6 +854,7 @@ int readpic(const char *name, fits *fit) {
 	}
 
 	_pic_close_file(pic_file);
+	g_free(basename);
 	free(buf);
 	return retval;
 }

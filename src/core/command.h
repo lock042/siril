@@ -85,6 +85,7 @@ int process_convertraw(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrory(int nb);
 int	process_resample(int nb);
+int process_rgradient(int nb);
 int	process_rl(int nb);
 int	process_rotate(int nb);
 int	process_rotatepi(int nb);
@@ -124,6 +125,7 @@ int process_register(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
 int	process_stackone(int nb);
+int	process_set_mem(int nb);
 int process_preprocess(int nb);
 #ifdef _OPENMP
 int process_set_cpu(int nb);

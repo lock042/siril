@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@
 
 #include "siril.h"
 #include "processing.h"
+#include "sequence_filtering.h"
 #include "proto.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -44,7 +45,6 @@ gpointer generic_sequence_worker(gpointer p) {
 	float nb_framesf;
 	int abort = 0;	// variable for breaking out of loop
 	GString *desc;	// temporary string description for logs
-	gchar *msg;	// final string description for logs
 	fits fit = { 0 };
 
 	assert(args);
@@ -55,18 +55,14 @@ gpointer generic_sequence_worker(gpointer p) {
 
 	if (args->nb_filtered_images > 0)
 		nb_frames = args->nb_filtered_images;
-	else  nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion,
-			args->filtering_parameter, args->layer);
-	if (nb_frames <= 0) {
-		desc = g_string_new(args->description);
-		if (desc) {
-			siril_log_message(_(": could not find any image to process\n"));
-			msg = g_string_free(desc, FALSE);
-			siril_log_color_message(msg, "red");
-			g_free(msg);
+	else {
+		nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, args->filtering_parameter);
+		args->nb_filtered_images = nb_frames;
+		if (nb_frames <= 0) {
+			siril_log_message(_("No image selected for processing, aborting\n"));
+			args->retval = 1;
+			goto the_end;
 		}
-		args->retval = 1;
-		goto the_end;
 	}
 
 	nb_framesf = (float)nb_frames + 0.3f;	// leave margin for rounding errors and post processing
@@ -101,13 +97,20 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 	}
 
+	if (args->has_output && !args->partial_image) {	// TODO partial
+		int64_t size = seq_compute_size(args->seq, nb_frames);
+		if (test_available_space(size)) {
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
 	/* Output print of algorithm description */
 	desc = g_string_new(args->description);
 	if (desc) {
 		desc = g_string_append(desc, _(": processing...\n"));
-		msg = g_string_free(desc, FALSE);
-		siril_log_color_message(msg, "red");
-		g_free(msg);
+		siril_log_color_message(desc->str, "red");
+		g_string_free(desc, TRUE);
 	}
 
 #ifdef _OPENMP
@@ -162,6 +165,7 @@ gpointer generic_sequence_worker(gpointer p) {
 				sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
 				savefits(tmpfn, &fit);*/
 			} else {
+				// image is obtained bottom to top here, while it's in natural order for partial images!
 				if (seq_read_frame(args->seq, input_idx, &fit)) {
 					abort = 1;
 					clearfits(&fit);
@@ -271,21 +275,21 @@ gboolean end_generic_sequence(gpointer p) {
 }
 
 int ser_prepare_hook(struct generic_seq_args *args) {
-	char dest[256];
-	const char *ptr;
-
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
-		ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
+		gchar *dest;
+		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
 		if (ptr)
-			snprintf(dest, 255, "%s%s.ser", args->new_seq_prefix, ptr + 1);
-		else snprintf(dest, 255, "%s%s.ser", args->new_seq_prefix, args->seq->seqname);
+			dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, ptr + 1);
+		else dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, args->seq->seqname);
 
 		args->new_ser = malloc(sizeof(struct ser_struct));
 		if (ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file)) {
 			free(args->new_ser);
 			args->new_ser = NULL;
+			g_free(dest);
 			return 1;
 		}
+		g_free(dest);
 	}
 	return 0;
 }
@@ -304,19 +308,15 @@ int ser_finalize_hook(struct generic_seq_args *args) {
  * input file number all along (in_index is the index in the sequence, not the name).
  */
 int generic_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	char dest[256];
-
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		return ser_write_frame_from_fit(args->new_ser, fit, out_index);
 	} else {
-		char format[16];
-		sprintf(format, "%%s%%s%%0%dd%%s", args->seq->fixed);
-		snprintf(dest, 256, format, args->new_seq_prefix,
-				args->seq->seqname, 
-				args->seq->imgparam[in_index].filenum,
-				/*in_index,*/ com.ext);
+		char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
+				args->new_seq_prefix, in_index);
 		fit->bitpix = fit->orig_bitpix;
-		return savefits(dest, fit);
+		int retval = savefits(dest, fit);
+		free(dest);
+		return retval;
 	}
 }
 
@@ -331,6 +331,20 @@ static gboolean thread_being_waited = FALSE;
 void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 	if (com.run_thread || com.thread) {
+		fprintf(stderr, "The processing thread is busy, stop it first.\n");
+		g_mutex_unlock(&com.mutex);
+		free(p);
+		return;
+	}
+
+	com.run_thread = TRUE;
+	g_mutex_unlock(&com.mutex);
+	com.thread = g_thread_new("processing", f, p);
+}
+
+void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
+	g_mutex_lock(&com.mutex);
+	if (com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
 		free(p);
@@ -379,6 +393,21 @@ gboolean get_thread_run() {
 	return retval;
 }
 
+// equivalent to atomic get and set if not running
+gboolean reserve_thread() {
+	gboolean retval;
+	g_mutex_lock(&com.mutex);
+	retval = !com.run_thread;
+	if (retval)
+		com.run_thread = TRUE;
+	g_mutex_unlock(&com.mutex);
+	return retval;
+}
+
+void unreserve_thread() {
+	set_thread_run(FALSE);
+}
+
 /* should be called in a threaded function if nothing special has to be done at the end.
  * siril_add_idle(end_generic, NULL);
  */
@@ -411,12 +440,3 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	wait_for_script_thread();
 }
 
-/*
-int seq_filter_all(sequence *seq, int nb_img, double any) {
-	return 1;
-}
-
-int seq_filter_included(sequence *seq, int nb_img, double any) {
-	return (seq->imgparam[nb_img].incl);
-}
-*/

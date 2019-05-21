@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -221,6 +221,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 			case MAGNITUDE:
 				plot->data[j].y = psfs[i]->mag;
 				plot->err[j].y = psfs[i]->s_mag;
+
 				if (seq->reference_star >= 0) {
 					/* we have a reference star for the sequence,
 					 * with photometry data */
@@ -320,6 +321,7 @@ static int lightCurve(pldata *plot, sequence *seq) {
 			if (tmp_plot->err[k].x == tmp_plot->data[j].x)
 				err[j] = tmp_plot->err[k].y;
 		}
+
 		x[j] = tmp_plot->data[j].x;
 		real_x[j] = x[j] + (double) julian0;
 		tmp_plot = tmp_plot->next;
@@ -647,7 +649,7 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	guint width, height, i, j;
-	double mean;
+	double mean, color;
 	int min, max, nb_graphs = 0;
 	struct kpair *avg, *filter;
 	struct kplotcfg cfgplot;
@@ -723,7 +725,9 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		width = gtk_widget_get_allocated_width(widget);
 		height = gtk_widget_get_allocated_height(widget);
 
-		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		color = com.want_dark ? 0.0 : 1.0;
+
+		cairo_set_source_rgb(cr, color, color, color);
 		cairo_rectangle(cr, 0.0, 0.0, width, height);
 		cairo_fill(cr);
 		kplot_draw(p, width, height, cr);

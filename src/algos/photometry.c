@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 
@@ -36,14 +37,6 @@
 #define epsilon(x) 0.00000001
 #define maxit      50
 #define min_sky    5
-#define lo_data    0.0
-#define hi_data    USHRT_MAX_DOUBLE
-
-static void initializeParam() {
-	com.phot_set.inner = 20;
-	com.phot_set.outer = 30;
-	com.phot_set.gain = 2.3;
-}
 
 static double hampel(double x) {
 	if (x >= 0) {
@@ -190,10 +183,10 @@ static int robustmean(int n, double *x, double *mean, double *stdev)
 	return 0;
 }
 
-static photometry *phot_alloc(size_t size) {
+static photometry *phot_alloc() {
 	photometry *phot;
 
-	phot = (photometry*) calloc((unsigned) size * sizeof(photometry), 1);
+	phot = (photometry*) calloc(sizeof(photometry), 1);
 	if (phot == NULL) {
 		printf("photometry: memory error\n");
 	}
@@ -231,8 +224,16 @@ static double getMagErr(double intensity, double area, int nsky, double skysig) 
 	return fmin(9.999, 1.0857 * sqrt(err1 + err2 + err3) / intensity);
 }
 
+static int lo_data() {
+	return com.phot_set.minval;
+}
+
+static int hi_data() {
+	return com.phot_set.maxval;
+}
+
 /* Function that compute all photometric data. The result must be freed */
-photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf) {
+photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf, gboolean verbose) {
 	int width = z->size2;
 	int height = z->size1;
 	int n_sky = 0, ret;
@@ -242,17 +243,22 @@ photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf) {
 	double apmag = 0.0, mean = 0.0, stdev = 0.0, area = 0.0;
 	double signalIntensity;
 	double *data;
+	gboolean valid = TRUE;
 	photometry *phot;
 
 	xc = psf->x0 - 1;
 	yc = psf->y0 - 1;
 
+	if ((xc <= 0.0) || (yc <= 0.0)) return NULL;
+
 	r1 = getInnerRadius();
 	r2 = getOuterRadius();
-	appRadius = sqrt(psf->sx / 2.0) * 2 * sqrt(log(2.0) * 2) + 0.5;
+	appRadius = psf->sx / 2.0;
 	if (appRadius >= r1) {
-		/* Translator note: radii is plural for radius */
-		siril_log_message(_("Inner and outer radii are too small. Please update values in setting box.\n"));
+		if (verbose) {
+			/* Translator note: radii is plural for radius */
+			siril_log_message(_("Inner and outer radii are too small. Please update values in setting box.\n"));
+		}
 		return NULL;
 	}
 
@@ -280,7 +286,7 @@ photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf) {
 		for (x = x1; x <= x2; ++x) {
 			r = yp + (x - xc) * (x - xc);
 			double pixel = gsl_matrix_get(z, y, x);
-			if (pixel > lo_data && pixel < hi_data) {
+			if (pixel > lo_data() && pixel < hi_data()) {
 				double f = (r < rmin_sq ? 1 : appRadius - sqrt(r) + 0.5);
 				if (f >= 0) {
 					area += f;
@@ -291,6 +297,8 @@ photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf) {
 					data[n_sky] = pixel;
 					n_sky++;
 				}
+			} else {
+				valid = FALSE;
 			}
 		}
 	}
@@ -298,10 +306,11 @@ photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf) {
 		free(data);
 		return NULL;
 	}
-
 	if (n_sky < min_sky) {
-		siril_log_message(_("Warning: There aren't enough pixels"
-				" in the sky annulus. You need to make a larger selection.\n"));
+		if (verbose) {
+			siril_log_message(_("Warning: There aren't enough pixels"
+					" in the sky annulus. You need to make a larger selection.\n"));
+		}
 		free(data);
 		return NULL;
 	}
@@ -312,24 +321,62 @@ photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf) {
 		return NULL;
 	}
 
-	phot = phot_alloc(1);
+	phot = phot_alloc();
 	if (phot) {
 		signalIntensity = apmag - (area * mean);
+
 		phot->mag = getMagnitude(signalIntensity);
 		phot->s_mag = getMagErr(signalIntensity, area, n_sky, stdev);
+		phot->valid = valid;
 	}
 
 	free(data);
 	return phot;
 }
 
+void initialize_photometric_param() {
+	com.phot_set.inner = 20;
+	com.phot_set.outer = 30;
+	com.phot_set.gain = 2.3;
+	com.phot_set.minval = 0;
+	com.phot_set.maxval = 65535;
+}
+
 void on_button_reset_photometry_clicked(GtkButton *button, gpointer user_data) {
 	double tmp;
 
-	initializeParam();
+	initialize_photometric_param();
 	tmp = gfit.cvf;
 	gfit.cvf = 0.0;
 	set_GUI_photometry();
 	gfit.cvf = tmp;
+}
+
+void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
+	GtkSpinButton *outer;
+	double in, out;
+
+	outer = GTK_SPIN_BUTTON(lookup_widget("spinOuter"));
+	in = gtk_spin_button_get_value(inner);
+	out = gtk_spin_button_get_value(outer);
+
+	if (in >= out) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
+				_("Inner radius value must be less than outer. Please change the value."));
+	}
+}
+
+void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
+	GtkSpinButton *inner;
+	double in, out;
+
+	inner = GTK_SPIN_BUTTON(lookup_widget("spinInner"));
+	in = gtk_spin_button_get_value(inner);
+	out = gtk_spin_button_get_value(outer);
+
+	if (in >= out) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
+				_("Inner radius value must be less than outer. Please change the value."));
+	}
 }
 

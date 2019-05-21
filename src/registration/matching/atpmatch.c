@@ -145,6 +145,7 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv/opencv.h"
+#include "gui/photometric_cc.h"
 
 #undef DEBUG           /* get some of diagnostic output */
 #undef DEBUG2          /* get LOTS more diagnostic output */
@@ -590,13 +591,16 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 		struct s_star *listA, /* I: match this set of objects with list B */
 		int numB, /* I: number of stars in list B */
 		struct s_star *listB, /* I: match this set of objects with list A */
-		Homography *H
+		Homography *H,
+		gboolean print_output,
+		point image_size
 ) {
 	int ret = 0;
 	int num_stars_B; /* number of stars in chain B */
 
 	s_star *star_array_A;
 	s_star *star_array_B;
+	unsigned char *mask;
 
 	num_stars_B = numB;
 	star_array_A = list_to_array(numA, listA);
@@ -605,24 +609,29 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 	g_assert(star_array_A != NULL);
 	g_assert(star_array_B != NULL);
 
-	ret = cvCalculH(star_array_A, star_array_B, num_stars_B, H);
-//
-//	int i;
-//	s_star *star;
-//
-//	for (i = 0; i < numB; i++) {
-//		star = &(star_array_B[i]);
-//		g_assert(star != NULL);
-//		printf(" %4d %11.4e %11.4e %6.2f\n", i, star->x,
-//				star->y, star->BV);
-//	}
-//
-//	for (i = 0; i < numA; i++) {
-//		star = &(star_array_A[i]);
-//		g_assert(star != NULL);
-//		printf(" %4d %11.4e %11.4e %6.2f\n", i, star->x,
-//				star->y, star->BV);
-//	}
+	mask = cvCalculH(star_array_A, star_array_B, num_stars_B, H);
+	ret = (mask == NULL ? 1 : 0);
+
+#ifdef HAVE_LIBCURL
+	if (print_output) {
+		int i;
+		s_star *starA, *starB;
+		FILE *BV_file = open_bv_file("w+t");
+
+		for (i = 0; i < numB; i++) {
+			starA = &(star_array_A[i]);
+			starB = &(star_array_B[i]);
+			g_assert(starA != NULL);
+			g_assert(starB != NULL);
+			if (mask[i] && starB->BV != -99.9) {
+				fprintf(BV_file,
+						" %4d %11.4e %11.4e %.3f\n",
+						i, starA->x, image_size.y - starA->y, starB->BV);
+			}
+		}
+		fclose(BV_file);
+	}
+#endif
 
 
 	/*
@@ -630,6 +639,7 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 	 */
 	free_star_array(star_array_A);
 	free_star_array(star_array_B);
+	free(mask);
 
 	return ret;
 }
@@ -1331,6 +1341,7 @@ double **darray /* array of distances between stars */
 
 	tri->id = id_number++;
 	tri->index = -1;
+	a = 0.0;
 
 	/*
 	 * figure out which sides is longest and shortest, and assign
@@ -1425,7 +1436,7 @@ double **darray /* array of distances between stars */
 			star_array[tri->a_index].y - star_array[tri->b_index].y,
 			star_array[tri->a_index].x - star_array[tri->b_index].x);
 #ifdef DEBUG2
-	printf(" triangle %5d  has side_a_angle %lf = %lf deg \n",
+	printf(" triangle %5d  has side_a_angle %f = %f deg \n",
 			tri->id, tri->side_a_angle, tri->side_a_angle*(180/3.14159));
 #endif
 
@@ -2895,6 +2906,9 @@ TRANS *trans /* O: place solved coefficients into this */
 			sa = &(star_array_A[winner_index_A[i]]);
 			if (calc_trans_coords(sa, trans, &newx, &newy) != SH_SUCCESS) {
 				shError("iter_trans: calc_trans_coords fails");
+				shFree(dist2);
+				shFree(dist2_sorted);
+				shFree(a_prime);
 				return (SH_GENERIC_ERROR);
 			}
 			a_prime[i].x = newx;
@@ -3085,6 +3099,9 @@ TRANS *trans /* O: place solved coefficients into this */
 				winner_votes, winner_index_A, winner_index_B,
 				trans) != SH_SUCCESS) {
 			shError("iter_trans: calc_trans returns with error");
+			shFree(dist2);
+			shFree(dist2_sorted);
+			shFree(a_prime);
 			return (SH_GENERIC_ERROR);
 		}
 
@@ -5625,7 +5642,6 @@ double *vector /* I/O: vector which holds "b" values in input */
  * </AUTO>
  */
 
-#define SWAP(a,b)  { double temp = (a); (a) = (b); (b) = temp; }
 
 static int gauss_pivot(double **matrix, /* I/O: a square 2-D matrix we are inverting */
 int num, /* I: number of rows and cols in matrix */

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,8 +31,9 @@
 #include "io/ser.h"
 #include "algos/cosmetic_correction.h"
 #include "algos/statistics.h"
-#include "stacking/stacking.h"
+#include "algos/sorting.h"
 
+/* see also getMedian3x3 in algos/PSF.c */
 static WORD getMedian5x5(WORD *buf, const int xx, const int yy, const int w,
 		const int h, gboolean is_cfa) {
 	int step, radius, x, y;
@@ -48,22 +49,19 @@ static WORD getMedian5x5(WORD *buf, const int xx, const int yy, const int w,
 	}
 
 	int n = 0;
-	int start;
 	value = calloc(24, sizeof(WORD));
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
-			if (y >= 0 && y < h) {
-				if (x >= 0 && x < w) {
-					if ((x != xx) || (y != yy)) {
-						value[n++] = buf[x + y * w];
-					}
+			if (y >= 0 && y < h && x >= 0 && x < w) {
+				// ^ limit to image bounds ^
+				// v exclude centre pixel v
+				if (x != xx || y != yy) {
+					value[n++] = buf[x + y * w];
 				}
 			}
 		}
 	}
-	start = 24 - n - 1;
-	quicksort_s(value, 24);
-	median = round_to_WORD(gsl_stats_ushort_median_from_sorted_data(value + start, 1, n));
+	median = round_to_WORD (quickmedian (value, n));
 	free(value);
 	return median;
 }
@@ -86,11 +84,9 @@ static WORD *getAverage3x3Line(WORD *buf, const int yy, const int w, const int h
 		for (y = yy - radius; y <= yy + radius; y += step) {
 			if (y != yy) {	// we skip the line
 				for (x = xx - radius; x <= xx + radius; x += step) {
-					if (y >= 0 && y < h) {
-						if (x >= 0 && x < w) {
-							value += (double) buf[x + y * w];
-							n++;
-						}
+					if (y >= 0 && y < h && x >= 0 && x < w) {
+						value += (double) buf[x + y * w];
+						n++;
 					}
 				}
 			}
@@ -164,7 +160,7 @@ long count_deviant_pixels(fits *fit, double sig[2], long *icold, long *ihot) {
 	*ihot = 0;
 	for (i = 0; i < fit->rx * fit->ry; i++) {
 		if (buf[i] >= thresHot) (*ihot)++;
-		else if (buf[i] <= thresCold) (*icold)++;
+		else if (buf[i] < thresCold) (*icold)++;
 	}
 
 	return (*icold + *ihot);
@@ -213,13 +209,17 @@ deviant_pixel *find_deviant_pixels(fits *fit, double sig[2], long *icold, long *
 	*ihot = 0;
 	for (i = 0; i < fit->rx * fit->ry; i++) {
 		if (buf[i] >= thresHot) (*ihot)++;
-		else if (buf[i] <= thresCold) (*icold)++;
+		else if (buf[i] < thresCold) (*icold)++;
 	}
 
 	/** Second we store deviant pixels in p*/
 	int n = (*icold) + (*ihot);
 	if (n <= 0) return NULL;
 	dev = calloc(n, sizeof(deviant_pixel));
+	if (!dev) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	i = 0;
 	for (y = 0; y < fit->ry; y++) {
 		for (x = 0; x < fit->rx; x++) {
@@ -230,7 +230,7 @@ deviant_pixel *find_deviant_pixels(fits *fit, double sig[2], long *icold, long *
 				dev[i].type = HOT_PIXEL;
 				i++;
 			}
-			else if (pixel <= thresCold) {
+			else if (pixel < thresCold) {
 				dev[i].p.x = x;
 				dev[i].p.y = y;
 				dev[i].type = COLD_PIXEL;
@@ -321,8 +321,8 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
 	args->seq = cosme_args->seq;
 	args->partial_image = FALSE;
-	args->filtering_criterion = stack_filter_included;
-	args->nb_filtered_images = com.seq.selnum;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = cosme_args->seq->selnum;
 	args->prepare_hook = ser_prepare_hook;
 	args->finalize_hook = ser_finalize_hook;
 	args->save_hook = NULL;

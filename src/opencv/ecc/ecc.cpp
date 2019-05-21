@@ -446,7 +446,7 @@ double findTransform_ECC(InputArray templateImage, InputArray inputImage,
 	Mat errorProjection = Mat(numberOfParameters, 1, CV_32F);
 
 	Mat deltaP = Mat(numberOfParameters, 1, CV_32F); //transformation parameter correction
-	Mat error = Mat(hs, ws, CV_32F); //error as 2D matrix
+	Mat err = Mat(hs, ws, CV_32F); //error as 2D matrix
 
 	const int imageFlags = INTER_LINEAR + WARP_INVERSE_MAP;
 	const int maskFlags = INTER_NEAREST + WARP_INVERSE_MAP;
@@ -547,8 +547,8 @@ double findTransform_ECC(InputArray templateImage, InputArray inputImage,
 		const double lambda = (lambda_n / lambda_d);
 
 		// estimate the update step delta_p
-		error = lambda * templateZM - imageWarped;
-		project_onto_jacobian_ECC(jacobian, error, errorProjection);
+		err = lambda * templateZM - imageWarped;
+		project_onto_jacobian_ECC(jacobian, err, errorProjection);
 		deltaP = hessianInv * errorProjection;
 
 		// update warping matrix
@@ -559,7 +559,6 @@ double findTransform_ECC(InputArray templateImage, InputArray inputImage,
 	// return final correlation coefficient
 	return rho;
 }
-
 
 /*******************************************************
  *        S I R I L             C O D E                *
@@ -572,42 +571,28 @@ int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
 	Mat im(im_rows, im_cols, CV_16UC1, image);
 	Mat warp_matrix = Mat::eye(3, 3, CV_32F);
 	WARP_MODE warp_mode = WARP_MODE_TRANSLATION;	// for tests
-	int number_of_iterations = 50;
+	int number_of_iterations = 180;
 	double termination_eps = 0.002;
 	int retvalue = 0;
 
-	setIdentity(warp_matrix);
-	ref.convertTo(ref, CV_8UC1);
-	im.convertTo(im, CV_8UC1);
-
-	if (warp_mode != WARP_MODE_HOMOGRAPHY)
-		warp_matrix.rows = 2;
+	/* this conversion operation of the reference could be avoided since
+	 * it's the same for all tested images */
+	ref.convertTo(ref, CV_32FC1, 1.0/reference->stats[layer]->max);
+	im.convertTo(im, CV_32FC1, 1.0/image->stats[layer]->max);
 
 	// Define termination criteria
 	TermCriteria criteria (TermCriteria::COUNT+TermCriteria::EPS, number_of_iterations, termination_eps);
 
-	double rho = findTransform_ECC(ref, im, warp_matrix, warp_mode, criteria,
-			noArray());
-
-	if (rho > 0) {
-
+	double ecc = findTransform_ECC(ref, im, warp_matrix, warp_mode, criteria, noArray());
 #ifdef ECC_DEBUG
-		std::cout << "rho=" << rho << std::endl;
-		std::cout << "result=" << std::endl << warp_matrix << std::endl;
+	std::cout << "ecc = " << ecc << std::endl;
+	std::cout << "result = " << std::endl << warp_matrix << std::endl;
 #endif
-
-		switch (warp_mode) {
-		case WARP_MODE_TRANSLATION:
-			reg_param->dx = warp_matrix.at<float>(0, 2);
-			reg_param->dy = warp_matrix.at<float>(1, 2);
-			break;
-		default:
-			std::cout << "Not handled yet" << std::endl;
-			retvalue = 1;
-		}
+	if (ecc > 0.8) {
+		reg_param->dx = warp_matrix.at<float>(0, 2);
+		reg_param->dy = warp_matrix.at<float>(1, 2);
 	}
-	else
-		retvalue = rho;
+	else retvalue = 1;
 
 	warp_matrix.release();
 	ref.release();

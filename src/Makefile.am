@@ -10,26 +10,31 @@ siril_SOURCES = \
 	core/undo.c core/undo.h core/utils.c core/processing.c core/processing.h \
 	core/imoper.c core/imoper.h core/pipe.c core/pipe.h \
 	core/initfile.c core/initfile.h core/siril_update.c core/siril_update.h \
+	core/sequence_filtering.c core/sequence_filtering.h core/preprocess.c core/preprocess.h \
+	core/OS_utils.c core/siril_log.c \
 	io/conversion.c io/conversion.h io/ser.c io/ser.h io/films.c io/films.h \
 	io/image_formats_libraries.c io/image_formats_internal.c io/image_format_fits.c \
 	io/sequence.c io/sequence.h io/seqfile.c io/single_image.c io/single_image.h \
 	io/mp4_output.h io/mp4_output.c io/sequence_export.c gui/gui.c gui/gui.h \
-	gui/callbacks.c gui/callbacks.h \
-	gui/histogram.c gui/histogram.h gui/message_dialog.c gui/message_dialog.h \
-	gui/save_dialog.c gui/save_dialog.h gui/PSF_list.h gui/PSF_list.c \
-	gui/sequence_list.c gui/registration_preview.c gui/image_display.c gui/image_display.h \
-	gui/statistics_list.c gui/script_menu.c gui/script_menu.h gui/plot.c gui/plot.h \
+	gui/image_display.c gui/image_display.h \
+	gui/zones.c gui/zones.h \
+	gui/callbacks.c gui/callbacks.h gui/histogram.c gui/histogram.h gui/save_dialog.c gui/save_dialog.h gui/open_dialog.c gui/open_dialog.h gui/message_dialog.c gui/message_dialog.h \
+	gui/PSF_list.h gui/PSF_list.c gui/sequence_list.c gui/registration_preview.c \
+	gui/statistics_list.c gui/script_menu.c gui/script_menu.h \
+	gui/plot.c gui/plot.h gui/asinh.c gui/saturation.c gui/wavelets.c \
 	gui/gnuplot_i/gnuplot_i.c gui/gnuplot_i/gnuplot_i.h \
 	gui/progress_and_log.c gui/progress_and_log.h \
 	gui/about_dialog.c \
-	gui/zones.c gui/zones.h \
-	registration/registration.c registration/registration.h \
-	registration/global.c registration/cog.c registration/steepest_descent.c \
+	gui/photometric_cc.c gui/photometric_cc.h \
+	registration/global.c registration/cog.c registration/steepest_descent.c registration/comet.c \
 	registration/matching/match.c registration/matching/atpmatch.c registration/matching/misc.c \
 	registration/matching/project_coords.c registration/matching/project_coords.h registration/matching/degtorad.h registration/matching/apply_match.c \
 	stacking/stacking.c stacking/stacking.h stacking/sum.c stacking/sum.h stacking/normalization.c \
-	algos/gradient.c algos/gradient.h algos/quality.c algos/quality.h \
-	algos/statistics.c algos/statistics.h \
+	stacking/median_and_mean.c stacking/upscaling.c \
+	algos/statistics.c algos/statistics.h algos/sorting.h algos/sorting.c \
+	algos/background_extraction.c algos/background_extraction.h algos/quality.c algos/quality.h \
+	algos/rgradient.c algos/rgradient.h \
+	algos/gradient.c algos/gradient.h
 	algos/fft.c algos/fft.h \
 	algos/colors.c algos/colors.h \
 	algos/geometry.c algos/geometry.h \
@@ -56,6 +61,10 @@ siril_SOURCES += io/avi_pipp/pipp_avi_write.cpp io/avi_pipp/pipp_avi_write.h io/
 siril_SOURCES += opencv/opencv.cpp opencv/opencv.h opencv/ecc/ecc.cpp opencv/ecc/ecc.h
 siril_SOURCES += opencv/findHomography/fundam.cpp opencv/findHomography/calibration.cpp opencv/findHomography/modelest.cpp opencv/findHomography/_modelest.h opencv/findHomography/calib3d.hpp opencv/findHomography/precomp.hpp
 siril_LDADD += $(OPENCV_LIBS)
+
+pkgdata_DATA = gui/siril3.glade \
+	gui/gtk_old.css \
+	gui/gtk.css
 
 if OS_WIN32
 AM_LDFLAGS += -Wl,--export-all-symbols

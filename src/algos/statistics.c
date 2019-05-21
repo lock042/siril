@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -40,7 +40,10 @@
 #include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
+#include "sorting.h"
 #include "statistics.h"
+
+static void stats_set_default_values(imstats *stat);
 
 // copies the area of an image into the memory buffer data
 static void select_area(fits *fit, WORD *data, int layer, rectangle *bounds) {
@@ -59,124 +62,42 @@ static void select_area(fits *fit, WORD *data, int layer, rectangle *bounds) {
 	}
 }
 
-/*
- *  This Quickselect routine is based on the algorithm described in
- *  "Numerical recipes in C", Second Edition,
- *  Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5
- *  This code by Nicolas Devillard - 1998. Public domain.
- */
-
-#define ELEM_SWAP_WORD(a,b) { register WORD t=(a);(a)=(b);(b)=t; }
-
-// warning: data is modified, sorted in-place
-static double siril_stats_ushort_median(WORD *arr, int n) {
-	int low, high;
-	int median;
-	int middle, ll, hh;
-
-	low = 0;
-	high = n - 1;
-	median = (low + high) / 2;
-	for (;;) {
-		if (high <= low) /* One element only */
-			return (double) arr[median];
-
-		if (high == low + 1) { /* Two elements only */
-			if (arr[low] > arr[high])
-				ELEM_SWAP_WORD(arr[low], arr[high]);
-			return (double) arr[median];
-		}
-
-		/* Find median of low, middle and high items; swap into position low */
-		middle = (low + high) / 2;
-		if (arr[middle] > arr[high])
-			ELEM_SWAP_WORD(arr[middle], arr[high]);
-		if (arr[low] > arr[high])
-			ELEM_SWAP_WORD(arr[low], arr[high]);
-		if (arr[middle] > arr[low])
-			ELEM_SWAP_WORD(arr[middle], arr[low]);
-
-		/* Swap low item (now in position middle) into position (low+1) */
-		ELEM_SWAP_WORD(arr[middle], arr[low + 1]);
-
-		/* Nibble from each end towards middle, swapping items when stuck */
-		ll = low + 1;
-		hh = high;
-		for (;;) {
-			do
-				ll++;
-			while (arr[low] > arr[ll]);
-			do
-				hh--;
-			while (arr[hh] > arr[low]);
-
-			if (hh < ll)
-				break;
-
-			ELEM_SWAP_WORD(arr[ll], arr[hh]);
-		}
-
-		/* Swap middle item (in position low) back into correct position */
-		ELEM_SWAP_WORD(arr[low], arr[hh]);
-
-		/* Re-set active partition */
-		if (hh <= median)
-			low = ll;
-		if (hh >= median)
-			high = hh - 1;
-	}
-	return -1;
-}
-
-#undef ELEM_SWAP_WORD
-
 /* For a univariate data set X1, X2, ..., Xn, the MAD is defined as the median
  * of the absolute deviations from the data's median:
  *  MAD = median (| Xi − median(X) |)
  */
-
 static double siril_stats_ushort_mad(WORD* data, const size_t stride,
 		const size_t n, const double m) {
 	size_t i;
-	double median;
-	WORD *tmp;
+	double mad;
+	int median = round_to_int(m);	// we use it on integer data anyway
+	WORD *tmp = calloc(n, sizeof(WORD));
 
-	tmp = calloc(n, sizeof(WORD));
-
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) if(n > 10000) private(i) schedule(static)
 	for (i = 0; i < n; i++) {
-		const WORD delta = fabs(data[i * stride] - m);
-		tmp[i] = delta;
+		int delta = data[i * stride] - median;
+		tmp[i] = (WORD)abs(delta);
 	}
-	median = siril_stats_ushort_median(tmp, n);
-	free(tmp);
 
-	return median;
+	mad = histogram_median (tmp, n);
+	free(tmp);
+	return mad;
 }
 
-/* Here this is a bit tricky. This function computes the median from sorted data
- * because this function is called in IKSS where a quick select algorithm for
- * finding median is very inefficient.
- * However, this function is used in a function where sorting is mandatory.
- */
 static double siril_stats_double_mad(const double* data, const size_t stride,
-		const size_t n, const double m) {
+		const size_t n, const double median) {
 	size_t i;
-	double median;
-	double *tmp;
+	double *tmp = calloc(n, sizeof(double));
+	double mad;
 
-	tmp = calloc(n, sizeof(double));
-
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) if(n > 10000) private(i) schedule(static)
 	for (i = 0; i < n; i++) {
-		const double delta = fabs(data[i * stride] - m);
-		tmp[i] = delta;
+		tmp[i] = fabs(data[i * stride] - median);
 	}
-	quicksort_d(tmp, n);
-	median = gsl_stats_median_from_sorted_data(tmp, stride, n);
-	free(tmp);
 
-	return median;
+	mad = histogram_median_double (tmp, n);
+	free(tmp);
+	return mad;
 }
 
 static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
@@ -293,23 +214,25 @@ static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
 		const WORD data[], const size_t stride, const size_t n) {
 	/* finds the smallest and largest members of a dataset */
 
-	WORD min = data[0 * stride];
-	WORD max = data[0 * stride];
-	size_t i;
+	if (n > 0 && data) {
+		WORD min = data[0];
+		WORD max = data[0];
+		size_t i;
 
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:max) reduction(min:min)
-	for (i = 0; i < n; i++) {
-		WORD xi = data[i * stride];
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(n > 10000) reduction(max:max) reduction(min:min)
+		for (i = 0; i < n; i++) {
+			WORD xi = data[i * stride];
 
-		if (xi < min)
-			min = xi;
+			if (xi < min)
+				min = xi;
 
-		if (xi > max)
-			max = xi;
+			if (xi > max)
+				max = xi;
+		}
+
+		*min_out = min;
+		*max_out = max;
 	}
-
-	*min_out = min;
-	*max_out = max;
 }
 
 /* this function tries to get the requested stats from the passed stats,
@@ -342,12 +265,16 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
 			data = fit->pdata[layer];
 		}
 		stat->total = nx * ny;
+		if (stat->total == 0L) {
+			if (stat_is_local) free(stat);
+			return NULL;
+		}
 	}
 
 	/* Calculation of min and max */
 	if ((option & (STATS_MINMAX | STATS_BASIC)) && (stat->min < 0. || stat->max < 0.)) {
 		// TODO 1.0: change to double
-		WORD min, max, norm;
+		WORD min = 0, max = 0, norm = 0;
 		if (!data) return NULL;	// not in cache, don't compute
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
 		siril_stats_ushort_minmax(&min, &max, data, 1, stat->total);
@@ -396,7 +323,7 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
 	if (compute_median && stat->median < 0.) {
 		if (!data) return NULL;	// not in cache, don't compute
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
-		stat->median = siril_stats_ushort_median(data, stat->ngoodpix);
+		stat->median = histogram_median(data, stat->ngoodpix);
 	}
 
 	/* Calculation of average absolute deviation from the median */
@@ -421,17 +348,23 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
 		stat->sqrtbwmv = sqrt(bwmv);
 	}
 
-	/* Calculation of IKSS. Only used for stacking */
+	/* Calculation of IKSS. Only used for stacking normalization */
 	if ((option & STATS_IKSS) && (stat->location < 0. || stat->scale < 0.)) {
 		if (!data) return NULL;	// not in cache
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
 		long i;
 		double *newdata = malloc(stat->ngoodpix * sizeof(double));
+		if (!newdata) {
+			if (stat_is_local) free(stat);
+			if (free_data) free(data);
+			PRINT_ALLOC_ERR;
+			return NULL;
+		}
 
 		/* we convert in the [0, 1] range */
 #pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
 		for (i = 0; i < stat->ngoodpix; i++) {
-			newdata[i] = (double) data[i] / stat->normValue;
+			newdata[i] = (double)data[i] / stat->normValue;
 		}
 		IKSS(newdata, stat->ngoodpix, &stat->location, &stat->scale);
 		/* go back to the original range */
@@ -472,9 +405,11 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 		stat = statistics_internal(fit, layer, NULL, option, oldstat);
 		if (!stat) {
 			fprintf(stderr, "- stats failed for fit %p (%d)\n", fit, layer);
-			if (oldstat)
-				allocate_stats(&oldstat);
-		       	return NULL;
+			if (oldstat) {
+				stats_set_default_values(oldstat);
+				oldstat->_nb_refs--;
+			}
+			return NULL;
 		}
 		if (!oldstat)
 			add_stats_to_fit(fit, layer, stat);
@@ -491,8 +426,10 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 			if (fit)
 				fprintf(stderr, "- stats failed for %d in seq (%d)\n",
 						image_index, layer);
-			if (oldstat)
-				allocate_stats(&oldstat);
+			if (oldstat) {
+				stats_set_default_values(oldstat);
+				oldstat->_nb_refs--;
+			}
 			return NULL;
 		}
 		if (!oldstat)
@@ -616,8 +553,8 @@ void invalidate_stats_from_fit(fits *fit) {
 	if (fit->stats) {
 		int layer;
 		for (layer = 0; layer < fit->naxes[2]; layer++) {
-			free_stats(fit->stats[layer]);
 			siril_debug_print("- stats %p cleared from fit (%d)\n", fit->stats[layer], layer);
+			free_stats(fit->stats[layer]);
 			fit->stats[layer] = NULL;
 		}
 	}
@@ -632,6 +569,12 @@ void full_stats_invalidation_from_fit(fits *fit) {
 	}
 }
 
+static void stats_set_default_values(imstats *stat) {
+	stat->total = -1L;
+	stat->ngoodpix = -1L;
+	stat->mean = stat->avgDev = stat->median = stat->sigma = stat->bgnoise = stat->min = stat->max = stat->normValue = stat->mad = stat->sqrtbwmv = stat->location = stat->scale = -1.0;
+}
+
 /* allocates an imstat structure and initializes it with default values that
  * are used by the statistics() function.
  * Only use free_stats() to free the return value.
@@ -640,10 +583,8 @@ void allocate_stats(imstats **stat) {
 	if (stat) {
 		if (!*stat)
 			*stat = malloc(sizeof(imstats));
-		if (!*stat) return;	// OOM
-		(*stat)->total = -1L;
-		(*stat)->ngoodpix = -1L;
-		(*stat)->mean = (*stat)->avgDev = (*stat)->median = (*stat)->sigma = (*stat)->bgnoise = (*stat)->min = (*stat)->max = (*stat)->normValue = (*stat)->mad = (*stat)->sqrtbwmv = (*stat)->location = (*stat)->scale = -1.0;
+		if (!*stat) { PRINT_ALLOC_ERR; return; } // OOM
+		stats_set_default_values(*stat);
 		(*stat)->_nb_refs = 1;
 		siril_debug_print("- stats %p allocated\n", *stat);
 	}

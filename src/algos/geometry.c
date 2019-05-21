@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,6 +33,7 @@
 #include "io/sequence.h"
 #include "geometry.h"
 
+#include <string.h>
 #include <math.h>
 
 /* this method rotates the image 180 degrees, useful after german mount flip.
@@ -80,29 +81,25 @@ static void fits_rotate_pi(fits *fit) {
 }
 
 static void mirrorx_gui(fits *fit) {
-	if (single_image_is_loaded()) {
 		if (confirm_delete_wcs_keywords(fit)) {
 			set_cursor_waiting(TRUE);
-			undo_save_state("Processing: Mirror X");
+			undo_save_state(&gfit, "Processing: Mirror X");
 			mirrorx(fit, TRUE);
 			redraw(com.cvport, REMAP_ALL);
 			redraw_previews();
 			set_cursor_waiting(FALSE);
 		}
-	}
 }
 
 static void mirrory_gui(fits *fit) {
-	if (single_image_is_loaded()) {
 		if (confirm_delete_wcs_keywords(fit)) {
 			set_cursor_waiting(TRUE);
-			undo_save_state("Processing: Mirror Y");
+			undo_save_state(&gfit, "Processing: Mirror Y");
 			mirrory(fit, TRUE);
 			redraw(com.cvport, REMAP_ALL);
 			redraw_previews();
 			set_cursor_waiting(FALSE);
 		}
-	}
 }
 
 static void rotate_gui(fits *fit) {
@@ -121,7 +118,7 @@ static void rotate_gui(fits *fit) {
 		cropped = gtk_toggle_button_get_active(crop_rotation);
 
 		set_cursor_waiting(TRUE);
-		undo_save_state("Processing: Rotation (%.1lfdeg, cropped=%s)", angle,
+		undo_save_state(&gfit, "Processing: Rotation (%.1lfdeg, cropped=%s)", angle,
 				cropped ? "TRUE" : "FALSE");
 		verbose_rotate_image(fit, angle, interpolation, cropped);
 		update_used_memory();
@@ -205,7 +202,8 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
 
-	cvRotateImage(&gfit, angle, interpolation, cropped);
+	point center = {gfit.rx / 2.0, gfit.ry / 2.0};
+	cvRotateImage(&gfit, center, angle, interpolation, cropped);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -328,7 +326,7 @@ void on_menuitem_rotation90_activate(GtkMenuItem *menuitem, gpointer user_data) 
 		cropped = gtk_toggle_button_get_active(crop_rotation);
 
 		set_cursor_waiting(TRUE);
-		undo_save_state("Processing: Rotation (90.0deg)");
+		undo_save_state(&gfit, "Processing: Rotation (90.0deg)");
 		verbose_rotate_image(&gfit, 90.0, -1, cropped);	// fast rotation, no interpolation, no crop
 		adjust_vport_size_to_image();
 		redraw(com.cvport, REMAP_ALL);
@@ -349,7 +347,7 @@ void on_menuitem_rotation270_activate(GtkMenuItem *menuitem, gpointer user_data)
 		cropped = gtk_toggle_button_get_active(crop_rotation);
 
 		set_cursor_waiting(TRUE);
-		undo_save_state("Processing: Rotation (-90.0deg)");
+		undo_save_state(&gfit, "Processing: Rotation (-90.0deg)");
 		verbose_rotate_image(&gfit, 270.0, -1, cropped);// fast rotation, no interpolation, no crop
 		adjust_vport_size_to_image();
 		redraw(com.cvport, REMAP_ALL);
@@ -425,7 +423,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 		int toX = round_to_int((sample[0] / 100.0) * gfit.rx);
 		int toY = round_to_int((sample[1] / 100.0) * gfit.ry);
-		undo_save_state("Processing: Resample (%g - %g)", sample[0] / 100.0,
+		undo_save_state(&gfit, "Processing: Resample (%g - %g)", sample[0] / 100.0,
 				sample[1] / 100.0);
 		verbose_resize_gaussian(&gfit, toX, toY, interpolation);
 		update_used_memory();
@@ -482,7 +480,7 @@ void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data)
 void on_menu_gray_crop_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	// if astrometry exists
 	if (confirm_delete_wcs_keywords(&gfit)) {
-		undo_save_state("Processing: Crop (x=%d, y=%d, w=%d, h=%d)",
+		undo_save_state(&gfit, "Processing: Crop (x=%d, y=%d, w=%d, h=%d)",
 				com.selection.x, com.selection.y, com.selection.w,
 				com.selection.h);
 		crop(&gfit, &com.selection);

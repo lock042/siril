@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -39,8 +39,8 @@
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
 static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
-static char *PixSizeX[] = { "XPIXSZ", "XPIXELSZ", NULL };
-static char *PixSizeY[] = { "YPIXSZ", "YPIXELSZ", NULL };
+static char *PixSizeX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", NULL };
+static char *PixSizeY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", NULL };
 static char *BinX[] = { "XBINNING", "BINX", NULL };
 static char *BinY[] = { "YBINNING", "BINY", NULL };
 static char *Focal[] = { "FOCAL", "FOCALLEN", NULL };
@@ -82,6 +82,10 @@ static int fit_stats(fits *fit, double *mini, double *maxi) {
 	double *pix, sum = 0.;
 
 	double meanval = 0., minval = 1.E33, maxval = -1.E33;
+
+	/* initialize value in case where it does not work */
+	*mini = 0;
+	*maxi = 0;
 
 	fits_get_img_dim(fit->fptr, &(fit->naxis), &status);
 	fits_get_img_size(fit->fptr, 2, fit->naxes, &status);
@@ -134,6 +138,30 @@ static int fit_stats(fits *fit, double *mini, double *maxi) {
 	return status;
 }
 
+/* copy the complete header in a heap-allocated string */
+static void fits_read_history(fitsfile *fptr, GSList **history, int *status) {
+	int i, hdupos, nkeys;
+	char card[FLEN_CARD];
+	GSList *list = NULL;
+
+	fits_get_hdu_num(fptr, &hdupos); /*Get the current HDU position */
+	for (; !*status; hdupos++) {
+		fits_get_hdrspace(fptr, &nkeys, NULL, status);
+		for (i = 1; i <= nkeys; i++) {
+			if (fits_read_record(fptr, i, card, status))
+				break;
+			if (!strncmp(card, "HISTORY", 7)) {
+				list = g_slist_prepend(list, g_strdup(card + 8));
+			}
+		}
+		fits_movrel_hdu(fptr, 1, NULL, status);
+	}
+	if (*history)
+		g_slist_free_full(*history, free);
+	list = g_slist_reverse(list);
+	*history = list;
+}
+
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
 static void read_fits_header(fits *fit) {
@@ -157,7 +185,7 @@ static void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &zero, NULL, &status);
 	if (!status && 1.0 != zero) {
 		siril_log_message(_("Loaded FITS file has "
-				"a BSCALE different than 1 (%lf)\n"), zero);
+				"a BSCALE different than 1 (%f)\n"), zero);
 		status = 0;
 		/* We reset the scaling factors as we don't use it */
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
@@ -170,6 +198,11 @@ static void read_fits_header(fits *fit) {
 	if (status == KEY_NO_EXIST) {
 		fit->data_max = maxi;
 	}
+
+	status = 0;
+	fits_read_key(fit->fptr, TUINT, "MAXCFA", &(fit->maximum_pixel_value),
+			NULL, &status);
+
 
 	/*******************************************************************
 	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
@@ -196,6 +229,14 @@ static void read_fits_header(fits *fit) {
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->bayer_pattern), NULL,
+			&status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TINT, "XBAYROFF", &(fit->bayer_xoffset), NULL,
+			&status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset), NULL,
 			&status);
 
 	read_fits_date_obs_header(fit);
@@ -235,6 +276,12 @@ static void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TUINT, "EQUINOX", &(fit->wcs.equinox), NULL, &status);
 
 	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), NULL, &status);
+
+	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix1), NULL, &status);
 
 	status = 0;
@@ -247,10 +294,16 @@ static void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt1), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt2), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota1), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota2), NULL, &status);
 
 
 	/*******************************************************************
@@ -258,26 +311,25 @@ static void read_fits_header(fits *fit) {
 	 * ****************************************************************/
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR0", &(fit->dft.norm[0]), NULL,
+	fits_read_key(fit->fptr, TDOUBLE, "DFTNORM0", &(fit->dft.norm[0]), NULL,
 			&status);
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR1", &(fit->dft.norm[1]), NULL,
+	fits_read_key(fit->fptr, TDOUBLE, "DFTNORM1", &(fit->dft.norm[1]), NULL,
 			&status);
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DFT_NOR2", &(fit->dft.norm[2]), NULL,
-			&status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "DFT_ORD", &(fit->dft.ord), NULL,
+	fits_read_key(fit->fptr, TDOUBLE, "DFTNORM2", &(fit->dft.norm[2]), NULL,
 			&status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "DFT_TYPE", &(fit->dft.type), NULL,
+	fits_read_key(fit->fptr, TSTRING, "DFTORD", &(fit->dft.ord), NULL,
 			&status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TUSHORT, "DFT_RX", &(fit->dft.rx), NULL, &status);
-	fits_read_key(fit->fptr, TUSHORT, "DFT_RY", &(fit->dft.ry), NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "DFTTYPE", &(fit->dft.type), NULL,
+			&status);
+
+	status = 0;
+	fits_read_history(fit->fptr, &(fit->history), &status);
 }
 
 /* copy the complete header in a heap-allocated string */
@@ -335,7 +387,6 @@ static char *copy_header(fits *fit) {
 	return header;
 }
 
-
 static void report_fits_error(int status) {
 	if (status) {
 		char errmsg[FLEN_ERRMSG];
@@ -345,12 +396,20 @@ static void report_fits_error(int status) {
 	}
 }
 
+static void conv_8_to_16(WORD *data, unsigned int nbdata) {
+	int i;
+
+	for (i = 0; i < nbdata; i++) {
+		double tmp = (double) data[i] / UCHAR_MAX_DOUBLE * USHRT_MAX_DOUBLE;
+		data[i] = round_to_WORD(tmp);
+	}
+}
+
 /* convert FITS data formats to siril native.
  * nbdata is the number of pixels, w * h.
  * from is not freed, to must be allocated and can be the same as from */
 static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nbdata, gboolean values_above_1) {
 	int i;
-	int8_t *sdata8;
 	BYTE *data8;
 	int16_t *data16;
 	double *pixels_double;
@@ -359,11 +418,6 @@ static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nb
 	unsigned long *data32;
 
 	switch (bitpix) {
-		case SBYTE_IMG:		// TO BE TESTED
-			sdata8 = (int8_t *)from;
-			for (i = 0; i < nbdata; i++)
-				to[i] = (WORD)sdata8[i] + 128;
-			break;
 		case BYTE_IMG:
 			data8 = (BYTE *)from;
 			for (i = 0; i < nbdata; i++)
@@ -380,7 +434,6 @@ static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nb
 				to[i] = (WORD)sum;
 			}
 			break;
-
 		case ULONG_IMG:		// 32-bit unsigned integer pixels
 			data32 = (unsigned long *)from;
 			for (i = 0; i < nbdata; i++)
@@ -391,7 +444,6 @@ static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nb
 			for (i = 0; i < nbdata; i++)
 				to[i] = (WORD)((sdata32[i] >> 16) + 32768);
 			break;
-
 		case DOUBLE_IMG:	// 64-bit floating point pixels
 		case FLOAT_IMG:		// 32-bit floating point pixels
 			pixels_double = (double *)from;
@@ -404,7 +456,6 @@ static void convert_data(int bitpix, const void *from, WORD *to, unsigned int nb
 				to[i] = round_to_WORD(norm * pixels_double[i]);
 			}
 			break;
-
 		case LONGLONG_IMG:	// 64-bit integer pixels
 		default:
 			siril_log_message(_("Unknown FITS data format in internal conversion\n"));
@@ -425,8 +476,9 @@ static int read_fits_with_convert(fits* fit, const char* filename) {
 	// orig ^ gives the coordinate in each dimension of the first pixel to be read
 	unsigned int nbdata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
+	fits_movabs_hdu(fit->fptr, 1, 0, &status); // make sure reading primary HDU
+
 	switch (fit->bitpix) {
-	case SBYTE_IMG:	// UNTESTED, may not exist while reading data
 	case BYTE_IMG:
 		data8 = malloc(nbdata * sizeof(BYTE));
 		datatype = fit->bitpix == BYTE_IMG ? TBYTE : TSBYTE;
@@ -435,7 +487,6 @@ static int read_fits_with_convert(fits* fit, const char* filename) {
 		if (status) break;
 		convert_data(fit->bitpix, data8, fit->data, nbdata, FALSE);
 		free(data8);
-		fit->bitpix = USHORT_IMG;
 		break;
 	case SHORT_IMG:
 		fits_read_pix(fit->fptr, TSHORT, orig, nbdata, &zero,
@@ -523,7 +574,6 @@ static int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 	unsigned int nbdata = area->w * area->h;
 
 	switch (bitpix) {
-		case SBYTE_IMG:
 		case BYTE_IMG:
 			data8 = malloc(nbdata * sizeof(BYTE));
 			datatype = bitpix == BYTE_IMG ? TBYTE : TSBYTE;
@@ -584,36 +634,35 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TUINT, "EQUINOX", &(fit->wcs.equinox),
 						"Equatorial equinox", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TA",
-				"the coordinate type for the first axis", &status);
+		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TA", "Coordinate type for the first axis", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TA",
-				"the coordinate type for the second axis", &status);
+		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TA", "Coordinate type for the second axis", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix1),
-				"axis1 reference pixel", &status);
+		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra),	"Image center R.A. (hms)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix2),
-				"axis2 reference pixel", &status);
+		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), "Image center declination (dms)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval1),
-				"axis1 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix1), "Axis1 reference pixel", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2),
-				"axis2 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix2), "Axis2 reference pixel", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra),
-				"image center R.A. (hms)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval1), "Axis1 reference value", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec),
-				"image center declination (dms)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2), "Axis2 reference value", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt1), "Axis1 scale", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt2), "Axis2 scale", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota1), "Axis1 rotation angle (deg)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota2), "Axis2 rotation angle (deg)", &status);
 	}
 }
 
 static void save_fits_header(fits *fit) {
 	int i, status = 0;
 	double zero;
-	unsigned int offset = 0;
 	char comment[FLEN_COMMENT];
 
 	if (fit->hi) { /* may not be initialized */
@@ -640,6 +689,11 @@ static void save_fits_header(fits *fit) {
 	zero = 1.0;
 	fits_update_key(fit->fptr, TDOUBLE, "BSCALE", &zero, "default scaling factor",
 			&status);
+
+	status = 0;
+	if (fit->maximum_pixel_value)
+		fits_update_key(fit->fptr, TUINT, "MAXCFA",
+				&(fit->maximum_pixel_value), "maximum raw pixel value", &status);
 
 	/*******************************************************************
 	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
@@ -718,11 +772,11 @@ static void save_fits_header(fits *fit) {
 				"Bayer color pattern", &status);
 
 		status = 0;
-		fits_update_key(fit->fptr, TUINT, "XBAYROFF", &(offset),
+		fits_update_key(fit->fptr, TINT, "XBAYROFF", &(fit->bayer_xoffset),
 				"X offset of Bayer array", &status);
 
 		status = 0;
-		fits_update_key(fit->fptr, TUINT, "YBAYROFF", &(offset),
+		fits_update_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset),
 				"Y offset of Bayer array", &status);
 	}
 
@@ -753,6 +807,14 @@ static void save_fits_header(fits *fit) {
 	 * ****************************************************************/
 
 	status = 0;
+	if (fit->history) {
+		GSList *list;
+		for (list = fit->history; list; list = list->next) {
+			fits_write_history(fit->fptr, (char *)list->data, &status);
+		}
+	}
+
+	status = 0;
 	if (com.history) {
 		for (i = 0; i < com.hist_display; i++) {
 			if (com.history[i].history[0] != '\0')
@@ -772,7 +834,7 @@ static void save_fits_header(fits *fit) {
 			strcpy(comment, "Phase of a Discrete Fourier Transform");
 		else
 			status = 1;			// should not happen
-		fits_update_key(fit->fptr, TSTRING, "DFT_TYPE", &(fit->dft.type),
+		fits_update_key(fit->fptr, TSTRING, "DFTTYPE", &(fit->dft.type),
 				comment, &status);
 	}
 
@@ -784,13 +846,13 @@ static void save_fits_header(fits *fit) {
 			strcpy(comment, "High spatial freq. are located at image center");
 		else
 			status = 1;			// should not happen
-		fits_update_key(fit->fptr, TSTRING, "DFT_ORD", &(fit->dft.ord), comment,
+		fits_update_key(fit->fptr, TSTRING, "DFTORD", &(fit->dft.ord), comment,
 				&status);
 	}
 
 	for (i = 0; i < fit->naxes[2]; i++) {
 		if (fit->dft.norm[i] > 0.) {
-			char str1[] = "DFT_NOR";
+			char str1[] = "DFTNORM";
 			char str2[] = "Normalisation value for channel #";
 			char key_str[FLEN_KEYWORD], comment_str[FLEN_VALUE];
 			sprintf(key_str, "%s%d", str1, i);
@@ -799,14 +861,6 @@ static void save_fits_header(fits *fit) {
 			fits_update_key(fit->fptr, TDOUBLE, key_str, &(fit->dft.norm[i]),
 					comment_str, &status);
 		}
-	}
-
-	status = 0;
-	if (fit->dft.rx) { /* may not be initialized */
-		fits_update_key(fit->fptr, TUSHORT, "DFT_RX", &(fit->dft.rx),
-				"Original width size", &status);
-		fits_update_key(fit->fptr, TUSHORT, "DFT_RY", &(fit->dft.ry),
-				"Original height size", &status);
 	}
 }
 
@@ -956,6 +1010,7 @@ int readfits(const char *filename, fits *fit, char *realname) {
 	read_fits_header(fit);	// stores useful header data in fit
 
 	retval = read_fits_with_convert(fit, filename);
+	fit->top_down = FALSE;
 
 	if (!retval) {
 		// copy the entire header
@@ -989,6 +1044,8 @@ void clearfits(fits *fit) {
 		free(fit->data);
 	if (fit->header)
 		free(fit->header);
+	if (fit->history)
+		g_slist_free_full(fit->history, free);
 	if (fit->stats) {
 		int i;
 		for (i = 0; i < fit->naxes[2]; i++)
@@ -1188,7 +1245,7 @@ int savefits(const char *name, fits *f) {
 	}
 	status = 0;
 	/* some float cases where it is USHORT saved as float */
-	if (f->data_max > 1.0 && f->data_max <= USHRT_MAX) {
+	if (f->bitpix != BYTE_IMG && f->data_max > 1.0 && f->data_max <= USHRT_MAX) {
 		f->bitpix = USHORT_IMG;
 	}
 	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
@@ -1218,12 +1275,18 @@ int savefits(const char *name, fits *f) {
 		free(data8);
 		break;
 	case SHORT_IMG:
+		if (f->orig_bitpix == BYTE_IMG) {
+			conv_8_to_16(f->data, pixel_count);
+		}
 		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, f->data, &status)) {
 			report_fits_error(status);
 			return 1;
 		}
 		break;
 	case USHORT_IMG:
+		if (f->orig_bitpix == BYTE_IMG) {
+			conv_8_to_16(f->data, pixel_count);
+		}
 		if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, f->data, &status)) {
 			report_fits_error(status);
 			return 1;
@@ -1299,6 +1362,7 @@ int copyfits(const fits *from, fits *to, unsigned char oper, int layer) {
 		to->pdata[1] = NULL;
 		to->pdata[2] = NULL;
 		to->header = NULL;
+		to->history = NULL;
 	}
 
 	if ((oper & CP_ALLOC)) {
@@ -1333,6 +1397,8 @@ int copyfits(const fits *from, fits *to, unsigned char oper, int layer) {
 				if (from->stats[i])
 					add_stats_to_fit(to, i, from->stats[i]);
 			}
+		} else {
+			invalidate_stats_from_fit(to);
 		}
 	}
 
@@ -1365,6 +1431,8 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->binning_x = from->binning_x;
 	to->binning_y = from->binning_y;
 
+	to->maximum_pixel_value = from->maximum_pixel_value;
+
 	strncpy(to->date_obs, from->date_obs, FLEN_VALUE);
 	strncpy(to->date, from->date, FLEN_VALUE);
 	strncpy(to->instrume, from->instrume, FLEN_VALUE);
@@ -1374,6 +1442,8 @@ int copy_fits_metadata(fits *from, fits *to) {
 	strncpy(to->dft.ord, from->dft.ord, FLEN_VALUE);
 	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE);
 
+	to->bayer_xoffset = from->bayer_xoffset;
+	to->bayer_yoffset = from->bayer_yoffset;
 	to->focal_length = from->focal_length;
 	to->iso_speed = from->iso_speed;
 	to->exposure = from->exposure;
@@ -1383,8 +1453,6 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->dft.norm[0] = from->dft.norm[0];
 	to->dft.norm[1] = from->dft.norm[1];
 	to->dft.norm[2] = from->dft.norm[2];
-	to->dft.rx = from->dft.rx;
-	to->dft.ry = from->dft.ry;
 
 	return 0;
 }

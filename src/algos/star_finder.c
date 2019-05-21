@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@
 
 #define WAVELET_SCALE 3
 
-static WORD Compute_threshold(fits *fit, double starfinder, int layer, WORD *norm, double *bg) {
+static WORD Compute_threshold(fits *fit, double ksigma, int layer, WORD *norm, double *bg) {
 	WORD threshold;
 	imstats *stat;
 
@@ -50,10 +50,12 @@ static WORD Compute_threshold(fits *fit, double starfinder, int layer, WORD *nor
 	stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
+		*norm = 0;
+		*bg = 0.0;
 		return 0;
 	}
-	threshold = (WORD) stat->median + starfinder * (WORD) stat->sigma;
-	*norm = (WORD) stat->normValue;
+	threshold = round_to_WORD(stat->median + ksigma * stat->sigma);
+	*norm = (WORD)stat->normValue;
 	*bg = stat->median;
 	free_stats(stat);
 
@@ -163,8 +165,8 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 	assert(nx > 0 && ny > 0);
 
 	results = malloc((MAX_STARS + 1) * sizeof(fitted_PSF *));
-	if (results == NULL) {
-		printf("Memory allocation failed: peaker\n");
+	if (!results) {
+		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 
@@ -173,6 +175,10 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 
 	results[0] = NULL;
 	threshold = Compute_threshold(fit, sf->sigma, layer, &norm, &bg);
+	if (norm == 0) {
+		free(results);
+		return NULL;
+	}
 
 	copyfits(fit, &wave_fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 	get_wavelet_layers(&wave_fit, WAVELET_SCALE, 2, TO_PAVE_BSPLINE, layer);
@@ -182,7 +188,7 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 	if (wave_image == NULL) {
 		free(results);
 		clearfits(&wave_fit);
-		fprintf(stderr, "Memory allocation failed: peaker\n");
+		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 	for (k = 0; k < ny; k++)
@@ -194,7 +200,7 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 		free(results);
 		free(wave_image);
 		clearfits(&wave_fit);
-		fprintf(stderr, "Memory allocation failed: peaker\n");
+		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 	for (k = 0; k < ny; k++)
@@ -248,16 +254,16 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 					 *  slows down the algorithm too much 
 					 * To fit the angle, set the 4th parameter to TRUE */
 					fitted_PSF *cur_star = psf_global_minimisation(z, bg, layer,
-							FALSE, FALSE);
+							FALSE, FALSE, FALSE);
 					if (cur_star) {
-						psf_update_units(fit, &cur_star);
+						fwhm_to_arcsec_if_needed(fit, &cur_star);
 						if (is_star(cur_star, sf)) {
 							cur_star->xpos = x + cur_star->x0 - sf->radius - 1;
 							cur_star->ypos = y + cur_star->y0 - sf->radius;
 							if (nbstars < MAX_STARS) {
 								results[nbstars] = cur_star;
 								results[nbstars + 1] = NULL;
-//								printf("%lf\t\t%lf\t\t%lf\n", cur_star->xpos, cur_star->ypos, cur_star->mag);
+//								printf("%f\t\t%f\t\t%f\n", cur_star->xpos, cur_star->ypos, cur_star->mag);
 								nbstars++;
 							}
 
@@ -300,7 +306,7 @@ fitted_PSF *add_star(fits *fit, int layer, int *index) {
 	gboolean already_found = FALSE;
 
 	*index = -1;
-	fitted_PSF * result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE);
+	fitted_PSF * result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, TRUE);
 	if (!result)
 		return NULL;
 	/* We do not check if it's matching with the "is_star()" criteria.
@@ -318,8 +324,10 @@ fitted_PSF *add_star(fits *fit, int layer, int *index) {
 		}
 	} else {
 		com.stars = malloc((MAX_STARS + 1) * sizeof(fitted_PSF*));
-		if (com.stars == NULL)
+		if (!com.stars) {
+			PRINT_ALLOC_ERR;
 			return NULL;
+		}
 		com.star_is_seqdata = FALSE;
 	}
 
@@ -389,13 +397,14 @@ void free_fitted_stars(fitted_PSF **stars) {
 	free(stars);
 }
 
-void FWHM_average(fitted_PSF **stars, float *FWHMx, float *FWHMy, int max) {
+void FWHM_average(fitted_PSF **stars, int nb, float *FWHMx, float *FWHMy, char **units) {
 	if (stars && stars[0]) {
 		int i = 0;
 
 		*FWHMx = 0.0f;
 		*FWHMy = 0.0f;
-		while (i < max) {
+		*units = stars[0]->units;
+		while (i < nb) {
 			*FWHMx += (float) stars[i]->fwhmx;
 			*FWHMy += (float) stars[i]->fwhmy;
 			i++;

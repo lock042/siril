@@ -152,17 +152,15 @@ int apply_match(image_solved *solved, TRANS trans) {
 static int proc_star_file(fitted_PSF **s, /* I: name of input data with star list */
 image_solved *solved, TRANS *trans /* I: TRANS taking (x,y) -> (ra, dec) */
 ) {
-	char line[LINELEN];
 //	int i = 0;
 	double xval, yval;
-	double r_ra, r_dec;
+	double r_dec;
 	double z, alpha, delta;
 	double delta_ra, delta_dec;
 	double rsquared;
 	double ra = solved->px_cat_center.x;
 	double dec = solved->px_cat_center.y;
 
-	r_ra = ra * DEGTORAD;
 	r_dec = dec * DEGTORAD;
 
 //	while (s && s[i]) {

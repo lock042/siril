@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -45,7 +45,7 @@ supported_film_list supported_film[] = {
 };
 
 int get_nb_film_ext_supported() {
-	return sizeof(supported_film) / sizeof(supported_film_list);
+	return G_N_ELEMENTS(supported_film);
 }
 
 static void film_init_struct(struct film_struct *film) {
@@ -203,6 +203,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 			FFMS_RESIZER_BICUBIC, &film->errinfo)) {
 		/* handle error */
 		fprintf(stderr, "FILM error: %s\n", film->errmsg);
+		film_close_file(film);
 		return FILM_ERROR;
 	}
 
@@ -361,6 +362,8 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 
 void film_close_file(struct film_struct *film) {
 	/* now it's time to clean up */
+	free(film->errmsg);
+	free(film->filename);
 	FFMS_DestroyVideoSource(film->videosource);
 }
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -167,7 +167,7 @@ gboolean is_redo_available() {
     return (com.history && (com.hist_display < com.hist_current - 1));
 }
 
-int undo_save_state(char *message, ...) {
+int undo_save_state(fits *fit, char *message, ...) {
 	gchar *filename;
 	char histo[FLEN_VALUE];
 	va_list args;
@@ -179,12 +179,12 @@ int undo_save_state(char *message, ...) {
 		else
 			vsnprintf(histo, FLEN_VALUE, message, args);
 
-		if (undo_build_swapfile(&gfit, &filename)) {
+		if (undo_build_swapfile(fit, &filename)) {
 			va_end(args);
 			return 1;
 		}
 
-		undo_add_item(&gfit, filename, histo);
+		undo_add_item(fit, filename, histo);
 
 		/* update menus */
 		update_MenuItem();
@@ -201,23 +201,25 @@ int undo_display_data(int dir) {
 	case UNDO:
 		if (is_undo_available()) {
 			if (com.hist_current == com.hist_display) {
-				undo_save_state(NULL);
+				undo_save_state(&gfit, NULL);
 				com.hist_display--;
 			}
 			com.hist_display--;
 			undo_get_data(&gfit, com.history[com.hist_display]);
+			invalidate_gfit_histogram();
+			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			redraw(com.cvport, REMAP_ALL);
-			redraw_previews();
 		}
 		break;
 	case REDO:
 		if (is_redo_available()) {
 			com.hist_display++;
 			undo_get_data(&gfit, com.history[com.hist_display]);
+			invalidate_gfit_histogram();
+			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			redraw(com.cvport, REMAP_ALL);
-			redraw_previews();
 		}
 		break;
 	default:

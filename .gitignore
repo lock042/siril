@@ -17,8 +17,11 @@ autom4te.cache/
 compile
 config.h
 config.h.in
+config.h.in~
 config.log
+config.sub
 config.status
+config.guess
 configure
 depcomp
 deps/kplot/compat.h
@@ -34,3 +37,6 @@ po/stamp-it
 po/siril.pot
 src/siril
 stamp-h1
+src/tests/compare_fits
+src/tests/sorting
+src/gui/siril3.glade~

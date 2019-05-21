@@ -4,11 +4,6 @@
 #include "core/siril.h"
 #include "registration/matching/degtorad.h"
 
-/* multiply by this to convert degrees to radians */
-#ifndef PI
-#define PI 3.14159265359
-#endif
-
 #define BRIGHTEST_STARS 2500
 #define AT_MATCH_CATALOG_NBRIGHT   60
 
@@ -32,10 +27,10 @@ typedef enum {
 	RESOLVER_NUMBER
 } resolver;
 
-/* median filter data from GUI */
 struct plate_solver_data {
 	online_catalog onlineCatalog;
 	gchar *catalogStars;
+	gboolean for_photometry_cc;
 	double scale; // scale (resolution)
 	fits *fit;
 	gchar *message; // error message
@@ -75,9 +70,14 @@ struct image_solved_struct {
 	double x, y;
 	double ra, dec;
 	double resolution, pixel_size, focal;
+	double crota;
 };
 typedef struct image_solved_struct image_solved;
 
+#ifdef HAVE_LIBCURL
+void fill_plate_solver_structure(struct plate_solver_data *args);
+gpointer match_catalog(gpointer p);
+#endif
 
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void invalidate_WCS_keywords(fits *fit);

@@ -26,8 +26,11 @@
 #define DEBUG_TEST 0
 #endif
 
+/* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
 #define siril_debug_print(fmt, ...) \
-   do { if (DEBUG_TEST) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
+   do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+
+#define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
 
 #undef max
 #define max(a,b) \
@@ -41,12 +44,16 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
+#define SWAP(a,b)  { double temp = (a); (a) = (b); (b) = temp; }
+
 #define SQR(x) ((x)*(x))
 
 #define USHRT_MAX_DOUBLE ((double)USHRT_MAX)
 #define USHRT_MAX_SINGLE ((float)USHRT_MAX)
 #define UCHAR_MAX_DOUBLE ((double)UCHAR_MAX)
 #define UCHAR_MAX_SINGLE ((float)UCHAR_MAX)
+
+#define BYTES_IN_A_MB 1048576	// 1024�
 
 #define SEQUENCE_DEFAULT_INCLUDE TRUE	// select images by default
 
@@ -77,6 +84,15 @@ typedef unsigned short WORD;		// default type for internal image data
 #define SN_NORM 1.1926
 #define QN_NORM 2.2191
 
+/* used for open and savedialog */
+#if (defined _WIN32) || (defined(__APPLE__) && defined(__MACH__))
+#define SirilWidget GtkFileChooserNative
+#define SIRIL_EOL "\r\n"
+#else
+#define SirilWidget GtkWidget
+#define SIRIL_EOL "\n"
+#endif
+
 /* when requesting an image redraw, it can be asked to remap its data before redrawing it.
  * REMAP_NONE	doesn't remaps the data,
  * REMAP_ONLY	remaps only the current viewport (color channel) and the mixed (RGB) image
@@ -86,16 +102,10 @@ typedef unsigned short WORD;		// default type for internal image data
 #define REMAP_ONLY	1
 #define REMAP_ALL	2
 
-enum {
-	COLUMN_FILENAME,		// string
-	COLUMN_DATE,		// string
-	N_COLUMNS_CONVERT
-};
-
 typedef enum {
-	TYPEUNDEF=(1 << 1),
-	TYPEFITS= (1 << 2),
-	TYPETIFF= (1 << 3),
+	TYPEUNDEF = (1 << 1),
+	TYPEFITS = (1 << 2),
+	TYPETIFF = (1 << 3),
 	TYPEBMP = (1 << 4),
 	TYPEPNG = (1 << 5),
 	TYPEJPG = (1 << 6),
@@ -105,23 +115,8 @@ typedef enum {
 	TYPEAVI = (1 << 10),
 	TYPESER = (1 << 11),
 	TYPEMP4 = (1 << 12),
-	TYPEWEBM= (1 << 13),
+	TYPEWEBM = (1 << 13),
 } image_type;
-
-#define USE_DARK	0x01
-#define USE_FLAT	0x02
-#define USE_OFFSET	0x04
-#define USE_COSME	0x08	/* cosmetic correction */
-#define USE_OPTD	0x10	/* dark optimization */
-
-/* cookies for the file chooser */
-#define OD_NULL 	0
-#define OD_FLAT 	1
-#define OD_DARK 	2
-#define OD_OFFSET 	3
-#define OD_CWD 		4
-#define OD_OPEN 	5
-#define OD_CONVERT 	6
 
 /* indices of the image data layers */
 #define BW_LAYER 	0
@@ -299,22 +294,6 @@ struct imdata {
 	char *date_obs;		/* date of the observation, processed and copied from the header */
 };
 
-/* preprocessing data from GUI */
-struct preprocessing_data {
-	struct timeval t_start;
-	fits *dark, *offset, *flat;
-	gboolean is_sequence;
-	sequence *seq;
-	gboolean autolevel;
-	double sigma[2];
-	gboolean is_cfa;
-	gboolean debayer;
-	gboolean compatibility;
-	gboolean equalize_cfa;
-	float normalisation;
-	int retval;
-};
-
 /* registration data, exists once for each image and each layer */
 struct registration_data {
 	float shiftx, shifty;	// we could have a subpixel precision, but is it needed? saved
@@ -364,10 +343,6 @@ struct sequ {
 	omp_lock_t *fd_lock;	// locks for open-mode threaded operations
 #endif
 
-	fits *offset;		// the image containing offset data
-	fits *dark;		// the image containing dark data
-	fits *flat;		// the image containing flat data
-	char *ppprefix;		// prefix for filename output of preprocessing
 	int current;		// file number currently loaded in gfit (or displayed)
 
 	/* registration previsualisation and manual alignment data */
@@ -391,18 +366,14 @@ struct single_image {
 	int nb_layers;		// number of layers embedded in each image file
 	layer_info *layers;	// info about layers
 	fits *fit;		// the fits is still gfit, but a reference doesn't hurt
-
-	/* enabling pre-processing on a single image */
-	fits *offset;		// the image containing offset data
-	fits *dark;		// the image containing dark data
-	fits *flat;		// the image containing flat data
-	char *ppprefix;		// prefix for filename output of preprocessing
 };
 
 struct wcs_struct {
 	unsigned int equinox;
 	double crpix1, crpix2;
 	double crval1, crval2;
+	double cdelt1, cdelt2;
+	double crota1, crota2;
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];
 };
@@ -411,7 +382,6 @@ struct dft_struct {
 	double norm[3];			// Normalization value
 	char type[FLEN_VALUE];		// spectrum, phase
 	char ord[FLEN_VALUE];		// regular, centered
-	unsigned int rx, ry;		// padding: original value of picture size
 };
 
 struct ffit {
@@ -436,17 +406,21 @@ struct ffit {
 	 * */
 
 	/* data obtained from the FITS file */
+	char *header;	// entire header of the FITS file. NULL for non-FITS file.
 	WORD lo;	// MIPS-LO key in FITS file, which is "Lower visualization cutoff"
 	WORD hi;	// MIPS-HI key in FITS file, which is "Upper visualization cutoff"
 	double data_max; // used to check if 32b float is between 0 and 1
+	unsigned int maximum_pixel_value; // value obtained from libraw, Maximum pixel value. Calculated from the data for most cameras, hardcoded for others.
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
+	gboolean unbinned;
 	char date_obs[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss observation start, UT
 	char date[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss creation of file, UT
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
 	char bayer_pattern[FLEN_VALUE];	// BAYERPAT key Bayer Pattern if available
+	int bayer_xoffset, bayer_yoffset;
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
 	double cvf; // Conversion factor (e-/adu)
@@ -464,7 +438,10 @@ struct ffit {
 	fitsfile *fptr;		// file descriptor. Only used for file read and write.
 	WORD *data;		// 16-bit image data (depending on image type)
 	WORD *pdata[3];		// pointers on data, per layer data access (RGB)
-	char *header;		// entire header of the FITS file. NULL for non-FITS file.
+
+	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
+
+	GSList *history;	// Former HISTORY comments of FITS file
 };
 
 /* This structure is used for all the elements in the box libraw_settings.
@@ -483,6 +460,7 @@ struct phot_config {
 	double gain;	// A/D converter gain in electrons per ADU
 	double inner;	// Inner radius of the annulus used to measure local background.
 	double outer;	// Outer radius of the annulus used to measure local background.
+	int minval, maxval;
 };
 
 struct debayer_config {
@@ -491,6 +469,7 @@ struct debayer_config {
 	sensor_pattern bayer_pattern;		// user-defined Bayer pattern
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
 	gboolean compatibility;				// ensure KSTARS compatibility if TRUE
+	gboolean stretch;                  // stretch DSLR CFA data to 16-bit if wanted
 };
 
 struct stack_config {
@@ -588,19 +567,20 @@ struct cominf {
 	GtkAdjustment *hadj[MAXVPORT];	// adjustments of vport scrollbars
 	GtkAdjustment *vadj[MAXVPORT];	// adjustments of vport scrollbars
 	sliders_mode sliders;		// 0: min/max, 1: MIPS-LO/HI, 2: user
-	int preprostatus;
 	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
 	gboolean prepro_equalize_cfa;  // Use to save if flat will be equalized in preprocessing
 	gboolean show_excluded;		// show excluded images in sequences
 	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
 
 	/* positions of all windows */
+	gboolean remember_windows;
 	rectangle main_w_pos;
 	rectangle rgb_w_pos;
 
 	/* selection rectangle for registration, FWHM, PSF */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
 	gint startX, startY;		// where the mouse was originally clicked to
+	gboolean freezeX, freezeY;
 	rectangle selection;		// coordinates of the selection rectangle
 
 	/* alignment preview data */
@@ -620,9 +600,13 @@ struct cominf {
 	
 	gboolean dontShowConfirm;
 
-	gboolean have_dark_theme;	// we have a dark theme, use bright colours
+	gboolean have_dark_theme;	// global theme is dark
+	gint combo_theme;           // value of the combobox theme
+	gboolean want_dark;			// User want dark theme for siril
 
 	stackconf stack;
+
+	gboolean cache_upscaled;	// keep up-scaled files for 'drizzle' (only used by developers)
 	
 	int filter;			// file extension filter for open/save dialogs
 
@@ -658,9 +642,7 @@ struct cominf {
 	int selected_star;		// current selected star in the GtkListStore
 	double magOffset;		// offset to reduce the real magnitude, single image
 	
-	gradient *grad;
-	int grad_nb_boxes, grad_size_boxes;
-	gboolean grad_boxes_drawn;
+	GSList *grad_samples;
 
 	stacking_zone *stacking_zones;	// zones for multi-point processing
 	int stacking_zones_size;	// allocated size

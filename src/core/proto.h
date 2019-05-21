@@ -56,8 +56,8 @@ struct pic_struct {
 	unsigned short nbplane;
 	unsigned short hi;
 	unsigned short lo;
-	char *date;			
-	char *time;		
+	char *date;
+	char *time;
 
 	// internal stuff
 	FILE *file;
@@ -103,29 +103,32 @@ gchar *siril_get_startup_dir();
 int	changedir(const char *dir, gchar **err);
 gchar *get_locale_filename(const gchar *path);
 int	update_sequences_list(const char *sequence_name_to_select);
-void	update_used_memory();
-double test_available_space(double seq_size);
-int	get_available_memory_in_MB();
-#ifdef _WIN32
-gchar *get_special_folder(int csidl);
-#endif
 void	expand_home_in_filename(char *filename, int size);
 WORD	get_normalized_value(fits*);
 void	read_and_show_textfile(char*, char*);
 void	swap_param(double *, double *);
-void	quicksort_d (double *a, int n);
-void	quicksort_s (WORD *a, int n);
-int*	apregdata_best(struct ap_regdata *input, int size);
 char*	remove_ext_from_filename(const char *basename);
 char*	str_append(char** data, const char* newdata);
 char*	format_basename(char *root);
 float	computePente(WORD *lo, WORD *hi);
 double	encodeJD(dateTime dt);
-gint strcompare(gconstpointer *a, gconstpointer *b);
 void start_timer();
 long stop_timer_elapsed_mus();
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
-GtkWindow *siril_get_active_window();
+
+/**************** OS_utils.h *****************/
+void	update_used_memory();
+gchar *pretty_print_memory(int64_t bytes);
+int test_available_space(int64_t req_size);
+int	get_available_memory_in_MB();
+#ifdef _WIN32
+gchar *get_special_folder(int csidl);
+#endif
+SirilWidget *siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action);
+SirilWidget *siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action);
+SirilWidget *siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action);
+gint siril_dialog_run(SirilWidget *widgetdialog);
+void siril_widget_destroy(SirilWidget *widgetdialog);
 
 /****************** quantize.h ***************/
 int fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -151,6 +154,12 @@ struct median_filter_data {
 	int ksize;
 	double amount;
 	int iterations;
+};
+
+/* rgradient filter data from GUI */
+struct rgradient_filter_data {
+	fits *fit;
+	double xc, yc, dR, da;
 };
 
 /* Banding data from GUI */
@@ -181,14 +190,21 @@ struct RL_data {
 };
 
 
+int 	threshlo(fits *fit, int level);
+int 	threshhi(fits *fit, int level);
+int 	nozero(fits *fit, int level);
+int	soper(fits *a, double scalar, char oper);
+int	imoper(fits *a, fits *b, char oper);
+int 	addmax(fits *a, fits *b);
+int	siril_fdiv(fits *a, fits *b, float scalar);
+int siril_ndiv(fits *a, fits *b);
+double 	gaussienne(double sigma, int size, double *gauss);
 int 	unsharp(fits *,double sigma, double mult, gboolean verbose);
 int 	shift(int sx, int sy);
 double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
 int	visu(fits *fit, int low, int high);
 int	fill(fits *fit, int level, rectangle *arearg);
 int	lrgb(fits *l, fits *r, fits *g, fits *b, fits *lrgb);
-gpointer seqpreprocess(gpointer empty);
-void	initialize_preprocessing();
 double	background(fits* fit, int reqlayer, rectangle *selection);
 int backgroundnoise(fits* fit, double sigma[]);
 void	show_FITS_header(fits *);

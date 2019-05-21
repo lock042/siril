@@ -1,15 +1,14 @@
 #ifndef _PROCESSING_H_
 #define _PROCESSING_H_
 
+#include "sequence_filtering.h"
+
 /**
  *
  * \file processing.h
  * \brief
  *
  */
-
-/** the dynamic image selection, based on various possible criteria */
-typedef int (*seq_image_filter)(sequence *seq, int layer, int nb_img, double param);
 
 /** Main structure of the generic function */
 struct generic_seq_args {
@@ -78,7 +77,9 @@ struct generic_seq_args {
 	/** user data: pointer to operation-specific data */
 	void *user;
 
-	/** do not run the sequence processing in a new thread */
+	/** if the generic sequence processing is run from an existing thread,
+	 * the idle function is not executed in the GTK+ main thread but in this
+	 * same thread. If this is false, the generic idle function is run. */
 	gboolean already_in_a_thread;
 	/** activate parallel execution */
 	gboolean parallel;
@@ -95,14 +96,15 @@ int ser_prepare_hook(struct generic_seq_args *args);
 int ser_finalize_hook(struct generic_seq_args *args);
 int generic_save(struct generic_seq_args *, int, int, fits *);
 
-//int seq_filter_all(sequence *seq, int nb_img, double any);
-//int seq_filter_included(sequence *seq, int nb_img, double any);
-
 void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();
 void stop_processing_thread();
 void set_thread_run(gboolean b);
 gboolean get_thread_run();
+
+void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
+gboolean reserve_thread();
+void unreserve_thread();
 
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);

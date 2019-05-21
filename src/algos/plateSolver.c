@@ -37,6 +37,7 @@
 #include "core/processing.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
+#include "gui/photometric_cc.h"
 
 #ifdef HAVE_LIBCURL
 
@@ -65,8 +66,33 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 
 static struct object platedObject[RESOLVER_NUMBER];
 static GtkListStore *list_IPS = NULL;
-static int selectedItem = -1;
 static image_solved is_result;
+
+static void initialize_ips_dialog() {
+	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box,
+			*catalog_auto, *frame_cc_bkg, *frame_cc_norm;
+	GtkWindow *parent;
+
+	button_ips_ok = lookup_widget("buttonIPS_ok");
+	button_cc_ok = lookup_widget("button_cc_ok");
+	catalog_label = lookup_widget("GtkLabelCatalog");
+	catalog_box = lookup_widget("ComboBoxIPSCatalog");
+	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
+	frame_cc_bkg = lookup_widget("frame_cc_background");
+	frame_cc_norm = lookup_widget("frame_cc_norm");
+
+	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
+
+	gtk_widget_set_visible(button_ips_ok, TRUE);
+	gtk_widget_set_visible(button_cc_ok, FALSE);
+	gtk_widget_set_visible(catalog_label, TRUE);
+	gtk_widget_set_visible(catalog_box, TRUE);
+	gtk_widget_set_visible(catalog_auto, TRUE);
+	gtk_widget_set_visible(frame_cc_bkg, FALSE);
+	gtk_widget_set_visible(frame_cc_norm, FALSE);
+
+	gtk_window_set_title(parent, _("Image Plate Solver"));
+}
 
 static RA convert_ra(double var) {
 	RA ra;
@@ -98,16 +124,14 @@ static double dec_to_y(DEC dec) {
 
 static void deg_to_HMS(double var, gchar *type, gchar *HMS) {
 	if (!strncasecmp(type, "ra", 2)) {
-		char rs = ' ';
 		int raH, raM;
 		double raS;
 
-		if (var < 0) rs = '-';
 		var = fabs(var);
 		raH = (int)(var / 15.0);
 		raM = (int)(((var / 15.0) - raH) * 60.0);
 		raS = ((((var / 15.0) - raH) * 60.0) - raM) * 60.0;
-		g_snprintf(HMS, 256, "%c%02d %02d %.3lf", rs, raH, raM, raS);
+		g_snprintf(HMS, 256, "%02d %02d %.3lf", raH, raM, raS);
 	} else if (!strncasecmp(type, "dec", 2)) {
 		char ds = ' ';
 		int deg, decM;
@@ -127,7 +151,7 @@ static void fov_in_DHMS(double var, gchar *fov) {
 	double decS;
 
 	if (var < 0) {
-		fprintf(stdout, "fov_in_DHMS: negative value, should not happend\n");
+		fprintf(stdout, "fov_in_DHMS: negative value, should not happened\n");
 		return;
 	}
 	deg = (int) var;
@@ -150,16 +174,13 @@ static int parse_curl_buffer(char *buffer, struct object *obj) {
 	nargs = g_strv_length(token);
 
 	while (i < nargs) {
-		if (g_strrstr (token[i], "NED")) {
+		if (g_strrstr (token[i], "=NED")) {
 			resolver = RESOLVER_NED;
-		}
-		else if (g_strrstr (token[i], "Simbad")) {
+		} else if (g_strrstr (token[i], "=Simbad")) {
 			resolver = RESOLVER_SIMBAD;
-		}
-		else if (g_strrstr(token[i], "VizieR")) {
+		} else if (g_strrstr(token[i], "=VizieR")) {
 			resolver = RESOLVER_VIZIER;
-		}
-		else if (g_str_has_prefix (token[i], "%J ")) {
+		} else if (g_str_has_prefix (token[i], "%J ")) {
 			fields = g_strsplit(token[i], " ", -1);
 			sscanf(fields[1], "%lf", &center.x);
 			sscanf(fields[2], "%lf", &center.y);
@@ -175,8 +196,7 @@ static int parse_curl_buffer(char *buffer, struct object *obj) {
 				platedObject[resolver].south = (center.y < 0.0);
 			}
 			g_strfreev(fields);
-		}
-		else if (g_str_has_prefix (token[i], "%I.0 ")) {
+		} else if (g_str_has_prefix (token[i], "%I.0 ")) {
 			if (resolver != -1) {
 				gchar *name = g_strstr_len(token[i], strlen(token[i]), "%I.0 ");
 				gchar *realname;
@@ -302,7 +322,7 @@ static gchar *get_catalog_url(point center, double mag_limit, double dfov, int t
 	gchar *mag;
 	gchar *fov;
 
-	coordinates = g_strdup_printf("%lf+%lf", center.x, center.y);
+	coordinates = g_strdup_printf("%f+%f", center.x, center.y);
 	mag = g_strdup_printf("%2.2lf", mag_limit);
 	fov = g_strdup_printf("%2.1lf", dfov / 2);
 
@@ -413,7 +433,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 
 static char *fetch_url(const char *url) {
 	struct ucontent *content = malloc(sizeof(struct ucontent));
-	char *result;
+	char *result, *error;
 	long code;
 	int retries;
 	unsigned int s;
@@ -460,7 +480,8 @@ static char *fetch_url(const char *url) {
 
 			break;
 		default:
-			printf("Fetch failed with code %ld for URL %s\n", code, url);
+			error = siril_log_message("Fetch failed with code %ld for URL %s\n", code, url);
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), error);
 		}
 	}
 
@@ -496,19 +517,12 @@ static online_catalog get_online_catalog(double fov, double m) {
 	}
 }
 
-static gchar *download_catalog(online_catalog onlineCatalog, double fov, double m) {
+static gchar *download_catalog(online_catalog onlineCatalog, point catalog_center, double fov, double m) {
 	gchar *url;
 	char *buffer = NULL;
 	FILE *catalog = NULL;
 	FILE *fproj = NULL;
 	gchar *filename, *foutput;
-	int index = selectedItem;
-	point catalog_center;
-
-	if (index < 0)
-		return NULL;
-
-	catalog_center = get_center_of_catalog();
 
 	/* ------------------- get Vizier catalog in catalog.dat -------------------------- */
 
@@ -538,12 +552,12 @@ static gchar *download_catalog(online_catalog onlineCatalog, double fov, double 
 		return NULL;
 	}
 
-	convert_catalog_coords(filename, platedObject[index].imageCenter, fproj);
+	convert_catalog_coords(filename, catalog_center, fproj);
 	fclose(fproj);
 
 	/* -------------------------------------------------------------------------------- */
 
-	is_result.px_cat_center = platedObject[index].imageCenter;
+	is_result.px_cat_center = catalog_center;
 
 	g_free(filename);
 	return foutput;
@@ -560,7 +574,6 @@ static void get_list_IPS() {
 
 static void clear_all_objects() {
 	gtk_list_store_clear(list_IPS);
-	selectedItem = -1;
 }
 
 static void add_object_to_list() {
@@ -588,6 +601,13 @@ static void add_object_to_list() {
 	}
 }
 
+static void unselect_all_items() {
+	GtkTreeSelection *selection;
+
+	selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "gtkselectionIPS"));
+	gtk_tree_selection_unselect_all(selection);
+}
+
 static void update_coordinates(RA ra, DEC Dec, gboolean south) {
 	gchar *RA_sec, *Dec_sec;
 
@@ -611,7 +631,34 @@ static void update_coordinates(RA ra, DEC Dec, gboolean south) {
 static gboolean has_any_keywords() {
 	return (gfit.focal_length > 0.0 ||
 			gfit.pixel_size_x > 0.0 ||
-			gfit.pixel_size_y > 0.0);
+			gfit.pixel_size_y > 0.0 ||
+			(gfit.wcs.crval1 > 0.0 && gfit.wcs.crval2 != 0.0) ||
+			(gfit.wcs.objctra[0] != '\0' && gfit.wcs.objctdec[0] != '\0'));
+}
+
+static void update_coords() {
+	RA k_ra;
+	DEC k_dec;
+	gboolean south;
+
+	if (gfit.wcs.crval1 != 0.0 && gfit.wcs.crval2 != 0.0) {
+		// first transform coords to RA and DEC
+		k_ra = convert_ra(gfit.wcs.crval1);
+		k_dec = convert_dec(gfit.wcs.crval2);
+		south = k_dec.degree < 0.0;
+
+		k_dec.degree = abs(k_dec.degree);
+		update_coordinates(k_ra, k_dec, south);
+		unselect_all_items();
+	} else if (gfit.wcs.objctra[0] != '\0' && gfit.wcs.objctdec[0] != '\0') {
+		sscanf(gfit.wcs.objctra, "%d %d %lf", &k_ra.hour, &k_ra.min, &k_ra.sec);
+		sscanf(gfit.wcs.objctdec, "%d %d %lf", &k_dec.degree, &k_dec.min, &k_dec.sec);
+		south = k_dec.degree < 0.0;
+
+		k_dec.degree = abs(k_dec.degree);
+		update_coordinates(k_ra, k_dec, south);
+		unselect_all_items();
+	}
 }
 
 static void update_pixel_size() {
@@ -622,7 +669,7 @@ static void update_pixel_size() {
 	pixel = gfit.pixel_size_x > gfit.pixel_size_y ? gfit.pixel_size_x : gfit.pixel_size_y;
 
 	if (pixel > 0.0) {
-		cpixels = g_strdup_printf("%1.2lf", pixel);
+		cpixels = g_strdup_printf("%.2lf", pixel);
 		gtk_entry_set_text(entry, cpixels);
 		g_free(cpixels);
 	}
@@ -636,7 +683,7 @@ static void update_focal() {
 	focal = gfit.focal_length;
 
 	if (focal > 0.0) {
-		cfocal = g_strdup_printf("%.3lf", focal);
+		cfocal = g_strdup_printf("%.1lf", focal);
 		gtk_entry_set_text(entry, cfocal);
 		g_free(cfocal);
 	}
@@ -658,6 +705,7 @@ static void update_image_parameters_GUI() {
 	  */
 	update_focal();
 	update_pixel_size();
+	update_coords();
 }
 
 static void update_gfit(image_solved image) {
@@ -670,6 +718,8 @@ static void update_gfit(image_solved image) {
 	gfit.wcs.equinox = 2000;
 	deg_to_HMS(image.ra, "ra", gfit.wcs.objctra);
 	deg_to_HMS(image.dec, "dec", gfit.wcs.objctdec);
+	gfit.wcs.cdelt1 = gfit.wcs.cdelt2 = image.resolution / 3600.0;
+	gfit.wcs.crota1 = gfit.wcs.crota2 = image.crota;
 }
 
 static void print_platesolving_results(Homography H, image_solved image) {
@@ -679,6 +729,13 @@ static void print_platesolving_results(Homography H, image_solved image) {
 	char DEC[256] = { 0 };
 	char field_x[256] = { 0 };
 	char field_y[256] = { 0 };
+
+	/* first we do not forget that we read data bottom to up ....
+	 * So we need to do that in order to display data in the right orientation
+	 */
+	H.h10 = -H.h10;
+	H.h11 = -H.h11;
+	H.h12 = -H.h12;
 
 	/* Matching information */
 	siril_log_message(_("%d pair matches.\n"), H.pair_matched);
@@ -704,6 +761,14 @@ static void print_platesolving_results(Homography H, image_solved image) {
 	if (rotation > 180)
 		rotation -= 360;
 	siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0 ? _("(flipped)") : "");
+
+	/* set CROTA */
+	image.crota = rotation - 180.0;
+	if (image.crota < -180)
+		image.crota += 360;
+	if (image.crota > 180)
+		image.crota -= 360;
+
 	image.focal = RADCONV * image.pixel_size / image.resolution;
 
 	image.fov.x = get_fov(image.resolution, image.px_size.x);
@@ -743,7 +808,7 @@ static int read_NOMAD_catalog(FILE *catalog, fitted_PSF **cstars, int shift_y) {
 
 		star = malloc(sizeof(fitted_PSF));
 		star->xpos = x;
-		star->ypos = y + shift_y; // shift_y is here because in get_stars of misc.c we have "image_size.y - s[i]->ypos"
+		star->ypos = -y + shift_y; // shift_y is here because in get_stars of misc.c we have "image_size.y - s[i]->ypos"
 		star->mag = Vmag;
 		star->BV = n < 5 ? -99.9 : Bmag - Vmag;
 		cstars[i] = star;
@@ -777,7 +842,7 @@ static int read_TYCHO2_catalog(FILE *catalog, fitted_PSF **cstars, int shift_y) 
 
 		star = malloc(sizeof(fitted_PSF));
 		star->xpos = x;
-		star->ypos = y + shift_y;
+		star->ypos = -y + shift_y;
 		star->mag = Vmag;
 		star->BV = n < 5 ? -99.9 : Bmag - Vmag;
 		cstars[i] = star;
@@ -811,7 +876,7 @@ static int read_GAIA_catalog(FILE *catalog, fitted_PSF **cstars, int shift_y) {
 
 		star = malloc(sizeof(fitted_PSF));
 		star->xpos = x;
-		star->ypos = y + shift_y;
+		star->ypos = -y + shift_y;
 		star->mag = Gmag;
 		star->BV = -99.9;
 		cstars[i] = star;
@@ -845,9 +910,9 @@ static int read_PPMXL_catalog(FILE *catalog, fitted_PSF **cstars, int shift_y) {
 
 		star = malloc(sizeof(fitted_PSF));
 		star->xpos = x;
-		star->ypos = y + shift_y;
+		star->ypos = -y + shift_y;
 		star->mag = Jmag;
-		star->BV = -99;
+		star->BV = -99.9;
 		cstars[i] = star;
 		cstars[i + 1] = NULL;
 		i++;
@@ -880,7 +945,7 @@ static int read_BRIGHT_STARS_catalog(FILE *catalog, fitted_PSF **cstars,
 
 		star = malloc(sizeof(fitted_PSF));
 		star->xpos = x;
-		star->ypos = y + shift_y;
+		star->ypos = -y + shift_y;
 		star->mag = Vmag;
 		star->BV = BV;
 		cstars[i] = star;
@@ -930,10 +995,10 @@ static gboolean check_affine_TRANS_sanity(TRANS trans) {
 
 	double var1 = fabs(trans.b / trans.f);
 	double var2 = fabs(trans.c / trans.e);
-	siril_debug_print("abs(b/f)=%lf et abs(c/e)=%lf\n", var1, var2);
+	siril_debug_print("abs(b/f)=%f et abs(c/e)=%f\n", var1, var2);
 
-	if (0.9 < var1 && var1 < 1.1) {
-		if (0.9 < var2 && var2 < 1.1) {
+	if (0.8 < var1 && var1 < 1.2) {
+		if (0.8 < var2 && var2 < 1.2) {
 			ok = TRUE;
 		}
 	}
@@ -962,11 +1027,15 @@ static gboolean end_plate_solver(gpointer p) {
 		DEC Dec;
 
 		update_image_parameters_GUI();
+		set_GUI_CAMERA();
 		ra = convert_ra(is_result.ra);
 		Dec = convert_dec(is_result.dec);
 		update_coordinates(ra, Dec, is_result.dec < 0.0);
 
 		control_window_switch_to_tab(OUTPUT_LOGS);
+		if (args->for_photometry_cc) {
+			apply_photometric_cc();
+		}
 	}
 	g_free(args->catalogStars);
 	g_free(args->message);
@@ -975,11 +1044,11 @@ static gboolean end_plate_solver(gpointer p) {
 	return FALSE;
 }
 
-static gpointer match_catalog(gpointer p) {
+gpointer match_catalog(gpointer p) {
 	struct plate_solver_data *args = (struct plate_solver_data *) p;
 	FILE *catalog;
 	fitted_PSF **cstars;
-	int n_fit, n_cat, n, i = 0;
+	int n_fit = 0, n_cat = 0, n = 0, i = 0;
 	int attempt = 1;
 	point image_size = { args->fit->rx, args->fit->ry };
 	Homography H = { 0 };
@@ -995,7 +1064,7 @@ static gpointer match_catalog(gpointer p) {
 		}
 		n_fit = i;
 	}
-	if (n_fit < AT_MATCH_STARTN_LINEAR) {
+	if (!com.stars || n_fit < AT_MATCH_STARTN_LINEAR) {
 		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
 				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
 		siril_log_message("%s\n", args->message);
@@ -1006,7 +1075,7 @@ static gpointer match_catalog(gpointer p) {
 
 	cstars = malloc((MAX_STARS + 1) * sizeof(fitted_PSF *));
 	if (cstars == NULL) {
-		printf("Memory allocation failed: peaker\n");
+		PRINT_ALLOC_ERR;
 		args->ret = 1;
 		siril_add_idle(end_plate_solver, args);
 		return GINT_TO_POINTER(1);
@@ -1015,13 +1084,12 @@ static gpointer match_catalog(gpointer p) {
 	/* open the file */
 	catalog = g_fopen(args->catalogStars, "r");
 	if (catalog == NULL) {
-		fprintf(stderr, "match_catalog: error opening file: %s\n", args->catalogStars);
+		PRINT_ALLOC_ERR;
 		free(cstars);
 		args->ret = 1;
 		siril_add_idle(end_plate_solver, args);
 		return GINT_TO_POINTER(1);
 	}
-
 	n_cat = read_catalog(catalog, cstars, image_size.y, args->onlineCatalog);
 
 	/* make sure that arrays are not too small
@@ -1032,7 +1100,7 @@ static gpointer match_catalog(gpointer p) {
 	args->ret = 1;
 	while (args->ret && attempt < NB_OF_MATCHING_TRY){
 		args->ret = new_star_match(com.stars, cstars, n, nobj,
-				args->scale - 0.2, args->scale + 0.2, &H, image_size);
+				args->scale - 0.2, args->scale + 0.2, &H, image_size, args->for_photometry_cc);
 		nobj += 50;
 		attempt++;
 	}
@@ -1041,6 +1109,7 @@ static gpointer match_catalog(gpointer p) {
 		/* we only want to compare with linear function
 		 * Maybe one day we will apply match with homography matrix
 		 */
+
 		TRANS trans = H_to_linear_TRANS(H);
 		if (check_affine_TRANS_sanity(trans)) {
 
@@ -1100,7 +1169,7 @@ static void search_object_in_catalogs(const gchar *object) {
 
 	set_cursor_waiting(TRUE);
 
-	name = g_strdup(object);
+	name = g_utf8_strup(object, -1);
 	/* Removes leading and trailing whitespace */
 	name = g_strstrip(name);
 	/* replace whitespaces by %20 for html purposes */
@@ -1126,24 +1195,11 @@ static void search_object_in_catalogs(const gchar *object) {
 }
 
 static void start_image_plate_solve() {
-
 	struct plate_solver_data *args = malloc(sizeof(struct plate_solver_data));
 	set_cursor_waiting(TRUE);
 
-	double fov, px_size, scale, m;
-
-	px_size = get_pixel();
-	scale = get_resolution(get_focal(), px_size);
-	fov = get_fov(scale, gfit.ry > gfit.rx ? gfit.ry : gfit.rx);
-	m = get_mag_limit(fov);
-
-	/* Filling structure */
-	args->onlineCatalog = get_online_catalog(fov, m);
-	args->catalogStars = download_catalog(args->onlineCatalog, fov, m);
-	args->scale = scale;
-	args->pixel_size = px_size;
-	args->manual = is_detection_manual();
-	args->fit = &gfit;
+	args->for_photometry_cc = FALSE;
+	fill_plate_solver_structure(args);
 
 	start_in_new_thread(match_catalog, args);
 }
@@ -1156,8 +1212,34 @@ void on_GtkEntry_IPS_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
 }
 
+void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length,
+		gint *position, gpointer data) {
+	GtkEditable *editable = GTK_EDITABLE(entry);
+	int i, count = 0;
+
+	gchar *result = g_strndup(text, length);
+
+	for (i = 0; i < length; i++) {
+		if (!g_ascii_isdigit(text[i]) && text[i] != '.')
+			continue;
+		result[count++] = text[i];
+	}
+
+	if (count > 0) {
+		g_signal_handlers_block_by_func(G_OBJECT (editable),
+				G_CALLBACK (on_GtkEntry_IPS_insert_text), data);
+		gtk_editable_insert_text(editable, result, count, position);
+		g_signal_handlers_unblock_by_func(G_OBJECT (editable),
+				G_CALLBACK (on_GtkEntry_IPS_insert_text), data);
+	}
+	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
+
+	g_free(result);
+}
+
 void on_menuitem_IPS_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	gtk_widget_show_all(lookup_widget("ImagePlateSolver_Dial"));
+	initialize_ips_dialog();
+	gtk_widget_show(lookup_widget("ImagePlateSolver_Dial"));
 }
 
 void on_buttonIPS_close_clicked(GtkButton *button, gpointer user_data) {
@@ -1171,6 +1253,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 	GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
 	GtkTreeIter iter;
 	GValue value = G_VALUE_INIT;
+	int selected_item;
 
 	if (gtk_tree_model_get_iter_first(treeModel, &iter) == FALSE)
 		return;	//The tree is empty
@@ -1178,18 +1261,18 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 		gtk_tree_model_get_value(treeModel, &iter, COLUMN_RESOLVER, &value);
 		const gchar *res = g_value_get_string(&value);
 		if (!g_strcmp0(res, "NED")) {
-			selectedItem = 0;
+			selected_item = 0;
 		} else if (!g_strcmp0(res, "Simbad")) {
-			selectedItem = 1;
+			selected_item = 1;
 		} else if (!g_strcmp0(res, "VizieR")) {
-			selectedItem = 2;
+			selected_item = 2;
 		} else {
-			selectedItem = -1;
+			selected_item = -1;
 		}
 
-		if (selectedItem >= 0) {
-			update_coordinates(platedObject[selectedItem].RA,
-					platedObject[selectedItem].Dec, platedObject[selectedItem].south);
+		if (selected_item >= 0) {
+			update_coordinates(platedObject[selected_item].RA,
+					platedObject[selected_item].Dec, platedObject[selected_item].south);
 		}
 
 		g_value_unset(&value);
@@ -1198,7 +1281,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data) {
 	if (!has_any_keywords()) {
-		char *msg = siril_log_message(_("There are no keywords storred in the FITS header.\n"));
+		char *msg = siril_log_message(_("There are no keywords stored in the FITS header.\n"));
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("No metadata"), msg);
 	} else {
 		update_image_parameters_GUI();
@@ -1235,12 +1318,32 @@ void on_GtkCheckButton_OnlineCat_toggled(GtkToggleButton *button,
 	combobox = lookup_widget("ComboBoxIPSCatalog");
 	gtk_widget_set_sensitive(combobox, !gtk_toggle_button_get_active(button));
 }
-#endif
 
 /******
  *
  * Public functions
  */
+
+void fill_plate_solver_structure(struct plate_solver_data *args) {
+	double fov, px_size, scale, m;
+	point catalog_center;
+
+	px_size = get_pixel();
+	scale = get_resolution(get_focal(), px_size);
+	fov = get_fov(scale, gfit.ry > gfit.rx ? gfit.ry : gfit.rx);
+	m = get_mag_limit(fov);
+	catalog_center = get_center_of_catalog();
+
+	/* Filling structure */
+	args->onlineCatalog = args->for_photometry_cc ? NOMAD : get_online_catalog(fov, m);
+	args->catalogStars = download_catalog(args->onlineCatalog, catalog_center, fov, m);
+	args->scale = scale;
+	args->pixel_size = px_size;
+	args->manual = is_detection_manual();
+	args->fit = &gfit;
+}
+
+#endif
 
 gboolean confirm_delete_wcs_keywords(fits *fit) {
 	gboolean erase = TRUE;
@@ -1260,6 +1363,10 @@ void invalidate_WCS_keywords(fits *fit) {
 		fit->wcs.crpix2 = 0.0;
 		fit->wcs.crval1 = 0.0;
 		fit->wcs.crval2 = 0.0;
+		fit->wcs.cdelt1 = 0.0;
+		fit->wcs.cdelt2 = 0.0;
+		fit->wcs.crota1 = 0.0;
+		fit->wcs.crota2 = 0.0;
 		memset(fit->wcs.objctra, 0, FLEN_VALUE);
 		memset(fit->wcs.objctdec, 0, FLEN_VALUE);
 	}

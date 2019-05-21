@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,11 @@
 #include "gui/callbacks.h"
 #include "algos/demosaicing.h"
 #include "algos/statistics.h"
+
+/** Calculate the bayer pattern color from the row and column **/
+static inline int FC(const size_t row, const size_t col, const uint32_t filters) {
+	return filters >> (((row << 1 & 14) + (col & 1)) << 1) & 3;
+}
 
 /* width and height are sizes of the original image */
 static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
@@ -78,6 +83,8 @@ static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
 	}
 	return 0;
 }
+
+
 /***************************************************
  * 
  * Written by Damien Douxchamps and Frederic Devernay
@@ -85,6 +92,30 @@ static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
  * https://code.google.com/p/gst-plugins-elphel/
  * 
  * *************************************************/
+
+
+static void ClearBorders(WORD *rgb, int sx, int sy, int w) {
+	int i, j;
+
+	/* black edges: */
+	i = 3 * sx * w - 1;
+	j = 3 * sx * sy - 1;
+	while (i >= 0) {
+		rgb[i--] = 0;
+		rgb[j--] = 0;
+	}
+
+	int low = sx * (w - 1) * 3 - 1 + w * 3;
+	i = low + sx * (sy - w * 2 + 1) * 3;
+	while (i > low) {
+		j = 6 * w;
+		while (j > 0) {
+			rgb[i--] = 0;
+			j--;
+		}
+		i -= (sx - 2 * w) * 3;
+	}
+}
 
 /* OpenCV's Bayer decoding */
 static int bayer_Bilinear(const WORD *bayer, WORD *rgb, int sx, int sy,
@@ -100,6 +131,7 @@ static int bayer_Bilinear(const WORD *bayer, WORD *rgb, int sx, int sy,
 	if ((tile > BAYER_FILTER_MAX) || (tile < BAYER_FILTER_MIN))
 		return -1;
 
+	ClearBorders(rgb, sx, sy, 1);
 	rgb += rgbStep + 3 + 1;
 	height -= 2;
 	width -= 2;
@@ -244,46 +276,35 @@ static int bayer_NearestNeighbor(const WORD *bayer, WORD *rgb, int sx, int sy,
 	return 0;
 }
 
-static const signed char bayervng_terms[] = { -2, -2, +0, -1, 0, 0x01, -2, -2,
-		+0, +0, 1, 0x01, -2, -1, -1, +0, 0, 0x01, -2, -1, +0, -1, 0, 0x02, -2,
-		-1, +0, +0, 0, 0x03, -2, -1, +0, +1, 1, 0x01, -2, +0, +0, -1, 0, 0x06,
-		-2, +0, +0, +0, 1, 0x02, -2, +0, +0, +1, 0, 0x03, -2, +1, -1, +0, 0,
-		0x04, -2, +1, +0, -1, 1, 0x04, -2, +1, +0, +0, 0, 0x06, -2, +1, +0, +1,
-		0, 0x02, -2, +2, +0, +0, 1, 0x04, -2, +2, +0, +1, 0, 0x04, -1, -2, -1,
-		+0, 0, 0x80, -1, -2, +0, -1, 0, 0x01, -1, -2, +1, -1, 0, 0x01, -1, -2,
-		+1, +0, 1, 0x01, -1, -1, -1, +1, 0, 0x88, -1, -1, +1, -2, 0, 0x40, -1,
-		-1, +1, -1, 0, 0x22, -1, -1, +1, +0, 0, 0x33, -1, -1, +1, +1, 1, 0x11,
-		-1, +0, -1, +2, 0, 0x08, -1, +0, +0, -1, 0, 0x44, -1, +0, +0, +1, 0,
-		0x11, -1, +0, +1, -2, 1, 0x40, -1, +0, +1, -1, 0, 0x66, -1, +0, +1, +0,
-		1, 0x22, -1, +0, +1, +1, 0, 0x33, -1, +0, +1, +2, 1, 0x10, -1, +1, +1,
-		-1, 1, 0x44, -1, +1, +1, +0, 0, 0x66, -1, +1, +1, +1, 0, 0x22, -1, +1,
-		+1, +2, 0, 0x10, -1, +2, +0, +1, 0, 0x04, -1, +2, +1, +0, 1, 0x04, -1,
-		+2, +1, +1, 0, 0x04, +0, -2, +0, +0, 1, 0x80, +0, -1, +0, +1, 1, 0x88,
-		+0, -1, +1, -2, 0, 0x40, +0, -1, +1, +0, 0, 0x11, +0, -1, +2, -2, 0,
-		0x40, +0, -1, +2, -1, 0, 0x20, +0, -1, +2, +0, 0, 0x30, +0, -1, +2, +1,
-		1, 0x10, +0, +0, +0, +2, 1, 0x08, +0, +0, +2, -2, 1, 0x40, +0, +0, +2,
-		-1, 0, 0x60, +0, +0, +2, +0, 1, 0x20, +0, +0, +2, +1, 0, 0x30, +0, +0,
-		+2, +2, 1, 0x10, +0, +1, +1, +0, 0, 0x44, +0, +1, +1, +2, 0, 0x10, +0,
-		+1, +2, -1, 1, 0x40, +0, +1, +2, +0, 0, 0x60, +0, +1, +2, +1, 0, 0x20,
-		+0, +1, +2, +2, 0, 0x10, +1, -2, +1, +0, 0, 0x80, +1, -1, +1, +1, 0,
-		0x88, +1, +0, +1, +2, 0, 0x08, +1, +0, +2, -1, 0, 0x40, +1, +0, +2, +1,
-		0, 0x10 }, bayervng_chood[] = { -1, -1, -1, 0, -1, +1, 0, +1, +1, +1,
-		+1, 0, +1, -1, 0, -1 };
-
-#define FORC3 for (c=0; c < 3; c++)
-#define LIM(x,min,max) MAX(min,MIN(x,max)) 
-#define ULIM(x,y,z) ((y) < (z) ? LIM(x,y,z) : LIM(x,z,y))
 #define ABSOLU(x) (((int)(x) ^ ((int)(x) >> 31)) - ((int)(x) >> 31))
-#define FC(row,col) \
-(filters >> ((((row) << 1 & 14) + ((col) & 1)) << 1) & 3)
-
-#define CLIP16(in, out, bits)\
-in = in < 0 ? 0 : in;\
-in = in > ((1<<bits)-1) ? ((1<<bits)-1) : in;\
-out=in;
 
 static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 		sensor_pattern pattern) {
+	const signed char bayervng_terms[] = { -2, -2, +0, -1, 0, 0x01, -2, -2,
+			+0, +0, 1, 0x01, -2, -1, -1, +0, 0, 0x01, -2, -1, +0, -1, 0, 0x02, -2,
+			-1, +0, +0, 0, 0x03, -2, -1, +0, +1, 1, 0x01, -2, +0, +0, -1, 0, 0x06,
+			-2, +0, +0, +0, 1, 0x02, -2, +0, +0, +1, 0, 0x03, -2, +1, -1, +0, 0,
+			0x04, -2, +1, +0, -1, 1, 0x04, -2, +1, +0, +0, 0, 0x06, -2, +1, +0, +1,
+			0, 0x02, -2, +2, +0, +0, 1, 0x04, -2, +2, +0, +1, 0, 0x04, -1, -2, -1,
+			+0, 0, 0x80, -1, -2, +0, -1, 0, 0x01, -1, -2, +1, -1, 0, 0x01, -1, -2,
+			+1, +0, 1, 0x01, -1, -1, -1, +1, 0, 0x88, -1, -1, +1, -2, 0, 0x40, -1,
+			-1, +1, -1, 0, 0x22, -1, -1, +1, +0, 0, 0x33, -1, -1, +1, +1, 1, 0x11,
+			-1, +0, -1, +2, 0, 0x08, -1, +0, +0, -1, 0, 0x44, -1, +0, +0, +1, 0,
+			0x11, -1, +0, +1, -2, 1, 0x40, -1, +0, +1, -1, 0, 0x66, -1, +0, +1, +0,
+			1, 0x22, -1, +0, +1, +1, 0, 0x33, -1, +0, +1, +2, 1, 0x10, -1, +1, +1,
+			-1, 1, 0x44, -1, +1, +1, +0, 0, 0x66, -1, +1, +1, +1, 0, 0x22, -1, +1,
+			+1, +2, 0, 0x10, -1, +2, +0, +1, 0, 0x04, -1, +2, +1, +0, 1, 0x04, -1,
+			+2, +1, +1, 0, 0x04, +0, -2, +0, +0, 1, 0x80, +0, -1, +0, +1, 1, 0x88,
+			+0, -1, +1, -2, 0, 0x40, +0, -1, +1, +0, 0, 0x11, +0, -1, +2, -2, 0,
+			0x40, +0, -1, +2, -1, 0, 0x20, +0, -1, +2, +0, 0, 0x30, +0, -1, +2, +1,
+			1, 0x10, +0, +0, +0, +2, 1, 0x08, +0, +0, +2, -2, 1, 0x40, +0, +0, +2,
+			-1, 0, 0x60, +0, +0, +2, +0, 1, 0x20, +0, +0, +2, +1, 0, 0x30, +0, +0,
+			+2, +2, 1, 0x10, +0, +1, +1, +0, 0, 0x44, +0, +1, +1, +2, 0, 0x10, +0,
+			+1, +2, -1, 1, 0x40, +0, +1, +2, +0, 0, 0x60, +0, +1, +2, +1, 0, 0x20,
+			+0, +1, +2, +2, 0, 0x10, +1, -2, +1, +0, 0, 0x80, +1, -1, +1, +1, 0,
+			0x88, +1, +0, +1, +2, 0, 0x08, +1, +0, +2, -1, 0, 0x40, +1, +0, +2, +1,
+			0, 0x10 }, bayervng_chood[] = { -1, -1, -1, 0, -1, +1, 0, +1, +1, +1,
+			+1, 0, +1, -1, 0, -1 };
 	const int height = sy, width = sx;
 	const signed char *cp;
 	/* the following has the same type as the image */
@@ -324,11 +345,11 @@ static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 				x2 = *cp++;
 				weight = *cp++;
 				grads = *cp++;
-				color = FC(row + y1, col + x1);
-				if (FC(row+y2,col+x2) != (unsigned int) color)
+				color = FC(row + y1, col + x1, filters);
+				if (FC(row+y2,col+x2, filters) != (unsigned int) color)
 					continue;
-				diag = (FC(row,col+1) == (unsigned int) color
-						&& FC(row+1,col) == (unsigned int) color) ? 2 : 1;
+				diag = (FC(row,col+1, filters) == (unsigned int) color
+						&& FC(row+1,col, filters) == (unsigned int) color) ? 2 : 1;
 				if (abs(y1 - y2) == diag && abs(x1 - x2) == diag)
 					continue;
 				*ip++ = (y1 * width + x1) * 3 + color; /* [FD] */
@@ -344,9 +365,9 @@ static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 				y = *cp++;
 				x = *cp++;
 				*ip++ = (y * width + x) * 3; /* [FD] */
-				color = FC(row, col);
-				if (FC(row+y,col+x) != (unsigned int) color
-						&& FC(row+y*2,col+x*2) == (unsigned int) color)
+				color = FC(row, col, filters);
+				if (FC(row+y,col+x, filters) != (unsigned int) color
+						&& FC(row+y*2,col+x*2, filters) == (unsigned int) color)
 					*ip++ = (y * width + x) * 6 + color; /* [FD] */
 				else
 					*ip++ = 0;
@@ -386,7 +407,7 @@ static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 			}
 			thold = gmin + (gmax >> 1);
 			memset(sum, 0, sizeof sum);
-			color = FC(row, col);
+			color = FC(row, col, filters);
 			for (num = g = 0; g < 8; g++, ip += 2) { /* Average the neighbors */
 				if (gval[g] <= thold) {
 					for (c = 0; c < 3; c++) /* [FD] */
@@ -423,6 +444,8 @@ static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 /* AHD interpolation ported from dcraw to libdc1394 by Samuel Audet */
 static gboolean ahd_inited = FALSE; /* WARNING: not multi-processor safe */
 
+#define LIM(x,min,max) MAX(min,MIN(x,max))
+#define ULIM(x,y,z) ((y) < (z) ? LIM(x,y,z) : LIM(x,z,y))
 #define CLIPOUT(x) LIM(x,0,255)
 #define CLIPOUT16(x,bits) LIM(x,0,((1<<bits)-1))
 
@@ -450,7 +473,7 @@ static void cam_to_cielab(uint16_t cam[3], float lab[3]) /* [SA] */
 		int c;
 
 		xyz[0] = xyz[1] = xyz[2] = 0.5;
-		FORC3
+		for (c = 0; c < 3; c++)
 		{ /* [SA] */
 			xyz[0] += xyz_cam[0][c] * cam[c];
 			xyz[1] += xyz_cam[1][c] * cam[c];
@@ -513,7 +536,7 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 	/* fill-in destination with known exact values */
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
-			int channel = FC(y, x);
+			int channel = FC(y, x, filters);
 			dst[(y * width + x) * 3 + channel] = bayer[y * width + x];
 		}
 	}
@@ -534,12 +557,12 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 					for (x = col - 1; x != col + 2; x++)
 						if (y < (unsigned int) height
 								&& x < (unsigned int) width) {
-							f = FC(y, x);
+							f = FC(y, x, filters);
 							sum[f] += dst[(y * width + x) * 3 + f]; /* [SA] */
 							sum[f + 4]++;
 						}
-				f = FC(row, col);
-				FORC3
+				f = FC(row, col, filters);
+				for (c = 0; c < 3; c++)
 					if (c != f && sum[c + 4]) /* [SA] */
 						dst[(row * width + col) * 3 + c] = sum[c] / sum[c + 4]; /* [SA] */
 			}
@@ -559,10 +582,10 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 			/* Interpolate green horizontally and vertically: */
 			for (row = ((top < 2) ? 2 : top);
 					row < top + TS && row < height - 2; row++) {
-				col = left + (FC(row,left) == 1);
+				col = left + (FC(row,left, filters) == 1);
 				if (col < 2)
 					col += 2;
-				for (fc = FC(row, col); col < left + TS && col < width - 2;
+				for (fc = FC(row, col, filters); col < left + TS && col < width - 2;
 						col += 2) {
 					pix = (uint16_t (*)[3]) dst + (row * width + col); /* [SA] */
 					val = ((pix[-1][1] + pix[0][fc] + pix[1][1]) * 2
@@ -583,8 +606,8 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 							col++) {
 						pix = (uint16_t (*)[3]) dst + (row * width + col); /* [SA] */
 						rix = &rgb[d][row - top][col - left];
-						if ((c = 2 - FC(row, col)) == 1) {
-							c = FC(row + 1, col);
+						if ((c = 2 - FC(row, col, filters)) == 1) {
+							c = FC(row + 1, col, filters);
 							val = pix[0][1]
 									+ ((pix[-1][2 - c] + pix[1][2 - c]
 											- rix[-1][1] - rix[1][1]) >> 1);
@@ -601,10 +624,10 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 											- rix[+TS - 1][1] - rix[+TS + 1][1]
 											+ 1) >> 2);
 						rix[0][c] = round_to_WORD((double) val); /* [SA] */
-						c = FC(row, col);
+						c = FC(row, col, filters);
 						rix[0][c] = pix[0][c];
 						cam_to_cielab(rix[0], flab);
-						FORC3
+						for (c = 0; c < 3; c++)
 							lab[d][row - top][col - left][c] = 64 * flab[c];
 					}
 			/* Build homogeneity maps from the CIELab images: */
@@ -647,11 +670,11 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 							for (j = tc - 1; j <= tc + 1; j++)
 								hm[d] += homo[d][i][j];
 					if (hm[0] != hm[1])
-						FORC3
+						for (c = 0; c < 3; c++)
 							dst[(row * width + col) * 3 + c] = round_to_WORD(
 									rgb[hm[1] > hm[0]][tr][tc][c]); /* [SA] */
 					else
-						FORC3
+						for (c = 0; c < 3; c++)
 							dst[(row * width + col) * 3 + c] = round_to_WORD(
 									(rgb[0][tr][tc][c] + rgb[1][tr][tc][c])
 											>> 1); /* [SA] */
@@ -671,7 +694,7 @@ static int fast_xtrans_interpolate(const WORD *bayer, WORD *dst, int sx, int sy,
 		sensor_pattern pattern, int xtrans[6][6]) {
 	uint32_t filters = 9;
 	const int height = sy, width = sx;
-	int row, col;
+	int row;
 
 	/* start - code from border_interpolate(int border) */
 	{
@@ -688,21 +711,22 @@ static int fast_xtrans_interpolate(const WORD *bayer, WORD *dst, int sx, int sy,
 					for (x = col - 1; x != col + 2; x++)
 						if (y < (unsigned int) height
 								&& x < (unsigned int) width) {
-							f = FC(y, x);
+							f = FC(y, x, filters);
 							sum[f] += dst[(y * width + x) * 3 + f]; /* [SA] */
 							sum[f + 4]++;
 						}
-				f = FC(row, col);
-				FORC3
+				f = FC(row, col, filters);
+				for (c = 0; c < 3; c++)
 					if (c != f && sum[c + 4]) /* [SA] */
 						dst[(row * width + col) * 3 + c] = sum[c] / sum[c + 4]; /* [SA] */
 			}
 	}
 	/* end - code from border_interpolate(int border) */
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (row = 1; row < (height - 1); row ++) {
+		int col;
 		for (col = 1; col < (width - 1); col ++) {
 			float sum[3] = { 0.f };
 
@@ -856,7 +880,7 @@ static int retrieveXTRANSPattern(char *bayer, int xtrans[6][6]) {
 	return 0;
 }
 
-int debayer(fits* fit, interpolation_method interpolation) {
+int debayer(fits* fit, interpolation_method interpolation, gboolean stretch_cfa) {
 	int i, j;
 	int width = fit->rx;
 	int height = fit->ry;
@@ -867,6 +891,15 @@ int debayer(fits* fit, interpolation_method interpolation) {
 
 	retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
 	full_stats_invalidation_from_fit(fit);
+
+	if (fit->bayer_yoffset == 1) {
+		buf += width;
+		height--;
+	}
+
+	if (fit->bayer_xoffset == 1) {
+		buf++;
+	}
 
 	newbuf = debayer_buffer(buf, &width, &height, interpolation,
 			com.debayer.bayer_pattern, xtrans);
@@ -886,16 +919,23 @@ int debayer(fits* fit, interpolation_method interpolation) {
 	fit->pdata[RLAYER] = fit->data;
 	fit->pdata[GLAYER] = fit->data + npixels;
 	fit->pdata[BLAYER] = fit->data + npixels * 2;
+	fit->bitpix = fit->orig_bitpix;
 	for (i = 0, j = 0; j < npixels; i += 3, j++) {
+		double r = (double) newbuf[i + RLAYER];
+		double g = (double) newbuf[i + GLAYER];
+		double b = (double) newbuf[i + BLAYER];
+		if (stretch_cfa && fit->maximum_pixel_value) {
+			double norm = fit->bitpix == 8 ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
+			r = (r / (double) fit->maximum_pixel_value) * norm;
+			g = (g / (double) fit->maximum_pixel_value) * norm;
+			b = (b / (double) fit->maximum_pixel_value) * norm;
+		}
 		fit->pdata[RLAYER][j] =
-				(fit->orig_bitpix == 8) ?
-						round_to_BYTE(newbuf[i + RLAYER]) : newbuf[i + RLAYER];
+				(fit->bitpix == 8) ? round_to_BYTE(r) : round_to_WORD(r);
 		fit->pdata[GLAYER][j] =
-				(fit->orig_bitpix == 8) ?
-						round_to_BYTE(newbuf[i + GLAYER]) : newbuf[i + GLAYER];
+				(fit->bitpix == 8) ? round_to_BYTE(g) : round_to_WORD(g);
 		fit->pdata[BLAYER][j] =
-				(fit->orig_bitpix == 8) ?
-						round_to_BYTE(newbuf[i + BLAYER]) : newbuf[i + BLAYER];
+				(fit->bitpix == 8) ? round_to_BYTE(b) : round_to_WORD(b);
 	}
 	free(newbuf);
 	return 0;

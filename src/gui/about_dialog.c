@@ -21,16 +21,17 @@
 #include "core/siril.h"
 #include "callbacks.h"
 #include "gui.h"
+#include "core/proto.h"
 
-static const gchar* copyright = N_("Copyright © 2004-2011 François Meyer\n"
-		"Copyright © 2012-2018 team free-astro");
+static const gchar* copyright = ("Copyright © 2004-2011 François Meyer\n"
+		"Copyright © 2012-2019 team free-astro");
 
 static gchar **authors = (gchar *[] ) { "Vincent Hourdin <vh@free-astro.vinvin.tf>",
 				"Cyril Richard <cyril@free-astro.org>", "François Meyer", NULL };
 
 static gchar **documenters = (gchar *[] ) { "Laurent Rogé <l.roge@siril.org>", NULL };
 
-static gchar **artists = (gchar *[] ) { "Coralie Monnier",
+static gchar **artists = (gchar *[] ) { "Maxime Oudoux <max.oudoux@gmail.com>",
 				"Cyril Richard <cyril@free-astro.org>", NULL };
 
 // translator names
@@ -48,7 +49,7 @@ void on_about_activate(GtkMenuItem *menuitem, gpointer user_data) {
 			"title", _("About Siril"),
 			"logo", icon,
 			"version", VERSION,
-			"copyright", _(copyright),
+			"copyright", copyright,
 			"authors", authors,
 			"documenters", documenters,
 			"artists", artists,

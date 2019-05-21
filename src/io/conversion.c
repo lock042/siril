@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -40,6 +40,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"
+#include "algos/sorting.h"
 
 #define MAX_OF_EXTENSIONS 50	// actual size of supported_extensions
 
@@ -51,28 +52,28 @@ static unsigned int supported_filetypes = 0;	// initialized by initialize_conver
 char **supported_extensions;
 
 supported_raw_list supported_raw[] = {
-	{"dng",	"Adobe", BAYER_FILTER_RGGB},
-	{"mos",	"Aptus", BAYER_FILTER_RGGB},
-	{"cr2",	"Canon", BAYER_FILTER_RGGB},
-	{"crw",	"Canon", BAYER_FILTER_RGGB},
-	{"bay",	"Casio", BAYER_FILTER_NONE},		// Not tested
-	{"erf",	"Epson", BAYER_FILTER_RGGB},
-	{"raf",	"Fuji", BAYER_FILTER_GBRG},		// Not really supported, specially XTRANS
-	{"3fr",	"Hasselblad", BAYER_FILTER_GRBG},	// GRBG, RGGB		
-	{"kdc",	"Kodak", BAYER_FILTER_GRBG},
-	{"dcr",	"Kodak", BAYER_FILTER_GRBG},
-	{"mef",	"Mamiya", BAYER_FILTER_RGGB},
-	{"mrw",	"Minolta", BAYER_FILTER_RGGB},
-	{"nef",	"Nikon", BAYER_FILTER_RGGB},
-	{"nrw",	"Nikon", BAYER_FILTER_RGGB},
-	{"orf",	"Olympus", BAYER_FILTER_GRBG},
-	{"raw",	"Leica", BAYER_FILTER_RGGB},
-	{"rw2",	"Panasonic", BAYER_FILTER_BGGR},
-	{"pef",	"Pentax", BAYER_FILTER_BGGR},
-	{"ptx",	"Pentax", BAYER_FILTER_NONE},		// Not tested
-	{"x3f",	"Sigma", BAYER_FILTER_NONE},		// Not supported yet
-	{"srw",	"Samsung", BAYER_FILTER_BGGR},
-	{"arw",	"Sony", BAYER_FILTER_RGGB}
+	{"dng",	"Adobe"},
+	{"mos",	"Aptus"},
+	{"cr2",	"Canon"},
+	{"crw",	"Canon"},
+	{"bay",	"Casio"},		// Not tested
+	{"erf",	"Epson"},
+	{"raf",	"Fuji"},
+	{"3fr",	"Hasselblad"},
+	{"kdc",	"Kodak"},
+	{"dcr",	"Kodak"},
+	{"mef",	"Mamiya"},
+	{"mrw",	"Minolta"},
+	{"nef",	"Nikon"},
+	{"nrw",	"Nikon"},
+	{"orf",	"Olympus"},
+	{"raw",	"Leica"},
+	{"rw2",	"Panasonic"},
+	{"pef",	"Pentax"},
+	{"ptx",	"Pentax"},		// Not tested
+	{"x3f",	"Sigma"},		// Not supported yet
+	{"srw",	"Samsung"},
+	{"arw",	"Sony"}
 };
 
 char *filter_pattern[] = {
@@ -95,7 +96,7 @@ static gboolean end_convert_idle(gpointer p);
 
 
 int get_nb_raw_supported() {
-	return sizeof(supported_raw) / sizeof(supported_raw_list);
+	return G_N_ELEMENTS(supported_raw);
 }
 
 /* This function is used with command line only */ 
@@ -203,6 +204,7 @@ static void initialize_libraw_settings() {
 static void initialize_ser_debayer_settings() {
 	com.debayer.open_debayer = FALSE;
 	com.debayer.use_bayer_header = TRUE;
+	com.debayer.stretch = TRUE;
 	com.debayer.compatibility = FALSE;
 	com.debayer.bayer_pattern = BAYER_FILTER_RGGB;
 	com.debayer.bayer_inter = BAYER_VNG;
@@ -270,14 +272,14 @@ static int save_to_target_fits(fits *fit, const char *dest_filename) {
 }
 
 /* open the file with path source from any image type and load it into a new FITS object */
-static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean compatibility) {
+static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean compatibility, gboolean stretch_cfa) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
 
 	retval = any_to_fits(imagetype, source, tmpfit);
 
 	if (!retval)
-		retval = debayer_if_needed(imagetype, tmpfit, compatibility, FALSE);
+		retval = debayer_if_needed(imagetype, tmpfit, compatibility, FALSE, stretch_cfa);
 
 	if (retval) {
 		clearfits(tmpfit);
@@ -299,9 +301,7 @@ static int retrieveBayerPattern(char *bayer) {
 	return BAYER_FILTER_NONE;
 }
 
-/**************************Public functions***********************************************************/
-
-void check_for_conversion_form_completeness() {
+static void check_for_conversion_form_completeness() {
 	static GtkTreeView *tree_convert = NULL;
 	GtkTreeIter iter;
 	GtkTreeModel *model = NULL;
@@ -309,7 +309,7 @@ void check_for_conversion_form_completeness() {
 	GtkWidget *go_button = lookup_widget("convert_button");
 
 	if (tree_convert == NULL)
-		tree_convert = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview_convert"));
+		tree_convert = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
 
 	model = gtk_tree_view_get_model(tree_convert);
 	valid = gtk_tree_model_get_iter_first(model, &iter);
@@ -323,30 +323,33 @@ void check_for_conversion_form_completeness() {
 	update_statusbar_convert();
 }
 
+static void unset_debayer_in_convflags() {
+	convflags &= ~CONVDEBAYER;
+}
+
+/**************************Public functions***********************************************************/
 
 /* initialize converters (utilities used for different image types importing) *
  * updates the label listing the supported input file formats, and modifies the
  * list of file types used in convflags */
-void initialize_converters() {
-	GtkLabel *label_supported;
+gchar *initialize_converters() {
 	GString *string;
 	gchar *text;
 	int count_ext = 0;
 
-	string = g_string_new("\t");
 	/* internal converters */
 	supported_filetypes |= TYPEBMP;
-	g_string_append(string, _("BMP images, "));
+	string = g_string_new("BMP images, ");
 	supported_filetypes |= TYPEPIC;
-	g_string_append(string, _("PIC images (IRIS), "));
+	string = g_string_append(string, _("PIC images (IRIS), "));
 	supported_filetypes |= TYPEPNM;
-	g_string_append(string, _("PGM and PPM binary images"));
+	string = g_string_append(string, _("PGM and PPM binary images"));
 		
 	supported_extensions = malloc(MAX_OF_EXTENSIONS * sizeof(char*));
 	/* internal extensions */
 	if (supported_extensions == NULL) {
 		fprintf(stderr, "initialize_converters: error allocating data\n");
-		return;
+		return NULL;
 	}
 	supported_extensions[count_ext++] = ".fit";
 	supported_extensions[count_ext++] = ".fits";
@@ -363,9 +366,8 @@ void initialize_converters() {
 	int i, nb_raw;
 	
 	supported_filetypes |= TYPERAW;
-	g_string_append(string, ", ");
-	g_string_append(string, _("RAW images"));
-	if (!com.script) set_libraw_settings_menu_available(TRUE);	// enable libraw settings
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("RAW images"));
 	initialize_libraw_settings();	// below in the file
 	
 	nb_raw = get_nb_raw_supported();
@@ -375,48 +377,46 @@ void initialize_converters() {
 		strcat(supported_extensions[count_ext+i], supported_raw[i].extension);
 	}
 	count_ext += nb_raw;
-#else
-	if (!com.script) set_libraw_settings_menu_available(FALSE);	// disable libraw settings
 #endif
-	g_string_append(string, ", ");
-	g_string_append(string, _("FITS-CFA images"));
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("FITS-CFA images"));
 
 #if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
 	supported_filetypes |= TYPEAVI;
-	g_string_append(string, ", ");
-	g_string_append(string, _("Films"));
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("Films"));
 #endif
 
 	supported_filetypes |= TYPESER;
-	g_string_append(string, ", ");
-	g_string_append(string, _("SER sequences"));
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("SER sequences"));
 
 	/* library converters (detected by configure) */
 #ifdef HAVE_LIBTIFF
 	supported_filetypes |= TYPETIFF;
-	g_string_append(string, ", ");
-	g_string_append(string, _("TIFF images"));
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("TIFF images"));
 	supported_extensions[count_ext++] = ".tif";
 	supported_extensions[count_ext++] = ".tiff";
 #endif
 
 #ifdef HAVE_LIBJPEG
 	supported_filetypes |= TYPEJPG;
-	g_string_append(string, ", ");
-	g_string_append(string, _("JPG images"));
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("JPG images"));
 	supported_extensions[count_ext++] = ".jpg";
 	supported_extensions[count_ext++] = ".jpeg";
 #endif
 
 #ifdef HAVE_LIBPNG
 	supported_filetypes |= TYPEPNG;
-	g_string_append(string, ", ");
-	g_string_append(string, _("PNG images"));
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("PNG images"));
 	supported_extensions[count_ext++] = ".png";
 #endif
 	supported_extensions[count_ext++] = NULL;		// NULL-terminated array
 
-	g_string_append(string, ".");
+	string = g_string_append(string, ".");
 	text = g_string_free(string, FALSE);
 	if (!com.script && com.siril_mode == MODE_DEEP_SKY) {
 		label_supported = GTK_LABEL(gtk_builder_get_object(builder, "label_supported_types"));
@@ -471,7 +471,7 @@ image_type get_type_for_extension(const char *extension) {
 	return TYPEUNDEF; // not recognized or not supported
 }
 
-int count_selected_files() {
+int count_converted_files() {
 	static GtkTreeView *tree_convert = NULL;
 	GtkTreeModel *model = NULL;
 	GtkTreeIter iter;
@@ -490,8 +490,17 @@ int count_selected_files() {
 				COLUMN_DATE, &file_date, -1);
 		valid = gtk_tree_model_iter_next (model, &iter);
 		count ++;
+		g_free(file_name);
+		g_free(file_date);
 	}
 	return count;
+}
+
+int count_selected_files() {
+	GtkTreeView *tree_view = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
+
+	return gtk_tree_selection_count_selected_rows(selection);
 }
 
 static void initialize_convert() {
@@ -509,14 +518,25 @@ static void initialize_convert() {
 	int count = 0;
 	
 	if (tree_convert == NULL) {
-		tree_convert = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview_convert"));
-		startEntry = GTK_ENTRY(gtk_builder_get_object(builder, "startIndiceEntry"));
+		tree_convert = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
+		startEntry = GTK_ENTRY(lookup_widget("startIndiceEntry"));
 	}
 
 	struct timeval t_start;
 	
 	if (get_thread_run()) {
 		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		return;
+	}
+
+	/* test if forbidden chars exist */
+	char *forbid_char = strchr(destroot, '/');
+	if (forbid_char == NULL) {
+		forbid_char = strchr(destroot, '\\');
+	}
+	if (forbid_char != NULL) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Invalid char"), _("Please remove invalid char in the sequence name "
+				"before trying to convert images into a new sequence again."));
 		return;
 	}
 
@@ -535,7 +555,7 @@ static void initialize_convert() {
 	while (valid) {
 		gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &file_data,
 				COLUMN_DATE, &file_date, -1);
-		list = g_list_append (list, file_data);
+		list = g_list_prepend(list, file_data);
 
 		const char *src_ext = get_filename_ext(file_data);
 		if (count != 0) {
@@ -544,18 +564,21 @@ static void initialize_convert() {
 			}
 		}
 		imagetype = get_type_for_extension(src_ext);
-		valid = gtk_tree_model_iter_next (model, &iter);
-		count ++;
+		valid = gtk_tree_model_iter_next(model, &iter);
+		count++;
 	}
 
-	if ((convflags & CONVDEBAYER) && (imagetype == TYPESER) && (several_type_of_files == FALSE)) {
+	if ((convflags & CONVDEBAYER) && imagetype == TYPESER && !several_type_of_files) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
 				_("The Debayer option is not allowed in SER conversion, please uncheck the option."));
+		g_list_free_full(list, g_free);
 		set_cursor_waiting(FALSE);
 		return;
-	} else if ((convflags & CONVMULTIPLE) && (imagetype == TYPESER) && (several_type_of_files == FALSE)) {
+	}
+	if ((convflags & CONVMULTIPLE) && imagetype == TYPESER && !several_type_of_files) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
 				_("The Multiple SER option is not allowed in SER conversion, please uncheck the option."));
+		g_list_free_full(list, g_free);
 		set_cursor_waiting(FALSE);
 		return;
 	}
@@ -575,6 +598,7 @@ static void initialize_convert() {
 	if (!com.wd) {
 		tmpmsg = siril_log_message(_("Conversion: no working directory set.\n"));
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), tmpmsg);
+		g_list_free_full(list, g_free);
 		set_cursor_waiting(FALSE);
 		return;
 	}
@@ -582,9 +606,17 @@ static void initialize_convert() {
 		tmpmsg = siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), tmpmsg);
 		fprintf (stderr, "Conversion: %s\n", error->message);
+		g_error_free(error);
+		g_list_free_full(list, g_free);
 		set_cursor_waiting(FALSE);
 		return ;
 	}
+
+	/* g_list_append() has to traverse the entire list to find the end,
+	 * which is inefficient when adding multiple elements. A common idiom
+	 * to avoid the inefficiency is to use g_list_prepend() and reverse the
+	 * list with g_list_reverse() when all elements have been added. */
+	list = g_list_reverse(list);
 
 	args = malloc(sizeof(struct _convert_data));
 	args->start = (atof(indice) == 0 || atof(indice) > USHRT_MAX) ? 1 : atof(indice);
@@ -595,6 +627,7 @@ static void initialize_convert() {
 	args->t_start.tv_sec = t_start.tv_sec;
 	args->t_start.tv_usec = t_start.tv_usec;
 	args->compatibility = com.debayer.compatibility;
+	args->stretch_cfa = com.debayer.stretch;
 	args->command_line = FALSE;
 	args->several_type_of_files = several_type_of_files;
 	args->destroot = g_strdup(destroot);
@@ -620,7 +653,6 @@ gpointer convert_thread_worker(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	GList *list;
 	
-	list = g_list_first(args->list);
 	indice = args->start;
 
 	if (convflags & CONVDSTSER) {
@@ -638,7 +670,7 @@ gpointer convert_thread_worker(gpointer p) {
 		}
 	}
 
-	while (list) {
+	for (list = args->list; list; list = list->next) {
 		gchar *src_filename = (gchar *)list->data;
 		const char *src_ext = get_filename_ext(src_filename);
 		image_type imagetype;
@@ -794,7 +826,7 @@ gpointer convert_thread_worker(gpointer p) {
 			free(fit);
 		}
 		else {	// single image
-			fits *fit = any_to_new_fits(imagetype, src_filename, args->compatibility);
+			fits *fit = any_to_new_fits(imagetype, src_filename, args->compatibility, args->stretch_cfa);
 			if (fit) {
 				if (convflags & CONVDSTSER) {
 					if (convflags & CONV1X1)
@@ -818,8 +850,6 @@ gpointer convert_thread_worker(gpointer p) {
 		set_progress_bar_data(msg_bar, progress/((double)args->total));
 		progress += 1.0;
 		args->nb_converted++;
-
-		list = g_list_next(list);
 	}
 
 clean_exit:
@@ -837,7 +867,7 @@ clean_exit:
 	return NULL;
 }
 
-int debayer_if_needed(image_type imagetype, fits *fit, gboolean compatibility, gboolean force_debayer) {
+int debayer_if_needed(image_type imagetype, fits *fit, gboolean compatibility, gboolean force_debayer, gboolean stretch_cfa) {
 	int retval = 0;
 	sensor_pattern tmp;
 	/* What the hell?
@@ -880,7 +910,11 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean compatibility, g
 			siril_log_message(_("Filter Pattern: %s\n"), filter_pattern[com.debayer.bayer_pattern]);
 		}
 
-		if (debayer(fit, com.debayer.bayer_inter)) {
+		if (stretch_cfa && fit->maximum_pixel_value) {
+			siril_log_message(_("The FITS file is being normalized to 16-bit\n"));
+		}
+
+		if (debayer(fit, com.debayer.bayer_inter, stretch_cfa)) {
 			siril_log_message(_("Cannot perform debayering\n"));
 			retval = -1;
 		} else {
@@ -947,11 +981,201 @@ void set_debayer_in_convflags() {
 	convflags |= CONVDEBAYER;
 }
 
-void unset_debayer_in_convflags() {
-	convflags &= ~CONVDEBAYER;
+/**************** Conversion tree managment ***********************************/
+/*
+ * Main conversion list static functions
+ */
+
+static GtkListStore *liststore_convert = NULL;
+
+static void add_convert_to_list(char *filename, GStatBuf st) {
+	GtkTreeIter iter;
+	char *date;
+
+	date = ctime(&st.st_mtime);
+	date[strlen(date) - 1] = 0;	// removing '\n' at the end of the string
+
+	gtk_list_store_append(liststore_convert, &iter);
+	gtk_list_store_set(liststore_convert, &iter, COLUMN_FILENAME, filename,	// copied in the store
+			COLUMN_DATE, date, -1);
+}
+static void get_convert_list_store() {
+	if (liststore_convert == NULL)
+		liststore_convert = GTK_LIST_STORE(
+				gtk_builder_get_object(builder, "liststore_convert"));
 }
 
+static GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
+		GtkTreeModel *model) {
+	GList *ref = NULL;
+	GList *sel, *s;
+
+	sel = gtk_tree_selection_get_selected_rows(selection, &model);
+
+	for (s = sel; s; s = s->next) {
+		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
+		ref = g_list_prepend(ref, rowref);
+	}
+	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
+	return ref;
+}
+
+static void remove_selected_files_from_list() {
+	GtkTreeSelection *selection;
+	GtkTreeModel *model;
+	GList *references, *list;
+	GtkTreeView *tree_view;
+
+	tree_view = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
+	model = gtk_tree_view_get_model(tree_view);
+	selection = gtk_tree_view_get_selection(tree_view);
+	references = get_row_references_of_selected_rows(selection, model);
+	for (list = references; list; list = list->next) {
+		GtkTreeIter iter;
+		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
+		if (path) {
+			if (gtk_tree_model_get_iter(model, &iter, path)) {
+				gtk_list_store_remove(liststore_convert, &iter);
+			}
+			gtk_tree_path_free(path);
+		}
+	}
+	g_list_free(references);
+	gtk_tree_selection_unselect_all(selection);
+}
+
+void fill_convert_list(GSList *list) {
+	GStatBuf st;
+	GSList *l;
+
+	get_convert_list_store();
+
+	for (l = list; l; l = l->next) {
+		char *filename;
+
+		filename = (char *) l->data;
+		if (g_stat(filename, &st) == 0) {
+			add_convert_to_list(filename, st);
+		}
+		g_free(filename);
+	}
+	check_for_conversion_form_completeness();
+}
+
+void on_clear_convert_button_clicked(GtkToolButton *button, gpointer user_data) {
+	get_convert_list_store();
+	gtk_list_store_clear(liststore_convert);
+	check_for_conversion_form_completeness();
+}
+
+void on_remove_convert_button_clicked(GtkToolButton *button, gpointer user_data) {
+	remove_selected_files_from_list();
+	check_for_conversion_form_completeness();
+}
+
+void on_treeview_convert_drag_data_received(GtkWidget *widget,
+		GdkDragContext *context, gint x, gint y,
+		GtkSelectionData *selection_data, guint info, guint time,
+		gpointer user_data) {
+
+	gchar **uris, **str;
+	const guchar *data;
+	GSList *list = NULL;
+	gint bad_files = 0;
+
+	if (info != 0)
+		return;
+
+	data = gtk_selection_data_get_data(selection_data);
+	uris = g_uri_list_extract_uris((gchar *) data);
+
+	for (str = uris; *str; str++) {
+		GError *error = NULL;
+		gchar *path = g_filename_from_uri(*str, NULL, &error);
+		if (path) {
+			const char *src_ext = get_filename_ext(path);
+			if (src_ext) {
+				if (get_type_for_extension(src_ext) == TYPEUNDEF) {
+					bad_files++;
+				} else {
+					list = g_slist_prepend(list, path);
+				}
+			} else bad_files++;
+		} else {
+			fprintf(stderr, "Could not convert uri to local path: %s",
+					error->message);
+			bad_files++;
+			g_error_free(error);
+		}
+	}
+	list = g_slist_sort(list, (GCompareFunc) strcompare);
+	fill_convert_list(list);
+	if (bad_files) {
+		char *msg = siril_log_message(_("%d file(s) were ignored while drag and drop\n"), bad_files);
+		siril_message_dialog(GTK_MESSAGE_INFO, msg,
+				_("Files with unknown extension cannot be dropped in this area. "
+						"Therefore they are ignored."));
+	}
+	g_strfreev(uris);
+	g_slist_free(list);
+}
+
+gboolean on_treeview_convert_key_release_event(GtkWidget *widget, GdkEventKey *event,
+		gpointer user_data) {
+	if (event->keyval == GDK_KEY_Delete || event->keyval == GDK_KEY_KP_Delete
+			|| event->keyval == GDK_KEY_BackSpace) {
+		remove_selected_files_from_list();
+		check_for_conversion_form_completeness();
+		return TRUE;
+	}
+	return FALSE;
+}
+
+
 /******************Callback functions*******************************************************************/
+
+static gchar forbidden_char[] = { '/', '\\' };
+
+static gboolean is_forbiden(gchar c) {
+	int i;
+
+	for (i = 0; i < G_N_ELEMENTS(forbidden_char); i++) {
+		if (c == forbidden_char[i]) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
+		gint *position, gpointer data) {
+	GtkEditable *editable = GTK_EDITABLE(entry);
+	int i, count = 0;
+
+	gchar *result = g_strndup(text, length);
+
+	for (i = 0; i < length; i++) {
+		if (is_forbiden(text[i]))
+			continue;
+		result[count++] = text[i];
+	}
+
+	if (count > 0) {
+		g_signal_handlers_block_by_func(G_OBJECT (editable),
+				G_CALLBACK (insert_text_handler), data);
+		gtk_editable_insert_text(editable, result, count, position);
+		g_signal_handlers_unblock_by_func(G_OBJECT (editable),
+				G_CALLBACK (insert_text_handler), data);
+	}
+	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
+
+	g_free(result);
+}
+
+void on_treeview_selection5_changed(GtkTreeSelection *treeselection,
+		gpointer user_data) {
+	update_statusbar_convert();
+}
 
 // truncates destroot if it's more than 120 characters, append a '_' if it
 // doesn't end with one or a '-'. SER extensions are accepted and unmodified.
@@ -1014,4 +1238,3 @@ void on_conv1_1plane_toggled (GtkToggleButton *togglebutton, gpointer user_data)
 	convflags |= CONV1X1;
 	convflags &= ~(CONV3X1|CONV1X3);
 }
-

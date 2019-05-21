@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,40 +25,14 @@
  *
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <stdio.h>
-#include <ctype.h>
-#include <math.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <dirent.h>
-#ifdef _WIN32
-#include <windows.h>
-#include <psapi.h>
-#include <direct.h>
-#include <shlobj.h>
-#else
-#include <sys/resource.h>
-#endif
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-#include <sys/param.h>		// define or not BSD macro
-#endif
-#if (defined(__APPLE__) && defined(__MACH__))
-#include <mach/task.h>
-#include <mach/mach_init.h>
-#include <mach/mach_types.h>
-#include <mach/mach_host.h>
-#include <sys/sysctl.h>
-#include <mach/vm_statistics.h>
-#endif
 #include <string.h>
 #include <assert.h>
-#include <fitsio.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"		// defines this file's functions
@@ -67,31 +41,6 @@
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
-
-#ifdef HAVE_SYS_STATVFS_H
-#include <sys/statvfs.h>
-#endif
-#if HAVE_SYS_VFS_H
-#include <sys/vfs.h>
-#elif HAVE_SYS_MOUNT_H
-#if HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
-#include <sys/mount.h>
-#endif
-
-#include <errno.h>
-#include <gio/gio.h>
-#include <glib/gstdio.h>
-#ifdef _WIN32
-#define DATADIR datadir
-/* Constant available since Shell32.dll 4.72 */
-#ifndef CSIDL_APPDATA
-#define CSIDL_APPDATA 0x001a
-#endif
-#endif
-
-#include <time.h>
 
 /**
  * Round double value to an integer
@@ -169,23 +118,6 @@ gboolean isrgb(fits *fit) {
 }
 
 /**
- * Converts a string which is in the encoding used by GLib for filenames into a UTF-8 string.
- * Note that on Windows GLib uses UTF-8 for filenames; on other platforms,
- * this function indirectly depends on the current locale.
- * g_free the result when not needed anymore.
- * @param filename input filename
- * @return The converted string, or "<charset conversion error>" on an error.
- */
-char *f2utf8(const char *filename) {
-	char *utf8;
-
-	if (!(utf8 = g_filename_to_utf8(filename, -1, NULL, NULL, NULL)))
-		utf8 = g_strdup("<charset conversion error>");
-
-	return (utf8);
-}
-
-/**
  *  Looks whether the string str ends with ending. This is case insensitive
  *  @param str the string to check
  *  @param ending the suffix to look for
@@ -250,11 +182,13 @@ const char *get_filename_ext(const char *filename) {
  */
 int is_readable_file(const char *filename) {
 	GStatBuf sts;
-	if (g_stat(filename, &sts))
+	if (g_lstat(filename, &sts))
 		return 0;
 	if (S_ISREG (sts.st_mode)
 #ifndef _WIN32
 			|| S_ISLNK(sts.st_mode)
+#else
+		|| (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
 #endif
 	)
 		return 1;
@@ -383,15 +317,10 @@ int changedir(const char *dir, gchar **err) {
 			 update_sequence_list();*/
 			g_free(com.wd);
 			com.wd = g_get_current_dir();
-			siril_log_message(_("Setting CWD (Current "
-					"Working Directory) to '%s'\n"), com.wd);
-			if (!com.script)
-				set_GUI_CWD();
-			update_used_memory();
+			siril_log_message(_("Setting CWD (Current Working Directory) to '%s'\n"), com.wd);
 			retval = 0;
 		} else {
-			error = siril_log_message(_("Could not change "
-					"directory to '%s'.\n"), dir);
+			error = siril_log_message(_("Could not change directory to '%s'.\n"), dir);
 			retval = 1;
 		}
 	}
@@ -544,257 +473,6 @@ int update_sequences_list(const char *sequence_name_to_select) {
 }
 
 /**
- * Find the space remaining in a directory, in bytes. A double for >32bit
- * problem avoidance. <0 for error.
- * @param name the path of the directory to be tested
- * @return the disk space remaining in bytes, or a value less than 0 if error
- */
-#ifdef HAVE_SYS_STATVFS_H
-static double find_space(const gchar *name) {
-	struct statvfs st;
-	double sz;
-
-	if (statvfs (name, &st))
-		/* Set to error value.
-		 */
-		sz = -1;
-	else
-		sz = (double) st.f_frsize * st.f_bavail;
-
-	return (sz);
-}
-#elif (HAVE_SYS_VFS_H || HAVE_SYS_MOUNT_H)
-static double find_space(const gchar *name) {
-	struct statfs st;
-	double sz;
-
-	if (statfs (name, &st))
-		sz = -1;
-	else
-		sz = (double) st.f_bsize * st.f_bavail;
-
-	return (sz);
-}
-#elif defined _WIN32
-static double find_space(const gchar *name) {
-	ULARGE_INTEGER avail;
-	double sz;
-
-	gchar *localdir = g_path_get_dirname(name);
-	wchar_t *wdirname = g_utf8_to_utf16(localdir, -1, NULL, NULL, NULL);
-
-	if (!GetDiskFreeSpaceExW(wdirname, &avail, NULL, NULL))
-		sz = -1;
-	else
-		sz = (double) avail.QuadPart;
-
-	g_free(localdir);
-	g_free(wdirname);
-	return (sz);
-}
-#else
-static double find_space(const gchar *name) {
-	return (-1);
-}
-#endif /*HAVE_SYS_STATVFS_H*/
-
-#if defined(__linux__)
-static unsigned long update_used_RAM_memory() {
-	unsigned long size, resident, share, text, lib, data, dt;
-	static int page_size_in_k = 0;
-	const char* statm_path = "/proc/self/statm";
-	FILE *f = fopen(statm_path, "r");
-
-	if (page_size_in_k == 0) {
-		page_size_in_k = getpagesize() / 1024;
-	}
-	if (!f) {
-		perror(statm_path);
-		return 0UL;
-	}
-	if (7 != fscanf(f, "%lu %lu %lu %lu %lu %lu %lu",
-			&size, &resident, &share, &text, &lib, &data, &dt)) {
-		perror(statm_path);
-		fclose(f);
-		return 0UL;
-	}
-	fclose(f);
-	return (resident * page_size_in_k);
-}
-#elif (defined(__APPLE__) && defined(__MACH__))
-static unsigned long update_used_RAM_memory() {
-	struct task_basic_info t_info;
-
-	mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
-	task_info(current_task(), TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count);
-	return ((unsigned long) t_info.resident_size / 1024UL);
-}
-#elif defined(BSD) /* BSD (DragonFly BSD, FreeBSD, OpenBSD, NetBSD). In fact, it could work with linux */
-static unsigned long update_used_RAM_memory() {
-	struct rusage usage;
-
-	getrusage(RUSAGE_SELF, &usage);
-	return ((unsigned long) usage.ru_maxrss);
-}
-#elif defined(_WIN32) /* Windows */
-static unsigned long update_used_RAM_memory() {
-    PROCESS_MEMORY_COUNTERS memCounter;
-    
-	if (GetProcessMemoryInfo(GetCurrentProcess(), &memCounter, sizeof(memCounter)))
-        return (memCounter.WorkingSetSize / 1024UL);
-	return 0UL;
-}
-#else
-static unsigned long update_used_RAM_memory() {
-	return 0UL;
-}
-#endif
-
-/**
- * Updates RAM memory used by siril, available free disk space
- * and displays information on the control window.
- */
-void update_used_memory() {
-	unsigned long ram;
-	double freeDisk;
-
-	ram = update_used_RAM_memory();
-	freeDisk = find_space(com.wd);
-	/* update GUI */
-	set_GUI_MEM(ram);
-	set_GUI_DiskSpace(freeDisk);
-}
-
-/**
- * Test if there is enough free disk space by returning the difference
- * between available free disk space and the size given in parameters
- * @param seq_size size to be tested
- * @return a value greater than 0 if there is enough disk space, a value
- * less than 0 otherwise. The function returns -1 if an error occurs.
- */
-double test_available_space(double seq_size) {
-	double freeDisk;
-
-	freeDisk = find_space(com.wd);
-	if ((freeDisk < 0) || (seq_size < 0)) {
-		return -1;
-	}
-	return (freeDisk - seq_size);
-}
-
-/**
- * Gets available memory for stacking process
- * @return available memory in MB, 2048 if it fails.
- */
-#if defined(__linux__)
-int get_available_memory_in_MB() {
-	int mem = 2048; /* this is the default value if we can't retrieve any values */
-	FILE* fp = fopen("/proc/meminfo", "r");
-	if (fp != NULL) {
-		size_t bufsize = 1024 * sizeof(char);
-		gchar *buf = g_new(gchar, bufsize);
-		long value = -1L;
-		while (getline(&buf, &bufsize, fp) >= 0) {
-			if (strncmp(buf, "MemAvailable", 12) != 0)
-				continue;
-			sscanf(buf, "%*s%ld", &value);
-			break;
-		}
-		fclose(fp);
-		g_free(buf);
-		if (value != -1L)
-			mem = (int) (value / 1024L);
-	}
-	return mem;
-}
-#elif (defined(__APPLE__) && defined(__MACH__))
-int get_available_memory_in_MB() {
-	int mem = 2048; /* this is the default value if we can't retrieve any values */
-	vm_size_t page_size;
-	mach_port_t mach_port;
-	mach_msg_type_number_t count;
-	vm_statistics64_data_t vm_stats;
-
-	mach_port = mach_host_self();
-	count = sizeof(vm_stats) / sizeof(natural_t);
-	if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
-			KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO,
-					(host_info64_t)&vm_stats, &count))	{
-
-		int64_t unused_memory = ((int64_t)vm_stats.free_count +
-				(int64_t)vm_stats.inactive_count +
-				(int64_t)vm_stats.wire_count) * (int64_t)page_size;
-
-		mem = (int) ((unused_memory) / (1024 * 1024));
-	}
-	return mem;
-}
-#elif defined(BSD) /* BSD (DragonFly BSD, FreeBSD, OpenBSD, NetBSD). ----------- */
-int get_available_memory_in_MB() {
-	int mem = 2048; /* this is the default value if we can't retrieve any values */
-	FILE* fp = fopen("/var/run/dmesg.boot", "r");
-	if (fp != NULL) {
-		size_t bufsize = 1024 * sizeof(char);
-		gchar *buf = g_new(gchar, bufsize);
-		long value = -1L;
-		while (getline(&buf, &bufsize, fp) >= 0) {
-			if (strncmp(buf, "avail memory", 12) != 0)
-				continue;
-			sscanf(buf, "%*s%*s%*s%ld", &value);
-			break;
-		}
-		fclose(fp);
-		g_free(buf);
-		if (value != -1L)
-			mem = (int) (value / 1024L);
-	}
-	return mem;
-}
-#elif defined(_WIN32) /* Windows */
-int get_available_memory_in_MB() {
-	int mem = 2048; /* this is the default value if we can't retrieve any values */
-	MEMORYSTATUSEX memStatusEx = {0};
-	memStatusEx.dwLength = sizeof(MEMORYSTATUSEX);
-	const DWORD dwMBFactor = 1024 * 1024;
-	DWORDLONG dwTotalPhys = memStatusEx.ullTotalPhys / dwMBFactor;
-	if (dwTotalPhys > 0)
-		mem = (int) dwTotalPhys;
-	return mem;
-}
-#else
-int get_available_memory_in_MB() {
-	fprintf(stderr, "Siril failed to get available free RAM memory\n");
-	return 2048;
-}
-#endif
-
-/**
- *
- * @param filename
- * @param size
- */
-#ifdef _WIN32
-/* stolen from gimp which in turn stole from glib 2.35 */
-gchar *get_special_folder(int csidl) {
-	wchar_t path[MAX_PATH + 1];
-	HRESULT hr;
-	LPITEMIDLIST pidl = NULL;
-	BOOL b;
-	gchar *retval = NULL;
-
-	hr = SHGetSpecialFolderLocation(NULL, csidl, &pidl);
-	if (hr == S_OK) {
-		b = SHGetPathFromIDListW(pidl, path);
-		if (b)
-			retval = g_utf16_to_utf8(path, -1, NULL, NULL, NULL);
-		CoTaskMemFree(pidl);
-	}
-
-	return retval;
-}
-#endif
-
-/**
  * Expands the ~ in filenames
  * @param[in] filename input filename
  * @param[in] size maximum size of the filename
@@ -831,75 +509,6 @@ WORD get_normalized_value(fits *fit) {
 	if (fit->maxi <= UCHAR_MAX)
 		return UCHAR_MAX;
 	return USHRT_MAX;
-}
-
-/**
- * Switch the two parameters of the function:
- * Useful in Dynamic PSF (PSF.c)
- * @param a first parameter to switch
- * @param b second parameter to switch
- */
-void swap_param(double *a, double *b) {
-	double tmp;
-	tmp = *a;
-	*a = *b;
-	*b = tmp;
-}
-
-/**
- * In-place quick sort of array of double a of size n
- * @param a array to sort
- * @param n size of the array
- */
-void quicksort_d(double *a, int n) {
-	if (n < 2)
-		return;
-	double p = a[n / 2];
-	double *l = a;
-	double *r = a + n - 1;
-	while (l <= r) {
-		if (*l < p) {
-			l++;
-			continue;
-		}
-		if (*r > p) {
-			r--;
-			continue; // we need to check the condition (l <= r) every time we change the value of l or r
-		}
-		double t = *l;
-		*l++ = *r;
-		*r-- = t;
-	}
-	quicksort_d(a, r - a + 1);
-	quicksort_d(l, a + n - l);
-}
-
-/**
- * In-place quick sort of array of WORD a of size n
- * @param a array to sort
- * @param n size of the array
- */
-void quicksort_s(WORD *a, int n) {
-	if (n < 2)
-		return;
-	WORD p = a[n / 2];
-	WORD *l = a;
-	WORD *r = a + n - 1;
-	while (l <= r) {
-		if (*l < p) {
-			l++;
-			continue;
-		}
-		if (*r > p) {
-			r--;
-			continue; // we need to check the condition (l <= r) every time we change the value of l or r
-		}
-		WORD t = *l;
-		*l++ = *r;
-		*r-- = t;
-	}
-	quicksort_s(a, r - a + 1);
-	quicksort_s(l, a + n - l);
 }
 
 struct sort_elem { int idx; double val; };
@@ -1000,7 +609,7 @@ char *format_basename(char *root) {
 }
 
 /**
- * Computes slop using low and high values
+ * Computes slope using low and high values
  * @param lo low value
  * @param hi high value
  * @return the computed slope
@@ -1020,6 +629,52 @@ float computePente(WORD *lo, WORD *hi) {
 	pente = UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 
 	return pente;
+}
+
+static const gchar *checking_css_filename() {
+	printf(_("Checking GTK version ... GTK-%d.%d\n"), GTK_MAJOR_VERSION, GTK_MINOR_VERSION);
+	if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION >= 18))
+		return "gtk.css";
+	else if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION < 18))
+		return "gtk_old.css";
+	else {
+		return NULL;
+	}
+}
+
+/**
+ * Loads the css sheet
+ * @param path path of the file being loaded
+ */
+void load_css_style_sheet (char *path) {
+	GtkCssProvider *css_provider;
+	GdkDisplay *display;
+	GdkScreen *screen;
+	gchar *CSSFile;
+	const gchar *css_filename;
+
+	css_filename = checking_css_filename();
+	if (css_filename == NULL) {
+		printf(_("The version of GTK does not match requirements: (GTK-%d.%d)\n"), GTK_MAJOR_VERSION, GTK_MINOR_VERSION);
+		exit(1);
+	}
+
+	CSSFile = g_build_filename (path, css_filename, NULL);
+	if (!g_file_test (CSSFile, G_FILE_TEST_EXISTS)) {
+		g_error (_("Unable to load CSS style sheet file: %s. Please reinstall %s\n"), CSSFile, PACKAGE);
+	}
+	else {
+		css_provider = gtk_css_provider_new();
+		display = gdk_display_get_default();
+		screen = gdk_display_get_default_screen(display);
+		gtk_style_context_add_provider_for_screen(screen,
+				GTK_STYLE_PROVIDER(css_provider),
+				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		gtk_css_provider_load_from_path(css_provider, CSSFile, NULL);
+		fprintf(stdout, _("Successfully loaded '%s'\n"), CSSFile);
+		g_object_unref (css_provider);
+	}
+	g_free(CSSFile);
 }
 
 /**
@@ -1074,29 +729,6 @@ double encodeJD(dateTime dt) {
 	}
 }
 
-/**
- * Compares a and b like strcmp()
- * @param a a gconstpointer
- * @param b a gconstpointer
- * @return an integer less than, equal to, or greater than zero, if a is than b .
- */
-gint strcompare(gconstpointer *a, gconstpointer *b) {
-	gchar *collate_key1, *collate_key2;
-	gint result;
-
-	const gchar *s1 = (const gchar *)a;
-	const gchar *s2 = (const gchar *)b;
-
-	collate_key1  = g_utf8_collate_key_for_filename(s1, strlen(s1));
-	collate_key2  = g_utf8_collate_key_for_filename(s2, strlen(s2));
-
-	result = g_strcmp0(collate_key1, collate_key2);
-	g_free(collate_key1);
-	g_free(collate_key2);
-
-	return result;
-}
-
 /* linux-specific high-resolution timer */
 static struct timespec start, stop;
 
@@ -1119,84 +751,3 @@ long stop_timer_elapsed_mus() {
 #endif
 }
 
-/**
- * Check how many files a process can have open and try to extend the limit if possible.
- * The max files depends of the Operating System and of cfitsio (NMAXFILES)
- * @param nb_frames number of file processed
- * @param nb_allowed_file the maximum of file that can be opened
- * @return TRUE if the system can open all the files, FALSE otherwise
- */
-gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
-	int open_max, maxfile, MAX_NO_FILE_CFITSIO, MAX_NO_FILE;
-	float version;
-
-	/* get the limit of cfitsio */
-	fits_get_version(&version);
-	MAX_NO_FILE_CFITSIO = (version < 3.45) ? 1000 : 10000;
-
-	/* get the OS limit and extend it if possible */
-#ifdef _WIN32
-	MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, 2048);
-	open_max = _getmaxstdio();
-	if (open_max < MAX_NO_FILE) {
-		/* extend the limit to 2048 if possible
-		 * 2048 is the maximum on WINDOWS */
-		_setmaxstdio(MAX_NO_FILE);
-		open_max = _getmaxstdio();
-	}
-#else
-	struct rlimit rlp;
-
-/* we first set the limit to the CFITSIO limit */
-	MAX_NO_FILE = MAX_NO_FILE_CFITSIO;
-	if (getrlimit(RLIMIT_NOFILE, &rlp) == 0) {
-		MAX_NO_FILE = (rlp.rlim_max == RLIM_INFINITY) ?
-						MAX_NO_FILE_CFITSIO : rlp.rlim_max;
-
-		if (rlp.rlim_cur != RLIM_INFINITY) {
-			open_max = rlp.rlim_cur;
-			MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, MAX_NO_FILE);
-			if (open_max < MAX_NO_FILE) {
-				rlp.rlim_cur = MAX_NO_FILE;
-				/* extend the limit to NMAXFILES if possible */
-				int retval = setrlimit(RLIMIT_NOFILE, &rlp);
-				if (!retval) {
-					getrlimit(RLIMIT_NOFILE, &rlp);
-					open_max = rlp.rlim_cur;
-				}
-			}
-		} else { // no soft limits
-			open_max = MAX_NO_FILE;
-		}
-	} else {
-		open_max = sysconf(_SC_OPEN_MAX); // if no sucess with getrlimit, try with sysconf
-	}
-#endif // _WIN32
-
-	maxfile = min(open_max, MAX_NO_FILE);
-	siril_debug_print("Maximum of files that will be opened=%d\n", maxfile);
-	*nb_allowed_file = maxfile;
-
-	return nb_frames < maxfile;
-}
-
-/**
- * Get the active window on toplevels
- * @return the GtkWindow activated
- */
-GtkWindow *siril_get_active_window() {
-	GtkWindow *win = NULL;
-	GList *list, *l;
-
-	list = gtk_window_list_toplevels();
-
-	for (l = list; l; l = l->next) {
-		if (gtk_window_is_active((GtkWindow *) l->data)) {
-			win = (GtkWindow *) l->data;
-			break;
-		}
-	}
-
-	g_list_free(list);
-	return win;
-}

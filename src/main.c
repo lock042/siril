@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,11 +25,13 @@
 
 #include <gtk/gtk.h>
 #ifdef MAC_INTEGRATION
-#include "gtkmacintegration/gtkosxapplication.h"
+#include <gtkosxapplication.h>
 #endif
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
+#include <io.h>
+#include <fcntl.h>
 #endif
 #include <unistd.h>
 #include <signal.h>
@@ -41,6 +43,7 @@
 #include <stdlib.h>
 #include <libproc.h>
 #endif
+#include <getopt.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -58,11 +61,12 @@
 #include "core/undo.h"
 #include "io/single_image.h"
 #include "algos/star_finder.h"
+#include "algos/photometry.h"
 
 /* the global variables of the whole project */
 cominfo com;	// the main data struct
 fits gfit;	// currently loaded image
-GtkBuilder *builder; // get widget references anywhere
+GtkBuilder *builder = NULL;	// get widget references anywhere
 
 #ifdef MAC_INTEGRATION
 
@@ -110,7 +114,7 @@ static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
 	gtk_widget_hide(file_quit_menu_item);
 	gtk_widget_hide(help_menu);
 	
-	icon_path = g_build_filename(siril_path, "pixmaps/siril_1.svg", NULL);
+	icon_path = g_build_filename(siril_path, "pixmaps/siril.svg", NULL);
 	icon = gdk_pixbuf_new_from_file(icon_path, NULL);
 	gtkosx_application_set_dock_icon_pixbuf(osx_app, icon);
 		
@@ -119,25 +123,119 @@ static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
 }
 
 #endif
+#ifdef _WIN32
+/* origine du source: https://stackoverflow.com/questions/24171017/win32-console-application-that-can-open-windows */
+int ReconnectIO(int OpenNewConsole)
+{
+    int    hConHandle;
+    HANDLE lStdHandle;
+    FILE  *fp;
+    int    MadeConsole;
 
-void usage(const char *command) {
-	printf("\nUsage:  %s [OPTIONS] [IMAGE_FILE_TO_OPEN]\n\n", command);
-	puts("    -d, --directory CWD        changing the current working directory as the argument");
-	puts("    -s, --script    SCRIPTFILE run the siril commands script in console mode");
-	puts("    -i              INITFILE   load configuration from file name instead of the default configuration file");
-	puts("    -p                         run in console mode with command and log stream through named pipes");
-	puts("    -f, --format               print all supported image file formats (depending on installed libraries)");
-	puts("    -v, --version              print program name and version and exit");
-	puts("    -h, --help                 show this message");
+    MadeConsole=0;
+    if(!AttachConsole(ATTACH_PARENT_PROCESS))
+    {
+        if(!OpenNewConsole)
+            return 0;
+
+        MadeConsole=1;
+        if(!AllocConsole())
+            return 0;  
+    }
+
+    // STDOUT to the console
+    lStdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "w" );
+    *stdout = *fp;
+    setvbuf( stdout, NULL, _IONBF, 0 );
+
+     // STDIN to the console
+    lStdHandle = GetStdHandle(STD_INPUT_HANDLE);
+    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "r" );
+    *stdin = *fp;
+    setvbuf( stdin, NULL, _IONBF, 0 );
+
+    // STDERR to the console
+    lStdHandle = GetStdHandle(STD_ERROR_HANDLE);
+    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "w" );
+    *stderr = *fp;
+    setvbuf( stderr, NULL, _IONBF, 0 );
+
+    return MadeConsole;
+}	
+#endif
+
+static char *siril_sources[] = {
+#ifdef _WIN32
+    "../share/siril",
+#elif (defined(__APPLE__) && defined(__MACH__))
+	"/tmp/siril/Contents/Resources/share/siril/",
+#endif
+	PACKAGE_DATA_DIR"/",
+	"/usr/share/siril/",
+	"/usr/local/share/siril/",
+	""
+};
+
+static void usage(const char *command) {
+    printf("\nUsage:  %s [OPTIONS] [IMAGE_FILE_TO_OPEN]\n\n", command);
+    puts("    -d, --directory CWD        changing the current working directory as the argument");
+    puts("    -s, --script    SCRIPTFILE run the siril commands script in console mode");
+    puts("    -i              INITFILE   load configuration from file name instead of the default configuration file");
+    puts("    -p                         run in console mode with command and log stream through named pipes");
+    puts("    -f, --format               print all supported image file formats (depending on installed libraries)");
+    puts("    -v, --version              print program name and version and exit");
+    puts("    -h, --help                 show this message");
 }
 
-void signal_handled(int s) {
+static void signal_handled(int s) {
 	// printf("Caught signal %d\n", s);
 	gtk_main_quit();
 }
 
+struct option long_opts[] = {
+		{"version", no_argument, 0, 'v'},
+		{"help", no_argument, 0, 'h'},
+		{"format", no_argument, 0, 'f'},
+		{"directory", required_argument, 0, 'd'},
+		{"script",    required_argument, 0, 's'},
+		{0, 0, 0, 0}
+	};
+
+static char *load_glade_file(char *start_cwd) {
+	int i = 0;
+
+	/* try to load the glade file, from the sources defined above */
+	builder = gtk_builder_new();
+
+	do {
+		GError *err = NULL;
+		gchar *gladefile;
+
+		gladefile = g_build_filename (siril_sources[i], GLADE_FILE, NULL);
+		if (gtk_builder_add_from_file (builder, gladefile, &err)) {
+			fprintf(stdout, _("Successfully loaded '%s'\n"), gladefile);
+			g_free(gladefile);
+			break;
+		}
+		fprintf (stderr, _("%s. Looking into another directory...\n"), err->message);
+		g_error_free(err);
+		g_free(gladefile);
+		i++;
+	} while (i < G_N_ELEMENTS(siril_sources));
+	if (i == G_N_ELEMENTS(siril_sources)) {
+		fprintf(stderr, _("%s was not found or contains errors, cannot render GUI. Exiting.\n"), GLADE_FILE);
+		exit(EXIT_FAILURE);
+	}
+	/* get back to the saved working directory */
+	return siril_sources[i];
+}
+
 int main(int argc, char *argv[]) {
-	int i;
+	int i, c;
 	extern char *optarg;
 	extern int opterr;
 	gboolean forcecwd = FALSE;
@@ -165,31 +263,7 @@ int main(int argc, char *argv[]) {
 	/* Caught signals */
 	signal(SIGINT, signal_handled);
 
-	while (1) {
-		signed char c = getopt(argc, argv, "i:phfvd:s:");
-		if (c == '?') {
-			for (i = 1; i < argc; i++) {
-				if (argv[i][1] == '-') {
-					if (!strcmp(argv[i], "--version"))
-						c = 'v';
-					else if (!strcmp(argv[i], "--help"))
-						c = 'h';
-					else if (!strcmp(argv[i], "--format"))
-						c = 'f';
-					else if (!strcmp(argv[i], "--directory"))
-						c = 'd';
-					else if (!strcmp(argv[i], "--script"))
-						c = 's';
-					else {
-						usage(argv[0]);
-						exit(EXIT_FAILURE);
-					}
-				}
-			}
-		}
-
-		if (c == -1)
-			break;
+	while ((c = getopt_long(argc, argv, "i:phfvd:s:", long_opts, NULL)) != -1) {
 		switch (c) {
 			case 'i':
 				com.initfile = g_strdup(optarg);
@@ -227,7 +301,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/* initializing internal structures with widgets (drawing areas) */
 	com.cvport = RED_VPORT;
 	com.show_excluded = TRUE;
 	com.selected_star = -1;
@@ -235,10 +308,8 @@ int main(int argc, char *argv[]) {
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.uniq = NULL;
-	com.grad = NULL;
-	com.grad_boxes_drawn = TRUE;
 	com.color = NORMAL_COLOR;
-	for (i=0; i<MAXVPORT; i++)
+	for (i = 0; i < MAXVPORT; i++)
 		com.buf_is_dirty[i] = TRUE;
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
@@ -246,28 +317,7 @@ int main(int argc, char *argv[]) {
 	/* initialize the com struct and zoom level */
 	com.sliders = MINMAX;
 	com.zoom_value = ZOOM_DEFAULT;
-
-	/* initialize sequence-related stuff */
-	initialize_sequence(&com.seq, TRUE);
-
-	/* set default CWD */
-	com.wd = siril_get_startup_dir();
-	com.startup_dir = g_get_current_dir();
-
-	/* load init file */
-	if (checkinitfile()) {
-		siril_log_message(_("Could not load or create settings file, exiting.\n"));
-		exit(1);
-	}
-
-	/* Get CPU number and set the number of threads */
-	siril_log_message(_("Parallel processing %s: using %d logical processor(s).\n"),
-#ifdef _OPENMP
-			_("enabled"), com.max_thread = omp_get_num_procs()
-#else
-			_("disabled"), com.max_thread = 1
-#endif
-			);
+	com.stack.memory_percent = 0.9;
 
 	if (!com.headless) {
 		gtk_init(&argc, &argv);
@@ -280,11 +330,60 @@ int main(int argc, char *argv[]) {
 
 	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
 
-	/* initialize converters (supported file type) */
-	initialize_converters();
+	/***************
+	 *  initialization of some parameters that need to be done before
+	 * checkinitfile
+	 ***************/
+	/* initialize converters (utilities used for different image types importing) */
+	gchar *supported_files = initialize_converters();
+	/* initialize photometric variables */
+	initialize_photometric_param();
+	/* initialize peaker variables */
+	init_peaker_default();
+	/* initialize sequence-related stuff */
+	initialize_sequence(&com.seq, TRUE);
+
+	/* set default CWD, and load init file
+	 * checkinitfile will load all saved parameters
+	 * */
+	com.wd = siril_get_startup_dir();
+
+	/* load init file */
+	current_cwd = g_get_current_dir();
+	if (checkinitfile()) {
+		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
+		exit(1);
+	}
+
+	if (!com.headless) {
+		/* load prefered theme */
+		load_prefered_theme(com.combo_theme);
+		/* Load glade file */
+		siril_path = load_glade_file(current_cwd);
+		/* load the css sheet for general style */
+		load_css_style_sheet(siril_path);
+	}
+
+	changedir(com.wd, NULL);
+
+	if (!com.headless) {
+		gtk_builder_connect_signals (builder, NULL);
+		initialize_all_GUI(siril_path, supported_files);
+	}
+	g_free(supported_files);
+
+	/* Get CPU number and set the number of threads */
+	siril_log_message(_("Parallel processing %s: using %d logical processor(s).\n"),
+#ifdef _OPENMP
+			_("enabled"), com.max_thread = omp_get_num_procs()
+#else
+			_("disabled"), com.max_thread = 1
+#endif
+			);
 
 	if (com.headless) {
 		init_peaker_default();
+		update_spinCPU(com.max_thread);
 	}
 
 	/* handling OS-X integration */
@@ -310,6 +409,10 @@ int main(int argc, char *argv[]) {
 		changedir(cwd_forced, NULL);
 	}
 
+	if (!com.script) {
+		set_GUI_CWD();
+	}
+
 	if (com.headless) {
 		if (start_script) {
 			FILE* fp = g_fopen(start_script, "r");
@@ -317,6 +420,9 @@ int main(int argc, char *argv[]) {
 				siril_log_message(_("File [%s] does not exist\n"), start_script);
 				exit(1);
 			}
+#ifdef _WIN32			
+			ReconnectIO(1);
+#endif
 			execute_script(fp);
 		}
 		else {

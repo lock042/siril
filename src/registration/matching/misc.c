@@ -424,7 +424,7 @@ void free_stars(struct s_star *head) {
 	while (head != NULL) {
 		tmp = head;
 		head = head->next;
-		free(tmp);
+		shFree(tmp);
 	}
 }
 

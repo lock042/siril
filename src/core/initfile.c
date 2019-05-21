@@ -50,19 +50,16 @@ static int readinitfile() {
 		return 1;
 	siril_log_message(_("Loading init file: '%s'\n"), com.initfile);
 
+	/* Keeping the up-scaled files poses a few problems with sequence
+	 * filtering changing and user comprehension, so for now it can only be
+	 * enabled by uncommenting the following line. */
+	//com.cache_upscaled = TRUE;
+
 	/* Working directory */
 	if (config_lookup_string(&config, keywords[WD], &dir)) {
-		if (changedir(dir, NULL)) {
-			siril_log_message(_("Reverting current working directory to startup directory, "
-					"the saved directory is not available anymore\n"));
-			if (changedir(com.wd, NULL)) {
-				fprintf(stderr, "Could not change to start-up directory, aborting\n");
-				return 1;
-			}
-			writeinitfile();
-		}
+		free(com.wd);
+		com.wd = g_strdup(dir);
 	}
-	else set_GUI_CWD();
 
 	/* Libraw setting */
 	config_setting_t *raw_setting = config_lookup(&config, keywords[RAW]);
@@ -97,6 +94,8 @@ static int readinitfile() {
 		int inter;
 		config_setting_lookup_int(debayer_setting, "inter", &inter);
 		com.debayer.bayer_inter = inter;
+		config_setting_lookup_bool(debayer_setting, "stretch",
+						&com.debayer.stretch);
 	}
 
 	/* Preprocessing settings */
@@ -132,6 +131,8 @@ static int readinitfile() {
 		config_setting_lookup_float(photometry_setting, "gain", &com.phot_set.gain);
 		config_setting_lookup_float(photometry_setting, "inner-radius", &com.phot_set.inner);
 		config_setting_lookup_float(photometry_setting, "outer-radius", &com.phot_set.outer);
+		config_setting_lookup_int(photometry_setting, "minval", &com.phot_set.minval);
+		config_setting_lookup_int(photometry_setting, "maxval", &com.phot_set.maxval);
 	}
 
 	/* Misc setting */
@@ -139,7 +140,8 @@ static int readinitfile() {
 	if (misc_setting) {
 
 		config_setting_lookup_bool(misc_setting, "confirm",	&com.dontShowConfirm);
-		config_setting_lookup_bool(misc_setting, "darktheme", &com.have_dark_theme);
+		config_setting_lookup_int(misc_setting, "theme", &com.combo_theme);
+		config_setting_lookup_bool(misc_setting, "remember_winpos", &com.remember_windows);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		config_setting_lookup_string(misc_setting, "extension", &extension);
 
@@ -153,9 +155,6 @@ static int readinitfile() {
 				tmp = config_setting_get_string_elem(misc_setting, i);
 				list = g_slist_append(list, g_strdup(tmp));
 			}
-
-			if (!com.script)
-				set_GUI_misc();
 		}
 		misc_setting = config_lookup(&config, "misc-settings.main_w_pos");
 		if (misc_setting != NULL) {
@@ -164,6 +163,7 @@ static int readinitfile() {
 			com.main_w_pos.w = config_setting_get_int_elem(misc_setting, 2);
 			com.main_w_pos.h = config_setting_get_int_elem(misc_setting, 3);
 		}
+
 		misc_setting = config_lookup(&config, "misc-settings.rgb_w_pos");
 		if (misc_setting != NULL) {
 			com.rgb_w_pos.x = config_setting_get_int_elem(misc_setting, 0);
@@ -191,6 +191,7 @@ static int readinitfile() {
 	com.script_path = list;
 	com.siril_mode = MODE_PLANETARY;	// to serialize someday
 	//com.siril_mode = MODE_DEEP_SKY;	// to serialize someday
+	config_destroy(&config);
 	return 0;
 }
 
@@ -259,6 +260,10 @@ static void _save_debayer(config_t *config, config_setting_t *root) {
 	debayer_setting = config_setting_add(debayer_group, "inter",
 			CONFIG_TYPE_INT);
 	config_setting_set_int(debayer_setting, com.debayer.bayer_inter);
+
+	debayer_setting = config_setting_add(debayer_group, "stretch",
+			CONFIG_TYPE_BOOL);
+	config_setting_set_bool(debayer_setting, com.debayer.stretch);
 }
 
 static void _save_preprocessing(config_t *config, config_setting_t *root) {
@@ -302,16 +307,16 @@ static void _save_photometry(config_t *config, config_setting_t *root) {
 
 	photometry_group = config_setting_add(root, keywords[PTM], CONFIG_TYPE_GROUP);
 
-	photometry_setting = config_setting_add(photometry_group, "gain",
-			CONFIG_TYPE_FLOAT);
+	photometry_setting = config_setting_add(photometry_group, "gain", CONFIG_TYPE_FLOAT);
 	config_setting_set_float(photometry_setting, com.phot_set.gain);
-	photometry_setting = config_setting_add(photometry_group, "inner-radius",
-			CONFIG_TYPE_FLOAT);
+	photometry_setting = config_setting_add(photometry_group, "inner-radius", CONFIG_TYPE_FLOAT);
 	config_setting_set_float(photometry_setting, com.phot_set.inner);
-	photometry_setting = config_setting_add(photometry_group, "outer-radius",
-			CONFIG_TYPE_FLOAT);
+	photometry_setting = config_setting_add(photometry_group, "outer-radius", CONFIG_TYPE_FLOAT);
 	config_setting_set_float(photometry_setting, com.phot_set.outer);
-
+	photometry_setting = config_setting_add(photometry_group, "minval", CONFIG_TYPE_INT);
+	config_setting_set_int(photometry_setting, com.phot_set.minval);
+	photometry_setting = config_setting_add(photometry_group, "maxval", CONFIG_TYPE_INT);
+	config_setting_set_int(photometry_setting, com.phot_set.maxval);
 }
 
 static void _save_misc(config_t *config, config_setting_t *root) {
@@ -331,9 +336,12 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 	misc_setting = config_setting_add(misc_group, "confirm", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.dontShowConfirm);
 
-	misc_setting = config_setting_add(misc_group, "darktheme",
+	misc_setting = config_setting_add(misc_group, "theme", CONFIG_TYPE_INT);
+	config_setting_set_int(misc_setting, com.combo_theme);
+
+	misc_setting = config_setting_add(misc_group, "remember_winpos",
 			CONFIG_TYPE_BOOL);
-	config_setting_set_bool(misc_setting, com.have_dark_theme);
+	config_setting_set_bool(misc_setting, com.remember_windows);
 
 	misc_setting = config_setting_add(misc_group, "scripts_paths",
 			CONFIG_TYPE_LIST);
@@ -440,7 +448,6 @@ int checkinitfile() {
 	if (readinitfile()) {	// couldn't read it
 		char filename[255];
 
-		set_GUI_CWD();
 		// if that fails, check and create the default ini file
 #if (defined(__APPLE__) && defined(__MACH__))
 		snprintf(filename, 255, "%s", homefolder);
@@ -475,5 +482,7 @@ int checkinitfile() {
 		com.ext = strdup(".fit");
 		return (writeinitfile());
 	}
+	g_free(home);
+
 	return 0;
 }

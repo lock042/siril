@@ -115,13 +115,28 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
 	assert(image->data);
 	assert(image->rx);
 
-	WORD *bgrbgr = fits_to_bgrbgr(image);
+	// preparing data
+	Mat in, out;
+	WORD *bgrbgr = NULL;
 
-	Mat in(image->ry, image->rx, CV_16UC3, bgrbgr);
-	Mat out(toY, toX, CV_16UC3);
+	if (image->naxes[2] == 1) {
+		in = Mat(image->ry, image->rx, CV_16UC1, image->data);
+		out = Mat(toY, toX, CV_16UC1);
+	}
+	else if (image->naxes[2] == 3) {
+		bgrbgr = fits_to_bgrbgr(image);
+		in = Mat(image->ry, image->rx, CV_16UC3, bgrbgr);
+		out = Mat(toY, toX, CV_16UC3);
+	}
+	else {
+		siril_log_message("Image resizing is not supported for images with %d channels\n", image->naxes[2]);
+		return -1;
+	}
 
+	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
 
+	// saving result
 	WORD *newdata = (WORD*) realloc(image->data,
 			toX * toY * sizeof(WORD) * image->naxes[2]);
 	if (!newdata) {
@@ -132,40 +147,89 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
 	image->naxes[0] = toX;
 	image->ry = toY;
 	image->naxes[1] = toY;
-
 	image->data = newdata;
-	Mat channel[3];
-	split(out, channel);
 
-	memcpy(image->data, channel[2].data, toX * toY * sizeof(WORD));
-	if (image->naxes[2] == 3) {
-		memcpy(image->data + toX * toY, channel[1].data,
-				toX * toY * sizeof(WORD));
-		memcpy(image->data + toX * toY * 2, channel[0].data,
-				toX * toY * sizeof(WORD));
-	}
-
+	unsigned int dataSize = toX * toY;
 	if (image->naxes[2] == 1) {
+		memcpy(image->data, out.data, dataSize * sizeof(WORD));
 		image->pdata[0] = image->data;
 		image->pdata[1] = image->data;
 		image->pdata[2] = image->data;
-	} else {
-		image->pdata[0] = image->data;
-		image->pdata[1] = image->data + (toX * toY);
-		image->pdata[2] = image->data + (toX * toY) * 2;
 	}
+	else {
+		Mat channel[3];
+		split(out, channel);
+		memcpy(image->data, channel[2].data, dataSize * sizeof(WORD));
+		memcpy(image->data + dataSize, channel[1].data, dataSize * sizeof(WORD));
+		memcpy(image->data + dataSize * 2, channel[0].data, dataSize * sizeof(WORD));
+
+		image->pdata[0] = image->data;
+		image->pdata[1] = image->data + dataSize;
+		image->pdata[2] = image->data + dataSize * 2;
+
+		channel[0].release();
+		channel[1].release();
+		channel[2].release();
+		delete[] bgrbgr;
+	}
+	in.release();
+	out.release();
+	invalidate_stats_from_fit(image);
+	return 0;
+}
+
+int cvTranslateImage(fits *image, point shift, int interpolation) {
+	assert(image->data);
+	assert(image->rx);
+	assert(image->ry);
+
+	int ndata = image->rx * image->ry;
+
+	WORD *bgrbgr = fits_to_bgrbgr(image);
+
+	Mat in(image->ry, image->rx, CV_16UC3, bgrbgr);
+	Mat out(image->ry, image->rx, CV_16UC3);
+
+	Mat M = (Mat_<double>(2,3) << 1, 0, shift.x, 0, 1, shift.y);
+
+	warpAffine(in, out, M, in.size(), interpolation);
+
+	Mat channel[3];
+	split(out, channel);
+
+	memcpy(image->data, channel[2].data, ndata * sizeof(WORD));
+	if (image->naxes[2] == 3) {
+		memcpy(image->data + ndata, channel[1].data, ndata * sizeof(WORD));
+		memcpy(image->data + ndata * 2, channel[0].data, ndata * sizeof(WORD));
+	}
+
+	if (image->naxes[2] == 1) {
+		image->pdata[RLAYER] = image->data;
+		image->pdata[GLAYER] = image->data;
+		image->pdata[BLAYER] = image->data;
+	} else {
+		image->pdata[RLAYER] = image->data;
+		image->pdata[GLAYER] = image->data + ndata;
+		image->pdata[BLAYER] = image->data + ndata * 2;
+	}
+	image->rx = out.cols;
+	image->ry = out.rows;
+	image->naxes[0] = image->rx;
+	image->naxes[1] = image->ry;
+	invalidate_stats_from_fit(image);
+
+	/* free data */
 	delete[] bgrbgr;
 	in.release();
 	out.release();
 	channel[0].release();
 	channel[1].release();
 	channel[2].release();
-	invalidate_stats_from_fit(image);
 	return 0;
 }
 
 /* Rotate an image with the angle "angle" */
-int cvRotateImage(fits *image, double angle, int interpolation, int cropped) {
+int cvRotateImage(fits *image, point center, double angle, int interpolation, int cropped) {
 	assert(image->data);
 	assert(image->rx);
 	assert(image->ry);
@@ -184,7 +248,7 @@ int cvRotateImage(fits *image, double angle, int interpolation, int cropped) {
 		else // 270, -90
 			flip(out, out, 1);
 	} else {
-		Point2f pt(in.cols / 2.0, in.rows / 2.0);// We take the center of the image. Should we pass this in function parameters ?
+		Point2f pt(center.x, center.y);
 		Mat r = getRotationMatrix2D(pt, angle, 1.0);
 		if (cropped == 1) {
 			warpAffine(in, out, r, in.size(), interpolation);
@@ -265,12 +329,13 @@ void convert_MatH_to_H(Mat from, Homography *to) {
 	to->h22 = from.at<double>(2, 2);
 }
 
-int cvCalculH(s_star *star_array_img,
+unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom) {
 
 	std::vector<Point2f> ref;
 	std::vector<Point2f> img;
 	Mat mask;
+	unsigned char *ret = NULL;
 	int i;
 
 	/* build vectors with lists of stars. */
@@ -281,15 +346,21 @@ int cvCalculH(s_star *star_array_img,
 
 	Mat H = findHomography(img, ref, CV_RANSAC, defaultRANSACReprojThreshold, mask);
 	if (countNonZero(H) < 1) {
-		return 1;
+		return NULL;
 	}
 	Hom->Inliers = countNonZero(mask);
+	if (n > 0) {
+		ret = (unsigned char *) malloc(n * sizeof(unsigned char));
+		for (i = 0; i < n; i++) {
+			ret[i] = mask.at<uchar>(i);
+		}
+	}
 
 	convert_MatH_to_H(H, Hom);
 
 	mask.release();
 	H.release();
-	return 0;
+	return ret;
 }
 
 /**
@@ -334,65 +405,67 @@ void cvTransformBuf(WORD *image, int size, Homography *Hom) {
 	memcpy(image, out.data, size*size*sizeof(WORD));
 }
 
+// transform an image using the homography.
 int cvTransformImage(fits *image, point ref, Homography Hom, int interpolation) {
 	assert(image->data);
 	assert(image->rx);
 	assert(image->ry);
+	// for now, assuming input and output are same size
+	assert((long)image->rx == width);
+	assert((long)image->ry == height);
 
-	int ndata = ref.x * ref.y;
-	WORD *newdata;
-	WORD *bgrbgr = fits_to_bgrbgr(image);
-
-	Mat in(image->ry, image->rx, CV_16UC3, bgrbgr);
-	Mat out(ref.y, ref.x, CV_16UC3);
-	Mat H = Mat::eye(3, 3, CV_64FC1);
-
-	convert_H_to_MatH(&Hom, H);
-
-	warpPerspective(in, out, H, Size(ref.x, ref.y), interpolation);
-
-	Mat channel[3];
-	split(out, channel);
-
-	if (image->ry != ref.y || image->rx != ref.x) {
-		newdata = (WORD*) realloc(image->data,
-				ref.x * ref.y * sizeof(WORD) * image->naxes[2]);
-		if (!newdata) {
-			free(newdata);
-			return 1;
-		}
-		image->data = newdata;
-	}
-
-	memcpy(image->data, channel[2].data, ndata * sizeof(WORD));
-	if (image->naxes[2] == 3) {
-		memcpy(image->data + ndata, channel[1].data, ndata * sizeof(WORD));
-		memcpy(image->data + ndata * 2, channel[0].data, ndata * sizeof(WORD));
-	}
+	// preparing data
+	Mat in, out;
+	WORD *bgrbgr = NULL;
 
 	if (image->naxes[2] == 1) {
+		in = Mat(height, width, CV_16UC1, image->data);
+		out = Mat(height, width, CV_16UC1);
+	}
+	else if (image->naxes[2] == 3) {
+		bgrbgr = fits_to_bgrbgr(image);
+		in = Mat(height, width, CV_16UC3, bgrbgr);
+		out = Mat(height, width, CV_16UC3);
+	}
+	else {
+		siril_log_message("Image resizing is not supported for images with %d channels\n", image->naxes[2]);
+		return -1;
+	}
+
+
+	Mat H = Mat::eye(3, 3, CV_64FC1);
+	convert_H_to_MatH(&Hom, H);
+
+	// OpenCV function
+	warpPerspective(in, out, H, Size(width, height), interpolation);
+
+	// saving result
+	long ndata = height * width;
+	if (image->naxes[2] == 1) {
+		memcpy(image->data, out.data, ndata * sizeof(WORD));
 		image->pdata[RLAYER] = image->data;
 		image->pdata[GLAYER] = image->data;
 		image->pdata[BLAYER] = image->data;
 	} else {
+		Mat channel[3];
+		split(out, channel);
+		memcpy(image->data, channel[2].data, ndata * sizeof(WORD));
+		memcpy(image->data + ndata, channel[1].data, ndata * sizeof(WORD));
+		memcpy(image->data + ndata * 2, channel[0].data, ndata * sizeof(WORD));
+
 		image->pdata[RLAYER] = image->data;
 		image->pdata[GLAYER] = image->data + ndata;
 		image->pdata[BLAYER] = image->data + ndata * 2;
-	}
-	image->rx = out.cols;
-	image->ry = out.rows;
-	image->naxes[0] = image->rx;
-	image->naxes[1] = image->ry;
-	invalidate_stats_from_fit(image);
 
-	/* free data */
-	delete[] bgrbgr;
+		channel[0].release();
+		channel[1].release();
+		channel[2].release();
+		delete[] bgrbgr;
+	}
+	H.release();
 	in.release();
 	out.release();
-	channel[0].release();
-	channel[1].release();
-	channel[2].release();
-	H.release();
+	invalidate_stats_from_fit(image);
 	return 0;
 }
 

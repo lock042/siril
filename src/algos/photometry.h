@@ -1,10 +1,3 @@
-/*
- * photometry.h
- *
- *  Created on: 9 mars 2018
- *      Author: cyril
- */
-
 #ifndef SRC_ALGOS_PHOTOMETRY_H_
 #define SRC_ALGOS_PHOTOMETRY_H_
 
@@ -13,9 +6,11 @@
 struct photometry_struct {
 	double mag; // magnitude
 	double s_mag; // magnitude uncertainty
+	gboolean valid; // TRUE if no pixel outside of the range
 };
 typedef struct photometry_struct photometry;
 
-photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf);
+photometry *getPhotometryData(gsl_matrix* z, fitted_PSF *psf, gboolean verbose);
+void initialize_photometric_param();
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

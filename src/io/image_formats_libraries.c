@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <math.h>
 
 #ifdef HAVE_LIBTIFF
 #define uint64 uint64_hack_
@@ -158,6 +158,16 @@ static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	}
 	else retval = -1;
 	return retval;
+}
+
+static uint16_t get_compression_mode() {
+	GtkToggleButton *button;
+
+	button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
+	if (gtk_toggle_button_get_active(button))
+		return (uint16_t) COMPRESSION_ADOBE_DEFLATE;
+	else
+		return (uint16_t) COMPRESSION_NONE;
 }
 
 static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
@@ -323,7 +333,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, -1));
 	TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
 	TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, nsamples);
-	TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+	TIFFSetField(tif, TIFFTAG_COMPRESSION, get_compression_mode());
 	TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, img_desc);
 	TIFFSetField(tif, TIFFTAG_COPYRIGHT, img_copy);
 	TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
@@ -348,7 +358,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	switch (bitspersample) {
 	case 8:
 		buf8 = _TIFFmalloc(width * sizeof(unsigned char) * nsamples);
-		norm = fit->orig_bitpix > BYTE_IMG ? UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE : 1.0;
+		norm = fit->orig_bitpix != BYTE_IMG ? UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE : 1.0;
 		for (row = 0; row < height; row++) {
 			for (col = 0; col < width; col++) {
 				for (n = 0; n < nsamples; n++) {
@@ -363,7 +373,7 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 		break;
 	case 16:
 		buf16 = _TIFFmalloc(width * sizeof(WORD) * nsamples);
-		norm = (fit->orig_bitpix > BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
+		norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 
 		for (row = 0; row < height; row++) {
 			for (col = 0; col < width; col++) {
@@ -496,7 +506,7 @@ int savejpg(const char *name, fits *fit, int quality){
 	unsigned char *image_buffer = (unsigned char*) malloc(
 			cinfo.image_width * cinfo.image_height * cinfo.num_components);
 
-	norm = (fit->orig_bitpix > BYTE_IMG ?
+	norm = (fit->orig_bitpix != BYTE_IMG ?
 			UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE : 1.0);
 
 	for (i = (cinfo.image_height - 1); i >= 0; i--) {
@@ -851,6 +861,51 @@ static void get_FITS_date(time_t date, char *date_obs) {
 	}
 }
 
+#if (LIBRAW_MAJOR_VERSION == 0) && (LIBRAW_MINOR_VERSION < 18)
+#define LIBRAW_FORMAT_1INCH 5
+#endif
+
+/* this is an estimation of the pixel size. Indeed, we cannot know
+ * the real width resolution with libraw.
+ * However, this approximation should be good enough.
+ */
+static float estimate_pixel_pitch(libraw_data_t *raw) {
+	float s_width;
+
+	switch (raw->lens.makernotes.CameraFormat) {
+	case LIBRAW_FORMAT_APSC:
+		if (!g_ascii_strncasecmp("Canon", raw->idata.make, 5))
+			s_width = 22.3;
+		else
+			s_width = 23.6;
+		break;
+	case LIBRAW_FORMAT_FF:
+		if (!g_ascii_strncasecmp("Sony", raw->idata.make, 4))
+			s_width = 35.6;
+		else
+			s_width = 36.0;
+		break;
+	case LIBRAW_FORMAT_FT:
+		s_width = 17.3;
+		break;
+	case LIBRAW_FORMAT_APSH:
+		s_width = 28.7;
+		break;
+	case LIBRAW_FORMAT_1INCH:
+		s_width = 13.2;
+		break;
+	case LIBRAW_FORMAT_MF:
+		s_width = 44.0;
+		break;
+	default:
+		s_width = 0.0;
+		break;
+	}
+//	printf("s_width=%f\n", s_width);
+	float pitch = s_width / (float) raw->sizes.width * 1000.f;
+	return roundf(pitch * 100.f) / 100.f;
+}
+
 static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 /* libraw_open_wfile is not defined for all windows compilers */
 #if defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)
@@ -877,6 +932,7 @@ static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 static int readraw(const char *name, fits *fit) {
 	ushort width, height;
 	int npixels, i;
+	double pitch;
 	WORD *data = NULL;
 	libraw_data_t *raw = libraw_init(0);
 	libraw_processed_image_t *image = NULL;
@@ -900,13 +956,13 @@ static int readraw(const char *name, fits *fit) {
 	raw->params.output_bps = 16;						/* 16-bits files                           */
 	raw->params.four_color_rgb = 0;						/* If == 1, interpolate RGB as four colors.*/
 	raw->params.no_auto_bright = 1;						/* no auto_bright                          */
-	raw->params.gamm[0] = 1./com.raw_set.gamm[0];		/* Gamma curve set by the user             */
+	raw->params.gamm[0] = 1.0 / com.raw_set.gamm[0];    /* Gamma curve set by the user             */
 	raw->params.gamm[1] = com.raw_set.gamm[1];	                                         
 	raw->params.bright = com.raw_set.bright;			/* Brightness                              */
 	raw->params.user_flip = 0;							/* no flip                                 */
 	raw->params.use_camera_wb = com.raw_set.use_camera_wb;
 	raw->params.use_auto_wb = com.raw_set.use_auto_wb;
-	if (com.raw_set.user_black==1)
+	if (com.raw_set.user_black == 1)
 		raw->params.user_black = 0;						/* user black level equivalent to dcraw -k 0 */
 	raw->params.output_color = 0;						/* output colorspace, 0=raw, 1=sRGB, 2=Adobe, 3=Wide, 4=ProPhoto, 5=XYZ*/
 		
@@ -950,6 +1006,7 @@ static int readraw(const char *name, fits *fit) {
 	
 	width = raw->sizes.iwidth;
 	height = raw->sizes.iheight;
+	pitch = estimate_pixel_pitch(raw);
 
 	npixels = width * height;
 
@@ -1026,13 +1083,15 @@ static int readraw(const char *name, fits *fit) {
 		fit->pdata[GLAYER] = fit->data + npixels;
 		fit->pdata[BLAYER] = fit->data + npixels * 2;
 		fit->binning_x = fit->binning_y = 1;
-		if (raw->other.focal_len > 0.)
+		if (pitch > 0.f)
+			fit->pixel_size_x = fit->pixel_size_y = pitch;
+		if (raw->other.focal_len > 0.f)
 			fit->focal_length = raw->other.focal_len;
-		if (raw->other.iso_speed > 0.)
+		if (raw->other.iso_speed > 0.f)
 			fit->iso_speed = raw->other.iso_speed;
-		if (raw->other.shutter > 0.)
+		if (raw->other.shutter > 0.f)
 			fit->exposure = raw->other.shutter;
-		if (raw->other.aperture > 0.)
+		if (raw->other.aperture > 0.f)
 			fit->aperture = raw->other.aperture;
 		g_snprintf(fit->instrume, FLEN_VALUE, "%s %s", raw->idata.make,
 				raw->idata.model);
@@ -1079,6 +1138,7 @@ static int fcol(libraw_data_t *raw, int row, int col) {
 static int readraw_in_cfa(const char *name, fits *fit) {
 	libraw_data_t *raw = libraw_init(0);
 	unsigned int i, j, c, col, row;
+	float pitch;
 	char pattern[FLEN_VALUE];
 	ushort raw_width, raw_height, left_margin, top_margin;
 	ushort width, height;
@@ -1127,6 +1187,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 		height = raw->sizes.iheight;
 	}
 
+	pitch = estimate_pixel_pitch(raw);
 	npixels = width * height;
 	
 	if (raw->other.shutter > 0 && raw->other.shutter < 1)
@@ -1191,13 +1252,16 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 		fit->pdata[GLAYER] = fit->data;
 		fit->pdata[BLAYER] = fit->data;
 		fit->binning_x = fit->binning_y = 1;
-		if (raw->other.focal_len > 0.)
+		fit->maximum_pixel_value = raw->color.maximum;
+		if (pitch > 0.f)
+			fit->pixel_size_x = fit->pixel_size_y = pitch;
+		if (raw->other.focal_len > 0.f)
 			fit->focal_length = raw->other.focal_len;
-		if (raw->other.iso_speed > 0.)
+		if (raw->other.iso_speed > 0.f)
 			fit->iso_speed = raw->other.iso_speed;
-		if (raw->other.shutter > 0.)
+		if (raw->other.shutter > 0.f)
 			fit->exposure = raw->other.shutter;
-		if (raw->other.aperture > 0.)
+		if (raw->other.aperture > 0.f)
 			fit->aperture = raw->other.aperture;
 		g_snprintf(fit->instrume, FLEN_VALUE, "%s %s", raw->idata.make,
 				raw->idata.model);

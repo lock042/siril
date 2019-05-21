@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@ enum {
 	COLUMN_SHIFTX,		// int
 	COLUMN_SHIFTY,		// int
 	COLUMN_SELECTED,	// gboolean
-	COLUMN_FWHM,		// converted to string, not pure double
+	COLUMN_FWHM,		// gdouble
 	COLUMN_CURRENT,		// int weight, current file loaded, display IMNAME in bold
 	COLUMN_REFERENCE,	// background color depending on the image being reference
 	COLUMN_INDEX,		// int
@@ -82,6 +82,7 @@ void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 	char *basename;
 	int shiftx = -1, shifty = -1;
 	double fwhm = -1.0;
+	int color;
 
 	get_list_store();
 	if (!selection)
@@ -100,6 +101,8 @@ void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			fwhm = seq->regparam[layer][index].quality;
 	}
 
+	color = com.want_dark ? 1 : 0;
+
 	basename = g_path_get_basename(seq_get_image_filename(seq, index, imname));
 	gtk_list_store_append (list_store, &iter);
 	gtk_list_store_set (list_store, &iter,
@@ -112,7 +115,7 @@ void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			// weight value is 400 by default "normal":
 			// http://developer.gnome.org/gtk3/stable/GtkCellRendererText.html#GtkCellRendererText--weight
 			COLUMN_REFERENCE, index == seq->reference_image ?
-			ref_bg_colour[com.have_dark_theme] : bg_colour[com.have_dark_theme],
+			ref_bg_colour[color] : bg_colour[color],
 			COLUMN_INDEX, index,
 			-1);
 	/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
@@ -259,6 +262,9 @@ void sequence_list_change_reference() {
 	GtkTreeIter iter;
 	gboolean valid;
 	gint row_count = 0;
+	int color;
+
+	color = (com.have_dark_theme || com.combo_theme == 1) ? 1 : 0;
 
 	get_list_store();
 	valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_store), &iter);
@@ -266,8 +272,7 @@ void sequence_list_change_reference() {
 		gtk_list_store_set(list_store, &iter,
 				COLUMN_REFERENCE,
 				(row_count == com.seq.reference_image) ?
-				ref_bg_colour[com.have_dark_theme] : bg_colour[com.have_dark_theme],
-				-1);
+				ref_bg_colour[color] : bg_colour[color], -1);
 		row_count++;
 		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list_store), &iter);
 	}

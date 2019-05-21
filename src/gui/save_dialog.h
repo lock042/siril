@@ -8,6 +8,8 @@ struct savedial_data {
 	gint quality;
 	const gchar *filename;
 	int bitpix;
+	gboolean update_hilo;
+	int retval;
 };
 
 enum {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -44,8 +44,9 @@
 /* seqfile version history *
  * no version up to 0.9.9
  * version 1 introduced roundness in regdata, 0.9.9
+ * version 2 allowed regdata to be stored for CFA SER sequences, 0.9.11
  */
-#define CURRENT_SEQFILE_VERSION 1	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 2	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -118,6 +119,12 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr, "readseqfile: sequence is empty?\n");
 					goto error;
 				}
+				if (version > CURRENT_SEQFILE_VERSION)
+					siril_log_message(_("This sequence file was created by a version of "
+								"siril that is newer than this one, it may not "
+								"be loaded as expected\n"),
+							"salmon");
+				/* for now, only the R* line is not supported in the previous version */
 				seq->seqname = strdup(filename);
 				seq->imgparam = calloc(seq->number, sizeof(imgdata));
 				allocated = 1;
@@ -194,17 +201,39 @@ sequence * readseqfile(const char *name){
 
 			case 'R':
 				/* registration info */
-				current_layer = line[1] - '0';
-				if (current_layer < 0 || current_layer > 9) {
-					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
-					goto error;
+				if (line[1] == '*') {
+					/* these are registration data for the CFA channel, the
+					 * star is a way to differentiate stats belonging to
+					 * CFA and those belonging to the demosaiced red
+					 * channel, both would have layer number 0 otherwise */
+					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
+							!com.debayer.open_debayer) {
+						siril_debug_print("- using CFA registration info\n");
+						to_backup = 0;
+					} else {
+						siril_debug_print("- backing up CFA registration info\n");
+						to_backup = 1;
+					}
+					current_layer = 0;
 				}
-				if ((!seq->cfa_opened_monochrome && current_layer >= seq->nb_layers) ||
+				else {
+					to_backup = 0;
+					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
+							!com.debayer.open_debayer) {
+						to_backup = 1;
+						siril_debug_print("- stats: backing up demosaiced stats\n");
+					}
+					current_layer = line[1] - '0';
+				}
+
+				if (current_layer < 0 || current_layer > 9 ||
+						(!seq->cfa_opened_monochrome && current_layer >= seq->nb_layers) ||
 						(seq->cfa_opened_monochrome && current_layer >= 3)) {
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 					goto error;
 				}
-				if (seq->cfa_opened_monochrome)
+
+				if (to_backup)
 					regparam = seq->regparam_bkp[current_layer];
 				else regparam = seq->regparam[current_layer];
 
@@ -216,7 +245,7 @@ sequence * readseqfile(const char *name){
 					}
 					i = 0;	// one line per image, starting with 0
 					// reassign, because we didn't use a pointer
-					if (seq->cfa_opened_monochrome)
+					if (to_backup)
 						seq->regparam_bkp[current_layer] = regparam;
 					else seq->regparam[current_layer] = regparam;
 				}
@@ -303,8 +332,9 @@ sequence * readseqfile(const char *name){
 						GString *filmString;
 						/* test for extension in lowercase */
 						filmString = g_string_new(seqfilename);
-						g_string_truncate(filmString, strlen(seqfilename) - 3);
-						g_string_append(filmString, supported_film[i].extension);
+						filmString = g_string_truncate(filmString, strlen(seqfilename) - 3);
+						filmString = g_string_append(filmString, supported_film[i].extension);
+						g_free(filmname);
 						filmname = g_string_free(filmString, FALSE);
 
 						if (g_file_test(filmname, G_FILE_TEST_EXISTS)) {
@@ -314,12 +344,13 @@ sequence * readseqfile(const char *name){
 							gchar *upcase;
 
 							g_free(filmname);
+							filmname = NULL;
 
 							filmString = g_string_new(seqfilename);
 							g_string_truncate(filmString, strlen(seqfilename) - 3);
 							len_ext = strlen(supported_film[i].extension);
 							upcase = g_ascii_strup(supported_film[i].extension, len_ext);
-							g_string_append(filmString, upcase);
+							filmString = g_string_append(filmString, upcase);
 							filmname = g_string_free(filmString, FALSE);
 							g_free(upcase);
 
@@ -333,11 +364,13 @@ sequence * readseqfile(const char *name){
 					if (film_open_file(filmname, seq->film_file)) {
 						free(seq->film_file);
 						seq->film_file = NULL;
+						g_free(filmname);
 						goto error;
 					}
 					else {
 						film_display_info(seq->film_file);
 						seq->ext = strdup(get_filename_ext(seq->film_file->filename));
+						g_free(filmname);
 					}
 				}
 				else seq->ext = "fit";
@@ -366,10 +399,10 @@ sequence * readseqfile(const char *name){
 					 * would have layer number 0 otherwise */
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.debayer.open_debayer) {
-						fprintf(stdout, "- stats: using CFA stats\n");
+						siril_debug_print("- stats: using CFA stats\n");
 						to_backup = 0;
-					} else { ;
-						fprintf(stdout, "- stats: backing up CFA stats\n");
+					} else {
+						siril_debug_print("- stats: backing up CFA stats\n");
 						to_backup = 1;
 					}
 					current_layer = 0;
@@ -379,7 +412,7 @@ sequence * readseqfile(const char *name){
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.debayer.open_debayer) {
 						to_backup = 1;
-						fprintf(stdout, "- stats: backing up demosaiced stats\n");
+						siril_debug_print("- stats: backing up demosaiced stats\n");
 					}
 					current_layer = line[1] - '0';
 				}
@@ -441,16 +474,13 @@ sequence * readseqfile(const char *name){
 	}
 	
 	// copy some regparam_bkp to regparam if it applies
-	if (seq->cfa_opened_monochrome && seq->regparam_bkp && (!seq->regparam || !seq->regparam[0])) {
-		for (i = 0; i < 3; i++) {
-			if (seq->regparam_bkp[i]) {
-				siril_log_message(_("%s: Using registration data from demosaiced layer %d (red is 0, green is 1, blue is 2)\n"), seqfilename, i);
-				seq->regparam[0] = calloc(seq->number, sizeof(regdata));
-				for (image = 0; image < seq->number; image++) {
-					memcpy(&seq->regparam[0][image], &seq->regparam_bkp[i][image], sizeof(regdata));
-				}
-				break;
-			}
+	if (ser_is_cfa(seq->ser_file) && com.debayer.open_debayer &&
+			seq->regparam_bkp && seq->regparam_bkp[0] &&
+			seq->regparam && seq->nb_layers == 3 && !seq->regparam[1]) {
+		siril_log_color_message(_("%s: Copying registration data from non-demosaiced layer to green layer\n"), "salmon", seqfilename);
+		seq->regparam[1] = calloc(seq->number, sizeof(regdata));
+		for (image = 0; image < seq->number; image++) {
+			memcpy(&seq->regparam[1][image], &seq->regparam_bkp[0][image], sizeof(regdata));
 		}
 	}
 
@@ -515,9 +545,10 @@ int writeseqfile(sequence *seq){
 	}
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam[layer] && !seq->cfa_opened_monochrome) {
+		if (seq->regparam[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%d %f %f %g %g %g\n", layer,
+				fprintf(seqfile, "R%c %f %f %g %g %g\n",
+						seq->cfa_opened_monochrome ? '*' : '0' + layer,
 						seq->regparam[layer][i].shiftx,
 						seq->regparam[layer][i].shifty,
 						seq->regparam[layer][i].fwhm,
@@ -552,7 +583,8 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%d %f %f %g %g %g\n", layer,
+				fprintf(seqfile, "R%c %f %f %g %g %g\n",
+						seq->cfa_opened_monochrome ? '0' + layer : '*',
 						seq->regparam_bkp[layer][i].shiftx,
 						seq->regparam_bkp[layer][i].shifty,
 						seq->regparam_bkp[layer][i].fwhm,

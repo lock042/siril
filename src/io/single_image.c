@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,12 +26,13 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
-#include "gui/gui.h"
-#include "gui/callbacks.h"
-#include "gui/message_dialog.h"
+#include "algos/background_extraction.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "gui/gui.h"
+#include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/image_display.h"
@@ -64,6 +65,8 @@ void free_image_data() {
 		clear_stars_list();
 		delete_selected_area();
 		clear_sampling_setting_box();	// clear focal and pixel pitch info
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
 	}
 	clear_histograms();
 
@@ -86,10 +89,9 @@ void free_image_data() {
 		com.rgbbuf = NULL;
 	}
 	if (com.uniq) {
-		if (com.uniq->filename)
-			free(com.uniq->filename);
-		if (com.uniq->comment)
-			free(com.uniq->comment);
+		free(com.uniq->filename);
+		free(com.uniq->comment);
+		free(com.uniq->layers);
 		free(com.uniq);
 		com.uniq = NULL;
 	}
@@ -139,7 +141,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 	} else {
 		retval = any_to_fits(imagetype, realname, dest);
 		if (!retval)
-			debayer_if_needed(imagetype, dest, com.debayer.compatibility, FALSE);
+			debayer_if_needed(imagetype, dest, com.debayer.compatibility, FALSE, com.debayer.stretch);
 	}
 	if (retval != 0 && retval != 3)
 		siril_log_message(_("Opening %s failed.\n"), realname);
@@ -153,8 +155,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out) {
 }
 
 static gboolean end_open_single_image(gpointer arg) {
-	char *name = (char *)arg;
-	open_single_image_from_gfit(name);
+	open_single_image_from_gfit();
 	return FALSE;
 }
 
@@ -177,13 +178,13 @@ int open_single_image(const char* filename) {
 		return 0;
 	}
 	if (retval == 2) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error oppening file"),
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("This file could not be opened because "
 						"its extension is not supported."));
 		return 1;
 	}
 	if (retval == 1) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error oppening file"),
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
 		return 1;
@@ -203,10 +204,8 @@ int open_single_image(const char* filename) {
 }
 
 /* creates a single_image structure and displays a single image, found in gfit.
- * The argument, realname, should be the file path, and it must be allocated
- * on the heap, since destroying the single image will attempt to free it.
  */
-void open_single_image_from_gfit(char *realname) {
+void open_single_image_from_gfit() {
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
@@ -228,7 +227,6 @@ void open_single_image_from_gfit(char *realname) {
 	update_MenuItem();
 
 	redraw(com.cvport, REMAP_ALL);
-	update_used_memory();
 	show_main_gray_window();
 	adjust_vport_size_to_image();
 	update_gfit_histogram_if_needed();
@@ -237,6 +235,7 @@ void open_single_image_from_gfit(char *realname) {
 	else
 		hide_rgb_window();
 	close_tab();
+	update_used_memory();
 }
 
 /* searches the image for minimum and maximum pixel value, on each layer
@@ -328,32 +327,10 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 void adjust_cutoff_from_updated_gfit() {
 	invalidate_stats_from_fit(&gfit);
 	if (!com.script) {
+		invalidate_gfit_histogram();
 		update_gfit_histogram_if_needed();
 		init_layers_hi_and_lo_values(com.sliders);
 		set_cutoff_sliders_values();
-	}
-}
-
-void unique_free_preprocessing_data(single *uniq) {
-	// free opened files
-	if (uniq->ppprefix) {
-		free(uniq->ppprefix);
-		uniq->ppprefix = NULL;
-	}
-	if (uniq->offset) {
-		clearfits(uniq->offset);
-		free(uniq->offset);
-		uniq->offset = NULL;
-	}
-	if (uniq->dark) {
-		clearfits(uniq->dark);
-		free(uniq->dark);
-		uniq->dark = NULL;
-	}
-	if (uniq->flat) {
-		clearfits(uniq->flat);
-		free(uniq->flat);
-		uniq->flat = NULL;
 	}
 }
 

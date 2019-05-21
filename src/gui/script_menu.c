@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -37,6 +37,7 @@
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
+#include "algos/sorting.h"
 #include "script_menu.h"
 
 #define EXT ".ssf"
@@ -46,7 +47,7 @@ static GSList *initialize_script_paths(){
 #ifdef _WIN32
 	wchar_t wFilename[MAX_PATH];
 
-	list = g_slist_append(list, g_build_filename (get_special_folder (CSIDL_APPDATA),
+	list = g_slist_prepend(list, g_build_filename (get_special_folder (CSIDL_APPDATA),
 			"siril", "scripts", NULL));
 
 	if (!GetModuleFileNameW(NULL, wFilename, MAX_PATH)) {
@@ -55,15 +56,16 @@ static GSList *initialize_script_paths(){
 		gchar *fName = g_utf16_to_utf8(wFilename, -1, NULL, NULL, NULL);
 		gchar *path = g_path_get_dirname(fName);
 		path[strlen(path) - 4] = '\0';		/* remove "/bin" */
-		list = g_slist_append(list, g_build_filename(path, "scripts", NULL));
+		list = g_slist_prepend(list, g_build_filename(path, "scripts", NULL));
 		g_free(fName);
 		g_free(path);
 	}
 #else
-	list = g_slist_append(list, g_build_filename(PACKAGE_DATA_DIR, "scripts", NULL));	
-	list = g_slist_append(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
-	list = g_slist_append(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
+	list = g_slist_prepend(list, g_build_filename(PACKAGE_DATA_DIR, "scripts", NULL));
+	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
+	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
 #endif
+	list = g_slist_reverse(list);
 	return list;
 }
 
@@ -85,9 +87,10 @@ static GSList *get_list_from_textview() {
 		gchar **token = g_strsplit(txt, "\n", -1);
 		while (token[i]) {
 			if (*token[i] != '\0')
-				list = g_slist_append(list, g_strdup(token[i]));
+				list = g_slist_prepend(list, g_strdup(token[i]));
 			i++;
 		}
+		list = g_slist_reverse(list);
 		g_strfreev(token);
 	}
 
@@ -132,13 +135,14 @@ static GSList *search_script(const char *path) {
 	dir = g_dir_open(path, 0, &error);
 	if (!dir) {
 		fprintf(stderr, "scripts: %s\n", error->message);
+		g_error_free(error);
 		return NULL;
 	}
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		if (g_str_has_suffix(file, EXT)) {
-			char *str = remove_ext_from_filename(file);
+			gchar *str = (gchar*) remove_ext_from_filename(file);
 
-			list = g_slist_append(list, str);
+			list = g_slist_prepend(list, str);
 		}
 	}
 	list = g_slist_sort(list, (GCompareFunc) strcompare);
@@ -184,7 +188,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 int initialize_script_menu() {
 	static GtkWidget *menuscript = NULL;
-	GSList *list, *script;
+	GSList *list, *script, *s;
 	GtkWidget *menu;
 	gint nb_item = 0;
 
@@ -202,9 +206,10 @@ int initialize_script_menu() {
 
 	menu = gtk_menu_new();
 
-	while (script) {
-		list = search_script(script->data);
+	for (s = script; s; s = s->next) {
+		list = search_script(s->data);
 		if (list) {
+			GSList *l;
 			gtk_widget_show(menuscript);
 			gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuscript), menu);
 			/* write separator but not for the first one */
@@ -213,28 +218,23 @@ int initialize_script_menu() {
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
 				gtk_widget_show(separator);
 			}
-			siril_log_message(_("Searching scripts in: %s...\n"), script->data);
-			while (list) {
+			siril_log_message(_("Searching scripts in: \"%s\"...\n"), s->data);
+			for (l = list; l; l = l->next) {
 				nb_item ++;
 				/* write an item per script file */
 				GtkWidget *menu_item;
 
-				menu_item = gtk_menu_item_new_with_label(list->data);
+				menu_item = gtk_menu_item_new_with_label(l->data);
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
-				gchar *full_path = g_build_filename(script->data, list->data,
+				gchar *full_path = g_build_filename(s->data, l->data,
 						NULL);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
 						G_CALLBACK(on_script_execution), (gchar * ) full_path);
-				siril_log_message(_("Loading script: %s\n"), list->data);
+				siril_log_message(_("Loading script: %s\n"), l->data);
 				gtk_widget_show(menu_item);
-
-				/* go to the next item */
-				list = list->next;
 			}
 			g_slist_free_full(list, g_free);
 		}
-		/* go to the next path */
-		script = script->next;
 	}
 	writeinitfile();
 
@@ -257,11 +257,8 @@ void fill_script_paths_list() {
 
 void on_help_get_scripts_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	gboolean ret;
-
-#if GTK_CHECK_VERSION(3, 22, 0)
-	GtkWidget *win;
 	const char *locale = setlocale(LC_MESSAGES, NULL);
-	const char *supported_languages[] = { "fr", NULL }; // en is NULL: default language
+	const char *supported_languages[] = { "el", "fr", "it", NULL }; // en is NULL: default language
 	gchar *lang = NULL;
 	int i = 0;
 
@@ -276,7 +273,8 @@ void on_help_get_scripts_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	}
 	gchar *url = g_build_path("/", GET_SCRIPTS_URL, lang, NULL);
 
-	win = lookup_widget("control_window");
+#if GTK_CHECK_VERSION(3, 22, 0)
+	GtkWidget* win = lookup_widget("control_window");
 	ret = gtk_show_uri_on_window(GTK_WINDOW(win), url,
 			gtk_get_current_event_time(), NULL);
 #else

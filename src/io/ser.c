@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2018 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@
 #include "algos/demosaicing.h"
 #include "io/ser.h"
 
-static gboolean warning = FALSE;
+static gboolean user_warned = FALSE;
 
 /* 62135596800 sec from year 0001 to 01 janv. 1970 00:00:00 GMT */
 static const uint64_t epochTicks = 621355968000000000UL;
@@ -537,10 +537,11 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 	ser_file->ts = calloc(8, ser_file->frame_count);
 	ser_file->ts_alloc = ser_file->frame_count;
 
-	while (timestamp && i < ser_file->frame_count) {
+	GSList *t = timestamp;
+	while (t && i < ser_file->frame_count) {
 		uint64_t utc, local;
-		FITS_date_key_to_Unix_time(timestamp->data, &utc, &local);
-		timestamp = timestamp->next;
+		FITS_date_key_to_Unix_time(t->data, &utc, &local);
+		t = t->next;
 		memcpy(&ser_file->ts[i], &utc, 8);
 		i++;
 	}
@@ -567,6 +568,7 @@ void ser_display_info(struct ser_struct *ser_file) {
 }
 
 int ser_write_and_close(struct ser_struct *ser_file) {
+	if (ser_file == NULL) return -1;
 	if (!ser_file->frame_count) {
 		siril_log_color_message(_("The SER sequence is being created with no image in it.\n"), "red");
 		char *filename = ser_file->filename;
@@ -823,21 +825,24 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 			sensor_pattern bayer;
 			bayer = get_SER_Bayer_Pattern(type_ser);
 			if (bayer != com.debayer.bayer_pattern) {
-				if (bayer == BAYER_FILTER_NONE  && warning == FALSE) {
+				if (bayer == BAYER_FILTER_NONE  && user_warned == FALSE) {
 					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
 				}
 				else {
-					if (warning == FALSE) {
+					if (user_warned == FALSE) {
 						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
 								" from Bayer pattern in settings (%s). Overriding settings.\n"),
 								"red", filter_pattern[bayer], filter_pattern[com.debayer.bayer_pattern]);
 					}
 					com.debayer.bayer_pattern = bayer;
 				}
-				warning = TRUE;
+				user_warned = TRUE;
 			}
 		}
-		debayer(fit, com.debayer.bayer_inter);
+		/* for performance consideration (and many others) we force the interpolation algorithm
+		 * to be BAYER_BILINEAR
+		 */
+		debayer(fit, BAYER_BILINEAR, FALSE);
 		com.debayer.bayer_pattern = sensortmp;
 		break;
 	case SER_BGR:
@@ -880,6 +885,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 
 	fits_flip_top_to_bottom(fit);
 	fit->maxi = -1.0;
+	fit->top_down = FALSE;
 	return 0;
 }
 
@@ -1030,18 +1036,18 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 			sensor_pattern bayer;
 			bayer = get_SER_Bayer_Pattern(type_ser);
 			if (bayer != com.debayer.bayer_pattern) {
-				if (bayer == BAYER_FILTER_NONE && warning == FALSE) {
+				if (bayer == BAYER_FILTER_NONE && user_warned == FALSE) {
 					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
 				}
 				else {
-					if (warning == FALSE) {
+					if (user_warned == FALSE) {
 						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
 								" from Bayer pattern in settings (%s). Overriding settings.\n"),
 								"red", filter_pattern[bayer], filter_pattern[com.debayer.bayer_pattern]);
 					}
 					com.debayer.bayer_pattern = bayer;
 				}
-				warning = TRUE;
+				user_warned = TRUE;
 			}
 		}
 		if (layer < 0 || layer >= 3) {
@@ -1056,16 +1062,19 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		// allocating a buffer for WORD because it's going to be converted in-place
 		rawbuf = malloc(debayer_area.w * debayer_area.h * sizeof(WORD));
 		if (!rawbuf) {
-			siril_log_message(_("Out of memory - aborting\n"));
+			PRINT_ALLOC_ERR;
 			return -1;
 		}
 		if (read_area_from_image(ser_file, frame_no, rawbuf, &debayer_area, -1))
 			return -1;
 		ser_manage_endianess_and_depth(ser_file, rawbuf, debayer_area.w * debayer_area.h);
 
+		/* for performance consideration (and many others) we force the interpolation algorithm
+		 * to be BAYER_BILINEAR
+		 */
 		demosaiced_buf = debayer_buffer(rawbuf, &debayer_area.w,
-				&debayer_area.h, com.debayer.bayer_inter,
-				com.debayer.bayer_pattern, NULL);
+				&debayer_area.h, BAYER_BILINEAR, com.debayer.bayer_pattern,
+				NULL);
 		free(rawbuf);
 		if (demosaiced_buf == NULL) {
 			return -1;
@@ -1104,6 +1113,14 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area) {
 	if (new_fit_image(&fit, area->w, area->h, 1, NULL))
 		return -1;
+	fit->top_down = TRUE;
+	if (ser_file->ts) {
+		char *timestamp = ser_timestamp(ser_file->ts[frame_no]);
+		if (timestamp) {
+			g_snprintf(fit->date_obs, FLEN_VALUE, "%s", timestamp);
+			free(timestamp);
+		}
+	}
 	return ser_read_opened_partial(ser_file, layer, frame_no, fit->pdata[0], area);
 }
 
@@ -1205,4 +1222,18 @@ free_and_quit:
 	if (data8) free(data8);
 	if (data16) free(data16);
 	return retval;
+}
+
+int64_t ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
+	int64_t frame_size, size = ser_file->filesize;
+
+	if (nb_frames != ser_file->frame_count) {
+		frame_size = (size - SER_HEADER_LEN) / ser_file->frame_count;
+		size = SER_HEADER_LEN + frame_size * nb_frames;
+	}
+	/* SER can be demosaiced on the fly on creation.
+	 * TODO: Is this the good test? */
+	if (ser_is_cfa(ser_file) && com.debayer.open_debayer)
+		size *= 3;
+	return size;
 }
