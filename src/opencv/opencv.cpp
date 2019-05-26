@@ -406,13 +406,12 @@ void cvTransformBuf(WORD *image, int size, Homography *Hom) {
 }
 
 // transform an image using the homography.
-int cvTransformImage(fits *image, point ref, Homography Hom, int interpolation) {
+int cvTransformImage(fits *image, Homography Hom, int interpolation) {
 	assert(image->data);
-	assert(image->rx);
-	assert(image->ry);
-	// for now, assuming input and output are same size
-	assert((long)image->rx == width);
-	assert((long)image->ry == height);
+	assert(image->rx > 0);
+	assert(image->ry > 0);
+
+	long width = image->rx, height = image->ry;
 
 	// preparing data
 	Mat in, out;

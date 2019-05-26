@@ -159,10 +159,10 @@ int register_sd(struct registration_args *regargs) {
 	args->seq = regargs->seq;
 	args->partial_image = FALSE;
 	if (regargs->process_all_frames) {
-		args->filtering_criterion = stack_filter_all;
+		args->filtering_criterion = seq_filter_all;
 		args->nb_filtered_images = regargs->seq->number;
 	} else {
-		args->filtering_criterion = stack_filter_included;
+		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
 	/* we assume layer 0 for this registration */

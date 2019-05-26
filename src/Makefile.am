@@ -26,15 +26,16 @@ siril_SOURCES = \
 	gui/progress_and_log.c gui/progress_and_log.h \
 	gui/about_dialog.c \
 	gui/photometric_cc.c gui/photometric_cc.h \
+	registration/registration.c registration/registration.h \
 	registration/global.c registration/cog.c registration/steepest_descent.c registration/comet.c \
 	registration/matching/match.c registration/matching/atpmatch.c registration/matching/misc.c \
-	registration/matching/project_coords.c registration/matching/project_coords.h registration/matching/degtorad.h registration/matching/apply_match.c \
+	registration/matching/project_coords.c registration/matching/project_coords.h \
+	registration/matching/degtorad.h registration/matching/apply_match.c \
 	stacking/stacking.c stacking/stacking.h stacking/sum.c stacking/sum.h stacking/normalization.c \
 	stacking/median_and_mean.c stacking/upscaling.c \
 	algos/statistics.c algos/statistics.h algos/sorting.h algos/sorting.c \
 	algos/background_extraction.c algos/background_extraction.h algos/quality.c algos/quality.h \
 	algos/rgradient.c algos/rgradient.h \
-	algos/gradient.c algos/gradient.h
 	algos/fft.c algos/fft.h \
 	algos/colors.c algos/colors.h \
 	algos/geometry.c algos/geometry.h \

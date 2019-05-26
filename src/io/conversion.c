@@ -333,6 +333,7 @@ static void unset_debayer_in_convflags() {
  * updates the label listing the supported input file formats, and modifies the
  * list of file types used in convflags */
 gchar *initialize_converters() {
+	GtkLabel *label_supported;
 	GString *string;
 	gchar *text;
 	int count_ext = 0;
@@ -418,12 +419,9 @@ gchar *initialize_converters() {
 
 	string = g_string_append(string, ".");
 	text = g_string_free(string, FALSE);
-	if (!com.script && com.siril_mode == MODE_DEEP_SKY) {
-		label_supported = GTK_LABEL(gtk_builder_get_object(builder, "label_supported_types"));
-		gtk_label_set_text(label_supported, text);
-	}
+
 	siril_log_message(_("Supported file types: %s\n"), text + 1);
-	g_free(text);
+	return text;
 }
 
 int check_for_raw_extensions(const char *extension) {

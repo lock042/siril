@@ -1,10 +1,13 @@
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/imoper.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "callbacks.h"
 #include "progress_and_log.h"
 #include "core/undo.h"
+#include "gui.h"
+#include "image_display.h"
 
 static gboolean asinh_rgb_space = FALSE;
 static double asinh_stretch_value = 1.0, asinh_black_value = 0.0;

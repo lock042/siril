@@ -7,6 +7,8 @@
 #include "io/single_image.h"
 #include "progress_and_log.h"
 #include "callbacks.h"
+#include "image_display.h"
+#include "gui.h"
 
 static gboolean satu_preserve_bkg = TRUE;
 static double satu_amount = 0.0;

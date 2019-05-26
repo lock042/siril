@@ -36,6 +36,7 @@
 #include "io/sequence.h"
 #include "algos/colors.h"
 #include "algos/PSF.h"
+#include "algos/background_extraction.h"
 
 /* remap index data, an index for each layer */
 static BYTE *remap_index[MAXGRAYVPORT];

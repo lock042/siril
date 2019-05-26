@@ -67,6 +67,7 @@
 #include "compositing/compositing.h"
 #include "compositing/align_rgb.h"
 #include "opencv/opencv.h"
+#include "registration/registration.h"
 
 static gboolean is_shift_on = FALSE;
 
@@ -77,8 +78,6 @@ layer_info predefined_layers_colors[] = {
 		{ N_("Green"), 530.0, 0, 0, FALSE, FALSE, NORMAL_DISPLAY },	// approx. of the middle of the color
 		{ N_("Blue"), 450.0, 0, 0, FALSE, FALSE, NORMAL_DISPLAY }// approx. of the middle of the color
 };
-/* background image */
-static fits background_fit = { 0 };	// Testing init
 
 /*****************************************************************************
  *                    S T A T I C      F U N C T I O N S                     *
@@ -87,7 +86,7 @@ static fits background_fit = { 0 };	// Testing init
  * Returns the modifier mask. For Linux it is Control key, but for Apple - OS X
  * it should be Apple Key -> Mod2
  */
-static GdkModifierType get_default_modifier() {
+GdkModifierType get_default_modifier() {
 	GdkDisplay *display = gdk_display_get_default();
 	GdkKeymap *keymap = gdk_keymap_get_for_display(display);
 	GdkModifierType primary, real;
@@ -136,7 +135,7 @@ static gboolean set_label_text_idle(gpointer p) {
 	return FALSE;
 }
 
-static void set_label_text_from_main_thread(const char *label_name, const char *text) {
+void set_label_text_from_main_thread(const char *label_name, const char *text) {
 	struct _label_data *data = malloc(sizeof(struct _label_data));
 	data->label_name = label_name;
 	data->text = strdup(text);
@@ -256,8 +255,8 @@ static void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	gtk_widget_set_sensitive(entrymax, sensitive);
 	gtk_widget_set_sensitive(minmax, sensitive);
 	gtk_widget_set_sensitive(hilo, sensitive);
-	gtk_widget_set_sensitive(user, sensitive);
-}*/
+	gtk_widget_set_sensitive(user, sensitive);*/
+}
 
 /* enables or disables the "display reference" checkbox in registration preview */
 static void enable_view_reference_checkbox(gboolean status) {
@@ -344,344 +343,6 @@ static void free_reference_image() {
 		enable_view_reference_checkbox(FALSE);
 }
 
-/*
- * Main conversion list static functions
- */
-
-static GtkListStore *liststore_convert = NULL;
-
-static void add_convert_to_list(char *filename, GStatBuf st) {
-	GtkTreeIter iter;
-	char *date;
-
-	date = ctime(&st.st_mtime);
-	date[strlen(date) - 1] = 0;	// removing '\n' at the end of the string
-
-	gtk_list_store_append(liststore_convert, &iter);
-	gtk_list_store_set(liststore_convert, &iter, COLUMN_FILENAME, filename,	// copied in the store
-			COLUMN_DATE, date, -1);
-}
-static void get_convert_list_store() {
-	if (liststore_convert == NULL)
-		liststore_convert = GTK_LIST_STORE(
-				gtk_builder_get_object(builder, "liststore_convert"));
-}
-
-static void fill_convert_list(GSList *list) {
-	GStatBuf st;
-
-	get_convert_list_store();
-
-	while (list) {
-		char *filename;
-
-		filename = (char *) list->data;
-		if (g_stat(filename, &st) == 0) {
-			add_convert_to_list(filename, st);
-			list = list->next;
-		} else
-			break;	// no infinite loop
-		g_free(filename);
-	}
-	check_for_conversion_form_completeness();
-}
-
-/*
- * GTK File Chooser static functions
- */
-
-static int whichdial;
-
-static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
-		const gchar *pattern, gboolean set_default) {
-	gchar **patterns;
-	gint i;
-
-	GtkFileFilter *f = gtk_file_filter_new();
-	gtk_file_filter_set_name(f, title);
-	/* get the patterns */
-	patterns = g_strsplit(pattern, ";", -1);
-	for (i = 0; patterns[i] != NULL; i++)
-		gtk_file_filter_add_pattern(f, patterns[i]);
-	/* free the patterns */
-	g_strfreev(patterns);
-	gtk_file_chooser_add_filter(file_chooser, f);
-	if (set_default)
-		gtk_file_chooser_set_filter(file_chooser, f);
-}
-
-static void set_filters_dialog(GtkFileChooser *chooser) {
-	gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts)"),
-			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS",
-			com.filter == TYPEFITS);
-	if (whichdial == OD_OPEN || whichdial == OD_CONVERT) {
-#ifdef HAVE_LIBRAW
-		/* RAW FILES */
-		int nb_raw;
-		char *raw;
-		int i;
-
-		nb_raw = get_nb_raw_supported();
-		raw = calloc(sizeof(char), nb_raw * 12 + 1);// we assume the extension size of 3 char "*.xxx;*.XXX;" = 12
-		for (i = 0; i < nb_raw; i++) {
-			char *ext;
-			gchar *upcase;
-
-			upcase = g_ascii_strup(supported_raw[i].extension, strlen(supported_raw[i].extension));
-			ext = g_strdup_printf("*.%s;*.%s;", supported_raw[i].extension,
-					upcase);
-			strcat(raw, ext);
-
-			g_free(ext);
-			g_free(upcase);
-		}
-		gtk_filter_add(chooser, _("RAW DSLR Camera Files"), raw,
-				com.filter == TYPERAW);
-		free(raw);
-#endif
-		/* GRAPHICS FILES */
-		GString *s_supported_graph, *s_pattern;
-		gchar *graphics_supported, *pattern;
-
-		s_supported_graph = g_string_new(_("Graphics Files (*.bmp"));
-		s_pattern = g_string_new("*.bmp;*.BMP;");
-#ifdef HAVE_LIBJPEG
-		s_supported_graph = g_string_append(s_supported_graph, ", *.jpg, *.jpeg");
-		s_pattern = g_string_append(s_pattern, "*.jpg;*.JPG;*.jpeg;*.JPEG;");
-#endif
-
-#ifdef HAVE_LIBPNG
-		s_supported_graph = g_string_append(s_supported_graph, ", *.png");
-		s_pattern = g_string_append(s_pattern, "*.png;*.PNG;");
-#endif
-
-#ifdef HAVE_LIBTIFF
-		s_supported_graph = g_string_append(s_supported_graph, ", *.tif, *.tiff");
-		s_pattern = g_string_append(s_pattern, "*.tif;*.TIF;*.tiff;*.TIFF");
-#endif
-		s_supported_graph = g_string_append(s_supported_graph, ")");
-
-		graphics_supported = g_string_free(s_supported_graph, FALSE);
-		pattern = g_string_free(s_pattern, FALSE);
-		gtk_filter_add(chooser, graphics_supported, pattern,
-				com.filter == TYPEBMP || com.filter == TYPEJPG
-						|| com.filter == TYPEPNG || com.filter == TYPETIFF);
-
-		/* NETPBM FILES */
-		gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
-				"*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM", com.filter == TYPEPNM);
-		/* IRIS FILES */
-		gtk_filter_add(chooser, _("IRIS PIC Files (*.pic)"), "*.pic;*.PIC",
-				com.filter == TYPEPIC);
-		/* SER FILES */
-		gtk_filter_add(chooser, _("SER files (*.ser)"), "*.ser;*.SER",
-				com.filter == TYPESER);
-
-#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
-		/* FILM FILES */
-		int nb_film;
-		char *film;
-		int j;
-
-		nb_film = get_nb_film_ext_supported();
-		film = calloc(sizeof(char), nb_film * 14 + 1);// we assume the extension size of 4 char "*.xxxx;*.XXXX;" = 14
-		for (j = 0; j < nb_film; j++) {
-			char *ext;
-			gchar *upcase;
-
-			upcase = g_ascii_strup(supported_film[j].extension,
-					strlen(supported_film[j].extension));
-			ext = g_strdup_printf("*.%s;*.%s;", supported_film[j].extension,
-					upcase);
-			strcat(film, ext);
-
-			g_free(ext);
-			g_free(upcase);
-		}
-		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film,
-				com.filter == TYPEAVI);
-		free(film);
-#endif
-		g_free(graphics_supported);
-		g_free(pattern);
-	}
-}
-
-static void opendial(void) {
-	gint res;
-#ifdef _WIN32
-	GtkFileChooserNative *widgetdialog;
-#else
-	GtkWidget *widgetdialog;
-#endif
-	GtkFileChooser *dialog = NULL;
-	GtkFileChooserAction action;
-	GtkWindow *control_window;
-	if (com.siril_mode == MODE_PLANETARY)
-		control_window = GTK_WINDOW(lookup_widget("main_window"));
-	else if (com.siril_mode == MODE_DEEP_SKY)
-		control_window = GTK_WINDOW(lookup_widget("control_window"));
-
-	if (!com.wd)
-		return;
-
-	switch (whichdial) {
-	case OD_NULL:
-		fprintf(stderr, "whichdial undefined, should not happen\n");
-		return;
-	case OD_FLAT:
-	case OD_DARK:
-	case OD_OFFSET:
-		action = GTK_FILE_CHOOSER_ACTION_OPEN;
-#ifdef _WIN32
-		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
-				_("_Open"), _("_Cancel"));
-#else
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"),
-				control_window, action, _("_Cancel"), GTK_RESPONSE_CANCEL,
-				_("_Open"), GTK_RESPONSE_ACCEPT, NULL);
-#endif
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		set_filters_dialog(dialog);
-		break;
-	case OD_CWD:
-		action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
-#ifdef _WIN32
-		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
-				_("_Open"), _("_Cancel"));
-#else
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), control_window,
-				action, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"),
-				GTK_RESPONSE_ACCEPT, NULL);
-#endif
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		break;
-	case OD_OPEN:
-		action = GTK_FILE_CHOOSER_ACTION_OPEN;
-#ifdef _WIN32
-		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
-				_("_Open"), _("_Cancel"));
-#else
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"), control_window,
-				GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
-				_("_Open"), GTK_RESPONSE_ACCEPT, NULL);
-#endif
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		set_filters_dialog(dialog);
-		break;
-	case OD_CONVERT:
-		action = GTK_FILE_CHOOSER_ACTION_OPEN;
-#if _WIN32
-		widgetdialog = gtk_file_chooser_native_new(_("Open File"), control_window, action,
-				_("_Open"), _("_Cancel"));
-#else
-		widgetdialog = gtk_file_chooser_dialog_new(_("Open File"),
-				control_window, GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"),
-				GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT, NULL);
-#endif
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
-		gtk_file_chooser_set_select_multiple(dialog, TRUE);
-		set_filters_dialog(dialog);
-	}
-
-	if (!dialog)
-		return;
-#if _WIN32
-	res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(widgetdialog));
-#else
-	res = gtk_dialog_run(GTK_DIALOG(dialog));
-#endif
-
-	if (res == GTK_RESPONSE_ACCEPT) {
-		GSList *list = NULL;
-		gchar *filename;
-		gchar *err;
-		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		filename = gtk_file_chooser_get_filename(chooser);
-
-		if (!(filename))
-			return;
-
-		switch (whichdial) {
-		case OD_FLAT:
-			gtk_entry_set_text(
-					GTK_ENTRY(
-							gtk_builder_get_object(builder, "flatname_entry")),
-					filename);
-			gtk_toggle_button_set_active(
-					GTK_TOGGLE_BUTTON(
-							gtk_builder_get_object(builder, "useflat_button")),
-					TRUE);
-			if (sequence_is_loaded() || single_image_is_loaded())
-				gtk_widget_set_sensitive(lookup_widget("prepro_button"), TRUE);
-			break;
-
-		case OD_DARK:
-			gtk_entry_set_text(
-					GTK_ENTRY(
-							gtk_builder_get_object(builder, "darkname_entry")),
-					filename);
-			gtk_toggle_button_set_active(
-					GTK_TOGGLE_BUTTON(
-							gtk_builder_get_object(builder, "usedark_button")),
-					TRUE);
-			if (sequence_is_loaded() || single_image_is_loaded())
-				gtk_widget_set_sensitive(lookup_widget("prepro_button"), TRUE);
-			break;
-
-		case OD_OFFSET:
-			gtk_entry_set_text(
-					GTK_ENTRY(
-							gtk_builder_get_object(builder,
-									"offsetname_entry")), filename);
-			gtk_toggle_button_set_active(
-					GTK_TOGGLE_BUTTON(
-							gtk_builder_get_object(builder,
-									"useoffset_button")),
-					TRUE);
-			if (sequence_is_loaded() || single_image_is_loaded())
-				gtk_widget_set_sensitive(lookup_widget("prepro_button"), TRUE);
-			break;
-
-		case OD_CWD:
-			if (!changedir(filename, &err)) {
-				writeinitfile();
-			} else {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), err);
-			}
-			break;
-
-		case OD_OPEN:
-			set_cursor_waiting(TRUE);
-			open_single_image(filename);
-			set_cursor_waiting(FALSE);
-			break;
-
-		case OD_CONVERT:
-			list = gtk_file_chooser_get_filenames(chooser);
-			list = g_slist_sort(list, (GCompareFunc) strcompare);
-			fill_convert_list(list);
-			g_slist_free(list);
-			break;
-		}
-		whichdial = OD_NULL;
-		g_free(filename);
-	}
-#ifdef _WIN32
-	g_object_unref(widgetdialog);
-#else
-	gtk_widget_destroy(widgetdialog);
-#endif
-}
-=======
->>>>>>> master
 
 /*
  * Update FWHM UNITS static function
@@ -993,33 +654,6 @@ void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
 	settings = gtk_settings_get_default();
 	g_object_set(settings, "gtk-application-prefer-dark-theme", com.want_dark, NULL);
 	update_icons_to_theme(com.want_dark);
-}
-
-static void initialize_theme_GUI() {
-	GtkComboBox *box;
-
-	box = GTK_COMBO_BOX(lookup_widget("combo_theme"));
-
-	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
-	gtk_combo_box_set_active(box, com.combo_theme);
-	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
-	update_icons_to_theme(com.want_dark);
-}
-
-void load_prefered_theme(gint theme) {
-	GtkSettings *settings;
-
-	settings = gtk_settings_get_default();
-	g_object_get(settings, "gtk-application-prefer-dark-theme", &com.have_dark_theme,
-				NULL);
-
-	if ((theme == 1) || (com.have_dark_theme && theme == 0)) {
-		com.want_dark = TRUE;
-	} else {
-		com.want_dark = FALSE;
-	}
-
-	g_object_set(settings, "gtk-application-prefer-dark-theme", com.want_dark, NULL);
 }
 
 void set_sliders_value_to_gfit() {
@@ -1465,12 +1099,12 @@ void update_libraw_interface() {
 
 	/********GAMMA CORRECTION**************/
 	if (gtk_toggle_button_get_active(
-			GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm0"))) == TRUE) {
+			GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm0")))) {
 		/* Linear Gamma Curve */
 		com.raw_set.gamm[0] = 1.0;
 		com.raw_set.gamm[1] = 1.0;
 	} else if (gtk_toggle_button_get_active(
-			GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm1"))) == TRUE) {
+			GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm1")))) {
 		/* BT.709 Gamma curve */
 		com.raw_set.gamm[0] = 2.222;
 		com.raw_set.gamm[1] = 4.5;
@@ -1918,6 +1552,15 @@ void update_spinCPU(int max) {
 /*****************************************************************************
  *             I N I T I A L I S A T I O N      F U N C T I O N S            *
  ****************************************************************************/
+static void add_accelerator_to_tooltip(GtkWidget *widget, guint key, GdkModifierType mod) {
+	gchar *text = gtk_widget_get_tooltip_text(widget);
+	gchar *accel_str = gtk_accelerator_get_label(key, mod);
+	gchar *tip = g_strdup_printf("%s (%s)", text, accel_str);
+
+	gtk_widget_set_tooltip_text(widget, tip);
+	g_free(accel_str);
+	g_free(tip);
+}
 
 static void initialize_shortcuts() {
 	/* activate accelerators (keyboard shortcut in GTK language) */
@@ -1958,6 +1601,10 @@ static void initialize_shortcuts() {
 	/* SETTINGS */
 	gtk_widget_add_accelerator(lookup_widget("settings"), "activate", accel,
 	GDK_KEY_k, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	/* OPEN WD */
+	gtk_widget_add_accelerator(lookup_widget("cwd_button"), "clicked", accel,
+	GDK_KEY_d, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	add_accelerator_to_tooltip(lookup_widget("cwd_button"), GDK_KEY_d, get_default_modifier());
 }
 
 /* Initialize the combobox when loading new single_image */
@@ -1994,13 +1641,10 @@ void initialize_display_mode() {
 		g_signal_handlers_unblock_by_func(chainedbutton, on_checkchain_toggled,
 				NULL);
 	}
-
-	/* initialize background gradient data */
-	memset(&background_fit, 0, sizeof(fits));
 }
 
 void set_GUI_CWD() {
-	if (!com.wd || !builder)
+	if (!com.wd)
 		return;
 	gchar str[256];
 	GtkLabel *label = GTK_LABEL(lookup_widget("labelcwd"));
@@ -2012,7 +1656,6 @@ void set_GUI_CWD() {
 }
 
 void set_GUI_misc() {
-	if (!builder) return;
 	GtkToggleButton *ToggleButton;
 	GtkSpinButton *memory_percent;
 
@@ -2159,19 +1802,15 @@ static void set_GUI_LIBRAW() {
 	GtkComboBox *inter = GTK_COMBO_BOX(lookup_widget("comboBayer_inter"));
 	GtkToggleButton *compat = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility"));
 	GtkToggleButton *use_header = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header"));
-	GtkToggleButton *demosaicingButton, *stretch_cfa;
-	if (com.siril_mode == MODE_DEEP_SKY) {
-		demosaicingButton = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-		*stretch_cfa = GTK_TOGGLE_BUTTON(lookup_widget("stretch_CFA_to16_button"));
-	}
+	GtkToggleButton *stretch_cfa = GTK_TOGGLE_BUTTON(lookup_widget("stretch_CFA_to16_button"));
+	GtkToggleButton *demosaicingButton = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
 	gtk_combo_box_set_active(pattern, com.debayer.bayer_pattern);
 	gtk_combo_box_set_active(inter, com.debayer.bayer_inter);
 	gtk_toggle_button_set_active(compat, com.debayer.compatibility);
 	gtk_toggle_button_set_active(use_header, com.debayer.use_bayer_header);
-	if (com.siril_mode == MODE_DEEP_SKY) {
-		gtk_toggle_button_set_active(demosaicingButton,	com.debayer.open_debayer);
-		gtk_toggle_button_set_active(stretch_cfa, com.debayer.stretch);
-	}
+	gtk_toggle_button_set_active(demosaicingButton,	com.debayer.open_debayer);
+	gtk_toggle_button_set_active(stretch_cfa, com.debayer.stretch);
+
 }
 
 void set_GUI_photometry() {
@@ -2230,7 +1869,18 @@ static GtkTargetEntry drop_types[] = {
   {"text/uri-list", 0, 0}
 };
 
-void initialize_all_GUI(gchar *siril_path, gchar *supported_files) {
+static void initialize_theme_GUI() {
+	GtkComboBox *box;
+
+	box = GTK_COMBO_BOX(lookup_widget("combo_theme"));
+
+	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
+	gtk_combo_box_set_active(box, com.combo_theme);
+	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
+	update_icons_to_theme(com.want_dark);
+}
+
+void initialize_all_GUI() {
 	/* initializing internal structures with widgets (drawing areas) */
 	com.vport[RED_VPORT] = lookup_widget("drawingarear");
 	com.vport[GREEN_VPORT] = lookup_widget("drawingareag");
@@ -2249,9 +1899,6 @@ void initialize_all_GUI(gchar *siril_path, gchar *supported_files) {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstack_methods")), 0);
 	zoomcombo_update_display_for_zoom();
 
-	GtkLabel *label_supported = GTK_LABEL(lookup_widget("label_supported_types"));
-	gtk_label_set_text(label_supported, supported_files);
-
 	adjust_sellabel();
 
 	/* initialize theme */
@@ -2268,7 +1915,7 @@ void initialize_all_GUI(gchar *siril_path, gchar *supported_files) {
 	initialize_preprocessing();
 
 	/* initialize registration methods */
-	initialize_registration_methods();
+	initialize_registration_methods(com.siril_mode == MODE_DEEP_SKY);
 
 	/* initialize stacking methods */
 	initialize_stacking_methods();
@@ -2911,8 +2558,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					}
 				}
 				gtk_widget_queue_draw(widget);
-			}
-			else if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
+			} else if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 				double zoom = get_zoom_val();
 				point pt;
 				int radius = get_sample_radius();
@@ -3891,7 +3537,7 @@ static gpointer checkSeq(gpointer p) {
 
 void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 	static GtkToggleButton *forceButton = NULL;
-	int force = 0;
+	int force;
 
 	if (forceButton == NULL) {
 		forceButton = GTK_TOGGLE_BUTTON(lookup_widget("checkforceseq"));

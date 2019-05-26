@@ -5,12 +5,13 @@
 #include <stdint.h>
 #include "core/siril.h"	// for sliders_mode
 
+GdkModifierType get_default_modifier();
+void set_label_text_from_main_thread(const char *label_name, const char *text);
+
 GtkWidget *popover_new(GtkWidget *widget, const gchar *text);
 
 void test_and_allocate_reference_image(int vport);
 
-void initialize_all_GUI(gchar *path, gchar *files);
-void load_prefered_theme();
 void fill_about_dialog();
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
@@ -34,6 +35,7 @@ void set_libraw_settings_menu_available(gboolean);
 void clear_sampling_setting_box();
 void set_GUI_CAMERA();
 void set_GUI_photometry();
+void initialize_all_GUI();
 
 typedef void (*selection_update_callback)();
 void register_selection_update_callback(selection_update_callback f);
@@ -97,5 +99,6 @@ void on_checkbutton_auto_toggled(GtkButton *button, gpointer user_data);
 
 gboolean on_drawingarea_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 
+void on_combo_theme_changed(GtkComboBox *box, gpointer user_data);
 
 #endif

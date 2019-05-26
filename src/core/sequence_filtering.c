@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+#include <math.h>
 #include "sequence_filtering.h"
 #include "proto.h" // is_readable_file()
 #include "registration/registration.h"
@@ -44,55 +45,61 @@
  * that executes a list of filter functions (seq_filter_multiple()).
  */
 
-int seq_filter_all(sequence *seq, int nb_img, double any) {
+int seq_filter_all(sequence *seq, int layer, int nb_img, double any) {
 	return 1;
 }
 
-int seq_filter_included(sequence *seq, int nb_img, double any) {
-	return (seq->imgparam[nb_img].incl);
+int seq_filter_included(sequence *seq, int layer, int nb_img, double any) {
+	return seq->imgparam[nb_img].incl;
+}
+
+int seq_filter_included_and_registered(sequence *seq, int layer, int nb_img, double any) {
+        return seq->imgparam[nb_img].incl &&
+                seq->regparam[layer] &&
+                !isnan(seq->regparam[layer][nb_img].shiftx) &&
+                !isnan(seq->regparam[layer][nb_img].shifty);
 }
 
 /* filter for deep-sky */
-int seq_filter_fwhm(sequence *seq, int nb_img, double max_fwhm) {
-	int layer;
-	if (!seq->regparam) return 0;
-	layer = get_registration_layer(seq);
-	if (layer == -1) return 0;
-	if (!seq->regparam[layer]) return 0;
-	if (seq->regparam[layer][nb_img].fwhm > 0.0f)
-		return seq->regparam[layer][nb_img].fwhm <= max_fwhm;
-	else return 0;
+int seq_filter_fwhm(sequence *seq, int layer, int nb_img, double max_fwhm) {
+        if (!seq->regparam) return 0;
+        if (layer == -1) return 0;
+        if (!seq->regparam[layer]) return 0;
+        if (seq->regparam[layer][nb_img].fwhm > 0.0f)
+                return seq->regparam[layer][nb_img].fwhm <= max_fwhm;
+        return 0;
 }
 
-int seq_filter_roundness(sequence *seq, int nb_img, double min_rnd) {
-	int layer;
-	if (!seq->regparam) return 0;
-	layer = get_registration_layer(seq);
-	if (layer == -1) return 0;
-	if (!seq->regparam[layer]) return 0;
-	if (seq->regparam[layer][nb_img].roundness > 0.0f)
-		return seq->regparam[layer][nb_img].roundness >= min_rnd;
-	else return 0;
+int seq_filter_roundness(sequence *seq, int layer, int nb_img, double min_rnd) {
+        if (!seq->regparam) return 0;
+        if (layer == -1) return 0;
+        if (!seq->regparam[layer]) return 0;
+        if (seq->regparam[layer][nb_img].roundness > 0.0f)
+                return seq->regparam[layer][nb_img].roundness >= min_rnd;
+        return 0;
 }
 
 /* filter for planetary */
-int seq_filter_quality(sequence *seq, int nb_img, double max_quality) {
-	int layer;
-	if (!seq->regparam) return 0;
-	layer = get_registration_layer(seq);
-	if (layer == -1) return 0;
-	if (!seq->regparam[layer]) return 0;
-	if (seq->regparam[layer][nb_img].quality > 0.0)
-		return seq->regparam[layer][nb_img].quality >= max_quality;
-	else return 0;
+int seq_filter_quality(sequence *seq, int layer, int nb_img, double max_quality) {
+        if (!seq->regparam) return 0;
+        if (layer == -1) return 0;
+        if (!seq->regparam[layer]) return 0;
+        if (seq->imgparam[nb_img].incl && seq->regparam[layer][nb_img].quality > 0.0)
+                return seq->regparam[layer][nb_img].quality >= max_quality;
+        return 0;
 }
 
-/* browse the images to konw how many fit the criterion, from global data */
+/* browse the images to know how many fit the criterion, from global data */
 // ensure that com.seq is loaded before passing it as seq: sequence_is_loaded()
-int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter) {
+int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion,
+		double filtering_parameter, int reglayer) {
 	int i, count = 0;
+	//if (!seq->regparam[reglayer]) return 0;
+	// FIXME: how would seq_all_filter work with this if above?
 	for (i = 0; i < seq->number; i++) {
-		if (filtering_criterion(seq, i, filtering_parameter))
+		if (filtering_criterion(seq,
+					reglayer, i,
+					filtering_parameter))
 			count++;
 	}
 	fprintf(stdout, "number of filtered-in images: %d\n", count);
@@ -103,7 +110,7 @@ int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criteri
 
 static const char *_filter_prefix;
 
-static int seq_filter_output_doesnt_already_exists(sequence *seq, int in_index, double any) {
+static int seq_filter_output_doesnt_already_exists(sequence *seq, int layer, int in_index, double any) {
 	if (!_filter_prefix)
 		fprintf(stderr, "USING FILTER PREFIX WITHOUT INITIALIZATION\n");
 	if (seq->type != SEQ_REGULAR || !_filter_prefix)
@@ -131,10 +138,10 @@ seq_image_filter create_filter_prefixed_nonexisting_output(const char *prefix) {
 
 static struct filtering_tuple _filters[MAX_FILTERS];
 
-static int seq_filter_multiple(sequence *seq, int img_index, double any) {
+static int seq_filter_multiple(sequence *seq, int layer, int img_index, double any) {
 	int f = 0;
 	while (f < MAX_FILTERS && _filters[f].filter) {
-		if (!_filters[f].filter(seq, img_index, _filters[f].param))
+		if (!_filters[f].filter(seq, layer, img_index, _filters[f].param))
 			return 0;
 		f++;
 	}
@@ -246,7 +253,7 @@ int convert_stack_data_to_filter(struct stacking_configuration *arg, struct stac
 // seq, filtering_criterion, filtering_parameter, image_indices
 int setup_filtered_data(struct stacking_args *args) {
 	args->nb_images_to_stack = compute_nb_filtered_images(args->seq,
-			args->filtering_criterion, args->filtering_parameter);
+			args->filtering_criterion, args->filtering_parameter, args->reglayer);
 	if (args->nb_images_to_stack < 2) {
 		siril_log_message(_("Provided filtering options do not allow at least two images to be processed.\n"));
 		return 1;
@@ -275,7 +282,7 @@ int stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 
 	for (i = 0, j = 0; i < args->seq->number; i++) {
 		if (args->filtering_criterion(
-					args->seq, i,
+					args->seq, args->reglayer, i,
 					args->filtering_parameter)) {
 			args->image_indices[j] = i;
 			j++;
@@ -358,10 +365,10 @@ double compute_lowest_accepted_roundness(sequence *seq, int layer, double percen
 	return generic_compute_accepted_value(seq, layer, percent, FALSE, regdata_roundness);
 }
 
-char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter) {
+char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter, int layer) {
 	GString *str = g_string_sized_new(100);
 	int nb_images_to_stack = compute_nb_filtered_images(seq,
-			filtering_criterion, filtering_parameter);
+			filtering_criterion, filtering_parameter, layer);
 
 	if (filtering_criterion == seq_filter_all) {
 		g_string_printf(str, _("Processing all images in the sequence (%d)\n"), seq->number);
@@ -392,7 +399,7 @@ char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, doubl
 		int f = 0;
 		while (f < MAX_FILTERS && _filters[f].filter) {
 			struct filtering_tuple *filter = _filters + f;
-			char *descr = describe_filter(seq, filter->filter, filter->param);
+			char *descr = describe_filter(seq, filter->filter, filter->param, layer);
 			if (descr && descr[0] != '\0') {
 				descr[strlen(descr)-1] = '\0';	// remove the new line
 				if (f) descr[0] = tolower(descr[0]);

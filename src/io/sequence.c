@@ -1627,7 +1627,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	args->layer_for_partial = layer;
 	args->regdata_for_partial = framing == REGISTERED_FRAME;
 	args->get_photometry_data_for_partial = !for_registration;
-	args->filtering_criterion = (regall == TRUE) ? stack_filter_all : stack_filter_included;
+	args->filtering_criterion = (regall == TRUE) ? seq_filter_all : seq_filter_included;
 	args->nb_filtered_images = (regall == TRUE) ? seq->number : seq->selnum;
 	args->prepare_hook = NULL;
 	args->finalize_hook = NULL;

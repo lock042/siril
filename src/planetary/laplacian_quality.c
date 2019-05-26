@@ -29,7 +29,6 @@
 #include "gui/zones.h"
 #include "registration/registration.h"
 #include "core/proto.h"	// writeseqfile
-#include "stacking/stacking.h"	// stack_filter_all
 #include "io/sequence.h"
 
 static double variance(WORD *set, int size);
@@ -186,7 +185,7 @@ int laplace_quality_for_zones(sequence *seq, gboolean use_caching, int kernel_si
 	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
 	args->seq = seq;
 	args->partial_image = FALSE;
-	args->filtering_criterion = stack_filter_included_and_registered;
+	args->filtering_criterion = seq_filter_included_and_registered;
 	args->nb_filtered_images = -1;
 	args->layer = 0;
 	args->prepare_hook = lapl_prepare_hook;

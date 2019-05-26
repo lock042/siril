@@ -267,7 +267,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 				cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST);
 				cvApplyScaleToH(&H, 2.0);
 			}
-			cvTransformImage(fit, fit->rx, fit->ry, H, regargs->interpolation);
+			cvTransformImage(fit, H, regargs->interpolation);
 		}
 
 		free_fitted_stars(stars);
@@ -368,10 +368,10 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->seq = regargs->seq;
 	args->partial_image = FALSE;
 	if (regargs->process_all_frames) {
-		args->filtering_criterion = stack_filter_all;
+		args->filtering_criterion = seq_filter_all;
 		args->nb_filtered_images = regargs->seq->number;
 	} else {
-		args->filtering_criterion = stack_filter_included;
+		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
 	args->prepare_hook = star_align_prepare_hook;

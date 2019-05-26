@@ -66,7 +66,6 @@ stack_method stacking_methods[] = {
 
 static int stack_addminmax(struct stacking_args *args, gboolean ismax);
 
-
 void initialize_stacking_methods() {
 	GtkComboBoxText *stackcombo, *rejectioncombo;
 
@@ -1072,7 +1071,6 @@ gpointer stack_function_handler(gpointer p) {
 	return GINT_TO_POINTER(args->retval);
 }
 
-
 /* starts a summing operation using data stored in the stackparam structure
  * function is not reentrant but can be called again after it has returned and the thread is running */
 static void start_stacking() {
@@ -1472,6 +1470,80 @@ void on_filter_rem3_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("labelfilter3"), FALSE);
 	update_stack_interface(TRUE);
 }
+
+void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
+		double *filtering_parameter) {
+	int filter, guifilter, channel = 0, type;
+	double percent = 0.0;
+	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
+	static GtkAdjustment *stackadj[] = {NULL, NULL, NULL};
+	static GtkWidget *spin[] = {NULL, NULL, NULL};
+	if (!spin[0]) {
+		spin[0] = lookup_widget("stackspin1");
+		spin[1] = lookup_widget("stackspin2");
+		spin[2] = lookup_widget("stackspin3");
+		stackadj[0] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[0]));
+		stackadj[1] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[1]));
+		stackadj[2] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[2]));
+		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
+		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
+		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter3"));
+	}
+	for (filter = 0, guifilter = 0; guifilter < 3; guifilter++) {
+		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[guifilter]))) {
+			continue;
+		}
+
+		type = gtk_combo_box_get_active(filter_combo[guifilter]);
+		if (type != ALL_IMAGES && type != SELECTED_IMAGES) {
+			channel = get_registration_layer(&com.seq);
+			percent = gtk_adjustment_get_value(stackadj[guifilter]);
+		}
+
+		switch (type) {
+			default:
+			case ALL_IMAGES:
+				stackfilters[filter].filter = seq_filter_all;
+				stackfilters[filter].param = 0.0;
+				gtk_widget_set_visible(spin[guifilter], FALSE);
+				break;
+			case SELECTED_IMAGES:
+				stackfilters[filter].filter = seq_filter_included;
+				stackfilters[filter].param = 0.0;
+				gtk_widget_set_visible(spin[guifilter], FALSE);
+				break;
+			case BEST_PSF_IMAGES:
+				stackfilters[filter].filter = seq_filter_fwhm;
+				stackfilters[filter].param = compute_highest_accepted_fwhm(
+						stackparam.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_ROUND_IMAGES:
+				stackfilters[filter].filter = seq_filter_roundness;
+				stackfilters[filter].param = compute_lowest_accepted_roundness(
+						stackparam.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_QUALITY_IMAGES:
+				stackfilters[filter].filter = seq_filter_quality;
+				stackfilters[filter].param = compute_lowest_accepted_quality(
+						stackparam.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+		}
+		filter++;
+	}
+	stackfilters[filter].filter = NULL;
+
+	if (filter == 1) {
+		*filtering_criterion = stackfilters[0].filter;
+		*filtering_parameter = stackfilters[0].param;
+	} else {
+		*filtering_criterion = create_multiple_filter_from_list(stackfilters);
+		*filtering_parameter = 0.0;
+	}
+}
+
 static void update_filter_label() {
 	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
 	static GtkLabel *filter_label[] = {NULL, NULL, NULL};
@@ -1579,12 +1651,14 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	if (stackparam.description)
 		free(stackparam.description);
 	stackparam.description = describe_filter(stackparam.seq,
-			stackparam.filtering_criterion, stackparam.filtering_parameter);
+			stackparam.filtering_criterion, stackparam.filtering_parameter,
+			stackparam.reglayer);
 
 	update_filter_label();
 
 	stackparam.nb_images_to_stack = compute_nb_filtered_images(&com.seq,
-			stackparam.filtering_criterion, stackparam.filtering_parameter);
+			stackparam.filtering_criterion, stackparam.filtering_parameter,
+			stackparam.reglayer);
 	labelbuffer = g_strdup_printf(_("Stacking %d images of the %d of the sequence"),
 			stackparam.nb_images_to_stack, com.seq.number);
 	gtk_label_set_text(result_label, labelbuffer);
@@ -1596,13 +1670,5 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	} else {
 		gtk_widget_set_sensitive(go_stack, FALSE);
 	}
-}
-
-void on_stacksel_changed(GtkComboBox *widget, gpointer user_data) {
-	update_stack_interface(TRUE);
-}
-
-void on_spinbut_percent_change(GtkSpinButton *spinbutton, gpointer user_data) {
-	update_stack_interface(TRUE);
 }
 

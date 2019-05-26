@@ -21,7 +21,8 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command.h"
-#include "gui/callbacks.h"
+//#include "gui/callbacks.h"
+#include "gui/gui.h"
 
 static gchar *build_timestamp() {
 	GTimeVal time;

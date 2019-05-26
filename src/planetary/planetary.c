@@ -181,6 +181,7 @@
 #include "core/siril.h"
 #include "core/processing.h"
 #include "core/proto.h"
+#include "core/sequence_filtering.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -215,9 +216,10 @@ gpointer sequence_analysis_thread_func(gpointer p) {
 	stack_args->method = stack_summing_generic;
 	stack_args->seq = reg_args->seq;
 	stack_args->reglayer = reg_args->layer;
-	stack_args->filtering_criterion = stack_filter_quality;
+	stack_args->filtering_criterion = seq_filter_quality;
 	stack_args->filtering_parameter = 0.75;	// not the right way do to it, sorting is
-	stack_args->nb_images_to_stack = compute_nb_filtered_images_stack(stack_args);
+	stack_args->nb_images_to_stack = compute_nb_filtered_images(reg_args->seq,
+			seq_filter_quality, 0.75, reg_args->layer);
 	stack_args->image_indices = malloc(stack_args->nb_images_to_stack * sizeof(int));
 	stack_fill_list_of_unfiltered_images(stack_args);
 	snprintf(stack_args->description, sizeof stack_args->description,
@@ -266,7 +268,6 @@ static gboolean end_reference_image_stacking(gpointer p) {
 	set_layers_for_registration();	// update display of available reg data
 	drawPlot();
 
-	free(args->output_filename);
 	free(args);
 	return FALSE;
 }

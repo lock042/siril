@@ -6,20 +6,22 @@
 struct stacking_args;
 struct stacking_configuration;
 
-typedef int (*seq_image_filter)(sequence *seq, int img_index, double param);
+typedef int (*seq_image_filter)(sequence *seq, int layer, int img_index, double param);
 
 struct filtering_tuple {
 	seq_image_filter filter;
 	double param;
 };
 
-int seq_filter_all(sequence *seq, int nb_img, double any);
-int seq_filter_included(sequence *seq, int nb_img, double any);
-int seq_filter_fwhm(sequence *seq, int nb_img, double max_fwhm);
-int seq_filter_quality(sequence *seq, int nb_img, double max_quality);
-int seq_filter_roundness(sequence *seq, int nb_img, double min_rnd);
+int seq_filter_all(sequence *seq, int layer, int nb_img, double any);
+int seq_filter_included(sequence *seq, int layer, int nb_img, double any);
+int seq_filter_included_and_registered(sequence *seq, int layer, int nb_img, double any);
+int seq_filter_fwhm(sequence *seq, int layer, int nb_img, double max_fwhm);
+int seq_filter_roundness(sequence *seq, int layer, int nb_img, double min_rnd);
+int seq_filter_quality(sequence *seq, int layer, int nb_img, double max_quality);
 
-int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
+int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion,
+		double filtering_parameter, int reglayer);
 
 seq_image_filter create_filter_prefixed_nonexisting_output(const char *prefix);
 
@@ -34,6 +36,6 @@ double compute_highest_accepted_fwhm(sequence *seq, int layer, double percent);
 double compute_lowest_accepted_quality(sequence *seq, int layer, double percent);
 double compute_lowest_accepted_roundness(sequence *seq, int layer, double percent);
 
-char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
+char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter, int layer);
 
 #endif

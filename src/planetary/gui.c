@@ -72,8 +72,10 @@ gboolean on_seqimage_button_release(GtkWidget *widget,
 
 void on_bestimage_changed(GtkRange *range, gpointer user_data) {
 	if (!sequence_is_loaded()) return;
+	int layer = get_registration_layer(&com.seq);
 	percent_images_to_keep = gtk_range_get_value(range);
-	lowest_accepted_quality = compute_lowest_accepted_quality(percent_images_to_keep);
+	lowest_accepted_quality = compute_lowest_accepted_quality(&com.seq, layer,
+			percent_images_to_keep);
 	plot_set_filtering_threshold(lowest_accepted_quality);
 }
 
@@ -163,7 +165,7 @@ gboolean on_mpreg_button_clicked(GtkButton *button, gpointer user_data) {
 	struct mpr_args *args = malloc(sizeof(struct mpr_args));
 	args->seq = &com.seq;
 	args->layer = gtk_combo_box_get_active(cbbt_layers);
-	args->filtering_criterion = stack_filter_included;
+	args->filtering_criterion = seq_filter_included;
 	args->use_caching = gtk_toggle_button_get_active(save_precomp);
 	args->kernel_size = gtk_spin_button_get_value_as_int(kernelsz);
 	start_in_new_thread(the_multipoint_analysis, args);
@@ -184,7 +186,7 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	struct mpr_args *args = malloc(sizeof(struct mpr_args));
 	args->seq = &com.seq;
 	args->layer = gtk_combo_box_get_active(cbbt_layers);
-	args->filtering_criterion = stack_filter_quality;
+	args->filtering_criterion = seq_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
 	args->filtering_percent = percent_images_to_keep;
 	//args->using_homography = FALSE;	// TRUE is not working yet, translation only

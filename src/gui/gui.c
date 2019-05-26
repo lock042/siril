@@ -26,6 +26,7 @@
 #endif
 #include "core/siril.h"
 #include "gui/callbacks.h"
+#include "gui/gui.h"
 #include "core/proto.h"
 #include "gui/script_menu.h"
 #include "gui/image_display.h"
@@ -116,13 +117,47 @@ static void uninit_gui() {
 	builder = NULL;
 }
 
+char *load_glade_file(char *start_cwd, enum _siril_mode mode) {
+	int i = 0;
+	const char *glade_file_name = mode == MODE_PLANETARY ? PLANETARY_GLADE_FILE : GLADE_FILE;
+
+	/* try to load the glade file, from the sources defined above */
+	builder = gtk_builder_new();
+
+	do {
+		GError *err = NULL;
+		gchar *gladefile;
+
+		gladefile = g_build_filename (siril_sources[i], glade_file_name, NULL);
+		if (gtk_builder_add_from_file (builder, gladefile, &err)) {
+			fprintf(stdout, _("Successfully loaded '%s'\n"), gladefile);
+			g_free(gladefile);
+			break;
+		}
+		fprintf (stderr, _("%s. Looking into another directory...\n"), err->message);
+		g_error_free(err);
+		g_free(gladefile);
+		i++;
+	} while (i < G_N_ELEMENTS(siril_sources));
+	if (i == G_N_ELEMENTS(siril_sources)) {
+		fprintf(stderr, _("%s was not found or contains errors, cannot render GUI. Exiting.\n"), glade_file_name);
+		exit(EXIT_FAILURE);
+	}
+	/* get back to the saved working directory */
+	return siril_sources[i];
+}
+
+void show_supported_files(gchar *supported_files) {
+	GtkLabel *label_supported = GTK_LABEL(lookup_widget("label_supported_types"));
+	gtk_label_set_text(label_supported, supported_files);
+}
+
 /* load new GUI mode: planetary or deep-sky.
  * releases the old GUI before loading the new mode.
  */
-void init_gui(enum _siril_mode new_mode) {
+void init_gui(enum _siril_mode new_mode, char *start_cwd) {
 	gchar *siril_path = NULL;
 	int i = 0;
-	const char *glade_file_name = new_mode == MODE_PLANETARY ? PLANETARY_GLADE_FILE : GLADE_FILE;
 
 	if (new_mode == com.siril_mode)
 		return;
@@ -137,145 +172,19 @@ void init_gui(enum _siril_mode new_mode) {
 		fprintf(stdout, _("Initializing Siril Planetary interface\n"));
 	else fprintf(stdout, _("Initializing Siril Deep-Sky interface\n"));
 
-	/* try to load the glade file, from the sources defined above */
-	builder = gtk_builder_new();
-	do {
-		GError *err = NULL;
-		gchar *gladefile;
+	load_prefered_theme(com.combo_theme);
+	siril_path = load_glade_file(start_cwd, new_mode);
+	load_css_style_sheet(siril_path);
 
-		if (siril_sources[i][0] != '\0')
-			gladefile = g_build_filename (siril_sources[i], glade_file_name, NULL);
-		else gladefile = g_build_filename (com.startup_dir, glade_file_name, NULL);
-		if (gtk_builder_add_from_file (builder, gladefile, &err)) {
-			fprintf(stdout, _("Successfully loaded '%s'\n"), gladefile);
-			g_free(gladefile);
-			break;
-		}
-		fprintf(stderr, _("%s. Looking into another directory...\n"), err->message);
-		g_error_free(err);
-		g_free(gladefile);
-		i++;
-	} while (i < sizeof(siril_sources)/sizeof(char *));
+	gtk_builder_connect_signals (builder, NULL);
+	initialize_all_GUI();
 
-	if (i == sizeof(siril_sources) / sizeof(char *)) {
-		fprintf(stderr, _("%s was not found or contains errors, cannot render GUI. Exiting.\n"),
-				glade_file_name);
-		exit(EXIT_FAILURE);
-	}
-	siril_path = siril_sources[i];
-	if (siril_path[0] == '\0')
-		siril_path = com.startup_dir;
-
-	gtk_builder_connect_signals(builder, NULL);
-
-	com.vport[RED_VPORT] = lookup_widget("drawingarear");
-	com.vport[GREEN_VPORT] = lookup_widget("drawingareag");
-	com.vport[BLUE_VPORT] = lookup_widget("drawingareab");
-	com.vport[RGB_VPORT] = lookup_widget("drawingareargb");
-	if (com.siril_mode == MODE_DEEP_SKY) {
-		com.preview_area[0] = lookup_widget("drawingarea_preview1");
-		com.preview_area[1] = lookup_widget("drawingarea_preview2");
-	}
-
-	initialize_remap();
-	initialize_scrollbars();
-	init_mouse();
-
-	/* Keybord Shortcuts */
-	initialize_shortcuts();
-
-	if (com.siril_mode == MODE_DEEP_SKY) {
-		/* Select combo boxes that trigger some text display or other things */
-		gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstack_methods")), 0);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstacksel")), 0);
-
-		/* initialize comboboxs of extraction background */
-		GtkComboBox *order = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combo_polyorder"));
-		gtk_combo_box_set_active(order, POLY_4);
-		GtkComboBox *grad_inter = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combobox_gradient_inter"));
-		gtk_combo_box_set_active(grad_inter, 0);
-
-		/* Create tags associated with the buffer for the output text. */
-		GtkTextBuffer *tbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(gtk_builder_get_object(builder, "output")));
-		/* Tag with weight bold and tag name "bold" . */
-		gtk_text_buffer_create_tag (tbuf, "bold", "weight", PANGO_WEIGHT_BOLD, NULL);
-		/* Tag with style normal */
-		gtk_text_buffer_create_tag (tbuf, "normal", "weight", PANGO_WEIGHT_NORMAL, NULL);
-		/* Couleur Tags */
-		gtk_text_buffer_create_tag (tbuf, "red", "foreground", "#e72828", NULL);
-		gtk_text_buffer_create_tag (tbuf, "salmon", "foreground", "#ff9898", NULL);
-		gtk_text_buffer_create_tag (tbuf, "green", "foreground", "#01b301", NULL);
-		gtk_text_buffer_create_tag (tbuf, "blue", "foreground", "#7a7af8", NULL);
-		gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
-	}
-
-	/* needs com.zoom_value */
-	zoomcombo_update_display_for_zoom();
-
-	/* needs com.seq init */
-	adjust_sellabel();
-
-	/* load the css sheet for general style */
-	load_css_style_sheet (siril_path);
-
-	/* initialize menu gui */
-	update_MenuItem();
-	if (com.siril_mode == MODE_DEEP_SKY) {
-		initialize_script_menu();
-
-		/* initialize command completion */
-		init_completion_command();
-
-		/* initialize stacking methods */
-		initialize_stacking_methods();
-
-		// This crashes for an unknown reason
-		//init_peaker_GUI();
-	}
-
-	/* initialize registration methods */
-	initialize_registration_methods(com.siril_mode == MODE_DEEP_SKY);
-
-	/* initialize preprocessing */
-	initialize_preprocessing();
-
-	/* register some callbacks */
-	register_selection_update_callback(update_export_crop_label);
-
-	/* initialization of the binning parameters */
-	GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combobinning"));
-	gtk_combo_box_set_active(binning, 0);
-
-	/* initialization of some paths */
-	initialize_path_directory();
-
-	/* initialization of default FITS extension */
-	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("combobox_ext"));
-	gtk_combo_box_set_active_id(box, com.ext);
-	initialize_FITS_name_entries();
-
-	set_GUI_CWD();	// to call after readinitfile
-	set_GUI_misc();	// to call after readinitfile
-
-#ifdef HAVE_LIBRAW
-	set_GUI_LIBRAW();
+	/* handling OS-X integration */
+#ifdef MAC_INTEGRATION
+	GtkosxApplication *osx_app = gtkosx_application_get();
+	set_osx_integration(osx_app, siril_path);
+	g_object_unref(osx_app);
 #endif
-	set_GUI_photometry();
-
-	update_spinCPU(com.max_thread);
-
-	if (com.have_dark_theme) {
-		if (com.siril_mode == MODE_DEEP_SKY) {
-			/* Put dark icons */
-			printf("Loading dark theme...\n");
-			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_anticlock_button")), lookup_widget("rotate90-acw_dark"));
-			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("rotate90_clock_button")), lookup_widget("rotate90-cw_dark"));
-			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("mirrorx_button")), lookup_widget("image_mirrorx_dark"));
-			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("mirrory_button")), lookup_widget("image_mirrory_dark"));
-			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("seqlist_button")), lookup_widget("image_seqlist_dark"));
-		}
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("histogram_button")), lookup_widget("image_histogram_dark"));
-	}
 
 	update_used_memory();
 }
@@ -295,4 +204,76 @@ void on_menuitemplanetary_toggled(GtkCheckMenuItem *checkmenuitem,
 		gtk_check_menu_item_get_active(checkmenuitem) ? MODE_PLANETARY : MODE_DEEP_SKY;
 	gtk_main_quit();	// the main will handle the change, maybe
 }
+
+void load_prefered_theme(gint theme) {
+	GtkSettings *settings;
+
+	settings = gtk_settings_get_default();
+	g_object_get(settings, "gtk-application-prefer-dark-theme", &com.have_dark_theme,
+				NULL);
+
+	if ((theme == 1) || (com.have_dark_theme && theme == 0)) {
+		com.want_dark = TRUE;
+	} else {
+		com.want_dark = FALSE;
+	}
+
+	g_object_set(settings, "gtk-application-prefer-dark-theme", com.want_dark, NULL);
+}
+
+#ifdef MAC_INTEGRATION
+
+static gboolean osx_open_file(GtkosxApplication *osx_app, gchar *path, gpointer data){
+	if (path != NULL) {
+		open_single_image(path);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+static void gui_add_osx_to_app_menu(GtkosxApplication *osx_app, const gchar *item_name, gint index) {
+	GtkWidget *item;
+
+	item = lookup_widget(item_name);
+	if (GTK_IS_MENU_ITEM(item))
+		gtkosx_application_insert_app_menu_item(osx_app, GTK_WIDGET(item), index);
+}
+
+static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
+	GtkWidget *menubar = lookup_widget("menubar1");
+	GtkWidget *file_quit_menu_item = lookup_widget("exit");
+	GtkWidget *help_menu = lookup_widget("help1");
+	GtkWidget *window_menu = lookup_widget("menuitemWindows");
+	GtkWidget *sep;
+	GdkPixbuf *icon;
+	gchar *icon_path;
+	
+	g_signal_connect(osx_app, "NSApplicationOpenFile", G_CALLBACK(osx_open_file), NULL);
+
+	gtk_widget_hide(menubar);
+
+	gtkosx_application_set_menu_bar(osx_app, GTK_MENU_SHELL(menubar));
+	gtkosx_application_set_window_menu(osx_app, GTK_MENU_ITEM(window_menu));
+
+	gui_add_osx_to_app_menu(osx_app, "help_item1", 0);
+	gui_add_osx_to_app_menu(osx_app, "help_get_scripts", 1);
+	gui_add_osx_to_app_menu(osx_app, "help_update", 2);
+	sep = gtk_separator_menu_item_new();
+	gtkosx_application_insert_app_menu_item(osx_app, sep, 2);
+	gui_add_osx_to_app_menu(osx_app, "settings", 3);
+	sep = gtk_separator_menu_item_new();
+	gtkosx_application_insert_app_menu_item(osx_app, sep, 4);
+
+	gtk_widget_hide(file_quit_menu_item);
+	gtk_widget_hide(help_menu);
+	
+	icon_path = g_build_filename(siril_path, "pixmaps/siril.svg", NULL);
+	icon = gdk_pixbuf_new_from_file(icon_path, NULL);
+	gtkosx_application_set_dock_icon_pixbuf(osx_app, icon);
+		
+	gtkosx_application_ready(osx_app);
+	g_free(icon_path);
+}
+
+#endif
 

@@ -332,8 +332,7 @@ int register_shift_dft(struct registration_args *args) {
 				for (x = 0; x < sqsize; x++)
 					img[x] = (double) fit.data[x];
 
-				current_regdata[frame].quality = QualityEstimate(&fit, args->layer,
-						QUALTYPE_NORMAL);
+				current_regdata[frame].quality = QualityEstimate(&fit, args->layer);
 
 #ifdef _OPENMP
 #pragma omp critical

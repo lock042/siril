@@ -56,7 +56,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	if (args->nb_filtered_images > 0)
 		nb_frames = args->nb_filtered_images;
 	else {
-		nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, args->filtering_parameter);
+		nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, args->filtering_parameter, args->layer);
 		args->nb_filtered_images = nb_frames;
 		if (nb_frames <= 0) {
 			siril_log_message(_("No image selected for processing, aborting\n"));
@@ -82,7 +82,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	 * array providing the image number in the input sequence. It cannot be
 	 * done in parallel.
 	 * This is mandatory for SER contiguous output. */
-	if (args->filtering_criterion && args->filtering_criterion != stack_filter_all) {
+	if (args->filtering_criterion && args->filtering_criterion != seq_filter_all) {
 		index_mapping = malloc(nb_frames * sizeof(int));
 		for (input_idx = 0, frame = 0; input_idx < args->seq->number; input_idx++) {
 			if (!args->filtering_criterion(args->seq, args->layer, input_idx, args->filtering_parameter)) {

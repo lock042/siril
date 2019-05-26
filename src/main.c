@@ -63,66 +63,13 @@
 #include "algos/star_finder.h"
 #include "algos/photometry.h"
 
+#define GLADE_FILE "siril3.glade"
+
 /* the global variables of the whole project */
 cominfo com;	// the main data struct
 fits gfit;	// currently loaded image
 GtkBuilder *builder = NULL;	// get widget references anywhere
 
-#ifdef MAC_INTEGRATION
-
-static gboolean osx_open_file(GtkosxApplication *osx_app, gchar *path, gpointer data){
-	if (path != NULL) {
-		open_single_image(path);
-		return FALSE;
-	}
-	return TRUE;
-}
-
-static void gui_add_osx_to_app_menu(GtkosxApplication *osx_app, const gchar *item_name, gint index) {
-	GtkWidget *item;
-
-	item = lookup_widget(item_name);
-	if (GTK_IS_MENU_ITEM(item))
-		gtkosx_application_insert_app_menu_item(osx_app, GTK_WIDGET(item), index);
-}
-
-static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
-	GtkWidget *menubar = lookup_widget("menubar1");
-	GtkWidget *file_quit_menu_item = lookup_widget("exit");
-	GtkWidget *help_menu = lookup_widget("help1");
-	GtkWidget *window_menu = lookup_widget("menuitemWindows");
-	GtkWidget *sep;
-	GdkPixbuf *icon;
-	gchar *icon_path;
-	
-	g_signal_connect(osx_app, "NSApplicationOpenFile", G_CALLBACK(osx_open_file), NULL);
-
-	gtk_widget_hide(menubar);
-
-	gtkosx_application_set_menu_bar(osx_app, GTK_MENU_SHELL(menubar));
-	gtkosx_application_set_window_menu(osx_app, GTK_MENU_ITEM(window_menu));
-
-	gui_add_osx_to_app_menu(osx_app, "help_item1", 0);
-	gui_add_osx_to_app_menu(osx_app, "help_get_scripts", 1);
-	gui_add_osx_to_app_menu(osx_app, "help_update", 2);
-	sep = gtk_separator_menu_item_new();
-	gtkosx_application_insert_app_menu_item(osx_app, sep, 2);
-	gui_add_osx_to_app_menu(osx_app, "settings", 3);
-	sep = gtk_separator_menu_item_new();
-	gtkosx_application_insert_app_menu_item(osx_app, sep, 4);
-
-	gtk_widget_hide(file_quit_menu_item);
-	gtk_widget_hide(help_menu);
-	
-	icon_path = g_build_filename(siril_path, "pixmaps/siril.svg", NULL);
-	icon = gdk_pixbuf_new_from_file(icon_path, NULL);
-	gtkosx_application_set_dock_icon_pixbuf(osx_app, icon);
-		
-	gtkosx_application_ready(osx_app);
-	g_free(icon_path);
-}
-
-#endif
 #ifdef _WIN32
 /* origine du source: https://stackoverflow.com/questions/24171017/win32-console-application-that-can-open-windows */
 int ReconnectIO(int OpenNewConsole)
@@ -168,18 +115,6 @@ int ReconnectIO(int OpenNewConsole)
 }	
 #endif
 
-static char *siril_sources[] = {
-#ifdef _WIN32
-    "../share/siril",
-#elif (defined(__APPLE__) && defined(__MACH__))
-	"/tmp/siril/Contents/Resources/share/siril/",
-#endif
-	PACKAGE_DATA_DIR"/",
-	"/usr/share/siril/",
-	"/usr/local/share/siril/",
-	""
-};
-
 static void usage(const char *command) {
     printf("\nUsage:  %s [OPTIONS] [IMAGE_FILE_TO_OPEN]\n\n", command);
     puts("    -d, --directory CWD        changing the current working directory as the argument");
@@ -205,39 +140,14 @@ struct option long_opts[] = {
 		{0, 0, 0, 0}
 	};
 
-static char *load_glade_file(char *start_cwd) {
-	int i = 0;
 
-	/* try to load the glade file, from the sources defined above */
-	builder = gtk_builder_new();
-
-	do {
-		GError *err = NULL;
-		gchar *gladefile;
-
-		gladefile = g_build_filename (siril_sources[i], GLADE_FILE, NULL);
-		if (gtk_builder_add_from_file (builder, gladefile, &err)) {
-			fprintf(stdout, _("Successfully loaded '%s'\n"), gladefile);
-			g_free(gladefile);
-			break;
-		}
-		fprintf (stderr, _("%s. Looking into another directory...\n"), err->message);
-		g_error_free(err);
-		g_free(gladefile);
-		i++;
-	} while (i < G_N_ELEMENTS(siril_sources));
-	if (i == G_N_ELEMENTS(siril_sources)) {
-		fprintf(stderr, _("%s was not found or contains errors, cannot render GUI. Exiting.\n"), GLADE_FILE);
-		exit(EXIT_FAILURE);
-	}
-	/* get back to the saved working directory */
-	return siril_sources[i];
-}
 
 int main(int argc, char *argv[]) {
 	int i, c;
 	extern char *optarg;
 	extern int opterr;
+	gchar *siril_path = NULL;
+	gchar *current_cwd = NULL;
 	gboolean forcecwd = FALSE;
 	char *cwd_forced = NULL, *start_script = NULL;
 
@@ -319,15 +229,6 @@ int main(int argc, char *argv[]) {
 	com.zoom_value = ZOOM_DEFAULT;
 	com.stack.memory_percent = 0.9;
 
-	if (!com.headless) {
-		gtk_init(&argc, &argv);
-		enum _siril_mode mode = com.siril_mode;
-		com.siril_mode = MODE_NO_GUI;
-		init_gui(mode);	// sets new mode
-	} else {
-		com.siril_mode = MODE_NO_GUI;	// TODO: transition headless mode to that
-	}
-
 	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
 
 	/***************
@@ -356,21 +257,17 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!com.headless) {
-		/* load prefered theme */
-		load_prefered_theme(com.combo_theme);
-		/* Load glade file */
-		siril_path = load_glade_file(current_cwd);
-		/* load the css sheet for general style */
-		load_css_style_sheet(siril_path);
-	}
+		gtk_init(&argc, &argv);
+		com.siril_mode = MODE_NO_GUI;
+		init_gui(MODE_PLANETARY, current_cwd);
 
-	changedir(com.wd, NULL);
-
-	if (!com.headless) {
-		gtk_builder_connect_signals (builder, NULL);
-		initialize_all_GUI(siril_path, supported_files);
+		show_supported_files(supported_files);
+	} else {
+		com.siril_mode = MODE_NO_GUI;	// TODO: transition headless mode to that
 	}
 	g_free(supported_files);
+
+	changedir(com.wd, NULL);
 
 	/* Get CPU number and set the number of threads */
 	siril_log_message(_("Parallel processing %s: using %d logical processor(s).\n"),
@@ -385,14 +282,6 @@ int main(int argc, char *argv[]) {
 		init_peaker_default();
 		update_spinCPU(com.max_thread);
 	}
-
-	/* handling OS-X integration */
-#ifdef MAC_INTEGRATION
-	GtkosxApplication *osx_app = gtkosx_application_get();
-	if (!com.headless) {
-		set_osx_integration(osx_app, siril_path);
-	}
-#endif //MAC_INTEGRATION
 
 	/* start Siril */
 	if (argv[optind] != NULL) {
@@ -440,7 +329,7 @@ int main(int argc, char *argv[]) {
 				gtk_main_iteration_do(FALSE);
 			//uninit_gui();
 
-			init_gui(com.requested_mode);
+			init_gui(com.siril_mode, current_cwd);	// sets new mode
 		} while (com.requested_mode != MODE_NO_GUI);
 	}
 
@@ -448,8 +337,5 @@ int main(int argc, char *argv[]) {
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
 	pipe_stop();		// close the pipes and their threads
-#ifdef MAC_INTEGRATION
-	g_object_unref(osx_app);
-#endif //MAC_INTEGRATION
 	return 0;
 }

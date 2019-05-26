@@ -102,6 +102,7 @@ int stack_addmin(struct stacking_args *args);
 
 void main_stack(struct stacking_args *args);
 void clean_end_stacking(struct stacking_args *args);
+gboolean end_stacking(gpointer p);
 
 void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter);

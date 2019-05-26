@@ -172,9 +172,9 @@ static gpointer export_sequence(gpointer ptr) {
 	}
 
 	nb_frames = compute_nb_filtered_images(args->seq,
-			args->filtering_criterion, args->filtering_parameter);
+			args->filtering_criterion, args->filtering_parameter, reglayer);
 	filter_descr = describe_filter(args->seq, args->filtering_criterion,
-			args->filtering_parameter);
+			args->filtering_parameter, reglayer);
 	siril_log_message(filter_descr);
 	g_free(filter_descr);
 

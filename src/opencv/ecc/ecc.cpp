@@ -577,8 +577,11 @@ int findTransformBuf(WORD *reference, int ref_rows, int ref_cols,
 
 	/* this conversion operation of the reference could be avoided since
 	 * it's the same for all tested images */
-	ref.convertTo(ref, CV_32FC1, 1.0/reference->stats[layer]->max);
-	im.convertTo(im, CV_32FC1, 1.0/image->stats[layer]->max);
+	//ref.convertTo(ref, CV_32FC1, 1.0/reference->stats[layer]->max);
+	//im.convertTo(im, CV_32FC1, 1.0/image->stats[layer]->max);
+	setIdentity(warp_matrix);
+       	ref.convertTo(ref, CV_8UC1);
+	im.convertTo(im, CV_8UC1);
 
 	// Define termination criteria
 	TermCriteria criteria (TermCriteria::COUNT+TermCriteria::EPS, number_of_iterations, termination_eps);

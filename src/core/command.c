@@ -41,6 +41,7 @@
 #include "command.h"
 #include "command_def.h"
 #include "proto.h"
+#include "imoper.h"
 #include "undo.h"
 #include "initfile.h"
 #include "preprocess.h"
@@ -2113,7 +2114,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 			free_sequence(seq, TRUE);
 			return 1;
 		}
-		args.description = describe_filter(seq, args.filtering_criterion, args.filtering_parameter);
+		args.description = describe_filter(seq, args.filtering_criterion, args.filtering_parameter, args.reglayer);
 
 		if (!arg->result_file) {
 			char filename[256];
