@@ -607,37 +607,40 @@ GtkWidget *popover_new(GtkWidget *widget, const gchar *text) {
 }
 
 static void update_theme_button(const gchar *button_name, const gchar *path) {
-	gchar *image = g_build_filename(PACKAGE_DATA_DIR, path, NULL);
+	gchar *images;
+
+	images = g_build_filename(com.app_path, "pixmaps", path, NULL);
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget(button_name)),
-			gtk_image_new_from_file(image));
+			gtk_image_new_from_file(images));
 	gtk_widget_show_all(lookup_widget(button_name));
-	g_free(image);
+
+	g_free(images);
 }
 
 static void update_icons_to_theme(gboolean is_dark) {
 	siril_debug_print("Loading %s theme...\n", is_dark ? "dark" : "light");
 	if (is_dark) {
-		update_theme_button("rotate90_anticlock_button", "/pixmaps/rotate-acw_dark.png");
-		update_theme_button("rotate90_clock_button", "/pixmaps/rotate-cw_dark.png");
-		update_theme_button("mirrorx_button", "/pixmaps/mirrorx_dark.png");
-		update_theme_button("mirrory_button", "/pixmaps/mirrory_dark.png");
+		update_theme_button("rotate90_anticlock_button", "rotate-acw_dark.png");
+		update_theme_button("rotate90_clock_button", "rotate-cw_dark.png");
+		update_theme_button("mirrorx_button", "mirrorx_dark.png");
+		update_theme_button("mirrory_button", "mirrory_dark.png");
 
-		update_theme_button("process_starfinder_button", "/pixmaps/starfinder_dark.png");
-		update_theme_button("sum_button", "/pixmaps/sum_dark.png");
-		update_theme_button("export_button", "/pixmaps/export_dark.png");
+		update_theme_button("process_starfinder_button", "starfinder_dark.png");
+		update_theme_button("sum_button", "sum_dark.png");
+		update_theme_button("export_button", "export_dark.png");
 
-		update_theme_button("histoToolAutoStretch", "/pixmaps/mtf_dark.png");
+		update_theme_button("histoToolAutoStretch", "mtf_dark.png");
 } else {
-		update_theme_button("rotate90_anticlock_button", "/pixmaps/rotate-acw.png");
-		update_theme_button("rotate90_clock_button", "/pixmaps/rotate-cw.png");
-		update_theme_button("mirrorx_button", "/pixmaps/mirrorx.png");
-		update_theme_button("mirrory_button", "/pixmaps/mirrory.png");
+		update_theme_button("rotate90_anticlock_button", "rotate-acw.png");
+		update_theme_button("rotate90_clock_button", "rotate-cw.png");
+		update_theme_button("mirrorx_button", "mirrorx.png");
+		update_theme_button("mirrory_button", "mirrory.png");
 
-		update_theme_button("process_starfinder_button", "/pixmaps/starfinder.png");
-		update_theme_button("sum_button", "/pixmaps/sum.png");
-		update_theme_button("export_button", "/pixmaps/export.png");
+		update_theme_button("process_starfinder_button", "starfinder.png");
+		update_theme_button("sum_button", "sum.png");
+		update_theme_button("export_button", "export.png");
 
-		update_theme_button("histoToolAutoStretch", "/pixmaps/mtf.png");
+		update_theme_button("histoToolAutoStretch", "mtf.png");
 	}
 }
 
@@ -1560,51 +1563,53 @@ static void add_accelerator_to_tooltip(GtkWidget *widget, guint key, GdkModifier
 	gtk_widget_set_tooltip_text(widget, tip);
 	g_free(accel_str);
 	g_free(tip);
+	g_free(text);
 }
 
 static void initialize_shortcuts() {
 	/* activate accelerators (keyboard shortcut in GTK language) */
 	static GtkAccelGroup *accel = NULL;
+	GdkModifierType mod = get_default_modifier();
 
 	if (accel == NULL) {
 		accel = GTK_ACCEL_GROUP(gtk_builder_get_object(builder, "accelgroup1"));
 	}
 	/* EXIT */
 	gtk_widget_add_accelerator(lookup_widget("exit"), "activate", accel,
-	GDK_KEY_q, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_q, mod, GTK_ACCEL_VISIBLE);
 	/* UNDO */
 	gtk_widget_add_accelerator(lookup_widget("undo_item"), "activate", accel,
-	GDK_KEY_z, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_z, mod, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(lookup_widget("undo_item1"), "activate", accel,
-	GDK_KEY_z, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_z, mod, GTK_ACCEL_VISIBLE);
 	/* REDO */
 #ifdef _WIN32
 	gtk_widget_add_accelerator(lookup_widget("redo_item"), "activate", accel,
-	GDK_KEY_y, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_y, mod, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(lookup_widget("redo_item1"), "activate", accel,
-	GDK_KEY_y, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_y, mod, GTK_ACCEL_VISIBLE);
 #else
 	gtk_widget_add_accelerator(lookup_widget("redo_item"), "activate", accel,
-	GDK_KEY_z, get_default_modifier() | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+	GDK_KEY_z, mod | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(lookup_widget("redo_item1"), "activate", accel,
-	GDK_KEY_z, get_default_modifier() | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+	GDK_KEY_z, mod | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
 #endif
 	/* OPEN */
 	gtk_widget_add_accelerator(lookup_widget("open1"), "activate", accel,
-	GDK_KEY_o, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_o, mod, GTK_ACCEL_VISIBLE);
 	/* SAVE */
 	gtk_widget_add_accelerator(lookup_widget("save1"), "activate", accel,
-	GDK_KEY_s, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_s, mod, GTK_ACCEL_VISIBLE);
 	/* NEGATIVE */
 	gtk_widget_add_accelerator(lookup_widget("menu_negative"), "activate", accel,
-	GDK_KEY_i, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_i, mod, GTK_ACCEL_VISIBLE);
 	/* SETTINGS */
 	gtk_widget_add_accelerator(lookup_widget("settings"), "activate", accel,
-	GDK_KEY_k, get_default_modifier(), GTK_ACCEL_VISIBLE);
+	GDK_KEY_k, mod, GTK_ACCEL_VISIBLE);
 	/* OPEN WD */
 	gtk_widget_add_accelerator(lookup_widget("cwd_button"), "clicked", accel,
-	GDK_KEY_d, get_default_modifier(), GTK_ACCEL_VISIBLE);
-	add_accelerator_to_tooltip(lookup_widget("cwd_button"), GDK_KEY_d, get_default_modifier());
+	GDK_KEY_d, mod, GTK_ACCEL_VISIBLE);
+	add_accelerator_to_tooltip(lookup_widget("cwd_button"), GDK_KEY_d, mod);
 }
 
 /* Initialize the combobox when loading new single_image */
@@ -1937,6 +1942,8 @@ void initialize_all_GUI() {
 
 	initialize_log_tags();
 
+	update_spinCPU(com.max_thread);
+
 	/* support for converting files by dragging onto the GtkTreeView */
 	gtk_drag_dest_set(lookup_widget("treeview_convert"),
 			GTK_DEST_DEFAULT_MOTION, drop_types, G_N_ELEMENTS(drop_types),
@@ -2228,7 +2235,7 @@ void on_checkbutton_cam_toggled(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *cam_button = GTK_TOGGLE_BUTTON(
 			lookup_widget("checkbutton_cam"));
 
-	if (gtk_toggle_button_get_active(auto_button) == TRUE) {
+	if (gtk_toggle_button_get_active(auto_button)) {
 		g_signal_handlers_block_by_func(auto_button,
 				on_checkbutton_auto_toggled, NULL);
 		gtk_toggle_button_set_active(auto_button, FALSE);
@@ -2244,7 +2251,7 @@ void on_checkbutton_auto_toggled(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *cam_button = GTK_TOGGLE_BUTTON(
 			lookup_widget("checkbutton_cam"));
 
-	if (gtk_toggle_button_get_active(cam_button) == TRUE) {
+	if (gtk_toggle_button_get_active(cam_button)) {
 		g_signal_handlers_block_by_func(cam_button, on_checkbutton_cam_toggled,
 				NULL);
 		gtk_toggle_button_set_active(cam_button, FALSE);

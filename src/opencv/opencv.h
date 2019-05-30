@@ -30,7 +30,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *H);
 int cvApplyScaleToH(Homography *H1, double scale);
 void cvTransformBuf(WORD *image, int size, Homography *Hom);
-int cvTransformImage(fits *, Homography, int);
+int cvTransformImage(fits *, long, long, Homography, int);
 
 int cvComputeFinestScale(fits *image);
 int cvLucyRichardson(fits *image, double sigma, int iterations);

@@ -107,6 +107,7 @@ void	expand_home_in_filename(char *filename, int size);
 WORD	get_normalized_value(fits*);
 void	read_and_show_textfile(char*, char*);
 void	swap_param(double *, double *);
+int*	apregdata_best(struct ap_regdata *input, int size);
 char*	remove_ext_from_filename(const char *basename);
 char*	str_append(char** data, const char* newdata);
 char*	format_basename(char *root);

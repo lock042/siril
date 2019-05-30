@@ -567,8 +567,8 @@ struct cominf {
 	GtkAdjustment *hadj[MAXVPORT];	// adjustments of vport scrollbars
 	GtkAdjustment *vadj[MAXVPORT];	// adjustments of vport scrollbars
 	sliders_mode sliders;		// 0: min/max, 1: MIPS-LO/HI, 2: user
-	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
-	gboolean prepro_equalize_cfa;  // Use to save if flat will be equalized in preprocessing
+	gboolean prepro_cfa;		// Use to save type of sensor for cosmetic correction in preprocessing
+	gboolean prepro_equalize_cfa;	// Use to save if flat will be equalized in preprocessing
 	gboolean show_excluded;		// show excluded images in sequences
 	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
 
@@ -590,19 +590,19 @@ struct cominf {
 	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
 	cairo_surface_t *refimage_surface;
 
-	gchar *wd;			// working directory, where images and sequences are
-	gchar *startup_dir;		// startup directory for glade file search
-	gchar *initfile;		// the path of the init file
+	gchar *wd;		// working directory, where images and sequences are
+	gchar *initfile;	// the path of the init file
+	gchar *app_path;	// the path of the application
 	
 	char *ext;		// FITS extension used in SIRIL
 
-	int reg_settings;		// Use to save registration method in the init file
+	int reg_settings;	// Use to save registration method in the init file
 	
 	gboolean dontShowConfirm;
 
-	gboolean have_dark_theme;	// global theme is dark
-	gint combo_theme;           // value of the combobox theme
-	gboolean want_dark;			// User want dark theme for siril
+	gboolean have_dark_theme; // global theme is dark
+	gint combo_theme;	// value of the combobox theme
+	gboolean want_dark;	// User want dark theme for siril
 
 	stackconf stack;
 

@@ -37,6 +37,7 @@
 #include "callbacks.h"
 #include "progress_and_log.h"
 #include "message_dialog.h"
+#include "gui.h"
 
 static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 		const gchar *pattern, gboolean set_default) {

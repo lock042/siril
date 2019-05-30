@@ -116,14 +116,14 @@ int ReconnectIO(int OpenNewConsole)
 #endif
 
 static void usage(const char *command) {
-    printf("\nUsage:  %s [OPTIONS] [IMAGE_FILE_TO_OPEN]\n\n", command);
-    puts("    -d, --directory CWD        changing the current working directory as the argument");
-    puts("    -s, --script    SCRIPTFILE run the siril commands script in console mode");
-    puts("    -i              INITFILE   load configuration from file name instead of the default configuration file");
-    puts("    -p                         run in console mode with command and log stream through named pipes");
-    puts("    -f, --format               print all supported image file formats (depending on installed libraries)");
-    puts("    -v, --version              print program name and version and exit");
-    puts("    -h, --help                 show this message");
+	printf("\nUsage:  %s [OPTIONS] [IMAGE_FILE_TO_OPEN]\n\n", command);
+	puts("    -d, --directory CWD        changing the current working directory as the argument");
+	puts("    -s, --script    SCRIPTFILE run the siril commands script in console mode");
+	puts("    -i              INITFILE   load configuration from file name instead of the default configuration file");
+	puts("    -p                         run in console mode with command and log stream through named pipes");
+	puts("    -f, --format               print all supported image file formats (depending on installed libraries)");
+	puts("    -v, --version              print program name and version and exit");
+	puts("    -h, --help                 show this message");
 }
 
 static void signal_handled(int s) {
@@ -132,22 +132,19 @@ static void signal_handled(int s) {
 }
 
 struct option long_opts[] = {
-		{"version", no_argument, 0, 'v'},
-		{"help", no_argument, 0, 'h'},
-		{"format", no_argument, 0, 'f'},
-		{"directory", required_argument, 0, 'd'},
-		{"script",    required_argument, 0, 's'},
-		{0, 0, 0, 0}
-	};
-
-
+	{"version", no_argument, 0, 'v'},
+	{"help", no_argument, 0, 'h'},
+	{"format", no_argument, 0, 'f'},
+	{"directory", required_argument, 0, 'd'},
+	{"script",    required_argument, 0, 's'},
+	{0, 0, 0, 0}
+};
 
 int main(int argc, char *argv[]) {
 	int i, c;
 	extern char *optarg;
 	extern int opterr;
-	gchar *siril_path = NULL;
-	gchar *current_cwd = NULL;
+	gchar *startup_cwd = NULL;
 	gboolean forcecwd = FALSE;
 	char *cwd_forced = NULL, *start_script = NULL;
 
@@ -228,6 +225,7 @@ int main(int argc, char *argv[]) {
 	com.sliders = MINMAX;
 	com.zoom_value = ZOOM_DEFAULT;
 	com.stack.memory_percent = 0.9;
+	com.app_path = NULL;
 
 	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
 
@@ -248,9 +246,8 @@ int main(int argc, char *argv[]) {
 	 * checkinitfile will load all saved parameters
 	 * */
 	com.wd = siril_get_startup_dir();
-
 	/* load init file */
-	current_cwd = g_get_current_dir();
+	startup_cwd = g_get_current_dir();
 	if (checkinitfile()) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
 		exit(1);
@@ -259,11 +256,18 @@ int main(int argc, char *argv[]) {
 	if (!com.headless) {
 		gtk_init(&argc, &argv);
 		com.siril_mode = MODE_NO_GUI;
-		init_gui(MODE_PLANETARY, current_cwd);
+		init_gui(MODE_PLANETARY, startup_cwd);
 
 		show_supported_files(supported_files);
 	} else {
 		com.siril_mode = MODE_NO_GUI;	// TODO: transition headless mode to that
+	}
+
+	changedir(com.wd, NULL);
+
+	if (!com.headless) {
+		gtk_builder_connect_signals (builder, NULL);
+		initialize_all_GUI(supported_files);
 	}
 	g_free(supported_files);
 
@@ -278,14 +282,11 @@ int main(int argc, char *argv[]) {
 #endif
 			);
 
-	if (com.headless) {
-		init_peaker_default();
-		update_spinCPU(com.max_thread);
-	}
-
 	/* start Siril */
 	if (argv[optind] != NULL) {
-		changedir(com.startup_dir, NULL);
+		if (startup_cwd) {
+			changedir(startup_cwd, NULL);
+		}
 		open_single_image(argv[optind]);
 		if (!forcecwd) {
 			gchar *newpath = g_path_get_dirname(argv[optind]);
@@ -293,6 +294,7 @@ int main(int argc, char *argv[]) {
 			g_free(newpath);
 		}
 	}
+	g_free(startup_cwd);
 
 	if (forcecwd && cwd_forced) {
 		changedir(cwd_forced, NULL);
@@ -329,7 +331,7 @@ int main(int argc, char *argv[]) {
 				gtk_main_iteration_do(FALSE);
 			//uninit_gui();
 
-			init_gui(com.siril_mode, current_cwd);	// sets new mode
+			init_gui(com.siril_mode, startup_cwd);	// sets new mode
 		} while (com.requested_mode != MODE_NO_GUI);
 	}
 
@@ -337,5 +339,6 @@ int main(int argc, char *argv[]) {
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
 	pipe_stop();		// close the pipes and their threads
+	g_free(com.app_path);
 	return 0;
 }

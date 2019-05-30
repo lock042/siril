@@ -159,33 +159,30 @@ int imoper(fits *a, fits *b, char oper) {
 	for (layer = 0; layer < a->naxes[2]; ++layer) {
 		WORD *buf = b->pdata[layer];
 		WORD *gbuf = a->pdata[layer];
-		int n = a->rx * a->ry;
-		switch (oper) {
-		case OPER_ADD:
-			for (i = 0; i < n; ++i) {
-				gbuf[i] = round_to_WORD(gbuf[i] + buf[i]);
+		double dbuf, dgbuf;
+		for (i = 0; i < a->rx * a->ry; ++i) {
+			dbuf = (double) buf[i];
+			dgbuf = (double) gbuf[i];
+			switch (oper) {
+			case OPER_ADD:
+				gbuf[i] = round_to_WORD(dgbuf + dbuf);
+				break;
+			case OPER_SUB:
+				gbuf[i] = round_to_WORD(dgbuf - dbuf);
+				break;
+			case OPER_MUL:
+				gbuf[i] = round_to_WORD(dgbuf * dbuf);
+				break;
+			case OPER_DIV:
+				gbuf[i] = (buf[i] == 0) ? 0 : round_to_WORD(dgbuf / dbuf);
+				break;
 			}
-			break;
-		case OPER_SUB:
-			for (i = 0; i < n; ++i) {
-				gbuf[i] = round_to_WORD(gbuf[i] - buf[i]);
-			}
-			break;
-		case OPER_MUL:
-			for (i = 0; i < n; ++i) {
-				gbuf[i] = round_to_WORD(gbuf[i] * buf[i]);
-			}
-			break;
-		case OPER_DIV:
-			for (i = 0; i < n; ++i) {
-				gbuf[i] = (buf[i] == 0) ? 0 : round_to_WORD(gbuf[i] / buf[i]);
-			}
-			break;
 		}
 	}
 	invalidate_stats_from_fit(a);
 	return 0;
 }
+
 
 /* This function applies a subtraction but contrary to Sub in imoper
  * it will use double type format.
@@ -271,8 +268,10 @@ int siril_fdiv(fits *a, fits *b, float coef) {
 			if (buf[i] == 0)
 				buf[i] = 1;		// avoid division by 0
 			temp = ((double) coef * ((double) gbuf[i] / (double) buf[i]));
-			if (temp > USHRT_MAX_DOUBLE)
+			if (temp > USHRT_MAX_DOUBLE) {
+				siril_debug_print("OVERFLOW in FDIV: %lf\n", temp);
 				retvalue = 1;
+			}
 			gbuf[i] = round_to_WORD(temp);
 		}
 	}

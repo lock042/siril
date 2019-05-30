@@ -62,9 +62,9 @@ GtkWidget* lookup_widget(const gchar *widget_name) {
 
 static const gchar *checking_css_filename() {
 	printf(_("Checking GTK version ... GTK-%d.%d\n"), GTK_MAJOR_VERSION, GTK_MINOR_VERSION);
-	if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION >= 20))
+	if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION >= 18))
 		return "gtk.css";
-	else if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION < 20))
+	else if ((GTK_MAJOR_VERSION >= 3) && (GTK_MINOR_VERSION < 18))
 		return "gtk_old.css";
 	else return NULL;
 }
@@ -73,7 +73,7 @@ static const gchar *checking_css_filename() {
  * Loads the css sheet
  * @param path path of the file being loaded
  */
-static void load_css_style_sheet (char *path) {
+static void load_css_style_sheet () {
 	GtkCssProvider *css_provider;
 	GdkDisplay *display;
 	GdkScreen *screen;
@@ -86,7 +86,7 @@ static void load_css_style_sheet (char *path) {
 		exit(1);
 	}
 
-	CSSFile = g_build_filename (path, css_filename, NULL);
+	CSSFile = g_build_filename (com.app_path, css_filename, NULL);
 	if (!g_file_test (CSSFile, G_FILE_TEST_EXISTS)) {
 		g_error (_("Unable to load CSS style sheet file: %s. Please reinstall %s\n"), CSSFile, PACKAGE);
 	}
@@ -103,7 +103,6 @@ static void load_css_style_sheet (char *path) {
 	}
 	g_free(CSSFile);
 }
-
 
 static void uninit_gui() {
 	if (!builder) return;
@@ -173,8 +172,15 @@ void init_gui(enum _siril_mode new_mode, char *start_cwd) {
 	else fprintf(stdout, _("Initializing Siril Deep-Sky interface\n"));
 
 	load_prefered_theme(com.combo_theme);
+	/* Load glade file */
 	siril_path = load_glade_file(start_cwd, new_mode);
-	load_css_style_sheet(siril_path);
+	if (g_path_is_absolute(siril_path)) {
+		com.app_path = g_strdup(siril_path);
+	} else {
+		com.app_path = g_build_filename(g_get_current_dir(), siril_path, NULL);
+	}
+	/* load the css sheet for general style */
+	load_css_style_sheet();
 
 	gtk_builder_connect_signals (builder, NULL);
 	initialize_all_GUI();
@@ -182,7 +188,7 @@ void init_gui(enum _siril_mode new_mode, char *start_cwd) {
 	/* handling OS-X integration */
 #ifdef MAC_INTEGRATION
 	GtkosxApplication *osx_app = gtkosx_application_get();
-	set_osx_integration(osx_app, siril_path);
+	set_osx_integration(osx_app);
 	g_object_unref(osx_app);
 #endif
 
@@ -239,7 +245,7 @@ static void gui_add_osx_to_app_menu(GtkosxApplication *osx_app, const gchar *ite
 		gtkosx_application_insert_app_menu_item(osx_app, GTK_WIDGET(item), index);
 }
 
-static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
+static void set_osx_integration(GtkosxApplication *osx_app) {
 	GtkWidget *menubar = lookup_widget("menubar1");
 	GtkWidget *file_quit_menu_item = lookup_widget("exit");
 	GtkWidget *help_menu = lookup_widget("help1");
@@ -267,7 +273,7 @@ static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
 	gtk_widget_hide(file_quit_menu_item);
 	gtk_widget_hide(help_menu);
 	
-	icon_path = g_build_filename(siril_path, "pixmaps/siril.svg", NULL);
+	icon_path = g_build_filename(com.app_path, "pixmaps/siril.svg", NULL);
 	icon = gdk_pixbuf_new_from_file(icon_path, NULL);
 	gtkosx_application_set_dock_icon_pixbuf(osx_app, icon);
 		

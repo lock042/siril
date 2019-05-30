@@ -57,6 +57,7 @@ struct star_align_data {
 	fitted_PSF **refstars;
 	int fitted_stars;
 	BYTE *success;
+	point ref;
 };
 
 static int star_align_prepare_hook(struct generic_seq_args *args) {
@@ -112,11 +113,17 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image)
 		queue_redraw(REMAP_NONE); // draw stars
 
+	sadata->ref.x = fit.rx;
+	sadata->ref.y = fit.ry;
+
 	clearfits(&fit);
 
 	if (regargs->x2upscale) {
 		if (regargs->translation_only) {
 			args->seq->upscale_at_stacking = 2.0;
+		} else {
+			sadata->ref.x *= 2.0;
+			sadata->ref.y *= 2.0;
 		}
 	}
 	else {
@@ -198,7 +205,6 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 	float FWHMx, FWHMy;
 	char *units;
 	Homography H = { 0 };
-	point image_size = { 0 };
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 
 	if (regargs->translation_only) {
@@ -220,15 +226,12 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 			stars = peaker(fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE);
 		}
 
-		if (!stars)
-			return 1;
-
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
 
 		if (!stars || nb_stars < AT_MATCH_MINPAIRS) {
 			siril_log_message(
 					_("Not enough stars. Image %d skipped\n"), filenum);
-			free_fitted_stars(stars);
+			if (stars) free_fitted_stars(stars);
 			return 1;
 		}
 
@@ -241,11 +244,10 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		else {
 			nbpoints = nb_stars;
 		}
-		image_size.x = fit->rx;
-		image_size.y = fit->ry;
+
 		/* make a loop with different tries in order to align the two sets of data */
 		while (retvalue && attempt < NB_OF_MATCHING_TRY){
-			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj, 0.9, 1.1, &H, image_size, FALSE);
+			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj, 0.9, 1.1, &H, FALSE);
 			nobj += 50;
 			attempt++;
 		}
@@ -267,7 +269,9 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 				cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST);
 				cvApplyScaleToH(&H, 2.0);
 			}
-			cvTransformImage(fit, H, regargs->interpolation);
+			fits_flip_top_to_bottom(fit);
+			cvTransformImage(fit, (long)sadata->ref.x, (long)sadata->ref.y, H, regargs->interpolation);
+			fits_flip_top_to_bottom(fit);
 		}
 
 		free_fitted_stars(stars);
@@ -284,7 +288,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;	// not FWHMx because of the ref frame
 		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
 	} else {
-		set_shifts(args->seq, in_index, regargs->layer, (float)H.h02, (float)H.h12,
+		set_shifts(args->seq, in_index, regargs->layer, (float)H.h02, (float)-H.h12,
 				fit->top_down);
 		args->seq->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
@@ -457,7 +461,7 @@ static void print_alignment_results(Homography H, int filenum, float FWHMx, floa
 	siril_log_message(_("scale:%*.3f\n"), 13, scale);
 
 	/* Rotation */
-	rotation = -atan2(H.h01, H.h00) * 180 / M_PI;
+	rotation = atan2(H.h01, H.h00) * 180 / M_PI;
 	siril_log_message(_("rotation:%+*.3f deg\n"), 9, rotation);
 
 	/* Translation */
