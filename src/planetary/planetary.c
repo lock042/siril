@@ -215,15 +215,14 @@ gpointer sequence_analysis_thread_func(gpointer p) {
 	struct stacking_args *stack_args = calloc(1, sizeof(struct stacking_args));
 	stack_args->method = stack_summing_generic;
 	stack_args->seq = reg_args->seq;
+	stack_args->ref_image = reg_args->reference_image;
 	stack_args->reglayer = reg_args->layer;
 	stack_args->filtering_criterion = seq_filter_quality;
 	stack_args->filtering_parameter = 0.75;	// not the right way do to it, sorting is
 	stack_args->nb_images_to_stack = compute_nb_filtered_images(reg_args->seq,
 			seq_filter_quality, 0.75, reg_args->layer);
-	stack_args->image_indices = malloc(stack_args->nb_images_to_stack * sizeof(int));
 	stack_fill_list_of_unfiltered_images(stack_args);
-	snprintf(stack_args->description, sizeof stack_args->description,
-			_("Creating the reference image for the multi-point planetary processing"));
+	stack_args->description = _("Creating the reference image for the multi-point planetary processing");
 	stack_args->output_filename = get_reference_image_name(reg_args->seq, reg_args->layer);
 	stack_args->output_overwrite = TRUE;
 	gettimeofday(&stack_args->t_start, NULL);

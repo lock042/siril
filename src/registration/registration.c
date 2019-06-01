@@ -192,7 +192,7 @@ void normalizeQualityData(regdata *regparam, int size, double q_min, double q_ma
 
 /* sorts a regdata set, returns best image */
 int normalize_quality_data(regdata *regparam, int size) {
-	int i, q_index;
+	int i, q_index = 0;
 	double q_max = 0, q_min = DBL_MAX;
 	for (i = 0; i < size; i++) {
 		double qual = regparam[i].quality;

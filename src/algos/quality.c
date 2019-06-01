@@ -163,6 +163,7 @@ double QualityEstimateBuf(WORD *buffer, int width, int height) {
 		/*********************************/
 #endif
 		q = Gradient(new_image, x_samples, y_samples);
+		dval += q;
 		free(new_image);
 
 		//printf("dval val : %f\n", dval);
