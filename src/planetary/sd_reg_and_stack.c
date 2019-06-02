@@ -184,15 +184,27 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 				mppdata->sum, mppdata->count);
 #ifdef DEBUG_MPP
 		// to see what's happening with the shifts, use this
-		int side = get_side(zone);
-		// same coordinates as in add_image_zone_to_stacking_sum()
-		shifted_zone.centre.x = round_to_int(zone->centre.x - zone->mpregparam[in_index].x);
-		shifted_zone.centre.y = round_to_int(zone->centre.y + zone->mpregparam[in_index].y);
-		WORD *buffer = malloc(side * side * sizeof(WORD));
-		copy_image_zone_to_buffer(fit, &shifted_zone, buffer, args->layer);
-		// TODO: same thing but with the gaussian_data buffer instead of fit
-		save_buffer_tmp(in_index, zone_idx, buffer, side);
-		free(buffer);
+		{
+			// dump the gaussian data or the original data
+			int dump_gaussian = 1;
+			// dump shifted zone or the compared zone
+			int dump_shifted = 1;
+
+			int side = get_side(zone);
+			WORD *buffer = malloc(side * side * sizeof(WORD));
+			if (dump_shifted) {
+				// same coordinates as in add_image_zone_to_stacking_sum()
+				shifted_zone.centre.x = round_to_int(zone->centre.x - zone->mpregparam[in_index].x);
+				shifted_zone.centre.y = round_to_int(zone->centre.y + zone->mpregparam[in_index].y);
+			}
+			if (dump_gaussian) {
+				copy_image_buffer_zone_to_buffer(gaussian_data, fit->rx, fit->ry, &shifted_zone, buffer);
+			} else {
+				copy_image_zone_to_buffer(fit, &shifted_zone, buffer, args->layer);
+			}
+			save_buffer_tmp(in_index, zone_idx, buffer, side);
+			free(buffer);
+		}
 #endif
 
 	}

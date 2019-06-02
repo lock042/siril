@@ -361,21 +361,21 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	return GINT_TO_POINTER(retval);
 }
 
-int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer) {
+int copy_image_buffer_zone_to_buffer(WORD *buf, int w, int h, const stacking_zone *zone, WORD *dest) {
 	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side);
 	int starty = round_to_int(zone->centre.y - zone->half_side);
 
-	if (startx < 0 || startx >= fit->rx - side || starty < 0 || starty >= fit->ry - side) {
+	if (startx < 0 || startx >= w - side || starty < 0 || starty >= h - side) {
 		/* this zone is partly outside the image, I don't think there's
 		 * much we can do for it, it just has to be ignored for this
 		 * image for the stacking. */
 		return -1;
 	}
 
-	WORD *from = fit->pdata[layer] + (fit->ry - starty - side - 1) * fit->rx + startx;
-	int stride = fit->rx - side;
+	WORD *from = buf + (h - starty - side - 1) * w + startx;
+	int stride = w - side;
 	int i, j;
 
 	for (i = 0; i < side; ++i) {
@@ -385,6 +385,10 @@ int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, 
 		from += stride;
 	}
 	return 0;
+}
+
+int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer) {
+	return copy_image_buffer_zone_to_buffer(fit->pdata[layer], fit->rx, fit->ry, zone, dest);
 }
 
 // for debug purposes
