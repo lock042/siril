@@ -44,6 +44,7 @@ void init_caching(const char *seqname, struct planetary_cache *args, int kernel_
 		if (!(args->seq_gaussian = readseqfile(gaussian_seqname)) ||
 				seq_check_basic_data(args->seq_gaussian, FALSE) == -1) {
 			fprintf(stderr, "failed not load sequence %s, not using cached data\n", gaussian_seqname);
+			args->seq_laplacian = NULL;
 			disable_cache_reading(args);
 			free(gaussian_seqname);
 			goto cache_writing;
@@ -77,6 +78,7 @@ cache_writing:
 		args->ser_gaussian = malloc(sizeof(struct ser_struct));
 		if (ser_create_file(gaussian_seqname, args->ser_gaussian, TRUE, NULL)) {
 			free(gaussian_seqname);
+			args->ser_laplacian = NULL;
 			disable_cache_writing(args);
 			return;
 		}
@@ -112,6 +114,8 @@ static void finalize_cache_reading(struct planetary_cache *args) {
 
 static void finalize_cache_writing(struct planetary_cache *args) {
 	gboolean had_some_seq = FALSE;
+	if (!args->cache_data)
+		return;
 	if (args->ser_gaussian) {
 		ser_write_and_close(args->ser_gaussian);
 		free(args->ser_gaussian);
@@ -126,6 +130,8 @@ static void finalize_cache_writing(struct planetary_cache *args) {
 	}
 	args->ser_laplacian = NULL;
 
+	args->cache_data = FALSE;
+
 	if (had_some_seq)
 		check_seq(FALSE);
 }
@@ -136,13 +142,13 @@ void finalize_caching(struct planetary_cache *args) {
 }
 
 static void disable_cache_reading(struct planetary_cache *args) {
-	args->use_cached = FALSE;
 	finalize_cache_reading(args);
+	args->use_cached = FALSE;
 }
 
 static void disable_cache_writing(struct planetary_cache *args) {
-	args->cache_data = FALSE;
 	finalize_cache_writing(args);
+	args->cache_data = FALSE;
 }
 
 /* get gaussian filtered image data for the monochrome image given as index in
