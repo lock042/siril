@@ -6859,7 +6859,7 @@ WARNING: Reducing the ratio of memory allocated to computation will degrade perf
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Siril Planetary</property>
     <property name="window_position">center</property>
-    <property name="icon">pixmaps/siril_1.svg</property>
+    <property name="icon">pixmaps/siril.svg</property>
     <property name="urgency_hint">True</property>
     <accel-groups>
       <group name="accelgroup1"/>
