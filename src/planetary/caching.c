@@ -233,4 +233,17 @@ computing_it:
 	}
 }
 
-
+WORD * get_gaussian_data_for_image_in_seq(sequence *seq, int index, struct planetary_cache *args) {
+	WORD *data = get_gaussian_data_for_image(index, NULL, args);
+	if (!data) {
+		/* read the frame from sequence */
+		fits fit = { 0 };
+		if (seq_read_frame(seq, index, &fit)) {
+			clearfits(&fit);
+			return NULL;
+		}
+		data = get_gaussian_data_for_image(index, &fit, args);
+		clearfits(&fit);
+	}
+	return data;
+}

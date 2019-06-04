@@ -15,6 +15,9 @@
 
 #include "core/siril.h"
 
+void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
+		const WORD data[], const size_t n);
+
 imstats* statistics(sequence *seq, int image_index, fits *fit, int layer,
 		rectangle *selection, int option);
 

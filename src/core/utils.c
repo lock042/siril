@@ -511,6 +511,14 @@ WORD get_normalized_value(fits *fit) {
 	return USHRT_MAX;
 }
 
+// linear remap, min-max normalization from WORD to float
+void normalize_data(WORD *in, size_t size, WORD min, WORD max, float *out) {
+	size_t i;
+	for (i = 0; i < size; i++) {
+		out[i] = (float)(in[i] - min) / (float)(max - min);
+	}
+}
+
 struct sort_elem { int idx; double val; };
 
 static int cmp_elems(const void *p1, const void *p2) {

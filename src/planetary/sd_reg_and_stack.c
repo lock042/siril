@@ -39,8 +39,10 @@
 #include "gui/progress_and_log.h"
 #include "gui/zones.h"
 #include "registration/registration.h"
+#include "algos/statistics.h"
 
 #define DEBUG_MPP
+#define USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE 0
 
 static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle);
 
@@ -53,7 +55,10 @@ struct mppsd_data {
 	int kernel_size;
 	int search_radius;
 	int nb_zones;		// caching the number of declared zones
-	WORD *reference_image;	// gaussian filtered data for the reference image
+	fits *refimage;
+
+	WORD *reference_data;	// gaussian filtered data for the reference image
+	float *normalized_refdata;	// the same normalized
 
 	/* stacking data */
 	unsigned long *sum[3];	// the new image's channels
@@ -67,26 +72,32 @@ static int mppsd_prepare_hook(struct generic_seq_args *args) {
 	mppdata->cache->cache_data = FALSE;
 	// ^ should have been done before, and there's only one pass here
 	init_caching(args->seq->seqname, mppdata->cache, mppdata->kernel_size);
+	unsigned int nbdata = args->seq->ry * args->seq->rx;
 
 	/* Get reference frame */
+	WORD ref_min, ref_max;
+#if USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE
 	int ref_idx = args->seq->reference_image;
-	mppdata->reference_image = get_gaussian_data_for_image(ref_idx, NULL, mppdata->cache);
-	if (!mppdata->reference_image) {
-		fits fit = { 0 };
-		if (seq_read_frame(args->seq, ref_idx, &fit)) {
-			siril_log_color_message(_("Could not read reference image for multipoint processing\n"), "red");
-			clearfits(&fit);
-			return 1;
-		}
-		mppdata->reference_image = get_gaussian_data_for_image(ref_idx, &fit, mppdata->cache);
-		clearfits(&fit);
-		if (!mppdata->reference_image) {
-			siril_log_color_message(_("Could not read filtered reference image for multipoint processing\n"), "red");
-			return 1;
-		}
+	mppdata->reference_data = get_gaussian_data_for_image_in_seq(args->seq, ref_idx, mppdata->cache);
+	if (!mppdata->reference_data) {
+		siril_log_color_message(_("Could not read reference image for multipoint processing\n"), "red");
+		return 1;
 	}
+	siril_stats_ushort_minmax(&ref_min, &ref_max, mppdata->reference_data, nbdata*args->seq->nb_layers);
+#else
+	// the stacked reference image is much less noisy, so for now we don't
+	// take the gaussian-filtered version
+	// TODO: use monochrome conversion if it's not a monochrome image
+	mppdata->reference_data = mppdata->refimage->data;
+	image_find_minmax(mppdata->refimage);
+	ref_min = mppdata->refimage->mini;
+	ref_max = mppdata->refimage->maxi;
+#endif
+	// Normalization
+	mppdata->normalized_refdata = malloc(nbdata * args->seq->nb_layers * sizeof(float));
+	normalize_data(mppdata->reference_data, nbdata*args->seq->nb_layers,
+			ref_min, ref_max, mppdata->normalized_refdata);
 
-	unsigned int nbdata = args->seq->ry * args->seq->rx;
 	mppdata->sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
 	mppdata->count[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
 	if (!mppdata->sum[0] || !mppdata->count[0]){
@@ -130,6 +141,12 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		siril_log_color_message(_("Could not get filtered image for multipoint processing\n"), "red");
 		return 1;
 	}
+	WORD min, max;
+	int nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
+	siril_stats_ushort_minmax(&min, &max, gaussian_data, nbdata);
+	float *normalized_gaussian_data = malloc(nbdata * sizeof(float));
+	normalize_data(gaussian_data, nbdata*args->seq->nb_layers,
+			min, max, normalized_gaussian_data);
 
 	regdata *regparam = args->seq->regparam[args->layer];
 	if (!regparam) return -1;
@@ -156,8 +173,11 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		zone_to_rectangle(zone, &ref_area);
 		zone_to_rectangle(&shifted_zone, &im_area);
 		if (is_area_in_image(&im_area, args->seq)) {
-			error = search_local_match_gradient(mppdata->reference_image,
+			/* error = search_local_match_gradient(mppdata->reference_data,
 					gaussian_data, fit->rx, fit->ry, &ref_area,
+					&im_area, max_radius, 1, &shiftx, &shifty); */
+			error = search_local_match_gradient_float(mppdata->normalized_refdata,
+					normalized_gaussian_data, fit->rx, fit->ry, &ref_area,
 					&im_area, max_radius, 1, &shiftx, &shifty);
 		}
 		else error = 1;
@@ -208,6 +228,8 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 #endif
 
 	}
+	free(gaussian_data);
+	free(normalized_gaussian_data);
 
 	return 0;
 }
@@ -311,6 +333,7 @@ void the_multipoint_steepest_descent_registration_and_stacking(struct mpr_args *
 
 	struct mppsd_data *mppdata = calloc(1, sizeof(struct mppsd_data));
 	if (!mppdata) {
+		PRINT_ALLOC_ERR;
 		free(args);
 		return;
 	}
@@ -320,6 +343,7 @@ void the_multipoint_steepest_descent_registration_and_stacking(struct mpr_args *
 	mppdata->kernel_size = mprargs->kernel_size;
 	mppdata->nb_zones = get_number_of_zones();
 	mppdata->search_radius = 50;	// TODO: pass it
+	mppdata->refimage = mprargs->refimage;
 	args->user = mppdata;
 
 	generic_sequence_worker(args);

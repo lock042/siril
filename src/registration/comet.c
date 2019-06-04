@@ -26,6 +26,7 @@
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
+#include "gui/gui.h"
 #include "registration.h"
 
 static point velocity = { 0.0, 0.0 };

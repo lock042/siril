@@ -105,6 +105,7 @@ gchar *get_locale_filename(const gchar *path);
 int	update_sequences_list(const char *sequence_name_to_select);
 void	expand_home_in_filename(char *filename, int size);
 WORD	get_normalized_value(fits*);
+void	normalize_data(WORD *in, size_t size, WORD min, WORD max, float *out);
 void	read_and_show_textfile(char*, char*);
 void	swap_param(double *, double *);
 int*	apregdata_best(struct ap_regdata *input, int size);

@@ -42,6 +42,8 @@
 #include "planetary/laplacian_quality.h"
 #include "io/sequence.h"
 
+#define USE_DEVIATION_SQUARED
+
 struct regsd_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
@@ -261,6 +263,47 @@ static unsigned long compute_deviation(WORD *ref_frame, WORD *frame,
 	return sum;
 }
 
+// the same in float
+static float compute_deviation_float(float *ref_frame, float *frame,
+		int width, int height, rectangle *ref_area, rectangle *area,
+		int stride) {
+	float sum = 0.0f;
+	int x, y;
+	int ref_i = ref_area->y * width + ref_area->x;
+	int i = area->y * width + area->x;
+	for (y = 0; y < area->h; y++) {
+		for (x = 0; x < area->w; x += stride) {
+			sum += fabsf(ref_frame[ref_i] - frame[i]);
+			ref_i += stride;
+			i += stride;
+		}
+		ref_i += width - area->w + 1;
+		i += width - area->w + 1;
+	}
+	return sum;
+}
+
+// the same in float and in squared
+static float compute_squared_deviation_float(float *ref_frame, float *frame,
+		int width, int height, rectangle *ref_area, rectangle *area,
+		int stride) {
+	float sum = 0.0f;
+	int x, y;
+	int ref_i = ref_area->y * width + ref_area->x;
+	int i = area->y * width + area->x;
+	for (y = 0; y < area->h; y++) {
+		for (x = 0; x < area->w; x += stride) {
+			float diff = fabsf(ref_frame[ref_i] - frame[i]);
+			sum += diff * diff;
+			ref_i += stride;
+			i += stride;
+		}
+		ref_i += width - area->w + 1;
+		i += width - area->w + 1;
+	}
+	return sum;
+}
+
 /* Search patterns used for steepest descent. The samples outside the main 3x3
  * are here to help circumvent the local minimum problem.
  */
@@ -300,9 +343,9 @@ unsigned char search_pattern_3x3[] = {
 	1, 1, 1,
 };
 
-#define SEARCH_SIZE 5
-#define SEARCH_HALF_SIZE 2 // (SEARCH_SIZE-1)/2
-#define SEARCH_PATTERN search_pattern_5x5
+#define SEARCH_SIZE 7
+#define SEARCH_HALF_SIZE 3 // (SEARCH_SIZE-1)/2
+#define SEARCH_PATTERN search_pattern_7x7
 
 /* The steepest descent image alignment algorithm.
  * Compares areas of a reference frame and the tested frame and looks for the
@@ -347,6 +390,84 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 				deviation = compute_deviation(ref_frame, frame,
 						width, height, area, &test_area,
 						sampling_stride);
+
+				if (deviation < deviation_min_1) {
+					deviation_min_1 = deviation;
+					dx_min_1 = x;
+					dy_min_1 = y;
+				}
+			}
+		}
+
+		// If for the current center the match is better than for all
+		// neighboring points, a local optimum is found.
+		if (deviation_min_1 >= deviation_min) {
+			*dx_result = -dx_min;
+			*dy_result = dy_min;
+			fprintf(stdout, "found shift after %d iterations (%d, %d)\n", iterations, dx_min, dy_min);
+			return 0;
+		}
+
+		// Otherwise, update the current optimum and continue.
+		deviation_min = deviation_min_1;
+		dx_min = dx_min_1;
+		dy_min = dy_min_1;
+		iterations++;
+	}
+	// If within the maximum search radius no optimum could be found, return [0, 0].
+	*dx_result = 0;
+	*dy_result = 0;
+	fprintf(stdout, "shift not found after %d iterations\n", iterations);
+	return -1;
+}
+
+// The same in float
+int search_local_match_gradient_float(float *ref_frame, float *frame, int width, int height,
+		rectangle *ref_area, rectangle *area, int search_width,
+		int sampling_stride, int *dx_result, int *dy_result)
+{
+	int iterations = 0;	// for stats
+
+        // Initialize the global optimum with the value at dy=dx=0 or the values
+	// of the previous frame
+	int dx_min = *dx_result, dy_min = *dy_result;
+#ifdef USE_DEVIATION_SQUARED
+	float deviation_min = compute_squared_deviation_float(ref_frame, frame, width,
+			height, area, area, sampling_stride);
+#else
+	float deviation_min = compute_deviation_float(ref_frame, frame, width,
+			height, area, area, sampling_stride);
+#endif
+
+	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
+	// current optimum reaches beyond the search area.
+	while (max(abs(dy_min), abs(dx_min)) < search_width-1) {
+		// Go through the neighbours of radius 1 and compute the difference
+		// (deviation) between the shifted frame and the corresponding box in
+		// the mean frame. Find the minimum "deviation_min_1".
+		int dx_min_1 = INT_MAX, dy_min_1 = INT_MAX;
+		float deviation_min_1 = FLT_MAX;
+		int dx, dy;
+		for (dx = -SEARCH_HALF_SIZE; dx <= SEARCH_HALF_SIZE; dx++) {
+			for (dy = -SEARCH_HALF_SIZE; dy <= SEARCH_HALF_SIZE; dy++) {
+				int filter_index = dx + SEARCH_HALF_SIZE + (dy + SEARCH_HALF_SIZE) * SEARCH_SIZE;
+				if (!SEARCH_PATTERN[filter_index])
+					continue;
+				int x = dx + dx_min, y = dy + dy_min;
+
+				rectangle test_area = {
+					.x = area->x - x, .y = area->y - y,
+					.w = area->w, .h = area->h };
+
+#ifdef USE_DEVIATION_SQUARED
+				float deviation = compute_squared_deviation_float(ref_frame, frame,
+						width, height, area, &test_area,
+						sampling_stride);
+#else
+				float deviation = compute_deviation_float(ref_frame, frame,
+						width, height, area, &test_area,
+						sampling_stride);
+#endif
 
 				if (deviation < deviation_min_1) {
 					deviation_min_1 = deviation;

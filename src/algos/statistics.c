@@ -210,8 +210,8 @@ static WORD* reassign_to_non_null_data(WORD *data, long inputlen, long outputlen
 	return ndata;
 }
 
-static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
-		const WORD data[], const size_t stride, const size_t n) {
+void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
+		const WORD data[], const size_t n) {
 	/* finds the smallest and largest members of a dataset */
 
 	if (n > 0 && data) {
@@ -221,7 +221,7 @@ static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
 
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(n > 10000) reduction(max:max) reduction(min:min)
 		for (i = 0; i < n; i++) {
-			WORD xi = data[i * stride];
+			WORD xi = data[i];
 
 			if (xi < min)
 				min = xi;
@@ -277,7 +277,7 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
 		WORD min = 0, max = 0, norm = 0;
 		if (!data) return NULL;	// not in cache, don't compute
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
-		siril_stats_ushort_minmax(&min, &max, data, 1, stat->total);
+		siril_stats_ushort_minmax(&min, &max, data, stat->total);
 		if (fit->bitpix == BYTE_IMG)
 			norm = UCHAR_MAX;
 		else norm = USHRT_MAX;
