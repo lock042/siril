@@ -36,6 +36,10 @@ void add_stats_to_fit(fits *fit, int layer, imstats *stat) {
 	fprintf(stderr, "ERROR: calling undefined function add_stats_to_fit\n");
 }
 
+void invalidate_stats_from_fit(fits *fit) {
+	fprintf(stderr, "ERROR: calling undefined function invalidate_stats_from_fit\n");
+}
+
 int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
         fprintf(stderr, "ERROR: calling undefined function pipe_send_message\n");
 	return 0;
