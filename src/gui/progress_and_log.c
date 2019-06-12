@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "gui.h"
 #include "progress_and_log.h"
 #include <gtk/gtk.h>
 #include <unistd.h>

@@ -47,6 +47,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
 #include "gui/gui.h"
+#include "gui/image_display.h"
 
 enum {
 	RED, GREEN, BLUE

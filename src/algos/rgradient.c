@@ -27,6 +27,7 @@
 #include "gui/histogram.h"
 #include "gui/callbacks.h"
 #include "gui/gui.h"
+#include "gui/image_display.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
 #include "rgradient.h"
