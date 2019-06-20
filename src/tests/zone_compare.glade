@@ -18,18 +18,25 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with siril.  If not, see <http://www.gnu.org/licenses/>.
 
-Author: Vincent Hourdin
-
 -->
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.12"/>
   <!-- interface-license-type gplv3 -->
   <!-- interface-name siril -->
   <!-- interface-description Siril registration helper -->
-  <!-- interface-authors Vincent Hourdin -->
-  <object class="GtkWindow" id="window">
+  <!-- interface-copyright The free-astro development team, 2019 -->
+  <object class="GtkAccelGroup" id="accelgroup1"/>
+  <object class="GtkWindow" id="main_window">
+    <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <child>
+    <property name="window_position">center</property>
+    <property name="icon_name">applications-science</property>
+    <property name="urgency_hint">True</property>
+    <accel-groups>
+      <group name="accelgroup1"/>
+    </accel-groups>
+    <signal name="delete-event" handler="on_window_delete_event" swapped="no"/>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -43,42 +50,56 @@ Author: Vincent Hourdin
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkViewport" id="vp1">
+              <object class="GtkScrolledWindow" id="scrolled1">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkDrawingArea" id="draw1">
+                  <object class="GtkViewport" id="vp1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkDrawingArea" id="draw1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkViewport" id="vp2">
+              <object class="GtkScrolledWindow" id="scrolled2">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkDrawingArea" id="draw2">
+                  <object class="GtkViewport" id="vp2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkDrawingArea" id="draw2">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
@@ -87,6 +108,7 @@ Author: Vincent Hourdin
           <object class="GtkBox" id="box1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="spacing">10</property>
             <child>
               <object class="GtkButton" id="compute">
                 <property name="label" translatable="yes">compute</property>
@@ -117,11 +139,13 @@ Author: Vincent Hourdin
               <object class="GtkLabel" id="labelerr">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">0</property>
+                <property name="label" translatable="yes">0.0</property>
+                <property name="width_chars">10</property>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
+                <property name="pack_type">end</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -137,18 +161,25 @@ Author: Vincent Hourdin
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkViewport" id="vp3">
+              <object class="GtkScrolledWindow" id="scrolled3">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkDrawingArea" id="draw3">
+                  <object class="GtkViewport" id="vp3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkDrawingArea" id="draw3">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>

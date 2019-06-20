@@ -6,7 +6,7 @@
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
 fits gfit;	// currently loaded image
-GtkBuilder *builder;	// get widget references anywhere
+//GtkBuilder *builder;	// get widget references anywhere
 char **supported_extensions;
 
 gboolean sequence_is_loaded() {

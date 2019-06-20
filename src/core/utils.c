@@ -519,6 +519,37 @@ void normalize_data(WORD *in, size_t size, WORD min, WORD max, float *out) {
 	}
 }
 
+#if NONE
+void normalize_data_histo(WORD *in, size_t size, WORD min, WORD max, float *out) {
+	double hist_sum;
+	double nb_pixels;
+	size_t hist_nb_bins;
+	size_t i;
+	gsl_histogram *histo;
+
+	compute_histo_for_gfit();
+	histo = com.layers_hist[vport];
+	hist_nb_bins = gsl_histogram_bins(histo);
+	/*if (hist_nb_bins <= USHRT_MAX) {
+	  fprintf(stderr, "Error remapping: histogram is not the correct size\n");
+	  return;
+	  }*/
+	nb_pixels = (double) (gfit.rx * gfit.ry);
+	// build the remap_index
+	if (!remap_index[vport])
+		remap_index[vport] = malloc(USHRT_MAX + 1);
+
+	remap_index[vport][0] = 0;
+	hist_sum = gsl_histogram_get(histo, 0);
+	for (i = 1; i < hist_nb_bins; i++) {
+		hist_sum += gsl_histogram_get(histo, i);
+		remap_index[vport][i] = round_to_BYTE(
+				(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
+	}
+
+}
+#endif
+
 struct sort_elem { int idx; double val; };
 
 static int cmp_elems(const void *p1, const void *p2) {

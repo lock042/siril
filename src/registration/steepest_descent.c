@@ -42,7 +42,7 @@
 #include "planetary/laplacian_quality.h"
 #include "io/sequence.h"
 
-#define USE_DEVIATION_SQUARED
+//#define USE_DEVIATION_SQUARED
 
 struct regsd_data {
 	struct registration_args *regargs;
@@ -343,9 +343,9 @@ unsigned char search_pattern_3x3[] = {
 	1, 1, 1,
 };
 
-#define SEARCH_SIZE 7
-#define SEARCH_HALF_SIZE 3 // (SEARCH_SIZE-1)/2
-#define SEARCH_PATTERN search_pattern_7x7
+#define SEARCH_SIZE 9
+#define SEARCH_HALF_SIZE 4 // (SEARCH_SIZE-1)/2
+#define SEARCH_PATTERN search_pattern_9x9
 
 /* The steepest descent image alignment algorithm.
  * Compares areas of a reference frame and the tested frame and looks for the
