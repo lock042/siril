@@ -2,7 +2,7 @@
 CC=clang
 LD=clang
 CFLAGS="-Wall -I.. -g -fopenmp `pkg-config --cflags gtk+-3.0` `pkg-config --cflags cfitsio` `pkg-config --cflags gsl`"
-LDFLAGS="-fopenmp `pkg-config --libs gtk+-3.0` `pkg-config --libs cfitsio` `pkg-config --libs gsl` -lm"
+LDFLAGS="-fopenmp -rdynamic `pkg-config --libs gtk+-3.0` `pkg-config --libs cfitsio` `pkg-config --libs gsl` -lm"
 
 set -x
 # $CC $CFLAGS -c -o compare_fits.o compare_fits.c &&

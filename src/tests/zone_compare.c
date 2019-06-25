@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "../core/siril.h"
 #include "../core/proto.h"
+#include "../io/single_image.h"
 
 #define NB_DISPLAYS 3
 
@@ -12,12 +13,15 @@ guchar *graybuf[NB_DISPLAYS];	// R=G=B 8bit version
 int surface_stride[NB_DISPLAYS];
 int changed = 1;
 
+void remap(int image);
+
 int main(int argc, char **argv) {
 	if (argc < 3) {
 		fprintf(stderr, "Usage: %s reference_image tested_image\n", *argv);
 		exit(1);
 	}
 
+	gtk_init(&argc, &argv);
 	builder = gtk_builder_new();
 	GError *err = NULL;
 	if (!gtk_builder_add_from_file (builder, "zone_compare.glade", &err)) {
@@ -33,10 +37,15 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "%s not found\n", argv[1]);
 		exit(1);
 	}
+	image_find_minmax(&fit[0]);
+	remap(0);
+	changed = 1;
 	if (readfits(argv[2], &fit[1], NULL)) {
 		fprintf(stderr, "%s not found\n", argv[2]);
 		exit(1);
 	}
+	image_find_minmax(&fit[1]);
+	remap(1);
 
 	gtk_main();
 	return 0;
@@ -51,6 +60,7 @@ int main(int argc, char **argv) {
 /* image display functions */
 void remap(int image) {
 	if (changed) {
+		fprintf(stdout, "remap %d\n", image);
 		surface_stride[image] = cairo_format_stride_for_width(
 				CAIRO_FORMAT_RGB24, fit[image].rx);
 		graybuf[image] = realloc(graybuf[image],
@@ -69,7 +79,9 @@ void remap(int image) {
 		}
 
 		int i;
-		float pente = UCHAR_MAX_SINGLE / (float)(fit[image].maxi - fit[image].mini);
+		//float pente = UCHAR_MAX_SINGLE / (float)(fit[image].maxi - fit[image].mini);
+		//fprintf(stdout, "pente: %f\n", pente);
+		float pente = 1.0f;
 		for (i = 0; i < fit[image].rx * fit[image].ry; i++) {
 			 graybuf[image][i] = round_to_BYTE((float)fit[image].data[i] * pente);
 		}
@@ -80,24 +92,26 @@ void remap(int image) {
 
 /* callbacks */
 int image_for_widget(GtkWidget *widget) {
-	if (widget == GTK_WIDGET(gtk_builder_get_object(builder, "drawing1")))
+	if (widget == GTK_WIDGET(gtk_builder_get_object(builder, "draw1")))
 		return 0;
-	if (widget == GTK_WIDGET(gtk_builder_get_object(builder, "drawing2")))
+	if (widget == GTK_WIDGET(gtk_builder_get_object(builder, "draw2")))
 		return 1;
-	if (widget == GTK_WIDGET(gtk_builder_get_object(builder, "drawing3")))
+	if (widget == GTK_WIDGET(gtk_builder_get_object(builder, "draw3")))
 		return 2;
 	fprintf(stderr, "unknown widget\n");
 	return -1;
 }
 
-gboolean redraw_drawingarea1(GtkWidget *widget, cairo_t *cr, gpointer data) {
+gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int window_width = gtk_widget_get_allocated_width(widget);
 	int window_height = gtk_widget_get_allocated_height(widget);
 
 	int image = image_for_widget(widget);
+	if (image < 0 || image >= 2) return TRUE;
 	remap(image);
 	//cairo_scale(cr, zoom, zoom);
-	cairo_set_source_surface(cr, com.surface[image], 0, 0);
+	cairo_set_source_surface(cr, surface[image], 0, 0);
+	cairo_paint(cr);
 
 	return FALSE;
 }

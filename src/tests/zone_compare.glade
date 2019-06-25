@@ -35,7 +35,7 @@ along with siril.  If not, see <http://www.gnu.org/licenses/>.
     <accel-groups>
       <group name="accelgroup1"/>
     </accel-groups>
-    <signal name="delete-event" handler="on_window_delete_event" swapped="no"/>
+    <signal name="delete-event" handler="gtk_main_quit" swapped="no"/>
     <child type="titlebar">
       <placeholder/>
     </child>
@@ -62,6 +62,7 @@ along with siril.  If not, see <http://www.gnu.org/licenses/>.
                       <object class="GtkDrawingArea" id="draw1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+			<signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -86,6 +87,7 @@ along with siril.  If not, see <http://www.gnu.org/licenses/>.
                       <object class="GtkDrawingArea" id="draw2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+			<signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -173,6 +175,7 @@ along with siril.  If not, see <http://www.gnu.org/licenses/>.
                       <object class="GtkDrawingArea" id="draw3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+			<signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                       </object>
                     </child>
                   </object>
