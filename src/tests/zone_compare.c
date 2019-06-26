@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "../core/siril.h"
 #include "../core/proto.h"
-#include "../io/single_image.h"
 
 #define NB_DISPLAYS 3
 
@@ -37,14 +36,12 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "%s not found\n", argv[1]);
 		exit(1);
 	}
-	image_find_minmax(&fit[0]);
 	remap(0);
 	changed = 1;
 	if (readfits(argv[2], &fit[1], NULL)) {
 		fprintf(stderr, "%s not found\n", argv[2]);
 		exit(1);
 	}
-	image_find_minmax(&fit[1]);
 	remap(1);
 
 	gtk_main();
@@ -80,7 +77,6 @@ void remap(int image) {
 
 		int i;
 		//float pente = UCHAR_MAX_SINGLE / (float)(fit[image].maxi - fit[image].mini);
-		//fprintf(stdout, "pente: %f\n", pente);
 		float pente = 1.0f;
 		for (i = 0; i < fit[image].rx * fit[image].ry; i++) {
 			 graybuf[image][i] = round_to_BYTE((float)fit[image].data[i] * pente);

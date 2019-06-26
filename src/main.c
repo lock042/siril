@@ -274,13 +274,20 @@ int main(int argc, char *argv[]) {
 	changedir(com.wd, NULL);
 
 	/* Get CPU number and set the number of threads */
-	siril_log_message(_("Parallel processing %s: using %d logical processor(s).\n"),
 #ifdef _OPENMP
-			_("enabled"), com.max_thread = omp_get_num_procs()
+	int num_proc = (int) g_get_num_processors();
+	int omp_num_proc = omp_get_num_procs();
+	if (num_proc != omp_num_proc) {
+	        siril_log_message(_("Questionable parallel processing efficiency - openmp reports %d processors."
+	        		"Possibly broken opencv/openblas installation.\n"), omp_num_proc);
+	}
+	siril_log_message(_("Parallel processing %s: Using %d logical processor(s).\n"), _("enabled"), com.max_thread = num_proc);
 #else
-			_("disabled"), com.max_thread = 1
+	siril_log_message(_("Parallel processing %s: Using %d logical processor.\n"), _("disabled"), com.max_thread = 1);
 #endif
-			);
+	if (!com.headless) {
+		update_spinCPU(com.max_thread);
+	}
 
 	/* start Siril */
 	if (argv[optind] != NULL) {
