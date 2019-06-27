@@ -15,4 +15,4 @@ set -x
 
 $CC $CFLAGS -c -o zone_compare.o zone_compare.c &&
 $CC $CFLAGS -c -o dummy.o dummy.c &&
-$LD $LDFLAGS -o zone_compare zone_compare.o dummy.o ../io/image_format_fits.o ../core/utils.o ../gui/progress_and_log.o
+$LD $LDFLAGS -o zone_compare zone_compare.o dummy.o ../io/image_format_fits.o ../core/utils.o ../gui/progress_and_log.o ../algos/statistics.o ../algos/sorting.o ../algos/quantize.o

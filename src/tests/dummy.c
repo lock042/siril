@@ -2,6 +2,7 @@
 
 #include "../core/siril.h"
 #include "../core/pipe.h"
+#include "../algos/statistics.h"
 
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
@@ -27,7 +28,7 @@ sequence * readseqfile(const char *name){
 	return NULL;
 }
 
-imstats* free_stats(imstats *stat) {
+/*imstats* free_stats(imstats *stat) {
 	fprintf(stderr, "ERROR: calling undefined function free_stats\n");
 	return NULL;
 }
@@ -38,7 +39,7 @@ void add_stats_to_fit(fits *fit, int layer, imstats *stat) {
 
 void invalidate_stats_from_fit(fits *fit) {
 	fprintf(stderr, "ERROR: calling undefined function invalidate_stats_from_fit\n");
-}
+}*/
 
 int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
         fprintf(stderr, "ERROR: calling undefined function pipe_send_message\n");
@@ -55,8 +56,21 @@ double fit_get_max(fits *fit, int layer) {
 	return 1.0;
 }
 
+// copied from io/single_image.c
 int image_find_minmax(fits *fit) {
-        fprintf(stderr, "ERROR: calling undefined function image_find_minmax\n");
+	int layer;
+	if (fit->maxi > 0.0)
+		return 0;
+	fit->mini = DBL_MAX;
+	for (layer = 0; layer < fit->naxes[2]; ++layer) {
+		// calling statistics() saves stats in the fit already, we don't need
+		// to use the returned handle
+		free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX));
+		if (!fit->stats[layer])
+			return -1;
+		fit->maxi = max(fit->maxi, fit->stats[layer]->max);
+		fit->mini = min(fit->mini, fit->stats[layer]->min);
+	}
 	return 0;
 }
 

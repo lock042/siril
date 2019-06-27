@@ -74,27 +74,26 @@ static void read_fits_date_obs_header(fits *fit) {
 	}
 }
 
-static int fit_stats(fits *fit, double *mini, double *maxi) {
+static int fit_stats(fits *fit, double *maxi) {
 	int status = 0;
 	int ii, anaxis;
 	long npixels = 1;
 	long anaxes[3] = {1,1,1}, firstpix[3] = {1,1,1};
 	double *pix, sum = 0.;
-	double meanval = 0., minval = 1.E33, maxval = -1.E33;
+	double meanval = 0., maxval = -1.E33;
 
 	/* initialize value in case where it does not work */
-	*mini = 0;
 	*maxi = 0;
 
 	fits_get_img_dim(fit->fptr, &anaxis, &status);
 	fits_get_img_size(fit->fptr, 3, anaxes, &status);
 
-    if (status) {
-       fits_report_error(stderr, status); /* print error message */
-       return(status);
-    }
+	if (status) {
+		fits_report_error(stderr, status); /* print error message */
+		return(status);
+	}
 
-    npixels = anaxes[0];  /* no. of pixels to read in each row */
+	npixels = anaxes[0];  /* no. of pixels to read in each row */
 	pix = (double *) malloc(npixels * sizeof(double)); /* memory for 1 row */
 	if (pix == NULL) {
 		printf("Memory allocation error\n");
@@ -107,13 +106,11 @@ static int fit_stats(fits *fit, double *mini, double *maxi) {
 		for (firstpix[1] = 1; firstpix[1] <= anaxes[1]; firstpix[1]++) {
 			/* give starting pixel coordinate and number of pixels to read */
 			if (fits_read_pix(fit->fptr, TDOUBLE, firstpix, npixels, NULL, pix,
-					NULL, &status))
+						NULL, &status))
 				break; /* jump out of loop on error */
 
 			for (ii = 0; ii < npixels; ii++) {
 				sum += pix[ii]; /* accumlate sum */
-				if (pix[ii] < minval)
-					minval = pix[ii]; /* find min and  */
 				if (pix[ii] > maxval)
 					maxval = pix[ii]; /* max values    */
 			}
@@ -128,10 +125,8 @@ static int fit_stats(fits *fit, double *mini, double *maxi) {
 			meanval = sum / npixels;
 		siril_debug_print("  sum of pixels = %g\n", sum);
 		siril_debug_print("  mean value    = %g\n", meanval);
-		siril_debug_print("  minimum value = %g\n", minval);
 		siril_debug_print("  maximum value = %g\n", maxval);
 		*maxi = maxval;
-		*mini = minval;
 	}
 	return status;
 }
@@ -165,9 +160,7 @@ static void fits_read_history(fitsfile *fptr, GSList **history, int *status) {
 static void read_fits_header(fits *fit) {
 	/* about the status argument: http://heasarc.gsfc.nasa.gov/fitsio/c/c_user/node28.html */
 	int status = 0;
-	double zero, mini, maxi;
-
-	fit_stats(fit, &mini, &maxi);
+	double zero, maxi;
 
 	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSHI, &fit->hi);
 	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->lo);
@@ -194,6 +187,7 @@ static void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->data_max), NULL, &status);
 	if (status == KEY_NO_EXIST) {
+		fit_stats(fit, &maxi);
 		fit->data_max = maxi;
 	}
 
@@ -1061,7 +1055,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	int status;
 	unsigned int nbdata;
 	double offset, data_max = 0.0;
-	double mini, maxi;
+	double maxi;
 
 	status = 0;
 	if (siril_fits_open_diskfile(&(fit->fptr), filename, READONLY, &status)) {
@@ -1078,8 +1072,6 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		fits_close_file(fit->fptr, &status);
 		return status;
 	}
-
-	fit_stats(fit, &mini, &maxi);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "BZERO", &offset, NULL, &status);
@@ -1125,9 +1117,9 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	if (fit->bitpix == FLOAT_IMG)
 		fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
 	if (status == KEY_NO_EXIST) {
+		fit_stats(fit, &maxi);
 		data_max = maxi;
 	}
-
 
 	nbdata = area->w * area->h;
 	/* realloc fit->data to the image size */
