@@ -2,21 +2,34 @@
 #include <stdlib.h>
 #include "../core/siril.h"
 #include "../core/proto.h"
+#include "../io/sequence.h"
+#include "../io/single_image.h"
 
 #define NB_DISPLAYS 3
 
+/* global variables for siril, not used here, but required for linking against libsiril.a */
+cominfo com;	// the main data struct
+fits gfit;	// currently loaded image
+//GtkBuilder *builder;	// get widget references anywhere
+char **supported_extensions;
+/*************************************************************/
+
 GtkBuilder *builder = NULL;	// get widget references anywhere
 fits fit[NB_DISPLAYS];
+sequence *seq = NULL;
 cairo_surface_t *surface[NB_DISPLAYS];
 guchar *graybuf[NB_DISPLAYS];	// R=G=B 8bit version
 int surface_stride[NB_DISPLAYS];
 int changed = 1;
+double zoom = 1.0;
+stacking_zone zone = { .centre = {.x = -1.0 } };
+
 
 void remap(int image);
 
 int main(int argc, char **argv) {
 	if (argc < 3) {
-		fprintf(stderr, "Usage: %s reference_image tested_image\n", *argv);
+		fprintf(stderr, "Usage: %s reference_image tested_sequence\n", *argv);
 		exit(1);
 	}
 
@@ -39,10 +52,14 @@ int main(int argc, char **argv) {
 	image_find_minmax(&fit[0]);
 	remap(0);
 	changed = 1;
-	if (readfits(argv[2], &fit[1], NULL)) {
-		fprintf(stderr, "%s not found\n", argv[2]);
+
+
+	if (!(seq = readseqfile(argv[2])))
 		exit(1);
-	}
+	if (seq_read_frame(seq, 0, &fit[1]))
+		exit(1);
+	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2"));
+	gtk_adjustment_set_upper(adj, (double)(seq->number-1));
 	image_find_minmax(&fit[1]);
 	remap(1);
 
@@ -77,11 +94,18 @@ void remap(int image) {
 			return;
 		}
 
-		int i;
+		int y;
 		float pente = UCHAR_MAX_SINGLE / (float)(fit[image].maxi - fit[image].mini);
 		//float pente = 1.0f;
-		for (i = 0; i < fit[image].rx * fit[image].ry; i++) {
-			 graybuf[image][i] = round_to_BYTE((float)fit[image].data[i] * pente);
+		for (y = 0; y < fit[image].ry; y++) {
+			int x;
+			for (x = 0; x < fit[image].rx; x++) {
+				guint dst_index = ((fit[image].ry - 1 - y) * fit[image].rx + x) * 4;
+				BYTE pix = round_to_BYTE((float)fit[image].data[y*fit[image].rx + x] * pente);
+				graybuf[image][dst_index++] = pix;
+				graybuf[image][dst_index++] = pix;
+				graybuf[image][dst_index++] = pix;
+			}
 		}
 
 		changed = 0;
@@ -100,6 +124,12 @@ int image_for_widget(GtkWidget *widget) {
 	return -1;
 }
 
+GtkWidget *widget_for_image(int image) {
+	char wname[10];
+	sprintf(wname, "draw%d", image+1);
+	return GTK_WIDGET(gtk_builder_get_object(builder, wname));
+}
+
 gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int window_width = gtk_widget_get_allocated_width(widget);
 	int window_height = gtk_widget_get_allocated_height(widget);
@@ -107,9 +137,58 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int image = image_for_widget(widget);
 	if (image < 0 || image >= 2) return TRUE;
 	remap(image);
-	//cairo_scale(cr, zoom, zoom);
+
+	// autofit zoom
+	double wtmp = (double)window_width / (double)fit[image].rx;
+	double htmp = (double)window_height / (double)fit[image].ry;
+	zoom = min(wtmp, htmp);
+	cairo_scale(cr, zoom, zoom);
+
 	cairo_set_source_surface(cr, surface[image], 0, 0);
 	cairo_paint(cr);
 
+	if (image == 0 && zone.centre.x >= 0.0) {
+		// draw the zone
+		cairo_set_dash(cr, NULL, 0, 0);
+		cairo_set_line_width(cr, 1.5);
+		cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, 1.0);	// cyan
+		cairo_rectangle(cr, zone.centre.x - zone.half_side,
+				zone.centre.y - zone.half_side,
+				2.0 * zone.half_side, 2.0 * zone.half_side);
+		cairo_stroke(cr);
+
+		// draw points at the centre
+		cairo_set_line_width(cr, 4.0);
+		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);	// red 
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		cairo_move_to(cr, zone.centre.x, zone.centre.y);
+		cairo_close_path(cr);
+		cairo_stroke(cr);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+	}
+
 	return FALSE;
 }
+
+void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
+	int image = round_to_int(gtk_range_get_value(range));		
+	clearfits(&fit[1]);
+	if (seq_read_frame(seq, image, &fit[1]))
+		fprintf(stderr, "could not open image %d from sequence\n", image);
+	image_find_minmax(&fit[1]);
+	changed = 1;
+	remap(1);
+	gtk_widget_queue_draw(widget_for_image(1));
+}
+
+gboolean on_drawingarea_button_press_event(GtkWidget *widget,
+		GdkEventButton *event, gpointer user_data) {
+	zone.centre.x = event->x / zoom;
+	zone.centre.y = event->y / zoom;
+	GtkRange *range = GTK_RANGE(gtk_builder_get_object(builder, "scale_zonesize"));
+	zone.half_side = round_to_int(gtk_range_get_value(range));
+	zone.mpregparam = NULL;
+	gtk_widget_queue_draw(widget);
+	return FALSE;
+}
+

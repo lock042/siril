@@ -2,7 +2,9 @@
 CC=clang
 LD=clang
 CFLAGS="-Wall -I.. -g -fopenmp `pkg-config --cflags gtk+-3.0` `pkg-config --cflags cfitsio` `pkg-config --cflags gsl`"
-LDFLAGS="-fopenmp -rdynamic `pkg-config --libs gtk+-3.0` `pkg-config --libs cfitsio` `pkg-config --libs gsl` -lm"
+LDFLAGS="-fopenmp -rdynamic `pkg-config --libs gtk+-3.0` `pkg-config --libs cfitsio gsl` -lm \
+ `pkg-config --libs libavformat libavutil libavcodec libswscale libswresample libraw libtiff-4 libpng libjpeg fftw3 ffms2 libconfig libcurl` -lopencv_core -lopencv_imgproc -lopencv_calib3d"
+SLDFLAGS="../../deps/kplot/libkplot.a"
 
 set -x
 # $CC $CFLAGS -c -o compare_fits.o compare_fits.c &&
@@ -14,5 +16,7 @@ set -x
 # $LD $LDFLAGS -o sorting sorting.o ../algos/sorting.o
 
 $CC $CFLAGS -c -o zone_compare.o zone_compare.c &&
-$CC $CFLAGS -c -o dummy.o dummy.c &&
-$LD $LDFLAGS -o zone_compare zone_compare.o dummy.o ../io/image_format_fits.o ../core/utils.o ../gui/progress_and_log.o ../algos/statistics.o ../algos/sorting.o ../algos/quantize.o
+#$CC $CFLAGS -c -o dummy.o dummy.c &&
+#$LD $LDFLAGS -o zone_compare zone_compare.o dummy.o ../io/image_format_fits.o ../core/utils.o ../gui/progress_and_log.o ../algos/statistics.o ../algos/sorting.o ../algos/quantize.o
+
+$LD $LDFLAGS -o zone_compare zone_compare.o ../libsiril.a $SLDFLAGS

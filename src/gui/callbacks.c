@@ -2517,7 +2517,7 @@ static gboolean is_over_the_top_of_sel(double zoomedX, double zoomedY, double zo
 	return FALSE;
 }
 
-gboolean on_drawingarea_button_press_event(GtkWidget *widget,
+static gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 	if (inimage((GdkEvent *) event)) {
 		/* click on RGB image */

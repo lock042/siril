@@ -583,7 +583,7 @@ void queue_redraw(int doremap) {	// request a redraw from another thread
  * http://www.cairographics.org/manual/
  * http://www.cairographics.org/manual/cairo-Image-Surfaces.html#cairo-image-surface-create-for-data
  */
-gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
+static gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int image_width, image_height, window_width, window_height;
 	int vport, i = 0;
 	double zoom;
