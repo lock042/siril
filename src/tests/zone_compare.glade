@@ -32,7 +32,7 @@ along with siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment2">
-    <property name="lower">9</property>
+    <property name="lower">13</property>
     <property name="upper">199</property>
     <property name="value">85</property>
     <property name="step_increment">2</property>
@@ -78,7 +78,7 @@ along with siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="tooltip_text" translatable="yes">Reference Image.
 Click to position the processed zone/patch/area.</property>
                         <property name="margin_right">1</property>
-			<signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+                        <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
                         <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                       </object>
                     </child>
@@ -173,20 +173,6 @@ Click to position the processed zone/patch/area.</property>
             <property name="can_focus">False</property>
             <property name="spacing">10</property>
             <child>
-              <object class="GtkButton" id="compute">
-                <property name="label" translatable="yes">compute</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="on_compute_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -195,7 +181,7 @@ Click to position the processed zone/patch/area.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
@@ -206,10 +192,34 @@ Click to position the processed zone/patch/area.</property>
                 <property name="width_chars">10</property>
               </object>
               <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Global registration shifts:</property>
+              </object>
+              <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="pack_type">end</property>
                 <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="labelgshifts">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">0, 0</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="pack_type">end</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -217,6 +227,35 @@ Click to position the processed zone/patch/area.</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox" id="box4">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label4">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">more data to come</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -236,6 +275,7 @@ Click to position the processed zone/patch/area.</property>
                       <object class="GtkDrawingArea" id="draw3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">This is the difference of the two images for the selected area. The sequence image may be shifted with registration data if available.</property>
                         <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                       </object>
                     </child>
@@ -259,6 +299,7 @@ Click to position the processed zone/patch/area.</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
+                    <property name="tooltip_text" translatable="yes">Display the difference between the reference and the image</property>
                     <property name="active">True</property>
                     <property name="draw_indicator">True</property>
                     <signal name="group-changed" handler="on_radiodirect_group_changed" swapped="no"/>
@@ -275,6 +316,7 @@ Click to position the processed zone/patch/area.</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
+                    <property name="tooltip_text" translatable="yes">Display the squared difference between the reference and the image</property>
                     <property name="active">True</property>
                     <property name="draw_indicator">True</property>
                     <property name="group">radiodirect</property>
@@ -294,9 +336,9 @@ Click to position the processed zone/patch/area.</property>
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
