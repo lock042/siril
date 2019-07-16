@@ -6,8 +6,11 @@
 #include "../io/single_image.h"
 #include "../planetary/planetary.h"
 #include "../gui/zones.h"
+#include "../opencv/opencv.h"
+#include "../algos/statistics.h"
 
 #define NB_DISPLAYS 3
+#define KERNEL_SIZE 9
 
 /* global variables for siril, not used here, but required for linking against libsiril.a */
 cominfo com;	// the main data struct
@@ -99,13 +102,12 @@ void remap(int image) {
 		}
 
 		int y;
-		float pente = UCHAR_MAX_SINGLE / (float)(fit[image].maxi - fit[image].mini);
-		//float pente = 1.0f;
+		double pente = UCHAR_MAX_DOUBLE / (fit[image].maxi - fit[image].mini);
 		for (y = 0; y < fit[image].ry; y++) {
 			int x;
 			for (x = 0; x < fit[image].rx; x++) {
 				guint dst_index = ((fit[image].ry - 1 - y) * fit[image].rx + x) * 4;
-				BYTE pix = round_to_BYTE((float)fit[image].data[y*fit[image].rx + x] * pente);
+				BYTE pix = round_to_BYTE((fit[image].data[y*fit[image].rx + x] - fit[image].mini) * pente);
 				graybuf[image][dst_index++] = pix;
 				graybuf[image][dst_index++] = pix;
 				graybuf[image][dst_index++] = pix;
@@ -211,44 +213,74 @@ void update_comparison() {
 
 	int i, side = get_side(&zone), nb_pix = side * side;
 
-	WORD *ref, *im, *diff;
-	// get the area from the ref image
+	WORD *ref, *im;
+	// get the area from the gaussian-filtered ref image (TODO: ensure monochrome)
 	ref = malloc(nb_pix * sizeof(WORD));
-	copy_image_zone_to_buffer(&fit[0], &zone, ref, LAYER);
+	WORD *ref_gauss = malloc(fit[0].rx * fit[0].ry * sizeof(WORD));
+	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, KERNEL_SIZE, ref_gauss);
+	//copy_image_zone_to_buffer(&fit[0], &zone, ref, LAYER); // raw image
+	copy_image_buffer_zone_to_buffer(ref_gauss, fit[0].rx, fit[0].ry, &zone, ref);
+	free(ref_gauss);
 	
 	// get the area from the sequence image, with regdata
 	im = malloc(nb_pix * sizeof(WORD));
+	WORD *im_gauss = malloc(fit[1].rx * fit[1].ry * sizeof(WORD));
+	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, KERNEL_SIZE, im_gauss);
 	regdata *regparam = seq->regparam[0];
 	if (regparam) {
 		stacking_zone shifted_zone = { .centre =
 			{ .x = round_to_int(zone.centre.x - regparam[seq->number].shiftx),
 				.y = round_to_int(zone.centre.y + regparam[seq->number].shifty) },
 			.half_side = zone.half_side };
-		copy_image_zone_to_buffer(&fit[1], &shifted_zone, im, LAYER);
+		//copy_image_zone_to_buffer(&fit[1], &shifted_zone, im, LAYER);
+		copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &shifted_zone, im);
 	}
-	else copy_image_zone_to_buffer(&fit[1], &zone, im, LAYER);
-	// FIXME ^ apparently it's not working ^
+	//else copy_image_zone_to_buffer(&fit[1], &zone, im, LAYER);
+	else copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &zone, im);
+	free(im_gauss);
+
+	// normalize both images data
+	float *ref_norm = malloc(nb_pix * sizeof(float));
+	WORD ref_min, ref_max;
+	siril_stats_ushort_minmax(&ref_min, &ref_max, ref, nb_pix);
+	normalize_data(ref, nb_pix, ref_min, ref_max, ref_norm);
+	free(ref);
+
+	float *im_norm = malloc(nb_pix * sizeof(float));
+	WORD im_min, im_max;
+	siril_stats_ushort_minmax(&im_min, &im_max, im, nb_pix);
+	normalize_data(im, nb_pix, im_min, im_max, im_norm);
+	free(im);
 
 	// compute the displayed patch
-	diff = malloc(nb_pix * sizeof(WORD));
-	WORD mini = 65535, maxi = 0;
+	double mini = 10000000.0, maxi = -10000000.0;
+	double *diff = malloc(nb_pix * sizeof(double));
 	for (i = 0; i < nb_pix; i++) {
-		// use the abs(ref_i - im_i)
-		if (ref[i] < im[i])
-			diff[i] = im[i] - ref[i];
-		else diff[i] = ref[i] - im[i];
+		diff[i] = ref_norm[i] - im_norm[i];
 		if (diff[i] < mini)
 			mini = diff[i];
 		if (diff[i] > maxi)
 			maxi = diff[i];
 	}
-	free(im);
-	free(ref);
+	free(im_norm);
+	free(ref_norm);
+	fprintf(stdout, "mini: %g, maxi: %g\n", mini, maxi);
+
+	// transfer to display
+	//
+	//diff = malloc(nb_pix * sizeof(WORD));
+	//WORD mini = 65535, maxi = 0;
+	double pente = USHRT_MAX_DOUBLE / (maxi - mini);
+	WORD *result = malloc(nb_pix * sizeof(WORD));
+	for (i = 0; i < nb_pix; i++) {
+		result[i] = round_to_WORD((diff[i] - mini) * pente);
+	}
+	free(diff);
 
 	if (fit[2].rx > 0)
 		clearfits(&fit[2]);
 	fits *newfit = &fit[2];
-	new_fit_image(&newfit, side, side, 1, diff);
+	new_fit_image(&newfit, side, side, 1, result);
 	newfit->maxi = maxi;
 	newfit->mini = mini;
 
