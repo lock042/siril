@@ -7,6 +7,12 @@
 void quicksort_d (double *a, int n);
 void quicksort_s (WORD *a, int n);
 
+/* fast median for array of 3 elements */
+WORD minmax_med3 (WORD *a);
+
+/* median for insertion sort */
+WORD insertion_sort_median (WORD *a, int n);
+
 /* Quick median based on quick select */
 double quickmedian (WORD *a, int n);
 double quickmedian_double(double *a, int n);
