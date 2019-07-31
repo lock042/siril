@@ -87,6 +87,40 @@ void quicksort_s (WORD *a, int n)
 	quicksort_s(left, a + n - left);
 }
 
+/*
+ * Find median by comparisons for an array of 3 elements
+ * The fastest implementation, average 2.5 comparisons
+ * Author: Emmanuel Brandt 2019-07
+ */
+WORD minmax_med3 (WORD *a)
+{		
+	if (a[1] > a[2]) 
+		return (a[0]<a[2]) ? a[2] : ((a[0]>a[1]) ? a[1] : a[0]);
+	else
+		return (a[0]<a[1]) ? a[1] : ((a[0]>a[2]) ? a[2] : a[0]);
+}
+
+/* 
+ * Insertion sort median of an array of WORD of size n
+ * Simple and most efficient for array of size upto 50
+ */
+WORD insertion_sort_median (WORD *a, int n) 
+{ 
+	register int i, j;
+	register WORD tmp;
+	
+	for (i = 1; i < n; ++i) {
+		tmp = a[i];
+		j = i;
+		while (j > 0 && tmp < a[j - 1]) {
+			a[j] = a[j - 1];
+			--j;
+		}
+		a[j] = tmp;
+	}
+	return a[n/2];
+}
+
 /* quickmedian returns the median of an array of WORD of size n
  * Non recursive version of the original quickselect algorithm from
  * Tony Hoare modified to return the median value
@@ -98,7 +132,7 @@ void quicksort_s (WORD *a, int n)
 */
 double quickmedian (WORD *a, int n) 
 {	// Use fast and robust sorting network for small size array
-	if (n < 10) return sortnet_median (a, n);
+	if (n < 50) return insertion_sort_median (a, n);
 	
 	int i;
 	int k = n / 2;		// size to sort
