@@ -33,6 +33,7 @@ stacking_zone zone = { .centre = {.x = -1.0 } };
 
 void remap(int image);
 void update_comparison();
+void update_shift_display();
 
 int main(int argc, char **argv) {
 	if (argc < 3) {
@@ -64,9 +65,11 @@ int main(int argc, char **argv) {
 		exit(1);
 	if (seq_read_frame(seq, 0, &fit[1]))
 		exit(1);
+	seq->selnum = 0;
 	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2"));
 	gtk_adjustment_set_upper(adj, (double)(seq->number-1));
 	image_find_minmax(&fit[1]);
+	update_shift_display();
 	remap(1);
 
 	gtk_main();
@@ -103,6 +106,7 @@ void remap(int image) {
 
 		int y;
 		double pente = UCHAR_MAX_DOUBLE / (fit[image].maxi - fit[image].mini);
+		fprintf(stdout, "remap pente: %g, mini: %g, maxi: %g\n", pente, fit[image].mini, fit[image].maxi);
 		for (y = 0; y < fit[image].ry; y++) {
 			int x;
 			for (x = 0; x < fit[image].rx; x++) {
@@ -177,6 +181,19 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	return FALSE;
 }
 
+void update_shift_display() {
+	char shifts[50];
+	GtkLabel *label = GTK_LABEL(gtk_builder_get_object(builder, "labelgshifts"));
+	regdata *regparam = seq->regparam[0];
+	if (!regparam || seq->selnum < 0)
+		gtk_label_set_text(label, "not available");
+	else {
+		sprintf(shifts, "%.3f, %.3f",
+				regparam[seq->selnum].shiftx, regparam[seq->selnum].shifty);
+		gtk_label_set_text(label, shifts);
+	}
+}
+
 void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
 	int image = round_to_int(gtk_range_get_value(range));		
 	clearfits(&fit[1]);
@@ -184,11 +201,12 @@ void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
 		fprintf(stderr, "could not open image %d from sequence\n", image);
 		return;
 	}
-	seq->number = image;
+	seq->selnum = image;
 	image_find_minmax(&fit[1]);
 	changed = 1;
 	remap(1);
 	gtk_widget_queue_draw(widget_for_image(1));
+	update_shift_display();
 	update_comparison();
 }
 
@@ -229,8 +247,8 @@ void update_comparison() {
 	regdata *regparam = seq->regparam[0];
 	if (regparam) {
 		stacking_zone shifted_zone = { .centre =
-			{ .x = round_to_int(zone.centre.x - regparam[seq->number].shiftx),
-				.y = round_to_int(zone.centre.y + regparam[seq->number].shifty) },
+			{ .x = round_to_int(zone.centre.x - regparam[seq->selnum].shiftx),
+				.y = round_to_int(zone.centre.y + regparam[seq->selnum].shifty) },
 			.half_side = zone.half_side };
 		//copy_image_zone_to_buffer(&fit[1], &shifted_zone, im, LAYER);
 		copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &shifted_zone, im);
@@ -281,8 +299,8 @@ void update_comparison() {
 		clearfits(&fit[2]);
 	fits *newfit = &fit[2];
 	new_fit_image(&newfit, side, side, 1, result);
-	newfit->maxi = maxi;
-	newfit->mini = mini;
+	newfit->maxi = 0;
+	newfit->mini = 65535;
 
 	changed = 1;
 	remap(2);

@@ -1,6 +1,6 @@
 #!/bin/sh
-CC=clang
-LD=clang
+CC=gcc
+LD=gcc
 CFLAGS="-Wall -I.. -g -fopenmp `pkg-config --cflags gtk+-3.0` `pkg-config --cflags cfitsio` `pkg-config --cflags gsl`"
 LDFLAGS="-fopenmp -rdynamic `pkg-config --libs gtk+-3.0` `pkg-config --libs cfitsio gsl` -lm \
  `pkg-config --libs libavformat libavutil libavcodec libswscale libswresample libraw libtiff-4 libpng libjpeg fftw3 ffms2 libconfig libcurl` -lopencv_core -lopencv_imgproc -lopencv_calib3d"
