@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "../core/siril.h"
 #include "../core/proto.h"
 #include "../io/sequence.h"
@@ -28,6 +29,7 @@ int surface_stride[NB_DISPLAYS];
 int changed = 1;
 double zoom[NB_DISPLAYS] = { 1.0 };
 stacking_zone zone = { .centre = {.x = -1.0 } };
+enum { MODE_DIRECT, MODE_SQUARED } mode = MODE_DIRECT;
 
 #define LAYER 0
 
@@ -104,9 +106,10 @@ void remap(int image) {
 			return;
 		}
 
+		// screen transfer function, linear
 		int y;
 		double pente = UCHAR_MAX_DOUBLE / (fit[image].maxi - fit[image].mini);
-		fprintf(stdout, "remap pente: %g, mini: %g, maxi: %g\n", pente, fit[image].mini, fit[image].maxi);
+		//fprintf(stdout, "remap pente: %g, mini: %g, maxi: %g\n", pente, fit[image].mini, fit[image].maxi);
 		for (y = 0; y < fit[image].ry; y++) {
 			int x;
 			for (x = 0; x < fit[image].rx; x++) {
@@ -194,6 +197,13 @@ void update_shift_display() {
 	}
 }
 
+void update_error_display(double err) {
+	char error[50];
+	GtkLabel *label = GTK_LABEL(gtk_builder_get_object(builder, "labelerr"));
+	sprintf(error, "%.4f", err);
+	gtk_label_set_text(label, error);
+}
+
 void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
 	int image = round_to_int(gtk_range_get_value(range));		
 	clearfits(&fit[1]);
@@ -273,8 +283,12 @@ void update_comparison() {
 	// compute the displayed patch
 	double mini = 10000000.0, maxi = -10000000.0;
 	double *diff = malloc(nb_pix * sizeof(double));
+	double sum = 0.0;
 	for (i = 0; i < nb_pix; i++) {
-		diff[i] = ref_norm[i] - im_norm[i];
+		if (mode == MODE_DIRECT)
+			diff[i] = ref_norm[i] - im_norm[i];
+		else diff[i] = (ref_norm[i] - im_norm[i]) * (ref_norm[i] - im_norm[i]);
+		sum += fabs(diff[i]);
 		if (diff[i] < mini)
 			mini = diff[i];
 		if (diff[i] > maxi)
@@ -283,11 +297,9 @@ void update_comparison() {
 	free(im_norm);
 	free(ref_norm);
 	fprintf(stdout, "mini: %g, maxi: %g\n", mini, maxi);
+	update_error_display(sum);
 
-	// transfer to display
-	//
-	//diff = malloc(nb_pix * sizeof(WORD));
-	//WORD mini = 65535, maxi = 0;
+	// transfer to ushort range
 	double pente = USHRT_MAX_DOUBLE / (maxi - mini);
 	WORD *result = malloc(nb_pix * sizeof(WORD));
 	for (i = 0; i < nb_pix; i++) {
@@ -305,4 +317,14 @@ void update_comparison() {
 	changed = 1;
 	remap(2);
 	gtk_widget_queue_draw(widget_for_image(2));
+}
+
+void on_radiodirect_toggled(GtkRadioButton *button, gpointer user_data) {
+	mode = MODE_DIRECT;
+	update_comparison();
+}
+
+void on_radiosquared_toggled(GtkRadioButton *button, gpointer user_data) {
+	mode = MODE_SQUARED;
+	update_comparison();
 }

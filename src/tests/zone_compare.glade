@@ -38,6 +38,18 @@ along with siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step_increment">2</property>
     <property name="page_increment">14</property>
   </object>
+  <object class="GtkAdjustment" id="adjustmentX">
+    <property name="lower">-100</property>
+    <property name="upper">100</property>
+    <property name="step_increment">0.5</property>
+    <property name="page_increment">3</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentY">
+    <property name="lower">-100</property>
+    <property name="upper">100</property>
+    <property name="step_increment">0.5</property>
+    <property name="page_increment">3</property>
+  </object>
   <object class="GtkWindow" id="main_window">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -234,13 +246,25 @@ Click to position the processed zone/patch/area.</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="computebutton">
+                <property name="label" translatable="yes">Find minimum</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
               <object class="GtkLabel" id="label4">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">more data to come</property>
+                <property name="margin_left">20</property>
+                <property name="margin_right">4</property>
+                <property name="label" translatable="yes">Patch shift:</property>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -249,7 +273,28 @@ Click to position the processed zone/patch/area.</property>
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkSpinButton" id="localXspin">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="adjustment">adjustmentX</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="localYspin">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="adjustment">adjustmentY</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -302,7 +347,7 @@ Click to position the processed zone/patch/area.</property>
                     <property name="tooltip_text" translatable="yes">Display the difference between the reference and the image</property>
                     <property name="active">True</property>
                     <property name="draw_indicator">True</property>
-                    <signal name="group-changed" handler="on_radiodirect_group_changed" swapped="no"/>
+                    <signal name="toggled" handler="on_radiodirect_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -320,6 +365,7 @@ Click to position the processed zone/patch/area.</property>
                     <property name="active">True</property>
                     <property name="draw_indicator">True</property>
                     <property name="group">radiodirect</property>
+                    <signal name="toggled" handler="on_radiosquared_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
