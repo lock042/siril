@@ -293,7 +293,7 @@ static float compute_squared_deviation_float(float *ref_frame, float *frame,
 	int i = area->y * width + area->x;
 	for (y = 0; y < area->h; y++) {
 		for (x = 0; x < area->w; x += stride) {
-			float diff = fabsf(ref_frame[ref_i] - frame[i]);
+			float diff = ref_frame[ref_i] - frame[i];
 			sum += diff * diff;
 			ref_i += stride;
 			i += stride;

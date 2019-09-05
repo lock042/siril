@@ -277,6 +277,7 @@ Click to position the processed zone/patch/area.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="adjustment">adjustmentX</property>
+                <signal name="value-changed" handler="on_localXspin_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -289,6 +290,7 @@ Click to position the processed zone/patch/area.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="adjustment">adjustmentY</property>
+                <signal name="value-changed" handler="on_localYspin_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

@@ -30,6 +30,7 @@ int changed = 1;
 double zoom[NB_DISPLAYS] = { 1.0 };
 stacking_zone zone = { .centre = {.x = -1.0 } };
 enum { MODE_DIRECT, MODE_SQUARED } mode = MODE_DIRECT;
+double local_shift_x = 0.0, local_shift_y = 0.0;
 
 #define LAYER 0
 
@@ -257,8 +258,8 @@ void update_comparison() {
 	regdata *regparam = seq->regparam[0];
 	if (regparam) {
 		stacking_zone shifted_zone = { .centre =
-			{ .x = round_to_int(zone.centre.x - regparam[seq->selnum].shiftx),
-				.y = round_to_int(zone.centre.y + regparam[seq->selnum].shifty) },
+			{ .x = round_to_int(zone.centre.x - regparam[seq->selnum].shiftx + local_shift_x),
+				.y = round_to_int(zone.centre.y + regparam[seq->selnum].shifty + local_shift_y) },
 			.half_side = zone.half_side };
 		//copy_image_zone_to_buffer(&fit[1], &shifted_zone, im, LAYER);
 		copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &shifted_zone, im);
@@ -326,5 +327,15 @@ void on_radiodirect_toggled(GtkRadioButton *button, gpointer user_data) {
 
 void on_radiosquared_toggled(GtkRadioButton *button, gpointer user_data) {
 	mode = MODE_SQUARED;
+	update_comparison();
+}
+
+void on_localXspin_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	local_shift_x = gtk_spin_button_get_value(spinbutton);
+	update_comparison();
+}
+
+void on_localYspin_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	local_shift_y = gtk_spin_button_get_value(spinbutton);
 	update_comparison();
 }
