@@ -9,9 +9,12 @@
 #include "../gui/zones.h"
 #include "../opencv/opencv.h"
 #include "../algos/statistics.h"
+#include "../registration/registration.h"
 
 #define NB_DISPLAYS 3
 #define KERNEL_SIZE 9
+#define MAX_RADIUS 50 // in pixels, maximum local shift
+#define DEV_STRIDE 1 // use every DEV_STRIDE pixels to compute the deviation
 
 /* global variables for siril, not used here, but required for linking against libsiril.a */
 cominfo com;	// the main data struct
@@ -68,6 +71,10 @@ int main(int argc, char **argv) {
 		exit(1);
 	if (seq_read_frame(seq, 0, &fit[1]))
 		exit(1);
+	if (fit[0].rx != fit[1].rx || fit[0].ry != fit[1].ry) {
+		fprintf(stderr, "reference frame and images of the sequence must be of the same size\n");
+		exit(1);
+	}
 	seq->selnum = 0;
 	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2"));
 	gtk_adjustment_set_upper(adj, (double)(seq->number-1));
@@ -301,6 +308,13 @@ void update_comparison() {
 	update_error_display(sum);
 
 	// transfer to ushort range
+
+	// force the range, comment this block to use dynamic range
+	if (mode == MODE_DIRECT) {
+		mini = -0.3; maxi = 0.3;
+	} else {
+		mini = 0; maxi = 0.09;
+	}
 	double pente = USHRT_MAX_DOUBLE / (maxi - mini);
 	WORD *result = malloc(nb_pix * sizeof(WORD));
 	for (i = 0; i < nb_pix; i++) {
@@ -338,4 +352,72 @@ void on_localXspin_value_changed(GtkSpinButton *spinbutton, gpointer user_data) 
 void on_localYspin_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	local_shift_y = gtk_spin_button_get_value(spinbutton);
 	update_comparison();
+}
+
+static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle) {
+	int side = get_side(zone);
+	rectangle->x = zone->centre.x - zone->half_side;
+	rectangle->y = zone->centre.y - zone->half_side;
+	rectangle->w = side;
+	rectangle->h = side;
+}
+
+void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
+	if (zone.half_side <= 0)
+		return;
+
+	/* finding the local minimum requires having the reference image and the tested
+	 * image as gaussian-filtered full image data and the two search areas */
+	unsigned int nbdata = fit[0].rx * fit[0].ry;
+	WORD ref_min, ref_max;
+	WORD *ref_gauss = malloc(nbdata * sizeof(WORD));
+	float *ref_norm = malloc(nbdata * sizeof(float));
+	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, KERNEL_SIZE, ref_gauss);
+	siril_stats_ushort_minmax(&ref_min, &ref_max, ref_gauss, nbdata);
+	normalize_data(ref_gauss, nbdata, ref_min, ref_max, ref_norm);
+	free(ref_gauss);
+
+	WORD im_min, im_max;
+	WORD *gauss = malloc(nbdata * sizeof(WORD));
+	float *im_norm = malloc(nbdata * sizeof(float));
+	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, KERNEL_SIZE, gauss);
+	siril_stats_ushort_minmax(&im_min, &im_max, gauss, nbdata);
+	normalize_data(gauss, nbdata, im_min, im_max, im_norm);
+	free(gauss);
+	
+	rectangle ref_area, im_area;
+	zone_to_rectangle(&zone, &ref_area);
+	zone_to_rectangle(&zone, &im_area);
+	regdata *regparam = seq->regparam[0];
+	if (regparam) {
+		stacking_zone shifted_zone = { .centre =
+			{ .x = round_to_int(zone.centre.x - regparam[seq->selnum].shiftx),
+				.y = round_to_int(zone.centre.y + regparam[seq->selnum].shifty) },
+			.half_side = zone.half_side };
+		zone_to_rectangle(&shifted_zone, &im_area);
+	}
+
+	int shiftx = 0, shifty = 0;
+	int error = search_local_match_gradient_float(ref_norm, im_norm,
+			fit[0].rx, fit[0].ry, &ref_area, &im_area,
+			MAX_RADIUS, DEV_STRIDE,
+			&shiftx, &shifty);
+	fprintf(stdout, "Found: %d, %d\n", shiftx, shifty);
+	if (regparam) {
+		// result is relative to the provided area, but our local shift is added
+		// to the area
+		local_shift_x = -regparam[seq->selnum].shiftx - (double)shiftx;
+		local_shift_y = regparam[seq->selnum].shifty - (double)shifty + 1.0;
+	} else {
+		local_shift_x = -(double)shiftx;
+		local_shift_y = -(double)shifty;
+	}
+
+	if (error) {
+		fprintf(stderr, "FINDING THE LOCAL SHIFT FAILED\n");
+	} else {
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "localXspin")), local_shift_x);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "localYspin")), local_shift_y);
+	}
+
 }

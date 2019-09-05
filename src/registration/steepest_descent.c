@@ -307,6 +307,18 @@ static float compute_squared_deviation_float(float *ref_frame, float *frame,
 /* Search patterns used for steepest descent. The samples outside the main 3x3
  * are here to help circumvent the local minimum problem.
  */
+unsigned char search_pattern2_9x9[] = {
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+};
+
 unsigned char search_pattern_9x9[] = {
 	0, 1, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 1, 0, 0, 1,
@@ -345,7 +357,7 @@ unsigned char search_pattern_3x3[] = {
 
 #define SEARCH_SIZE 9
 #define SEARCH_HALF_SIZE 4 // (SEARCH_SIZE-1)/2
-#define SEARCH_PATTERN search_pattern_9x9
+#define SEARCH_PATTERN search_pattern2_9x9
 
 /* The steepest descent image alignment algorithm.
  * Compares areas of a reference frame and the tested frame and looks for the

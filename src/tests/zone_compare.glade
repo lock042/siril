@@ -188,6 +188,7 @@ Click to position the processed zone/patch/area.</property>
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_left">3</property>
                 <property name="label" translatable="yes">Computed error:</property>
               </object>
               <packing>
@@ -251,6 +252,8 @@ Click to position the processed zone/patch/area.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="margin_left">3</property>
+                <signal name="clicked" handler="on_computebutton_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -277,6 +280,7 @@ Click to position the processed zone/patch/area.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="adjustment">adjustmentX</property>
+                <property name="digits">2</property>
                 <signal name="value-changed" handler="on_localXspin_value_changed" swapped="no"/>
               </object>
               <packing>
@@ -290,6 +294,7 @@ Click to position the processed zone/patch/area.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="adjustment">adjustmentY</property>
+                <property name="digits">2</property>
                 <signal name="value-changed" handler="on_localYspin_value_changed" swapped="no"/>
               </object>
               <packing>
