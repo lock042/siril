@@ -103,7 +103,7 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 static int regsd_image_hook(struct generic_seq_args *args,
 		int out_index, int in_index, fits *fit, rectangle *_) {
 	struct regsd_data *rsdata = args->user;
-	struct registration_args *regargs = rsdata->regargs;
+	//struct registration_args *regargs = rsdata->regargs;
 	
 	if (in_index == args->seq->reference_image)
 		return 0;
@@ -140,7 +140,7 @@ static int regsd_image_hook(struct generic_seq_args *args,
 
 static int regsd_finalize_hook(struct generic_seq_args *args) {
 	struct regsd_data *rsdata = args->user;
-	struct registration_args *regargs = rsdata->regargs;
+	//struct registration_args *regargs = rsdata->regargs;
 	finalize_caching(rsdata->cache);
 	free(rsdata->cache);
 	if (!args->retval) {
@@ -376,7 +376,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 	// of the previous frame
 	int dx_min = *dx_result, dy_min = *dy_result;
 	unsigned long deviation_min = compute_deviation(ref_frame, frame, width,
-			height, area, area, sampling_stride);
+			height, ref_area, area, sampling_stride);
 
 	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
 	// current optimum reaches beyond the search area.
@@ -400,7 +400,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 
 				unsigned long deviation;
 				deviation = compute_deviation(ref_frame, frame,
-						width, height, area, &test_area,
+						width, height, ref_area, &test_area,
 						sampling_stride);
 
 				if (deviation < deviation_min_1) {
@@ -445,10 +445,10 @@ int search_local_match_gradient_float(float *ref_frame, float *frame, int width,
 	int dx_min = *dx_result, dy_min = *dy_result;
 #ifdef USE_DEVIATION_SQUARED
 	float deviation_min = compute_squared_deviation_float(ref_frame, frame, width,
-			height, area, area, sampling_stride);
+			height, ref_area, area, sampling_stride);
 #else
 	float deviation_min = compute_deviation_float(ref_frame, frame, width,
-			height, area, area, sampling_stride);
+			height, ref_area, area, sampling_stride);
 #endif
 
 	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
@@ -460,6 +460,9 @@ int search_local_match_gradient_float(float *ref_frame, float *frame, int width,
 		int dx_min_1 = INT_MAX, dy_min_1 = INT_MAX;
 		float deviation_min_1 = FLT_MAX;
 		int dx, dy;
+
+		fprintf(stdout, "searching in image %d,%d for ref %d,%d (deviation: %f)\n", ref_area->x, ref_area->y, dx_min, dy_min, deviation_min);
+
 		for (dx = -SEARCH_HALF_SIZE; dx <= SEARCH_HALF_SIZE; dx++) {
 			for (dy = -SEARCH_HALF_SIZE; dy <= SEARCH_HALF_SIZE; dy++) {
 				int filter_index = dx + SEARCH_HALF_SIZE + (dy + SEARCH_HALF_SIZE) * SEARCH_SIZE;
@@ -473,11 +476,11 @@ int search_local_match_gradient_float(float *ref_frame, float *frame, int width,
 
 #ifdef USE_DEVIATION_SQUARED
 				float deviation = compute_squared_deviation_float(ref_frame, frame,
-						width, height, area, &test_area,
+						width, height, ref_area, &test_area,
 						sampling_stride);
 #else
 				float deviation = compute_deviation_float(ref_frame, frame,
-						width, height, area, &test_area,
+						width, height, ref_area, &test_area,
 						sampling_stride);
 #endif
 
@@ -494,7 +497,7 @@ int search_local_match_gradient_float(float *ref_frame, float *frame, int width,
 		if (deviation_min_1 >= deviation_min) {
 			*dx_result = -dx_min;
 			*dy_result = dy_min;
-			fprintf(stdout, "found shift after %d iterations (%d, %d)\n", iterations, dx_min, dy_min);
+			fprintf(stdout, "found shift after %d iterations (%d, %d), deviation: %f\n", iterations, dx_min, dy_min, deviation_min);
 			return 0;
 		}
 

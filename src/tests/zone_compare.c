@@ -12,7 +12,7 @@
 #include "../registration/registration.h"
 
 #define NB_DISPLAYS 3
-#define KERNEL_SIZE 9
+#define KERNEL_SIZE 13
 #define MAX_RADIUS 50 // in pixels, maximum local shift
 #define DEV_STRIDE 1 // use every DEV_STRIDE pixels to compute the deviation
 
@@ -248,8 +248,8 @@ void update_comparison() {
 		return;
 
 	int i, side = get_side(&zone), nb_pix = side * side;
+	WORD *ref, *im;	// gaussian-filtered data for the reference and image areas
 
-	WORD *ref, *im;
 	// get the area from the gaussian-filtered ref image (TODO: ensure monochrome)
 	ref = malloc(nb_pix * sizeof(WORD));
 	WORD *ref_gauss = malloc(fit[0].rx * fit[0].ry * sizeof(WORD));
@@ -270,9 +270,15 @@ void update_comparison() {
 			.half_side = zone.half_side };
 		//copy_image_zone_to_buffer(&fit[1], &shifted_zone, im, LAYER);
 		copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &shifted_zone, im);
+		fprintf(stdout, "comparing zones centered on %d, %d of reference to %d, %d of image\n",
+				zone.centre.x, zone.centre.y,
+				shifted_zone.centre.x, shifted_zone.centre.y);
 	}
-	//else copy_image_zone_to_buffer(&fit[1], &zone, im, LAYER);
-	else copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &zone, im);
+	else {
+		copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &zone, im);
+		fprintf(stdout, "comparing zones centered on %d, %d of reference to the same of image\n",
+				zone.centre.x, zone.centre.y);
+	}
 	free(im_gauss);
 
 	// normalize both images data
@@ -289,7 +295,7 @@ void update_comparison() {
 	free(im);
 
 	// compute the displayed patch
-	double mini = 10000000.0, maxi = -10000000.0;
+	double mini = DBL_MAX, maxi = DBL_MIN;
 	double *diff = malloc(nb_pix * sizeof(double));
 	double sum = 0.0;
 	for (i = 0; i < nb_pix; i++) {
@@ -308,9 +314,8 @@ void update_comparison() {
 	update_error_display(sum);
 
 	// transfer to ushort range
-
-	// force the range, comment this block to use dynamic range
 	if (mode == MODE_DIRECT) {
+		// force the range, comment this if-else block to use dynamic range
 		mini = -0.3; maxi = 0.3;
 	} else {
 		mini = 0; maxi = 0.09;
