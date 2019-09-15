@@ -12,7 +12,6 @@
 #include "../registration/registration.h"
 
 #define NB_DISPLAYS 3
-#define KERNEL_SIZE 13
 #define MAX_RADIUS 50 // in pixels, maximum local shift
 #define DEV_STRIDE 1 // use every DEV_STRIDE pixels to compute the deviation
 
@@ -26,7 +25,7 @@ char **supported_extensions;
 GtkBuilder *builder = NULL;	// get widget references anywhere
 fits fit[NB_DISPLAYS];
 sequence *seq = NULL;
-cairo_surface_t *surface[NB_DISPLAYS];
+cairo_surface_t *surface[NB_DISPLAYS] = { 0 };
 guchar *graybuf[NB_DISPLAYS];	// R=G=B 8bit version
 int surface_stride[NB_DISPLAYS];
 int changed = 1;
@@ -34,6 +33,7 @@ double zoom[NB_DISPLAYS] = { 1.0 };
 stacking_zone zone = { .centre = {.x = -1.0 } };
 enum { MODE_DIRECT, MODE_SQUARED } mode = MODE_DIRECT;
 double local_shift_x = 0.0, local_shift_y = 0.0;
+int kernel_size = 13;
 
 #define LAYER 0
 
@@ -157,6 +157,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	int image = image_for_widget(widget);
 	if (image < 0 || image > 2) return TRUE;
+	if (zone.half_side <= 0 && image == 2) return TRUE;
 	remap(image); // does nothing if !changed
 
 	// autofit zoom
@@ -253,7 +254,7 @@ void update_comparison() {
 	// get the area from the gaussian-filtered ref image (TODO: ensure monochrome)
 	ref = malloc(nb_pix * sizeof(WORD));
 	WORD *ref_gauss = malloc(fit[0].rx * fit[0].ry * sizeof(WORD));
-	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, KERNEL_SIZE, ref_gauss);
+	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, kernel_size, ref_gauss);
 	//copy_image_zone_to_buffer(&fit[0], &zone, ref, LAYER); // raw image
 	copy_image_buffer_zone_to_buffer(ref_gauss, fit[0].rx, fit[0].ry, &zone, ref);
 	free(ref_gauss);
@@ -261,7 +262,7 @@ void update_comparison() {
 	// get the area from the sequence image, with regdata
 	im = malloc(nb_pix * sizeof(WORD));
 	WORD *im_gauss = malloc(fit[1].rx * fit[1].ry * sizeof(WORD));
-	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, KERNEL_SIZE, im_gauss);
+	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, kernel_size, im_gauss);
 	regdata *regparam = seq->regparam[0];
 	if (regparam) {
 		stacking_zone shifted_zone = { .centre =
@@ -377,7 +378,7 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	WORD ref_min, ref_max;
 	WORD *ref_gauss = malloc(nbdata * sizeof(WORD));
 	float *ref_norm = malloc(nbdata * sizeof(float));
-	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, KERNEL_SIZE, ref_gauss);
+	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, kernel_size, ref_gauss);
 	siril_stats_ushort_minmax(&ref_min, &ref_max, ref_gauss, nbdata);
 	normalize_data(ref_gauss, nbdata, ref_min, ref_max, ref_norm);
 	free(ref_gauss);
@@ -385,7 +386,7 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	WORD im_min, im_max;
 	WORD *gauss = malloc(nbdata * sizeof(WORD));
 	float *im_norm = malloc(nbdata * sizeof(float));
-	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, KERNEL_SIZE, gauss);
+	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, kernel_size, gauss);
 	siril_stats_ushort_minmax(&im_min, &im_max, gauss, nbdata);
 	normalize_data(gauss, nbdata, im_min, im_max, im_norm);
 	free(gauss);
@@ -403,6 +404,7 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	int shiftx = 0, shifty = 0;
+	// THIS IS FUCKING UPSIDE-DOWN
 	int error = search_local_match_gradient_float(ref_norm, im_norm,
 			fit[0].rx, fit[0].ry, &ref_area, &im_area,
 			MAX_RADIUS, DEV_STRIDE,
@@ -426,3 +428,10 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 }
+
+void on_spingauss_value_changed(GtkSpinButton *spin, gpointer user_data) {
+	kernel_size = gtk_spin_button_get_value_as_int(spin);
+	fprintf(stdout, "new kernel size: %d\n", kernel_size);
+	update_comparison();
+}
+
