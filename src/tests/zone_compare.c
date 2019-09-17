@@ -24,6 +24,7 @@ char **supported_extensions;
 
 GtkBuilder *builder = NULL;	// get widget references anywhere
 fits fit[NB_DISPLAYS];
+float *ref, *im; // gaussian-filtered, normalized data of fit[0] and fit[1]
 sequence *seq = NULL;
 cairo_surface_t *surface[NB_DISPLAYS] = { 0 };
 guchar *graybuf[NB_DISPLAYS];	// R=G=B 8bit version
@@ -31,12 +32,13 @@ int surface_stride[NB_DISPLAYS];
 int changed = 1;
 double zoom[NB_DISPLAYS] = { 1.0 };
 stacking_zone zone = { .centre = {.x = -1.0 } };
-enum { MODE_DIRECT, MODE_SQUARED } mode = MODE_DIRECT;
+enum { MODE_DIRECT, MODE_SQUARED, MODE_MEAN } mode = MODE_DIRECT;
 double local_shift_x = 0.0, local_shift_y = 0.0;
 int kernel_size = 13;
 
 #define LAYER 0
 
+void filter_and_normalize_fit(fits *fit, float **buf, gboolean flip);
 void remap(int image);
 void update_comparison();
 void update_shift_display();
@@ -75,6 +77,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "reference frame and images of the sequence must be of the same size\n");
 		exit(1);
 	}
+	filter_and_normalize_fit(&fit[0], &ref, FALSE);
+	filter_and_normalize_fit(&fit[1], &im, FALSE);
 	seq->selnum = 0;
 	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2"));
 	gtk_adjustment_set_upper(adj, (double)(seq->number-1));
@@ -86,11 +90,19 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-/* image modification functions */
-
-
-/* image matching functions */
-
+void filter_and_normalize_fit(fits *fit, float **buf, gboolean flip) {
+	unsigned int nbdata = fit->rx * fit->ry;
+	WORD min, max;
+	WORD *gauss = malloc(nbdata * sizeof(WORD));
+	*buf = realloc(*buf, nbdata * sizeof(float));
+	// TODO: RGB to monochrome
+	cvGaussian(fit->data, fit->rx, fit->ry, kernel_size, gauss);
+	if (flip)
+		cvFlip(gauss, fit->rx, fit->ry);
+	siril_stats_ushort_minmax(&min, &max, gauss, nbdata);
+	normalize_data(gauss, nbdata, min, max, *buf);
+	free(gauss);
+}
 
 /* image display functions */
 void remap(int image) {
@@ -221,6 +233,7 @@ void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
 		return;
 	}
 	seq->selnum = image;
+	filter_and_normalize_fit(&fit[1], &im, FALSE);
 	image_find_minmax(&fit[1]);
 	changed = 1;
 	remap(1);
@@ -247,80 +260,91 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 void update_comparison() {
 	if (zone.half_side <= 0)
 		return;
+	int side = get_side(&zone), nb_pix = side * side;
+	float *ref_zone = malloc(nb_pix * sizeof(float));
+	if (copy_image_buffer_zone_to_buffer_float(ref, fit[0].rx, fit[0].ry, &zone, ref_zone)) {
+		fprintf(stderr, "zone is outside image\n");
+		free(ref_zone);
+		return;
+	}
 
-	int i, side = get_side(&zone), nb_pix = side * side;
-	WORD *ref, *im;	// gaussian-filtered data for the reference and image areas
-
-	// get the area from the gaussian-filtered ref image (TODO: ensure monochrome)
-	ref = malloc(nb_pix * sizeof(WORD));
-	WORD *ref_gauss = malloc(fit[0].rx * fit[0].ry * sizeof(WORD));
-	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, kernel_size, ref_gauss);
-	//copy_image_zone_to_buffer(&fit[0], &zone, ref, LAYER); // raw image
-	copy_image_buffer_zone_to_buffer(ref_gauss, fit[0].rx, fit[0].ry, &zone, ref);
-	free(ref_gauss);
+	fprintf(stdout, "ref_zone: %g %g %g %g %g\n", ref_zone[0],
+			ref_zone[1], ref_zone[2], ref_zone[3], ref_zone[4]); 
 	
 	// get the area from the sequence image, with regdata
-	im = malloc(nb_pix * sizeof(WORD));
-	WORD *im_gauss = malloc(fit[1].rx * fit[1].ry * sizeof(WORD));
-	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, kernel_size, im_gauss);
+	float *im_zone = malloc(nb_pix * sizeof(float));
 	regdata *regparam = seq->regparam[0];
 	if (regparam) {
 		stacking_zone shifted_zone = { .centre =
 			{ .x = round_to_int(zone.centre.x - regparam[seq->selnum].shiftx + local_shift_x),
 				.y = round_to_int(zone.centre.y + regparam[seq->selnum].shifty + local_shift_y) },
 			.half_side = zone.half_side };
-		//copy_image_zone_to_buffer(&fit[1], &shifted_zone, im, LAYER);
-		copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &shifted_zone, im);
+		if (copy_image_buffer_zone_to_buffer_float(im, fit[1].rx, fit[1].ry, &shifted_zone, im_zone)) {
+			fprintf(stderr, "zone is outside image\n");
+			free(ref_zone); free(im_zone);
+			return;
+		}
 		fprintf(stdout, "comparing zones centered on %d, %d of reference to %d, %d of image\n",
 				zone.centre.x, zone.centre.y,
 				shifted_zone.centre.x, shifted_zone.centre.y);
 	}
 	else {
-		copy_image_buffer_zone_to_buffer(im_gauss, fit[1].rx, fit[1].ry, &zone, im);
+		if (copy_image_buffer_zone_to_buffer_float(im, fit[1].rx, fit[1].ry, &zone, im_zone)) {
+			fprintf(stderr, "zone is outside image\n");
+			free(ref_zone); free(im_zone);
+			return;
+		}
 		fprintf(stdout, "comparing zones centered on %d, %d of reference to the same of image\n",
 				zone.centre.x, zone.centre.y);
 	}
-	free(im_gauss);
-
-	// normalize both images data
-	float *ref_norm = malloc(nb_pix * sizeof(float));
-	WORD ref_min, ref_max;
-	siril_stats_ushort_minmax(&ref_min, &ref_max, ref, nb_pix);
-	normalize_data(ref, nb_pix, ref_min, ref_max, ref_norm);
-	free(ref);
-
-	float *im_norm = malloc(nb_pix * sizeof(float));
-	WORD im_min, im_max;
-	siril_stats_ushort_minmax(&im_min, &im_max, im, nb_pix);
-	normalize_data(im, nb_pix, im_min, im_max, im_norm);
-	free(im);
 
 	// compute the displayed patch
-	double mini = DBL_MAX, maxi = DBL_MIN;
+	double mini = DBL_MAX, maxi = DBL_MIN, sum = 0.0;
 	double *diff = malloc(nb_pix * sizeof(double));
-	double sum = 0.0;
+	int i;
 	for (i = 0; i < nb_pix; i++) {
-		if (mode == MODE_DIRECT)
-			diff[i] = ref_norm[i] - im_norm[i];
-		else diff[i] = (ref_norm[i] - im_norm[i]) * (ref_norm[i] - im_norm[i]);
-		sum += fabs(diff[i]);
+		switch (mode) {
+		case MODE_DIRECT:
+		case MODE_MEAN:
+			diff[i] = ref_zone[i] - im_zone[i];
+			sum += fabs(diff[i]);
+			break;
+		case MODE_SQUARED:
+			diff[i] = (ref_zone[i] - im_zone[i]) * (ref_zone[i] - im_zone[i]);
+			sum += diff[i];
+			break;
+		}
 		if (diff[i] < mini)
 			mini = diff[i];
 		if (diff[i] > maxi)
 			maxi = diff[i];
 	}
-	free(im_norm);
-	free(ref_norm);
+	if (mode == MODE_MEAN) {
+		double add = 0.0;
+		for (i = 0; i < nb_pix; i++)
+			add += fabs(diff[i]);
+		double mean = add / nb_pix;
+		double max = 0.0;
+		for (i = 0; i < nb_pix; i++) {
+			double dev = (diff[i] - mean) * (diff[i] - mean);
+			if (dev > max)
+				max = dev;
+		}
+		sum = max;	// for display
+	}
+
+	free(im_zone);
+	free(ref_zone);
 	fprintf(stdout, "mini: %g, maxi: %g\n", mini, maxi);
 	update_error_display(sum);
 
-	// transfer to ushort range
-	if (mode == MODE_DIRECT) {
+	// transfer to ushort range for display
+	/*if (mode == MODE_DIRECT) {
 		// force the range, comment this if-else block to use dynamic range
-		mini = -0.3; maxi = 0.3;
+		mini = -0.1; maxi = 0.1;
 	} else {
-		mini = 0; maxi = 0.09;
-	}
+		mini = 0.0; maxi = 0.01;
+	}*/
 	double pente = USHRT_MAX_DOUBLE / (maxi - mini);
 	WORD *result = malloc(nb_pix * sizeof(WORD));
 	for (i = 0; i < nb_pix; i++) {
@@ -350,6 +374,11 @@ void on_radiosquared_toggled(GtkRadioButton *button, gpointer user_data) {
 	update_comparison();
 }
 
+void on_radiovariance_toggled(GtkRadioButton *button, gpointer user_data) {
+	mode = MODE_MEAN;
+	update_comparison();
+}
+
 void on_localXspin_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	local_shift_x = gtk_spin_button_get_value(spinbutton);
 	update_comparison();
@@ -362,8 +391,8 @@ void on_localYspin_value_changed(GtkSpinButton *spinbutton, gpointer user_data) 
 
 static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle) {
 	int side = get_side(zone);
-	rectangle->x = zone->centre.x - zone->half_side;
-	rectangle->y = zone->centre.y - zone->half_side;
+	rectangle->x = round_to_int(zone->centre.x - zone->half_side);
+	rectangle->y = round_to_int(zone->centre.y - zone->half_side);
 	rectangle->w = side;
 	rectangle->h = side;
 }
@@ -372,25 +401,10 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	if (zone.half_side <= 0)
 		return;
 
-	/* finding the local minimum requires having the reference image and the tested
-	 * image as gaussian-filtered full image data and the two search areas */
-	unsigned int nbdata = fit[0].rx * fit[0].ry;
-	WORD ref_min, ref_max;
-	WORD *ref_gauss = malloc(nbdata * sizeof(WORD));
-	float *ref_norm = malloc(nbdata * sizeof(float));
-	cvGaussian(fit[0].data, fit[0].rx, fit[0].ry, kernel_size, ref_gauss);
-	siril_stats_ushort_minmax(&ref_min, &ref_max, ref_gauss, nbdata);
-	normalize_data(ref_gauss, nbdata, ref_min, ref_max, ref_norm);
-	free(ref_gauss);
+	float *ref_flip = NULL, *im_flip = NULL;
+	filter_and_normalize_fit(&fit[0], &ref_flip, TRUE);
+	filter_and_normalize_fit(&fit[1], &im_flip, TRUE);
 
-	WORD im_min, im_max;
-	WORD *gauss = malloc(nbdata * sizeof(WORD));
-	float *im_norm = malloc(nbdata * sizeof(float));
-	cvGaussian(fit[1].data, fit[1].rx, fit[1].ry, kernel_size, gauss);
-	siril_stats_ushort_minmax(&im_min, &im_max, gauss, nbdata);
-	normalize_data(gauss, nbdata, im_min, im_max, im_norm);
-	free(gauss);
-	
 	rectangle ref_area, im_area;
 	zone_to_rectangle(&zone, &ref_area);
 	zone_to_rectangle(&zone, &im_area);
@@ -403,9 +417,11 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 		zone_to_rectangle(&shifted_zone, &im_area);
 	}
 
+	int ref_i = ref_area.y * fit[0].rx + ref_area.x;
+	fprintf(stdout, "ref_flip: %g %g %g %g %g\n", ref_flip[ref_i], ref_flip[ref_i+1],
+			ref_flip[ref_i+2], ref_flip[ref_i+3], ref_flip[ref_i+4]);
 	int shiftx = 0, shifty = 0;
-	// THIS IS FUCKING UPSIDE-DOWN
-	int error = search_local_match_gradient_float(ref_norm, im_norm,
+	int error = search_local_match_gradient_float(ref_flip, im_flip,
 			fit[0].rx, fit[0].ry, &ref_area, &im_area,
 			MAX_RADIUS, DEV_STRIDE,
 			&shiftx, &shifty);
@@ -413,10 +429,10 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	if (regparam) {
 		// result is relative to the provided area, but our local shift is added
 		// to the area
-		local_shift_x = -regparam[seq->selnum].shiftx - (double)shiftx;
-		local_shift_y = regparam[seq->selnum].shifty - (double)shifty + 1.0;
-	} else {
-		local_shift_x = -(double)shiftx;
+/*		local_shift_x = -regparam[seq->selnum].shiftx - (double)shiftx;
+		local_shift_y = regparam[seq->selnum].shifty + (double)shifty;
+	} else {*/
+		local_shift_x = (double)shiftx;
 		local_shift_y = -(double)shifty;
 	}
 
@@ -426,7 +442,6 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "localXspin")), local_shift_x);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "localYspin")), local_shift_y);
 	}
-
 }
 
 void on_spingauss_value_changed(GtkSpinButton *spin, gpointer user_data) {

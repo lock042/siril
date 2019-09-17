@@ -390,6 +390,23 @@ Click to position the processed zone/patch/area.</property>
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkRadioButton" id="radiovariance">
+                    <property name="label" translatable="yes">Variance</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="active">True</property>
+                    <property name="draw_indicator">True</property>
+                    <property name="group">radiodirect</property>
+                    <signal name="toggled" handler="on_radiovariance_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkLabel" id="labelgauss">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -402,7 +419,7 @@ Click to position the processed zone/patch/area.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
                 <child>
@@ -419,7 +436,7 @@ Click to position the processed zone/patch/area.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">3</property>
+                    <property name="position">4</property>
                   </packing>
                 </child>
               </object>
