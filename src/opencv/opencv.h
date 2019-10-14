@@ -41,7 +41,7 @@ void cvLaplacian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output
 
 void cvGaussian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output);
 void cvToMonochrome(WORD *image_data[3], int rx, int ry, WORD *output);
-void cvFlip(WORD *image_data, int rx, int ry);
+void cvFlip_siril(WORD *image_data, int rx, int ry);
 #ifdef __cplusplus
 }
 #endif

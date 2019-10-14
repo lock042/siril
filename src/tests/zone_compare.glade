@@ -395,6 +395,7 @@ Click to position the processed zone/patch/area.</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
+                    <property name="tooltip_text" translatable="yes">For testing purposes, shows the same image as direct, but with different error measurement</property>
                     <property name="active">True</property>
                     <property name="draw_indicator">True</property>
                     <property name="group">radiodirect</property>
@@ -404,6 +405,24 @@ Click to position the processed zone/patch/area.</property>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="adaptive_render_checkbox">
+                    <property name="label" translatable="yes">Adaptive display</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="tooltip_text" translatable="yes">Adapt the screen transfer function to min/max values of the image on the bottom left. Otherwise, a fixed range is used, which can be a better way to compare what is seen.</property>
+                    <property name="active">True</property>
+                    <property name="draw_indicator">True</property>
+                    <signal name="toggled" handler="on_adaptive_render_checkbox_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="padding">14</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
                 <child>
@@ -419,7 +438,7 @@ Click to position the processed zone/patch/area.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">3</property>
+                    <property name="position">4</property>
                   </packing>
                 </child>
                 <child>
@@ -436,7 +455,7 @@ Click to position the processed zone/patch/area.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">4</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
               </object>

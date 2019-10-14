@@ -732,7 +732,7 @@ void cvLaplacian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output
 	out.release();
 }
 
-void cvFlip(WORD *image_data, int rx, int ry) {
+void cvFlip_siril(WORD *image_data, int rx, int ry) {
 	Mat image(ry, rx, CV_16UC1, image_data);
 	flip(image, image, 0);
 	image.release();

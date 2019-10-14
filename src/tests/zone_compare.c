@@ -33,6 +33,7 @@ int changed = 1;
 double zoom[NB_DISPLAYS] = { 1.0 };
 stacking_zone zone = { .centre = {.x = -1.0 } };
 enum { MODE_DIRECT, MODE_SQUARED, MODE_MEAN } mode = MODE_DIRECT;
+int adaptive_rendering = 1;
 double local_shift_x = 0.0, local_shift_y = 0.0;
 int kernel_size = 13;
 
@@ -98,7 +99,7 @@ void filter_and_normalize_fit(fits *fit, float **buf, gboolean flip) {
 	// TODO: RGB to monochrome
 	cvGaussian(fit->data, fit->rx, fit->ry, kernel_size, gauss);
 	if (flip)
-		cvFlip(gauss, fit->rx, fit->ry);
+		cvFlip_siril(gauss, fit->rx, fit->ry);
 	siril_stats_ushort_minmax(&min, &max, gauss, nbdata);
 	normalize_data(gauss, nbdata, min, max, *buf);
 	free(gauss);
@@ -339,12 +340,14 @@ void update_comparison() {
 	update_error_display(sum);
 
 	// transfer to ushort range for display
-	/*if (mode == MODE_DIRECT) {
-		// force the range, comment this if-else block to use dynamic range
-		mini = -0.1; maxi = 0.1;
-	} else {
-		mini = 0.0; maxi = 0.01;
-	}*/
+	if (!adaptive_rendering) {
+		// force the range
+		if (mode == MODE_DIRECT) {
+			mini = -0.1; maxi = 0.1;
+		} else {
+			mini = 0.0; maxi = 0.006;
+		}
+	}
 	double pente = USHRT_MAX_DOUBLE / (maxi - mini);
 	WORD *result = malloc(nb_pix * sizeof(WORD));
 	for (i = 0; i < nb_pix; i++) {
@@ -447,6 +450,11 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 void on_spingauss_value_changed(GtkSpinButton *spin, gpointer user_data) {
 	kernel_size = gtk_spin_button_get_value_as_int(spin);
 	fprintf(stdout, "new kernel size: %d\n", kernel_size);
+	update_comparison();
+}
+
+void on_adaptive_render_checkbox_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	adaptive_rendering = gtk_toggle_button_get_active(togglebutton);
 	update_comparison();
 }
 
