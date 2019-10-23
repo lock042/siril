@@ -45,6 +45,7 @@
 #define USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE 0
 
 static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle);
+static void compute_gradients_of_square_buffer(float *ref_zone, int w, int h, float *gradient);
 
 struct mppsd_data {
 	BYTE **best_zones;	// index of best zones per image
@@ -59,6 +60,7 @@ struct mppsd_data {
 
 	WORD *reference_data;	// gaussian filtered data for the reference image
 	float *normalized_refdata;	// the same normalized
+	float *ref_gradient;	// gradients of the normalized data
 
 	/* stacking data */
 	unsigned long *sum[3];	// the new image's channels
@@ -95,8 +97,11 @@ static int mppsd_prepare_hook(struct generic_seq_args *args) {
 #endif
 	// Normalization
 	mppdata->normalized_refdata = malloc(nbdata * args->seq->nb_layers * sizeof(float));
+	mppdata->ref_gradient = malloc(nbdata * args->seq->nb_layers * sizeof(float));
 	normalize_data(mppdata->reference_data, nbdata*args->seq->nb_layers,
 			ref_min, ref_max, mppdata->normalized_refdata);
+	compute_gradients_of_square_buffer(mppdata->normalized_refdata,
+			args->seq->rx, args->seq->ry, mppdata->ref_gradient);
 
 	mppdata->sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
 	mppdata->count[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
@@ -176,7 +181,7 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 			/* error = search_local_match_gradient(mppdata->reference_data,
 					gaussian_data, fit->rx, fit->ry, &ref_area,
 					&im_area, max_radius, 1, &shiftx, &shifty); */
-			error = search_local_match_gradient_float(mppdata->normalized_refdata,
+			error = search_local_match_gradient_float(mppdata->normalized_refdata, mppdata->ref_gradient,
 					normalized_gaussian_data, fit->rx, fit->ry, &ref_area,
 					&im_area, max_radius, 1, &shiftx, &shifty);
 		}
@@ -355,5 +360,31 @@ static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle) {
 	rectangle->y = zone->centre.y - zone->half_side;
 	rectangle->w = side;
 	rectangle->h = side;
+}
+
+static void compute_gradients_of_square_buffer(float *ref_zone, int w, int h, float *gradient) {
+	int x, y, i;
+	for (y = 0; y < h; y++) {
+		for (x = 0; x < w; x++) {
+			i = y * w + x;
+			if (x == 0)
+				gradient[i] = fabs(ref_zone[i] - ref_zone[i+1]);
+			else if (x == w-1)
+				gradient[i] = fabs(ref_zone[i] - ref_zone[i-1]);
+			else {
+				gradient[i] = fabs(ref_zone[i] - ref_zone[i-1]);
+				gradient[i] += fabs(ref_zone[i] - ref_zone[i+1]);
+			}
+
+			if (y == 0)
+				gradient[i] += fabs(ref_zone[i] - ref_zone[i+w]);
+			else if (y == h-1)
+				gradient[i] += fabs(ref_zone[i] - ref_zone[i-w]);
+			else {
+				gradient[i] += fabs(ref_zone[i] - ref_zone[i-w]);
+				gradient[i] += fabs(ref_zone[i] - ref_zone[i+w]);
+			}
+		}
+	}
 }
 

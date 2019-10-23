@@ -19,7 +19,7 @@
  */
 
 /* This is the steepest descent registration for full images.
- * It is defined here as a generic registration method, but is used only 
+ * It is defined here as a generic registration method, but is used only
  * in planetary mode.
  * It runs two passes on the sequence: the first computes image quality, the
  * second computes the shifts. If caching is enabled, during the first pass,
@@ -43,6 +43,7 @@
 #include "io/sequence.h"
 
 //#define USE_DEVIATION_SQUARED
+//#define USE_DEVIATION_GRADIENT
 
 struct regsd_data {
 	struct registration_args *regargs;
@@ -104,7 +105,7 @@ static int regsd_image_hook(struct generic_seq_args *args,
 		int out_index, int in_index, fits *fit, rectangle *_) {
 	struct regsd_data *rsdata = args->user;
 	//struct registration_args *regargs = rsdata->regargs;
-	
+
 	if (in_index == args->seq->reference_image)
 		return 0;
 	WORD *gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
@@ -147,7 +148,7 @@ static int regsd_finalize_hook(struct generic_seq_args *args) {
 		args->seq->regparam[args->layer] = rsdata->current_regdata;
 		siril_log_message(_("Registration finished.\n"));
 		writeseqfile(args->seq);
-	} 
+	}
 	else {
 		siril_log_message(_("Registration aborted.\n"));
 	}
@@ -304,6 +305,26 @@ static float compute_squared_deviation_float(float *ref_frame, float *frame,
 	return sum;
 }
 
+// the same in float and using the gradient
+static float compute_gradient_deviation_float(float *ref_frame, float *ref_gradient, float *frame,
+		int width, int height, rectangle *ref_area, rectangle *area,
+		int stride) {
+	float sum = 0.0f;
+	int x, y;
+	int ref_i = ref_area->y * width + ref_area->x;
+	int i = area->y * width + area->x;
+	for (y = 0; y < area->h; y++) {
+		for (x = 0; x < area->w; x += stride) {
+			sum += ref_gradient[ref_i] * fabsf(ref_frame[ref_i] - frame[i]);
+			ref_i += stride;
+			i += stride;
+		}
+		ref_i += width - area->w + 1;
+		i += width - area->w + 1;
+	}
+	return sum;
+}
+
 /* Search patterns used for steepest descent. The samples outside the main 3x3
  * are here to help circumvent the local minimum problem.
  */
@@ -434,7 +455,8 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 }
 
 // The same in float
-int search_local_match_gradient_float(float *ref_frame, float *frame, int width, int height,
+int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, float *frame,
+		int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
 		int sampling_stride, int *dx_result, int *dy_result)
 {
@@ -446,6 +468,9 @@ int search_local_match_gradient_float(float *ref_frame, float *frame, int width,
 #ifdef USE_DEVIATION_SQUARED
 	float deviation_min = compute_squared_deviation_float(ref_frame, frame, width,
 			height, ref_area, area, sampling_stride);
+#elif USE_DEVIATION_GRADIENT
+	float deviation_min = compute_gradient_deviation_float(ref_frame, ref_gradient,
+			frame, width, height, ref_area, area, sampling_stride);
 #else
 	float deviation_min = compute_deviation_float(ref_frame, frame, width,
 			height, ref_area, area, sampling_stride);
