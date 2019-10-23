@@ -32,7 +32,7 @@ int surface_stride[NB_DISPLAYS];
 int changed = 1;
 double zoom[NB_DISPLAYS] = { 1.0 };
 stacking_zone zone = { .centre = {.x = -1.0 } };
-enum { MODE_DIRECT, MODE_SQUARED, MODE_MEAN } mode = MODE_DIRECT;
+enum { MODE_DIRECT, MODE_SQUARED, MODE_EXPERIMENTAL } mode = MODE_DIRECT;
 int adaptive_rendering = 1;
 double local_shift_x = 0.0, local_shift_y = 0.0;
 int kernel_size = 13;
@@ -43,6 +43,7 @@ void filter_and_normalize_fit(fits *fit, float **buf, gboolean flip);
 void remap(int image);
 void update_comparison();
 void update_shift_display();
+void compute_gradients_of_square_buffer(float *ref_zone, int side, float *xgradient, float *ygradient);
 
 int main(int argc, char **argv) {
 	if (argc < 3) {
@@ -195,7 +196,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 		// draw points at the centre
 		cairo_set_line_width(cr, 4.0);
-		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);	// red 
+		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);	// red
 		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
 		cairo_move_to(cr, zone.centre.x, zone.centre.y);
 		cairo_close_path(cr);
@@ -227,17 +228,19 @@ void update_error_display(double err) {
 }
 
 void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
-	int image = round_to_int(gtk_range_get_value(range));		
+	int image = round_to_int(gtk_range_get_value(range));
 	clearfits(&fit[1]);
 	if (seq_read_frame(seq, image, &fit[1])) {
 		fprintf(stderr, "could not open image %d from sequence\n", image);
 		return;
 	}
 	seq->selnum = image;
+	filter_and_normalize_fit(&fit[0], &ref, FALSE);
 	filter_and_normalize_fit(&fit[1], &im, FALSE);
 	image_find_minmax(&fit[1]);
 	changed = 1;
 	remap(1);
+	gtk_widget_queue_draw(widget_for_image(0));
 	gtk_widget_queue_draw(widget_for_image(1));
 	update_shift_display();
 	update_comparison();
@@ -263,15 +266,22 @@ void update_comparison() {
 		return;
 	int side = get_side(&zone), nb_pix = side * side;
 	float *ref_zone = malloc(nb_pix * sizeof(float));
+	float *ref_gradient_x = NULL;
+	float *ref_gradient_y = NULL;
 	if (copy_image_buffer_zone_to_buffer_float(ref, fit[0].rx, fit[0].ry, &zone, ref_zone)) {
 		fprintf(stderr, "zone is outside image\n");
 		free(ref_zone);
 		return;
 	}
+	if (mode == MODE_EXPERIMENTAL) {
+		ref_gradient_x = malloc(nb_pix * sizeof(float));
+		ref_gradient_y = malloc(nb_pix * sizeof(float));
+		compute_gradients_of_square_buffer(ref_zone, side, ref_gradient_x, ref_gradient_y);
+	}
 
 	fprintf(stdout, "ref_zone: %g %g %g %g %g\n", ref_zone[0],
-			ref_zone[1], ref_zone[2], ref_zone[3], ref_zone[4]); 
-	
+			ref_zone[1], ref_zone[2], ref_zone[3], ref_zone[4]);
+
 	// get the area from the sequence image, with regdata
 	float *im_zone = malloc(nb_pix * sizeof(float));
 	regdata *regparam = seq->regparam[0];
@@ -305,25 +315,28 @@ void update_comparison() {
 	int i;
 	for (i = 0; i < nb_pix; i++) {
 		switch (mode) {
-		case MODE_DIRECT:
-		case MODE_MEAN:
-			diff[i] = ref_zone[i] - im_zone[i];
-			sum += fabs(diff[i]);
-			break;
-		case MODE_SQUARED:
-			diff[i] = (ref_zone[i] - im_zone[i]) * (ref_zone[i] - im_zone[i]);
-			sum += diff[i];
-			break;
+			case MODE_DIRECT:
+				diff[i] = ref_zone[i] - im_zone[i];
+				sum += fabs(diff[i]);
+				break;
+			case MODE_EXPERIMENTAL:
+				diff[i] = (ref_gradient_x[i] + ref_gradient_y[i]) * fabs(ref_zone[i] - im_zone[i]);
+				sum += diff[i];
+				break;
+			case MODE_SQUARED:
+				diff[i] = (ref_zone[i] - im_zone[i]) * (ref_zone[i] - im_zone[i]);
+				sum += diff[i];
+				break;
 		}
 		if (diff[i] < mini)
 			mini = diff[i];
 		if (diff[i] > maxi)
 			maxi = diff[i];
 	}
-	if (mode == MODE_MEAN) {
+	/*if (mode == MODE_EXPERIMENTAL) {
 		double add = 0.0;
 		for (i = 0; i < nb_pix; i++)
-			add += fabs(diff[i]);
+			add += exp(M_PI * fabs(diff[i])) - 1.0;
 		double mean = add / nb_pix;
 		double max = 0.0;
 		for (i = 0; i < nb_pix; i++) {
@@ -332,7 +345,7 @@ void update_comparison() {
 				max = dev;
 		}
 		sum = max;	// for display
-	}
+	}*/
 
 	free(im_zone);
 	free(ref_zone);
@@ -342,10 +355,16 @@ void update_comparison() {
 	// transfer to ushort range for display
 	if (!adaptive_rendering) {
 		// force the range
-		if (mode == MODE_DIRECT) {
-			mini = -0.1; maxi = 0.1;
-		} else {
-			mini = 0.0; maxi = 0.006;
+		switch (mode) {
+			case MODE_DIRECT:
+				mini = -0.1; maxi = 0.1;
+				break;
+			case MODE_SQUARED:
+				mini = 0.0; maxi = 0.006;
+				break;
+			case MODE_EXPERIMENTAL:
+				mini = 0.0; maxi = 1;
+				break;
 		}
 	}
 	double pente = USHRT_MAX_DOUBLE / (maxi - mini);
@@ -378,7 +397,7 @@ void on_radiosquared_toggled(GtkRadioButton *button, gpointer user_data) {
 }
 
 void on_radiovariance_toggled(GtkRadioButton *button, gpointer user_data) {
-	mode = MODE_MEAN;
+	mode = MODE_EXPERIMENTAL;
 	update_comparison();
 }
 
@@ -458,3 +477,28 @@ void on_adaptive_render_checkbox_toggled(GtkToggleButton *togglebutton, gpointer
 	update_comparison();
 }
 
+void compute_gradients_of_square_buffer(float *ref_zone, int side, float *xgradient, float *ygradient) {
+	int x, y, i;
+	for (y = 0; y < side; y++) {
+		for (x = 0; x < side; x++) {
+			i = y * side + x;
+			if (x == 0)
+				xgradient[i] = fabs(ref_zone[i] - ref_zone[i+1]);
+			else if (x == side-1)
+				xgradient[i] = fabs(ref_zone[i] - ref_zone[i-1]);
+			else {
+				xgradient[i] = fabs(ref_zone[i] - ref_zone[i-1]);
+				xgradient[i] += fabs(ref_zone[i] - ref_zone[i+1]);
+			}
+
+			if (y == 0)
+				ygradient[i] = fabs(ref_zone[i] - ref_zone[i+side]);
+			else if (y == side-1)
+				ygradient[i] = fabs(ref_zone[i] - ref_zone[i-side]);
+			else {
+				ygradient[i] = fabs(ref_zone[i] - ref_zone[i-side]);
+				ygradient[i] += fabs(ref_zone[i] - ref_zone[i+side]);
+			}
+		}
+	}
+}
