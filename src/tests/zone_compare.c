@@ -43,7 +43,6 @@ void filter_and_normalize_fit(fits *fit, float **buf, gboolean flip);
 void remap(int image);
 void update_comparison();
 void update_shift_display();
-void compute_gradients_of_square_buffer(float *ref_zone, int side, float *gradient);
 
 int main(int argc, char **argv) {
 	if (argc < 3) {
@@ -165,7 +164,7 @@ GtkWidget *widget_for_image(int image) {
 	return GTK_WIDGET(gtk_builder_get_object(builder, wname));
 }
 
-gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
+gboolean zc_redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int window_width = gtk_widget_get_allocated_width(widget);
 	int window_height = gtk_widget_get_allocated_height(widget);
 
@@ -246,7 +245,7 @@ void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
 	update_comparison();
 }
 
-gboolean on_drawingarea_button_press_event(GtkWidget *widget,
+gboolean zc_on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 	int image = image_for_widget(widget);
 	zone.centre.x = event->x / zoom[image];
@@ -274,7 +273,7 @@ void update_comparison() {
 	}
 	if (mode == MODE_EXPERIMENTAL) {
 		ref_gradient = malloc(nb_pix * sizeof(float));
-		compute_gradients_of_square_buffer(ref_zone, side, ref_gradient);
+		compute_gradients_of_buffer(ref_zone, side, side, ref_gradient);
 	}
 
 	fprintf(stdout, "ref_zone: %g %g %g %g %g\n", ref_zone[0],
@@ -424,6 +423,8 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	float *ref_flip = NULL, *im_flip = NULL;
 	filter_and_normalize_fit(&fit[0], &ref_flip, TRUE);
 	filter_and_normalize_fit(&fit[1], &im_flip, TRUE);
+	float *ref_gradient = malloc(fit[0].rx * fit[0].ry * sizeof(float));
+	compute_gradients_of_buffer(ref_flip, fit[0].rx, fit[0].ry, ref_gradient);
 
 	rectangle ref_area, im_area;
 	zone_to_rectangle(&zone, &ref_area);
@@ -441,7 +442,7 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	fprintf(stdout, "ref_flip: %g %g %g %g %g\n", ref_flip[ref_i], ref_flip[ref_i+1],
 			ref_flip[ref_i+2], ref_flip[ref_i+3], ref_flip[ref_i+4]);
 	int shiftx = 0, shifty = 0;
-	int error = search_local_match_gradient_float(ref_flip, im_flip,
+	int error = search_local_match_gradient_float(ref_flip, im_flip, ref_gradient,
 			fit[0].rx, fit[0].ry, &ref_area, &im_area,
 			MAX_RADIUS, DEV_STRIDE,
 			&shiftx, &shifty);
@@ -473,30 +474,4 @@ void on_spingauss_value_changed(GtkSpinButton *spin, gpointer user_data) {
 void on_adaptive_render_checkbox_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	adaptive_rendering = gtk_toggle_button_get_active(togglebutton);
 	update_comparison();
-}
-
-void compute_gradients_of_square_buffer(float *ref_zone, int side, float *gradient) {
-	int x, y, i;
-	for (y = 0; y < side; y++) {
-		for (x = 0; x < side; x++) {
-			i = y * side + x;
-			if (x == 0)
-				gradient[i] = fabs(ref_zone[i] - ref_zone[i+1]);
-			else if (x == side-1)
-				gradient[i] = fabs(ref_zone[i] - ref_zone[i-1]);
-			else {
-				gradient[i] = fabs(ref_zone[i] - ref_zone[i-1]);
-				gradient[i] += fabs(ref_zone[i] - ref_zone[i+1]);
-			}
-
-			if (y == 0)
-				gradient[i] += fabs(ref_zone[i] - ref_zone[i+side]);
-			else if (y == side-1)
-				gradient[i] += fabs(ref_zone[i] - ref_zone[i-side]);
-			else {
-				gradient[i] += fabs(ref_zone[i] - ref_zone[i-side]);
-				gradient[i] += fabs(ref_zone[i] - ref_zone[i+side]);
-			}
-		}
-	}
 }

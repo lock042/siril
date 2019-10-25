@@ -93,6 +93,7 @@ int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, flo
 		int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
 		int sampling_stride, int *dx_result, int *dy_result);
+void compute_gradients_of_buffer(float *ref_zone, int w, int h, float *gradient); // for tests
 
 /** getter */
 int get_registration_layer(sequence *seq);

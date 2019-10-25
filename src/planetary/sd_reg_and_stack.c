@@ -45,7 +45,6 @@
 #define USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE 0
 
 static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle);
-static void compute_gradients_of_square_buffer(float *ref_zone, int w, int h, float *gradient);
 
 struct mppsd_data {
 	BYTE **best_zones;	// index of best zones per image
@@ -100,7 +99,7 @@ static int mppsd_prepare_hook(struct generic_seq_args *args) {
 	mppdata->ref_gradient = malloc(nbdata * args->seq->nb_layers * sizeof(float));
 	normalize_data(mppdata->reference_data, nbdata*args->seq->nb_layers,
 			ref_min, ref_max, mppdata->normalized_refdata);
-	compute_gradients_of_square_buffer(mppdata->normalized_refdata,
+	compute_gradients_of_buffer(mppdata->normalized_refdata,
 			args->seq->rx, args->seq->ry, mppdata->ref_gradient);
 
 	mppdata->sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
@@ -362,7 +361,7 @@ static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle) {
 	rectangle->h = side;
 }
 
-static void compute_gradients_of_square_buffer(float *ref_zone, int w, int h, float *gradient) {
+void compute_gradients_of_buffer(float *ref_zone, int w, int h, float *gradient) {
 	int x, y, i;
 	for (y = 0; y < h; y++) {
 		for (x = 0; x < w; x++) {
