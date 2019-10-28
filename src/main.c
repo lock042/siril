@@ -51,6 +51,7 @@
 #include "core/command.h"
 #include "core/pipe.h"
 #include "core/undo.h"
+#include "core/sirilbacktrace.h"
 #include "algos/star_finder.h"
 #include "algos/photometry.h"
 #include "io/sequence.h"
@@ -195,6 +196,7 @@ static char *siril_sources[] = {
 
 static void signal_handled(int s) {
 	// printf("Caught signal %d\n", s);
+	SirilBacktrace *backtrace = siril_backtrace_new(FALSE);
 	gtk_main_quit();
 }
 
@@ -333,6 +335,8 @@ int main(int argc, char *argv[]) {
 	memset(&com, 0, sizeof(struct cominf));	// needed?
 	com.initfile = NULL;
 
+	siril_backtrace_init();
+
 	/* Caught signals */
 	signal(SIGINT, signal_handled);
 
@@ -392,6 +396,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+	 int *foo = (int*)-1; // make a bad pointer
+	  printf("%d\n", *foo);       // causes segfault
 
 	/***************
 	 *  initialization of some parameters that need to be done before

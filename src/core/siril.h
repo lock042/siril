@@ -175,6 +175,7 @@ typedef enum {
 
 #define MAX_STARS 200000		// maximum length of com.stars
 
+typedef struct _SirilBacktrace SirilBacktrace;
 typedef struct imdata imgdata;
 typedef struct registration_data regdata;
 typedef struct layer_info_struct layer_info;

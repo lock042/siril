@@ -52,12 +52,14 @@ packagesrcdir=`cd $srcdir && pwd`
 AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR, "${packagesrcdir}", [Package source dir])
 
 # Checks for header files.
-AC_CHECK_HEADERS([sys/vfs.h sys/vmount.h sys/statfs.h sys/statvfs.h sys/filio.h])
+AC_CHECK_HEADERS([execinfo.h  sys/vfs.h sys/vmount.h sys/statfs.h sys/statvfs.h sys/filio.h])
 
 # Checks for reallocarray function (used in kplot)
 AC_CHECK_FUNCS(reallocarray, AC_DEFINE([HAVE_REALLOCARRAY], [1], [reallocarray is available]), )
 # Checks for library functions.
 AC_CHECK_FUNCS(timegm gmtime_r)
+
+AC_CHECK_FUNCS(backtrace, , AC_CHECK_LIB(execinfo, backtrace))
 
 
 dnl Set PACKAGE_DOC_DIR in config.h.
@@ -293,6 +295,44 @@ if test `uname` != "Darwin"; then
 	if (test "$platform_win32" = "yes" || test "os_win32" = "yes" ) ; then
 		AC_SUBST(EXTRA_LIBS,'-lpsapi')
 	fi
+fi
+
+########################
+# Check for libbacktrace
+########################
+
+AC_ARG_WITH(libbacktrace, [  --without-libbacktrace build without libbacktrace support])
+
+have_libbacktrace=no
+if test "x$with_libbacktrace" != xno; then
+  have_libbacktrace=yes
+
+  gimp_save_LIBS=$LIBS
+  LIBS="$LIBS -lbacktrace"
+
+  AC_MSG_CHECKING([for LIBBACKTRACE])
+  AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM(
+      [[#include <stddef.h>
+        #include <backtrace.h>
+        #include <backtrace-supported.h>
+
+        #if ! BACKTRACE_SUPPORTED
+        #error ! BACKTRACE_SUPPORTED
+        #endif
+      ]],
+      [[(void) backtrace_create_state (NULL, 0, NULL, NULL);]])],
+    [AC_MSG_RESULT([yes]); LIBBACKTRACE_LIBS='-lbacktrace'],
+    [AC_MSG_RESULT([no]); have_libbacktrace='no (libbacktrace is not found or not supported)'])
+
+  LIBS=$gimp_save_LIBS
+
+  AC_SUBST(LIBBACKTRACE_LIBS)
+fi
+
+if test "x$have_libbacktrace" = xyes; then
+  AC_DEFINE(HAVE_LIBBACKTRACE, 1,
+            [Define to 1 if libbacktrace is available])
 fi
 
 AC_SUBST([AM_LDFLAGS])

@@ -6,6 +6,7 @@ AM_CPPFLAGS = -DPACKAGE_DATA_DIR='"$(datadir)/${PACKAGE}"' -DPACKAGE_DOC_DIR='"$
 
 siril_SOURCES = \
 	main.c \
+	core/sirilbacktrace.h core/sirilbacktrace-linux.c core/sirilbacktrace-linux.h core/signals.c core/signals.H \
 	core/siril.c core/siril.h core/command.c core/command.h core/command_def.h core/proto.h \
 	core/undo.c core/undo.h core/utils.c core/processing.c core/pipe.c core/pipe.h \
 	core/initfile.c core/initfile.h core/siril_update.c core/siril_update.h \
@@ -46,7 +47,7 @@ siril_SOURCES = \
 	algos/plateSolver.c algos/plateSolver.h \
 	compositing/compositing.c compositing/compositing.h compositing/filters.c compositing/filters.h compositing/align_rgb.c compositing/align_rgb.h
 
-siril_LDADD =  $(top_builddir)/deps/kplot/libkplot.a $(FFMPEG_LIBS) $(GTK_LIBS) ${GTK_MAC_LIBS} $(LIBRAW_LIBS) $(LIBTIFF_LIBS) $(LIBPNG_LIBS) $(FFTW_LIBS) $(CFITSIO_LIBS) $(GSL_LIBS) $(FFMS2_LIBS) $(LIBCONFIG_LIBS) $(CURL_LIBS) $(EXTRA_LIBS)
+siril_LDADD =  $(top_builddir)/deps/kplot/libkplot.a $(FFMPEG_LIBS) $(GTK_LIBS) ${GTK_MAC_LIBS} $(LIBRAW_LIBS) $(LIBTIFF_LIBS) $(LIBPNG_LIBS) $(FFTW_LIBS) $(CFITSIO_LIBS) $(GSL_LIBS) $(FFMS2_LIBS) $(LIBCONFIG_LIBS) $(CURL_LIBS) $(EXTRA_LIBS) $(LIBBACKTRACE_LIBS)
 
 siril_SOURCES += io/avi_pipp/pipp_avi_write.cpp io/avi_pipp/pipp_avi_write.h io/avi_pipp/pipp_avi_write_dib.cpp io/avi_pipp/pipp_avi_write_dib.h io/avi_pipp/pipp_utf8.h \
 	io/avi_pipp/pipp_buffer.cpp io/avi_pipp/pipp_buffer.h io/avi_pipp/pipp_video_write.h io/avi_pipp/avi_writer.cpp io/avi_pipp/avi_writer.h
