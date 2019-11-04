@@ -42,9 +42,6 @@
 #include "planetary/laplacian_quality.h"
 #include "io/sequence.h"
 
-//#define USE_DEVIATION_SQUARED
-//#define USE_DEVIATION_GRADIENT
-
 struct regsd_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
@@ -456,7 +453,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 
 // The same in float
 int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, float *frame,
-		int width, int height,
+		ap_alignment_method method, int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
 		int sampling_stride, int *dx_result, int *dy_result)
 {
@@ -465,16 +462,22 @@ int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, flo
         // Initialize the global optimum with the value at dy=dx=0 or the values
 	// of the previous frame
 	int dx_min = *dx_result, dy_min = *dy_result;
-#ifdef USE_DEVIATION_SQUARED
-	float deviation_min = compute_squared_deviation_float(ref_frame, frame, width,
+	float deviation_min;
+	switch (method) {
+		default:
+		case AP_DEVIATION:
+			deviation_min = compute_deviation_float(ref_frame, frame, width,
 			height, ref_area, area, sampling_stride);
-#elif USE_DEVIATION_GRADIENT
-	float deviation_min = compute_gradient_deviation_float(ref_frame, ref_gradient,
-			frame, width, height, ref_area, area, sampling_stride);
-#else
-	float deviation_min = compute_deviation_float(ref_frame, frame, width,
-			height, ref_area, area, sampling_stride);
-#endif
+			break;
+		case AP_DEVIATION_SQUARED:
+			deviation_min = compute_squared_deviation_float(ref_frame, frame, width,
+					height, ref_area, area, sampling_stride);
+			break;
+		case AP_GRADIENT_DEVIATION:
+			deviation_min = compute_gradient_deviation_float(ref_frame, ref_gradient,
+					frame, width, height, ref_area, area, sampling_stride);
+			break;
+	}
 
 	// Start with shift [0, 0]. Stop when a circle with radius 1 around the
 	// current optimum reaches beyond the search area.
@@ -486,7 +489,8 @@ int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, flo
 		float deviation_min_1 = FLT_MAX;
 		int dx, dy;
 
-		fprintf(stdout, "searching in image %d,%d for ref %d,%d (deviation: %f)\n", ref_area->x, ref_area->y, dx_min, dy_min, deviation_min);
+		fprintf(stdout, "searching in image %d,%d for ref %d,%d (deviation: %f)\n",
+				ref_area->x, ref_area->y, dx_min, dy_min, deviation_min);
 
 		for (dx = -SEARCH_HALF_SIZE; dx <= SEARCH_HALF_SIZE; dx++) {
 			for (dy = -SEARCH_HALF_SIZE; dy <= SEARCH_HALF_SIZE; dy++) {
@@ -499,15 +503,25 @@ int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, flo
 					.x = area->x - x, .y = area->y - y,
 					.w = area->w, .h = area->h };
 
-#ifdef USE_DEVIATION_SQUARED
-				float deviation = compute_squared_deviation_float(ref_frame, frame,
-						width, height, ref_area, &test_area,
-						sampling_stride);
-#else
-				float deviation = compute_deviation_float(ref_frame, frame,
-						width, height, ref_area, &test_area,
-						sampling_stride);
-#endif
+				float deviation;
+				switch (method) {
+					default:
+					case AP_DEVIATION:
+						deviation = compute_deviation_float(ref_frame, frame,
+								width, height, ref_area, &test_area,
+								sampling_stride);
+						break;
+					case AP_DEVIATION_SQUARED:
+						deviation = compute_squared_deviation_float(ref_frame,
+								frame, width, height, ref_area,
+								&test_area, sampling_stride);
+						break;
+					case AP_GRADIENT_DEVIATION:
+						deviation = compute_gradient_deviation_float(ref_frame,
+								ref_gradient, frame, width, height,
+								ref_area, &test_area, sampling_stride);
+						break;
+				}
 
 				if (deviation < deviation_min_1) {
 					deviation_min_1 = deviation;
@@ -521,7 +535,7 @@ int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, flo
 		// neighboring points, a local optimum is found.
 		if (deviation_min_1 >= deviation_min) {
 			*dx_result = -dx_min;
-			*dy_result = dy_min;
+			*dy_result = -dy_min;
 			fprintf(stdout, "found shift after %d iterations (%d, %d), deviation: %f\n", iterations, dx_min, dy_min, deviation_min);
 			return 0;
 		}

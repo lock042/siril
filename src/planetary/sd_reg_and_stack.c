@@ -180,8 +180,9 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 			/* error = search_local_match_gradient(mppdata->reference_data,
 					gaussian_data, fit->rx, fit->ry, &ref_area,
 					&im_area, max_radius, 1, &shiftx, &shifty); */
-			error = search_local_match_gradient_float(mppdata->normalized_refdata, mppdata->ref_gradient,
-					normalized_gaussian_data, fit->rx, fit->ry, &ref_area,
+			error = search_local_match_gradient_float(mppdata->normalized_refdata,
+					mppdata->ref_gradient, normalized_gaussian_data,
+					AP_DEVIATION, fit->rx, fit->ry, &ref_area,
 					&im_area, max_radius, 1, &shiftx, &shifty);
 		}
 		else error = 1;

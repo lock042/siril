@@ -86,11 +86,17 @@ void get_the_registration_area(struct registration_args *reg_args,
 void fill_comboboxregmethod();
 gpointer register_thread_func(gpointer p);
 
+typedef enum {
+	AP_DEVIATION,
+	AP_DEVIATION_SQUARED,
+	AP_GRADIENT_DEVIATION
+} ap_alignment_method;
+
 int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
 		int sampling_stride, int *dx_result, int *dy_result);
 int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, float *frame,
-		int width, int height,
+		ap_alignment_method method, int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
 		int sampling_stride, int *dx_result, int *dy_result);
 void compute_gradients_of_buffer(float *ref_zone, int w, int h, float *gradient); // for tests

@@ -23,8 +23,8 @@ char **supported_extensions;
 /*************************************************************/
 
 GtkBuilder *builder = NULL;	// get widget references anywhere
-fits fit[NB_DISPLAYS];
-float *ref, *im; // gaussian-filtered, normalized data of fit[0] and fit[1]
+fits fit[NB_DISPLAYS];	// stored bottom-up
+float *ref, *im; // gaussian-filtered, normalized data of fit[0] and fit[1], top-down
 sequence *seq = NULL;
 cairo_surface_t *surface[NB_DISPLAYS] = { 0 };
 guchar *graybuf[NB_DISPLAYS];	// R=G=B 8bit version
@@ -32,7 +32,7 @@ int surface_stride[NB_DISPLAYS];
 int changed = 1;
 double zoom[NB_DISPLAYS] = { 1.0 };
 stacking_zone zone = { .centre = {.x = -1.0 } };
-enum { MODE_DIRECT, MODE_SQUARED, MODE_EXPERIMENTAL } mode = MODE_DIRECT;
+ap_alignment_method mode = AP_DEVIATION;
 int adaptive_rendering = 1;
 double local_shift_x = 0.0, local_shift_y = 0.0;
 int kernel_size = 13;
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 	gtk_builder_connect_signals (builder, NULL);
 
 
-	/* open files */
+	/* open files, bottom-up */
 	if (readfits(argv[1], &fit[0], NULL)) {
 		fprintf(stderr, "%s not found\n", argv[1]);
 		exit(1);
@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "reference frame and images of the sequence must be of the same size\n");
 		exit(1);
 	}
-	filter_and_normalize_fit(&fit[0], &ref, FALSE);
-	filter_and_normalize_fit(&fit[1], &im, FALSE);
+	filter_and_normalize_fit(&fit[0], &ref, TRUE);
+	filter_and_normalize_fit(&fit[1], &im, TRUE);
 	seq->selnum = 0;
 	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2"));
 	gtk_adjustment_set_upper(adj, (double)(seq->number-1));
@@ -234,9 +234,8 @@ void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
 		return;
 	}
 	seq->selnum = image;
-	filter_and_normalize_fit(&fit[0], &ref, FALSE);
-	filter_and_normalize_fit(&fit[1], &im, FALSE);
 	image_find_minmax(&fit[1]);
+	filter_and_normalize_fit(&fit[1], &im, TRUE);
 	changed = 1;
 	remap(1);
 	gtk_widget_queue_draw(widget_for_image(0));
@@ -248,8 +247,8 @@ void on_scale_seqnumber_value_changed(GtkRange *range, gpointer user_data) {
 gboolean zc_on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 	int image = image_for_widget(widget);
-	zone.centre.x = event->x / zoom[image];
-	zone.centre.y = event->y / zoom[image];
+	zone.centre.x = nearbyint(event->x / zoom[image]);	// we don't really want
+	zone.centre.y = nearbyint(event->y / zoom[image]);	// some funky numbers here
 	GtkRange *range = GTK_RANGE(gtk_builder_get_object(builder, "scale_zonesize"));
 	zone.half_side = round_to_int(gtk_range_get_value(range)) / 2;
 	zone.mpregparam = NULL;
@@ -266,12 +265,12 @@ void update_comparison() {
 	int side = get_side(&zone), nb_pix = side * side;
 	float *ref_zone = malloc(nb_pix * sizeof(float));
 	float *ref_gradient = NULL;
-	if (copy_image_buffer_zone_to_buffer_float(ref, fit[0].rx, fit[0].ry, &zone, ref_zone)) {
+	if (copy_image_buffer_zone_to_buffer_float(ref, fit[0].rx, fit[0].ry, &zone, ref_zone, FALSE)) {
 		fprintf(stderr, "zone is outside image\n");
 		free(ref_zone);
 		return;
 	}
-	if (mode == MODE_EXPERIMENTAL) {
+	if (mode == AP_GRADIENT_DEVIATION) {
 		ref_gradient = malloc(nb_pix * sizeof(float));
 		compute_gradients_of_buffer(ref_zone, side, side, ref_gradient);
 	}
@@ -287,7 +286,7 @@ void update_comparison() {
 			{ .x = round_to_int(zone.centre.x - regparam[seq->selnum].shiftx + local_shift_x),
 				.y = round_to_int(zone.centre.y + regparam[seq->selnum].shifty + local_shift_y) },
 			.half_side = zone.half_side };
-		if (copy_image_buffer_zone_to_buffer_float(im, fit[1].rx, fit[1].ry, &shifted_zone, im_zone)) {
+		if (copy_image_buffer_zone_to_buffer_float(im, fit[1].rx, fit[1].ry, &shifted_zone, im_zone, FALSE)) {
 			fprintf(stderr, "zone is outside image\n");
 			free(ref_zone); free(im_zone);
 			return;
@@ -297,7 +296,7 @@ void update_comparison() {
 				shifted_zone.centre.x, shifted_zone.centre.y);
 	}
 	else {
-		if (copy_image_buffer_zone_to_buffer_float(im, fit[1].rx, fit[1].ry, &zone, im_zone)) {
+		if (copy_image_buffer_zone_to_buffer_float(im, fit[1].rx, fit[1].ry, &zone, im_zone, FALSE)) {
 			fprintf(stderr, "zone is outside image\n");
 			free(ref_zone); free(im_zone);
 			return;
@@ -312,15 +311,15 @@ void update_comparison() {
 	int i;
 	for (i = 0; i < nb_pix; i++) {
 		switch (mode) {
-			case MODE_DIRECT:
+			case AP_DEVIATION:
 				diff[i] = ref_zone[i] - im_zone[i];
 				sum += fabs(diff[i]);
 				break;
-			case MODE_EXPERIMENTAL:
+			case AP_GRADIENT_DEVIATION:
 				diff[i] = ref_gradient[i] * fabs(ref_zone[i] - im_zone[i]);
 				sum += diff[i];
 				break;
-			case MODE_SQUARED:
+			case AP_DEVIATION_SQUARED:
 				diff[i] = (ref_zone[i] - im_zone[i]) * (ref_zone[i] - im_zone[i]);
 				sum += diff[i];
 				break;
@@ -330,20 +329,9 @@ void update_comparison() {
 		if (diff[i] > maxi)
 			maxi = diff[i];
 	}
-	/*if (mode == MODE_EXPERIMENTAL) {
-		double add = 0.0;
-		for (i = 0; i < nb_pix; i++)
-			add += exp(M_PI * fabs(diff[i])) - 1.0;
-		double mean = add / nb_pix;
-		double max = 0.0;
-		for (i = 0; i < nb_pix; i++) {
-			double dev = (diff[i] - mean) * (diff[i] - mean);
-			if (dev > max)
-				max = dev;
-		}
-		sum = max;	// for display
-	}*/
 
+	if (mode == AP_GRADIENT_DEVIATION)
+		free(ref_gradient);
 	free(im_zone);
 	free(ref_zone);
 	fprintf(stdout, "mini: %g, maxi: %g\n", mini, maxi);
@@ -353,14 +341,14 @@ void update_comparison() {
 	if (!adaptive_rendering) {
 		// force the range
 		switch (mode) {
-			case MODE_DIRECT:
+			case AP_DEVIATION:
 				mini = -0.1; maxi = 0.1;
 				break;
-			case MODE_SQUARED:
+			case AP_DEVIATION_SQUARED:
 				mini = 0.0; maxi = 0.006;
 				break;
-			case MODE_EXPERIMENTAL:
-				mini = 0.0; maxi = 1;
+			case AP_GRADIENT_DEVIATION:
+				mini = 0.0; maxi = 0.01;
 				break;
 		}
 	}
@@ -375,6 +363,7 @@ void update_comparison() {
 		clearfits(&fit[2]);
 	fits *newfit = &fit[2];
 	new_fit_image(&newfit, side, side, 1, result);
+	fits_flip_top_to_bottom(newfit);	// because the display is upside-down
 	newfit->maxi = 0;
 	newfit->mini = 65535;
 
@@ -384,17 +373,17 @@ void update_comparison() {
 }
 
 void on_radiodirect_toggled(GtkRadioButton *button, gpointer user_data) {
-	mode = MODE_DIRECT;
+	mode = AP_DEVIATION;
 	update_comparison();
 }
 
 void on_radiosquared_toggled(GtkRadioButton *button, gpointer user_data) {
-	mode = MODE_SQUARED;
+	mode = AP_DEVIATION_SQUARED;
 	update_comparison();
 }
 
 void on_radiovariance_toggled(GtkRadioButton *button, gpointer user_data) {
-	mode = MODE_EXPERIMENTAL;
+	mode = AP_GRADIENT_DEVIATION;
 	update_comparison();
 }
 
@@ -442,24 +431,23 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 	fprintf(stdout, "ref_flip: %g %g %g %g %g\n", ref_flip[ref_i], ref_flip[ref_i+1],
 			ref_flip[ref_i+2], ref_flip[ref_i+3], ref_flip[ref_i+4]);
 	int shiftx = 0, shifty = 0;
-	int error = search_local_match_gradient_float(ref_flip, im_flip, ref_gradient,
-			fit[0].rx, fit[0].ry, &ref_area, &im_area,
+	int error = search_local_match_gradient_float(ref_flip, ref_gradient, im_flip,
+			mode, fit[0].rx, fit[0].ry, &ref_area, &im_area,
 			MAX_RADIUS, DEV_STRIDE,
 			&shiftx, &shifty);
-	fprintf(stdout, "Found: %d, %d\n", shiftx, shifty);
-	if (regparam) {
-		// result is relative to the provided area, but our local shift is added
-		// to the area
-/*		local_shift_x = -regparam[seq->selnum].shiftx - (double)shiftx;
-		local_shift_y = regparam[seq->selnum].shifty + (double)shifty;
-	} else {*/
-		local_shift_x = (double)shiftx;
-		local_shift_y = -(double)shifty;
-	}
-
 	if (error) {
 		fprintf(stderr, "FINDING THE LOCAL SHIFT FAILED\n");
 	} else {
+		fprintf(stdout, "Found: %d, %d\n", shiftx, shifty);
+		if (regparam) {
+			// result is relative to the provided area, but our local shift is added
+			// to the area
+			/*		local_shift_x = -regparam[seq->selnum].shiftx - (double)shiftx;
+					local_shift_y = regparam[seq->selnum].shifty + (double)shifty;
+					} else {*/
+			local_shift_x = (double)shiftx;
+			local_shift_y = (double)shifty;
+		}
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "localXspin")), local_shift_x);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "localYspin")), local_shift_y);
 	}
@@ -468,6 +456,8 @@ void on_computebutton_clicked(GtkButton *button, gpointer user_data) {
 void on_spingauss_value_changed(GtkSpinButton *spin, gpointer user_data) {
 	kernel_size = gtk_spin_button_get_value_as_int(spin);
 	fprintf(stdout, "new kernel size: %d\n", kernel_size);
+	filter_and_normalize_fit(&fit[0], &ref, TRUE);	// not used for display
+	filter_and_normalize_fit(&fit[1], &im, TRUE);	// not used for display
 	update_comparison();
 }
 

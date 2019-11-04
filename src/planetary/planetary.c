@@ -389,7 +389,7 @@ int copy_image_buffer_zone_to_buffer(WORD *buf, int w, int h, const stacking_zon
 }
 
 // reads an image zone, upside-down
-int copy_image_buffer_zone_to_buffer_float(float *buf, int w, int h, const stacking_zone *zone, float *dest) {
+int copy_image_buffer_zone_to_buffer_float(float *buf, int w, int h, const stacking_zone *zone, float *dest, gboolean upside_down) {
 	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side);
@@ -402,9 +402,16 @@ int copy_image_buffer_zone_to_buffer_float(float *buf, int w, int h, const stack
 		return -1;
 	}
 
-	float *from = buf + (h - starty - side) * w + startx;
-	int stride = w - side;
+	float *from;
+	int stride;
 	int i, j;
+	if (upside_down) {
+		from = buf + (h - starty - side) * w + startx;
+		stride = -side - w;
+	} else {
+		from = buf + starty * w + startx;
+		stride = w - side;
+	}
 
 	for (i = 0; i < side; ++i) {
 		for (j = 0; j < side; ++j) {
