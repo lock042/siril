@@ -164,6 +164,8 @@ WORD * get_gaussian_data_for_image(int index, fits *fit, struct planetary_cache 
 		WORD *buf = cachedfit.data;
 		cachedfit.data = NULL;
 		clearfits(&cachedfit);
+		// in our fits structure, data is always bottom-up
+		cvFlip_siril(buf, fit->rx, fit->ry);	// return data top-down
 		return buf;
 	}
 	else {
@@ -182,21 +184,26 @@ computing_it:
 
 		WORD *buf = malloc(fit->rx * fit->ry * sizeof(WORD));
 		cvGaussian(monochrome_data, fit->rx, fit->ry, args->kernel_size, buf);
+		// at this point, gaussian-filtered data in buf is in WORD, bottom-up
 
 		// store the data in cache, with a fits envelope
 		if (args->cache_data && args->ser_gaussian) {
 			fits cachefit = { 0 }, *cachefitptr = &cachefit;
-			if (new_fit_image(&cachefitptr, fit->rx, fit->ry, 1, buf)) {
+			if (new_fit_image(&cachefitptr, fit->rx, fit->ry, 1, buf, TRUE)) {
 				disable_cache_writing(args);
 			}
 			else ser_write_frame_from_fit(args->ser_gaussian, cachefitptr, index);
-			cachefit.data = NULL;
+			// at this point, gaussian-filtered data in cachefit is in WORD, top-down
 			clearfits(cachefitptr);
 		}
+		// at this point, gaussian-filtered data in buf is in WORD, bottom-up
+		cvFlip_siril(buf, fit->rx, fit->ry);	// return data top-down
+		// at this point, gaussian-filtered data in buf is in WORD, top-down
 		return buf;
 	}
 }
 
+/* gaussian data is expected top-down, so is returned laplacian data */
 WORD * get_laplacian_data_for_image(int index, WORD *gaussian_data,
 		int width, int height, struct planetary_cache *args) {
 	if (args->use_cached && args->seq_laplacian) {
@@ -209,6 +216,8 @@ WORD * get_laplacian_data_for_image(int index, WORD *gaussian_data,
 		WORD *buf = cachedfit.data;
 		cachedfit.data = NULL;
 		clearfits(&cachedfit);
+		// in our fits structure, data is always bottom-up
+		cvFlip_siril(buf, width, height);	// return data top-down
 		return buf;
 	}
 	else {
@@ -217,15 +226,21 @@ computing_it:
 		{
 			WORD *buf = malloc(width * height * sizeof(WORD));
 			cvLaplacian(gaussian_data, width, height, args->kernel_size, buf);
+			// at this point, laplacian data in buf is in WORD, top-down
 
 			// store the data in cache, with a fits envelope
 			if (args->cache_data && args->ser_laplacian) {
 				fits cachefit = { 0 }, *cachefitptr = &cachefit;
-				if (new_fit_image(&cachefitptr, width, height, 1, buf)) {
+				if (new_fit_image(&cachefitptr, width, height, 1, buf, TRUE)) {
 					disable_cache_writing(args);
 				}
-				else ser_write_frame_from_fit(args->ser_laplacian, cachefitptr, index);
-				cachefit.data = NULL;
+				else {
+					// at this point, laplacian data in cachefit is top-down
+					cvFlip_siril(cachefit.data, width, height);
+					// at this point, laplacian data in cachefit is bottom-up
+					ser_write_frame_from_fit(args->ser_laplacian, cachefitptr, index);
+					// at this point, laplacian data in cachefit is top-down
+				}
 				clearfits(cachefitptr);
 			}
 			return buf;

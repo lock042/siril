@@ -3,6 +3,7 @@
 
 #include "core/siril.h"
 #include "core/processing.h"
+#include "registration/registration.h"
 
 /* This struct conveys data from the start of the multi-point registration to
  * the end of the stacking. */
@@ -15,6 +16,7 @@ struct mpr_args {
 	double filtering_percent;	// the percentage of images to keep
 
 	/* configuration for processing */
+	ap_alignment_method ap_method;
 	int kernel_size;	// kernel size for gaussian and laplacian
 	gboolean use_caching;	// use or create pre-computed data
 	int nb_closest_AP;	// max number of closest AP to use

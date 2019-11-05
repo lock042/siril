@@ -41,7 +41,7 @@
 #include "registration/registration.h"
 #include "algos/statistics.h"
 
-#define DEBUG_MPP
+//#define DEBUG_MPP
 #define USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE 0
 
 static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle);
@@ -56,6 +56,7 @@ struct mppsd_data {
 	int search_radius;
 	int nb_zones;		// caching the number of declared zones
 	fits *refimage;
+	ap_alignment_method ap_method;
 
 	WORD *reference_data;	// gaussian filtered data for the reference image
 	float *normalized_refdata;	// the same normalized
@@ -140,6 +141,7 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		int out_index, int in_index, fits *fit, rectangle *_) {
 	struct mppsd_data *mppdata = args->user;
 	int zone_idx;
+	// fit is bottom-up, gaussian_data is top-down
 	WORD *gaussian_data = get_gaussian_data_for_image(in_index, fit, mppdata->cache);
 	if (!gaussian_data) {
 		siril_log_color_message(_("Could not get filtered image for multipoint processing\n"), "red");
@@ -177,12 +179,9 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		zone_to_rectangle(zone, &ref_area);
 		zone_to_rectangle(&shifted_zone, &im_area);
 		if (is_area_in_image(&im_area, args->seq)) {
-			/* error = search_local_match_gradient(mppdata->reference_data,
-					gaussian_data, fit->rx, fit->ry, &ref_area,
-					&im_area, max_radius, 1, &shiftx, &shifty); */
 			error = search_local_match_gradient_float(mppdata->normalized_refdata,
 					mppdata->ref_gradient, normalized_gaussian_data,
-					AP_DEVIATION, fit->rx, fit->ry, &ref_area,
+					mppdata->ap_method, fit->rx, fit->ry, &ref_area,
 					&im_area, max_radius, 1, &shiftx, &shifty);
 		}
 		else error = 1;
@@ -199,10 +198,10 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 			continue;
 		}
 
-		zone->mpregparam[in_index].x =  -shiftx + regparam[in_index].shiftx;
-		zone->mpregparam[in_index].y =   shifty + regparam[in_index].shifty;
+		zone->mpregparam[in_index].x = shiftx + regparam[in_index].shiftx;
+		zone->mpregparam[in_index].y = shifty + regparam[in_index].shifty;
 		fprintf(stdout, "frame %d, zone %d local shifts: %d,%d\n",
-				in_index, zone_idx, -shiftx, shifty);
+				in_index, zone_idx, shiftx, shifty);
 
 		/* AP stacking */
 		add_image_zone_to_stacking_sum(fit, zone, in_index,
@@ -297,7 +296,7 @@ static int mppsd_finalize_hook(struct generic_seq_args *args) {
 	// make a copy of the reference image to gfit to initialize it
 	clearfits(&gfit);
 	fits *fit = &gfit;
-	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, NULL))
+	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, NULL, FALSE))
 		return -1;
 	gfit.hi = USHRT_MAX;
 
@@ -349,6 +348,7 @@ void the_multipoint_steepest_descent_registration_and_stacking(struct mpr_args *
 	mppdata->nb_zones = get_number_of_zones();
 	mppdata->search_radius = 50;	// TODO: pass it
 	mppdata->refimage = mprargs->refimage;
+	mppdata->ap_method = mprargs->ap_method;
 	args->user = mppdata;
 
 	generic_sequence_worker(args);

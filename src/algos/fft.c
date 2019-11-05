@@ -280,8 +280,8 @@ gpointer fourier_transform(gpointer p) {
 	default:
 	case 'd':
 	case 'D':
-		if (new_fit_image(&tmp1, width, height, args->fit->naxes[2], NULL) ||
-				new_fit_image(&tmp2, width, height, args->fit->naxes[2], NULL)) {
+		if (new_fit_image(&tmp1, width, height, args->fit->naxes[2], NULL, FALSE) ||
+				new_fit_image(&tmp2, width, height, args->fit->naxes[2], NULL, FALSE)) {
 			args->retval = 1;
 			goto end;
 		}
@@ -330,7 +330,7 @@ gpointer fourier_transform(gpointer p) {
 			goto end;
 		}
 
-		new_fit_image(&tmp2, width, height, tmp->naxes[2], NULL);
+		new_fit_image(&tmp2, width, height, tmp->naxes[2], NULL, FALSE);
 		for (chan = 0; chan < args->fit->naxes[2]; chan++)
 			FFTI(tmp2, tmp, tmp1, args->type_order, chan);
 		/* We display the result on screen */

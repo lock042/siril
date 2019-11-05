@@ -4666,7 +4666,7 @@ WARNING: Reducing the ratio of memory allocated to computation will degrade perf
   </object>
   <object class="GtkAdjustment" id="adjustment_zonesize">
     <property name="upper">2001</property>
-    <property name="value">51</property>
+    <property name="value">83</property>
     <property name="step_increment">2</property>
     <property name="page_increment">20</property>
   </object>
@@ -8200,7 +8200,7 @@ The new sequence is automatically loaded as the current sequence upon completion
                                     <property name="label" translatable="yes">Automatic size</property>
                                     <property name="visible">True</property>
                                     <property name="sensitive">False</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="can_focus">False</property>
                                     <property name="receives_default">False</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
@@ -8214,7 +8214,8 @@ The new sequence is automatically loaded as the current sequence upon completion
                                   <object class="GtkCheckButton" id="check_autopos">
                                     <property name="label" translatable="yes">Automatic positioning</property>
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can_focus">False</property>
                                     <property name="receives_default">False</property>
                                     <property name="halign">start</property>
                                     <property name="active">True</property>
@@ -8257,7 +8258,8 @@ The new sequence is automatically loaded as the current sequence upon completion
                                 <child>
                                   <object class="GtkSpinButton" id="overlapamount">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can_focus">False</property>
                                     <property name="adjustment">adjustment_overlap</property>
                                   </object>
                                   <packing>
@@ -8266,7 +8268,20 @@ The new sequence is automatically loaded as the current sequence upon completion
                                   </packing>
                                 </child>
                                 <child>
-                                  <placeholder/>
+                                  <object class="GtkComboBoxText" id="ap_method_combo">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="active">0</property>
+                                    <items>
+                                      <item translatable="yes">deviation</item>
+                                      <item translatable="yes">squared dev.</item>
+                                      <item translatable="yes">gratient weighted</item>
+                                    </items>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">0</property>
+                                    <property name="top_attach">2</property>
+                                  </packing>
                                 </child>
                               </object>
                             </child>

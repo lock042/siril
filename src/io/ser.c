@@ -1111,7 +1111,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 
 int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area) {
-	if (new_fit_image(&fit, area->w, area->h, 1, NULL))
+	if (new_fit_image(&fit, area->w, area->h, 1, NULL, FALSE))
 		return -1;
 	fit->top_down = TRUE;
 	if (ser_file->ts) {

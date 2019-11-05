@@ -1207,7 +1207,7 @@ int process_new(int nb){
 	close_sequence(FALSE);
 
 	fits *fit = &gfit;
-	if (new_fit_image(&fit, width, height, layers, NULL))
+	if (new_fit_image(&fit, width, height, layers, NULL, FALSE))
 		return 1;
 	memset(gfit.data, 0, width * height * layers * sizeof(WORD));
 

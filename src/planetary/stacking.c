@@ -214,7 +214,7 @@ int the_old_local_multipoint_sum_stacking(struct mpr_args *args) {
 		// make a copy of the reference image to gfit to initialize it
 		clearfits(&gfit);
 		fits *fit = &gfit;
-		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, NULL))
+		if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, NULL, FALSE))
 			return -1;
 		gfit.hi = USHRT_MAX;
 

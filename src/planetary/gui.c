@@ -182,6 +182,8 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 			gtk_builder_get_object(builder, "kernelspin"));
 	GtkToggleButton *save_precomp = GTK_TOGGLE_BUTTON(
 			gtk_builder_get_object(builder, "store_precomp_checkbutton"));
+	GtkComboBox *ap_method = GTK_COMBO_BOX(
+			gtk_builder_get_object(builder, "ap_method_combo"));
 
 	struct mpr_args *args = malloc(sizeof(struct mpr_args));
 	args->seq = &com.seq;
@@ -189,6 +191,7 @@ gboolean on_planetary_processing_button_clicked(GtkButton *button, gpointer user
 	args->filtering_criterion = seq_filter_quality;
 	args->filtering_parameter = lowest_accepted_quality;
 	args->filtering_percent = percent_images_to_keep;
+	args->ap_method = gtk_combo_box_get_active(ap_method);
 	//args->using_homography = FALSE;	// TRUE is not working yet, translation only
 	args->nb_closest_AP = 5;	// min(this, nb_AP) will be used
 	args->max_distance = 250.0;	// AP farther than this will be ignored
@@ -386,3 +389,4 @@ void on_selectedzonecombo_changed(GtkComboBox *widget, gpointer user_data) {
 		}
 	}
 }
+

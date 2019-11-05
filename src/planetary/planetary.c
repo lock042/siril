@@ -430,7 +430,7 @@ void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_siz
 	char tmpfn[100];
 	sprintf(tmpfn, "/tmp/zone_%d_image_%d.fit", zone_idx, frame_index);
 	fits *tmp = NULL;
-	new_fit_image(&tmp, square_size, square_size, 1, buffer);
+	new_fit_image(&tmp, square_size, square_size, 1, buffer, FALSE);
 	savefits(tmpfn, tmp);
 	tmp->data = NULL; // don't free the original buffer
 	clearfits(tmp);

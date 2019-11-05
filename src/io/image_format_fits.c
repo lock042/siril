@@ -1536,7 +1536,7 @@ void rgb48bit_to_fits48bit(WORD *rgbbuf, fits *fit, gboolean inverted,
 	}
 }
 
-/* this method flips top-bottom of fit data.
+/* this method flips top-bottom of fit data in-place.
  * fit->rx, fit->ry, fit->naxes[2] and fit->pdata[*] are required to be assigned correctly */
 void fits_flip_top_to_bottom(fits *fit) {
 	int line, axis, line_size;
@@ -1591,21 +1591,24 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 
 /* creates a new fit image from scratch (NULL fit) or into a fits * previously
  * allocated. Data is allocated and non-cleared (random) if extdata is NULL,
- * extdata is referenced for it otherwise. */
-int new_fit_image(fits **fit, int width, int height, int nblayer, WORD *extdata) {
+ * extdata is referenced for it otherwise if copydata is FALSE, or copied from extdata if TRUE. */
+int new_fit_image(fits **fit, int width, int height, int layers, WORD *extdata, gboolean copydata) {
 	gint npixels;
 	WORD *data;
 	assert(width > 0);
 	assert(height > 0);
-	assert(nblayer == 1 || nblayer == 3);
+	assert(layers == 1 || layers == 3);
 
 	npixels = width * height;
-	if (!extdata) {
-		data = malloc(npixels * nblayer * sizeof(WORD));
+	if (!extdata || copydata) {
+		uint64_t nbdata = npixels * layers * sizeof(WORD);
+		data = malloc(nbdata);
 		if (data == NULL) {
 			fprintf(stderr, "Could not allocate memory\n");
 			return -1;
 		}
+		if (extdata && copydata)
+			memcpy(data, extdata, nbdata);
 	}
 	else data = extdata;
 
@@ -1622,17 +1625,17 @@ int new_fit_image(fits **fit, int width, int height, int nblayer, WORD *extdata)
 
 	(*fit)->bitpix = USHORT_IMG;
 	(*fit)->orig_bitpix = USHORT_IMG;
-	if (nblayer > 1)
+	if (layers > 1)
 		(*fit)->naxis = 3;
 	else (*fit)->naxis = 2;
 	(*fit)->rx = width;
 	(*fit)->ry = height;
 	(*fit)->naxes[0] = width;
 	(*fit)->naxes[1] = height;
-	(*fit)->naxes[2] = nblayer;
+	(*fit)->naxes[2] = layers;
 	(*fit)->data = data;
 	(*fit)->pdata[RLAYER] = (*fit)->data;
-	if (nblayer > 1) {
+	if (layers > 1) {
 		(*fit)->pdata[GLAYER] = (*fit)->data + npixels;
 		(*fit)->pdata[BLAYER] = (*fit)->data + npixels * 2;
 	}
