@@ -195,7 +195,6 @@
 #include "opencv/ecc/ecc.h"
 
 #define FFTW_WISDOM_FILE "fftw_wisdom"
-//#define USE_SEQUENCE_REF_IMAGE
 
 static fits refimage;
 static char *refimage_filename;

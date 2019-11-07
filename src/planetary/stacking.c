@@ -270,7 +270,7 @@ void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int fr
 	int layer;
 	int side = get_side(zone);
 	int src_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
-	int src_starty = round_to_int(zone->centre.y - zone->half_side + zone->mpregparam[frame].y);
+	int src_starty = round_to_int(zone->centre.y - zone->half_side - zone->mpregparam[frame].y);
 	int dst_startx = zone->centre.x - zone->half_side;
 	int dst_starty = zone->centre.y - zone->half_side;
 

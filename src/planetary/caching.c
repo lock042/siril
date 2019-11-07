@@ -162,10 +162,10 @@ WORD * get_gaussian_data_for_image(int index, fits *fit, struct planetary_cache 
 			goto computing_it;
 		}
 		WORD *buf = cachedfit.data;
+		cvFlip_siril(buf, cachedfit.rx, cachedfit.ry);	// return data top-down
 		cachedfit.data = NULL;
 		clearfits(&cachedfit);
 		// in our fits structure, data is always bottom-up
-		cvFlip_siril(buf, fit->rx, fit->ry);	// return data top-down
 		return buf;
 	}
 	else {
@@ -177,13 +177,24 @@ computing_it:
 		WORD *monochrome_data;
 		if (fit->naxes[2] == 3) {
 			monochrome_data = malloc(fit->rx * fit->ry * sizeof(WORD));
+			if (!monochrome_data) {
+				PRINT_ALLOC_ERR;
+				return NULL;
+			}
 			cvToMonochrome(fit->pdata, fit->rx, fit->ry, monochrome_data);
 		} else {
 			monochrome_data = fit->data;
 		}
 
 		WORD *buf = malloc(fit->rx * fit->ry * sizeof(WORD));
-		cvGaussian(monochrome_data, fit->rx, fit->ry, args->kernel_size, buf);
+		if (buf)
+			cvGaussian(monochrome_data, fit->rx, fit->ry, args->kernel_size, buf);
+		if (monochrome_data != fit->data)
+			free(monochrome_data);
+		if (!buf) {
+			PRINT_ALLOC_ERR;
+			return NULL;
+		}
 		// at this point, gaussian-filtered data in buf is in WORD, bottom-up
 
 		// store the data in cache, with a fits envelope
@@ -214,10 +225,10 @@ WORD * get_laplacian_data_for_image(int index, WORD *gaussian_data,
 			goto computing_it;
 		}
 		WORD *buf = cachedfit.data;
+		cvFlip_siril(buf, width, height);	// return data top-down
 		cachedfit.data = NULL;
 		clearfits(&cachedfit);
 		// in our fits structure, data is always bottom-up
-		cvFlip_siril(buf, width, height);	// return data top-down
 		return buf;
 	}
 	else {

@@ -727,7 +727,6 @@ void cvLaplacian(WORD *image_data, int rx, int ry, int kernel_size, WORD *output
 	Mat out(ry, rx, CV_16UC1, output);
 
 	Laplacian(in, out, CV_16U, 1, 1, 0, BORDER_DEFAULT);
-	//flip(out, out, 0);
 	in.release();
 	out.release();
 }

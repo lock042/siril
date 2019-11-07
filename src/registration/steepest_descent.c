@@ -101,8 +101,6 @@ static int regsd_prepare_hook(struct generic_seq_args *args) {
 static int regsd_image_hook(struct generic_seq_args *args,
 		int out_index, int in_index, fits *fit, rectangle *_) {
 	struct regsd_data *rsdata = args->user;
-	//struct registration_args *regargs = rsdata->regargs;
-
 	if (in_index == args->seq->reference_image)
 		return 0;
 	WORD *gaussian_data = get_gaussian_data_for_image(in_index, fit, rsdata->cache);
@@ -123,6 +121,7 @@ static int regsd_image_hook(struct generic_seq_args *args,
 	}
 	error = search_local_match_gradient(rsdata->reference_image, gaussian_data,
 			fit->rx, fit->ry, &area, &area, max_radius, 1, &shiftx, &shifty);
+	// ideally, the zone could adapt to the shift, to have a larger matching area
 	if (error) {
 		siril_log_message(_("Image %d alignment failed\n"), in_index);
 		rsdata->current_regdata[in_index].quality = -1.0;
@@ -131,14 +130,13 @@ static int regsd_image_hook(struct generic_seq_args *args,
 		return 1;
 	}
 
-	rsdata->current_regdata[in_index].shiftx = -shiftx;
-	rsdata->current_regdata[in_index].shifty = shifty;
+	rsdata->current_regdata[in_index].shiftx = shiftx;
+	rsdata->current_regdata[in_index].shifty = -shifty;	// because it's for fit
 	return 0;
 }
 
 static int regsd_finalize_hook(struct generic_seq_args *args) {
 	struct regsd_data *rsdata = args->user;
-	//struct registration_args *regargs = rsdata->regargs;
 	finalize_caching(rsdata->cache);
 	free(rsdata->cache);
 	if (!args->retval) {
@@ -383,6 +381,7 @@ unsigned char search_pattern_3x3[] = {
  * The starting point for the search is provided in arguments dx and dy_result.
  * Sampling occurs one every 'stride' pixels, stride has to be lower than the
  * area width.
+ * Used in the full-image registration method.
  */
 int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
@@ -432,7 +431,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 		// If for the current center the match is better than for all
 		// neighboring points, a local optimum is found.
 		if (deviation_min_1 >= deviation_min) {
-			*dx_result = -dx_min;
+			*dx_result = dx_min;
 			*dy_result = dy_min;
 			fprintf(stdout, "found shift after %d iterations (%d, %d)\n", iterations, dx_min, dy_min);
 			return 0;
@@ -451,7 +450,7 @@ int search_local_match_gradient(WORD *ref_frame, WORD *frame, int width, int hei
 	return -1;
 }
 
-// The same in float
+// The same in float, used in area registration for MPP
 int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, float *frame,
 		ap_alignment_method method, int width, int height,
 		rectangle *ref_area, rectangle *area, int search_width,
@@ -534,8 +533,8 @@ int search_local_match_gradient_float(float *ref_frame, float *ref_gradient, flo
 		// If for the current center the match is better than for all
 		// neighboring points, a local optimum is found.
 		if (deviation_min_1 >= deviation_min) {
-			*dx_result = -dx_min;
-			*dy_result = -dy_min;
+			*dx_result = dx_min;
+			*dy_result = dy_min;
 			fprintf(stdout, "found shift after %d iterations (%d, %d), deviation: %f\n", iterations, dx_min, dy_min, deviation_min);
 			return 0;
 		}

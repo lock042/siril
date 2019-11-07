@@ -40,6 +40,7 @@
 #include "gui/zones.h"
 #include "registration/registration.h"
 #include "algos/statistics.h"
+#include "opencv/opencv.h"
 
 //#define DEBUG_MPP
 #define USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE 0
@@ -58,7 +59,7 @@ struct mppsd_data {
 	fits *refimage;
 	ap_alignment_method ap_method;
 
-	WORD *reference_data;	// gaussian filtered data for the reference image
+	//WORD *reference_data;	// gaussian filtered data for the reference image
 	float *normalized_refdata;	// the same normalized
 	float *ref_gradient;	// gradients of the normalized data
 
@@ -78,38 +79,87 @@ static int mppsd_prepare_hook(struct generic_seq_args *args) {
 
 	/* Get reference frame */
 	WORD ref_min, ref_max;
+	WORD *reference_data;
 #if USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE
+	siril_log_color_message("UNTESTED CODE", "red");
 	int ref_idx = args->seq->reference_image;
-	mppdata->reference_data = get_gaussian_data_for_image_in_seq(args->seq, ref_idx, mppdata->cache);
-	if (!mppdata->reference_data) {
+	reference_data = get_gaussian_data_for_image_in_seq(args->seq, ref_idx, mppdata->cache);
+	if (reference_data) {
 		siril_log_color_message(_("Could not read reference image for multipoint processing\n"), "red");
+		finalize_caching(mppdata->cache);
+		free(mppdata->cache);
 		return 1;
 	}
-	siril_stats_ushort_minmax(&ref_min, &ref_max, mppdata->reference_data, nbdata*args->seq->nb_layers);
+	siril_stats_ushort_minmax(&ref_min, &ref_max, reference_data, nbdata*args->seq->nb_layers);
 #else
-	// the stacked reference image is much less noisy, so for now we don't
-	// take the gaussian-filtered version
-	// TODO: use monochrome conversion if it's not a monochrome image
-	mppdata->reference_data = mppdata->refimage->data;
-	image_find_minmax(mppdata->refimage);
-	ref_min = mppdata->refimage->mini;
-	ref_max = mppdata->refimage->maxi;
+	/* the stacked reference image is much less noisy, so we don't
+	 * take the gaussian-filtered version.
+	 * Since we are copying it from a fits, it's bottom-up, we flip it to
+	 * work only top-down in mpp */
+	fits *ref_fit = mppdata->refimage;
+	WORD *monochrome_data;
+	if (ref_fit->naxes[2] == 3) {
+		monochrome_data = malloc(nbdata * sizeof(WORD));
+		if (!monochrome_data) {
+			PRINT_ALLOC_ERR;
+			finalize_caching(mppdata->cache);
+			free(mppdata->cache);
+			return 1;
+		}
+		cvToMonochrome(ref_fit->pdata, ref_fit->rx, ref_fit->ry, monochrome_data);
+	} else {
+		monochrome_data = ref_fit->data;
+	}
+	reference_data = malloc(nbdata * sizeof(WORD)); // flipped version of monochrome
+	if (reference_data) {
+		memcpy(reference_data, monochrome_data, nbdata * sizeof(WORD));
+		cvFlip_siril(reference_data, ref_fit->rx, ref_fit->ry);
+	}
+	if (monochrome_data != ref_fit->data)
+		free(monochrome_data);
+	if (!reference_data) {
+		PRINT_ALLOC_ERR;
+		finalize_caching(mppdata->cache);
+		free(mppdata->cache);
+		return 1;
+	}
+	siril_stats_ushort_minmax(&ref_min, &ref_max, reference_data, nbdata);
 #endif
 	// Normalization
 	mppdata->normalized_refdata = malloc(nbdata * args->seq->nb_layers * sizeof(float));
+	if (!mppdata->normalized_refdata) {
+		PRINT_ALLOC_ERR;
+		free(reference_data);
+		finalize_caching(mppdata->cache);
+		free(mppdata->cache);
+		return 1;
+	}
 	mppdata->ref_gradient = malloc(nbdata * args->seq->nb_layers * sizeof(float));
-	normalize_data(mppdata->reference_data, nbdata*args->seq->nb_layers,
-			ref_min, ref_max, mppdata->normalized_refdata);
+	if (!mppdata->ref_gradient) {
+		PRINT_ALLOC_ERR;
+		free(mppdata->normalized_refdata);
+		free(reference_data);
+		finalize_caching(mppdata->cache);
+		free(mppdata->cache);
+		return 1;
+	}
+	normalize_data(reference_data, nbdata, ref_min, ref_max,
+			mppdata->normalized_refdata);
 	compute_gradients_of_buffer(mppdata->normalized_refdata,
 			args->seq->rx, args->seq->ry, mppdata->ref_gradient);
+	free(reference_data);
 
 	mppdata->sum[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
 	mppdata->count[0] = calloc(nbdata, sizeof(unsigned long)*args->seq->nb_layers);
 	if (!mppdata->sum[0] || !mppdata->count[0]){
-		fprintf(stderr, "Stacking: memory allocation failure\n");
+		PRINT_ALLOC_ERR;
+		free(mppdata->normalized_refdata);
+		free(mppdata->ref_gradient);
+		finalize_caching(mppdata->cache);
+		free(mppdata->cache);
 		return -1;
 	}
-	if(args->seq->nb_layers == 3){
+	if (args->seq->nb_layers == 3){
 		mppdata->sum[1] = mppdata->sum[0] + nbdata;	// index of green layer in sum[0]
 		mppdata->sum[2] = mppdata->sum[0] + nbdata*2;	// index of blue layer in sum[0]
 		mppdata->count[1] = mppdata->count[0] + nbdata;
@@ -128,8 +178,14 @@ static int mppsd_prepare_hook(struct generic_seq_args *args) {
 		if (!zone->mpregparam) {
 			zone->mpregparam = calloc(args->seq->number, sizeof(struct ap_regdata));
 			if (!zone->mpregparam) {
-				fprintf(stderr, "memory allocation failed\n");
-				return 1;
+				PRINT_ALLOC_ERR;
+				free(mppdata->sum[0]);
+				free(mppdata->count[0]);
+				free(mppdata->normalized_refdata);
+				free(mppdata->ref_gradient);
+				finalize_caching(mppdata->cache);
+				free(mppdata->cache);
+				return -1;
 			}
 		}
 	}
@@ -166,15 +222,18 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		stacking_zone shifted_zone = { .centre =
 			{ .x = round_to_int(zone->centre.x - regparam[in_index].shiftx),
 				.y = round_to_int(zone->centre.y + regparam[in_index].shifty) },
+			// it's + shifty because this image is reversed compared to the one it
+			// was tested on
 			.half_side = zone->half_side };
 
 		/* AP registration */
 		int max_radius = mppdata->search_radius;
 		int shiftx = 0, shifty = 0, error;
+		/* this is wrong! mpregparam is a sum, not the local shift alone!
 		if (in_index > 0 && !isnan(zone->mpregparam[in_index-1].x)) {
 			shiftx = zone->mpregparam[in_index-1].x;
 			shiftx = zone->mpregparam[in_index-1].y;
-		}
+		}*/
 		rectangle ref_area, im_area;
 		zone_to_rectangle(zone, &ref_area);
 		zone_to_rectangle(&shifted_zone, &im_area);
@@ -183,6 +242,7 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 					mppdata->ref_gradient, normalized_gaussian_data,
 					mppdata->ap_method, fit->rx, fit->ry, &ref_area,
 					&im_area, max_radius, 1, &shiftx, &shifty);
+			// shiftx and shifty here are for the passed data, so top-down images
 		}
 		else error = 1;
 
@@ -198,8 +258,13 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 			continue;
 		}
 
-		zone->mpregparam[in_index].x = shiftx + regparam[in_index].shiftx;
-		zone->mpregparam[in_index].y = shifty + regparam[in_index].shifty;
+		/* THAT'S THE HARDEST PART: regparam is used on bottom-up images, shift[xy] is
+		 * found on top-down images, mpregparam is used on bottom-up images, so it
+		 * should keep the same regparam sign but inverted shifty.
+		 * TODO: make sure it's the same zone that's tested as the one stacked
+		 */
+		zone->mpregparam[in_index].x = regparam[in_index].shiftx - shiftx;
+		zone->mpregparam[in_index].y = regparam[in_index].shifty + shifty;
 		fprintf(stdout, "frame %d, zone %d local shifts: %d,%d\n",
 				in_index, zone_idx, shiftx, shifty);
 
