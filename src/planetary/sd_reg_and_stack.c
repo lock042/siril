@@ -42,7 +42,7 @@
 #include "algos/statistics.h"
 #include "opencv/opencv.h"
 
-//#define DEBUG_MPP
+#define DEBUG_MPP
 #define USE_REF_FROM_SEQUENCE_INSTEAD_OF_THE_STACKED_ONE 0
 
 static void zone_to_rectangle(stacking_zone *zone, rectangle *rectangle);
@@ -204,10 +204,10 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		return 1;
 	}
 	WORD min, max;
-	int nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
+	int nbdata = args->seq->ry * args->seq->rx;
 	siril_stats_ushort_minmax(&min, &max, gaussian_data, nbdata);
 	float *normalized_gaussian_data = malloc(nbdata * sizeof(float));
-	normalize_data(gaussian_data, nbdata*args->seq->nb_layers,
+	normalize_data(gaussian_data, nbdata,
 			min, max, normalized_gaussian_data);
 
 	regdata *regparam = args->seq->regparam[args->layer];
@@ -229,8 +229,8 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		/* AP registration */
 		int max_radius = mppdata->search_radius;
 		int shiftx = 0, shifty = 0, error;
-		/* this is wrong! mpregparam is a sum, not the local shift alone!
-		if (in_index > 0 && !isnan(zone->mpregparam[in_index-1].x)) {
+		/* ok because mpregparam is now the local shift alone, not a sum */
+		/*if (in_index > 0 && !isnan(zone->mpregparam[in_index-1].x)) {
 			shiftx = zone->mpregparam[in_index-1].x;
 			shiftx = zone->mpregparam[in_index-1].y;
 		}*/
@@ -263,32 +263,39 @@ static int mppsd_image_hook(struct generic_seq_args *args,
 		 * should keep the same regparam sign but inverted shifty.
 		 * TODO: make sure it's the same zone that's tested as the one stacked
 		 */
-		zone->mpregparam[in_index].x = regparam[in_index].shiftx - shiftx;
-		zone->mpregparam[in_index].y = regparam[in_index].shifty + shifty;
+		zone->mpregparam[in_index].x = /* regparam[in_index].shiftx - */ shiftx;
+		zone->mpregparam[in_index].y = /* regparam[in_index].shifty + */ shifty;
 		fprintf(stdout, "frame %d, zone %d local shifts: %d,%d\n",
 				in_index, zone_idx, shiftx, shifty);
 
 		/* AP stacking */
-		add_image_zone_to_stacking_sum(fit, zone, in_index,
+		add_image_zone_to_stacking_sum(fit, zone, in_index, regparam+in_index,
 				mppdata->sum, mppdata->count);
 #ifdef DEBUG_MPP
 		// to see what's happening with the shifts, use this
 		{
 			// dump the gaussian data or the original data
-			int dump_gaussian = 1;
+			int dump_gaussian = 1;	// 0 is untested
 			// dump shifted zone or the compared zone
-			int dump_shifted = 1;
+			int dump_shifted = 1;	// 0 is untested
 
 			int side = get_side(zone);
 			WORD *buffer = malloc(side * side * sizeof(WORD));
 			if (dump_shifted) {
-				// same coordinates as in add_image_zone_to_stacking_sum()
-				shifted_zone.centre.x = round_to_int(zone->centre.x - zone->mpregparam[in_index].x);
-				shifted_zone.centre.y = round_to_int(zone->centre.y + zone->mpregparam[in_index].y);
+				if (dump_gaussian) {
+					shifted_zone.centre.x = round_to_int(zone->centre.x - regparam[in_index].shiftx - shiftx);
+					shifted_zone.centre.y = round_to_int(zone->centre.y + regparam[in_index].shifty - shifty);
+				} else {
+					// TO BE VERIFIED
+					// same coordinates as in add_image_zone_to_stacking_sum()
+					shifted_zone.centre.x = round_to_int(zone->centre.x - regparam[in_index].shiftx - shiftx);
+					shifted_zone.centre.y = round_to_int(zone->centre.y + regparam[in_index].shifty - shifty);
+				}
 			}
 			if (dump_gaussian) {
-				copy_image_buffer_zone_to_buffer(gaussian_data, fit->rx, fit->ry, &shifted_zone, buffer);
+				copy_image_buffer_zone_to_buffer(gaussian_data, fit->rx, fit->ry, &shifted_zone, buffer, FALSE);
 			} else {
+				// TO BE VERIFIED
 				copy_image_zone_to_buffer(fit, &shifted_zone, buffer, args->layer);
 			}
 			save_buffer_tmp(in_index, zone_idx, buffer, side);
@@ -318,6 +325,7 @@ static int mppsd_finalize_hook(struct generic_seq_args *args) {
 	 */
 	int nb_images = args->seq->number;
 	int i;
+	int minzones = 1;
         //minzones = nb_images / 3 + 1;	// at least 1
 	//int from_mpp = 0, from_both = 0, from_ref = 0;
 	int nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
@@ -338,25 +346,27 @@ static int mppsd_finalize_hook(struct generic_seq_args *args) {
 	for (i = 0; i < nbdata; i++)
 		buf[i] *= invmax;
 
-#if 0
+	// fill the pixels outside zones with reference image data
+	// TODO: use a blending function instead of this simple background fill
+	image_find_minmax(&mppdata->refimage);
 	for (i = 0; i < nbdata; i++) {
 		if (mppdata->count[0][i] > minzones) {
 			// already in buffy
-			from_mpp++;
+			//from_mpp++;
 		}
-		/* TODO: put the reference image in global_image */
-		else if (mppdata->count[0][i] > 0) {
+		/*else if (mppdata->count[0][i] > 0) {
 			buf[i] = (args->global_image[i] + buf[i]) / 2.0;
 			from_both++;
-		} else {
-			buf[i] = args->global_image[i];
-			from_ref++;
+		}*/ else {
+			buf[i] = 0.5 * (double)mppdata->refimage->data[i] /
+				(double)mppdata->refimage->maxi;
+			// 0.5: half-brightness for better debugging
+			//from_ref++;
 		}
 	}
-	fprintf(stdout, " pixels from best local zones: %d\n", from_mpp);
-	fprintf(stdout, " pixels from best local zones mixed with reference: %d\n", from_both);
-	fprintf(stdout, " pixels from reference image (global): %d\n", from_ref);
-#endif
+	//fprintf(stdout, " pixels from best local zones: %d\n", from_mpp);
+	//fprintf(stdout, " pixels from best local zones mixed with reference: %d\n", from_both);
+	//fprintf(stdout, " pixels from reference image (global): %d\n", from_ref);
 
 	// make a copy of the reference image to gfit to initialize it
 	clearfits(&gfit);

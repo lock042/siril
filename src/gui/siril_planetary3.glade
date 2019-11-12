@@ -6234,7 +6234,7 @@ WARNING: Reducing the ratio of memory allocated to computation will degrade perf
   <object class="GtkAdjustment" id="kerneladjustment">
     <property name="lower">3</property>
     <property name="upper">19</property>
-    <property name="value">3</property>
+    <property name="value">9</property>
     <property name="step_increment">2</property>
     <property name="page_increment">6</property>
   </object>

@@ -160,6 +160,7 @@
  * restrict zones inside the image
  * allow the sequence list to be ellipsized because it can be huge -> feature not found!
  * displays 'No sequence selected' when selecting a sequence that has no global regdata
+ * reevaluate mpregdata size when number of AP change in GUI
  */
 
 #include <stdlib.h>
@@ -360,8 +361,8 @@ gpointer the_multipoint_processing(gpointer ptr) {
 	return GINT_TO_POINTER(retval);
 }
 
-// reads an image zone, upside-down
-int copy_image_buffer_zone_to_buffer(WORD *buf, int w, int h, const stacking_zone *zone, WORD *dest) {
+// reads an image zone
+int copy_image_buffer_zone_to_buffer(WORD *buf, int w, int h, const stacking_zone *zone, WORD *dest, gboolean upside_down) {
 	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
 	int startx = round_to_int(zone->centre.x - zone->half_side);
@@ -374,9 +375,16 @@ int copy_image_buffer_zone_to_buffer(WORD *buf, int w, int h, const stacking_zon
 		return -1;
 	}
 
-	WORD *from = buf + (h - starty - side) * w + startx;
-	int stride = w - side;
+	WORD *from;
+	int stride;
 	int i, j;
+	if (upside_down) {
+		from = buf + (h - starty - side) * w + startx;
+		stride = -side - w;
+	} else {
+		from = buf + starty * w + startx;
+		stride = w - side;
+	}
 
 	for (i = 0; i < side; ++i) {
 		for (j = 0; j < side; ++j) {
@@ -387,7 +395,11 @@ int copy_image_buffer_zone_to_buffer(WORD *buf, int w, int h, const stacking_zon
 	return 0;
 }
 
-// reads an image zone, upside-down
+int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer) {
+	return copy_image_buffer_zone_to_buffer(fit->pdata[layer], fit->rx, fit->ry, zone, dest, TRUE);
+}
+
+// reads an image zone
 int copy_image_buffer_zone_to_buffer_float(float *buf, int w, int h, const stacking_zone *zone, float *dest, gboolean upside_down) {
 	int side = get_side(zone);
 	// start coordinates on the displayed image, but images are read upside-down
@@ -420,9 +432,6 @@ int copy_image_buffer_zone_to_buffer_float(float *buf, int w, int h, const stack
 	}
 	return 0;
 }
-int copy_image_zone_to_buffer(fits *fit, const stacking_zone *zone, WORD *dest, int layer) {
-	return copy_image_buffer_zone_to_buffer(fit->pdata[layer], fit->rx, fit->ry, zone, dest);
-}
 
 // for debug purposes
 void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_size) {
@@ -430,6 +439,7 @@ void save_buffer_tmp(int frame_index, int zone_idx, WORD *buffer, int square_siz
 	sprintf(tmpfn, "/tmp/zone_%d_image_%d.fit", zone_idx, frame_index);
 	fits *tmp = NULL;
 	new_fit_image(&tmp, square_size, square_size, 1, buffer, FALSE);
+	fits_flip_top_to_bottom(tmp);
 	savefits(tmpfn, tmp);
 	tmp->data = NULL; // don't free the original buffer
 	clearfits(tmp);

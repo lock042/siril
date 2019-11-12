@@ -133,7 +133,7 @@ int the_old_local_multipoint_sum_stacking(struct mpr_args *args) {
 			} else if (!args->using_homography) {
 #endif
 				// DFT registration or ECC with translation
-				add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
+				//add_image_zone_to_stacking_sum(&fit, zone, frame, sum, count);
 #ifdef DEBUG_MPP
 				// to see what's happening with the shifts, use this
 				int side = get_side(zone);
@@ -266,11 +266,11 @@ static void add_buf_zone_to_stacking_sum(WORD *buf, int layer, const stacking_zo
 
 /* copy the zone from an image to the same zone shifted in the stacked image */
 void add_image_zone_to_stacking_sum(fits *fit, const stacking_zone *zone, int frame,
-		unsigned long *sum[3], int *count[3]) {
+		regdata *regparam, unsigned long *sum[3], int *count[3]) {
 	int layer;
 	int side = get_side(zone);
-	int src_startx = round_to_int(zone->centre.x - zone->half_side - zone->mpregparam[frame].x);
-	int src_starty = round_to_int(zone->centre.y - zone->half_side - zone->mpregparam[frame].y);
+	int src_startx = round_to_int(zone->centre.x - zone->half_side - regparam->shiftx - zone->mpregparam[frame].x);
+	int src_starty = round_to_int(zone->centre.y - zone->half_side + regparam->shifty - zone->mpregparam[frame].y);
 	int dst_startx = zone->centre.x - zone->half_side;
 	int dst_starty = zone->centre.y - zone->half_side;
 

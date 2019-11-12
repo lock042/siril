@@ -115,10 +115,10 @@ static int regsd_image_hook(struct generic_seq_args *args,
 		.w = fit->rx - max_radius * 2, .h = fit->ry - max_radius * 2};
 	int shiftx = 0, shifty = 0, error;
 	// initialize shifts with the previous image's
-	if (in_index > 0 && !isnan(rsdata->current_regdata[in_index-1].shiftx)) {
+	/*if (in_index > 0 && !isnan(rsdata->current_regdata[in_index-1].shiftx)) {
 		shiftx = rsdata->current_regdata[in_index-1].shiftx;
 		shifty = rsdata->current_regdata[in_index-1].shifty;
-	}
+	}*/
 	error = search_local_match_gradient(rsdata->reference_image, gaussian_data,
 			fit->rx, fit->ry, &area, &area, max_radius, 1, &shiftx, &shifty);
 	// ideally, the zone could adapt to the shift, to have a larger matching area
@@ -328,7 +328,7 @@ unsigned char search_pattern2_9x9[] = {
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 0, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
