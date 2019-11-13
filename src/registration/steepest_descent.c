@@ -121,6 +121,7 @@ static int regsd_image_hook(struct generic_seq_args *args,
 	}*/
 	error = search_local_match_gradient(rsdata->reference_image, gaussian_data,
 			fit->rx, fit->ry, &area, &area, max_radius, 1, &shiftx, &shifty);
+	free(gaussian_data);
 	// ideally, the zone could adapt to the shift, to have a larger matching area
 	if (error) {
 		siril_log_message(_("Image %d alignment failed\n"), in_index);

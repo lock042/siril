@@ -348,7 +348,7 @@ static int mppsd_finalize_hook(struct generic_seq_args *args) {
 
 	// fill the pixels outside zones with reference image data
 	// TODO: use a blending function instead of this simple background fill
-	image_find_minmax(&mppdata->refimage);
+	image_find_minmax(mppdata->refimage);
 	for (i = 0; i < nbdata; i++) {
 		if (mppdata->count[0][i] > minzones) {
 			// already in buffy
