@@ -109,6 +109,8 @@ siril_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
+	filters/ddp.c \
+	filters/ddp.h \
 	filters/deconv.c \
 	filters/deconv.h \
 	filters/fft.c \

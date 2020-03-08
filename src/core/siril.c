@@ -216,25 +216,6 @@ int loglut(fits *fit) {
 	return -1;
 }
 
-int ddp(fits *a, int level, float coeff, float sigma) {
-	fits fit = { 0 };
-	if (level < 0 || level > USHRT_MAX) {
-		siril_log_color_message(_("ddp level argument must be [0, 65535]\n"), "red");
-		return 1;
-	}
-	float l = ushort_to_float_range(level);
-
-	int ret = copyfits(a, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT, 0);
-	if (!ret) ret = unsharp(&fit, sigma, 0, FALSE);
-	if (!ret) ret = soper(&fit, l, OPER_ADD, TRUE);
-	if (!ret) ret = nozero(&fit, 1);
-	if (!ret) ret = siril_fdiv(a, &fit, l, TRUE);
-	if (!ret) ret = soper(a, coeff, OPER_MUL, TRUE);
-	clearfits(&fit);
-	invalidate_stats_from_fit(a);
-	return ret;
-}
-
 int visu(fits *fit, int low, int high) {
 	if (low < 0 || low > USHRT_MAX || high < 1 || high > USHRT_MAX)
 		return 1;

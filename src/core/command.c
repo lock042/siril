@@ -54,6 +54,7 @@
 #include "filters/banding.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
+#include "filters/ddp.h"
 #include "filters/deconv.h"
 #include "filters/median.h"
 #include "filters/fft.h"
