@@ -40,22 +40,18 @@
 #include "opencv/opencv.h"
 
 int threshlo(fits *fit, WORD level) {
-	int i, layer;
+	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		if (fit->type == DATA_USHORT) {
-			WORD *buf = fit->pdata[layer];
-			for (i = 0; i < fit->rx * fit->ry; ++i) {
-				*buf = max(level, *buf);
-				buf++;
-			}
-		} else if (fit->type == DATA_FLOAT) {
-			float l = (float) level / USHRT_MAX_SINGLE;
-			float *buf = fit->fpdata[layer];
-			for (i = 0; i < fit->rx * fit->ry; ++i) {
-				*buf = max(l, *buf);
-				buf++;
-			}
+	if (fit->type == DATA_USHORT) {
+		WORD *buf = fit->data;
+		for (i = 0; i < n; ++i) {
+			buf[i] = max(level, buf[i]);
+		}
+	} else if (fit->type == DATA_FLOAT) {
+		float l = (float) level / USHRT_MAX_SINGLE;
+		float *buf = fit->fdata;
+		for (i = 0; i < n; ++i) {
+			buf[i] = max(l, buf[i]);
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -63,22 +59,18 @@ int threshlo(fits *fit, WORD level) {
 }
 
 int threshhi(fits *fit, WORD level) {
-	int i, layer;
+	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		if (fit->type == DATA_USHORT) {
-			WORD *buf = fit->pdata[layer];
-			for (i = 0; i < fit->rx * fit->ry; ++i) {
-				*buf = min(level, *buf);
-				buf++;
-			}
-		} else if (fit->type == DATA_FLOAT) {
-			float l = (float) level / USHRT_MAX_SINGLE;
-			float *buf = fit->fpdata[layer];
-			for (i = 0; i < fit->rx * fit->ry; ++i) {
-				*buf = min(l, *buf);
-				buf++;
-			}
+	if (fit->type == DATA_USHORT) {
+		WORD *buf = fit->data;
+		for (i = 0; i < n; ++i) {
+			buf[i] = min(level, buf[i]);
+		}
+	} else if (fit->type == DATA_FLOAT) {
+		float l = (float) level / USHRT_MAX_SINGLE;
+		float *buf = fit->fdata;
+		for (i = 0; i < n; ++i) {
+			buf[i] = min(l, buf[i]);
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -87,24 +79,20 @@ int threshhi(fits *fit, WORD level) {
 
 // level is for ushort data, adapted automatically in case of float data
 int nozero(fits *fit, WORD level) {
-	int i, layer;
+	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		if (fit->type == DATA_USHORT) {
-			WORD *buf = fit->pdata[layer];
-			for (i = 0; i < fit->rx * fit->ry; ++i) {
-				if (*buf == 0)
-					*buf = level;
-				buf++;
-			}
-		} else if (fit->type == DATA_FLOAT) {
-			float l = (float)level / USHRT_MAX_SINGLE;
-			float *buf = fit->fpdata[layer];
-			for (i = 0; i < fit->rx * fit->ry; ++i) {
-				if (*buf == 0)
-					*buf = l;
-				buf++;
-			}
+	if (fit->type == DATA_USHORT) {
+		WORD *buf = fit->data;
+		for (i = 0; i < n; ++i) {
+			if (buf[i] == 0)
+				buf[i] = level;
+		}
+	} else if (fit->type == DATA_FLOAT) {
+		float l = (float) level / USHRT_MAX_SINGLE;
+		float *buf = fit->fdata;
+		for (i = 0; i < n; ++i) {
+			if (buf[i] <= 0.0)
+				buf[i] = l;
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -139,10 +127,10 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
  * sigma value, and when it is given, the entropy will only be computed for
  * pixels with values above background + 1 * sigma. It must be NULL otherwise.
  */
-double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
-	double e = 0.0, threshold = 0.0;
+float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
+	float e = 0.f;
+	double threshold = 0.0;
 	gsl_histogram *histo;
-	size_t i, size, n;
 
 	if (opt_stats && opt_stats->median >= 0.0 && opt_stats->sigma >= 0.0)
 		threshold = opt_stats->median + 1 * opt_stats->sigma;
@@ -152,10 +140,10 @@ double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
 	else
 		histo = computeHisto_Selection(fit, layer, area);
 
-	n = fit->rx * fit->ry;
+	size_t n = fit->naxes[0] * fit->naxes[1];
 	g_assert (n > 0);
-	size = gsl_histogram_bins(histo);
-	for (i = 0; i < size; i++) {
+	size_t size = gsl_histogram_bins(histo);
+	for (size_t i = 0; i < size; i++) {
 		double p = gsl_histogram_get(histo, i);
 		if (p > threshold && p < size)
 			e += (p / n) * log(n / p);
@@ -167,17 +155,17 @@ double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
 
 static int loglut_ushort(fits *fit) {
 	// This function maps fit with a log LUT
-	int i, layer;
 	WORD *buf[3] = { fit->pdata[RLAYER],
 			fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
 	double norm = USHRT_MAX_DOUBLE / log(USHRT_MAX_DOUBLE);
 
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
+	for (int layer = 0; layer < fit->naxes[2]; ++layer) {
 		imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, TRUE);
 		double min = stat->min;
 		double wd = stat->max - stat->min;
-		for (i = 0; i < fit->ry * fit->rx; i++) {
+		size_t i, n = fit->naxes[0] * fit->naxes[1];
+		for (i = 0; i < n; i++) {
 			float px = (float)buf[layer][i];
 			buf[layer][i] = round_to_WORD(log1pf((px - min) / wd) * norm);
 		}
@@ -189,15 +177,15 @@ static int loglut_ushort(fits *fit) {
 
 static int loglut_float(fits *fit) {
 	// This function maps fit with a log LUT
-	int i, layer;
 	float *buf[3] = { fit->fpdata[RLAYER],
 			fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
+	for (int layer = 0; layer < fit->naxes[2]; ++layer) {
 		imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, TRUE);
 		double min = stat->min;
 		double wd = stat->max - stat->min;
-		for (i = 0; i < fit->ry * fit->rx; i++) {
+		size_t i, n = fit->naxes[0] * fit->naxes[1];
+		for (i = 0; i < n; i++) {
 			float px = buf[layer][i];
 			buf[layer][i] = log1pf((px - min) / wd);
 		}
@@ -235,7 +223,6 @@ int visu(fits *fit, int low, int high) {
 
 /* fill an image or selection with the value 'level' */
 int fill(fits *fit, int level, rectangle *arearg) {
-	int i, j, layer;
 	rectangle area;
 
 	if (arearg) {
@@ -250,13 +237,13 @@ int fill(fits *fit, int level, rectangle *arearg) {
 			area.y = 0;
 		}
 	}
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
+	for (int layer = 0; layer < fit->naxes[2]; ++layer) {
 		if (fit->type == DATA_USHORT) {
 			WORD *buf = fit->pdata[layer]
 					+ (fit->ry - area.y - area.h) * fit->rx + area.x;
 			int stridebuf = fit->rx - area.w;
-			for (i = 0; i < area.h; ++i) {
-				for (j = 0; j < area.w; ++j) {
+			for (int i = 0; i < area.h; ++i) {
+				for (int j = 0; j < area.w; ++j) {
 					*buf++ = level;
 				}
 				buf += stridebuf;
@@ -265,8 +252,8 @@ int fill(fits *fit, int level, rectangle *arearg) {
 			float *buf = fit->fpdata[layer]
 					+ (fit->ry - area.y - area.h) * fit->rx + area.x;
 			int stridebuf = fit->rx - area.w;
-			for (i = 0; i < area.h; ++i) {
-				for (j = 0; j < area.w; ++j) {
+			for (int i = 0; i < area.h; ++i) {
+				for (int j = 0; j < area.w; ++j) {
 					*buf++ = level;
 				}
 				buf += stridebuf;
@@ -280,7 +267,6 @@ int fill(fits *fit, int level, rectangle *arearg) {
 static int off_ushort(fits *fit, float level) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER],
 			fit->pdata[BLAYER] };
-	int i, layer;
 	g_assert(fit->naxes[2] <= 3);
 	if (level == 0)
 		return 0;
@@ -288,8 +274,9 @@ static int off_ushort(fits *fit, float level) {
 		level = -USHRT_MAX;
 	else if (level > USHRT_MAX)
 		level = USHRT_MAX;
-	for (i = 0; i < fit->rx * fit->ry; ++i) {
-		for (layer = 0; layer < fit->naxes[2]; ++layer) {
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
+	for (i = 0; i < n; ++i) {
+		for (int layer = 0; layer < fit->naxes[2]; ++layer) {
 			float val = (float)buf[layer][i];
 			buf[layer][i] = roundf_to_WORD(val + level);
 		}
@@ -301,7 +288,6 @@ static int off_ushort(fits *fit, float level) {
 static int off_float(fits *fit, float level) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER],
 			fit->fpdata[BLAYER] };
-	int i, layer;
 	g_assert(fit->naxes[2] <= 3);
 	if (level == 0)
 		return 0;
@@ -309,8 +295,9 @@ static int off_float(fits *fit, float level) {
 		level = -1.f;
 	else if (level > 1.f)
 		level = 1.f;
-	for (i = 0; i < fit->rx * fit->ry; ++i) {
-		for (layer = 0; layer < fit->naxes[2]; ++layer) {
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
+	for (i = 0; i < n; ++i) {
+		for (int layer = 0; layer < fit->naxes[2]; ++layer) {
 			float val = buf[layer][i];
 			buf[layer][i] = set_float_in_interval(val + level, 0.f, 1.f);
 		}
@@ -333,7 +320,6 @@ int off(fits *fit, float level) {
  * The argument layer can be -1 for automatic setting (= green for RGB) */
 double background(fits* fit, int reqlayer, rectangle *selection, gboolean multithread) {
 	int layer = RLAYER;
-	double bg;
 
 	if (reqlayer >= 0)
 		layer = reqlayer;
@@ -345,7 +331,7 @@ double background(fits* fit, int reqlayer, rectangle *selection, gboolean multit
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 0.0;
 	}
-	bg = stat->median;
+	double bg = stat->median;
 	free_stats(stat);
 	return bg;
 }
@@ -356,8 +342,8 @@ void show_FITS_header(fits *fit) {
 }
 
 void compute_grey_flat(fits *fit) {
-	double mean[4];
-	double diag1, diag2, coeff1, coeff2;
+	float mean[4];
+	float diag1, diag2, coeff1, coeff2;
 	int config;
 
 	/* compute means of 4 channels */
@@ -371,7 +357,7 @@ void compute_grey_flat(fits *fit) {
 
 	/* BAYER_FILTER_RGGB
 	 * BAYER_FILTER_BGGR */
-	if (fabs(1 - diag1) < fabs(1 - diag2)) {
+	if (fabs(1.f - diag1) < fabs(1.f - diag2)) {
 		coeff1 = mean[1] / mean[0];
 		coeff2 = mean[2] / mean[3];
 		config = 0;
@@ -385,5 +371,4 @@ void compute_grey_flat(fits *fit) {
 
 	/* applies coefficients to cfa image */
 	equalize_cfa_fit_with_coeffs(fit, coeff1, coeff2, config);
-
 }

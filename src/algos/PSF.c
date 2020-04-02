@@ -56,10 +56,14 @@
 const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 
 static gsl_matrix *removeHotPixels(gsl_matrix *in) {
-	int width = in->size2;
-	int height = in->size1;
-	int x, y;
+	size_t width = in->size2;
+	size_t height = in->size1;
+	size_t x, y;
 	gsl_matrix *out = gsl_matrix_alloc (in->size1, in->size2);
+	if (!out) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	gsl_matrix_memcpy (out, in);
 	for (y = 0; y < height; y++) {
@@ -82,6 +86,7 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg) {
 	/* find maximum */
 	/* first we remove hot pixels in the matrix */
 	gsl_matrix *m_tmp = removeHotPixels(z);
+	if (!m_tmp) return NULL;
 	max = gsl_matrix_max(m_tmp);
 	gsl_matrix_max_index(m_tmp, &i, &j);
 	gsl_matrix_free(m_tmp);
@@ -301,13 +306,19 @@ static fitted_PSF *psf_minimiz_no_angle(gsl_matrix* z, double background,
 	size_t NbCols = z->size2;
 	const size_t p = 6;			// Number of parameters fitted
 	const size_t n = NbRows * NbCols;
-	fitted_PSF *psf = malloc(sizeof(fitted_PSF));
 	gsl_vector *MaxV = psf_init_data(z, background);
+	if (!MaxV)
+		return NULL;
 	int status;
 	unsigned int iter = 0;
 	gsl_matrix *covar = gsl_matrix_alloc(p, p);
 	double *y = malloc(n * sizeof(double));
 	double *sigma = malloc(n * sizeof(double));
+	fitted_PSF *psf = malloc(sizeof(fitted_PSF));
+	if (!y || !sigma || !psf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	struct PSF_data d = { n, y, sigma, NbRows, NbCols, 0 };
 	gsl_multifit_function_fdf f;
 	const gsl_rng_type * type;
@@ -420,12 +431,16 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 	const size_t p = 7;			// Number of parameters fitted
 	const size_t n = NbRows * NbCols;
 	g_assert (n > 0);
-	fitted_PSF *psf_angle = malloc(sizeof(fitted_PSF));
 	int status;
 	unsigned int iter = 0;
+	fitted_PSF *psf_angle = malloc(sizeof(fitted_PSF));
 	gsl_matrix *covar = gsl_matrix_alloc(p, p);
 	double *y = malloc(n * sizeof(double));
 	double *sigma = malloc(n * sizeof(double));
+	if (!psf_angle || !covar || !y || !sigma) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	struct PSF_data d = { n, y, sigma, NbRows, NbCols, 0 };
 	gsl_multifit_function_fdf f_angle;
 	double x_init[7] = { psf->B, psf->A, psf->x0, psf->y0, psf->sx, psf->sy, 0 };
@@ -610,7 +625,7 @@ fitted_PSF *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 
 	result = psf_global_minimisation(z, bg, layer, TRUE, for_photometry, verbose);
 	if (result)
-		fwhm_to_arcsec_if_needed(fit, &result);
+		fwhm_to_arcsec_if_needed(fit, result);
 	gsl_matrix_free(z);
 	return result;
 }
@@ -704,12 +719,15 @@ void psf_display_result(fitted_PSF *result, rectangle *area) {
 
 	siril_log_message(buffer);
 }
+
+#define _2_SQRT_2_LOG2 1.55185049709
+
 /* If the pixel pitch and the focal length are known and filled in the 
  * setting box, we convert FWHM in pixel to arcsec by multiplying
  * the FWHM value with the sampling value */
-void fwhm_to_arcsec_if_needed(fits* fit, fitted_PSF **result) {
+void fwhm_to_arcsec_if_needed(fits* fit, fitted_PSF *result) {
 
-	if (result == NULL) return;
+	if (!result) return;
 	if (fit->focal_length <= 0.0 || fit->pixel_size_x <= 0.f
 			|| fit->pixel_size_y <= 0.f || fit->binning_x <= 0
 			|| fit->binning_y <= 0)
@@ -718,15 +736,15 @@ void fwhm_to_arcsec_if_needed(fits* fit, fitted_PSF **result) {
 	double bin_X, bin_Y;
 	double fwhmx, fwhmy;
 
-	fwhmx = sqrt((*result)->sx / 2.0) * 2 * sqrt(log(2.0) * 2);
-	fwhmy = sqrt((*result)->sy / 2.0) * 2 * sqrt(log(2.0) * 2);
+	fwhmx = sqrt(result->sx * 0.5) * _2_SQRT_2_LOG2;
+	fwhmy = sqrt(result->sy * 0.5) * _2_SQRT_2_LOG2;
 
 	bin_X = fit->unbinned ? (double) fit->binning_x : 1.0;
 	bin_Y = fit->unbinned ? (double) fit->binning_y : 1.0;
 
-	(*result)->fwhmx = fwhmx * (radian_conversion * (double)fit->pixel_size_x / fit->focal_length) * bin_X;
-	(*result)->fwhmy = fwhmy * (radian_conversion * (double)fit->pixel_size_y / fit->focal_length) * bin_Y;
-	(*result)->units = "\"";
+	result->fwhmx = fwhmx * (radian_conversion * (double)fit->pixel_size_x / fit->focal_length) * bin_X;
+	result->fwhmy = fwhmy * (radian_conversion * (double)fit->pixel_size_y / fit->focal_length) * bin_Y;
+	result->units = "\"";
 }
 
 /******************* POPUP GRAY MENU *******************************/

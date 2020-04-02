@@ -32,13 +32,14 @@
 #endif
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/message_dialog.h"
+#include "core/sleef.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "gui/photometric_cc.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 
 #ifdef HAVE_LIBCURL
 
@@ -679,12 +680,12 @@ static void update_coords() {
 static void update_pixel_size() {
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
 	gchar *cpixels;
-	double pixel;
+	float pixel;
 
 	pixel = gfit.pixel_size_x > gfit.pixel_size_y ? gfit.pixel_size_x : gfit.pixel_size_y;
 
-	if (pixel > 0.0) {
-		cpixels = g_strdup_printf("%.2lf", pixel);
+	if (pixel > 0.f) {
+		cpixels = g_strdup_printf("%.2lf", (double) pixel);
 		gtk_entry_set_text(entry, cpixels);
 		g_free(cpixels);
 	}
@@ -723,6 +724,20 @@ static void update_image_parameters_GUI() {
 	update_coords();
 }
 
+static void cd_x(wcs_info *wcs) {
+	double rot = (wcs->crota1 + wcs->crota2) / 2;
+	rot = rot * M_PI / 180.0;
+	double sinrot, cosrot;
+	double2 sc;
+	sc = xsincos(rot);
+	sinrot = sc.x;
+	cosrot = sc.y;
+	wcs->cd1_1 = wcs->cdelt1 * cosrot;
+	wcs->cd2_2 = wcs->cdelt2 * cosrot;
+	wcs->cd2_1 = wcs->cdelt1 * sinrot;
+	wcs->cd1_2 = -wcs->cdelt2 * sinrot;
+}
+
 static void update_gfit(image_solved image) {
 	gfit.focal_length = image.focal;
 	gfit.pixel_size_x = gfit.pixel_size_y = image.pixel_size;
@@ -733,8 +748,10 @@ static void update_gfit(image_solved image) {
 	gfit.wcs.equinox = 2000;
 	deg_to_HMS(image.ra, "ra", gfit.wcs.objctra);
 	deg_to_HMS(image.dec, "dec", gfit.wcs.objctdec);
-	gfit.wcs.cdelt1 = gfit.wcs.cdelt2 = image.resolution / 3600.0;
-	gfit.wcs.crota1 = gfit.wcs.crota2 = image.crota;
+	gfit.wcs.cdelt1 = image.resolution / 3600.0;
+	gfit.wcs.cdelt2 = -gfit.wcs.cdelt1;
+	gfit.wcs.crota1 = gfit.wcs.crota2 = -image.crota;
+	cd_x(&gfit.wcs);
 }
 
 static void print_platesolving_results(Homography H, image_solved image) {
@@ -1032,18 +1049,11 @@ static TRANS H_to_linear_TRANS(Homography H) {
 }
 
 static gboolean check_affine_TRANS_sanity(TRANS trans) {
-	gboolean ok = FALSE;
+	double var1 = fabs(trans.b) - fabs(trans.f);
+	double var2 = fabs(trans.c) - fabs(trans.e);
+	siril_debug_print("abs(b+f)=%f et abs(c+e)=%f\n", var1, var2);
 
-	double var1 = fabs(trans.b / trans.f);
-	double var2 = fabs(trans.c / trans.e);
-	siril_debug_print("abs(b/f)=%f et abs(c/e)=%f\n", var1, var2);
-
-	if (0.8 < var1 && var1 < 1.2) {
-		if (0.8 < var2 && var2 < 1.2) {
-			ok = TRUE;
-		}
-	}
-	return ok;
+	return ((fabs(var1) < 0.1) && fabs(var2) < 0.1);
 }
 
 static gboolean end_plate_solver(gpointer p) {
@@ -1400,16 +1410,6 @@ gboolean confirm_delete_wcs_keywords(fits *fit) {
 
 void invalidate_WCS_keywords(fits *fit) {
 	if (fit->wcs.equinox > 0) {
-		fit->wcs.equinox = 0;
-		fit->wcs.crpix1 = 0.0;
-		fit->wcs.crpix2 = 0.0;
-		fit->wcs.crval1 = 0.0;
-		fit->wcs.crval2 = 0.0;
-		fit->wcs.cdelt1 = 0.0;
-		fit->wcs.cdelt2 = 0.0;
-		fit->wcs.crota1 = 0.0;
-		fit->wcs.crota2 = 0.0;
-		memset(fit->wcs.objctra, 0, FLEN_VALUE);
-		memset(fit->wcs.objctdec, 0, FLEN_VALUE);
+		memset(&fit->wcs, 0, sizeof(fit->wcs));
 	}
 }

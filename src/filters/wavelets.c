@@ -41,7 +41,6 @@ static gboolean wavelet_show_preview;
 
 static void reset_scale_w() {
 	static GtkRange *range_w[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
-	int i;
 
 	if (range_w[0] == NULL) {
 		range_w[0] = GTK_RANGE(lookup_widget("scale_w0"));
@@ -53,14 +52,13 @@ static void reset_scale_w() {
 	}
 
 	set_notify_block(TRUE);
-	for (i = 0; i < 6; i++) {
+	for (int i = 0; i < 6; i++) {
 		gtk_range_set_value(range_w[i], 1.f);
 	}
 	set_notify_block(FALSE);
 }
 
 static int update_wavelets() {
-	int i;
 	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
 			"b_rawdata.wave" }, *dir[3];
 	const char *tmpdir;
@@ -69,7 +67,7 @@ static int update_wavelets() {
 
 	set_cursor_waiting(TRUE);
 
-	for (i = 0; i < gfit.naxes[2]; i++) {
+	for (int i = 0; i < gfit.naxes[2]; i++) {
 		dir[i] = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 		if (gfit.type == DATA_USHORT) {
 			wavelet_reconstruct_file(dir[i], wavelet_value, gfit.pdata[i]);
@@ -83,8 +81,7 @@ static int update_wavelets() {
 }
 
 static void wavelets_startup() {
-	int i;
-	for (i = 0; i < 6; i++) {
+	for (int i = 0; i < 6; i++) {
 		wavelet_value[i] = 1.f;
 	}
 	copy_gfit_to_backup();
@@ -99,9 +96,10 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 
 	g_assert(fit->naxes[2] <= 3);
 
-	float *Imag;
+	float *Imag = NULL;
+	size_t n = fit->naxes[0] * fit->naxes[1];
 	if (fit->type == DATA_USHORT) {
-		Imag = f_vector_alloc(fit->ry * fit->rx);
+		Imag = f_vector_alloc(n);
 		if (Imag == NULL) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -268,24 +266,23 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 	if (gfit.type == DATA_USHORT) {
-		float *Imag = (float*) malloc(gfit.rx * gfit.ry * sizeof(float));
-
-		for (i = 0; i < nb_chan; i++) {
-			dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
-			strcpy(dir[i], tmpdir);
-			strcat(dir[i], G_DIR_SEPARATOR_S);
-			strcat(dir[i], File_Name_Transform[i]);
-			wavelet_transform_file(Imag, gfit.ry, gfit.rx, dir[i],
-					Type_Transform, Nbr_Plan, gfit.pdata[i]);
-			free(dir[i]);
+		size_t n = gfit.naxes[0] * gfit.naxes[1] * sizeof(float);
+		float *Imag = malloc(n);
+		if (Imag) {
+			for (i = 0; i < nb_chan; i++) {
+				dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
+				strcpy(dir[i], tmpdir);
+				strcat(dir[i], G_DIR_SEPARATOR_S);
+				strcat(dir[i], File_Name_Transform[i]);
+				wavelet_transform_file(Imag, gfit.ry, gfit.rx, dir[i],
+						Type_Transform, Nbr_Plan, gfit.pdata[i]);
+				free(dir[i]);
+			}
+			free(Imag);
 		}
-
-		free(Imag);
-		Imag = NULL;
 	} else {
 		for (i = 0; i < nb_chan; i++) {
-			dir[i] = malloc(
-					strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
+			dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
 			strcpy(dir[i], tmpdir);
 			strcat(dir[i], G_DIR_SEPARATOR_S);
 			strcat(dir[i], File_Name_Transform[i]);
@@ -296,6 +293,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	}
 	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
 	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), TRUE);
+	reset_scale_w();
 	set_cursor_waiting(FALSE);
 	return;
 }

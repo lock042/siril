@@ -130,6 +130,7 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 #ifdef SIRIL_OUTPUT_DEBUG
 		image_find_minmax(raw);
 		fprintf(stdout, "after dark: min=%f, max=%f\n", raw->mini, raw->maxi);
+		invalidate_stats_from_fit(raw);
 #endif
 	}
 
@@ -140,6 +141,7 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 #ifdef SIRIL_OUTPUT_DEBUG
 		image_find_minmax(raw);
 		fprintf(stdout, "after flat: min=%f, max=%f\n", raw->mini, raw->maxi);
+		invalidate_stats_from_fit(raw);
 #endif
 	}
 
@@ -162,7 +164,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args) {
 		return 1;
 
 	/* Minimization of background noise to find better k */
-	invalidate_stats_from_fit(raw);
+	//invalidate_stats_from_fit(raw);	// why?
 	k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
 	if (k0 < 0.f) {
 		ret = -1;
@@ -184,12 +186,16 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 		// checking disk space: removing old sequence and computing free space
 		remove_prefixed_sequence_files(args->seq, prepro->ppprefix);
 
-		int64_t size = seq_compute_size(args->seq, args->seq->number,
-				prepro->use_flat ? DATA_FLOAT : DATA_USHORT);
+		// float output is always used in case of FITS sequence
+		data_type output_depth =
+			args->force_ser_output || args->seq->type == SEQ_SER ?
+			DATA_USHORT : DATA_FLOAT;
+		int64_t size = seq_compute_size(args->seq, args->seq->number, output_depth);
 		if (prepro->debayer)
 			size *= 3;
 		if (test_available_space(size))
 			return 1;
+		// another generic disk check is done in the generic function after this one
 
 		// handling SER
 		if (ser_prepare_hook(args))
@@ -239,27 +245,44 @@ static int prepro_image_hook(struct generic_seq_args *args, int out_index, int i
 	if (preprocess(fit, prepro))
 		return 1;
 
-	if (prepro->use_cosmetic_correction && prepro->use_dark && prepro->dark->naxes[2] == 1) {
-		cosmeticCorrection(fit, prepro->dev, prepro->icold + prepro->ihot, prepro->is_cfa);
-
+	if (prepro->use_cosmetic_correction && prepro->use_dark
+			&& prepro->dark->naxes[2] == 1) {
+		/* we don't want apply it on xtrans sensor */
+		sensor_pattern bayer = retrieveBayerPattern(fit->bayer_pattern);
+		if (bayer <= BAYER_FILTER_MAX) {
+			cosmeticCorrection(fit, prepro->dev, prepro->icold + prepro->ihot, prepro->is_cfa);
 #ifdef SIRIL_OUTPUT_DEBUG
-		image_find_minmax(fit);
-		fprintf(stdout, "after cosmetic correction: min=%f, max=%f\n", fit->mini, fit->maxi);
+			image_find_minmax(fit);
+			fprintf(stdout, "after cosmetic correction: min=%f, max=%f\n",
+					fit->mini, fit->maxi);
+			invalidate_stats_from_fit(fit);
 #endif
+		} else {
+			siril_log_color_message(_("Cannot apply cosmetic correction on XTRANS sensor yet\n"), "red");
+		}
 	}
 
 	if (prepro->debayer) {
+		// not for SER because it is done on-the-fly
 		if (!prepro->seq || prepro->seq->type == SEQ_REGULAR) {
-			// not for SER because it is done on-the-fly
 			debayer_if_needed(TYPEFITS, fit, prepro->compatibility, TRUE);
 		}
 
 #ifdef SIRIL_OUTPUT_DEBUG
 		image_find_minmax(fit);
 		fprintf(stdout, "after cosmetic correction: min=%f, max=%f\n", fit->mini, fit->maxi);
+		invalidate_stats_from_fit(fit);
 #endif
 	}
 
+	/* we need to do something special here because it's a 1-channel sequence and
+	 * image that will become 3-channel after this call, so stats caching will
+	 * not be correct. Preprocessing does not compute new stats so we don't need
+	 * to save them into cache now.
+	 * Destroying the stats from the fit will also prevent saving them in the
+	 * sequence, which may be done automatically by the caller.
+	 */
+	full_stats_invalidation_from_fit(fit);
 	return 0;
 }
 
@@ -270,6 +293,8 @@ static void clear_preprocessing_data(struct preprocessing_data *prepro) {
 		clearfits(prepro->dark);
 	if (prepro->use_flat && prepro->flat)
 		clearfits(prepro->flat);
+	if (prepro->dev)
+		free(prepro->dev);
 }
 
 static int prepro_finalize_hook(struct generic_seq_args *args) {
@@ -289,7 +314,7 @@ gpointer prepro_worker(gpointer p) {
 	return retval;
 }
 
-void start_sequence_preprocessing(struct preprocessing_data *prepro, gboolean from_script) {
+void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
 	args->seq = prepro->seq;
 	args->force_float = TRUE;
@@ -304,13 +329,14 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro, gboolean fr
 	args->stop_on_error = TRUE;
 	args->description = _("Preprocessing");
 	args->has_output = TRUE;
+	args->output_type = DATA_USHORT; // we don't need it, minimize it
 	args->new_seq_prefix = prepro->ppprefix;
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->parallel = TRUE;
 	args->user = prepro;
 
-	if (from_script) {
+	if (com.script) {
 		args->already_in_a_thread = TRUE;
 		start_in_new_thread(prepro_worker, args);
 	} else {
@@ -487,8 +513,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 
 	if (!single_image_is_loaded() && get_thread_run()) {
-		siril_log_message(_("Another task is already in "
-					"progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
@@ -538,7 +563,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		args->allow_32bit_output = args->seq->type == SEQ_REGULAR;
 		set_cursor_waiting(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
-		start_sequence_preprocessing(args, FALSE);
+		start_sequence_preprocessing(args);
 	} else {
 		int retval;
 		args->is_sequence = FALSE;

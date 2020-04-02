@@ -707,16 +707,30 @@ void update_photometry_interface() {
 	writeinitfile();
 }
 
-char *vport_number_to_name(int vport) {
+const char *vport_number_to_name(int vport) {
 	switch (vport) {
 		case RED_VPORT:
-			return strdup("red");
+			return (_("red"));
 		case GREEN_VPORT:
-			return strdup("green");
+			return (_("green"));
 		case BLUE_VPORT:
-			return strdup("blue");
+			return (_("blue"));
 		case RGB_VPORT:
-			return strdup("rgb");
+			return (_("rgb"));
+	}
+	return NULL;
+}
+
+const char *untranslated_vport_number_to_name(int vport) {
+	switch (vport) {
+		case RED_VPORT:
+			return ("red");
+		case GREEN_VPORT:
+			return ("green");
+		case BLUE_VPORT:
+			return ("blue");
+		case RGB_VPORT:
+			return ("rgb");
 	}
 	return NULL;
 }
@@ -739,7 +753,7 @@ void calculate_fwhm(GtkWidget *widget) {
 	int layer = match_drawing_area_widget(widget, FALSE);
 	if (layer != -1) {
 		gchar *buf, *label_name;
-		char *layer_name = vport_number_to_name(layer);
+		const char *layer_name = untranslated_vport_number_to_name(layer);
 		GtkLabel *label;
 		if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
 			if (com.selection.w < 300 && com.selection.h < 300) {
@@ -758,7 +772,6 @@ void calculate_fwhm(GtkWidget *widget) {
 		label = GTK_LABEL(lookup_widget(label_name));
 		gtk_label_set_text(label, buf);
 
-		free(layer_name);
 		g_free(label_name);
 		g_free(buf);
 	}
@@ -781,20 +794,18 @@ void display_filename() {
 		nb_layers = com.seq.nb_layers;
 	}
 	base_name = g_path_get_basename(filename);
-	fn_label = GTK_LABEL(gtk_builder_get_object(builder, "labelfilename_red"));
+	fn_label = GTK_LABEL(lookup_widget("labelfilename_red"));
 	str = g_strdup_printf(_("%s (channel 0)"), base_name);
 	gtk_label_set_text(fn_label, str);
 	g_free(str);
 
 	if (nb_layers == 3) {	//take in charge both sequence and single image
-		fn_label = GTK_LABEL(
-				gtk_builder_get_object(builder, "labelfilename_green"));
+		fn_label = GTK_LABEL(lookup_widget("labelfilename_green"));
 		str = g_strdup_printf(_("%s (channel 1)"), base_name);
 		gtk_label_set_text(fn_label, str);
 		g_free(str);
 
-		fn_label = GTK_LABEL(
-				gtk_builder_get_object(builder, "labelfilename_blue"));
+		fn_label = GTK_LABEL(lookup_widget("labelfilename_blue"));
 		str = g_strdup_printf(_("%s (channel 2)"), base_name);
 		gtk_label_set_text(fn_label, str);
 		g_free(str);
@@ -811,7 +822,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot convert a sequence file"),
 				_("A sequence file cannot be converted to 32 bits. This operation can only be done on a single file."));
 	} else {
-		int ndata = gfit.rx * gfit.ry * gfit.naxes[2];
+		size_t ndata = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
 
 		if (gfit.type == DATA_FLOAT) {
 			gboolean convert = siril_confirm_dialog(_("Precision loss"),
@@ -833,15 +844,17 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 }
 
 void set_precision_switch() {
-	GtkLabel *label = GTK_LABEL(lookup_widget("precision_button_name"));
-	GtkCheckMenuItem *float_button = GTK_CHECK_MENU_ITEM(lookup_widget("32bits_item"));
-	GtkCheckMenuItem *ushort_button = GTK_CHECK_MENU_ITEM(lookup_widget("16bits_item"));
+	if (!com.script) {
+		GtkLabel *label = GTK_LABEL(lookup_widget("precision_button_name"));
+		GtkCheckMenuItem *float_button = GTK_CHECK_MENU_ITEM(lookup_widget("32bits_item"));
+		GtkCheckMenuItem *ushort_button = GTK_CHECK_MENU_ITEM(lookup_widget("16bits_item"));
 
-	gtk_label_set_text(label, gfit.type == DATA_USHORT ? _("16 bits") : _("32 bits"));
-	g_signal_handlers_block_by_func(float_button, on_precision_item_toggled, NULL);
-	gtk_check_menu_item_set_active(float_button, gfit.type == DATA_FLOAT);
-	gtk_check_menu_item_set_active(ushort_button, gfit.type == DATA_USHORT);
-	g_signal_handlers_unblock_by_func(float_button, on_precision_item_toggled, NULL);
+		gtk_label_set_text(label, gfit.type == DATA_USHORT ? _("16 bits") : _("32 bits"));
+		g_signal_handlers_block_by_func(float_button, on_precision_item_toggled, NULL);
+		gtk_check_menu_item_set_active(float_button, gfit.type == DATA_FLOAT);
+		gtk_check_menu_item_set_active(ushort_button, gfit.type == DATA_USHORT);
+		g_signal_handlers_unblock_by_func(float_button,	on_precision_item_toggled, NULL);
+	}
 }
 
 /* set available layers in the layer list of registration */
@@ -1019,33 +1032,6 @@ void control_window_switch_to_tab(main_tabs tab) {
 	gtk_notebook_set_current_page(notebook, tab);
 }
 
-void update_statusbar_convert() {
-	GtkLabel *status_label = GTK_LABEL(lookup_widget("statuslabel_convert"));
-
-	int nb_files = count_converted_files();
-	if (nb_files == 0)
-		gtk_label_set_text(status_label, " ");
-	else {
-		int selected = count_selected_files();
-		gchar *str, *total;
-		if (nb_files == 1) {
-			str = g_strdup_printf(_("%d file loaded"), nb_files);
-		} else {
-			str = g_strdup_printf(_("%d files loaded"), nb_files);
-		}
-		if (selected == 0) {
-			total = g_strdup(str);
-		} else if (selected == 1) {
-			total = g_strdup_printf(_("%d file selected, %s"), selected, str);
-		} else {
-			total = g_strdup_printf(_("%d files selected, %s"), selected, str);
-		}
-		gtk_label_set_text(status_label, total);
-		g_free(str);
-		g_free(total);
-	}
-}
-
 void update_spinCPU(int max) {
 	static GtkSpinButton *spin_cpu = NULL;
 
@@ -1168,7 +1154,7 @@ void set_GUI_misc() {
 }
 
 /* size is in kiB */
-void set_GUI_MEM(unsigned long size) {
+void set_GUI_MEM(unsigned long long size) {
 	if (com.headless)
 		return;
 	char *str;
@@ -1908,50 +1894,10 @@ void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 	}
 }
 
-void on_neg_button_clicked(GtkToolButton *button, gpointer user_data) {
-	int tmp;
-	GtkToggleButton *chainedbutton;
-	gboolean is_chained;
-
+void on_neg_button_toggled(GtkToggleToolButton *togglebutton,
+		gpointer user_data) {
 	set_cursor_waiting(TRUE);
-
-	chainedbutton = (GtkToggleButton *)user_data;
-	is_chained = gtk_toggle_button_get_active(chainedbutton);
-
-	/* swaps values of hi and lo and redraw */
-	if (!is_chained) {
-		if (single_image_is_loaded() && com.cvport < com.uniq->nb_layers
-				&& com.seq.current != RESULT_IMAGE) {
-			tmp = com.uniq->layers[com.cvport].hi;
-			com.uniq->layers[com.cvport].hi = com.uniq->layers[com.cvport].lo;
-			com.uniq->layers[com.cvport].lo = tmp;
-		} else if (sequence_is_loaded() && com.cvport < com.seq.nb_layers) {
-			tmp = com.seq.layers[com.cvport].hi;
-			com.seq.layers[com.cvport].hi = com.seq.layers[com.cvport].lo;
-			com.seq.layers[com.cvport].lo = tmp;
-		} else
-			return;
-		set_cutoff_sliders_values();
-		redraw(com.cvport, REMAP_ONLY);	// sliders are only set for cvport
-	} else {
-		int i;
-		if (single_image_is_loaded() && com.seq.current != RESULT_IMAGE) {
-			for (i = 0; i < com.uniq->nb_layers; i++) {
-				tmp = com.uniq->layers[i].hi;
-				com.uniq->layers[i].hi = com.uniq->layers[i].lo;
-				com.uniq->layers[i].lo = tmp;
-			}
-		} else if (sequence_is_loaded()) {
-			for (i = 0; i < com.seq.nb_layers; i++) {
-				tmp = com.seq.layers[i].hi;
-				com.seq.layers[i].hi = com.seq.layers[i].lo;
-				com.seq.layers[i].lo = tmp;
-			}
-		} else
-			return;
-		set_cutoff_sliders_values();
-		redraw(com.cvport, REMAP_ALL);
-	}
+	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 }
@@ -2160,8 +2106,7 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 	force = gtk_toggle_button_get_active(forceButton);
 
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already "
-					"in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 

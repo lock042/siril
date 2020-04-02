@@ -38,6 +38,7 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 		const rectangle *area);
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type);
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype);
+void fit_debayer_buffer(fits *fit, void *newbuf);
 
 void keep_first_channel_from_fits(fits *fit);
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr);
@@ -110,8 +111,8 @@ float double_ushort_to_float_range(double d);
 WORD float_to_ushort_range(float f);
 BYTE float_to_uchar_range(float f);
 float ushort_to_float_bitpix(fits *fit, WORD value);
-WORD *float_buffer_to_ushort(float *buffer, long ndata);
-float *ushort_buffer_to_float(WORD *buffer, long ndata);
+WORD *float_buffer_to_ushort(float *buffer, size_t ndata);
+float *ushort_buffer_to_float(WORD *buffer, size_t ndata);
 uint16_t change_endianness16(uint16_t x);
 uint16_t cpu_to_le16(uint16_t x);
 uint16_t cpu_to_be16(uint16_t x);
@@ -132,6 +133,8 @@ gboolean ends_with(const char *str, const char *ending);
 int get_extension_index(const char *filename);
 image_type get_type_from_filename(const gchar *filename);
 int is_readable_file(const char *filename);
+gboolean is_forbiden_in_filename(gchar c);
+gboolean file_name_has_invalid_chars(const char *name);
 int stat_file(const char *filename2, image_type *type, char **realname);
 const char* get_filename_ext(const char *filename);
 
@@ -166,7 +169,7 @@ int threshlo(fits *fit, WORD level);
 int threshhi(fits *fit, WORD level);
 int nozero(fits *fit, WORD level);
 int unsharp(fits*, double sigma, double mult, gboolean verbose);
-double entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
+float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
 int loglut(fits *fit);
 int visu(fits *fit, int low, int high);
 int fill(fits *fit, int level, rectangle *arearg);

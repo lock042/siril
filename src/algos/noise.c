@@ -40,7 +40,7 @@ static gboolean end_noise(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
 	stop_processing_thread();
 	set_cursor_waiting(FALSE);
-	
+
 	if (args->verbose) {
 		struct timeval t_end;
 		gettimeofday(&t_end, NULL);
@@ -96,8 +96,7 @@ gpointer noise(gpointer p) {
 
 void on_info_menu_noise_estimation_clicked(GtkButton *button, gpointer user_data) {
 	if (get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 
+<!-- Generated with glade 3.22.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -578,7 +578,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="use_alpha">False</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="response" handler="on_colordialog_response" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -5386,6 +5386,7 @@ WARNING: gnuplot must be installed.</property>
                             <property name="can_focus">False</property>
                             <property name="border_width">12</property>
                             <property name="orientation">vertical</property>
+                            <property name="spacing">10</property>
                             <child>
                               <object class="GtkLabel" id="proc_label">
                                 <property name="visible">True</property>
@@ -5410,58 +5411,63 @@ WARNING: gnuplot must be installed.</property>
                                 <property name="row_spacing">5</property>
                                 <property name="column_spacing">5</property>
                                 <child>
-                                  <object class="GtkLabel" id="label71">
+                                  <object class="GtkBox" id="box21">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="label" translatable="yes">Methods:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">0</property>
-                                    <property name="top_attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBoxText" id="comboboxstack_methods">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="tooltip_text" translatable="yes">Sum: This is the simplest method.
-Pixel values are added in an image normalized to 16-bit values.
-It increases signal/noise ratio (SNR) as square root of number of images.
+                                    <child>
+                                      <object class="GtkComboBoxText" id="combonormalize">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="tooltip_text" translatable="yes">If one of these items is selected, a normalisation process will be applied to all input
+images before stacking.
+- Normalisation matches the mean background of all input images, then, the
+normalisation is processed by multiplication or addition. Keep in mind that both
+processes generally lead to similar results but multiplicative normalisation is
+prefered for image which will be used for multiplication or division as flat-field.
+- Scale matches dispersion by weighting all input images. This tends to improve
+the signal-to-noise ratio and therefore this is the option used by default with
+the additive normalisation.
 
-Average with rejection: This method is used to reject deviant pixels iteratively.
-Five methods have been implemented:
-- Percentile Clipping
-- Sigma Clipping
-- Median Sigma Clipping
-- Winsorized Sigma Clipping
-- Linear Fit Clipping
-After pixel rejection, the mean of the stack is computed.
-
-Median: This method was mostly used for dark/flat/offset stacking although now we recommend the use of average with rejection stacking.
-The median value of the pixels in the stack is computed for each pixel.
-As this method should only be used for dark/flat/offset stacking, it does not take
-into account shifts computed during registration.
-
-Pixel maximum: This case is mainly used to construct long exposure star-trails images.
-Pixels of the image are replaced by pixels at the same coordinates if intensity is greater.
-
-Pixel minimum: This case could be useful to select the area to be cropped after the stack operation.
-Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.</property>
-                                    <property name="active">0</property>
-                                    <items>
-                                      <item translatable="yes">Sum stacking</item>
-                                      <item translatable="yes">Average stacking with rejection</item>
-                                      <item translatable="yes">Median stacking</item>
-                                      <item translatable="yes">Pixel maximum stacking</item>
-                                      <item translatable="yes">Pixel minimum stacking</item>
-                                    </items>
-                                    <signal name="changed" handler="on_comboboxstack_methods_changed" swapped="no"/>
+The offset and dark masters should not be processed with normalisation.
+However, multiplicative normalisation must be used with flat-field frames.</property>
+                                        <property name="halign">start</property>
+                                        <property name="valign">center</property>
+                                        <property name="active">3</property>
+                                        <items>
+                                          <item translatable="yes">No normalisation</item>
+                                          <item translatable="yes">Additive</item>
+                                          <item translatable="yes">Multiplicative</item>
+                                          <item translatable="yes">Additive with scaling</item>
+                                          <item translatable="yes">Multiplicative with scaling</item>
+                                        </items>
+                                        <signal name="changed" handler="on_combonormalize_changed" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="checkforcenorm">
+                                        <property name="label" translatable="yes">Recompute</property>
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">False</property>
+                                        <property name="tooltip_text" translatable="yes">By default, Siril takes the normalisation coefficients from seq file if already computed. However you can force Siril to recompute it before stacking.</property>
+                                        <property name="valign">center</property>
+                                        <property name="draw_indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
-                                    <property name="top_attach">0</property>
-                                    <property name="width">2</property>
+                                    <property name="top_attach">1</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -5727,422 +5733,6 @@ gradients with differing spatial distributions and orientations.
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkLabel" id="label146">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="label" translatable="yes">Normalisation:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">0</property>
-                                    <property name="top_attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="gostack_button">
-                                    <property name="label" translatable="yes">Start stacking</property>
-                                    <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <property name="tooltip_text" translatable="yes">Start stacking the current sequence of images, using the method and other information provided above.
-Siril uses a 32-bit internal image to process the stacking, which is then saved to a 16-bit image whose name is given below.</property>
-                                    <property name="margin_top">3</property>
-                                    <property name="use_underline">True</property>
-                                    <signal name="clicked" handler="on_seqstack_button_clicked" swapped="no"/>
-                                    <style>
-                                      <class name="suggested-action"/>
-                                    </style>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">0</property>
-                                    <property name="top_attach">5</property>
-                                    <property name="width">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkEntry" id="entryresultfile">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="invisible_char">●</property>
-                                    <property name="text">stack_result.fit</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">1</property>
-                                    <property name="top_attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="checkbutoverwrite">
-                                    <property name="label" translatable="yes">Overwrite</property>
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">False</property>
-                                    <property name="tooltip_text" translatable="yes">Overwrite file without notice if it already exists.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw_indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">2</property>
-                                    <property name="top_attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkBox" id="box21">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <child>
-                                      <object class="GtkComboBoxText" id="combonormalize">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="tooltip_text" translatable="yes">If one of these items is selected, a normalisation process will be applied to all input
-images before stacking.
-- Normalisation matches the mean background of all input images, then, the
-normalisation is processed by multiplication or addition. Keep in mind that both
-processes generally lead to similar results but multiplicative normalisation is
-prefered for image which will be used for multiplication or division as flat-field.
-- Scale matches dispersion by weighting all input images. This tends to improve
-the signal-to-noise ratio and therefore this is the option used by default with
-the additive normalisation.
-
-The offset and dark masters should not be processed with normalisation.
-However, multiplicative normalisation must be used with flat-field frames.</property>
-                                        <property name="halign">start</property>
-                                        <property name="valign">center</property>
-                                        <property name="active">3</property>
-                                        <items>
-                                          <item translatable="yes">No normalisation</item>
-                                          <item translatable="yes">Additive</item>
-                                          <item translatable="yes">Multiplicative</item>
-                                          <item translatable="yes">Additive with scaling</item>
-                                          <item translatable="yes">Multiplicative with scaling</item>
-                                        </items>
-                                        <signal name="changed" handler="on_combonormalize_changed" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkCheckButton" id="checkforcenorm">
-                                        <property name="label" translatable="yes">Recompute</property>
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">False</property>
-                                        <property name="tooltip_text" translatable="yes">By default, Siril takes the normalisation coefficients from seq file if already computed. However you can force Siril to recompute it before stacking.</property>
-                                        <property name="valign">center</property>
-                                        <property name="draw_indicator">True</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">1</property>
-                                    <property name="top_attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkGrid" id="stackfilteringgrid">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="row_spacing">5</property>
-                                    <property name="column_spacing">10</property>
-                                    <child>
-                                      <object class="GtkButton" id="filter_add1">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">True</property>
-                                        <property name="tooltip_text" translatable="yes">Add another filter</property>
-                                        <property name="halign">end</property>
-                                        <property name="image">addfilter1</property>
-                                        <property name="always_show_image">True</property>
-                                        <signal name="clicked" handler="on_filter_add1_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">3</property>
-                                        <property name="top_attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="filter_add2">
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">True</property>
-                                        <property name="tooltip_text" translatable="yes">Add another filter</property>
-                                        <property name="halign">end</property>
-                                        <property name="image">addfilter2</property>
-                                        <property name="always_show_image">True</property>
-                                        <signal name="clicked" handler="on_filter_add2_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">3</property>
-                                        <property name="top_attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="filter_rem3">
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">True</property>
-                                        <property name="tooltip_text" translatable="yes">Remove this filter</property>
-                                        <property name="halign">end</property>
-                                        <property name="image">removefilter3</property>
-                                        <property name="always_show_image">True</property>
-                                        <signal name="clicked" handler="on_filter_rem3_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">4</property>
-                                        <property name="top_attach">3</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="filter_rem2">
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">True</property>
-                                        <property name="tooltip_text" translatable="yes">Remove this filter</property>
-                                        <property name="halign">end</property>
-                                        <property name="image">removefilter2</property>
-                                        <property name="always_show_image">True</property>
-                                        <signal name="clicked" handler="on_filter_rem2_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">4</property>
-                                        <property name="top_attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkComboBoxText" id="combofilter1">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="tooltip_text" translatable="yes">Select the set of images to be stacked:
-- selected: only use image that have not been unselected from the sequence
-- FWHM: images with best computed FWHM (star-based registration only)
-- weighted FWHM: this is an improvement of a simple FWHM. It allows to exclude much more spurious images by using the number of stars detected compared to the reference image (star-based registration only)
-- roundness: images with best star roundness (star-based registration only)
-- quality: images with best quality (planetary DFT or ECC registrations)</property>
-                                        <property name="active">0</property>
-                                        <items>
-                                          <item translatable="yes">all</item>
-                                          <item translatable="yes">selected</item>
-                                          <item translatable="yes">FWHM</item>
-                                          <item translatable="yes">weighted FWHM</item>
-                                          <item translatable="yes">roundness</item>
-                                          <item translatable="yes">quality</item>
-                                        </items>
-                                        <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">0</property>
-                                        <property name="top_attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="stackspin1">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="tooltip_text" translatable="yes">Percents of the images of the sequence.</property>
-                                        <property name="halign">end</property>
-                                        <property name="invisible_char">●</property>
-                                        <property name="width_chars">6</property>
-                                        <property name="max_width_chars">5</property>
-                                        <property name="text">90,00</property>
-                                        <property name="input_purpose">number</property>
-                                        <property name="adjustment">adjustment4</property>
-                                        <property name="climb_rate">1</property>
-                                        <property name="digits">2</property>
-                                        <property name="numeric">True</property>
-                                        <property name="value">90</property>
-                                        <signal name="changed" handler="on_spinbut_percent_change" swapped="no"/>
-                                        <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no"/>
-                                        <style>
-                                          <class name="small-spinbutton"/>
-                                        </style>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="top_attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="stackspin2">
-                                        <property name="can_focus">True</property>
-                                        <property name="tooltip_text" translatable="yes">Percents of the images of the sequence.</property>
-                                        <property name="halign">end</property>
-                                        <property name="invisible_char">●</property>
-                                        <property name="width_chars">6</property>
-                                        <property name="max_width_chars">5</property>
-                                        <property name="text">90,00</property>
-                                        <property name="input_purpose">number</property>
-                                        <property name="adjustment">adjustment6</property>
-                                        <property name="climb_rate">1</property>
-                                        <property name="digits">2</property>
-                                        <property name="numeric">True</property>
-                                        <property name="value">90</property>
-                                        <signal name="changed" handler="on_spinbut_percent_change" swapped="no"/>
-                                        <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no"/>
-                                        <style>
-                                          <class name="small-spinbutton"/>
-                                        </style>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="top_attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="stackspin3">
-                                        <property name="can_focus">True</property>
-                                        <property name="tooltip_text" translatable="yes">Percents of the images of the sequence.</property>
-                                        <property name="halign">end</property>
-                                        <property name="invisible_char">●</property>
-                                        <property name="width_chars">6</property>
-                                        <property name="max_width_chars">5</property>
-                                        <property name="text">90,00</property>
-                                        <property name="input_purpose">number</property>
-                                        <property name="adjustment">adjustment7</property>
-                                        <property name="climb_rate">1</property>
-                                        <property name="digits">2</property>
-                                        <property name="numeric">True</property>
-                                        <property name="value">90</property>
-                                        <signal name="changed" handler="on_spinbut_percent_change" swapped="no"/>
-                                        <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no"/>
-                                        <style>
-                                          <class name="small-spinbutton"/>
-                                        </style>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="top_attach">3</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkComboBoxText" id="combofilter2">
-                                        <property name="can_focus">False</property>
-                                        <property name="tooltip_text" translatable="yes">Select the set of images to be stacked:
-- selected: only use image that have not been unselected from the sequence
-- FWHM: images with best computed FWHM (star-based registration only)
-- weighted FWHM: this is an improvement of a simple FWHM. It allows to exclude much more spurious images by using the number of stars detected compared to the reference image (star-based registration only)
-- roundness: images with best star roundness (star-based registration only)
-- quality: images with best quality (planetary DFT or ECC registrations)</property>
-                                        <property name="active">0</property>
-                                        <items>
-                                          <item translatable="yes">all</item>
-                                          <item translatable="yes">selected</item>
-                                          <item translatable="yes">FWHM</item>
-                                          <item translatable="yes">weighted FWHM</item>
-                                          <item translatable="yes">roundness</item>
-                                          <item translatable="yes">quality</item>
-                                        </items>
-                                        <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">0</property>
-                                        <property name="top_attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkComboBoxText" id="combofilter3">
-                                        <property name="can_focus">False</property>
-                                        <property name="tooltip_text" translatable="yes">Select the set of images to be stacked:
-- selected: only use image that have not been unselected from the sequence
-- FWHM: images with best computed FWHM (star-based registration only)
-- weighted FWHM: this is an improvement of a simple FWHM. It allows to exclude much more spurious images by using the number of stars detected compared to the reference image (star-based registration only)
-- roundness: images with best star roundness (star-based registration only)
-- quality: images with best quality (planetary DFT or ECC registrations)</property>
-                                        <property name="active">0</property>
-                                        <items>
-                                          <item translatable="yes">all</item>
-                                          <item translatable="yes">selected</item>
-                                          <item translatable="yes">FWHM</item>
-                                          <item translatable="yes">weighted FWHM</item>
-                                          <item translatable="yes">roundness</item>
-                                          <item translatable="yes">quality</item>
-                                        </items>
-                                        <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">0</property>
-                                        <property name="top_attach">3</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel" id="labelfilter1">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="width_chars">10</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">2</property>
-                                        <property name="top_attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel" id="labelfilter2">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="width_chars">10</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">2</property>
-                                        <property name="top_attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel" id="labelfilter3">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="width_chars">10</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">2</property>
-                                        <property name="top_attach">3</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel" id="stackfilter_label">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Stacking 0 images of the 0 of the sequence</property>
-                                        <property name="wrap">True</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left_attach">0</property>
-                                        <property name="top_attach">0</property>
-                                        <property name="width">5</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">1</property>
-                                    <property name="top_attach">3</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel" id="label30">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="label" translatable="yes" comments="Must be short">Save in:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">0</property>
-                                    <property name="top_attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkCheckButton" id="check_normalise_to_max">
                                     <property name="label" translatable="yes">Output
 Normalisation</property>
@@ -6160,6 +5750,403 @@ WARNING: This option should not be checked for master stacking.</property>
                                   </packing>
                                 </child>
                                 <child>
+                                  <object class="GtkLabel" id="label146">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Normalisation:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">0</property>
+                                    <property name="top_attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBoxText" id="comboboxstack_methods">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="tooltip_text" translatable="yes">Sum: This is the simplest method.
+Pixel values are added in an image normalized to 16-bit values.
+It increases signal/noise ratio (SNR) as square root of number of images.
+
+Average with rejection: This method is used to reject deviant pixels iteratively.
+Five methods have been implemented:
+- Percentile Clipping
+- Sigma Clipping
+- Median Sigma Clipping
+- Winsorized Sigma Clipping
+- Linear Fit Clipping
+After pixel rejection, the mean of the stack is computed.
+
+Median: This method was mostly used for dark/flat/offset stacking although now we recommend the use of average with rejection stacking.
+The median value of the pixels in the stack is computed for each pixel.
+As this method should only be used for dark/flat/offset stacking, it does not take
+into account shifts computed during registration.
+
+Pixel maximum: This case is mainly used to construct long exposure star-trails images.
+Pixels of the image are replaced by pixels at the same coordinates if intensity is greater.
+
+Pixel minimum: This case could be useful to select the area to be cropped after the stack operation.
+Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.</property>
+                                    <property name="active">0</property>
+                                    <items>
+                                      <item translatable="yes">Sum stacking</item>
+                                      <item translatable="yes">Average stacking with rejection</item>
+                                      <item translatable="yes">Median stacking</item>
+                                      <item translatable="yes">Pixel maximum stacking</item>
+                                      <item translatable="yes">Pixel minimum stacking</item>
+                                    </items>
+                                    <signal name="changed" handler="on_comboboxstack_methods_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">1</property>
+                                    <property name="top_attach">0</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label71">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Methods:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">0</property>
+                                    <property name="top_attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkLabel" id="stackfilter_label">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Stacking 0 images of the 0 of the sequence</property>
+                                        <property name="wrap">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="spacing">5</property>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combofilter1">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="tooltip_text" translatable="yes">Select the set of images to be stacked:
+- selected: only use image that have not been unselected from the sequence
+- FWHM: images with best computed FWHM (star-based registration only)
+- weighted FWHM: this is an improvement of a simple FWHM. It allows to exclude much more spurious images by using the number of stars detected compared to the reference image (star-based registration only)
+- roundness: images with best star roundness (star-based registration only)
+- quality: images with best quality (planetary DFT or ECC registrations)</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">all</item>
+                                              <item translatable="yes">selected</item>
+                                              <item translatable="yes">FWHM</item>
+                                              <item translatable="yes">weighted FWHM</item>
+                                              <item translatable="yes">roundness</item>
+                                              <item translatable="yes">quality</item>
+                                            </items>
+                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="stackspin1">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="tooltip_text" translatable="yes">Percents of the images of the sequence.</property>
+                                            <property name="halign">end</property>
+                                            <property name="invisible_char">●</property>
+                                            <property name="width_chars">6</property>
+                                            <property name="max_width_chars">5</property>
+                                            <property name="text">90,00</property>
+                                            <property name="input_purpose">number</property>
+                                            <property name="adjustment">adjustment4</property>
+                                            <property name="climb_rate">1</property>
+                                            <property name="digits">2</property>
+                                            <property name="numeric">True</property>
+                                            <property name="value">90</property>
+                                            <signal name="changed" handler="on_spinbut_percent_change" swapped="no"/>
+                                            <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no"/>
+                                            <style>
+                                              <class name="small-spinbutton"/>
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="labelfilter1">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="width_chars">10</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="filter_add1">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Add another filter</property>
+                                            <property name="halign">end</property>
+                                            <property name="image">addfilter1</property>
+                                            <property name="always_show_image">True</property>
+                                            <signal name="clicked" handler="on_filter_add1_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="spacing">5</property>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combofilter2">
+                                            <property name="can_focus">False</property>
+                                            <property name="tooltip_text" translatable="yes">Select the set of images to be stacked:
+- selected: only use image that have not been unselected from the sequence
+- FWHM: images with best computed FWHM (star-based registration only)
+- weighted FWHM: this is an improvement of a simple FWHM. It allows to exclude much more spurious images by using the number of stars detected compared to the reference image (star-based registration only)
+- roundness: images with best star roundness (star-based registration only)
+- quality: images with best quality (planetary DFT or ECC registrations)</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">all</item>
+                                              <item translatable="yes">selected</item>
+                                              <item translatable="yes">FWHM</item>
+                                              <item translatable="yes">weighted FWHM</item>
+                                              <item translatable="yes">roundness</item>
+                                              <item translatable="yes">quality</item>
+                                            </items>
+                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="stackspin2">
+                                            <property name="can_focus">True</property>
+                                            <property name="tooltip_text" translatable="yes">Percents of the images of the sequence.</property>
+                                            <property name="halign">end</property>
+                                            <property name="invisible_char">●</property>
+                                            <property name="width_chars">6</property>
+                                            <property name="max_width_chars">5</property>
+                                            <property name="text">90,00</property>
+                                            <property name="input_purpose">number</property>
+                                            <property name="adjustment">adjustment6</property>
+                                            <property name="climb_rate">1</property>
+                                            <property name="digits">2</property>
+                                            <property name="numeric">True</property>
+                                            <property name="value">90</property>
+                                            <signal name="changed" handler="on_spinbut_percent_change" swapped="no"/>
+                                            <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no"/>
+                                            <style>
+                                              <class name="small-spinbutton"/>
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="labelfilter2">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="width_chars">10</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="filter_add2">
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Add another filter</property>
+                                            <property name="halign">end</property>
+                                            <property name="image">addfilter2</property>
+                                            <property name="always_show_image">True</property>
+                                            <signal name="clicked" handler="on_filter_add2_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="filter_rem2">
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Remove this filter</property>
+                                            <property name="halign">end</property>
+                                            <property name="image">removefilter2</property>
+                                            <property name="always_show_image">True</property>
+                                            <signal name="clicked" handler="on_filter_rem2_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">4</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="spacing">5</property>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combofilter3">
+                                            <property name="can_focus">False</property>
+                                            <property name="tooltip_text" translatable="yes">Select the set of images to be stacked:
+- selected: only use image that have not been unselected from the sequence
+- FWHM: images with best computed FWHM (star-based registration only)
+- weighted FWHM: this is an improvement of a simple FWHM. It allows to exclude much more spurious images by using the number of stars detected compared to the reference image (star-based registration only)
+- roundness: images with best star roundness (star-based registration only)
+- quality: images with best quality (planetary DFT or ECC registrations)</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">all</item>
+                                              <item translatable="yes">selected</item>
+                                              <item translatable="yes">FWHM</item>
+                                              <item translatable="yes">weighted FWHM</item>
+                                              <item translatable="yes">roundness</item>
+                                              <item translatable="yes">quality</item>
+                                            </items>
+                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="stackspin3">
+                                            <property name="can_focus">True</property>
+                                            <property name="tooltip_text" translatable="yes">Percents of the images of the sequence.</property>
+                                            <property name="halign">end</property>
+                                            <property name="invisible_char">●</property>
+                                            <property name="width_chars">6</property>
+                                            <property name="max_width_chars">5</property>
+                                            <property name="text">90,00</property>
+                                            <property name="input_purpose">number</property>
+                                            <property name="adjustment">adjustment7</property>
+                                            <property name="climb_rate">1</property>
+                                            <property name="digits">2</property>
+                                            <property name="numeric">True</property>
+                                            <property name="value">90</property>
+                                            <signal name="changed" handler="on_spinbut_percent_change" swapped="no"/>
+                                            <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no"/>
+                                            <style>
+                                              <class name="small-spinbutton"/>
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="labelfilter3">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="width_chars">10</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="filter_rem3">
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Remove this filter</property>
+                                            <property name="halign">end</property>
+                                            <property name="image">removefilter3</property>
+                                            <property name="always_show_image">True</property>
+                                            <signal name="clicked" handler="on_filter_rem3_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">4</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">3</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left_attach">1</property>
+                                    <property name="top_attach">3</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
                                   <placeholder/>
                                 </child>
                                 <child>
@@ -6167,14 +6154,91 @@ WARNING: This option should not be checked for master stacking.</property>
                                 </child>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="spacing">10</property>
+                                <child>
+                                  <object class="GtkLabel" id="label30">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes" comments="Must be short">Save in:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="entryresultfile">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="invisible_char">●</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="checkbutoverwrite">
+                                    <property name="label" translatable="yes">Overwrite</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">False</property>
+                                    <property name="tooltip_text" translatable="yes">Overwrite file without notice if it already exists.</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw_indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="gostack_button">
+                                <property name="label" translatable="yes">Start stacking</property>
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">True</property>
+                                <property name="tooltip_text" translatable="yes">Start stacking the current sequence of images, using the method and other information provided above.
+Siril uses a 32-bit internal image to process the stacking, which is then saved to a 16-bit image whose name is given below.</property>
+                                <property name="margin_top">3</property>
+                                <property name="use_underline">True</property>
+                                <signal name="clicked" handler="on_seqstack_button_clicked" swapped="no"/>
+                                <style>
+                                  <class name="suggested-action"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="position">5</property>
+                            <property name="tab_fill">False</property>
                           </packing>
                         </child>
                         <child type="tab">
@@ -6936,7 +7000,7 @@ WARNING: This option should not be checked for master stacking.</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkToolButton" id="neg_button">
+                  <object class="GtkToggleToolButton" id="neg_button">
                     <property name="name">neg_button</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -6945,7 +7009,7 @@ WARNING: This option should not be checked for master stacking.</property>
                     <property name="valign">center</property>
                     <property name="use_underline">True</property>
                     <property name="icon_widget">image_neg</property>
-                    <signal name="clicked" handler="on_neg_button_clicked" object="checkbutton_chain" swapped="no"/>
+                    <signal name="toggled" handler="on_neg_button_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -7080,7 +7144,7 @@ WARNING: This option should not be checked for master stacking.</property>
     <signal name="close" handler="on_CLAHE_dialog_close" swapped="no"/>
     <signal name="delete-event" handler="on_clahe_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_CLAHE_dialog_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -7310,7 +7374,7 @@ artifacts may appear.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -8209,7 +8273,7 @@ artifacts may appear.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -8475,7 +8539,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_SCNR_dialog_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -8663,7 +8727,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -8847,7 +8911,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <signal name="close" handler="on_asinh_dialog_close" swapped="no"/>
     <signal name="delete-event" handler="on_asinh_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_asinh_dialog_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -9039,6 +9103,7 @@ If the parameters is null, so no filter is apply at all.</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
             <property name="halign">end</property>
+            <property name="active">True</property>
             <property name="draw_indicator">True</property>
             <signal name="toggled" handler="on_asinh_RGBspace_toggled" swapped="no"/>
           </object>
@@ -9084,14 +9149,14 @@ If the parameters is null, so no filter is apply at all.</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_background_extraction_dialog_hide" swapped="no"/>
     <signal name="show" handler="on_background_extraction_dialog_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="box_dialog_bkg">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">10</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can_focus">False</property>
@@ -9409,6 +9474,60 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkCheckButton" id="checkBkgSeq">
+                <property name="label" translatable="yes">Apply to sequence</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label1">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Output prefix:</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entryBkgSeq">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Prefix of the image names resulting from the unband process.</property>
+                <property name="max_length">10</property>
+                <property name="width_chars">10</property>
+                <property name="text">bkg_</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="position">2</property>
           </packing>
         </child>
@@ -9426,7 +9545,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -9690,14 +9809,14 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_composition_dialog_hide" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">4</property>
+        <property name="spacing">10</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area">
             <property name="can_focus">False</property>
@@ -9895,6 +10014,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                   <object class="GtkButton" id="composition_rgbcolor">
                     <property name="label" translatable="yes">Finalize colour balance</property>
                     <property name="visible">True</property>
+                    <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <property name="tooltip_text" translatable="yes">Open the RGB calibration tool on the resulting image. This will modify the result in a destructive way to align the three channels of the result.
@@ -9941,6 +10061,9 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="halign">start</property>
                 <property name="label" translatable="yes">WARNING: You should not perform a LRGB combination with linear images. Process images before.</property>
                 <property name="single_line_mode">True</property>
+                <style>
+                  <class name="label-info"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -10099,7 +10222,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -10439,7 +10562,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -10547,7 +10670,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -10833,7 +10956,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <signal name="close" handler="on_deconvolution_dialog_close" swapped="no"/>
     <signal name="delete-event" handler="on_deconvolution_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_deconvolution_dialog_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -11207,7 +11330,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -11460,7 +11583,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -11666,7 +11789,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -11807,7 +11930,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="resizable">False</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">control_window</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -12056,7 +12179,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="on_button_histo_close_clicked" swapped="no"/>
     <signal name="show" handler="on_histogram_window_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -12522,7 +12645,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -12729,7 +12852,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -13001,7 +13124,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -13195,7 +13318,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <signal name="close" handler="on_satu_dialog_close" swapped="no"/>
     <signal name="delete-event" handler="on_satu_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_satu_dialog_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -13419,7 +13542,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_savepopup_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -14423,7 +14546,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -14547,7 +14670,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_stars_list_window_hide" swapped="no"/>
     <signal name="show" handler="on_stars_list_window_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -15103,7 +15226,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <signal name="delete-event" handler="on_button_cancel_w_clicked" swapped="no"/>
     <signal name="hide" handler="on_wavelets_dialog_hide" swapped="no"/>
     <signal name="show" handler="on_wavelets_dialog_show" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -15355,7 +15478,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <object class="GtkSpinButton" id="spin_w0">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text" translatable="yes">0,99</property>
+                                <property name="text">0,99</property>
                                 <property name="adjustment">adj_w0</property>
                                 <property name="digits">2</property>
                                 <property name="value">0.98999999999999999</property>
@@ -15424,7 +15547,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <object class="GtkSpinButton" id="spin_w1">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text" translatable="yes">1,00</property>
+                                <property name="text">1,00</property>
                                 <property name="adjustment">adj_w1</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -15493,7 +15616,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <object class="GtkSpinButton" id="spin_w2">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text" translatable="yes">1,00</property>
+                                <property name="text">1,00</property>
                                 <property name="adjustment">adj_w2</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -15562,7 +15685,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <object class="GtkSpinButton" id="spin_3">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text" translatable="yes">1,00</property>
+                                <property name="text">1,00</property>
                                 <property name="adjustment">adj_w3</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -15631,7 +15754,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <object class="GtkSpinButton" id="spin_w4">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text" translatable="yes">1,00</property>
+                                <property name="text">1,00</property>
                                 <property name="adjustment">adj_w4</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -15700,7 +15823,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <object class="GtkSpinButton" id="spin_w5">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text" translatable="yes">1,00</property>
+                                <property name="text">1,00</property>
                                 <property name="adjustment">adj_w5</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -15801,7 +15924,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="type_hint">normal</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -15862,7 +15985,7 @@ The Background Neutralization should be applied before this operation.</property
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="orientation">vertical</property>
-            <property name="spacing">20</property>
+            <property name="spacing">10</property>
             <child>
               <object class="GtkFrame" id="frame22">
                 <property name="visible">True</property>
@@ -16059,6 +16182,7 @@ This step should be run before any attempt of color calibration.</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
                         <child>
                           <object class="GtkCheckButton" id="checkbutton_manual_calibration">
                             <property name="label" translatable="yes">Manual White Balance</property>
@@ -16077,100 +16201,175 @@ This step should be run before any attempt of color calibration.</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkGrid" id="grid25">
+                          <object class="GtkBox" id="cc_box_red">
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">False</property>
-                            <property name="margin_left">40</property>
-                            <property name="margin_right">40</property>
-                            <property name="row_spacing">3</property>
-                            <property name="column_spacing">5</property>
-                            <child>
-                              <object class="GtkScale" id="scale_r">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="hexpand">True</property>
-                                <property name="adjustment">adjustment_scale_r</property>
-                                <property name="round_digits">1</property>
-                                <property name="digits">3</property>
-                                <property name="value_pos">bottom</property>
-                              </object>
-                              <packing>
-                                <property name="left_attach">1</property>
-                                <property name="top_attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkScale" id="scale_g">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="hexpand">True</property>
-                                <property name="adjustment">adjustment_scale_g</property>
-                                <property name="round_digits">1</property>
-                                <property name="digits">3</property>
-                                <property name="value_pos">bottom</property>
-                              </object>
-                              <packing>
-                                <property name="left_attach">1</property>
-                                <property name="top_attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkScale" id="scale_b">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="hexpand">True</property>
-                                <property name="adjustment">adjustment_scale_b</property>
-                                <property name="round_digits">1</property>
-                                <property name="digits">3</property>
-                                <property name="value_pos">bottom</property>
-                              </object>
-                              <packing>
-                                <property name="left_attach">1</property>
-                                <property name="top_attach">2</property>
-                              </packing>
-                            </child>
                             <child>
                               <object class="GtkLabel" id="label104">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Red:</property>
+                                <property name="label" translatable="yes">Red</property>
                               </object>
                               <packing>
-                                <property name="left_attach">0</property>
-                                <property name="top_attach">0</property>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="label105">
+                              <object class="GtkSpinButton">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Green:</property>
+                                <property name="can_focus">True</property>
+                                <property name="adjustment">adjustment_scale_r</property>
+                                <property name="digits">3</property>
                               </object>
                               <packing>
-                                <property name="left_attach">0</property>
-                                <property name="top_attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label106">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Blue:</property>
-                              </object>
-                              <packing>
-                                <property name="left_attach">0</property>
-                                <property name="top_attach">2</property>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack_type">end</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_r">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="adjustment">adjustment_scale_r</property>
+                            <property name="round_digits">3</property>
+                            <property name="digits">3</property>
+                            <property name="draw_value">False</property>
+                            <property name="value_pos">bottom</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="cc_box_green">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkLabel" id="label105">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Green</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="adjustment">adjustment_scale_g</property>
+                                <property name="digits">3</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack_type">end</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_g">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="adjustment">adjustment_scale_g</property>
+                            <property name="round_digits">3</property>
+                            <property name="digits">3</property>
+                            <property name="draw_value">False</property>
+                            <property name="value_pos">bottom</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">5</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="cc_box_blue">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkLabel" id="label106">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Blue</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="adjustment">adjustment_scale_b</property>
+                                <property name="digits">3</property>
+                                <property name="numeric">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack_type">end</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">6</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_b">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="adjustment">adjustment_scale_b</property>
+                            <property name="round_digits">3</property>
+                            <property name="digits">3</property>
+                            <property name="draw_value">False</property>
+                            <property name="value_pos">bottom</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">7</property>
                           </packing>
                         </child>
                         <child>
@@ -16373,7 +16572,7 @@ If the selection is empty, the whole image will be used as reference.</property>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">8</property>
                           </packing>
                         </child>
                       </object>
@@ -16427,7 +16626,7 @@ If the selection is empty, the whole image will be used as reference.</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -17003,7 +17202,7 @@ by averaging the entire image</property>
                             <property name="tooltip_text" translatable="yes">Due to algorithm constraints more complex demosaicing algorithms cannot be used in the rejection stacking. Our tests also showed that there is no gain in quaity when many images are used, while processing time increases 20-fold.</property>
                             <property name="valign">center</property>
                             <property name="hexpand">True</property>
-                            <property name="label" translatable="yes">Warning: For SER on-the-fly demosaicing, the bilinear algorithm is always used.</property>
+                            <property name="label" translatable="yes">Warning: For SER on-the-fly demosaicing, the RCD algorithm is always used.</property>
                             <property name="justify">fill</property>
                             <property name="wrap">True</property>
                             <property name="max_width_chars">40</property>

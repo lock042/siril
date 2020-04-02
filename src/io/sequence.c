@@ -191,6 +191,11 @@ int check_seq(int recompute_stats) {
 	}
 
 	sequences = malloc(sizeof(sequence *) * max_seq);
+	if (!sequences) {
+		PRINT_ALLOC_ERR;
+		g_dir_close(dir);
+		return 1;
+	}
 	set_progress_bar_data(NULL, PROGRESS_PULSATE);
 
 	while ((file = g_dir_read_name(dir)) != NULL) {
@@ -390,6 +395,7 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 			memset(fit, 0, sizeof(fits));
 		}
 
+		/* TODO: we could only read the header if !load_ref_into_gfit */
 		if (seq_read_frame(seq, image_to_load, fit, FALSE)) {
 			fprintf(stderr, "could not load first image from sequence\n");
 			return -1;
@@ -404,6 +410,11 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 			seq->nb_layers = fit->naxes[2];
 			seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
 			seq->layers = calloc(seq->nb_layers, sizeof(layer_info));
+			if (!seq->regparam || !seq->layers) {
+				PRINT_ALLOC_ERR;
+				clearfits(fit);
+				return 1;
+			}
 		}
 		seq->needs_saving = TRUE;
 
@@ -495,7 +506,6 @@ int set_seq(const char *name){
 	redraw(com.cvport, REMAP_ALL);
 	drawPlot();
 
-	
 	return 0;
 }
 
@@ -548,7 +558,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	update_MenuItem();		// initialize menu gui
 	sequence_list_change_current();
 	adjust_refimage(index);	// check or uncheck reference image checkbox
-	
+
 	return 0;
 }
 
@@ -561,45 +571,24 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
  * @param nb_frames number of frames to compute the size of the sequence of
  * @return the size of the sequence in bytes, or -1 if an error happened.
  */
-int64_t seq_compute_size(sequence *seq, int nb_frames, data_type type) {
+int64_t seq_compute_size(sequence *seq, int nb_frames, data_type depth) {
 	int64_t frame_size, size = -1LL;
-	char filename[256];
+#ifdef HAVE_FFMS2
 	GStatBuf sts;
-	int ref;
+#endif
 
 	switch(seq->type) {
 	case SEQ_SER:
 		size = ser_compute_file_size(seq->ser_file, nb_frames);
 		break;
 	case SEQ_REGULAR:
-		ref = sequence_find_refimage(seq);
-		if (fit_sequence_get_image_filename(seq, ref, filename, TRUE)) {
-			if (!g_lstat(filename, &sts)) {				
-#ifndef _WIN32
-				if ( S_ISLNK(sts.st_mode) )
-#else
-				if (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
-#endif					
-				{
-					gchar *target_link = g_file_read_link(filename, NULL); 
-					if ( !g_lstat(target_link, &sts) )
-					{
-						frame_size = sts.st_size;       // force 64 bits
-					}
-					else {
-						fprintf(stderr, "Could not open reference image of the sequence\n");
-						return size;
-					}
-					g_free(target_link);
-				}
-				else
-				{
-					frame_size = sts.st_size;       // force 64 bits
-				}
-
-				size = frame_size * nb_frames;
-			}
-		}
+		frame_size = seq->rx * seq->ry * seq->nb_layers;
+		if (depth == DATA_USHORT)
+			frame_size *= sizeof(WORD);
+		else if (depth == DATA_FLOAT)
+			frame_size *= sizeof(float);
+		frame_size += 5760; // FITS double HDU size
+		size = frame_size * nb_frames;
 		break;
 #ifdef HAVE_FFMS2
 	case SEQ_AVI:
@@ -719,10 +708,18 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float) {
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
 			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
-			dest->data = seq->internal_fits[index]->data;
-			dest->pdata[0] = seq->internal_fits[index]->pdata[0];
-			dest->pdata[1] = seq->internal_fits[index]->pdata[1];
-			dest->pdata[2] = seq->internal_fits[index]->pdata[2];
+			if (seq->internal_fits[index]->type == DATA_FLOAT) {
+				dest->fdata = seq->internal_fits[index]->fdata;
+				dest->fpdata[0] = seq->internal_fits[index]->fpdata[0];
+				dest->fpdata[1] = seq->internal_fits[index]->fpdata[1];
+				dest->fpdata[2] = seq->internal_fits[index]->fpdata[2];
+			}
+			else if (seq->internal_fits[index]->type == DATA_USHORT) {
+				dest->data = seq->internal_fits[index]->data;
+				dest->pdata[0] = seq->internal_fits[index]->pdata[0];
+				dest->pdata[1] = seq->internal_fits[index]->pdata[1];
+				dest->pdata[2] = seq->internal_fits[index]->pdata[2];
+			}
 			break;
 	}
 	full_stats_invalidation_from_fit(dest);
@@ -1345,7 +1342,7 @@ gboolean end_crop_sequence(gpointer p) {
 		free(rseqname);
 	}
 	set_cursor_waiting(FALSE);
-	
+
 	free(args);
 	return FALSE;
 }
@@ -1479,6 +1476,10 @@ struct seqpsf_data {
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	struct seqpsf_data *data = malloc(sizeof(struct seqpsf_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
 	data->image_index = index;
 
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
@@ -1686,5 +1687,4 @@ void free_reference_image() {
 	if (com.seq.reference_image == -1)
 		enable_view_reference_checkbox(FALSE);
 }
-
 

@@ -114,7 +114,7 @@ gpointer rgradient_filter(gpointer p) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (y = 0; y < args->fit->ry; y++) {
-			int i = y * args->fit->rx;
+			size_t i = y * args->fit->rx;
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -233,7 +233,7 @@ void on_rgradient_cancel_clicked(GtkButton *button, gpointer user_data) {
 
 void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 

@@ -182,10 +182,10 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
  */
 int register_shift_dft(struct registration_args *args) {
 	fits fit_ref = { 0 };
-	int frame, size, sqsize;
+	unsigned int frame, size, sqsize, j;
 	fftwf_complex *ref, *in, *out, *convol;
 	fftwf_plan p, q;
-	int ret, j;
+	int ret;
 	int abort = 0;
 	float nb_frames, cur_nb;
 	int ref_image;
@@ -860,10 +860,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *cbbt_layers;
 	GtkComboBoxText *ComboBoxRegInter;
 
-
 	if (!reserve_thread()) {	// reentrant from here
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
@@ -923,7 +921,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
 		int nb_frames = reg_args->process_all_frames ? reg_args->seq->number : reg_args->seq->selnum;
-		int64_t size = seq_compute_size(reg_args->seq, nb_frames, DATA_USHORT);
+		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
 		if (test_available_space(size) > 0) {

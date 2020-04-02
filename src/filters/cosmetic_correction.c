@@ -52,17 +52,17 @@ static float getMedian5x5_float(float *buf, const int xx, const int yy, const in
 	int n = 0;
 	float value[24];
 	for (int y = yy - radius; y <= yy + radius; y += step) {
-    	if (y >= 0 && y < h) {
-	    	for (int x = xx - radius; x <= xx + radius; x += step) {
-		    	if (x >= 0 && x < w) {
-                // ^ limit to image bounds ^
-				    // exclude centre pixel v
-				    if (x != xx || y != yy) {
-					    value[n++] = buf[x + y * w];
-				    }
-			    }
-		    }
-    	}
+		if (y >= 0 && y < h) {
+			for (int x = xx - radius; x <= xx + radius; x += step) {
+				if (x >= 0 && x < w) {
+					// ^ limit to image bounds ^
+					// exclude centre pixel v
+					if (x != xx || y != yy) {
+						value[n++] = buf[x + y * w];
+					}
+				}
+			}
+		}
 	}
 	return quickmedian_float(value, n);
 }
@@ -80,12 +80,12 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 	cpyline = calloc(w, sizeof(WORD));
 	for (xx = 0; xx < w; ++xx) {
 		int n = 0;
-		double value = 0;
+		float value = 0.f;
 		for (y = yy - radius; y <= yy + radius; y += step) {
 			if (y != yy) {	// we skip the line
 				for (x = xx - radius; x <= xx + radius; x += step) {
 					if (y >= 0 && y < h && x >= 0 && x < w) {
-						value += (double) buf[x + y * w];
+						value += (float) buf[x + y * w];
 						n++;
 					}
 				}
@@ -96,7 +96,36 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 	return cpyline;
 }
 
-static double getAverage3x3_float(float *buf, const int xx, const int yy,
+static float* getAverage3x3Line_float(float *buf, const int yy, const int w,
+		const int h, gboolean is_cfa) {
+	int step, radius, x, xx, y;
+	float *cpyline;
+
+	if (is_cfa)
+		step = radius = 2;
+	else
+		step = radius = 1;
+
+	cpyline = calloc(w, sizeof(float));
+	for (xx = 0; xx < w; ++xx) {
+		int n = 0;
+		float value = 0.f;
+		for (y = yy - radius; y <= yy + radius; y += step) {
+			if (y != yy) {	// we skip the line
+				for (x = xx - radius; x <= xx + radius; x += step) {
+					if (y >= 0 && y < h && x >= 0 && x < w) {
+						value += buf[x + y * w];
+						n++;
+					}
+				}
+			}
+		}
+		cpyline[xx] = (value / n);
+	}
+	return cpyline;
+}
+
+static float getAverage3x3_float(float *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
 
     const int step = is_cfa ? 2 : 1;
@@ -117,10 +146,10 @@ static double getAverage3x3_float(float *buf, const int xx, const int yy,
     return value / n;
 }
 
-static double getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
+static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
 	int step, radius, x, y;
-	double value = 0;
+	float value = 0.f;
 
 	if (is_cfa)
 		step = radius = 2;
@@ -133,7 +162,7 @@ static double getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
 			if (y >= 0 && y < h) {
 				if (x >= 0 && x < w) {
 					if ((x != xx) || (y != yy)) {
-						value += (double) buf[x + y * w];
+						value += (float) buf[x + y * w];
 						n++;
 					}
 				}
@@ -151,11 +180,12 @@ static double getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
  */
 deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 		long *ihot, gboolean eval_only) {
-	int x, y, i;
+	int x, y;
 	WORD *buf;
 	float *fbuf;
 	imstats *stat;
-	double sigma, median, thresHot, thresCold;
+	double sigma, median;
+	float thresHot, thresCold;
 	deviant_pixel *dev;
 
 	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC, FALSE);
@@ -167,16 +197,16 @@ deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 	median = stat->median;
 
 	if (sig[0] == -1.0) {	// flag for no cold detection
-		thresCold = -1.0;
+		thresCold = -1.f;
 	} else {
 		double val = median - (sig[0] * sigma);
-		thresCold = max(val, 0.0);
+		thresCold = max((float) val, 0.f);
 	}
 	if (sig[1] == -1.0) {	// flag for no hot detection
-		thresHot = USHRT_MAX_DOUBLE + 1;
+		thresHot = USHRT_MAX_SINGLE + 1.f;
 	} else {
 		double val = median + (sig[1] * sigma);
-		thresHot = min(val, fit->type == DATA_FLOAT ? 1.0 : USHRT_MAX_DOUBLE);
+		thresHot = min((float) val, fit->type == DATA_FLOAT ? 1.f : USHRT_MAX_SINGLE);
 	}
 
 	free_stats(stat);
@@ -186,8 +216,9 @@ deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 	*ihot = 0;
 	buf = fit->pdata[RLAYER];
 	fbuf = fit->fpdata[RLAYER];
-	for (i = 0; i < fit->rx * fit->ry; i++) {
-		double pixel = fit->type == DATA_FLOAT ? fbuf[i] : (double)buf[i];
+	size_t i, nbpix = fit->naxes[0] * fit->naxes[1];
+	for (i = 0; i < nbpix; i++) {
+		float pixel = fit->type == DATA_FLOAT ? fbuf[i] : (float) buf[i];
 		if (pixel >= thresHot)
 			(*ihot)++;
 		else if (pixel < thresCold)
@@ -196,7 +227,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 
 	if (eval_only) return NULL;
 
-	/** Second we store deviant pixels in p*/
+	/** Second we store deviant pixels in p */
 	int n = (*icold) + (*ihot);
 	if (n <= 0)
 		return NULL;
@@ -208,8 +239,8 @@ deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 	i = 0;
 	for (y = 0; y < fit->ry; y++) {
 		for (x = 0; x < fit->rx; x++) {
-			double pixel = fit->type == DATA_FLOAT ?
-				fbuf[x + y * fit->rx] : (double)buf[x + y * fit->rx];
+			float pixel = fit->type == DATA_FLOAT ?
+							fbuf[x + y * fit->rx] : (float) buf[x + y * fit->rx];
 			if (pixel >= thresHot) {
 				dev[i].p.x = x;
 				dev[i].p.y = y;
@@ -259,25 +290,35 @@ int cosmeticCorrOnePoint(fits *fit, deviant_pixel dev, gboolean is_cfa) {
 
 int cosmeticCorrOneLine(fits *fit, deviant_pixel dev, gboolean is_cfa) {
 	if (fit->type == DATA_FLOAT) {
-		siril_log_color_message(
-				_(
-						"Cosmetic correction for one line is not supported yet in 32-bit images\n"),
-				"red");
-		return 1;
+		float *buf = fit->fpdata[RLAYER];
+		float *line, *newline;
+		int width = fit->rx;
+		int height = fit->ry;
+		int row = (int) dev.p.y;
+
+		line = buf + row * width;
+		newline = getAverage3x3Line_float(buf, row, width, height, is_cfa);
+		memcpy(line, newline, width * sizeof(float));
+
+		free(newline);
+		//invalidate_stats_from_fit(fit);
+		return 0;
+	} else if (fit->type == DATA_USHORT) {
+		WORD *buf = fit->pdata[RLAYER];
+		WORD *line, *newline;
+		int width = fit->rx;
+		int height = fit->ry;
+		int row = (int) dev.p.y;
+
+		line = buf + row * width;
+		newline = getAverage3x3Line(buf, row, width, height, is_cfa);
+		memcpy(line, newline, width * sizeof(WORD));
+
+		free(newline);
+		//invalidate_stats_from_fit(fit);
+		return 0;
 	}
-	WORD *buf = fit->pdata[RLAYER];
-	WORD *line, *newline;
-	int width = fit->rx;
-	int height = fit->ry;
-	int row = (int) dev.p.y;
-
-	line = buf + row * width;
-	newline = getAverage3x3Line(buf, row, width, height, is_cfa);
-	memcpy(line, newline, width * sizeof(WORD));
-
-	free(newline);
-	//invalidate_stats_from_fit(fit);
-	return 0;
+	return 1;
 }
 
 int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa) {
@@ -303,7 +344,7 @@ int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		if (retval)
 			return retval;
 	}
-	siril_log_color_message(_("Image %d: %ld pixels corrected (%ld + %ld)\n"),
+	siril_log_color_message(_("Image %d: %ld pixel corrected (%ld + %ld)\n"),
 			"bold", i, icold + ihot, icold, ihot);
 	return 0;
 }
@@ -323,6 +364,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Cosmetic Correction");
 	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
 	args->new_seq_prefix = cosme_args->seqEntry;
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
@@ -364,7 +406,7 @@ gpointer autoDetectThreaded(gpointer p) {
 	}
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_log_message(_("%ld pixels corrected (%ld + %ld)\n"), icold + ihot,
+	siril_log_message(_("%ld pixel corrected (%ld + %ld)\n"), icold + ihot,
 			icold, ihot);
 
 	free(args);
@@ -406,16 +448,32 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 	const gboolean doCold = sig[0] != -1.0;
 	const float coldVal = doCold ? bkg - k : 0.0;
 	const float hotVal = doHot ? bkg + k1 : isFloat ? 1.f : 65535.f;
-	float *temp = malloc(width * height * sizeof(float));
+	size_t n = fit->naxes[0] * fit->naxes[1] * sizeof(float); 
+	float *temp = malloc(n);
+	if (!temp) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+#ifndef _OPENMP
+	multithread = FALSE;
+#endif
+	if (com.max_thread == 1)
+		multithread = FALSE;
 
 	if (isFloat) {
+		if (multithread) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) if(multithread)
 #endif
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				temp[y * width + x] = fbuf[y * width + x];
+			for (int y = 0; y < height; y++) {
+				for (int x = 0; x < width; x++) {
+					temp[y * width + x] = fbuf[y * width + x];
+				}
 			}
+		} else {
+			// this should be faster in a single-threaded case
+			memcpy(temp, fbuf, width * height * sizeof(float));
 		}
 	} else {
 #ifdef _OPENMP
@@ -423,7 +481,7 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 #endif
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				temp[y * width + x] = buf[y * width + x];
+				temp[y * width + x] = (float) buf[y * width + x];
 			}
 		}
 	}

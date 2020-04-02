@@ -28,9 +28,11 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/undo.h"
 #include "core/OS_utils.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
 #include "algos/statistics.h"
 #include "algos/geometry.h"
 #include "algos/sorting.h"
@@ -55,38 +57,37 @@
 #define C(i) (gsl_vector_get(c,(i)))
 
 static double poly_4(gsl_vector *c, double x, double y) {
-	double value = C(0) * 1.0 + C(1) * x + C(2) * y + C(3) * x * x + C(4) * y * x
-			+ C(5) * y * y + C(6) * x * x * x + C(7) * x * x * y
-			+ C(8) * x * y * y + C(9) * y * y * y + C(10) * x * x * x * x
-			+ C(11) * x * x * x * y + C(12) * x * x * y * y
-			+ C(13) * x * y * y * y + C(14) * y * y * y * y;
+	double value = C(0) + C(1) * x + C(2) * y + (x * x) * C(3) + (x * y) * C(4)
+			+ (y * y) * C(5) + (x * x) * x * C(6) + (x * x) * y * C(7)
+			+ x * (y * y) * C(8)+ (y * y) * y * C(9) + (x * x) * (x * x) * C(10)
+			+ (x * x) * (x * y) * C(11) + (x * x) * (y * y) * C(12)
+			+ (x * y) * (y * y) * C(13) + (y * y) * (y * y) * C(14);
 
 	return (value);
 }
 
 static double poly_3(gsl_vector *c, double x, double y) {
-	double value = C(0) * 1.0 + C(1) * x + C(2) * y + C(3) * x * x + C(4) * y * x
-			+ C(5) * y * y + C(6) * x * x * x + C(7) * x * x * y + C(8) * x * y * y
-			+ C(9) * y * y * y;
+	double value = C(0) + C(1) * x + C(2) * y + (x * x) * C(3) + (y * x) * C(4)
+			+ (y * y) * C(5) + (x * x) * x * C(6) + (x * x) * y * C(7) + x * (y * y) * C(8)
+			+ (y * y) * y * C(9);
 
 	return (value);
 }
 
 static double poly_2(gsl_vector *c, double x, double y) {
-	double value = C(0) * 1.0 + C(1) * x + C(2) * y + C(3) * x * x + C(4) * y * x
-			+ C(5) * y * y;
+	double value = C(0) + C(1) * x + C(2) * y + C(3) * (x * x) + C(4) * (y * x)
+			+ C(5) * (y * y);
 
 	return (value);
 }
 
 static double poly_1(gsl_vector *c, double x, double y) {
-	double value = C(0) * 1.0 + C(1) * x + C(2) * y;
+	double value = C(0) + C(1) * x + C(2) * y;
 
 	return (value);
 }
 
-static double *computeBackground(GSList *list, int channel, size_t width, size_t height, poly_order order, gchar **err) {
-	size_t n, i, j;
+static double *computeBackground(GSList *list, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
 	size_t k = 0;
 	double chisq, pixel;
 	double row, col;
@@ -94,7 +95,7 @@ static double *computeBackground(GSList *list, int channel, size_t width, size_t
 	gsl_vector *y, *w, *c;
 	GSList *l;
 
-	n = g_slist_length(list);
+	guint n = g_slist_length(list);
 
 	int nbParam;
 	switch (order) {
@@ -192,8 +193,8 @@ static double *computeBackground(GSList *list, int channel, size_t width, size_t
 		return NULL;
 	}
 
-	for (i = 0; i < height; i++) {
-		for (j = 0; j < width; j++) {
+	for (unsigned int i = 0; i < height; i++) {
+		for (unsigned int j = 0; j < width; j++) {
 			switch (order) {
 			case POLY_1:
 				pixel = poly_1(c, (double) j, (double) i);
@@ -229,11 +230,20 @@ static background_sample *get_sample(float *buf, const int xx,
 	double *data;
 	size_t size = SAMPLE_SIZE * SAMPLE_SIZE;
 	background_sample *sample = (background_sample *) g_malloc(sizeof(background_sample));
+	if (!sample) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	radius = (int) (SAMPLE_SIZE / 2);
 
 	int n = 0;
 	data = calloc(size, sizeof(double));
+	if (!data) {
+		free(sample);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	for (y = yy - radius; y <= yy + radius; y ++) {
 		for (x = xx - radius; x <= xx + radius; x ++) {
 			if (y >= 0 && y < h) {
@@ -266,6 +276,10 @@ static double get_sample_median(double *buf, const int xx,
 
 	n = 0;
 	data = calloc(size, sizeof(double));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return -1.0;
+	}
 	for (y = yy - radius; y <= yy + radius; y ++) {
 		for (x = xx - radius; x <= xx + radius; x ++) {
 			if (y >= 0 && y < h) {
@@ -300,8 +314,12 @@ static long dither(long max) {
 }
 
 static double *convert_fits_to_img(fits *fit, int channel, gboolean add_dither) {
-	int i;
-	double *image = malloc(fit->rx * fit->ry * sizeof(double));
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
+	double *image = malloc(n * sizeof(double));
+	if (!image) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	if (add_dither) {
 		/* initialize random seed: */
@@ -310,7 +328,7 @@ static double *convert_fits_to_img(fits *fit, int channel, gboolean add_dither) 
 
 	mirrorx(fit, FALSE);
 	/*  copy data to new array and normalize pixel data */
-	for (i = 0; i < fit->rx * fit->ry; i++) {
+	for (i = 0; i < n; i++) {
 		if (fit->type == DATA_USHORT) {
 			image[i] = (double) fit->pdata[channel][i] / USHRT_MAX_DOUBLE;
 		} else if (fit->type == DATA_FLOAT) {
@@ -327,15 +345,17 @@ static double *convert_fits_to_img(fits *fit, int channel, gboolean add_dither) 
 }
 
 static float *convert_fits_to_luminance(fits *fit) {
-	int nx = fit->rx;
-	int ny = fit->ry;
-	int i;
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	/* allocating memory to image */
-	float *image = malloc(nx * ny * sizeof(float));
+	float *image = malloc(n * sizeof(float));
+	if (!image) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	mirrorx(fit, FALSE);
 
-	for (i = 0; i < ny * nx; i++) {
+	for (i = 0; i < n; i++) {
 		if (fit->naxes[2] > 1) {
 			float r, g, b;
 			if (fit->type == DATA_USHORT) {
@@ -363,18 +383,17 @@ static float *convert_fits_to_luminance(fits *fit) {
 }
 
 static void convert_img_to_fits(double *image, fits *fit, int channel) {
-	int i;
-
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	mirrorx(fit, FALSE);
 
 	if (fit->type == DATA_USHORT) {
 		WORD *buf = fit->pdata[channel];
-		for (i = 0; i < fit->rx * fit->ry; i++) {
+		for (i = 0; i < n; i++) {
 			buf[i] = round_to_WORD(image[i] * USHRT_MAX_DOUBLE);
 		}
 	} else if (fit->type == DATA_FLOAT) {
 		float *buf = fit->fpdata[channel];
-		for (i = 0; i < fit->rx * fit->ry; i++) {
+		for (i = 0; i < n; i++) {
 			buf[i] = (float)image[i];
 		}
 	}
@@ -407,14 +426,19 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, si
 	int nx = fit->rx;
 	int ny = fit->ry;
 	int dist, starty, startx;
-	int x, y;
+	unsigned int x, y;
 	float median, mad0, *work;
 	size_t radius;
+	size_t n = fit->naxes[0] * fit->naxes[1];
 	GSList *list = NULL;
 
 	float *image = convert_fits_to_luminance(fit);
 
-	work = malloc(nx * ny * sizeof(float));
+	work = malloc(n * sizeof(float));
+	if (!work) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	dist = (int) (nx / nb_per_line);
 	radius = size / 2;
@@ -493,8 +517,8 @@ static double get_tolerance_value() {
 	return gtk_range_get_value(tol);
 }
 
-static void remove_gradient(double *img, double *background, int ndata, int type) {
-	int i;
+static void remove_gradient(double *img, double *background, size_t ndata, int type) {
+	size_t i;
 	double mean;
 
 	mean = gsl_stats_mean(img, 1, ndata);
@@ -572,6 +596,121 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 	return orig;
 }
 
+void generate_background_samples(int nb_of_samples, double tolerance) {
+	set_cursor_waiting(TRUE);
+
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE);
+	if (gfit.naxes[2] > 1) {
+		com.grad_samples = update_median_for_rgb_samples(com.grad_samples,
+				&gfit);
+	}
+
+	redraw(com.cvport, REMAP_ALL);
+	set_cursor_waiting(FALSE);
+}
+
+void remove_gradient_from_image(int correction, poly_order degree) {
+	double *background, *image[3] = {0};
+	gchar *error;
+
+	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
+		/* compute background */
+		image[channel] = convert_fits_to_img(&gfit, channel, TRUE);
+		background = computeBackground(com.grad_samples, channel, gfit.rx, gfit.ry, degree, &error);
+		if (background == NULL) {
+			if (error && !com.script) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."), error);
+			}
+
+			free(image[channel]);
+			set_cursor_waiting(FALSE);
+			return;
+		}
+		/* remove background */
+		const char *c_name = vport_number_to_name(channel);
+		siril_log_message(_("Background extraction from channel %s.\n"), c_name);
+		remove_gradient(image[channel], background,	gfit.naxes[0] * gfit.naxes[1], correction);
+		convert_img_to_fits(image[channel], &gfit, channel);
+
+		/* free memory */
+		free(image[channel]);
+		free(background);
+	}
+}
+
+/** Apply for sequence **/
+
+static int background_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_) {
+	struct background_data *b_args = (struct background_data*) args->user;
+
+	double *background, *image[3] = {0};
+	gchar *error;
+
+	GSList *samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE);
+	if (samples == NULL) {
+		return 1;
+	}
+
+	if (fit->naxes[2] > 1) {
+		samples = update_median_for_rgb_samples(samples, fit);
+	}
+
+	for (int channel = 0; channel < fit->naxes[2]; channel++) {
+		/* compute background */
+		image[channel] = convert_fits_to_img(fit, channel, TRUE);
+		background = computeBackground(samples, channel, fit->rx, fit->ry, b_args->degree, &error);
+		if (background == NULL) {
+			if (error) {
+				siril_log_message(error);
+			}
+
+			set_cursor_waiting(FALSE);
+			free(image[channel]);
+			free_background_sample_list(samples);
+			return 1;
+		}
+		/* remove background */
+		remove_gradient(image[channel], background, fit->naxes[0] * fit->naxes[1], b_args->correction);
+		convert_img_to_fits(image[channel], fit, channel);
+
+		/* free memory */
+		free(image[channel]);
+		free(background);
+	}
+	free_background_sample_list(samples);
+
+	return 0;
+}
+void apply_background_extraction_to_sequence(struct background_data *background_args) {
+	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
+	args->seq = background_args->seq;
+	args->force_float = FALSE;
+	args->partial_image = FALSE;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = background_args->seq->selnum;
+	args->prepare_hook = ser_prepare_hook;
+	args->finalize_hook = ser_finalize_hook;
+	args->save_hook = NULL;
+	args->image_hook = background_image_hook;
+	args->idle_function = NULL;
+	args->stop_on_error = FALSE;
+	args->description = _("Background Extraction");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = background_args->seqEntry;
+	args->load_new_sequence = TRUE;
+	args->force_ser_output = FALSE;
+	args->user = background_args;
+	args->already_in_a_thread = FALSE;
+	args->parallel = TRUE;
+
+	background_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
 /************* CALLBACKS *************/
 
 void on_menuitem_background_extraction_activate(GtkMenuItem *menuitem,
@@ -586,11 +725,8 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 
 	nb_of_samples = get_nb_samples_per_line();
 	tolerance = get_tolerance_value();
-	free_background_sample_list(com.grad_samples);
-	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE);
-	if (gfit.naxes[2] > 1) {
-		com.grad_samples = update_median_for_rgb_samples(com.grad_samples, &gfit);
-	}
+
+	generate_background_samples(nb_of_samples, tolerance);
 
 	redraw(com.cvport, REMAP_ALL);
 	set_cursor_waiting(FALSE);
@@ -605,45 +741,52 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
-	double *background, *image[3] = {0};
-	int correction, channel;
-	gchar *error;
-
-	if (com.grad_samples == NULL) return;
-
 	set_cursor_waiting(TRUE);
 
-	correction = get_correction_type();
-	undo_save_state(&gfit, "Processing: Background extraction (Correction: %s)",
-				correction ? "Division" : "Subtraction");
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkBkgSeq")))
+			&& sequence_is_loaded()) {
+		struct background_data *args = malloc(sizeof(struct background_data));
 
-	for (channel = 0; channel < gfit.naxes[2]; channel++) {
-		/* compute background */
-		image[channel] = convert_fits_to_img(&gfit, channel, TRUE);
-		background = computeBackground(com.grad_samples, channel, gfit.rx, gfit.ry, get_poly_order(), &error);
-		if (background == NULL) {
-			if (error) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."), error);
+		args->nb_of_samples = get_nb_samples_per_line();
+		args->tolerance = get_tolerance_value();
+		args->correction = get_correction_type();
+		args->degree = get_poly_order();
+		if (args->degree > POLY_1) {
+			int confirm = siril_confirm_dialog(_("Polynomial order seems too high."),
+					_("You are about to process a sequence of preprocessed files with "
+							"a polynomial degree greater than 1. This is unlikely because such "
+							"gradients are often linear and a correction with a polynomial "
+							"function of degree 1 is probably enough. Click OK to confirm or "
+							"Cancel to change your mind."));
+			if (!confirm) {
+				free(args);
+				set_cursor_waiting(FALSE);
+				return;
 			}
+		}
 
+		args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq")));
+		if (args->seqEntry && args->seqEntry[0] == '\0')
+			args->seqEntry = "bkg_";
+		args->seq = &com.seq;
+		apply_background_extraction_to_sequence(args);
+	} else {
+		if (com.grad_samples == NULL) {
 			set_cursor_waiting(FALSE);
-			free(image[channel]);
 			return;
 		}
-		/* remove background */
-		siril_log_message(_("Background extraction from channel %d.\n"), channel);
-		remove_gradient(image[channel], background, gfit.rx * gfit.ry, correction);
-		convert_img_to_fits(image[channel], &gfit, channel);
 
-		/* free memory */
-		free(image[channel]);
-		free(background);
+		int correction = get_correction_type();
+		poly_order degree = get_poly_order();
+		undo_save_state(&gfit, "Processing: Background extraction (Correction: %s)",
+				correction ? "Division" : "Subtraction");
+		remove_gradient_from_image(correction, degree);
+
+		invalidate_stats_from_fit(&gfit);
+		adjust_cutoff_from_updated_gfit();
+		redraw(com.cvport, REMAP_ALL);
+
 	}
-
-	invalidate_stats_from_fit(&gfit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
-
 	set_cursor_waiting(FALSE);
 }
 

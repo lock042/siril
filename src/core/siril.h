@@ -35,6 +35,9 @@
    do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
+#define PRINT_NOT_FOR_SEQUENCE siril_log_message(_("This command cannot be applied on a sequence.\n"))
+#define PRINT_NOT_FOR_SINGLE siril_log_message(_("This command can only be used when a sequence is loaded.\n"))
+#define PRINT_ANOTHER_THREAD_RUNNING siril_log_message(_("Another task is already in progress, ignoring new request.\n"))
 
 #ifndef RT_INCLUDE
 #undef max
@@ -79,9 +82,6 @@ typedef unsigned short WORD;	// default type for internal image data
 #define ZOOM_NONE	1.0
 #define ZOOM_FIT	-1.0	// or any value < 0
 #define ZOOM_DEFAULT	ZOOM_FIT
-
-#define LOW_BOUND  0.00002
-#define HIGH_BOUND 0.99998
 
 /* Some statistic constants */
 #define SIGMA_PER_FWHM 2.35482
@@ -393,6 +393,8 @@ struct wcs_struct {
 	double crpix1, crpix2;
 	double crval1, crval2;
 	double cdelt1, cdelt2;
+	double cd1_1, cd1_2;
+	double cd2_1, cd2_2;
 	double crota1, crota2;
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];

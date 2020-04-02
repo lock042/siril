@@ -52,7 +52,7 @@ static gboolean end_scnr(gpointer p) {
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
 	double m;
-	int i, nbdata = args->fit->rx * args->fit->ry;
+	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
 	double norm = get_normalized_value(args->fit);
 
@@ -151,8 +151,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 			GTK_RANGE(gtk_builder_get_object(builder, "scale_scnr")));
 
 	if (get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 

@@ -272,7 +272,7 @@ static void read_fits_header(fits *fit) {
 				fit->pixel_size_x, fit->pixel_size_y, fit->binning_x,
 				fit->binning_y, fit->focal_length);
 
-	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->focal_length);
+	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, Exposure, &fit->exposure);
 
 	status = 0;
@@ -427,17 +427,15 @@ static void report_fits_error(int status) {
 	}
 }
 
-static void conv_8_to_16(WORD *data, unsigned int nbdata) {
-	int i;
-	for (i = 0; i < nbdata; i++) {
+static void conv_8_to_16(WORD *data, size_t nbdata) {
+	for (size_t i = 0; i < nbdata; i++) {
 		double tmp = (double) data[i] / UCHAR_MAX_DOUBLE * USHRT_MAX_DOUBLE;
 		data[i] = round_to_WORD(tmp);
 	}
 }
 
-static void conv_16_to_32(WORD *udata, float *fdata, unsigned int nbdata) {
-	int i;
-	for (i = 0; i < nbdata; i++) {
+static void conv_16_to_32(WORD *udata, float *fdata, size_t nbdata) {
+	for (size_t i = 0; i < nbdata; i++) {
 		fdata[i] = (double) udata[i] / USHRT_MAX_DOUBLE;
 	}
 }
@@ -445,10 +443,10 @@ static void conv_16_to_32(WORD *udata, float *fdata, unsigned int nbdata) {
 /* convert FITS data formats to siril native.
  * nbdata is the number of pixels, w * h.
  * from is not freed, to must be allocated and can be the same as from */
-static void convert_data_ushort(int bitpix, const void *from, WORD *to, unsigned int nbdata, gboolean values_above_1) {
-	int i;
+static void convert_data_ushort(int bitpix, const void *from, WORD *to, size_t nbdata, gboolean values_above_1) {
 	BYTE *data8;
 	int16_t *data16;
+	size_t i;
 
 	switch (bitpix) {
 		case BYTE_IMG:
@@ -476,8 +474,8 @@ static void convert_data_ushort(int bitpix, const void *from, WORD *to, unsigned
 /* convert FITS data formats to siril native.
  * nbdata is the number of pixels, w * h.
  * from is not freed, to must be allocated and can be the same as from */
-static void convert_data_float(int bitpix, const void *from, float *to, long nbdata) {
-	long i;
+static void convert_data_float(int bitpix, const void *from, float *to, size_t nbdata) {
+	size_t i;
 	BYTE *data8;
 	WORD *ushort;
 	int16_t *data16;
@@ -533,8 +531,8 @@ static void convert_data_float(int bitpix, const void *from, float *to, long nbd
 	}
 }
 
-static void convert_floats(int bitpix, float *data, long nbdata) {
-	long i;
+static void convert_floats(int bitpix, float *data, size_t nbdata) {
+	size_t i;
 	switch (bitpix) {
 		case BYTE_IMG:
 			for (i = 0; i < nbdata; i++)
@@ -564,10 +562,17 @@ static int read_fits_with_convert(fits* fit, const char* filename, gboolean forc
 	BYTE *data8;
 	unsigned long *pixels_long;
 	// orig ^ gives the coordinate in each dimension of the first pixel to be read
-	long nbpix = fit->naxes[0] * fit->naxes[1];
-	long nbdata = nbpix * fit->naxes[2];
+	size_t nbpix = fit->naxes[0] * fit->naxes[1];
+	size_t nbdata = nbpix * fit->naxes[2];
 	// with force_float, image is read as float data, type is stored as DATA_FLOAT
 	int fake_bitpix = force_float ? FLOAT_IMG : fit->bitpix;
+
+	status = 0;
+	fits_movabs_hdu(fit->fptr, 1, 0, &status); // make sure reading primary HDU
+	if (status) {
+		siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
+		return -1;
+	}
 
 	switch (fake_bitpix) {
 		case BYTE_IMG:
@@ -576,8 +581,6 @@ static int read_fits_with_convert(fits* fit, const char* filename, gboolean forc
 			/* we store these types as unsigned short */
 			if ((fit->data = malloc(nbdata * sizeof(WORD))) == NULL) {
 				PRINT_ALLOC_ERR;
-				status = 0;
-				fits_close_file(fit->fptr, &status);
 				return -1;
 			}
 			fit->pdata[RLAYER] = fit->data;
@@ -598,8 +601,6 @@ static int read_fits_with_convert(fits* fit, const char* filename, gboolean forc
 			/* we store these types as float */
 			if ((fit->fdata = malloc(nbdata * sizeof(float))) == NULL) {
 				PRINT_ALLOC_ERR;
-				status = 0;
-				fits_close_file(fit->fptr, &status);
 				return -1;
 			}
 			fit->fpdata[RLAYER] = fit->fdata;
@@ -619,8 +620,7 @@ static int read_fits_with_convert(fits* fit, const char* filename, gboolean forc
 			return -1;
 	}
 
-	fits_movabs_hdu(fit->fptr, 1, 0, &status); // make sure reading primary HDU
-
+	status = 0;
 	switch (fake_bitpix) {
 	case BYTE_IMG:
 		data8 = malloc(nbdata * sizeof(BYTE));
@@ -658,7 +658,6 @@ static int read_fits_with_convert(fits* fit, const char* filename, gboolean forc
 	case ULONG_IMG:		// 32-bit unsigned integer pixels
 	case LONG_IMG:		// 32-bit signed integer pixels
 		pixels_long = malloc(nbdata * sizeof(unsigned long));
-		status = 0;
 		datatype = fit->bitpix == LONG_IMG ? TLONG : TULONG;
 		fits_read_img(fit->fptr, datatype, 1, nbdata, &zero, pixels_long, &zero, &status);
 		if (status) break;
@@ -671,13 +670,14 @@ static int read_fits_with_convert(fits* fit, const char* filename, gboolean forc
 	case DOUBLE_IMG:	// 64-bit floating point pixels
 		// let cfitsio do the conversion
 		/* we assume we are in the range [0, 1]. But, for some images
-		 * some values can be a negative
+		 * some values can be negative
 		 */
 		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
-		if (fit->data_max > 1.0) { // needed for some FLOAT_IMG
+		if (fit->data_max > 2.0) { // needed for some FLOAT_IMG
 			convert_floats(fit->bitpix, fit->fdata, nbdata);
 		}
 		fit->bitpix = FLOAT_IMG;
+		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
 		break;
 	}
 
@@ -708,7 +708,7 @@ static int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 	lpixel[1] = ry - area->y;
 	lpixel[2] = layer + 1;
 
-	unsigned int nbdata = area->w * area->h;
+	size_t nbdata = area->w * area->h;
 
 	switch (bitpix) {
 		case BYTE_IMG:
@@ -770,9 +770,16 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TUINT, "EQUINOX", &(fit->wcs.equinox),
 						"Equatorial equinox", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TA", "Coordinate type for the first axis", &status);
+		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TA", "Coordinate type for the second axis", &status);
+		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
+
+		/* Needed for Aladin compatibility */
+		if (fit->naxes[2] == 3) {
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "CTYPE3", "RGB", "RGB image", &status);
+		}
+
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra),	"Image center R.A. (hms)", &status);
 		status = 0;
@@ -785,6 +792,14 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval1), "Axis1 reference value", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2), "Axis2 reference value", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcs.cd1_1), "Scale matrix (1, 1)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcs.cd1_2), "Scale matrix (1, 2)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcs.cd2_1), "Scale matrix (2, 1)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcs.cd2_2), "Scale matrix (2, 2)", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt1), "Axis1 scale", &status);
 		status = 0;
@@ -1015,7 +1030,6 @@ static void save_fits_header(fits *fit) {
 static int read_data_cube(fits *fit) {
 	printf("fit->naxes[2]=%ld\n", fit->naxes[2]);
 	if (fit->naxis == 3) fit->naxes[2] = 3;
-
 	return 0;
 }
 
@@ -1186,7 +1200,7 @@ void clearfits(fits *fit) {
 int readfits_partial(const char *filename, int layer, fits *fit,
 		const rectangle *area, gboolean do_photometry) {
 	int status;
-	unsigned int nbdata;
+	size_t nbdata;
 	double offset, data_max = 0.0;
 	double mini, maxi;
 
@@ -1383,9 +1397,9 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 
 /* creates, saves and closes the file associated to f, overwriting previous  */
 int savefits(const char *name, fits *f) {
-	int status, i;
-	int type;
-	long orig[3] = { 1L, 1L, 1L }, pixel_count;
+	int status, type;
+	size_t i, pixel_count;
+	long orig[3] = { 1L, 1L, 1L };
 	char filename[256];
 	BYTE *data8;
 
@@ -1433,7 +1447,7 @@ int savefits(const char *name, fits *f) {
 				if (norm == USHRT_MAX_DOUBLE)
 					data8[i] = conv_to_BYTE((double)f->data[i]);
 				else
-					data8[i] = (BYTE) (f->data[i]);
+					data8[i] = round_to_BYTE(f->data[i]);
 			}
 		}
 		if (fits_write_pix(f->fptr, TBYTE, orig, pixel_count, data8, &status)) {
@@ -1534,7 +1548,7 @@ int savefits(const char *name, fits *f) {
  */
 int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	int depth, i;
-	unsigned int nbdata = from->rx * from->ry;
+	size_t nbdata = from->naxes[0] * from->naxes[1];
 
 	if ((oper & CP_EXPAND))
 		depth = 3;
@@ -1694,7 +1708,7 @@ int copy_fits_metadata(fits *from, fits *to) {
 
 int save1fits16(const char *filename, fits *fit, int layer) {
 	if (layer != RLAYER) {
-		int nbdata = fit->naxes[0] * fit->naxes[1];
+		size_t nbdata = fit->naxes[0] * fit->naxes[1];
 		memcpy(fit->data, fit->data + layer * nbdata, nbdata * sizeof(WORD));
 	}
 	fit->naxis = 2;
@@ -1704,7 +1718,7 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 
 int save1fits32(const char *filename, fits *fit, int layer) {
 	if (layer != RLAYER) {
-		int nbdata = fit->naxes[0] * fit->naxes[1];
+		size_t nbdata = fit->naxes[0] * fit->naxes[1];
 		memcpy(fit->fdata, fit->fdata + layer * nbdata, nbdata * sizeof(float));
 	}
 	fit->naxis = 2;
@@ -1716,24 +1730,21 @@ int save1fits32(const char *filename, fits *fit, int layer) {
  * order is RGB when inverted is FALSE, BGR when inverted is TRUE
  * fit->data has to be already allocated and fit->rx and fit->ry must be correct */
 void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted) {
-	int i, j, nbdata;
-	nbdata = fit->rx * fit->ry;
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
 	WORD *rdata, *gdata, *bdata;
 	rdata = fit->pdata[RLAYER] = fit->data;
 	gdata = fit->pdata[GLAYER] = fit->data + nbdata;
 	bdata = fit->pdata[BLAYER] = fit->data + 2 * nbdata;
-	for (i = 0; i < fit->rx; ++i) {
-		for (j = 0; j < fit->ry; ++j) {
-			if (inverted)
-				*bdata++ = (WORD) *rgbbuf++;
-			else
-				*rdata++ = (WORD) *rgbbuf++;
-			*gdata++ = (WORD) *rgbbuf++;
-			if (inverted)
-				*rdata++ = (WORD) *rgbbuf++;
-			else
-				*bdata++ = (WORD) *rgbbuf++;
-		}
+	for (size_t i = 0; i < nbdata; ++i) {
+		if (inverted)
+			*bdata++ = (WORD) *rgbbuf++;
+		else
+			*rdata++ = (WORD) *rgbbuf++;
+		*gdata++ = (WORD) *rgbbuf++;
+		if (inverted)
+			*rdata++ = (WORD) *rgbbuf++;
+		else
+			*bdata++ = (WORD) *rgbbuf++;
 	}
 }
 
@@ -1741,12 +1752,11 @@ void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted) 
  * fit->data has to be already allocated and fit->rx and fit->ry must be correct */
 void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit) {
 	WORD *data;
-	int nbdata, i;
+	size_t i, nbdata = fit->naxes[0] * fit->naxes[1];
 	fit->pdata[0] = fit->data;
 	fit->pdata[1] = fit->data;
 	fit->pdata[2] = fit->data;
 	data = fit->data;
-	nbdata = fit->rx * fit->ry;
 	for (i = 0; i < nbdata; ++i) {
 		*data++ = *graybuf++;
 	}
@@ -1759,35 +1769,32 @@ void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit) {
  * fit->data has to be already allocated and fit->rx and fit->ry must be correct */
 void rgb48bit_to_fits48bit(WORD *rgbbuf, fits *fit, gboolean inverted,
 		gboolean change_endian) {
-	int i, j, nbdata;
-	nbdata = fit->rx * fit->ry;
+	size_t i, nbdata = fit->naxes[0] * fit->naxes[1];
 	WORD *rdata, *gdata, *bdata, curval;
 	rdata = fit->pdata[0] = fit->data;
 	gdata = fit->pdata[1] = fit->data + nbdata;
 	bdata = fit->pdata[2] = fit->data + 2 * nbdata;
-	for (i = 0; i < fit->rx; ++i) {
-		for (j = 0; j < fit->ry; ++j) {
-			curval = *rgbbuf++;
-			if (change_endian)
-				curval = change_endianness16(curval);
-			if (inverted)
-				*bdata++ = curval;
-			else
-				*rdata++ = curval;
+	for (i = 0; i < nbdata; ++i) {
+		curval = *rgbbuf++;
+		if (change_endian)
+			curval = change_endianness16(curval);
+		if (inverted)
+			*bdata++ = curval;
+		else
+			*rdata++ = curval;
 
-			curval = *rgbbuf++;
-			if (change_endian)
-				curval = change_endianness16(curval);
-			*gdata++ = curval;
+		curval = *rgbbuf++;
+		if (change_endian)
+			curval = change_endianness16(curval);
+		*gdata++ = curval;
 
-			curval = *rgbbuf++;
-			if (change_endian)
-				curval = change_endianness16(curval);
-			if (inverted)
-				*rdata++ = curval;
-			else
-				*bdata++ = curval;
-		}
+		curval = *rgbbuf++;
+		if (change_endian)
+			curval = change_endianness16(curval);
+		if (inverted)
+			*rdata++ = curval;
+		else
+			*bdata++ = curval;
 	}
 }
 
@@ -1844,13 +1851,9 @@ void fits_flip_top_to_bottom(fits *fit) {
  * another and initializes all relevant data */
 /* the crop function does the same but in place and for all channels without
  * reallocating */
-void extract_region_from_fits(fits *from, int layer, fits *to,
+static void extract_region_from_fits_ushort(fits *from, int layer, fits *to,
 		const rectangle *area) {
 	int x, y, d, ystart, yend;
-	if (from->type != DATA_USHORT) {
-		siril_log_color_message(_("This operation is not yet supported for 32-bit images\n"), "red");
-		return;
-	}
 	clearfits(to);
 	to->data = malloc(area->w * area->h * sizeof(WORD));
 
@@ -1872,13 +1875,50 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 	to->pdata[0] = to->data;
 	to->pdata[1] = to->data;
 	to->pdata[2] = to->data;
-	to->bitpix = (from->bitpix ? from->bitpix : USHRT_MAX);
+	to->bitpix = from->bitpix;
+	to->type = DATA_USHORT;
+}
+
+static void extract_region_from_fits_float(fits *from, int layer, fits *to,
+		const rectangle *area) {
+	int x, y, d, ystart, yend;
+	clearfits(to);
+	to->fdata = malloc(area->w * area->h * sizeof(float));
+
+	d = 0;
+	ystart = from->ry - area->y - area->h;
+	yend = from->ry - area->y;
+	for (y = ystart; y < yend; y++) {
+		for (x = area->x; x < area->x + area->w; x++) {
+			to->fdata[d++] = from->fpdata[layer][x + y * from->rx];
+		}
+	}
+
+	to->rx = area->w;
+	to->ry = area->h;
+	to->naxes[0] = area->w;
+	to->naxes[1] = area->h;
+	to->naxes[2] = 1;
+	to->naxis = 2;
+	to->fpdata[0] = to->fdata;
+	to->fpdata[1] = to->fdata;
+	to->fpdata[2] = to->fdata;
+	to->bitpix = from->bitpix;
+	to->type = DATA_FLOAT;
+}
+
+void extract_region_from_fits(fits *from, int layer, fits *to,
+		const rectangle *area) {
+	if (from->type == DATA_USHORT)
+		extract_region_from_fits_ushort(from, layer, to, area);
+	else if (from->type == DATA_FLOAT)
+		extract_region_from_fits_float(from, layer, to, area);
 }
 
 /* creates a new fit image from scratch (NULL fit) or into a fits * previously
  * allocated, with non-cleared (random) data. */
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type) {
-	gint npixels, data_size;
+	size_t npixels, data_size;
 	void *data;
 	g_assert(width > 0);
 	g_assert(height > 0);
@@ -1946,7 +1986,7 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	fit->type = newtype;
 	invalidate_stats_from_fit(fit);
 
-	unsigned int nbdata = fit->rx * fit->ry;
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
 	if (newtype == DATA_USHORT) {
 		fit->bitpix = USHORT_IMG;
 		fit->orig_bitpix = USHORT_IMG;
@@ -1990,21 +2030,53 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	}
 }
 
+void fit_debayer_buffer(fits *fit, void *newbuf) {
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
+
+	/* before changing naxis, we clear fit->stats that was allocated for
+	 * one channel */
+	full_stats_invalidation_from_fit(fit);
+
+	fit->naxis = 3;
+	fit->naxes[2] = 3;
+	if (fit->type == DATA_USHORT) {
+		if (fit->data)
+			free(fit->data);
+		fit->data = (WORD *)newbuf;
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + nbdata;
+		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+	}
+	else if (fit->type == DATA_FLOAT) {
+		if (fit->fdata)
+			free(fit->fdata);
+		fit->fdata = (float *)newbuf;
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + nbdata;
+		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
+	}
+}
+
 /* In-place conversion to one channel.
  * See copyfits with CP_EXTRACT for the same in a new fits */
 void keep_first_channel_from_fits(fits *fit) {
 	if (fit->naxis == 1)
 		return;
-	if (fit->type != DATA_USHORT) {
-		siril_log_color_message(_("This operation is not yet supported for 32-bit images\n"), "red");
-		return;
-	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	fit->data = realloc(fit->data, fit->rx * fit->ry * sizeof(WORD));
-	fit->pdata[RLAYER] = fit->data;
-	fit->pdata[GLAYER] = fit->data;
-	fit->pdata[BLAYER] = fit->data;
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
+	if (fit->type == DATA_USHORT) {
+		fit->data = realloc(fit->data, nbdata * sizeof(WORD));
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data;
+		fit->pdata[BLAYER] = fit->data;
+	}
+	else if (fit->type == DATA_FLOAT) {
+		fit->fdata = realloc(fit->fdata, nbdata * sizeof(float));
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata;
+		fit->fpdata[BLAYER] = fit->fdata;
+	}
 	if (fit->maxi > 0) {
 		if (fit->maxi != fit_get_max(fit, 0))
 			fit->maxi = 0;
@@ -2029,13 +2101,15 @@ static double logviz(double arg) {
 	return log1p(arg);
 } // for PREVIEW_LOG
 
-#define TRYFITS(f, ...)								\
-	do{	status = FALSE;								\
-		f(__VA_ARGS__, &status);					\
-		if(status){									\
-			free(ima_data);	\
-			fits_close_file(fp, &status);		\
-			return NULL;}							\
+#define TRYFITS(f, ...) \
+	do{ \
+		status = FALSE; \
+		f(__VA_ARGS__, &status); \
+		if(status){ \
+			free(ima_data); \
+			fits_close_file(fp, &status); \
+			return NULL; \
+		} \
 	} while(0)
 
 /**
@@ -2057,7 +2131,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 	const int w = naxes[0];
 	const int h = naxes[1];
-	int sz = w * h;
+	size_t sz = w * h;
 	ima_data = malloc(sz * sizeof(float));
 
 	TRYFITS(fits_read_img, fp, TFLOAT, 1, sz, &nullval, ima_data, &stat);
@@ -2117,7 +2191,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	float max = *ptr;
 	float min = max;
 	float avr = 0.f;
-	for (int i = 0; i < sz; i++, ptr++) {
+	for (size_t i = 0; i < sz; i++, ptr++) {
 		const float val = *ptr;
 		max = max(max, val);
 		min = min(min, val);

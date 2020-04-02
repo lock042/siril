@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <opencv2/core/version.hpp>
+#include <glib.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -66,6 +67,7 @@
 #include "algos/star_finder.h"
 #include "algos/Def_Math.h"
 #include "algos/Def_Wavelet.h"
+#include "algos/background_extraction.h"
 #include "algos/demosaicing.h"
 #include "algos/quality.h"
 #include "algos/noise.h"
@@ -85,29 +87,30 @@
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
-
 int process_load(int nb){
 	char filename[256];
-	int retval, i;
 	
 	strncpy(filename, word[1], 250);
 	filename[250] = '\0';
 	
-	for (i = 1; i < nb - 1; ++i) {
+	for (int i = 1; i < nb - 1; ++i) {
 		strcat(filename, " ");
 		strcat(filename, word[i + 1]);
 	}
 	expand_home_in_filename(filename, 256);
-	retval = open_single_image(filename);
+	int retval = open_single_image(filename);
 	return retval;
 }
 
 int process_satu(int nb){
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	
@@ -129,9 +132,6 @@ int process_satu(int nb){
 }
 
 int process_save(int nb){
-	gchar *filename;
-	int retval;
-	
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		gfit.hi = com.seq.layers[RLAYER].hi;
 		gfit.lo = com.seq.layers[RLAYER].lo;
@@ -143,9 +143,9 @@ int process_save(int nb){
 		return 1;
 	}
 
-	filename = g_strdup(word[1]);
+	gchar *filename = g_strdup(word[1]);
 	set_cursor_waiting(TRUE);
-	retval = savefits(filename, &(gfit));
+	int retval = savefits(filename, &(gfit));
 	set_precision_switch();
 	set_cursor_waiting(FALSE);
 	g_free(filename);
@@ -153,11 +153,12 @@ int process_save(int nb){
 }
 
 int process_savebmp(int nb){
-	gchar *filename;
-	
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
-	filename = g_strdup_printf("%s.bmp", word[1]);
+	gchar *filename = g_strdup_printf("%s.bmp", word[1]);
 
 	set_cursor_waiting(TRUE);
 	savebmp(filename, &(gfit));
@@ -168,16 +169,17 @@ int process_savebmp(int nb){
 
 #ifdef HAVE_LIBJPEG
 int process_savejpg(int nb){
-	gchar *filename;
-
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	int quality = 100;
 	
 	if ((nb == 3) && atoi(word[2]) <= 100 && atoi(word[2]) > 0)
 		quality = atoi(word[2]);
 
-	filename = g_strdup_printf("%s.jpg", word[1]);
+	gchar *filename = g_strdup_printf("%s.jpg", word[1]);
 
 	set_cursor_waiting(TRUE);
 	savejpg(filename, &gfit, quality);
@@ -189,15 +191,16 @@ int process_savejpg(int nb){
 
 #ifdef HAVE_LIBPNG
 int process_savepng(int nb){
-	gchar *filename;
-	uint32_t bytes_per_sample;
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
-	filename = g_strdup_printf("%s.png", word[1]);
+	gchar *filename = g_strdup_printf("%s.png", word[1]);
 
 	set_cursor_waiting(TRUE);
-	bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
+	uint32_t bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
 	savepng(filename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
 	set_cursor_waiting(FALSE);
 	g_free(filename);
@@ -207,15 +210,16 @@ int process_savepng(int nb){
 
 #ifdef HAVE_LIBTIFF
 int process_savetif(int nb){
-	gchar *filename;
 	uint16 bitspersample = 16;
 
-	if (!(single_image_is_loaded() || sequence_is_loaded()))
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
+	}
 
 	if (strcasecmp(word[0], "savetif8") == 0)
 		bitspersample = 8;
-	filename = g_strdup_printf("%s.tif", word[1]);
+	gchar *filename = g_strdup_printf("%s.tif", word[1]);
 	set_cursor_waiting(TRUE);
 	savetif(filename, &gfit, bitspersample);
 	set_cursor_waiting(FALSE);
@@ -225,14 +229,16 @@ int process_savetif(int nb){
 #endif
 
 int process_savepnm(int nb){
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	saveNetPBM(word[1], &gfit);
 	return 0;
 }
 
 int process_imoper(int nb){
-	int retval;
 	fits fit = { 0 };
 	if (!single_image_is_loaded()) return 1;
 	if (readfits(word[1], &fit, NULL, TRUE)) return -1;
@@ -260,7 +266,7 @@ int process_imoper(int nb){
 			clearfits(&fit);
 			return 1;
 	}
-	retval = imoper(&gfit, &fit, oper, TRUE);
+	int retval = imoper(&gfit, &fit, oper, TRUE);
 
 	clearfits(&fit);
 	adjust_cutoff_from_updated_gfit();
@@ -272,7 +278,10 @@ int process_imoper(int nb){
 int process_addmax(int nb){
 	fits fit = { 0 };
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (readfits(word[1], &fit, NULL, gfit.type == DATA_FLOAT))
 		return -1;
@@ -287,11 +296,13 @@ int process_addmax(int nb){
 
 int process_fdiv(int nb){
 	// combines an image division and a scalar multiplication.
-	float norm;
 	fits fit = { 0 };
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
-	norm = atof(word[2]);
+	float norm = atof(word[2]);
 	if (readfits(word[1], &fit, NULL, TRUE)) return -1;
 	siril_fdiv(&gfit, &fit, norm, TRUE);
 
@@ -303,10 +314,12 @@ int process_fdiv(int nb){
 }
 
 int process_fmul(int nb){
-	float coeff;
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
-	coeff = atof(word[1]);
+	float coeff = atof(word[1]);
 	if (coeff <= 0.f) {
 		siril_log_message(_("Multiplying by a coefficient less than or equal to 0 is not possible.\n"));
 		return 1;
@@ -321,9 +334,12 @@ int process_fmul(int nb){
 
 int process_entropy(int nb){
 	rectangle area;
-	double e;
+	float e;
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		memcpy(&area, &com.selection, sizeof(rectangle));
@@ -332,12 +348,15 @@ int process_entropy(int nb){
 	else {
 		e = entropy(&gfit, com.cvport, NULL, NULL);
 	}
-	siril_log_message(_("Entropy: %.3lf\n"), e);
+	siril_log_message(_("Entropy: %.3f\n"), e);
 	return 0;
 }
 
 int process_gauss(int nb){
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	unsharp(&(gfit), atof(word[1]), 0.0, TRUE);
 	adjust_cutoff_from_updated_gfit();
@@ -347,7 +366,10 @@ int process_gauss(int nb){
 }
 
 int process_grey_flat(int nb) {
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	compute_grey_flat(&gfit);
 	adjust_cutoff_from_updated_gfit();
@@ -361,7 +383,10 @@ int process_rl(int nb) {
 	double sigma, corner;
 	int iter;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (!com.script)
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -385,8 +410,7 @@ int process_rl(int nb) {
 	}
 
 	if (get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -412,7 +436,10 @@ int process_rl(int nb) {
 }
 
 int process_unsharp(int nb) {
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	unsharp(&(gfit), atof(word[1]), atof(word[2]), TRUE);
 	adjust_cutoff_from_updated_gfit();
@@ -422,7 +449,10 @@ int process_unsharp(int nb) {
 }
 
 int process_crop(int nb) {
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 	if (is_preview_active()) {
 		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
 						"Please consider to close the filter dialog first.\n"));
@@ -492,7 +522,10 @@ int process_wrecons(int nb) {
 	const char *tmpdir;
 	int nb_chan;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	nb_chan = gfit.naxes[2];
 
@@ -508,9 +541,10 @@ int process_wrecons(int nb) {
 		dir[i] = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 		if (gfit.type == DATA_USHORT) {
 			wavelet_reconstruct_file(dir[i], coef, gfit.pdata[i]);
-		} else {
+		} else if (gfit.type == DATA_FLOAT) {
 			wavelet_reconstruct_file_float(dir[i], coef, gfit.fpdata[i]);
 		}
+		else return 1;
 		g_free(dir[i]);
 	}
 
@@ -526,7 +560,10 @@ int process_wavelet(int nb) {
 	const char* tmpdir;
 	int Type_Transform, Nbr_Plan, maxplan, mins, chan, nb_chan;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	tmpdir = g_get_tmp_dir();
 
@@ -552,6 +589,10 @@ int process_wavelet(int nb) {
 
 	if (gfit.type == DATA_USHORT) {
 		float *Imag = f_vector_alloc(gfit.rx * gfit.ry);
+		if (!Imag) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
 
 		for (chan = 0; chan < nb_chan; chan++) {
 			dir[chan] = g_build_filename(tmpdir, File_Name_Transform[chan],	NULL);
@@ -561,7 +602,7 @@ int process_wavelet(int nb) {
 		}
 
 		free(Imag);
-	} else {
+	} else if (gfit.type == DATA_FLOAT) {
 		for (chan = 0; chan < nb_chan; chan++) {
 			dir[chan] = g_build_filename(tmpdir, File_Name_Transform[chan],	NULL);
 			wavelet_transform_file_float(gfit.fpdata[chan], gfit.ry, gfit.rx, dir[chan],
@@ -569,11 +610,15 @@ int process_wavelet(int nb) {
 			g_free(dir[chan]);
 		}
 	}
+	else return 1;
 	return 0;
 }
 
 int process_log(int nb){
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	loglut(&gfit);
 	adjust_cutoff_from_updated_gfit();
@@ -583,7 +628,10 @@ int process_log(int nb){
 }
 
 int process_asinh(int nb) {
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	double beta = atof(word[1]);
 
@@ -604,7 +652,10 @@ int process_clahe(int nb) {
 		return 1;
 	}
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (!com.script)
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -623,8 +674,7 @@ int process_clahe(int nb) {
 	}
 
 	if (get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -746,7 +796,10 @@ int process_ls(int nb){
 #endif
 
 int	process_mirrorx(int nb){
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	mirrorx(&gfit, TRUE);
 	redraw(com.cvport, REMAP_ALL);
@@ -755,7 +808,10 @@ int	process_mirrorx(int nb){
 }
 
 int	process_mirrory(int nb){
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	mirrory(&gfit, TRUE);
 	redraw(com.cvport, REMAP_ALL);
@@ -764,7 +820,10 @@ int	process_mirrory(int nb){
 }
 
 int process_resample(int nb) {
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	double factor = atof(word[1]);
 	if (factor > 5.0) {
@@ -786,11 +845,14 @@ int process_resample(int nb) {
 
 int process_rgradient(int nb) {
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
 	args->xc = atof(word[1]);
@@ -814,7 +876,10 @@ int process_rgradient(int nb) {
 int process_rotate(int nb) {
 	double degree;
 	
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	set_cursor_waiting(TRUE);
 	degree = atof(word[1]);
@@ -826,7 +891,10 @@ int process_rotate(int nb) {
 }
 
 int process_rotatepi(int nb){
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	verbose_rotate_image(&gfit, 180.0, OPENCV_LINEAR, 1);
 
@@ -836,7 +904,10 @@ int process_rotatepi(int nb){
 }
 
 int process_set_mag(int nb) {
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
 	double mag = atof(word[1]);
@@ -864,7 +935,11 @@ int process_set_mag(int nb) {
 }
 
 int process_set_ref(int nb) {
-	if (single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
 	int n = atoi(word[1]) - 1;
 	if (n < 0 || n > com.seq.number) {
 		siril_log_message(_("The reference image must be set between 1 and %d\n"), com.seq.number);
@@ -899,7 +974,7 @@ int process_unset_mag(int nb) {
 
 int process_set_mag_seq(int nb) {
 	if (!sequence_is_loaded()) {
-		siril_log_message(_("This command can be used only when a sequence is loaded\n"));
+		PRINT_NOT_FOR_SINGLE;
 		return 1;
 	}
 	double mag = atof(word[1]);
@@ -954,7 +1029,7 @@ int process_set_findstar(int nb) {
 
 int process_unset_mag_seq(int nb) {
 	if (!sequence_is_loaded()) {
-		siril_log_message(_("This command can be used only when a sequence is loaded\n"));
+		PRINT_NOT_FOR_SINGLE;
 		return 1;
 	}
 	com.seq.reference_star = -1;
@@ -965,7 +1040,10 @@ int process_unset_mag_seq(int nb) {
 }
 
 int process_psf(int nb){
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
 	if (layer != -1) {
@@ -989,7 +1067,7 @@ int process_psf(int nb){
 
 int process_seq_psf(int nb) {
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 	if (com.selection.w > 300 || com.selection.h > 300){
@@ -1016,15 +1094,14 @@ int process_seq_psf(int nb) {
 		return 0;
 	}
 	else {
-		siril_log_message(_("This command can be used only when a sequence is loaded\n"));
+		PRINT_NOT_FOR_SINGLE;
 		return 1;
 	}
 }
 
 int process_seq_crop(int nb) {
 	if (get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -1103,8 +1180,7 @@ int process_bg(int nb){
 
 int process_bgnoise(int nb){
 	if (get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -1130,22 +1206,24 @@ int process_bgnoise(int nb){
 int process_histo(int nb){
 	size_t i;
 	int nlayer = atoi(word[1]);
-	char* clayer;
+	const char* clayer;
 	char name [20];
 	
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (nlayer>3 || nlayer <0)
 		return 1;
 	gsl_histogram* histo = computeHisto(&gfit, nlayer);
-	if (!isrgb(&gfit)) clayer = strdup("bw");		//if B&W
+	if (!isrgb(&gfit)) clayer = "bw";		//if B&W
 	else clayer = vport_number_to_name(nlayer);
 	snprintf(name, 20, "histo_%s.dat",clayer);
 
 	FILE *f = g_fopen(name, "w");
 
 	if (f == NULL) {
-		free(clayer);
 		return 1;
 	}
 	for (i = 0; i < USHRT_MAX + 1; i++)
@@ -1153,14 +1231,16 @@ int process_histo(int nb){
 	fclose(f);
 	gsl_histogram_free(histo);
 	siril_log_message(_("The file %s has been created for the %s layer.\n"), name, clayer);
-	free(clayer);
 	return 0;
 }
 
 int process_thresh(int nb){
 	int lo, hi;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	lo = atoi(word[1]);
 	if (lo < 0 || lo > USHRT_MAX) {
@@ -1183,7 +1263,10 @@ int process_thresh(int nb){
 int process_threshlo(int nb){
 	int lo;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	lo = atoi(word[1]);
 	if (lo < 0 || lo > USHRT_MAX) {
@@ -1200,7 +1283,10 @@ int process_threshlo(int nb){
 int process_threshhi(int nb){
 	int hi;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	hi = atoi(word[1]);
 	if (hi < 0 || hi > USHRT_MAX) {
@@ -1217,7 +1303,10 @@ int process_threshhi(int nb){
 int process_nozero(int nb){
 	int level;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	level = atoi(word[1]);
 	if (level < 0 || level > USHRT_MAX) {
@@ -1236,7 +1325,10 @@ int process_ddp(int nb){
 	float coeff, sigma;
 	unsigned level;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	level = atoi(word[1]);
 	coeff = atof(word[2]);
@@ -1282,7 +1374,10 @@ int process_new(int nb){
 int process_visu(int nb){
 	int low, high;
 	
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	low = atoi(word[1]);
 	high = atoi(word[2]);
@@ -1298,7 +1393,10 @@ int process_fill2(int nb){
 	int level = atoi(word[1]);
 	rectangle area;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
 		if (nb == 6) {
@@ -1330,8 +1428,6 @@ int process_findstar(int nb){
 	int nbstars = 0;
 	int layer = RLAYER;
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
-
 	if (isrgb(&gfit)) layer = GLAYER;
 	delete_selected_area();
 	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE);
@@ -1347,7 +1443,10 @@ int process_findhot(int nb){
 	int i;
 	char type;
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (gfit.naxes[2] != 1) {
 		siril_log_message(_("find_hot must be applied on an one-channel master-dark frame"));
@@ -1393,7 +1492,10 @@ int process_cosme(int nb) {
 	char line[64];
 	char type;
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (!ends_with(word[1], ".lst")) {
 		filename = g_strdup_printf("%s.lst", word[1]);
@@ -1483,11 +1585,14 @@ int process_cosme(int nb) {
 
 int process_fmedian(int nb){
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 	
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	struct median_filter_data *args = malloc(sizeof(struct median_filter_data));
 	args->ksize = atoi(word[1]);
@@ -1519,7 +1624,10 @@ int process_fmedian(int nb){
 int process_cdg(int nb) {
 	float x_avg, y_avg;
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (!FindCentre(&gfit, &x_avg, &y_avg)) {
 		siril_log_message(_("Center of gravity coordinates are (%.3lf, %.3lf)\n"), x_avg, y_avg);
@@ -1540,7 +1648,10 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	clear_stars_list();
 	adjust_cutoff_from_updated_gfit();
@@ -1565,7 +1676,10 @@ int process_fill(int nb){
 	int level;
 	rectangle area;
 	
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
 		if (nb == 6) {
@@ -1594,7 +1708,10 @@ int process_fill(int nb){
 int process_offset(int nb){
 	int level;
 	
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	level = atof(word[1]);
 	off(&gfit, level);
@@ -1609,11 +1726,14 @@ int process_offset(int nb){
  * then we always preserve the lightness */
 int process_scnr(int nb){
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 	if (gfit.naxes[2] == 1) return 1;
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
@@ -1632,7 +1752,7 @@ int process_scnr(int nb){
 
 int process_fft(int nb){
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -1641,7 +1761,10 @@ int process_fft(int nb){
 		return 1;
 	}
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	struct fft_data *args = malloc(sizeof(struct fft_data));
 	
@@ -1660,11 +1783,14 @@ int process_fft(int nb){
 
 int process_fixbanding(int nb) {
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
-	if (!single_image_is_loaded()) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	struct banding_data *args = malloc(sizeof(struct banding_data));
 
@@ -1681,14 +1807,87 @@ int process_fixbanding(int nb) {
 }
 
 
+int process_subsky(int nb) {
+	gboolean is_sequence;
+	sequence *seq = NULL;
+	int degree = 0;
+
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	is_sequence = (word[0][2] == 'q');
+
+	if (is_sequence) {
+		gchar *file = g_strdup(word[1]);
+		if (!ends_with(file, ".seq")) {
+			str_append(&file, ".seq");
+		}
+
+		if (!existseq(file)) {
+			if (check_seq(FALSE)) {
+				siril_log_message(_("No sequence `%s' found.\n"), file);
+				return 1;
+			}
+		}
+		seq = readseqfile(file);
+		if (seq == NULL) {
+			siril_log_message(_("No sequence `%s' found.\n"), file);
+			return 1;
+		}
+		if (seq_check_basic_data(seq, FALSE) == -1) {
+			free(seq);
+			return 1;
+		}
+		degree = atoi(word[2]);
+	} else {
+		if (!single_image_is_loaded()) return 1;
+		degree = atoi(word[1]);
+	}
+
+	if (degree < 1 || degree > 4) {
+		siril_log_message("Polynomial degree order must be within the [1, 4] range.\n");
+		printf("test %d\n", degree);
+		return 1;
+	}
+
+	set_cursor_waiting(TRUE);
+
+	if (is_sequence) {
+		struct background_data *args = malloc(sizeof(struct background_data));
+
+		args->seq = seq;
+		args->nb_of_samples = 20;
+		args->tolerance = 1.0;
+		args->correction = 0; //subtraction
+		args->seqEntry = "bkg_";
+		args->degree = (poly_order) (degree - 1);
+
+		apply_background_extraction_to_sequence(args);
+	} else {
+		generate_background_samples(20, 1.0);
+		remove_gradient_from_image(0, (poly_order) (degree - 1));
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
+
+		invalidate_stats_from_fit(&gfit);
+		adjust_cutoff_from_updated_gfit();
+		redraw(com.cvport, REMAP_ALL);
+	}
+	set_cursor_waiting(FALSE);
+
+	return 0;
+}
+
+
 int process_findcosme(int nb) {
 	gboolean is_sequence;
 	sequence *seq = NULL;
 	int i = 0;
 
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is "
-				"already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -1800,7 +1999,10 @@ int process_unselect(int nb){
 }
 
 int process_split(int nb){
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	if (!isrgb(&gfit)) {
 		siril_log_message(_("Siril cannot split layers. Make sure your image is in RGB mode.\n"));
@@ -1881,8 +2083,7 @@ int process_seq_split_cfa(int nb) {
 	sequence *seq = NULL;
 
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is "
-				"already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -1925,7 +2126,10 @@ int process_stat(int nb){
 	int layer;
 	char layername[6];
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 
 	nplane = gfit.naxes[2];
 
@@ -1978,11 +2182,8 @@ int process_convertraw(int nb) {
 	const gchar *file;
 	GList *list = NULL;
 
-	struct timeval t_start;
-
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is "
-				"already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -2000,45 +2201,57 @@ int process_convertraw(int nb) {
 		return 1;
 	}
 
+	int count = 0;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
 		if (!ext)
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPERAW) {
-			list = g_list_append (list, g_strdup(file));
+			list = g_list_append(list, g_strdup(file));
+			count++;
 		}
+	}
+	if (!count) {
+		siril_log_message(_("No RAW files were found for conversion\n"));
+		return 1;
 	}
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
+	/* convert the list to an array for parallel processing */
+	char **files_to_convert = malloc(count * sizeof(char *));
+	if (!files_to_convert) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	GList *orig_list = list;
+	for (int i = 0; i < count && list; list = list->next, i++)
+		files_to_convert[i] = g_strdup(list->data);
+	g_list_free_full(orig_list, g_free);
 
-	siril_log_color_message(_("Conversion: processing...\n"), "red");
-	gettimeofday(&t_start, NULL);
+	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "red", count);
 
 	set_cursor_waiting(TRUE);
 	if (!com.script)
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-	/* then, convert files to Siril's FITS format */
-	struct _convert_data *args;
-	set_cursor_waiting(TRUE);
 	if (!com.wd) {
 		siril_log_message(_("Conversion: no working directory set.\n"));
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
 
-	args = malloc(sizeof(struct _convert_data));
+	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = 1;
 	args->dir = dir;
-	args->list = list;
-	args->total = g_list_length(list);
+	args->list = files_to_convert;
+	args->total = count;
 	args->nb_converted = 0;
-	args->t_start.tv_sec = t_start.tv_sec;
-	args->t_start.tv_usec = t_start.tv_usec;
 	args->compatibility = FALSE;	// not used here
 	args->command_line = TRUE;
 	args->destroot = g_strdup(word[1]);
+	args->input_has_a_seq = FALSE;
+	gettimeofday(&(args->t_start), NULL);
 	start_in_new_thread(convert_thread_worker, args);
 	return 0;
 }
@@ -2050,8 +2263,7 @@ int process_register(int nb) {
 	int i;
 
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is "
-				"already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
@@ -2122,7 +2334,7 @@ int process_register(int nb) {
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
 		int nb_frames = reg_args->process_all_frames ? reg_args->seq->number : reg_args->seq->selnum;
-		int64_t size = seq_compute_size(reg_args->seq, nb_frames, DATA_USHORT);
+		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
 		if (test_available_space(size) > 0) {
@@ -2639,7 +2851,7 @@ int process_preprocess(int nb) {
 	// start preprocessing
 	set_cursor_waiting(TRUE);
 
-	start_sequence_preprocessing(args, TRUE);
+	start_sequence_preprocessing(args);
 	return 0;
 }
 

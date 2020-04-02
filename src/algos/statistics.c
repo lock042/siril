@@ -46,6 +46,15 @@
 #include "statistics.h"
 #include "statistics_float.h"
 
+/* Activating nullcheck will treat pixels with 0 value as null and remove them
+ * from stats computation. This can be useful when a large area is black, but
+ * this shouldn't happen often. Maybe we could detect it instead of hardcoding
+ * it...
+ * Deactivating this will take less memory and make a faster statistics
+ * computation. ngoodpix will be equal to total if deactivated.
+ * Set to 0 to deactivate or 1 to activate. */
+#define ACTIVATE_NULLCHECK 0
+
 static void stats_set_default_values(imstats *stat);
 
 // copies the area of an image into the memory buffer data
@@ -76,7 +85,7 @@ static double siril_stats_ushort_mad(WORD* data, const size_t n, const double m,
 	WORD *tmp = malloc(n * sizeof(WORD));
 	if (!tmp) {
 		PRINT_ALLOC_ERR;
-		return 0.0f; // TODO: check return value
+		return 0.0f;
 	}
 
 #ifdef _OPENMP
@@ -87,27 +96,6 @@ static double siril_stats_ushort_mad(WORD* data, const size_t n, const double m,
 	}
 
 	mad = histogram_median(tmp, n, multithread);
-	free(tmp);
-	return mad;
-}
-
-static float siril_stats_float_mad(const float* data, const size_t n, const float median) {
-	size_t i;
-	float mad;
-	float *tmp = malloc(n * sizeof(float));
-	if (!tmp) {
-		PRINT_ALLOC_ERR;
-		return 0.0f; // TODO: check return value
-	}
-
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(n > 10000) private(i) schedule(static)
-#endif
-	for (i = 0; i < n; i++) {
-		tmp[i] = fabsf(data[i] - median);
-	}
-
-	mad = histogram_median_float(tmp, n, FALSE);
 	free(tmp);
 	return mad;
 }
@@ -140,72 +128,8 @@ static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
 	return bwmv;
 }
 
-static float siril_stats_float_bwmv(const float* data, const size_t n,
-		const float mad, const float median) {
-
-	float bwmv = 0.f;
-	float up = 0.f, down = 0.f;
-	size_t i;
-
-	if (mad > 0.f) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static) reduction(+:up,down)
-#endif
-		for (i = 0; i < n; i++) {
-			float yi, ai, yi2;
-
-			yi = (data[i] - median) / (9.f * mad);
-			yi2 = yi * yi;
-			ai = (fabsf(yi) < 1.f) ? 1.f : 0.f;
-
-			up += ai * SQR(data[i] - median) * SQR(SQR (1.f - yi2));
-			down += (ai * (1.f - yi2) * (1.f - 5.f * yi2));
-		}
-		bwmv = n * (up / (down * down));
-	}
-
-	return bwmv;
-}
-
-static int IKSS(float *data, int n, double *location, double *scale) {
-	size_t i, j;
-	float mad, s, s0, m, xlow, xhigh;
-
-	quicksort_f(data, n);	// this sort is mandatory
-	i = 0;
-	j = n;
-	s0 = 1.f;
-	for (;;) {
-		if (j - i < 1) {
-			*location = *scale = 0;
-			break;
-		}
-		m = (float) gsl_stats_float_median_from_sorted_data(data + i, 1, j - i);
-		mad = siril_stats_float_mad(data + i, j - i, m);
-		s = sqrtf(siril_stats_float_bwmv(data + i, j - i, mad, m));
-		if (s < 2E-23) {
-			*location = (double)m;
-			*scale = 0.0;
-			break;
-		}
-		if (((s0 - s) / s) < 10E-6) {
-			*location = (double)m;
-			*scale = 0.991 * s;
-			break;
-		}
-		s0 = s;
-		xlow = m - 4.f * s;
-		xhigh = m + 4.f * s;
-		while (data[i] < xlow)
-			i++;
-		while (data[j - 1] > xhigh)
-			j--;
-	}
-	return 0;
-}
-
-static WORD* reassign_to_non_null_data_ushort(WORD *data, long inputlen, long outputlen, int free_input) {
-	int i, j = 0;
+static WORD* reassign_to_non_null_data_ushort(WORD *data, size_t inputlen, size_t outputlen, int free_input) {
+	size_t i, j = 0;
 	WORD *ndata = malloc(outputlen * sizeof(WORD));
 	if (!ndata) {
 		PRINT_ALLOC_ERR;
@@ -215,8 +139,7 @@ static WORD* reassign_to_non_null_data_ushort(WORD *data, long inputlen, long ou
 	for (i = 0; i < inputlen; i++) {
 		if (data[i] > 0) {
 			if (j >= outputlen) {
-				//assert(0);
-				fprintf(stderr, "\n- stats MISMATCH in sizes (in: %ld, out: %ld), THIS IS A BUG: seqfile is wrong *********\n\n", inputlen, outputlen);
+				fprintf(stderr, "\n- stats MISMATCH in sizes (in: %zu, out: %zu), THIS IS A BUG: seqfile is wrong *********\n\n", inputlen, outputlen);
 				break;
 			}
 			ndata[j] = data[i];
@@ -308,9 +231,9 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		if (fit->bitpix == BYTE_IMG)
 			norm = UCHAR_MAX;
 		else norm = USHRT_MAX;
-		stat->min = (double)min;
-		stat->max = (double)max;
-		stat->normValue = (double)norm;
+		stat->min = (double) min;
+		stat->max = (double) max;
+		stat->normValue = (double) norm;
 	}
 
 	/* Calculation of ngoodpix, mean, sigma and background noise */
@@ -322,7 +245,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
-		siril_fits_img_stats_ushort(data, nx, ny, 1, 0, &stat->ngoodpix,
+		siril_fits_img_stats_ushort(data, nx, ny, ACTIVATE_NULLCHECK, 0, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, multithread, &status);
 		if (status) {
@@ -338,8 +261,8 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	}
 
 	/* we exclude 0 if some computations remain to be done or copy data if
-	 * median has to be computed */
-	if (fit && (compute_median || ((option & STATS_IKSS) && stat->total != stat->ngoodpix))) {
+	 * median has to be computed (this is deactivated in the ngoodpix computation) */
+	if (fit && (compute_median || (option & STATS_IKSS)) && stat->total != stat->ngoodpix) {
 		data = reassign_to_non_null_data_ushort(data, stat->total, stat->ngoodpix, free_data);
 		if (!data) {
 			if (stat_is_local) free(stat);
@@ -396,7 +319,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
-		long i;
+		size_t i;
 		float *newdata = malloc(stat->ngoodpix * sizeof(float));
 		if (!newdata) {
 			if (stat_is_local) free(stat);
@@ -406,13 +329,19 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		}
 
 		/* we convert in the [0, 1] range */
+		float invertNormValue = (float)(1.0 / stat->normValue);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) if (multithread) private(i) schedule(static)
 #endif
 		for (i = 0; i < stat->ngoodpix; i++) {
-			newdata[i] = (double)data[i] / stat->normValue;
+			newdata[i] = (float) data[i] * invertNormValue;
 		}
-		IKSS(newdata, stat->ngoodpix, &stat->location, &stat->scale);
+		if (IKSS(newdata, stat->ngoodpix, &stat->location, &stat->scale, multithread)) {
+			if (stat_is_local) free(stat);
+			if (free_data) free(data);
+			free(newdata);
+			return NULL;
+		}
 		/* go back to the original range */
 		stat->location *= stat->normValue;
 		stat->scale *= stat->normValue;
@@ -496,7 +425,7 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 	}
 }
 
-int compute_means_from_flat_cfa_ushort(fits *fit, double mean[4]) {
+int compute_means_from_flat_cfa_ushort(fits *fit, float mean[4]) {
 	int row, col, c, i = 0;
 	WORD *data;
 	unsigned int width, height;
@@ -523,21 +452,21 @@ int compute_means_from_flat_cfa_ushort(fits *fit, double mean[4]) {
 	/* Compute mean of each channel */
 	for (row = starty; row < height - 1 - starty; row += 2) {
 		for (col = startx; col < width - 1 - startx; col += 2) {
-			mean[0] += (double) data[col + row * width];
-			mean[1] += (double) data[1 + col + row * width];
-			mean[2] += (double) data[col + (1 + row) * width];
-			mean[3] += (double) data[1 + col + (1 + row) * width];
+			mean[0] += (float) data[col + row * width];
+			mean[1] += (float) data[1 + col + row * width];
+			mean[2] += (float) data[col + (1 + row) * width];
+			mean[3] += (float) data[1 + col + (1 + row) * width];
 			i++;
 		}
 	}
 
 	for (c = 0; c < 4; c++) {
-		mean[c] /= (double) i;
+		mean[c] /= (float) i;
 	}
 	return 0;
 }
 
-int compute_means_from_flat_cfa(fits *fit, double mean[4]) {
+int compute_means_from_flat_cfa(fits *fit, float mean[4]) {
 	if (fit->type == DATA_USHORT)
 		return compute_means_from_flat_cfa_ushort(fit, mean);
 	if (fit->type == DATA_FLOAT)
@@ -549,8 +478,13 @@ int compute_means_from_flat_cfa(fits *fit, double mean[4]) {
 
 /* reference an imstats struct to a fits, creates the stats array if needed */
 void add_stats_to_fit(fits *fit, int layer, imstats *stat) {
-	if (!fit->stats)
+	if (!fit->stats) {
 		fit->stats = calloc(fit->naxes[2], sizeof(imstats *));
+		if (!fit->stats) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+	}
 	if (fit->stats[layer]) {
 		if (fit->stats[layer] != stat) {
 			siril_debug_print("- stats %p in fit %p (%d) is being replaced\n", fit->stats[layer], fit, layer);
@@ -563,10 +497,21 @@ void add_stats_to_fit(fits *fit, int layer, imstats *stat) {
 }
 
 static void add_stats_to_stats(sequence *seq, int nb_layers, imstats ****stats, int image_index, int layer, imstats *stat) {
-	if (!*stats)
+	if (!*stats) {
 		*stats = calloc(nb_layers, sizeof(imstats **));
-	if (!(*stats)[layer])
+		if (!*stats) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+	}
+	if (!(*stats)[layer]) {
 		(*stats)[layer] = calloc(seq->number, sizeof(imstats *));
+		if (!(*stats)[layer]) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+	}
+
 	if ((*stats)[layer][image_index]) {
 		if ((*stats)[layer][image_index] != stat) {
 			siril_debug_print("- stats %p, %d in seq (%d) is being replaced\n", (*stats)[layer][image_index], image_index, layer);

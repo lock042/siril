@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-bin_PROGRAMS = siril
+bin_PROGRAMS = siril siril-cli
 
 AM_CPPFLAGS = \
 	-DPACKAGE_DATA_DIR='"$(datadir)/${PACKAGE}"' \
@@ -18,12 +18,11 @@ AM_CPPFLAGS = \
 	$(FFMS2_CFLAGS) \
 	$(LIBCONFIG_CFLAGS) \
 	-I$(top_builddir)/deps/kplot \
-	-I$(top_builddir)/deps/librtprocess/src/include
+	-I$(top_srcdir)/deps/librtprocess/src/include
 
-siril_SOURCES = \
+siril_common_SOURCES = \
 	core/siril.h \
 	core/proto.h \
-	main.c \
 	algos/background_extraction.c \
 	algos/background_extraction.h \
 	algos/colors.c \
@@ -129,6 +128,8 @@ siril_SOURCES = \
 	gui/about_dialog.h \
 	gui/callbacks.c \
 	gui/callbacks.h \
+	gui/conversion.c \
+	gui/conversion.h \
 	gui/dialog_preview.c \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
@@ -210,9 +211,14 @@ if PLATFORM_WIN32
 libdbghelp = -ldbghelp
 endif
 
-siril_LDADD = \
+if HAVE_LIBRTPROCESS
+librtprocesslibs = $(LIBRTPROCESS_LIBS)
+else
+librtprocesslibs = $(top_builddir)/deps/librtprocess/build/src/librtprocess_static.a
+endif
+
+siril_common_LDADD = \
 	$(top_builddir)/deps/kplot/libkplot.a \
-	$(top_builddir)/deps/librtprocess/build/src/librtprocess_static.a \
 	$(FFMPEG_LIBS) \
 	$(GTK_LIBS) \
 	${GTK_MAC_LIBS} \
@@ -228,9 +234,10 @@ siril_LDADD = \
 	$(LIBCURL) \
 	$(EXTRA_LIBS) \
 	$(LIBATOMIC_LIBS) \
-	$(libdbghelp)
+	$(libdbghelp) \
+	$(librtprocesslibs)
 
-siril_SOURCES += \
+siril_common_SOURCES += \
 	algos/demosaicing_rtp.cpp \
 	io/avi_pipp/pipp_avi_write.cpp \
 	io/avi_pipp/pipp_avi_write.h \
@@ -255,8 +262,13 @@ siril_SOURCES += \
 	core/exif.cpp \
 	core/exif.h
 
-siril_LDADD += $(OPENCV_LIBS) \
-               $(EXIV2_LIBS)
+siril_common_LDADD += $(OPENCV_LIBS) \
+		      $(EXIV2_LIBS)
+
+siril_SOURCES = $(siril_common_SOURCES) main.c
+siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c
+siril_LDADD = $(siril_common_LDADD)
+siril_cli_LDADD = $(siril_common_LDADD)
 
 pkgdata_DATA = \
 	gui/siril3.glade \
@@ -270,7 +282,8 @@ if !SIRIL_DEBUG
 AM_LDFLAGS += -mwindows
 endif #!SIRIL_DEBUG
 if HAVE_WINDRES
-$(top_builddir)/platform-specific/windows/siril.res.o: $(top_builddir)/platform-specific/windows/siril.rc
+$(top_builddir)/platform-specific/windows/siril.res.o: $(top_srcdir)/platform-specific/windows/siril.rc
+	mkdir -p $(top_builddir)/platform-specific/windows/
 	$(WINDRES) $< $@
 siril_LDADD += $(top_builddir)/platform-specific/windows/siril.res.o
 endif #HAVE_WINDRES

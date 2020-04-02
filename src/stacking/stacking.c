@@ -103,12 +103,13 @@ int stack_addmin(struct stacking_args *args) {
 }
 
 static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
-	int x, y, nx, ny, i, ii, j, shiftx, shifty, layer, reglayer;
+	int x, y, nx, ny, j, shiftx, shifty, layer, reglayer;
+	size_t i, ii;
 	WORD *final_pixel[3];
 	float *ffinal_pixel[3];
 	double exposure=0.0;
-	gboolean is_float;
-	long nbdata = 0;
+	gboolean is_float = TRUE; // init only for warning
+	size_t nbdata = 0;
 	char *tmpmsg, filename[256];
 	int retval = 0, nb_frames, cur_nb = 0;
 	fits fit = { 0 };
@@ -358,7 +359,7 @@ static void start_stacking() {
 	}
 
 	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
@@ -485,8 +486,7 @@ static void _show_summary(struct stacking_args *args) {
 
 static void _show_bgnoise(gpointer p) {
 	if (get_thread_run()) {
-		siril_log_message(
-				_("Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 	set_cursor_waiting(TRUE);

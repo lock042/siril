@@ -64,6 +64,7 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Banding Reduction");
 	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
 	args->new_seq_prefix = banding_args->seqEntry;
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
@@ -91,12 +92,12 @@ gboolean end_BandingEngine(gpointer p) {
 
 static int fmul_layer_ushort(fits *a, int layer, float coeff) {
 	WORD *buf;
-	int i;
+	size_t i, n = a->naxes[0] * a->naxes[1];
 
 	if (coeff < 0.0)
 		return 1;
 	buf = a->pdata[layer];
-	for (i = 0; i < a->rx * a->ry; ++i) {
+	for (i = 0; i < n; ++i) {
 		buf[i] = round_to_WORD(buf[i] * coeff);
 	}
 	invalidate_stats_from_fit(a);
@@ -105,12 +106,12 @@ static int fmul_layer_ushort(fits *a, int layer, float coeff) {
 
 static int fmul_layer_float(fits *a, int layer, float coeff) {
 	float *buf;
-	int i;
+	size_t i, n = a->naxes[0] * a->naxes[1];
 
 	if (coeff < 0.0)
 		return 1;
 	buf = a->fpdata[layer];
-	for (i = 0; i < a->rx * a->ry; ++i) {
+	for (i = 0; i < n; ++i) {
 		buf[i] = buf[i] * coeff;
 	}
 	invalidate_stats_from_fit(a);
@@ -337,8 +338,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	gboolean protect_highlights;
 
 	if (get_thread_run()) {
-		siril_log_message(
-				_(	"Another task is already in progress, ignoring new request.\n"));
+		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 

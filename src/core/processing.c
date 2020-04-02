@@ -82,6 +82,11 @@ gpointer generic_sequence_worker(gpointer p) {
 	 * This is mandatory for SER contiguous output. */
 	if (args->filtering_criterion) {
 		index_mapping = malloc(nb_frames * sizeof(int));
+		if (!index_mapping) {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+			goto the_end;
+		}
 		for (input_idx = 0, frame = 0; input_idx < args->seq->number; input_idx++) {
 			if (!args->filtering_criterion(args->seq, input_idx, args->filtering_parameter)) {
 				continue;
@@ -95,8 +100,8 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 	}
 
-	if (args->has_output && !args->partial_image) {	// TODO partial, float
-		int64_t size = seq_compute_size(args->seq, nb_frames, DATA_USHORT);
+	if (args->has_output && !args->partial_image) {
+		int64_t size = seq_compute_size(args->seq, nb_frames, args->output_type);
 		if (test_available_space(size)) {
 			args->retval = 1;
 			goto the_end;
@@ -120,100 +125,104 @@ gpointer generic_sequence_worker(gpointer p) {
 	if(args->parallel && ((args->seq->type == SEQ_REGULAR && fits_is_reentrant()) || args->seq->type == SEQ_SER))
 #endif
 	for (frame = 0; frame < nb_frames; frame++) {
-		if (!abort) {
-			fits fit = { 0 };
-			char filename[256], msg[256];
-			rectangle area = { .x = args->area.x, .y = args->area.y,
-				.w = args->area.w, .h = args->area.h };
+		if (abort) continue;
 
-			if (!get_thread_run()) {
+		fits fit = { 0 };
+		char filename[256], msg[256];
+		rectangle area = { .x = args->area.x, .y = args->area.y,
+			.w = args->area.w, .h = args->area.h };
+
+		if (!get_thread_run()) {
+			abort = 1;
+			continue;
+		}
+		if (index_mapping)
+			input_idx = index_mapping[frame];
+		else input_idx = frame;
+
+		if (!seq_get_image_filename(args->seq, input_idx, filename)) {
+			abort = 1;
+			continue;
+		}
+
+		if (args->partial_image) {
+			// if we run in parallel, it will not be the same for all
+			// and we don't want to overwrite the original anyway
+			if (args->regdata_for_partial) {
+				int shiftx = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shiftx);
+				int shifty = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shifty);
+				area.x -= shiftx;
+				area.y += shifty;
+			}
+
+			// args->area may be modified in hooks
+			enforce_area_in_image(&area, args->seq);
+			if (seq_read_frame_part(args->seq,
+						args->layer_for_partial,
+						input_idx, &fit, &area,
+						args->get_photometry_data_for_partial))
+			{
 				abort = 1;
-				continue;
-			}
-			if (index_mapping)
-				input_idx = index_mapping[frame];
-			else input_idx = frame;
-
-			if (!seq_get_image_filename(args->seq, input_idx, filename)) {
-				abort = 1;
-				continue;
-			}
-
-			if (args->partial_image) {
-				// if we run in parallel, it will not be the same for all
-				// and we don't want to overwrite the original anyway
-				if (args->regdata_for_partial) {
-					int shiftx = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shiftx);
-					int shifty = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shifty);
-					area.x -= shiftx;
-					area.y += shifty;
-				}
-
-				// args->area may be modified in hooks
-				enforce_area_in_image(&area, args->seq);
-				if (seq_read_frame_part(args->seq,
-							args->layer_for_partial,
-							input_idx, &fit, &area,
-							args->get_photometry_data_for_partial))
-				{
-					abort = 1;
-					clearfits(&fit);
-					continue;
-				}
-				/*char tmpfn[100];	// this is for debug purposes
-				sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
-				savefits(tmpfn, &fit);*/
-			} else {
-				// image is obtained bottom to top here, while it's in natural order for partial images!
-				if (seq_read_frame(args->seq, input_idx, &fit, args->force_float)) {
-					abort = 1;
-					clearfits(&fit);
-					continue;
-				}
-			}
-
-			if (args->image_hook(args, frame, input_idx, &fit, &area)) {
-				if (args->stop_on_error)
-					abort = 1;
-				else {
-					//args->seq->imgparam[frame].incl = FALSE;
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-					{
-						//if (args->nb_filtered_images > 0)
-						//	args->nb_filtered_images--;
-						//args->seq->selnum--;
-						excluded_frames++;
-					}
-				}
 				clearfits(&fit);
 				continue;
 			}
+			/*char tmpfn[100];	// this is for debug purposes
+			  sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
+			  savefits(tmpfn, &fit);*/
+		} else {
+			// image is obtained bottom to top here, while it's in natural order for partial images!
+			if (seq_read_frame(args->seq, input_idx, &fit, args->force_float)) {
+				abort = 1;
+				clearfits(&fit);
+				continue;
+			}
+		}
 
-			if (args->has_output) {
-				int retval;
-				if (args->save_hook)
-					retval = args->save_hook(args, frame, input_idx, &fit);
-				else retval = generic_save(args, frame, input_idx, &fit);
-				if (retval) {
-					abort = 1;
-					clearfits(&fit);
-					continue;
+		if (args->image_hook(args, frame, input_idx, &fit, &area)) {
+			if (args->stop_on_error)
+				abort = 1;
+			else {
+				//args->seq->imgparam[frame].incl = FALSE;
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+				{
+					//if (args->nb_filtered_images > 0)
+					//	args->nb_filtered_images--;
+					//args->seq->selnum--;
+					excluded_frames++;
 				}
 			}
-
-			// save stats that may have been computed for the first time
-			save_stats_from_fit(&fit, args->seq, input_idx);
 			clearfits(&fit);
+			continue;
+		}
+
+		if (args->has_output) {
+			int retval;
+			if (args->save_hook)
+				retval = args->save_hook(args, frame, input_idx, &fit);
+			else retval = generic_save(args, frame, input_idx, &fit);
+			if (retval) {
+				abort = 1;
+				clearfits(&fit);
+				continue;
+			}
+		} else {
+			/* save stats that may have been computed for the first
+			 * time, but if fit has been modified for the new
+			 * sequence, we shouldn't save it for the old one.
+			 */
+			save_stats_from_fit(&fit, args->seq, input_idx);
+		}
+
+		clearfits(&fit);
 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-			progress++;
-			snprintf(msg, 256, _("%s. Processing image %d (%s)"), args->description, input_idx, filename);
-			set_progress_bar_data(msg, (float)progress / nb_framesf);
-		}
+		progress++;
+		snprintf(msg, 256, _("%s. Processing image %d (%s)"), args->description, input_idx, filename);
+		set_progress_bar_data(msg, (float)progress / nb_framesf);
 	}
 
 	if (abort) {

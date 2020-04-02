@@ -65,8 +65,12 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetField(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	const unsigned long npixels = width * height;
+	size_t npixels = width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
+	if (!*data) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
 	WORD *gbuf[3] = {*data, *data, *data};
 	if (nsamples == 4) {
 		siril_log_message(_("Alpha channel is ignored.\n"));
@@ -91,7 +95,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 				retval = -1;
 				break;
 			}
-			for (int i = 0; i < width * nrow; i++) {
+			for (size_t i = 0; i < width * nrow; i++) {
 				*gbuf[RLAYER]++ = buf[i * nsamples + 0];
 				if ((nsamples == 3) || (nsamples == 4)) {
 					*gbuf[GLAYER]++ = buf[i * nsamples + 1];
@@ -108,7 +112,7 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 					retval = -1;
 					break;
 				}
-				for (int i = 0; i < width * nrow; i++)
+				for (size_t i = 0; i < width * nrow; i++)
 					*gbuf[j]++ = buf[i];
 			}
 			break;
@@ -129,8 +133,12 @@ static int readtifstrip32(TIFF* tif, uint32 width, uint32 height, uint16 nsample
 	TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetField(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	const unsigned long npixels = width * height;
+	size_t npixels = width * height;
 	*data = malloc(npixels * sizeof(float) * nsamples);
+	if (!*data) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
 	float *gbuf[3] = { *data, *data, *data };
 	if (nsamples == 4) {
 		siril_log_message(_("Alpha channel is ignored.\n"));
@@ -147,8 +155,7 @@ static int readtifstrip32(TIFF* tif, uint32 width, uint32 height, uint16 nsample
 		return -1;
 	}
 	for (uint32 row = 0; row < height; row += rowsperstrip) {
-		uint32 nrow =
-				(row + rowsperstrip > height ? height - row : rowsperstrip);
+		uint32 nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
@@ -156,7 +163,7 @@ static int readtifstrip32(TIFF* tif, uint32 width, uint32 height, uint16 nsample
 				retval = -1;
 				break;
 			}
-			for (int i = 0; i < width * nrow; i++) {
+			for (size_t i = 0; i < width * nrow; i++) {
 				*gbuf[RLAYER]++ = buf[i * nsamples + 0];
 				if ((nsamples == 3) || (nsamples == 4)) {
 					*gbuf[GLAYER]++ = buf[i * nsamples + 1];
@@ -174,7 +181,7 @@ static int readtifstrip32(TIFF* tif, uint32 width, uint32 height, uint16 nsample
 					retval = -1;
 					break;
 				}
-				for (int i = 0; i < width * nrow; i++)
+				for (size_t i = 0; i < width * nrow; i++)
 					*gbuf[j]++ = buf[i];
 			}
 			break;
@@ -190,8 +197,12 @@ static int readtifstrip32(TIFF* tif, uint32 width, uint32 height, uint16 nsample
 static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples, WORD **data) {
 	int retval = nsamples;
 
-	const unsigned long npixels = width * height;
+	size_t npixels = width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
+	if (!*data) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
 	WORD *gbuf[3] = { *data, *data, *data };
 	if (nsamples == 4) {
 		siril_log_message(_("Alpha channel is ignored.\n"));
@@ -227,9 +238,7 @@ static int readtif8bits(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 }
 
 static uint16_t get_compression_mode() {
-	GtkToggleButton *button;
-
-	button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
 	if (gtk_toggle_button_get_active(button))
 		return (uint16_t) COMPRESSION_ADOBE_DEFLATE;
 	else
@@ -264,7 +273,6 @@ int readtif(const char *name, fits *fit) {
 	float *fdata = NULL;
 	
 	TIFF* tif = Siril_TIFFOpen(name, "r");
-
 	if (!tif) {
 		siril_log_message(_("Could not open the TIFF file %s\n"), name);
 		return -1;
@@ -278,7 +286,7 @@ int readtif(const char *name, fits *fit) {
 	TIFFGetField(tif, TIFFTAG_MINSAMPLEVALUE, &(fit->lo));
 	TIFFGetField(tif, TIFFTAG_MAXSAMPLEVALUE, &(fit->hi));
 
-	const unsigned long npixels = width * height;
+	size_t npixels = width * height;
 
 	switch(nbits){
 		case 8:
@@ -393,16 +401,15 @@ static void get_tif_data_from_ui(gchar **description, gchar **copyright) {
 
 int savetif(const char *name, fits *fit, uint16 bitspersample){
 	int retval = 0;
+	float norm;
 	gchar *description = NULL, *copyright = NULL;
-
 	gchar *filename = g_strdup(name);
 	if (!ends_with(filename, ".tif") && (!ends_with(filename, ".tiff"))) {
 		filename = str_append(&filename, ".tif");
 	}
 
 	TIFF* tif = Siril_TIFFOpen(filename, "w");
-
-	if (tif == NULL) {
+	if (!tif) {
 		siril_log_message(_("Siril cannot create TIFF file.\n"));
 		free(filename);
 		return 1;
@@ -445,7 +452,6 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 
 	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
-	float norm = fit->orig_bitpix != BYTE_IMG ? UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE : 1.f;
 
 	mirrorx(fit, FALSE);
 
@@ -453,6 +459,13 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	case 8:
 		siril_debug_print("Saving 8-bit TIFF file.\n");
 		BYTE *buf8 = _TIFFmalloc(width * sizeof(unsigned char) * nsamples);
+		if (!buf8) {
+			PRINT_ALLOC_ERR;
+			retval = -1;
+			break;
+		}
+
+		norm = fit->orig_bitpix != BYTE_IMG ? UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE : 1.f;
 
 		for (uint32 row = 0; row < height; row++) {
 			for (uint32 col = 0; col < width; col++) {
@@ -474,6 +487,13 @@ int savetif(const char *name, fits *fit, uint16 bitspersample){
 	case 16:
 		siril_debug_print("Saving 16-bit TIFF file.\n");
 		WORD *buf16 = _TIFFmalloc(width * sizeof(WORD) * nsamples);
+		if (!buf16) {
+			PRINT_ALLOC_ERR;
+			retval = -1;
+			break;
+		}
+
+		norm = fit->orig_bitpix == BYTE_IMG ? USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE : 1.f;
 
 		for (uint32 row = 0; row < height; row++) {
 			for (uint32 col = 0; col < width; col++) {
@@ -523,8 +543,13 @@ int readjpg(const char* name, fits *fit){
 	jpeg_read_header(&cinfo, TRUE);
 	jpeg_start_decompress(&cinfo);
 
-	const unsigned long npixels = cinfo.output_width * cinfo.output_height;
+	size_t npixels = cinfo.output_width * cinfo.output_height;
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		fclose(f);
+		return -1;
+	}
 	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
 	int row_stride = cinfo.output_width * cinfo.output_components;
 	JSAMPARRAY pJpegBuffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE,	row_stride, 1);
@@ -541,25 +566,23 @@ int readjpg(const char* name, fits *fit){
 	fclose(f);
 	jpeg_finish_decompress(&cinfo);
 	jpeg_destroy_decompress(&cinfo);
-	if (data != NULL) {
-		clearfits(fit);
-		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
-		if (cinfo.output_components == 1)
-			fit->naxis = 2;
-		else
-			fit->naxis = 3;
-		fit->rx = cinfo.output_width;
-		fit->ry = cinfo.output_height;
-		fit->naxes[0] = cinfo.output_width;
-		fit->naxes[1] = cinfo.output_height;
-		fit->naxes[2] = cinfo.output_components;
-		fit->data = data;
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + npixels;
-		fit->pdata[BLAYER] = fit->data + npixels * 2;
-		fit->binning_x = fit->binning_y = 1;
-		fit->type = DATA_USHORT;
-	}
+	clearfits(fit);
+	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	if (cinfo.output_components == 1)
+		fit->naxis = 2;
+	else
+		fit->naxis = 3;
+	fit->rx = cinfo.output_width;
+	fit->ry = cinfo.output_height;
+	fit->naxes[0] = cinfo.output_width;
+	fit->naxes[1] = cinfo.output_height;
+	fit->naxes[2] = cinfo.output_components;
+	fit->data = data;
+	fit->pdata[RLAYER] = fit->data;
+	fit->pdata[GLAYER] = fit->data + npixels;
+	fit->pdata[BLAYER] = fit->data + npixels * 2;
+	fit->binning_x = fit->binning_y = 1;
+	fit->type = DATA_USHORT;
 	mirrorx(fit, FALSE);
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"),
@@ -606,6 +629,12 @@ int savejpg(const char *name, fits *fit, int quality){
 	//## CREATE IMAGE BUFFER TO WRITE FROM AND MODIFY THE IMAGE TO LOOK LIKE CHECKERBOARD:
 	unsigned char *image_buffer = (unsigned char*) malloc(
 			cinfo.image_width * cinfo.image_height * cinfo.num_components);
+	if (!image_buffer) {
+		PRINT_ALLOC_ERR;
+		free(filename);
+		fclose(f);
+		return 1;
+	}
 
 	float norm = (fit->orig_bitpix != BYTE_IMG ?
 			UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE : 1.f);
@@ -686,11 +715,16 @@ int readpng(const char *name, fits* fit) {
 
 	const int width = png_get_image_width(png, info);
 	const int height = png_get_image_height(png, info);
-	const unsigned long npixels = (unsigned long) width * (unsigned long) height;
+	size_t npixels = width * height;
 	png_byte color_type = png_get_color_type(png, info);
 	png_byte bit_depth = png_get_bit_depth(png, info);
 
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		fclose(f);
+		return -1;
+	}
 	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
 
 	if (color_type == PNG_COLOR_TYPE_PALETTE)
@@ -864,46 +898,62 @@ static int32_t save_mono_file(const char *filename, const void *p_image_data,
 }
 
 static WORD *convert_data(fits *image) {
-	int ndata = image->rx * image->ry;
+	size_t ndata = image->rx * image->ry;
 	int ch = image->naxes[2];
 
 	WORD *buffer = malloc(ndata * ch * sizeof(WORD));
-	for (int i = 0, j = 0; i < ndata * ch; i += ch, j++) {
+	if (!buffer) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	for (size_t i = 0, j = 0; i < ndata * ch; i += ch, j++) {
 		if (image->type == DATA_USHORT) {
 			buffer[i + 0] = image->pdata[RLAYER][j];
 			if (ch > 1) {
 				buffer[i + 1] = image->pdata[GLAYER][j];
 				buffer[i + 2] = image->pdata[BLAYER][j];
 			}
-		} else {
+		} else if (image->type == DATA_FLOAT) {
 			buffer[i + 0] = float_to_ushort_range(image->fpdata[RLAYER][j]);
 			if (ch > 1) {
 				buffer[i + 1] = float_to_ushort_range(image->fpdata[GLAYER][j]);
 				buffer[i + 2] = float_to_ushort_range(image->fpdata[BLAYER][j]);
 			}
 		}
+		else {
+			free(buffer);
+			return NULL;
+		}
 	}
 	return buffer;
 }
 
 static uint8_t *convert_data8(fits *image) {
-	int ndata = image->rx * image->ry;
+	size_t ndata = image->rx * image->ry;
 	const long ch = image->naxes[2];
 
 	uint8_t *buffer = malloc(ndata * ch * sizeof(uint8_t));
-	for (int i = 0, j = 0; i < ndata * ch; i += ch, j++) {
+	if (!buffer) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	for (size_t i = 0, j = 0; i < ndata * ch; i += ch, j++) {
 		if (image->type == DATA_USHORT) {
 			buffer[i + 0] = (uint8_t) image->pdata[RLAYER][j];
 			if (ch > 1) {
 				buffer[i + 1] = (uint8_t) image->pdata[GLAYER][j];
 				buffer[i + 2] = (uint8_t) image->pdata[BLAYER][j];
 			}
-		} else {
+		} else if (image->type == DATA_FLOAT) {
 			buffer[i + 0] = float_to_uchar_range(image->fpdata[RLAYER][j]);
 			if (ch > 1) {
 				buffer[i + 1] = float_to_uchar_range(image->fpdata[GLAYER][j]);
 				buffer[i + 2] = float_to_uchar_range(image->fpdata[BLAYER][j]);
 			}
+		}
+		else {
+			free(buffer);
+			return NULL;
 		}
 	}
 	return buffer;
@@ -1125,7 +1175,7 @@ static int readraw(const char *name, fits *fit) {
 	const ushort width = raw->sizes.iwidth;
 	const ushort height = raw->sizes.iheight;
 	const float pitch = estimate_pixel_pitch(raw);
-	const unsigned long npixels = width * height;
+	size_t npixels = width * height;
 
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
 	if (!data) {
@@ -1171,7 +1221,7 @@ static int readraw(const char *name, fits *fit) {
 	}
 	// only for 16-bits because of endianness. Are there 8-bits RAW ???
 
-	for (int i = 0; i < image->data_size; i += 6) {
+	for (unsigned int i = 0; i < image->data_size; i += 6) {
 		*buf[RLAYER]++ = (image->data[i + 0]) + (image->data[i + 1] << 8);
 		*buf[GLAYER]++ = (image->data[i + 2]) + (image->data[i + 3] << 8);
 		*buf[BLAYER]++ = (image->data[i + 4]) + (image->data[i + 5] << 8);
@@ -1301,7 +1351,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	}
 
 	float pitch = estimate_pixel_pitch(raw);
-	const int npixels = width * height;
+	size_t npixels = width * height;
 	
 	if (raw->other.shutter > 0 && raw->other.shutter < 1)
 		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"),
@@ -1421,7 +1471,6 @@ struct HeifImage {
 };
 
 static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *images) {
-	int i;
 	int numImages = heif_context_get_number_of_top_level_images(heif);
 
 	// get list of all (top level) image IDs
@@ -1431,7 +1480,7 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 
 	// --- Load a thumbnail for each image.
 
-	for (i = 0; i < numImages; i++) {
+	for (int i = 0; i < numImages; i++) {
 
 		images[i].ID = IDs[i];
 		images[i].caption[0] = 0;
@@ -1554,11 +1603,6 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 }
 
 static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
-	GtkWidget *dlg;
-	GtkWidget *frame;
-	gboolean run = FALSE;
-	int i;
-
 	int numImages = heif_context_get_number_of_top_level_images(heif);
 
 	struct HeifImage *heif_images = malloc(numImages * sizeof(struct HeifImage));
@@ -1568,7 +1612,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 		return FALSE;
 	}
 
-	dlg = gtk_dialog_new_with_buttons(_("Load HEIF image content"),
+	GtkWidget *dlg = gtk_dialog_new_with_buttons(_("Load HEIF image content"),
 			GTK_WINDOW(lookup_widget("control_window")), GTK_DIALOG_MODAL,
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_OK"), GTK_RESPONSE_OK, NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_OK);
@@ -1576,7 +1620,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 	GtkContainer *content_area = GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dlg)));
 	gtk_container_set_border_width(GTK_CONTAINER(content_area), 12);
 
-	frame = gtk_frame_new(_("Select image"));
+	GtkWidget *frame = gtk_frame_new(_("Select image"));
 	gtk_container_add(content_area, GTK_WIDGET(frame));
 	gtk_widget_show(frame);
 
@@ -1587,7 +1631,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 
 	liststore = gtk_list_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF);
 
-	for (i = 0; i < numImages; i++) {
+	for (int i = 0; i < numImages; i++) {
 		gtk_list_store_append(liststore, &iter);
 		gtk_list_store_set(liststore, &iter, 0, heif_images[i].caption, -1);
 
@@ -1622,7 +1666,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 // pre-select the primary image
 
 	int selected_idx = -1;
-	for (i = 0; i < numImages; i++) {
+	for (int i = 0; i < numImages; i++) {
 		if (heif_images[i].ID == *selected_image) {
 			selected_idx = i;
 			break;
@@ -1637,7 +1681,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 
 	gtk_widget_show(dlg);
 
-	run = (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_OK);
+	gboolean run = (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_OK);
 
 	if (run) {
 		GList *selected_items = gtk_icon_view_get_selected_items(
@@ -1658,7 +1702,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 
 // release thumbnail images
 
-	for (i = 0; i < numImages; i++) {
+	for (int i = 0; i < numImages; i++) {
 		heif_image_release(heif_images[i].thumbnail);
 	}
 
@@ -1745,9 +1789,15 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	const int width = heif_image_get_width(img, heif_channel_interleaved);
 	const int height = heif_image_get_height(img, heif_channel_interleaved);
 
-	long npixels = width * height;
+	size_t npixels = width * height;
 
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		heif_image_handle_release(handle);
+		heif_context_free(ctx);
+		return 1;
+	}
 	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
 
 	unsigned int nchannels = has_alpha ? 4 : 3;
@@ -1760,23 +1810,21 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		}
 	}
 
-	if (data != NULL) {
-		clearfits(fit);
-		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
-		fit->type = DATA_USHORT;
-		fit->naxis = 3;
-		fit->rx = width;
-		fit->ry = height;
-		fit->naxes[0] = fit->rx;
-		fit->naxes[1] = fit->ry;
-		fit->naxes[2] = 3;
-		fit->data = data;
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + npixels;
-		fit->pdata[BLAYER] = fit->data + npixels * 2;
-		fit->binning_x = fit->binning_y = 1;
-		mirrorx(fit, FALSE);
-	}
+	clearfits(fit);
+	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	fit->type = DATA_USHORT;
+	fit->naxis = 3;
+	fit->rx = width;
+	fit->ry = height;
+	fit->naxes[0] = fit->rx;
+	fit->naxes[1] = fit->ry;
+	fit->naxes[2] = 3;
+	fit->data = data;
+	fit->pdata[RLAYER] = fit->data;
+	fit->pdata[GLAYER] = fit->data + npixels;
+	fit->pdata[BLAYER] = fit->data + npixels * 2;
+	fit->binning_x = fit->binning_y = 1;
+	mirrorx(fit, FALSE);
 
 	heif_image_handle_release(handle);
 	heif_context_free(ctx);

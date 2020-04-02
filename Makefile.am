@@ -2,18 +2,11 @@
 
 export CC CFLAGS CPPFLAGS
 
-SUBDIRS = deps/kplot \
+SUBDIRS = deps \
 	po \
 	src \
 	pixmaps \
 	platform-specific
-
-# not adding it in subdirs because we don't want to run most targets in it, and specifying
-# the rtprocess_static target allows us to build only the static lib we link against
-build-librtprocess:
-	$(MAKE) -C deps/librtprocess/build rtprocess_static
-
-all: build-librtprocess
 
 # TODO add a conditionnal and a configure switch
 # to be able to choose the language. Also, this should
@@ -33,6 +26,16 @@ doc_DATA = AUTHORS \
 
 man_MANS = siril.1
 
+if !PLATFORM_WIN32
+install-exec-hook:
+	(cd $(DESTDIR)$(mandir)/man1; \
+	rm -f siril-cli.1; \
+	$(LN_S) siril.1 siril-cli.1)
+
+uninstall-hook:
+	(cd $(DESTDIR)$(mandir)/man1; rm -f siril-cli.1)
+endif
+
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = config.rpath \
              git-version.h
@@ -51,7 +54,7 @@ git-version.h: update-git-version-header
 	  git_version_abbrev="`git --git-dir=$(top_srcdir)/.git rev-parse --short HEAD`"; \
 	  git_last_commit_year="`git --git-dir=$(top_srcdir)/.git log -n1 --reverse --pretty=%ci | cut -b 1-4`"; \
 	elif test ! -f "$@"; then \
-	  git_version="Unknown, shouldn't happen"; \
+	  git_version="Unknown"; \
 	  git_version_abbrev="$$git_version"; \
 	  git_last_commit_timestamp=-1; \
 	  git_last_commit_year="`date -u '+%Y'`"; \

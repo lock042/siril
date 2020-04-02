@@ -248,78 +248,6 @@ static int bayer_Bilinear(const WORD *bayer, WORD *rgb, int sx, int sy,
 	return 0;
 }
 
-#if 0
-/* insprired by OpenCV's Bayer decoding */
-static int bayer_NearestNeighbor(const WORD *bayer, WORD *rgb, int sx, int sy,
-		sensor_pattern tile) {
-	const int bayerStep = sx;
-	const int rgbStep = 3 * sx;
-	int width = sx;
-	int height = sy;
-	int blue = tile == BAYER_FILTER_BGGR || tile == BAYER_FILTER_GBRG ? -1 : 1;
-	int start_with_green = tile == BAYER_FILTER_GBRG
-			|| tile == BAYER_FILTER_GRBG;
-	int i, iinc, imax;
-	if ((tile > BAYER_FILTER_MAX) || (tile < BAYER_FILTER_MIN))
-		return 1;
-	/* add black border */
-	imax = sx * sy * 3;
-	for (i = sx * (sy - 1) * 3; i < imax; i++) {
-		rgb[i] = 0;
-	}
-	iinc = (sx - 1) * 3;
-	for (i = (sx - 1) * 3; i < imax; i += iinc) {
-		rgb[i++] = 0;
-		rgb[i++] = 0;
-		rgb[i++] = 0;
-	}
-	rgb += 1;
-	height -= 1;
-	width -= 1;
-	for (; height--; bayer += bayerStep, rgb += rgbStep) {
-		const WORD *bayerEnd = bayer + width;
-		if (start_with_green) {
-			rgb[-blue] = bayer[1];
-			rgb[0] = bayer[bayerStep + 1];
-			rgb[blue] = bayer[bayerStep];
-			bayer++;
-			rgb += 3;
-		}
-		if (blue > 0) {
-			for (; bayer <= bayerEnd - 2; bayer += 2, rgb += 6) {
-				rgb[-1] = bayer[0];
-				rgb[0] = bayer[1];
-				rgb[1] = bayer[bayerStep + 1];
-				rgb[2] = bayer[2];
-				rgb[3] = bayer[bayerStep + 2];
-				rgb[4] = bayer[bayerStep + 1];
-			}
-		} else {
-			for (; bayer <= bayerEnd - 2; bayer += 2, rgb += 6) {
-				rgb[1] = bayer[0];
-				rgb[0] = bayer[1];
-				rgb[-1] = bayer[bayerStep + 1];
-				rgb[4] = bayer[2];
-				rgb[3] = bayer[bayerStep + 2];
-				rgb[2] = bayer[bayerStep + 1];
-			}
-		}
-		if (bayer < bayerEnd) {
-			rgb[-blue] = bayer[0];
-			rgb[0] = bayer[1];
-			rgb[blue] = bayer[bayerStep + 1];
-			bayer++;
-			rgb += 3;
-		}
-		bayer -= width;
-		rgb -= width * 3;
-		blue = -blue;
-		start_with_green = !start_with_green;
-	}
-	return 0;
-}
-#endif
-
 #define ABSOLU(x) (((int)(x) ^ ((int)(x) >> 31)) - ((int)(x) >> 31))
 
 static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
@@ -811,7 +739,7 @@ static int fast_xtrans_interpolate(const WORD *bayer, WORD *dst, int sx, int sy,
 static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6]) {
 	WORD *newbuf;
-	long npixels;
+	size_t npixels;
 	int retval;
 	switch (interpolation) {
 		default:
@@ -863,7 +791,7 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, sensor_pattern pattern) {
 	int new_rx = *width / 2 + *width % 2;
 	int new_ry = *height / 2 + *height % 2;
-	long npixels = new_rx * new_ry;
+	size_t npixels = new_rx * new_ry;
 	WORD *newbuf = malloc(3 * npixels * sizeof(WORD));
 	if (!newbuf) {
 		PRINT_ALLOC_ERR;
@@ -896,7 +824,7 @@ WORD *debayer_buffer(WORD *buf, int *width, int *height,
 float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sensor_pattern pattern) {
 	int new_rx = *width / 2 + *width % 2;
 	int new_ry = *height / 2 + *height % 2;
-	long npixels = new_rx * new_ry;
+	size_t npixels = new_rx * new_ry;
 	float *newbuf = malloc(3 * npixels * sizeof(float));
 	if (!newbuf) {
 		PRINT_ALLOC_ERR;
@@ -1012,10 +940,9 @@ int retrieveXTRANSPattern(char *bayer, unsigned int xtrans[6][6]) {
 }
 
 static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
-	int i, j;
+	size_t i, j, npixels = fit->naxes[0] * fit->naxes[1];
 	int width = fit->rx;
 	int height = fit->ry;
-	long npixels;
 	WORD *buf = fit->data;
 	int xbayeroff = 0, ybayeroff = 0;
 
@@ -1045,6 +972,10 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 			break;
 		case BAYER_FILTER_GRBG:
 			pattern = BAYER_FILTER_RGGB;
+			break;
+		default:
+		case BAYER_FILTER_NONE:
+			return 1;
 		}
 	}
 
@@ -1061,6 +992,10 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 			break;
 		case BAYER_FILTER_GRBG:
 			pattern = BAYER_FILTER_BGGR;
+			break;
+		default:
+		case BAYER_FILTER_NONE:
+			return 1;
 		}
 	}
 
@@ -1069,24 +1004,14 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		if (!newbuf)
 			return 1;
 
-		// color RGBRGB format to fits RRGGBB format
-		npixels = width * height;
-		WORD *newdata = (WORD*) realloc(fit->data, 3 * npixels * sizeof(WORD));
-		if (!newdata) {
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-		fit->data = newdata;
+		fit_debayer_buffer(fit, newbuf);
+		// size might have changed, in case of superpixel
 		fit->naxes[0] = width;
 		fit->naxes[1] = height;
-		fit->naxes[2] = 3;
-		fit->naxis = 3;
 		fit->rx = width;
 		fit->ry = height;
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + npixels;
-		fit->pdata[BLAYER] = fit->data + npixels * 2;
 		fit->bitpix = fit->orig_bitpix;
+		// color RGBRGB format to fits RRGGBB format
 		for (i = 0, j = 0; j < npixels; i += 3, j++) {
 			double r = (double) newbuf[i + RLAYER];
 			double g = (double) newbuf[i + GLAYER];
@@ -1098,18 +1023,13 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 			fit->pdata[BLAYER][j] =
 					(fit->bitpix == 8) ? round_to_BYTE(b) : round_to_WORD(b);
 		}
-		free(newbuf);
-		full_stats_invalidation_from_fit(fit);
-
 	} else {
 		// use librtprocess debayer
 		WORD *newbuf = debayer_buffer_new_ushort(buf, &width, &height, interpolation, pattern, xtrans);
 		if (!newbuf)
 			return 1;
 
-		fit->naxes[2] = 3;
-		fit->naxis = 3;
-		fit_replace_buffer(fit, newbuf, DATA_USHORT);
+		fit_debayer_buffer(fit, newbuf);
 	}
 
 	return 0;
@@ -1147,6 +1067,10 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 			break;
 		case BAYER_FILTER_GRBG:
 			pattern = BAYER_FILTER_RGGB;
+			break;
+		default:
+		case BAYER_FILTER_NONE:
+			return 1;
 		}
 	}
 
@@ -1163,6 +1087,10 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 			break;
 		case BAYER_FILTER_GRBG:
 			pattern = BAYER_FILTER_BGGR;
+			break;
+		default:
+		case BAYER_FILTER_NONE:
+			return 1;
 		}
 	}
 
@@ -1170,9 +1098,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	if (!newbuf)
 		return 1;
 
-	fit->naxes[2] = 3;
-	fit->naxis = 3;
-	fit_replace_buffer(fit, newbuf, DATA_FLOAT);
+	fit_debayer_buffer(fit, newbuf);
 	return 0;
 }
 

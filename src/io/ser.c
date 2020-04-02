@@ -222,6 +222,10 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 	/* Check if file is large enough to have timestamps */
 	if (ser_file->filesize >= offset + (8 * ser_file->frame_count)) {
 		ser_file->ts = calloc(8, ser_file->frame_count);
+		if (!ser_file->ts) {
+			PRINT_ALLOC_ERR;
+			return 0;
+		}
 		ser_file->ts_alloc = ser_file->frame_count;
 
 		// Seek to start of timestamps
@@ -569,6 +573,10 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 	if (ser_file->ts)
 		free(ser_file->ts);
 	ser_file->ts = calloc(8, ser_file->frame_count);
+	if (!ser_file->ts) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
 	ser_file->ts_alloc = ser_file->frame_count;
 
 	GSList *t = timestamp;
@@ -606,6 +614,7 @@ int ser_close_and_delete_file(struct ser_struct *ser_file) {
 	char *filename = ser_file->filename;
 	ser_file->filename = NULL;
 	retval = ser_close_file(ser_file); // closes, frees and zeroes
+	siril_log_message(_("Removing failed SER file: %s\n"), filename);
 	g_unlink(filename);
 	free(filename);
 	return retval;
@@ -717,7 +726,10 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 
 		if (copy_from->ts && copy_from->frame_count > 0) {
 			ser_file->ts = calloc(8, copy_from->frame_count);
-			ser_file->ts_alloc = copy_from->frame_count;
+			if (!ser_file->ts) {
+				PRINT_ALLOC_ERR;
+			}
+			else ser_file->ts_alloc = copy_from->frame_count;
 		}
 		/* we write the header now, but it should be written again
 		 * before closing in case the number of the image in the new
@@ -874,11 +886,11 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 			sensor_pattern bayer;
 			bayer = get_SER_Bayer_Pattern(type_ser);
 			if (bayer != com.debayer.bayer_pattern) {
-				if (bayer == BAYER_FILTER_NONE  && user_warned == FALSE) {
+				if (bayer == BAYER_FILTER_NONE  && !user_warned) {
 					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
 				}
 				else {
-					if (user_warned == FALSE) {
+					if (!user_warned) {
 						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
 								" from Bayer pattern in settings (%s). Overriding settings.\n"),
 								"red", filter_pattern[bayer], filter_pattern[com.debayer.bayer_pattern]);
@@ -891,7 +903,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 		/* for performance consideration (and many others) we force the interpolation algorithm
 		 * to be BAYER_BILINEAR
 		 */
-		debayer(fit, BAYER_BILINEAR, com.debayer.bayer_pattern);
+		debayer(fit, BAYER_RCD, com.debayer.bayer_pattern);
 		com.debayer.bayer_pattern = sensortmp;
 		break;
 	case SER_BGR:
@@ -899,6 +911,10 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 		/* no break */
 	case SER_RGB:
 		tmp = malloc(frame_size * sizeof(WORD));
+		if (!tmp) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
 		memcpy(tmp, fit->data, sizeof(WORD) * frame_size);
 		fit->naxes[0] = fit->rx = ser_file->image_width;
 		fit->naxes[1] = fit->ry = ser_file->image_height;
@@ -988,6 +1004,10 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 		// allocated space is probably not enough to
 		// store whole lines or RGB data
 		read_buffer = malloc(read_size);
+		if (!read_buffer) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
 	}
 	else read_buffer = outbuf;
 
@@ -1085,11 +1105,11 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 			sensor_pattern bayer;
 			bayer = get_SER_Bayer_Pattern(type_ser);
 			if (bayer != com.debayer.bayer_pattern) {
-				if (bayer == BAYER_FILTER_NONE && user_warned == FALSE) {
+				if (bayer == BAYER_FILTER_NONE && !user_warned) {
 					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
 				}
 				else {
-					if (user_warned == FALSE) {
+					if (!user_warned) {
 						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
 								" from Bayer pattern in settings (%s). Overriding settings.\n"),
 								"red", filter_pattern[bayer], filter_pattern[com.debayer.bayer_pattern]);
@@ -1133,9 +1153,10 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		 * debayer_area is the demosaiced buf area.
 		 * xoffset and yoffset are the x,y offsets of area in the debayer area.
 		 */
+        const int nbpixels = debayer_area.w * debayer_area.h;
 		for (y = 0; y < area->h; y++) {
 			for (x = 0; x < area->w; x++) {
-				buffer[y*area->w + x] = demosaiced_buf[(yoffset+y)*debayer_area.w*3 + xoffset+x*3 + layer]; 
+				buffer[y*area->w + x] = demosaiced_buf[layer * nbpixels + (yoffset+y)*debayer_area.w + xoffset+x]; 
 			}
 		}
 
@@ -1200,10 +1221,16 @@ int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame_n
 
 	if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) {
 		data8 = malloc(frame_size * ser_file->byte_pixel_depth);
-		if (!data8) return -1;
+		if (!data8) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
 	} else {
 		data16 = malloc(frame_size * ser_file->byte_pixel_depth);
-		if (!data16) return -1;
+		if (!data16) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
 	}
 
 	for (plane = 0; plane < ser_file->number_of_planes; plane++) {
@@ -1211,7 +1238,7 @@ int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame_n
 		for (pixel = 0; pixel < ser_file->image_width * ser_file->image_height;
 				pixel++) {
 			if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8)
-				data8[dest] = (BYTE)(fit->pdata[plane][pixel]);
+				data8[dest] = round_to_BYTE(fit->pdata[plane][pixel]);
 			else {
 				if (ser_file->little_endian == SER_BIG_ENDIAN)
 					data16[dest] = (fit->pdata[plane][pixel] >> 8 | fit->pdata[plane][pixel] << 8);
@@ -1280,10 +1307,6 @@ int64_t ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
 		frame_size = (size - SER_HEADER_LEN) / ser_file->frame_count;
 		size = SER_HEADER_LEN + frame_size * nb_frames;
 	}
-	/* SER can be demosaiced on the fly on creation.
-	 * TODO: Is this the good test? */
-	if (ser_is_cfa(ser_file) && com.debayer.open_debayer)
-		size *= 3;
 	return size;
 }
 
@@ -1331,6 +1354,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	i = (int) ceil((float) w / MAX_SIZE);
 	j = (int) ceil((float) h / MAX_SIZE);
 	pixScale = (i > j) ? i : j;	// picture scale factor
+	if (pixScale == 0) return NULL;
 	Ws = w / pixScale; 			// picture width in pixScale blocks
 	Hs = h / pixScale; 			// -//- height pixScale
 

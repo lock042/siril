@@ -230,13 +230,12 @@ float ushort_to_float_bitpix(fits *fit, WORD value) {
  * @param ndata
  * @return
  */
-WORD *float_buffer_to_ushort(float *buffer, long ndata) {
-	int i;
+WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
 	WORD *buf = malloc(ndata * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
-		for (i = 0; i < ndata; i++) {
+		for (size_t i = 0; i < ndata; i++) {
 			buf[i] = float_to_ushort_range(buffer[i]);
 		}
 	}
@@ -249,13 +248,12 @@ WORD *float_buffer_to_ushort(float *buffer, long ndata) {
  * @param ndata
  * @return
  */
-float *ushort_buffer_to_float(WORD *buffer, long ndata) {
-	long i;
+float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
-		for (i = 0; i < ndata; i++) {
+		for (size_t i = 0; i < ndata; i++) {
 			buf[i] = ushort_to_float_range(buffer[i]);
 		}
 	}
@@ -526,6 +524,25 @@ int is_readable_file(const char *filename) {
 	)
 		return 1;
 	return 0;
+}
+
+static gchar forbidden_char[] = { '/', '\\', '"', '\'' };
+
+gboolean is_forbiden_in_filename(gchar c) {
+	for (int i = 0; i < G_N_ELEMENTS(forbidden_char); i++) {
+		if (c == forbidden_char[i])
+			return TRUE;
+	}
+	return FALSE;
+}
+
+gboolean file_name_has_invalid_chars(const char *name) {
+	if (!name)
+		return TRUE;	// NULL is kind of invalid
+	for (int i = 0; i < strlen(name); i++)
+		if (is_forbiden_in_filename(name[i]))
+			return TRUE;
+	return FALSE;
 }
 
 /** Tests if filename is the canonical name of a known file type
