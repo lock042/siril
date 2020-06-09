@@ -37,7 +37,6 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "gui/preferences.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "compositing/align_rgb.h"
@@ -45,12 +44,14 @@
 #include "image_interactions.h"
 
 #include "callbacks.h"
+#include "preferences.h"
 #include "message_dialog.h"
 #include "PSF_list.h"
 #include "histogram.h"
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "dialogs.h"
+#include "siril_intro.h"
 #include "siril_preview.h"
 
 layer_info predefined_layers_colors[] = {
@@ -1377,6 +1378,12 @@ void initialize_all_GUI(gchar *supported_files) {
 	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
 #endif
 	update_spinCPU(com.max_thread);
+
+	if (com.pref.first_use) {
+		com.pref.first_use = FALSE;
+		start_intro_script();
+	}
+
 	/* every 0.5sec update memory display */
 	g_timeout_add(500, update_displayed_memory, NULL);
 

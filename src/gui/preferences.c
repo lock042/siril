@@ -481,11 +481,16 @@ void on_confirmDontShowButton_toggled(GtkToggleButton *togglebutton,
 	writeinitfile();
 }
 
-void on_miscAskScript_toggled(GtkToggleButton *togglebutton,
-		gpointer user_data) {
+void on_miscAskScript_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 
 	com.pref.save.script = gtk_toggle_button_get_active(togglebutton);
 	set_GUI_misc();
+	writeinitfile();
+}
+
+void on_miscAskIntro_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+
+	com.pref.first_use = gtk_toggle_button_get_active(togglebutton);
 	writeinitfile();
 }
 
