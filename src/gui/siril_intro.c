@@ -41,7 +41,7 @@ const SirilTipIntro intro_tips[] = {
 		{"header_processing_button", N_("Processing algorithms are all in this single menu"), 3},
 		{"header_undo_button", N_("Use this button to undo an operation"), 3},
 		{"header_redo_button", N_("This one to redo an operation"), 3},
-		{"header_precision_button", N_("Now Siril works in the 32-bit per chanel precision by default. You can change it in Preferences and you can change the currently loaded single image precision too with this selector"), 8},
+		{"header_precision_button", N_("Now Siril works in the 32-bit per channel precision by default. You can change it in Preferences and you can change the currently loaded single image precision too with this selector"), 8},
 		{"header_save_as_button", N_("Save your work as many times as needed by choosing a new name ..."), 3},
 		{"header_save_button", N_("... or save the current FITS image with the same name"), 3},
 		{"command", N_("As usual you can enter Siril commands. To have an overview of all commands, type \"help\""), 4},
