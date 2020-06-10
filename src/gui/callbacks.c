@@ -1381,6 +1381,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	if (com.pref.first_use) {
 		com.pref.first_use = FALSE;
+		writeinitfile();
 		start_intro_script();
 	}
 
