@@ -67,7 +67,7 @@ static gboolean intro_popover_close(gpointer user_data) {
 	return FALSE;
 }
 
-static gboolean update_popover(gpointer user_data) {
+static gboolean intro_popover_update(gpointer user_data) {
 	GtkWidget *popover;
 	if (go_next) {
 		popover = intro_popover(lookup_widget(intro_tips[tip_index].widget), _(intro_tips[tip_index].tip));
@@ -79,7 +79,7 @@ static gboolean update_popover(gpointer user_data) {
 }
 
 static void intro_notify_update(gpointer user_data) {
-	g_timeout_add(250, (GSourceFunc) update_popover, user_data);
+	g_timeout_add(250, (GSourceFunc) intro_popover_update, user_data);
 }
 
 void start_intro_script() {
