@@ -29,6 +29,7 @@
 #include "gui/script_menu.h"
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
+#include "gui/siril_intro.h"
 
 #include "preferences.h"
 
@@ -488,10 +489,9 @@ void on_miscAskScript_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 	writeinitfile();
 }
 
-void on_miscAskIntro_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-
-	com.pref.first_use = gtk_toggle_button_get_active(togglebutton);
-	writeinitfile();
+void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("settings_window");
+	start_intro_script();
 }
 
 void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {

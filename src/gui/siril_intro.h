@@ -23,6 +23,12 @@
 #include <gtk/gtk.h>
 
 typedef struct {
+	GtkWidget *popover;
+	GtkWidget *widget;
+	GtkStyleContext *context;
+} SirilUIIntro;
+
+typedef struct {
 	const gchar *widget;
 	const gchar *tip;
 	const gint delay;

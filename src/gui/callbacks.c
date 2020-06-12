@@ -1382,7 +1382,14 @@ void initialize_all_GUI(gchar *supported_files) {
 	if (com.pref.first_use) {
 		com.pref.first_use = FALSE;
 		writeinitfile();
-		start_intro_script();
+
+		int ret = siril_confirm_dialog(_("Welcome to "PACKAGE_STRING),
+				_("Hello, this is the first time you use this new version of Siril. Please, have a seat and take the time "
+						"to watch the short introduction we have prepared for you. "
+						"Be aware you can replay this introduction at any times in the Miscellaneous tab of the preferences dialog box.\n"
+						"Do you want to continue?"));
+		if (ret)
+			start_intro_script();
 	}
 
 	/* every 0.5sec update memory display */
