@@ -37,7 +37,6 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "gui/preferences.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "compositing/align_rgb.h"
@@ -45,12 +44,14 @@
 #include "image_interactions.h"
 
 #include "callbacks.h"
+#include "preferences.h"
 #include "message_dialog.h"
 #include "PSF_list.h"
 #include "histogram.h"
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "dialogs.h"
+#include "siril_intro.h"
 #include "siril_preview.h"
 
 layer_info predefined_layers_colors[] = {
@@ -1377,6 +1378,20 @@ void initialize_all_GUI(gchar *supported_files) {
 	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
 #endif
 	update_spinCPU(com.max_thread);
+
+	if (com.pref.first_use) {
+		com.pref.first_use = FALSE;
+		writeinitfile();
+
+		int ret = siril_confirm_dialog(_("Welcome to "PACKAGE_STRING),
+				_("Hello, this is the first time you use this new version of Siril. Please, have a seat and take the time "
+						"to watch the short introduction we have prepared for you. "
+						"Be aware you can replay this introduction at any times in the Miscellaneous tab of the preferences dialog box.\n"
+						"Do you want to continue?"));
+		if (ret)
+			start_intro_script();
+	}
+
 	/* every 0.5sec update memory display */
 	g_timeout_add(500, update_displayed_memory, NULL);
 
@@ -1594,16 +1609,15 @@ void save_main_window_state() {
 }
 
 void load_main_window_state() {
-	GtkWidget *win;
+	GtkWidget *win = lookup_widget("control_window");
 
-	win = lookup_widget("control_window");
 	int x = com.pref.main_w_pos.x;
 	int y = com.pref.main_w_pos.y;
 	int w = com.pref.main_w_pos.w;
 	int h = com.pref.main_w_pos.h;
 	if (com.pref.remember_windows && w > 0 && h > 0) {
 		if (com.pref.is_maximized) {
-			gtk_window_maximize(GTK_WINDOW(lookup_widget("control_window")));
+			gtk_window_maximize(GTK_WINDOW(win));
 		} else {
 			gtk_window_move(GTK_WINDOW(win), x, y);
 			gtk_window_resize(GTK_WINDOW(win), w, h);

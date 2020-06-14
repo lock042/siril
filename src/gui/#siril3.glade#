@@ -2303,6 +2303,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="can_focus">False</property>
                                 <child>
                                   <object class="GtkDrawingArea" id="drawingarear">
+                                    <property name="name">preview-panel</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
