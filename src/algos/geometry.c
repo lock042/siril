@@ -645,6 +645,13 @@ void on_menu_gray_crop_seq_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	siril_open_dialog("crop_dialog");
 }
 
+int64_t crop_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
+	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
+	double ratio = (c_args->area.h * c_args->area.w) / (args->seq->rx * args->seq->ry);
+	double fullseqsize = seq_compute_size(args->seq, nb_frames, args->output_type);
+	return (int64_t)(fullseqsize * ratio);
+}
+
 int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_) {
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
@@ -660,6 +667,7 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->partial_image = FALSE;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = crop_sequence_data->seq->selnum;
+	args->compute_size_hook = crop_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->save_hook = NULL;
