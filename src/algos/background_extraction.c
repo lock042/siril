@@ -27,6 +27,7 @@
 #include <gsl/gsl_version.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/OS_utils.h"
