@@ -24,8 +24,8 @@
 #include <math.h>
 
 #include "core/siril.h"
-#include "core/processing.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
