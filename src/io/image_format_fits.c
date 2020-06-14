@@ -87,7 +87,7 @@ void fit_get_photometry_data(fits *fit) {
 
 static int fit_stats(fits *fit, double *mini, double *maxi) {
 	int status = 0;
-	int ii, anaxis;
+	int ii;
 	long npixels = 1;
 	long anaxes[3] = {1,1,1}, firstpix[3] = {1,1,1};
 	double *pix, sum = 0.;
@@ -97,7 +97,6 @@ static int fit_stats(fits *fit, double *mini, double *maxi) {
 	*mini = 0;
 	*maxi = 0;
 
-	fits_get_img_dim(fit->fptr, &anaxis, &status);
 	fits_get_img_size(fit->fptr, 3, anaxes, &status);
 
 	if (status) {

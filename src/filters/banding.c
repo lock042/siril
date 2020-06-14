@@ -22,6 +22,7 @@
 #include <gsl/gsl_statistics.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/arithm.h"
 #include "core/undo.h"
 #include "core/processing.h"
