@@ -784,12 +784,16 @@ static int ser_conversion(const char *src_filename, int index,
 char* g_real_path(const char *source) {
 	HANDLE hFile;
 	DWORD maxchar = 2048;
-	TCHAR *FilePath;
+	wchar_t *wFilePath;
 	gchar *gFilePath;
 
-	if (!(GetFileAttributesA(source) & FILE_ATTRIBUTE_REPARSE_POINT)) { /* Ce n'est pas un lien symbolique , je sors */
+	wchar_t *wsource = g_utf8_to_utf16(source, -1, NULL, NULL, NULL);
+
+	if (!(GetFileAttributesW(wsource) & FILE_ATTRIBUTE_REPARSE_POINT)) { /* Ce n'est pas un lien symbolique , je sors */
+		g_free(wsource);
 		return NULL;
 	}
+	g_free(wsource);
 
 	FilePath = malloc(maxchar + 1);
 	if (!FilePath) {
@@ -804,8 +808,9 @@ char* g_real_path(const char *source) {
 		free(FilePath);
 		return NULL;
 	}
-	GetFinalPathNameByHandleA(hFile, FilePath, maxchar, 0);
-	gFilePath = g_locale_to_utf8(FilePath + 4, -1, NULL, NULL, NULL); // +4 = enleve les 4 caracteres du prefixe "//?/"
+
+	GetFinalPathNameByHandleW(hFile, wFilePath, maxchar, 0);
+	gFilePath = g_utf16_to_utf8(wFilePath + 4, -1, NULL, NULL, NULL); // +4 = enleve les 4 caracteres du prefixe "//?/"
 	CloseHandle(hFile);
 	return gFilePath;
 }
