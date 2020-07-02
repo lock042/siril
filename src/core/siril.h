@@ -22,12 +22,6 @@
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
 
-#ifdef _WIN32
-#define XSTR(x) STR(x)
-#define STR(x) #x
-#pragma message "The value of WINVER: " XSTR(WINVER)
-#endif
-
 #ifdef SIRIL_OUTPUT_DEBUG
 #define DEBUG_TEST 1
 #else

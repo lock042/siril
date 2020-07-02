@@ -794,7 +794,7 @@ char* g_real_path(const char *source) {
 	}
 	g_free(wsource);
 
-	wFilePath = malloc(maxchar + 1);
+	wFilePath = g_new(wchar_t, maxchar + 1);
 	if (!wFilePath) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -804,12 +804,13 @@ char* g_real_path(const char *source) {
 	hFile = CreateFile(source, GENERIC_READ, FILE_SHARE_READ, NULL,
 			OPEN_EXISTING, 0, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
-		free(wFilePath);
+		g_free(wFilePath);
 		return NULL;
 	}
 
 	GetFinalPathNameByHandleW(hFile, wFilePath, maxchar, 0);
 	gchar *gFilePath = g_utf16_to_utf8(wFilePath + 4, -1, NULL, NULL, NULL); // +4 = enleve les 4 caracteres du prefixe "//?/"
+	g_free(wFilePath);
 	CloseHandle(hFile);
 	return gFilePath;
 }
