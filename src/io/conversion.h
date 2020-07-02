@@ -16,7 +16,6 @@ struct _convert_data {
 	int start;
 	int total;
 	int nb_converted_files;
-	gboolean compatibility;
 	gboolean command_line;
 	gboolean input_has_a_seq;
 	gchar *destroot;
@@ -33,6 +32,7 @@ extern supported_raw_list supported_raw[];	//supported raw extensions
 extern char *supported_extensions[MAX_EXTENSIONS];
 extern char *filter_pattern[];
 
+gboolean debayer_in_up_bottom(fits *fit);
 int retrieveBayerPattern(char *bayer);
 int get_nb_raw_supported();
 

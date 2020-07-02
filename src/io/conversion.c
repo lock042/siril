@@ -187,6 +187,7 @@ static void initialize_ser_debayer_settings() {
 	com.pref.debayer.open_debayer = FALSE;
 	com.pref.debayer.use_bayer_header = TRUE;
 	com.pref.debayer.up_bottom = FALSE;
+	com.pref.debayer.guess_orientation = TRUE;
 	com.pref.debayer.bayer_pattern = BAYER_FILTER_RGGB;
 	com.pref.debayer.bayer_inter = BAYER_RCD;
 	com.pref.debayer.xbayeroff = 0;
@@ -229,14 +230,14 @@ static gboolean end_convert_idle(gpointer p) {
 }
 
 /* open the file with path source from any image type and load it into a new FITS object */
-static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean compatibility, gboolean debayer) {
+static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
 
 	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
 
 	if (!retval)
-		retval = debayer_if_needed(imagetype, tmpfit, compatibility, debayer);
+		retval = debayer_if_needed(imagetype, tmpfit, debayer_in_up_bottom(tmpfit), debayer);
 
 	if (retval) {
 		clearfits(tmpfit);
@@ -248,6 +249,21 @@ static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean 
 }
 
 /**************************Public functions***********************************************************/
+
+gboolean debayer_in_up_bottom(fits *fit) {
+	/* we check if we try a guess */
+	if (com.pref.debayer.guess_orientation) {
+		/* if the orientation is written (File from Siril) choice is easy */
+		if (fit->fit_bayer_bottom_up)
+			return FALSE;
+		/* if not, we guess the orientation is up bottom */
+		else
+			return TRUE;
+	} else {
+		/* no guess, follow the pref value */
+		return com.pref.debayer.up_bottom;
+	}
+}
 
 int retrieveBayerPattern(char *bayer) {
 	int i;
@@ -495,7 +511,7 @@ gpointer convert_thread_worker(gpointer p) {
 			if (args->output_type == SEQ_FITSEQ)
 				fitseq_wait_for_memory();
 
-			fits *fit = any_to_new_fits(imagetype, src_filename, args->compatibility, args->debayer);
+			fits *fit = any_to_new_fits(imagetype, src_filename, args->debayer);
 			if (fit) {
 				if (args->output_type == SEQ_SER) {
 					if (ser_write_frame_from_fit(&ser_file, fit, i)) {

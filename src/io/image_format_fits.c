@@ -217,6 +217,7 @@ void read_fits_header(fits *fit) {
 	int status = 0;
 	double scale, zero;
 	float mini, maxi;
+	int tmp;
 
 	fit_stats(fit, &mini, &maxi);
 
@@ -278,6 +279,10 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBSERVER", &(fit->observer), NULL,
 			&status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TINT, "BOTOM-UP", &tmp, NULL, &status);
+	fit->fit_bayer_bottom_up = (status != KEY_NO_EXIST && tmp != 0);
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->bayer_pattern), NULL,
@@ -1041,6 +1046,13 @@ static void save_fits_header(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset),
 				"Y offset of Bayer array", &status);
+
+		status = 0;
+		if (fit->fit_bayer_bottom_up) {
+			int tmp = 1;
+			fits_update_key(fit->fptr, TSTRING, "BOTOM-UP", &(tmp),
+					"Demosaicing orientation", &status);
+		}
 	}
 
 	status = 0;

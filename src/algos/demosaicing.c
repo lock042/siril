@@ -1222,7 +1222,7 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	} else {
 		bayer = com.pref.debayer.bayer_pattern;
 	}
-	if (com.pref.debayer.up_bottom) {
+	if (debayer_in_up_bottom(fit)) {
 		switch(bayer) {
 		case BAYER_FILTER_RGGB:
 			bayer = BAYER_FILTER_GRBG;
@@ -1414,7 +1414,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	} else {
 		bayer = com.pref.debayer.bayer_pattern;
 	}
-	if (com.pref.debayer.up_bottom) {
+	if (debayer_in_up_bottom(fit)) {
 		switch(bayer) {
 		case BAYER_FILTER_RGGB:
 			bayer = BAYER_FILTER_GRBG;

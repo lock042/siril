@@ -2166,7 +2166,7 @@ int process_extractHa(int nb) {
 	} else {
 		bayer = com.pref.debayer.bayer_pattern;
 	}
-	if (com.pref.debayer.up_bottom) {
+	if (debayer_in_up_bottom(&gfit)) {
 		switch(bayer) {
 		case BAYER_FILTER_RGGB:
 			bayer = BAYER_FILTER_BGGR;
@@ -2232,7 +2232,7 @@ int process_extractHaOIII(int nb) {
 	} else {
 		bayer = com.pref.debayer.bayer_pattern;
 	}
-	if (com.pref.debayer.up_bottom) {
+	if (debayer_in_up_bottom(&gfit)) {
 		switch(bayer) {
 		case BAYER_FILTER_RGGB:
 			bayer = BAYER_FILTER_BGGR;
@@ -2575,7 +2575,6 @@ int process_convertraw(int nb) {
 	args->list = files_to_convert;
 	args->total = count;
 	args->nb_converted_files = 0;
-	args->compatibility = FALSE;	// not used here
 	args->command_line = TRUE;
 	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
