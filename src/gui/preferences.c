@@ -162,9 +162,8 @@ void set_GUI_LIBRAW() {
 }
 
 void on_checkbutton_debayer_guess_orientation_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *compat = lookup_widget("checkbutton_debayer_compatibility");
 
-	gtk_widget_set_sensitive(compat, !gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive((GtkWidget *)user_data, !gtk_toggle_button_get_active(button));
 }
 
 void on_checkbutton_cam_toggled(GtkButton *button, gpointer user_data) {

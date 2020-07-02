@@ -281,7 +281,7 @@ void read_fits_header(fits *fit) {
 			&status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TINT, "BOTOM-UP", &tmp, NULL, &status);
+	fits_read_key(fit->fptr, TINT, "BOTTOMUP", &tmp, NULL, &status);
 	fit->fit_bayer_bottom_up = (status != KEY_NO_EXIST && tmp != 0);
 
 	status = 0;
@@ -1050,7 +1050,7 @@ static void save_fits_header(fits *fit) {
 		status = 0;
 		if (fit->fit_bayer_bottom_up) {
 			int tmp = 1;
-			fits_update_key(fit->fptr, TSTRING, "BOTOM-UP", &(tmp),
+			fits_update_key(fit->fptr, TINT, "BOTTOMUP", &(tmp),
 					"Demosaicing orientation", &status);
 		}
 	}
@@ -1850,6 +1850,7 @@ int copy_fits_metadata(fits *from, fits *to) {
 	strncpy(to->dft.ord, from->dft.ord, FLEN_VALUE);
 	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE);
 
+	to->fit_bayer_bottom_up = from->fit_bayer_bottom_up;
 	to->bayer_xoffset = from->bayer_xoffset;
 	to->bayer_yoffset = from->bayer_yoffset;
 	to->focal_length = from->focal_length;
