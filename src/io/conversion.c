@@ -93,9 +93,35 @@ char *filter_pattern[] = {
 	"BGGR",
 	"GBRG",
 	"GRBG",
-	"RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", /* XTRANS */
-	"GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG",
-	"GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
+
+/* XTRANS */
+	"RBGBRG"
+	"GGRGGB"
+	"GGBGGR"
+	"BRGRBG"
+	"GGBGGR"
+	"GGRGGB",
+
+	"GRGGBG"
+	"BGBRGR"
+	"GRGGBG"
+	"GBGGRG"
+	"RGTBGB"
+	"GBGGRG",
+
+	"GBGGRG"
+	"RGRBGB"
+	"GBGGRG"
+	"GRGGBG"
+	"BGBRGR"
+	"GRGGBG",
+
+	"GGRGGB"
+	"GGBGGR"
+	"BRGRBG"
+	"GGBGGR"
+	"GGRGGB"
+	"RBGBRG"
 };
 
 static int film_conversion(const char *src_filename, int index, unsigned int *added_frames, struct ser_struct *ser_file, struct _convert_data *args);
@@ -256,9 +282,7 @@ static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean 
 /**************************Public functions***********************************************************/
 
 int retrieveBayerPattern(char *bayer) {
-	int i;
-
-	for (i = 0; i < G_N_ELEMENTS(filter_pattern); i++) {
+	for (int i = 0; i < G_N_ELEMENTS(filter_pattern); i++) {
 		if (g_ascii_strcasecmp(bayer, filter_pattern[i]) == 0) {
 			return i;
 		}
@@ -603,7 +627,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 				}
 			}
 		} else {
-			com.pref.debayer.bayer_pattern = XTRANS_FILTER;
+			com.pref.debayer.bayer_pattern = bayer;
 			com.pref.debayer.bayer_inter = XTRANS;
 			siril_log_color_message(_("XTRANS Sensor detected. Using special algorithm.\n"), "green");
 		}

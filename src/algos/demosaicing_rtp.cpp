@@ -36,7 +36,10 @@ static void pattern_to_cfarray(sensor_pattern pattern, unsigned int cfarray[2][2
 			cfarray[0][0] = 1; cfarray[0][1] = 0;
 			cfarray[1][0] = 2; cfarray[1][1] = 1;
 			break;
-		case XTRANS_FILTER:
+		case XTRANS_FILTER1:
+		case XTRANS_FILTER2:
+		case XTRANS_FILTER3:
+		case XTRANS_FILTER4:
 			// take a deep breath
 		default:
 			break;
@@ -63,7 +66,10 @@ static void pattern_to_cfarray2(sensor_pattern pattern, unsigned int cfarray[2][
 			cfarray[0][0] = 1; cfarray[0][1] = 0;
 			cfarray[1][0] = 2; cfarray[1][1] = 3;
 			break;
-		case XTRANS_FILTER:
+		case XTRANS_FILTER1:
+		case XTRANS_FILTER2:
+		case XTRANS_FILTER3:
+		case XTRANS_FILTER4:
 			// take a deep breath
 		default:
 			break;

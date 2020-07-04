@@ -862,6 +862,18 @@ int update_bayer_pattern(fits *fit, sensor_pattern *pattern) {
 		case BAYER_FILTER_GRBG:
 			*pattern = BAYER_FILTER_BGGR;
 			break;
+		case XTRANS_FILTER1:
+			*pattern = XTRANS_FILTER4;
+			break;
+		case XTRANS_FILTER4:
+			*pattern = XTRANS_FILTER1;
+			break;
+		case XTRANS_FILTER2:
+			*pattern = XTRANS_FILTER3;
+			break;
+		case XTRANS_FILTER3:
+			*pattern = XTRANS_FILTER2;
+			break;
 		default:
 			return 1;
 		}
@@ -1000,7 +1012,7 @@ int retrieveXTRANSPattern(char *bayer, unsigned int xtrans[6][6]) {
 		return 1;
 	}
 
-	for (x = 0; x < 6; x++) {
+	for (x = 5; x > -1; x--) {
 		for (y = 0; y < 6; y++) {
 			switch (bayer[i]) {
 				default:	// shouldn't default be an error?
