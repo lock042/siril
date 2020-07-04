@@ -953,7 +953,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
-	fit->fit_bayer_bottom_up = FALSE;
 
 	return 0;
 }
@@ -1189,7 +1188,6 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 	if (new_fit_image(&fit, area->w, area->h, 1, DATA_USHORT))
 		return -1;
 	fit->top_down = TRUE;
-	fit->fit_bayer_bottom_up = FALSE;
 	if (ser_file->ts) {
 		char *timestamp = ser_timestamp(ser_file->ts[frame_no]);
 		if (timestamp) {

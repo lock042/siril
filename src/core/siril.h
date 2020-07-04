@@ -428,6 +428,7 @@ struct ffit {
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
 	gboolean unbinned;
+	char row_order[FLEN_VALUE];
 	char date_obs[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss observation start, UT
 	char date[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss creation of file, UT
 	char instrume[FLEN_VALUE];		// INSTRUME key
@@ -458,7 +459,6 @@ struct ffit {
 	float *fpdata[3];	// same with float
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
-	gboolean fit_bayer_bottom_up; // how bayer information is stored in FITS file. TRUE for Siril FITS
 
 	GSList *history;	// Former HISTORY comments of FITS file
 };
@@ -487,8 +487,7 @@ struct debayer_config {
 	gboolean use_bayer_header;		// use the pattern given in the file header
 	sensor_pattern bayer_pattern;		// user-defined Bayer pattern
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
-	gboolean guess_orientation;			// Try to guess orientation (fot FITS only)
-	gboolean up_bottom;				// debayer up-bottom orientation
+	gboolean top_down;				// debayer top-down orientation
 	int xbayeroff, ybayeroff;			// x and y Bayer offsets
 };
 

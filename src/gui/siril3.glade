@@ -17615,9 +17615,8 @@ If the selection is empty, the whole image will be used as reference.</property>
                                 </child>
                                 <child>
                                   <object class="GtkCheckButton" id="checkbutton_debayer_compatibility">
-                                    <property name="label" translatable="yes">Debayer FITS files in up-bottom orientation</property>
+                                    <property name="label" translatable="yes">Debayer FITS files in top-down orientation if no explicit keywords found</property>
                                     <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
                                     <property name="tooltip_text" translatable="yes">Siril read FITS data in the bottom-up orientation. If capture software stored data in up-bottom orientation (as they usual do), you need to check this box in order to debayer the file in the right orientation.</property>
@@ -17626,7 +17625,7 @@ If the selection is empty, the whole image will be used as reference.</property>
                                   </object>
                                   <packing>
                                     <property name="left_attach">0</property>
-                                    <property name="top_attach">7</property>
+                                    <property name="top_attach">6</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -17781,26 +17780,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="left_attach">1</property>
                                     <property name="top_attach">5</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="checkbutton_debayer_guess_orientation">
-                                    <property name="label" translatable="yes">Trying to guess debayer orientation</property>
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">False</property>
-                                    <property name="tooltip_text" translatable="yes">The purpose of this option is to try to guess what the debayer orientation is. This is especially necessary when the FITS images were created by a program other than Siril. If the assumption is false, you can deactivate the button.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_checkbutton_debayer_guess_orientation_toggled" object="checkbutton_debayer_compatibility" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left_attach">0</property>
-                                    <property name="top_attach">6</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>

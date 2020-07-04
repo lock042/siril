@@ -192,8 +192,7 @@ static void initialize_libraw_settings() {
 static void initialize_ser_debayer_settings() {
 	com.pref.debayer.open_debayer = FALSE;
 	com.pref.debayer.use_bayer_header = TRUE;
-	com.pref.debayer.up_bottom = FALSE;
-	com.pref.debayer.guess_orientation = TRUE;
+	com.pref.debayer.top_down = TRUE;
 	com.pref.debayer.bayer_pattern = BAYER_FILTER_RGGB;
 	com.pref.debayer.bayer_inter = BAYER_RCD;
 	com.pref.debayer.xbayeroff = 0;
@@ -243,7 +242,7 @@ static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean 
 	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
 
 	if (!retval)
-		retval = debayer_if_needed(imagetype, tmpfit, debayer_in_up_bottom(tmpfit), debayer);
+		retval = debayer_if_needed(imagetype, tmpfit, debayer);
 
 	if (retval) {
 		clearfits(tmpfit);
@@ -255,21 +254,6 @@ static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean 
 }
 
 /**************************Public functions***********************************************************/
-
-gboolean debayer_in_up_bottom(fits *fit) {
-	/* we check if we try a guess */
-	if (com.pref.debayer.guess_orientation) {
-		/* if the orientation is written (File from Siril) choice is easy */
-		if (fit->fit_bayer_bottom_up)
-			return FALSE;
-		/* if not, we guess the orientation is up bottom */
-		else
-			return TRUE;
-	} else {
-		/* no guess, follow the pref value */
-		return com.pref.debayer.up_bottom;
-	}
-}
 
 int retrieveBayerPattern(char *bayer) {
 	int i;
@@ -586,8 +570,7 @@ clean_exit:
 
 // debayers the image if it's a FITS image and if debayer is activated globally
 // or if the force argument is passed
-int debayer_if_needed(image_type imagetype, fits *fit, gboolean compatibility,
-		gboolean force_debayer) {
+int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 	if (imagetype != TYPEFITS || (!com.pref.debayer.open_debayer && !force_debayer))
 		return 0;
 
@@ -600,8 +583,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean compatibility,
 		siril_log_message(_("Cannot perform debayering on image with more than one channel\n"));
 		return 0;
 	}
-	if (!compatibility)
-		fits_flip_top_to_bottom(fit);
+
 	/* Get Bayer informations from header if available */
 	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
 	if (com.pref.debayer.use_bayer_header) {
@@ -635,9 +617,6 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean compatibility,
 	if (debayer(fit, com.pref.debayer.bayer_inter, com.pref.debayer.bayer_pattern)) {
 		siril_log_message(_("Cannot perform debayering\n"));
 		retval = -1;
-	} else {
-		if (!compatibility)
-			fits_flip_top_to_bottom(fit);
 	}
 	com.pref.debayer.bayer_pattern = tmp_pattern;
 	return retval;
