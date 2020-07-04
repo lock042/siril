@@ -839,10 +839,17 @@ int update_bayer_pattern(fits *fit, sensor_pattern *pattern) {
 		}
 	}
 
+	/* for top-down debayer */
+	if ((com.pref.debayer.use_bayer_header
+			&& !g_strcmp0(fit->row_order, "TOP-DOWN"))) {
+		return 0;
+	}
+
 	/* for bottum-up debayer */
 	if ((com.pref.debayer.use_bayer_header
-			&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))) {
-		switch(*pattern) {
+			&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
+			|| !com.pref.debayer.top_down) {
+		switch (*pattern) {
 		case BAYER_FILTER_RGGB:
 			*pattern = BAYER_FILTER_GBRG;
 			break;
