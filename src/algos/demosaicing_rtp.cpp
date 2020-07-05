@@ -36,11 +36,6 @@ static void pattern_to_cfarray(sensor_pattern pattern, unsigned int cfarray[2][2
 			cfarray[0][0] = 1; cfarray[0][1] = 0;
 			cfarray[1][0] = 2; cfarray[1][1] = 1;
 			break;
-		case XTRANS_FILTER1:
-		case XTRANS_FILTER2:
-		case XTRANS_FILTER3:
-		case XTRANS_FILTER4:
-			// take a deep breath
 		default:
 			break;
 	}
@@ -66,11 +61,6 @@ static void pattern_to_cfarray2(sensor_pattern pattern, unsigned int cfarray[2][
 			cfarray[0][0] = 1; cfarray[0][1] = 0;
 			cfarray[1][0] = 2; cfarray[1][1] = 3;
 			break;
-		case XTRANS_FILTER1:
-		case XTRANS_FILTER2:
-		case XTRANS_FILTER3:
-		case XTRANS_FILTER4:
-			// take a deep breath
 		default:
 			break;
 	}
@@ -109,7 +99,7 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 	for (j = 0; j < nbpixels; j++)
 		rawdata[0][j] = (float)buf[j];
 
-	for (i=1; i<ry; i++)
+	for (i = 1; i < ry; i++)
 		rawdata[i] = rawdata[i - 1] + rx;
 
 	// 2. allocate the demosaiced image buffer (memory size: 6 times original)
