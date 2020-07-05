@@ -963,7 +963,7 @@ static void save_fits_header(fits *fit) {
 			&status);
 
 	status = 0;
-	fits_update_key(fit->fptr, TSTRING, "ROWORDER", "BOTTOM-UP", "Data order",
+	fits_update_key(fit->fptr, TSTRING, "ROWORDER", "BOTTOM-UP", "Order of the rows in image array",
 			&status);
 
 	/*******************************************************************
