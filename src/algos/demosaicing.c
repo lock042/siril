@@ -815,11 +815,6 @@ int update_bayer_pattern(fits *fit, sensor_pattern *pattern) {
 		case BAYER_FILTER_GRBG:
 			*pattern = BAYER_FILTER_RGGB;
 			break;
-		case XTRANS_FILTER1:
-		case XTRANS_FILTER2:
-		case XTRANS_FILTER3:
-		case XTRANS_FILTER4:
-			return 0;
 		default:
 			return 1;
 		}
@@ -844,18 +839,6 @@ int update_bayer_pattern(fits *fit, sensor_pattern *pattern) {
 			break;
 		case BAYER_FILTER_GRBG:
 			*pattern = BAYER_FILTER_BGGR;
-			break;
-		case XTRANS_FILTER1:
-			*pattern = XTRANS_FILTER4;
-			break;
-		case XTRANS_FILTER4:
-			*pattern = XTRANS_FILTER1;
-			break;
-		case XTRANS_FILTER2:
-			*pattern = XTRANS_FILTER3;
-			break;
-		case XTRANS_FILTER3:
-			*pattern = XTRANS_FILTER2;
 			break;
 		default:
 			return 1;
@@ -994,27 +977,27 @@ void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 }
 
 /* This function retrieve the xtrans matrix from the FITS header */
-int retrieveXTRANSPattern(char *bayer, unsigned int xtrans[6][6]) {
-	int x, y, i = 0;
+static int retrieveXTRANSPattern(char *bayer, unsigned int xtrans[6][6]) {
+	int i = 0;
 
 	if (strlen(bayer) != 36) {
 		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done"), "red");
 		return 1;
 	}
 
-	for (x = 5; x > -1; x--) {
-		for (y = 0; y < 6; y++) {
+	for (int x = 0; x < 6; x++) {
+		for (int y = 0; y < 6; y++) {
 			switch (bayer[i]) {
-				default:	// shouldn't default be an error?
-				case 'R':
-					xtrans[x][y] = 0;
-					break;
-				case 'G':
-					xtrans[x][y] = 1;
-					break;
-				case 'B':
-					xtrans[x][y] = 2;
-					break;
+			default:	// shouldn't default be an error?
+			case 'R':
+				xtrans[x][y] = 0;
+				break;
+			case 'G':
+				xtrans[x][y] = 1;
+				break;
+			case 'B':
+				xtrans[x][y] = 2;
+				break;
 			}
 			i++;
 		}
@@ -1031,9 +1014,9 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
 		retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
+	} else {
+		update_bayer_pattern(fit, &pattern);
 	}
-
-	update_bayer_pattern(fit, &pattern);
 
 	if (USE_SIRIL_DEBAYER) {
 		WORD *newbuf = debayer_buffer_siril(buf, &width, &height, interpolation, pattern, xtrans);
@@ -1079,9 +1062,9 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
 		retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
+	} else {
+		update_bayer_pattern(fit, &pattern);
 	}
-
-	update_bayer_pattern(fit, &pattern);
 
 	float *newbuf = debayer_buffer_new_float(buf, &width, &height, interpolation, pattern, xtrans);
 	if (!newbuf)
@@ -1208,6 +1191,11 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		pattern = retrieveBayerPattern(fit->bayer_pattern);
 	} else {
 		pattern = com.pref.debayer.bayer_pattern;
+	}
+
+	if (pattern == XTRANS_FILTER) {
+		siril_log_message("XTRANS pattern not handled for this feature.\n");
+		return 1;
 	}
 
 	update_bayer_pattern(fit, &pattern);
@@ -1384,6 +1372,11 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 		pattern = retrieveBayerPattern(fit->bayer_pattern);
 	} else {
 		pattern = com.pref.debayer.bayer_pattern;
+	}
+
+	if (pattern == XTRANS_FILTER) {
+		siril_log_message("XTRANS pattern not handled for this feature.\n");
+		return 1;
 	}
 
 	update_bayer_pattern(fit, &pattern);
