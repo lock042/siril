@@ -790,7 +790,7 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 	return newbuf;
 }
 
-int update_bayer_pattern(fits *fit, sensor_pattern *pattern) {
+int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	int xbayeroff = 0, ybayeroff = 0;
 
 	if (!com.pref.debayer.use_bayer_header) {
@@ -850,7 +850,36 @@ int update_bayer_pattern(fits *fit, sensor_pattern *pattern) {
 			&& !g_strcmp0(fit->row_order, "TOP-DOWN"))) {
 		return 0;
 	}
+	return 0;
+}
 
+/* This function retrieve the xtrans matrix from the FITS header */
+static int retrieve_XTRANS_pattern(char *bayer, unsigned int xtrans[6][6]) {
+	int i = 0;
+
+	if (strlen(bayer) != 36) {
+		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done"), "red");
+		return 1;
+	}
+
+	for (int x = 0; x < 6; x++) {
+		for (int y = 0; y < 6; y++) {
+			switch (bayer[i]) {
+			case 'R':
+				xtrans[x][y] = 0;
+				break;
+			case 'G':
+				xtrans[x][y] = 1;
+				break;
+			case 'B':
+				xtrans[x][y] = 2;
+				break;
+			default:
+				return 1;
+			}
+			i++;
+		}
+	}
 	return 0;
 }
 
@@ -976,35 +1005,6 @@ void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 	assert(debayer_area->w > 2);
 }
 
-/* This function retrieve the xtrans matrix from the FITS header */
-static int retrieveXTRANSPattern(char *bayer, unsigned int xtrans[6][6]) {
-	int i = 0;
-
-	if (strlen(bayer) != 36) {
-		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done"), "red");
-		return 1;
-	}
-
-	for (int x = 0; x < 6; x++) {
-		for (int y = 0; y < 6; y++) {
-			switch (bayer[i]) {
-			default:	// shouldn't default be an error?
-			case 'R':
-				xtrans[x][y] = 0;
-				break;
-			case 'G':
-				xtrans[x][y] = 1;
-				break;
-			case 'B':
-				xtrans[x][y] = 2;
-				break;
-			}
-			i++;
-		}
-	}
-	return 0;
-}
-
 static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
 	size_t i, j, npixels = fit->naxes[0] * fit->naxes[1];
 	int width = fit->rx;
@@ -1013,9 +1013,10 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
+		fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
-		update_bayer_pattern(fit, &pattern);
+		retrieve_Bayer_pattern(fit, &pattern);
 	}
 
 	if (USE_SIRIL_DEBAYER) {
@@ -1049,6 +1050,9 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 			return 1;
 
 		fit_debayer_buffer(fit, newbuf);
+		if (interpolation == XTRANS) {
+			fits_flip_top_to_bottom(fit);
+		}
 	}
 
 	return 0;
@@ -1061,9 +1065,10 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
+		fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
-		update_bayer_pattern(fit, &pattern);
+		retrieve_Bayer_pattern(fit, &pattern);
 	}
 
 	float *newbuf = debayer_buffer_new_float(buf, &width, &height, interpolation, pattern, xtrans);
@@ -1071,6 +1076,9 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		return 1;
 
 	fit_debayer_buffer(fit, newbuf);
+	if (interpolation == XTRANS) {
+		fits_flip_top_to_bottom(fit);
+	}
 	return 0;
 }
 
@@ -1198,7 +1206,7 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		return 1;
 	}
 
-	update_bayer_pattern(fit, &pattern);
+	retrieve_Bayer_pattern(fit, &pattern);
 
 	if (fit->type == DATA_USHORT) {
 		if (!(ret = extractHa_ushort(fit, &f_Ha, pattern))) {
@@ -1379,7 +1387,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 		return 1;
 	}
 
-	update_bayer_pattern(fit, &pattern);
+	retrieve_Bayer_pattern(fit, &pattern);
 
 	if (fit->type == DATA_USHORT) {
 		if (!(ret = extractHaOIII_ushort(fit, &f_Ha, &f_OIII, pattern))) {

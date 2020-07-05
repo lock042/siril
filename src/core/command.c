@@ -2166,7 +2166,7 @@ int process_extractHa(int nb) {
 	} else {
 		pattern = com.pref.debayer.bayer_pattern;
 	}
-	update_bayer_pattern(&gfit, &pattern);
+	retrieve_Bayer_pattern(&gfit, &pattern);
 
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
@@ -2215,7 +2215,7 @@ int process_extractHaOIII(int nb) {
 	} else {
 		pattern = com.pref.debayer.bayer_pattern;
 	}
-	update_bayer_pattern(&gfit, &pattern);
+	retrieve_Bayer_pattern(&gfit, &pattern);
 
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
