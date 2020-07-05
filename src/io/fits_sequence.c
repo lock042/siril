@@ -182,8 +182,8 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 
 	fitseq->filename = strdup(filename);
 	fitseq->is_mt_capable = FALSE;
-	siril_debug_print("fitseq_open: sequence has %d frames, bitpix = %d, naxis = %d, naxes = { %ld, %ld, %ld }\n",
-			fitseq->frame_count, fitseq->bitpix, naxis,
+	siril_debug_print("fitseq_open: sequence %s has %d frames, bitpix = %d, naxis = %d, naxes = { %ld, %ld, %ld }\n",
+			filename, fitseq->frame_count, fitseq->bitpix, naxis,
 			fitseq->naxes[0], fitseq->naxes[1], fitseq->naxes[2]);
 
 #ifdef _OPENMP
@@ -214,7 +214,7 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	dest->ry = dest->naxes[1];
 	dest->fptr = fptr;
 
-	siril_debug_print("reading HDU %d\n", fitseq->hdu_index[index]);
+	siril_debug_print("reading HDU %d (of %s)\n", fitseq->hdu_index[index], fitseq->filename);
 	int status = 0;
 	if (fits_movabs_hdu(fptr, fitseq->hdu_index[index], NULL, &status)) {
 		report_fits_error(status);
@@ -233,8 +233,10 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 int fitseq_read_frame(fitseq *fitseq, int index, fits *dest, gboolean force_float, int thread) {
 	fitsfile *fptr = fitseq->fptr;
 #ifdef _OPENMP
-	if (thread >= 0 && fitseq->thread_fptr)
+	if (thread >= 0 && fitseq->thread_fptr) {
 		fptr = fitseq->thread_fptr[thread];
+		siril_debug_print("fitseq: thread %d reading FITS image\n", thread);
+	}
 #endif
 	return fitseq_read_frame_internal(fitseq, index, dest, force_float, fptr);
 }
@@ -328,9 +330,34 @@ static int init_images(fitseq *fitseq, fits *example, gboolean create_images) {
 	memcpy(fitseq->naxes, example->naxes, sizeof fitseq->naxes);
 
 	if (create_images) {
-		// preallocate images
-		for (int i = 0; i < fitseq->frame_count; i++) {
-			int status = 0;
+		int nb_keys, status = 0;
+		// create first image to save the header and get its size
+		if (fits_create_img(fitseq->fptr, example->bitpix,
+					example->naxis, example->naxes, &status)) {
+			report_fits_error(status);
+			return 1;
+		}
+		siril_debug_print("fits_create_img(naxis = %d, naxes = { %ld, %ld, %ld }, bitpix = %d)\n",
+				example->naxis, example->naxes[0], example->naxes[1],
+				example->naxes[2], example->bitpix);
+		example->fptr = fitseq->fptr;
+		save_fits_header(example);
+		fits_get_hdrspace(fitseq->fptr, &nb_keys, NULL, &status);
+		siril_debug_print("fitseq header size: %d keys\n", nb_keys);
+		if (status)
+			nb_keys = 0;
+
+		for (int i = 1; i < fitseq->frame_count; i++) {
+			// preallocate header
+			if (nb_keys > 0) {
+				fits_set_hdrsize(fitseq->fptr, nb_keys, &status);
+				if (status) {
+				       siril_debug_print("request for header extension failed\n");
+				       report_fits_error(status);
+				}
+			}
+
+			// preallocate images
 			if (fits_create_img(fitseq->fptr, example->bitpix,
 						example->naxis, example->naxes, &status)) {
 				report_fits_error(status);
@@ -393,7 +420,8 @@ static void *write_worker(void *a) {
 			retval = FITSEQ_WRITE_ERROR;
 			break;
 		}
-		siril_debug_print("writing thread moving to HDU %d\n", task->index+1);
+		int hdu_index = task->index + 1;
+		siril_debug_print("fitseq write: moving to HDU %d\n", hdu_index);
 		status = 0;
 		if (!fitseq->bitpix && init_images(fitseq, task->image, fitseq->frame_count > 0)) {
 			siril_log_color_message(_("Failed to initialize the FITS sequence, aborting\n"), "red");
@@ -402,7 +430,7 @@ static void *write_worker(void *a) {
 		}
 
 		if (task->index >= 0) {
-			fits_movabs_hdu(fitseq->fptr, task->index+1, NULL, &status); // move to the corresponding HDU
+			fits_movabs_hdu(fitseq->fptr, hdu_index, NULL, &status); // move to the corresponding HDU
 			if (status) {
 				report_fits_error(status);
 				siril_log_color_message(_("Could not write image %d of the FITS sequence\n"), "red", task->index);
@@ -418,8 +446,8 @@ static void *write_worker(void *a) {
 			}
 		}
 
-		siril_log_message(_("Saving FITS: image %d, %ld layer(s), %ux%u pixels, %d bits\n"),
-				task->index + 1, task->image->naxes[2],
+		siril_log_message(_("fitseq write: Saving FITS image %d, %ld layer(s), %ux%u pixels, %d bits\n"),
+				task->index, task->image->naxes[2],
 				task->image->rx, task->image->ry,
 				task->image->type == DATA_FLOAT ? 32 : 16);
 		task->image->fptr = fitseq->fptr;

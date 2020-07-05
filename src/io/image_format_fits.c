@@ -911,7 +911,7 @@ static void save_wcs_keywords(fits *fit) {
 	}
 }
 
-static void save_fits_header(fits *fit) {
+void save_fits_header(fits *fit) {
 	int i, status = 0;
 	double zero, scale;
 	char comment[FLEN_COMMENT];
@@ -1259,7 +1259,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	fit->top_down = FALSE;
 
 	if (!retval) {
-		// copy the entire header
+		// copy the entire header in memory
 		if (fit->header)
 			free(fit->header);
 		fit->header = copy_header(fit);
@@ -1584,6 +1584,7 @@ int save_opened_fits(fits *f) {
 	size_t i, pixel_count;
 	int type, status = 0;
 
+	save_fits_header(f);
 	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
 
 	status = 0;
@@ -1659,8 +1660,8 @@ int save_opened_fits(fits *f) {
 	}
 
 	if (!status) {
-		save_fits_header(f);
-		// copy the entire header
+		//save_fits_header(f);
+		// copy the entire header in memory
 		if (f->header)
 			free(f->header);
 		f->header = copy_header(f);
