@@ -348,15 +348,6 @@ static int init_images(fitseq *fitseq, fits *example, gboolean create_images) {
 			nb_keys = 0;
 
 		for (int i = 1; i < fitseq->frame_count; i++) {
-			// preallocate header
-			if (nb_keys > 0) {
-				fits_set_hdrsize(fitseq->fptr, nb_keys, &status);
-				if (status) {
-				       siril_debug_print("request for header extension failed\n");
-				       report_fits_error(status);
-				}
-			}
-
 			// preallocate images
 			if (fits_create_img(fitseq->fptr, example->bitpix,
 						example->naxis, example->naxes, &status)) {
@@ -366,6 +357,17 @@ static int init_images(fitseq *fitseq, fits *example, gboolean create_images) {
 			siril_debug_print("fits_create_img(naxis = %d, naxes = { %ld, %ld, %ld }, bitpix = %d)\n",
 					example->naxis, example->naxes[0], example->naxes[1],
 					example->naxes[2], example->bitpix);
+
+			// preallocate header
+			if (nb_keys > 0) {
+				fits_set_hdrsize(fitseq->fptr, nb_keys, &status);
+				if (status) {
+					siril_debug_print("request for header extension failed\n");
+					report_fits_error(status);
+				}
+			}
+
+
 		}
 		siril_debug_print("Successfully initialized the images of the FITS sequence file %s\n",
 				fitseq->filename);
