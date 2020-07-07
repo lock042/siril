@@ -31,6 +31,8 @@ siril_common_SOURCES = \
 	algos/Def_Mem.h \
 	algos/demosaicing.c \
 	algos/demosaicing.h \
+	algos/fix_xtrans_af.c \
+	algos/fix_xtrans_af.h \
 	algos/geometry.c \
 	algos/geometry.h \
 	algos/io_wave.c \

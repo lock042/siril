@@ -21,6 +21,7 @@ src_files = [
   'algos/colors.c',
   'algos/demosaicing.c',
   'algos/demosaicing_rtp.cpp',
+  'algos/fix_xtrans_af.c',
   'algos/geometry.c',
   'algos/io_wave.c',
   'algos/median_fast.c',
