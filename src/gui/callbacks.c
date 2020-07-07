@@ -655,7 +655,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 			!gtk_toggle_button_get_active(checkAutoEvaluate));
 
 	gtk_widget_set_sensitive(debayer, allow_debayer && gtk_widget_get_sensitive(prepro_button));
-	gtk_widget_set_sensitive(fix_xtrans, gtk_toggle_button_get_active(udark) && gtk_toggle_button_get_active(uoffset));
+	gtk_widget_set_sensitive(fix_xtrans, gtk_toggle_button_get_active(udark) || gtk_toggle_button_get_active(uoffset));
 
 	gtk_widget_set_sensitive(GTK_WIDGET(output_type), sequence_is_loaded());
 	int type = com.seq.type;
