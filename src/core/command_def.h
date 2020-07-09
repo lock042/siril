@@ -71,6 +71,7 @@
 #define STR_PSF N_("Performs a PSF (Point Spread Function) on the selected star")
 
 #define STR_REGISTER N_("Performs geometric transforms on images of the sequence given in argument so that they may be superimposed on the reference image. The output sequence name starts with the prefix \"r_\" unless otherwise specified with \"-prefix=\" option. Using stars for registration, this algorithm only works with deepsky images. The registration is done on the green layer for RGB images. The option \"-drizzle\" activates the sub-pixel stacking, either by up-scaling by 2 the images created in the rotated sequence or by setting a flag that will proceed to the up-scaling during stacking if \"-norot\" is passed")
+#define STR_RENAME N_("Renames all FITS images in the working directory with the basename given in argument")
 #define STR_RESAMPLE N_("Resamples image with a factor \"factor\"")
 #define STR_RELOADSCRIPTS N_("Rescans the scripts folders and updates scripts menu")
 #define STR_RGRADIENT N_("Creates two images, with a radial shift (\"dR\" in pixels) and a rotational shift (\"dalpha\" in degrees) with respect to the point (\"xc\", \"yc\"). Between these two images, the shifts have the same amplitude, but an opposite sign. The two images are then added to create the final image. This process is also called Larson Sekanina filter")
