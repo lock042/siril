@@ -48,6 +48,7 @@ int	process_histo(int nb);
 
 int	process_imoper(int nb);
 
+int process_link(int nb);
 int process_linear_match(int nb);
 int	process_load(int nb);
 int	process_log(int nb);
@@ -69,7 +70,6 @@ int	process_preprocess(int nb);
 int	process_psf(int nb);
 
 int	process_register(int nb);
-int process_rename(int nb);
 int	process_resample(int nb);
 int process_reloadscripts(int nb);
 int	process_rgradient(int nb);
