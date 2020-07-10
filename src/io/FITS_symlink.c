@@ -18,7 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "FITS_symlink.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#include <stdio.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -27,8 +30,9 @@
 #include "io/conversion.h"
 #include "gui/progress_and_log.h"
 
+#include "FITS_symlink.h"
 
-static gboolean end_rename_idle(gpointer p) {
+static gboolean end_symlink_idle(gpointer p) {
 	struct _symlink_data *args = (struct _symlink_data *) p;
 	struct timeval t_end;
 
@@ -54,7 +58,7 @@ static gboolean end_rename_idle(gpointer p) {
 	return FALSE;
 }
 
-gpointer rename_thread_worker(gpointer p) {
+gpointer symlink_thread_worker(gpointer p) {
 	double progress = 0.0;
 	struct _symlink_data *args = (struct _symlink_data *) p;
 	unsigned int frame_index = 0;
@@ -92,10 +96,24 @@ gpointer rename_thread_worker(gpointer p) {
 			gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot,
 					index, com.pref.ext);
 #ifdef _WIN32
-			gboolean ret = CreateSymbolicLinkW(src_filename, dest_filename, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
-			if (!ret) {
-				rename(src_filename, dest_filename);
+			wchar_t *wsrc, *wdst;
+
+			wsrc = g_utf8_to_utf16(src_filename, -1, NULL, NULL, NULL);
+			if (wsrc == NULL) {
+				return NULL;
 			}
+			wdst = g_utf8_to_utf16(dest_filename, -1, NULL, NULL, NULL);
+			if (wdst == NULL) {
+				g_free(wsrc);
+				return NULL;
+			}
+			gboolean ret = CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
+			if (!ret) {
+				_wrename(wsrc, wdst);
+			}
+
+			g_free(wsrc);
+			g_free(wdst);
 #else
 			symlink(src_filename, dest_filename);
 #endif
@@ -126,6 +144,6 @@ gpointer rename_thread_worker(gpointer p) {
 			siril_log_message(_("Conversion succeeded, %d/%d input files converted\n"), args->nb_renamed_files, args->total);
 		else siril_log_message(_("Conversion aborted, %d/%d input files converted\n"), args->nb_renamed_files, args->total);
 	}
-	siril_add_idle(end_rename_idle, args);
+	siril_add_idle(end_symlink_idle, args);
 	return NULL;
 }

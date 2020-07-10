@@ -2671,7 +2671,7 @@ int process_rename(int nb) {
 	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	gettimeofday(&(args->t_start), NULL);
-	start_in_new_thread(rename_thread_worker, args);
+	start_in_new_thread(symlink_thread_worker, args);
 
 	return 0;
 }

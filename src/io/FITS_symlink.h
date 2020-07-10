@@ -35,6 +35,6 @@ struct _symlink_data {
 	int retval;
 };
 
-gpointer rename_thread_worker(gpointer p);
+gpointer symlink_thread_worker(gpointer p);
 
 #endif /* SRC_IO_FITS_SYMLINK_H_ */
