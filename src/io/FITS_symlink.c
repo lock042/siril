@@ -99,14 +99,8 @@ gpointer symlink_thread_worker(gpointer p) {
 			wchar_t *wsrc, *wdst;
 
 			wsrc = g_utf8_to_utf16(src_filename, -1, NULL, NULL, NULL);
-			if (wsrc == NULL) {
-				return NULL;
-			}
 			wdst = g_utf8_to_utf16(dest_filename, -1, NULL, NULL, NULL);
-			if (wdst == NULL) {
-				g_free(wsrc);
-				return NULL;
-			}
+
 			gboolean ret = CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
 			if (!ret) {
 				_wrename(wsrc, wdst);
