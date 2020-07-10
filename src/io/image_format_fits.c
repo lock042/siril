@@ -1871,7 +1871,7 @@ int copy_fits_from_file(char *source, char *destination) {
 	/* Open the input file */
 	if (!siril_fits_open_diskfile(&infptr, source, READONLY, &status)) {
 		/* Create the output file */
-		if (!siril_fits_open_diskfile(&outfptr, destination, &status)) {
+		if (!siril_fits_create_diskfile(&outfptr, destination, &status)) {
 
 			/* copy the previous, current, and following HDUs */
 			fits_copy_file(infptr, outfptr, 1, 1, 1, &status);
