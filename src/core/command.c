@@ -39,8 +39,8 @@
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
+#include "io/FITS_symlink.h"
 #include "io/conversion.h"
-#include "io/FITS_rename.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -2662,7 +2662,7 @@ int process_rename(int nb) {
 		return 1;
 	}
 
-	struct _rename_data *args = malloc(sizeof(struct _rename_data));
+	struct _symlink_data *args = malloc(sizeof(struct _symlink_data));
 	args->start = idx;
 	args->dir = dir;
 	args->list = files_to_rename;

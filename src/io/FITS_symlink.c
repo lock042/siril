@@ -18,6 +18,8 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "FITS_symlink.h"
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -25,10 +27,9 @@
 #include "io/conversion.h"
 #include "gui/progress_and_log.h"
 
-#include "FITS_rename.h"
 
 static gboolean end_rename_idle(gpointer p) {
-	struct _rename_data *args = (struct _rename_data *) p;
+	struct _symlink_data *args = (struct _symlink_data *) p;
 	struct timeval t_end;
 
 	if (!args->retval && get_thread_run() && args->nb_renamed_files > 1) {
@@ -55,7 +56,7 @@ static gboolean end_rename_idle(gpointer p) {
 
 gpointer rename_thread_worker(gpointer p) {
 	double progress = 0.0;
-	struct _rename_data *args = (struct _rename_data *) p;
+	struct _symlink_data *args = (struct _symlink_data *) p;
 	unsigned int frame_index = 0;
 
 	args->nb_renamed_files = 0;
@@ -90,7 +91,14 @@ gpointer rename_thread_worker(gpointer p) {
 		} else {
 			gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot,
 					index, com.pref.ext);
-			rename(src_filename, dest_filename);
+#ifdef _WIN32
+			gboolean ret = CreateSymbolicLinkW(src_filename, dest_filename, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
+			if (!ret) {
+				rename(src_filename, dest_filename);
+			}
+#else
+			symlink(src_filename, dest_filename);
+#endif
 
 			g_free(dest_filename);
 			frame_index++;

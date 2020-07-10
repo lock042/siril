@@ -17,12 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_IO_FITS_RENAME_H_
-#define SRC_IO_FITS_RENAME_H_
+#ifndef SRC_IO_FITS_SYMLINK_H_
+#define SRC_IO_FITS_SYMLINK_H_
 
 #include <glib.h>
 
-struct _rename_data {
+struct _symlink_data {
 	struct timeval t_start;
 	GDir *dir;
 	gchar **list;
@@ -37,4 +37,4 @@ struct _rename_data {
 
 gpointer rename_thread_worker(gpointer p);
 
-#endif /* SRC_IO_FITS_RENAME_H_ */
+#endif /* SRC_IO_FITS_SYMLINK_H_ */

@@ -178,8 +178,8 @@ siril_common_SOURCES = \
 	io/films.h \
 	io/fits_sequence.c \
 	io/fits_sequence.h \
-	io/FITS_rename.c \
-	io/FITS_rename.h \
+	io/FITS_symlink.c \
+	io/FITS_symlink.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
