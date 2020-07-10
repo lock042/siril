@@ -103,7 +103,9 @@ gpointer symlink_thread_worker(gpointer p) {
 
 			gboolean ret = CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
 			if (!ret) {
-				_wrename(wsrc, wdst);
+				siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
+						"instead of simply copying files."))
+				copy_fits_from_file(src_filename, dest_filename);
 			}
 
 			g_free(wsrc);
