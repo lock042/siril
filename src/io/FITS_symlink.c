@@ -36,7 +36,7 @@ static gboolean end_symlink_idle(gpointer p) {
 	struct _symlink_data *args = (struct _symlink_data *) p;
 	struct timeval t_end;
 
-	if (!args->retval && get_thread_run() && args->nb_renamed_files > 1) {
+	if (!args->retval && get_thread_run() && args->nb_linked_files > 1) {
 		// load the sequence
 		char *renamed_seqname = NULL;
 		renamed_seqname = malloc(strlen(args->destroot) + 5);
@@ -63,7 +63,7 @@ gpointer symlink_thread_worker(gpointer p) {
 	struct _symlink_data *args = (struct _symlink_data *) p;
 	unsigned int frame_index = 0;
 
-	args->nb_renamed_files = 0;
+	args->nb_linked_files = 0;
 	args->retval = 0;
 
 #ifdef _OPENMP
@@ -83,11 +83,10 @@ gpointer symlink_thread_worker(gpointer p) {
 		gchar *name = g_utf8_strrchr(src_filename, strlen(src_filename), G_DIR_SEPARATOR);
 		gchar *msg_bar;
 		if (name)
-			msg_bar = g_strdup_printf(_("Converting %s..."), name + 1);
-		else msg_bar = g_strdup_printf(_("Converting %s..."), src_filename);
+			msg_bar = g_strdup_printf(_("Making symbolic link %s..."), name + 1);
+		else msg_bar = g_strdup_printf(_("Making symbolic link %s..."), src_filename);
 
 		image_type imagetype = get_type_for_extension(src_ext);
-		com.filter = (int) imagetype;
 		if (imagetype != TYPEFITS) {
 			args->retval = 1;
 			g_free(msg_bar);
@@ -95,14 +94,15 @@ gpointer symlink_thread_worker(gpointer p) {
 		} else {
 			gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot,
 					index, com.pref.ext);
+			/* TODO: remove symlink already existing to avoid error */
+
 #ifdef _WIN32
 			wchar_t *wsrc, *wdst;
 
 			wsrc = g_utf8_to_utf16(src_filename, -1, NULL, NULL, NULL);
 			wdst = g_utf8_to_utf16(dest_filename, -1, NULL, NULL, NULL);
 
-			gboolean ret = CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
-			if (!ret) {
+			if (!CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE)) {
 				siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
 						"instead of simply copying files."), "red");
 				copy_fits_from_file(src_filename, dest_filename);
@@ -111,7 +111,9 @@ gpointer symlink_thread_worker(gpointer p) {
 			g_free(wsrc);
 			g_free(wdst);
 #else
-			symlink(src_filename, dest_filename);
+			if (symlink(src_filename, dest_filename) != 0) {
+				copy_fits_from_file(src_filename, dest_filename);
+			}
 #endif
 
 			g_free(dest_filename);
@@ -127,18 +129,18 @@ gpointer symlink_thread_worker(gpointer p) {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-		args->nb_renamed_files++;
+		args->nb_linked_files++;
 	}
 
 	g_dir_close(args->dir);
 	for (int i = 0; i < args->total; i++)
 		g_free(args->list[i]);
 	if (args->retval)
-		siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_renamed_files, args->total);
+		siril_log_message(_("Symbolic link creation ended with error, %d/%d input files done\n"), args->nb_linked_files, args->total);
 	else {
-		if (args->nb_renamed_files == args->total)
-			siril_log_message(_("Conversion succeeded, %d/%d input files converted\n"), args->nb_renamed_files, args->total);
-		else siril_log_message(_("Conversion aborted, %d/%d input files converted\n"), args->nb_renamed_files, args->total);
+		if (args->nb_linked_files == args->total)
+			siril_log_message(_("Symbolic link creation succeeded, %d/%d input files done\n"), args->nb_linked_files, args->total);
+		else siril_log_message(_("Symbolic link creation aborted, %d/%d input files done\n"), args->nb_linked_files, args->total);
 	}
 	siril_add_idle(end_symlink_idle, args);
 	return NULL;

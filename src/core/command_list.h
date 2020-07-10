@@ -72,6 +72,7 @@ static command commands[] = {
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE},
 
+	{"link", 1, "link basename", process_link, STR_LINK, TRUE},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE}, /* logarifies current image */
 	{"load", 1, "load filename.[ext]", process_load, STR_LOAD, TRUE},
 	// specific loads are not required, but could be used to force the
@@ -96,7 +97,6 @@ static command commands[] = {
 	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
 
 	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=]", process_register, STR_REGISTER, TRUE},
-	{"rename", 1, "rename basename", process_rename, STR_RENAME, TRUE},
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},	
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE},

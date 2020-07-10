@@ -28,7 +28,7 @@ struct _symlink_data {
 	gchar **list;
 	int start;
 	int total;
-	int nb_renamed_files;
+	int nb_linked_files;
 	gboolean command_line;
 	gboolean input_has_a_seq;
 	gchar *destroot;

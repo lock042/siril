@@ -2593,7 +2593,7 @@ int process_convertraw(int nb) {
 	return 0;
 }
 
-int process_rename(int nb) {
+int process_link(int nb) {
 	GDir *dir;
 	GError *error = NULL;
 	const gchar *file;
@@ -2640,14 +2640,14 @@ int process_rename(int nb) {
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
-	char **files_to_rename = malloc(count * sizeof(char *));
-	if (!files_to_rename) {
+	char **files_to_link = malloc(count * sizeof(char *));
+	if (!files_to_link) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
 	GList *orig_list = list;
 	for (int i = 0; i < count && list; list = list->next, i++)
-		files_to_rename[i] = g_strdup(list->data);
+		files_to_link[i] = g_strdup(list->data);
 	g_list_free_full(orig_list, g_free);
 
 	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "green", count);
@@ -2665,7 +2665,7 @@ int process_rename(int nb) {
 	struct _symlink_data *args = malloc(sizeof(struct _symlink_data));
 	args->start = idx;
 	args->dir = dir;
-	args->list = files_to_rename;
+	args->list = files_to_link;
 	args->total = count;
 	args->command_line = TRUE;
 	args->destroot = destroot;
