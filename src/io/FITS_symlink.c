@@ -39,13 +39,13 @@ static gboolean end_symlink_idle(gpointer p) {
 
 	if (!args->retval && get_thread_run() && args->nb_linked_files > 1) {
 		// load the sequence
-		char *renamed_seqname = NULL;
-		renamed_seqname = malloc(strlen(args->destroot) + 5);
-		sprintf(renamed_seqname, "%s.seq", args->destroot);
+		char *linked_seqname = NULL;
+		linked_seqname = malloc(strlen(args->destroot) + 5);
+		sprintf(linked_seqname, "%s.seq", args->destroot);
 		check_seq(0);
-		if (renamed_seqname) {
-			update_sequences_list(renamed_seqname);
-			free(renamed_seqname);
+		if (linked_seqname) {
+			update_sequences_list(linked_seqname);
+			free(linked_seqname);
 		}
 	}
 
@@ -95,7 +95,11 @@ gpointer symlink_thread_worker(gpointer p) {
 		} else {
 			gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot,
 					index, com.pref.ext);
-			/* TODO: remove symlink already existing to avoid error */
+			/* remove symlink already existing to avoid error */
+			GStatBuf dest_stat;
+			if (g_lstat(dest_filename, &dest_stat) == 0) {
+				g_unlink(dest_filename);
+			}
 
 #ifdef _WIN32
 			wchar_t *wsrc, *wdst;
