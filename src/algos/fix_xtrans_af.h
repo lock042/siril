@@ -23,8 +23,9 @@
 #include "core/siril.h"
 
 typedef struct {
-	char *model;			// model of xtrans camera
-	rectangle af;		   // name of the manufacturer
+	char *model;       // Model of X-Trans camera.
+	rectangle af;      // Bounding box for auto focus pixels.
+	rectangle sample;  // Sample size for computing adjustment.
 } supported_xtrans_list;
 
 int fix_xtrans_ac(fits *fit);

@@ -24,8 +24,10 @@
 
 #include "fix_xtrans_af.h"
 
-supported_xtrans_list supported_xtrans[] = {
-	{"'Fujifilm X-T20'", {1511, 508, 3009, 3016}},
+supported_xtrans_list supported_xtrans[] =
+		{
+		// Camera Name      AF Pixels x,y,w,h        Sample x,y,w,h
+		{ "Fujifilm X-T20", { 1510, 507, 3009, 3016 }, { 1992, 990,	2048, 2048 } }
 };
 
 static int get_nb_xtrans_supported() {
@@ -41,15 +43,11 @@ static int get_model(const char *model) {
 	return -1;
 }
 
-/* This returns true if the pixel is a special auto focus pixel.
- * I only have the Xtrans sensor used in a Fujifilm X-T20.
- * Other cameras need to be added to this function.
- */
+// This returns true if the pixel is a special auto focus pixel.
 static int is_af_pixel(rectangle af, int x, int y) {
-	// x=1, y=1 is the bottom left corner of the image.
-	return (x >= af.x && x <= (af.x + af.w) && y >= af.y
-			&& y <= (af.y + af.h))
-			&& ((x - 2) % 3 == 0 && ((y - 4) % 12 == 0 || (y - 8) % 12 == 0));
+	// x=0, y=0 is the bottom left corner of the image.
+	return (x >= af.x && x <= (af.x + af.w) && y >= af.y && y <= (af.y + af.h)
+			&& (x + 2) % 3 == 0 && ((y + 5) % 12 == 0 || (y + 9) % 12 == 0));
 }
 
 static int subtract_fudge(fits *fit, rectangle af, float fudge) {
@@ -61,10 +59,10 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge) {
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-	             if (is_af_pixel(af, x, y)) {
-	               // This is an auto focus pixel.  Subtract the fudge.
-	               buf[x + y * width] -= roundf_to_WORD(fudge);
-	             }
+				if (is_af_pixel(af, x, y)) {
+					// This is an auto focus pixel.  Subtract the fudge.
+					buf[x + y * width] -= roundf_to_WORD(fudge);
+				}
 			}
 		}
 	} else if (fit->type == DATA_FLOAT) {
@@ -72,10 +70,10 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge) {
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-	             if (is_af_pixel(af, x, y)) {
-	               // This is an auto focus pixel.  Subtract the fudge.
-	               buf[x + y * width] -= fudge;
-	             }
+				if (is_af_pixel(af, x, y)) {
+					// This is an auto focus pixel.  Subtract the fudge.
+					buf[x + y * width] -= fudge;
+				}
 			}
 		}
 	}
@@ -84,19 +82,22 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge) {
 }
 
 int fix_xtrans_ac(fits *fit) {
+	int status = 0;
+
 	int model = get_model(fit->instrume);
 	if (model < 0) {
 		siril_log_color_message("Unknown camera %s.\n", "red", fit->instrume);
 		return 1;
 	}
+
 	// non-focus pixels
 	double nfsum = 0.0;
-	float nfmean = 0.f, nfmin = 1.E33, nfmax = -1.E33;
+	float nfmean = 0.f;
 	long nfcount = 0L;
 
 	// auto focus pixels
 	double afsum = 0.0;
-	float afmean = 0.f, afmin = 1.E33, afmax = -1.E33;
+	float afmean = 0.f;
 	long afcount = 0L;
 
 	// The fudge amount to apply to auto focus pixels. (computed)
@@ -105,30 +106,27 @@ int fix_xtrans_ac(fits *fit) {
 	WORD *buf = fit->pdata[RLAYER];
 	float *fbuf = fit->fpdata[RLAYER];
 	rectangle af = supported_xtrans[model].af;
-	for (unsigned int y = 0; y < fit->ry; y++) {
-		for (unsigned int x = 0; x < fit->rx; x++) {
-			float pixel = fit->type == DATA_FLOAT ?
+	rectangle sam = supported_xtrans[model].sample;
+
+	// Loop through sample rectangle and count/sum AF and non-AF pixels.
+	for (unsigned int y = sam.y; y <= (sam.y + sam.h); y++) {
+		for (unsigned int x = sam.x; x <= (sam.x + sam.w); x++) {
+			float pixel =
+					fit->type == DATA_FLOAT ?
 							fbuf[x + y * fit->rx] :
 							(float) buf[x + y * fit->rx];
 			if (is_af_pixel(af, x, y)) {
-				// We are an AF pixel.
+				// This is an AF pixel.
 				afcount++;
 				afsum += (double) pixel;
-				if (pixel < afmin)
-					afmin = pixel;
-				if (pixel > afmax)
-					afmax = pixel;
 			} else {
-				// We are not an AF pixel.
+				// This is not an AF pixel.
 				nfcount++;
 				nfsum += (double) pixel;
-				if (pixel < nfmin)
-					nfmin = pixel;
-				if (pixel > nfmax)
-					nfmax = pixel;
 			}
 		}
 	}
+
 	// Make sure we have a valid sample.
 	if (nfcount == 0 || afcount == 0) {
 		siril_log_message("Failed to sample enough pixels.\n");
@@ -140,7 +138,15 @@ int fix_xtrans_ac(fits *fit) {
 	afmean = afsum / afcount;
 	fudge = afmean - nfmean;
 
+	// Debug statements.  Remove later???
+	siril_log_message("Reg Pixel Mean:   %.10f, Count: %ld\n", nfmean, nfcount);
+	siril_log_message(" AF Pixel Mean:   %.10f, Count: %ld\n", afmean, afcount);
+	siril_log_message(" AF Pixel Adjust: %.10f\n", fudge);
+
+	// Stay FIT, Subtract the fudge!
 	subtract_fudge(fit, af, fudge);
+
 	invalidate_stats_from_fit(fit);
-	return 0;
+
+	return status;
 }
