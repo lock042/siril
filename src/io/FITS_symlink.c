@@ -23,6 +23,10 @@
 #endif
 #include <stdio.h>
 
+#ifndef S_ISLNK
+#define S_ISLNK(x) 0
+#endif
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -109,7 +113,7 @@ gpointer symlink_thread_worker(gpointer p) {
 
 			if (CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
 				siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
-						"instead of simply copying files."), "red");
+						"instead of simply copying files.\n"), "red");
 				copy_fits_from_file(src_filename, dest_filename);
 			}
 
