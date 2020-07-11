@@ -1414,7 +1414,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 			}
 		}
 		pattern[j++] = '\0';
-		siril_log_message(_("CFA pattern: %s\n"), pattern);
+		siril_log_message(_("Filter pattern: %s\n"), pattern);
 	}
 
 	WORD *data = (WORD*) calloc(1, npixels * sizeof(WORD));
@@ -1465,6 +1465,8 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	get_FITS_date(raw->other.timestamp, fit->date_obs);
 	if (filters)
 		g_snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
+
+	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTUM-UP");
 
 	libraw_recycle(raw);
 	libraw_close(raw);
