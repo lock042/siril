@@ -19,6 +19,8 @@
  */
 
 #ifdef _WIN32
+#undef _WIN32_WINNT
+#define _WIN32_WINNT _WIN32_WINNT_WIN10
 #include <windows.h>
 #endif
 #include <stdio.h>
@@ -36,6 +38,33 @@
 #include "gui/progress_and_log.h"
 
 #include "FITS_symlink.h"
+
+#ifdef _WIN32
+#define PATH_APPMODEUNLOCK      TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock" )
+#define CLE_APPMODEUNLOCK_ADWDL TEXT("AllowDevelopmentWithoutDevLicense" )
+#define CLE_APPMODEUNLOCK_AATA  TEXT("AllowAllTrustedApps" )
+
+static DWORD ReadValue(LPTSTR lpKeyName, LPTSTR lpPolicyPath) {
+	DWORD dwReturnKo = -1;
+	HKEY hKey;
+	LONG lResult;
+	DWORD dwValue;
+	DWORD dwSize = sizeof(dwValue);
+
+	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, lpPolicyPath, 0, KEY_QUERY_VALUE,
+			&hKey);
+	if (lResult != ERROR_SUCCESS) {
+		printf("RegOpenKeyEx KO\n");
+		return dwReturnKo;
+	}
+
+	lResult = RegQueryValueEx(hKey, lpKeyName, 0, NULL, (LPBYTE) & dwValue,
+			&dwSize);
+	RegCloseKey(hKey);
+
+	return (lResult == ERROR_SUCCESS) ? dwValue : dwReturnKo;
+}
+#endif
 
 static gboolean end_symlink_idle(gpointer p) {
 	struct _symlink_data *args = (struct _symlink_data *) p;
@@ -67,9 +96,26 @@ gpointer symlink_thread_worker(gpointer p) {
 	double progress = 0.0;
 	struct _symlink_data *args = (struct _symlink_data *) p;
 	unsigned int frame_index = 0;
+#ifdef _WIN32
+	gboolean allow_symlink = TRUE;
+#endif
 
 	args->nb_linked_files = 0;
 	args->retval = 0;
+
+#ifdef _WIN32
+	// AllowDevelopmentWithoutDevLicense=1  and AllowAllTrustedApps = 1 if DevMode is enabled
+	// AllowDevelopmentWithoutDevLicense=0  and AllowAllTrustedApps = 0 if DevMode is disabled
+	DWORD cr = ReadValue(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
+	if (cr == -1) {
+		cr = ReadValue(CLE_APPMODEUNLOCK_AATA, PATH_APPMODEUNLOCK);
+		if (cr == -1) {
+			siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
+									"instead of simply copying files.\n"), "red");
+			allow_symlink = FALSE;
+		}
+	}
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
@@ -106,19 +152,21 @@ gpointer symlink_thread_worker(gpointer p) {
 			}
 
 #ifdef _WIN32
-			wchar_t *wsrc, *wdst;
+			if (allow_symlink) {
+				wchar_t *wsrc, *wdst;
 
-			wsrc = g_utf8_to_utf16(src_filename, -1, NULL, NULL, NULL);
-			wdst = g_utf8_to_utf16(dest_filename, -1, NULL, NULL, NULL);
+				wsrc = g_utf8_to_utf16(src_filename, -1, NULL, NULL, NULL);
+				wdst = g_utf8_to_utf16(dest_filename, -1, NULL, NULL, NULL);
 
-			if (CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
-				siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
-						"instead of simply copying files.\n"), "red");
+				if (CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
+					copy_fits_from_file(src_filename, dest_filename);
+				}
+
+				g_free(wsrc);
+				g_free(wdst);
+			} else {
 				copy_fits_from_file(src_filename, dest_filename);
 			}
-
-			g_free(wsrc);
-			g_free(wdst);
 #else
 			if (symlink(src_filename, dest_filename) != 0) {
 				copy_fits_from_file(src_filename, dest_filename);
