@@ -108,12 +108,9 @@ gpointer symlink_thread_worker(gpointer p) {
 	// AllowDevelopmentWithoutDevLicense=0  and AllowAllTrustedApps = 0 if DevMode is disabled
 	DWORD cr = ReadValue(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
 	if (cr == -1) {
-		cr = ReadValue(CLE_APPMODEUNLOCK_AATA, PATH_APPMODEUNLOCK);
-		if (cr == -1) {
-			siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
-									"instead of simply copying files.\n"), "red");
-			allow_symlink = FALSE;
-		}
+		siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
+								"instead of simply copying files.\n"), "red");
+		allow_symlink = FALSE;
 	}
 #endif
 
