@@ -228,6 +228,15 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 		}
 	}
 
+	/** FIX XTRANS AC ISSUE **/
+	if (prepro->fix_xtrans && prepro->use_dark) {
+		fix_xtrans_ac(prepro->dark);
+	}
+
+	if (prepro->fix_xtrans && prepro->use_bias) {
+		fix_xtrans_ac(prepro->bias);
+	}
+
 	// proceed to cosmetic correction
 	if (prepro->use_cosmetic_correction && prepro->use_dark) {
 		if (prepro->dark->naxes[2] == 1) {
@@ -238,15 +247,6 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 		} else
 			siril_log_message(_("Darkmap cosmetic correction "
 						"is only supported with single channel images\n"));
-	}
-
-	/** FIX XTRANS AC ISSUE **/
-	if (prepro->fix_xtrans && prepro->use_dark) {
-		fix_xtrans_ac(prepro->dark);
-	}
-
-	if (prepro->fix_xtrans && prepro->use_bias) {
-		fix_xtrans_ac(prepro->bias);
 	}
 
 	return 0;
@@ -268,17 +268,13 @@ static int prepro_image_hook(struct generic_seq_args *args, int out_index, int i
 			&& prepro->dark->naxes[2] == 1) {
 		/* we don't want apply it on xtrans sensor */
 		sensor_pattern bayer = retrieveBayerPatternFromChar(fit->bayer_pattern);
-		if (bayer <= BAYER_FILTER_MAX) {
-			cosmeticCorrection(fit, prepro->dev, prepro->icold + prepro->ihot, prepro->is_cfa);
+		cosmeticCorrection(fit, prepro->dev, prepro->icold + prepro->ihot, prepro->is_cfa);
 #ifdef SIRIL_OUTPUT_DEBUG
-			image_find_minmax(fit);
-			fprintf(stdout, "after cosmetic correction: min=%f, max=%f\n",
-					fit->mini, fit->maxi);
-			invalidate_stats_from_fit(fit);
+		image_find_minmax(fit);
+		fprintf(stdout, "after cosmetic correction: min=%f, max=%f\n",
+				fit->mini, fit->maxi);
+		invalidate_stats_from_fit(fit);
 #endif
-		} else {
-			siril_log_color_message(_("Cannot apply cosmetic correction on XTRANS sensor yet\n"), "red");
-		}
 	}
 
 	if (prepro->debayer) {
