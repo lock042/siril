@@ -239,11 +239,6 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 			siril_log_message(_("Darkmap cosmetic correction "
 						"is only supported with single channel images\n"));
 	}
-	return 0;
-}
-
-static int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
-	struct preprocessing_data *prepro = args->user;
 
 	/** FIX XTRANS AC ISSUE **/
 	if (prepro->fix_xtrans && prepro->use_dark) {
@@ -253,6 +248,12 @@ static int prepro_image_hook(struct generic_seq_args *args, int out_index, int i
 	if (prepro->fix_xtrans && prepro->use_bias) {
 		fix_xtrans_ac(prepro->bias);
 	}
+
+	return 0;
+}
+
+static int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+	struct preprocessing_data *prepro = args->user;
 
 	/******/
 	if (prepro->use_dark_optim && prepro->use_dark) {
