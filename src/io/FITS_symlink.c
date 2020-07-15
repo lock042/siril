@@ -109,7 +109,7 @@ gpointer symlink_thread_worker(gpointer p) {
 	// AllowDevelopmentWithoutDevLicense=0  and AllowAllTrustedApps = 0 if DevMode is disabled
 	DWORD cr = ReadValue(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
 	if (cr != 1 ) {
-		siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
+		siril_log_color_message(_("You should enable the Developer Mode in order to create symbolic links "
 								"instead of simply copying files.\n"), "red");
 		allow_symlink = FALSE;
 		symlink_is_ok = FALSE;
@@ -196,13 +196,13 @@ gpointer symlink_thread_worker(gpointer p) {
 		g_free(args->list[i]);
 	if (args->retval)
 		siril_log_message(_("%s ended with error, %d/%d input files done\n"),
-				symlink_is_ok ? _("Symbolic link creation") : _("Files copy"), args->nb_linked_files, args->total);
+				symlink_is_ok ? _("Symbolic link creation") : _("The copy of the files"), args->nb_linked_files, args->total);
 	else {
 		if (args->nb_linked_files == args->total)
 			siril_log_message(_("%s succeeded, %d/%d input files done\n"),
-					symlink_is_ok ? _("Symbolic link creation") : _("Files copy"), args->nb_linked_files, args->total);
+					symlink_is_ok ? _("Symbolic link creation") : _("The copy of the files"), args->nb_linked_files, args->total);
 		else siril_log_message(_("%s aborted, %d/%d input files done\n"),
-				symlink_is_ok ? _("Symbolic link creation") : _("Files copy"), args->nb_linked_files, args->total);
+				symlink_is_ok ? _("Symbolic link creation") : _("The copy of the files"), args->nb_linked_files, args->total);
 	}
 	siril_add_idle(end_symlink_idle, args);
 	return NULL;
