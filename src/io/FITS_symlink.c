@@ -99,6 +99,7 @@ gpointer symlink_thread_worker(gpointer p) {
 #ifdef _WIN32
 	gboolean allow_symlink = TRUE;
 #endif
+	gboolean symlink_is_ok = TRUE;
 
 	args->nb_linked_files = 0;
 	args->retval = 0;
@@ -111,6 +112,7 @@ gpointer symlink_thread_worker(gpointer p) {
 		siril_log_color_message(_("You should enable the Developer Mode in order to make symbolic link "
 								"instead of simply copying files.\n"), "red");
 		allow_symlink = FALSE;
+		symlink_is_ok = FALSE;
 	}
 #endif
 
@@ -157,16 +159,19 @@ gpointer symlink_thread_worker(gpointer p) {
 
 				if (CreateSymbolicLinkW(wdst, wsrc, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
 					copy_fits_from_file(src_filename, dest_filename);
+					symlink_is_ok = FALSE;
 				}
 
 				g_free(wsrc);
 				g_free(wdst);
 			} else {
 				copy_fits_from_file(src_filename, dest_filename);
+				symlink_is_ok = FALSE;
 			}
 #else
 			if (symlink(src_filename, dest_filename) != 0) {
 				copy_fits_from_file(src_filename, dest_filename);
+				symlink_is_ok = FALSE;
 			}
 #endif
 
@@ -190,11 +195,14 @@ gpointer symlink_thread_worker(gpointer p) {
 	for (int i = 0; i < args->total; i++)
 		g_free(args->list[i]);
 	if (args->retval)
-		siril_log_message(_("Symbolic link creation ended with error, %d/%d input files done\n"), args->nb_linked_files, args->total);
+		siril_log_message(_("%s ended with error, %d/%d input files done\n"),
+				symlink_is_ok ? _("Symbolic link creation") : _("Copy"), args->nb_linked_files, args->total);
 	else {
 		if (args->nb_linked_files == args->total)
-			siril_log_message(_("Symbolic link creation succeeded, %d/%d input files done\n"), args->nb_linked_files, args->total);
-		else siril_log_message(_("Symbolic link creation aborted, %d/%d input files done\n"), args->nb_linked_files, args->total);
+			siril_log_message(_("%s succeeded, %d/%d input files done\n"),
+					symlink_is_ok ? _("Symbolic link creation") : _("Copy"), args->nb_linked_files, args->total);
+		else siril_log_message(_("%s aborted, %d/%d input files done\n"),
+				symlink_is_ok ? _("Symbolic link creation") : _("Copy"), args->nb_linked_files, args->total);
 	}
 	siril_add_idle(end_symlink_idle, args);
 	return NULL;
