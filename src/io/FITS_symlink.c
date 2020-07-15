@@ -155,7 +155,7 @@ gpointer symlink_thread_worker(gpointer p) {
 				wsrc = g_utf8_to_utf16(src_filename, -1, NULL, NULL, NULL);
 				wdst = g_utf8_to_utf16(dest_filename, -1, NULL, NULL, NULL);
 
-				if (CreateSymbolicLinkW(wsrc, wdst, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
+				if (CreateSymbolicLinkW(wdst, wsrc, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
 					copy_fits_from_file(src_filename, dest_filename);
 				}
 
