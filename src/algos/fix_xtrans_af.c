@@ -136,7 +136,7 @@ int fix_xtrans_ac(fits *fit) {
 
 	// Make sure we have a valid sample.
 	if (nfcount == 0 || afcount == 0) {
-		siril_log_message("Failed to sample enough pixels.\n");
+		siril_log_message(_("Failed to sample enough pixels.\n"));
 		return -1.f;
 	}
 

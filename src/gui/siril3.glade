@@ -4037,7 +4037,7 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
-                                    <property name="tooltip_text" translatable="yes">This option helps to fix the Fujifilm X-Trans Auto Focus pixels. Indeed, because of the phase detection auto focus system. The photosites used for auto focus get a little less light than the surrounding photosites. The camera compensates for this and increases the values from these specific photosites giving a vsibile square in the middle of the dark/bias frames.</property>
+                                    <property name="tooltip_text" translatable="yes">This option helps to fix the Fujifilm X-Trans Auto Focus pixels. Indeed, because of the phase detection auto focus system, the photosites used for auto focus get a little less light than the surrounding photosites. The camera compensates for this and increases the values from these specific photosites giving a visible square in the middle of the dark/bias frames.</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
                                     <signal name="toggled" handler="on_fix_xtrans_af_toggled" swapped="no"/>
@@ -18094,6 +18094,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                       <object class="GtkFrame" id="frame21">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">If your X-Trans model is not recognized, you can also enter the coordinate values ​​of the AF square and the sample. For more information you can contact us on our forum.</property>
                         <property name="valign">start</property>
                         <property name="label_xalign">0</property>
                         <property name="shadow_type">none</property>
