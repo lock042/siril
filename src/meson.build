@@ -118,6 +118,7 @@ src_files = [
   'gui/conversion.c',
   'gui/dialog_preview.c',
   'gui/dialogs.c',
+  'gui/fix_xtrans_af.c',
   'gui/gnuplot_i/gnuplot_i.c',
   'gui/histogram.c',
   'gui/image_display.c',

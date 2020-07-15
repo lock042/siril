@@ -27,7 +27,7 @@
 supported_xtrans_list supported_xtrans[] =
 		{
 		// Camera Name      AF Pixels x,y,w,h        Sample x,y,w,h
-		{ "Fujifilm X-T20", { 1510, 507, 3009, 3016 }, { 1992, 990,	2048, 2048 } }
+		{ "Fujifilm X-T20", { 1510, 507, 3009, 3016 }, { 1992, 990,2048, 2048 } }
 };
 
 static int get_nb_xtrans_supported() {
@@ -82,12 +82,21 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge) {
 }
 
 int fix_xtrans_ac(fits *fit) {
-	int status = 0;
+	rectangle af, sam;
 
 	int model = get_model(fit->instrume);
 	if (model < 0) {
-		siril_log_color_message("Unknown camera %s.\n", "red", fit->instrume);
-		return 1;
+		siril_log_color_message(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), "red", fit->instrume);
+		if (com.pref.xtrans_af.w != 0 && com.pref.xtrans_af.h != 0 && com.pref.xtrans_sample.w != 0 && com.pref.xtrans_sample.h != 0) {
+			af = com.pref.xtrans_af;
+			sam = com.pref.xtrans_sample;
+		} else {
+			siril_log_color_message(_("No information available in preferences.\n"), "red");
+			return 1;
+		}
+	} else {
+		af = supported_xtrans[model].af;
+		sam = supported_xtrans[model].sample;
 	}
 
 	// non-focus pixels
@@ -105,8 +114,6 @@ int fix_xtrans_ac(fits *fit) {
 
 	WORD *buf = fit->pdata[RLAYER];
 	float *fbuf = fit->fpdata[RLAYER];
-	rectangle af = supported_xtrans[model].af;
-	rectangle sam = supported_xtrans[model].sample;
 
 	// Loop through sample rectangle and count/sum AF and non-AF pixels.
 	for (unsigned int y = sam.y; y <= (sam.y + sam.h); y++) {
@@ -139,14 +146,14 @@ int fix_xtrans_ac(fits *fit) {
 	fudge = afmean - nfmean;
 
 	// Debug statements.  Remove later???
-	siril_log_message("Reg Pixel Mean:   %.10f, Count: %ld\n", nfmean, nfcount);
-	siril_log_message(" AF Pixel Mean:   %.10f, Count: %ld\n", afmean, afcount);
-	siril_log_message(" AF Pixel Adjust: %.10f\n", fudge);
+	siril_log_message(_("Reg Pixel Mean...   %.10f, Count: %ld\n"), nfmean, nfcount);
+	siril_log_message(_("AF Pixel Mean....   %.10f, Count: %ld\n"), afmean, afcount);
+	siril_log_message(_("AF Pixel Adjust..   %.10f\n"), fudge);
 
 	// Stay FIT, Subtract the fudge!
 	subtract_fudge(fit, af, fudge);
 
 	invalidate_stats_from_fit(fit);
 
-	return status;
+	return 0;
 }

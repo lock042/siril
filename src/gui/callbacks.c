@@ -52,6 +52,7 @@
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "dialogs.h"
+#include "fix_xtrans_af.h"
 #include "siril_intro.h"
 #include "siril_preview.h"
 
@@ -1218,12 +1219,14 @@ void set_GUI_DiskSpace(int64_t space) {
 }
 
 static void initialize_preprocessing() {
-	GtkToggleButton *cfaButton, *eqButton;
+	GtkToggleButton *cfaButton, *eqButton, *xtransButton;
 
 	cfaButton = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
 	gtk_toggle_button_set_active(cfaButton, com.pref.prepro_cfa);
 	eqButton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
 	gtk_toggle_button_set_active(eqButton, com.pref.prepro_equalize_cfa);
+	xtransButton = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
+	gtk_toggle_button_set_active(xtransButton, com.pref.fix_xtrans);
 
 	update_prepro_interface(FALSE);
 }
@@ -1358,6 +1361,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_path_directory();
 
 	initialize_FITS_name_entries();
+
+	init_xtrans_ui_pixels();
 
 	initialize_log_tags();
 

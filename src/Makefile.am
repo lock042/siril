@@ -137,6 +137,8 @@ siril_common_SOURCES = \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
 	gui/dialogs.h \
+	gui/fix_xtrans_af.c \
+	gui/fix_xtrans_af.h \
 	gui/gnuplot_i/gnuplot_i.c \
 	gui/gnuplot_i/gnuplot_i.h \
 	gui/histogram.c \
