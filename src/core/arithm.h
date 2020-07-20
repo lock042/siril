@@ -22,10 +22,20 @@
 
 #include "core/siril.h"
 
+struct arithm_data {
+	image_operator oper;
+	fits *operand;
+	sequence *seq;
+	const gchar *seqEntry;
+};
+
+
 int soper(fits *a, float scalar, image_operator oper, gboolean conv_to_float);
 int imoper(fits *a, fits *b, image_operator oper, gboolean allow_32bits);
 int addmax(fits *a, fits *b);
 int siril_fdiv(fits *a, fits *b, float scalar, gboolean allow_32bits);
 int siril_ndiv(fits *a, fits *b);
+
+void apply_arithm_extraction_to_sequence(struct arithm_data *arithm_args);
 
 #endif /* SRC_CORE_ARITHM_H_ */

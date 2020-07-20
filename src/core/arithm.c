@@ -20,11 +20,14 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "algos/statistics.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+
+#include "arithm.h"
 
 /*****************************************************************************
  *       S I R I L      A R I T H M E T I C      O P E R A T I O N S         *
@@ -351,3 +354,43 @@ int addmax(fits *a, fits *b) {
 	return 0;
 }
 
+/** Apply for sequence **/
+
+static int arithm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_) {
+	struct arithm_data *a_args = (struct arithm_data*) args->user;
+
+	imoper(fit, a_args->operand, a_args->oper, !com.pref.force_to_16bit);
+	return 0;
+}
+
+void apply_arithm_extraction_to_sequence(struct arithm_data *arithm_args) {
+	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
+	args->seq = arithm_args->seq;
+	args->force_float = FALSE;
+	args->partial_image = FALSE;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = arithm_args->seq->selnum;
+	args->compute_size_hook = NULL;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = seq_finalize_hook;
+	args->save_hook = NULL;
+	args->image_hook = arithm_image_hook;
+	args->idle_function = NULL;
+	args->stop_on_error = FALSE;
+	args->description = _("Arithmetic");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->upscale_ratio = 1.0;
+	args->new_seq_prefix = arithm_args->seqEntry;
+	args->load_new_sequence = TRUE;
+	args->force_ser_output = FALSE;
+	args->new_ser = NULL;
+	args->force_fitseq_output = FALSE;
+	args->new_fitseq = NULL;
+	args->user = arithm_args;
+	args->already_in_a_thread = FALSE;
+	args->parallel = TRUE;
+
+	start_in_new_thread(generic_sequence_worker, args);
+}

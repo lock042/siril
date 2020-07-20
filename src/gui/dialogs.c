@@ -32,6 +32,7 @@
 
 static const SirilDialogEntry entries[] =
 {
+		{"arithm_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"asinh_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
 		{"background_extraction_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"canon_fixbanding_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},

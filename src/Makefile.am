@@ -129,6 +129,8 @@ siril_common_SOURCES = \
 	filters/wavelets.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
+	gui/arithm.c \
+	gui/arithm.h \
 	gui/callbacks.c \
 	gui/callbacks.h \
 	gui/conversion.c \

@@ -115,6 +115,7 @@ src_files = [
   'opencv/findHomography/precomp.hpp',
   
   'gui/about_dialog.c',
+  'gui/arithm.c',
   'gui/callbacks.c',
   'gui/conversion.c',
   'gui/dialog_preview.c',
