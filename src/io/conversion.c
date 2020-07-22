@@ -43,6 +43,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
+#include "io/FITS_symlink.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -443,9 +444,27 @@ gpointer convert_thread_worker(gpointer p) {
 	fitseq fitseq_file;
 	struct _convert_data *args = (struct _convert_data *) p;
 	unsigned int frame_index = 0;
+#ifdef _WIN32
+	gboolean allow_symlink = TRUE;
+#endif
+	gboolean symlink_is_ok = TRUE;
 
 	args->nb_converted_files = 0;
 	args->retval = 0;
+
+#ifdef _WIN32
+	if (args->make_link) {
+		// AllowDevelopmentWithoutDevLicense=1  and AllowAllTrustedApps = 1 if DevMode is enabled
+		// AllowDevelopmentWithoutDevLicense=0  and AllowAllTrustedApps = 0 if DevMode is disabled
+		DWORD cr = read_registre_value(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
+		if (cr != 1 ) {
+			siril_log_color_message(_("You should enable the Developer Mode in order to create symbolic links "
+					"instead of simply copying files.\n"), "red");
+			allow_symlink = FALSE;
+			symlink_is_ok = FALSE;
+		}
+	}
+#endif
 
 	if (args->output_type == SEQ_SER) {
 		if (!args->multiple_output) {
@@ -522,32 +541,40 @@ gpointer convert_thread_worker(gpointer p) {
 			frame_index += added_frames;
 		}
 		else {	// single image
-			if (args->output_type == SEQ_FITSEQ)
-				fitseq_wait_for_memory();
+			if (imagetype == TYPEFITS && args->make_link && symlink_is_ok) {
+				gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot, index,
+						com.pref.ext);
+				symlink_is_ok = symlink_uniq_file(src_filename, dest_filename);
+				g_free(dest_filename);
+			} else {
+				if (args->output_type == SEQ_FITSEQ) {
+					fitseq_wait_for_memory();
+				}
 
-			fits *fit = any_to_new_fits(imagetype, src_filename, args->debayer);
-			if (fit) {
-				if (args->output_type == SEQ_SER) {
-					if (ser_write_frame_from_fit(&ser_file, fit, i)) {
-						siril_log_message(_("Error while converting to SER (no space left?)\n"));
-						args->retval = 1;
+				fits *fit = any_to_new_fits(imagetype, src_filename, args->debayer);
+				if (fit) {
+					if (args->output_type == SEQ_SER) {
+						if (ser_write_frame_from_fit(&ser_file, fit, i)) {
+							siril_log_message(_("Error while converting to SER (no space left?)\n"));
+							args->retval = 1;
+						}
+						clearfits(fit);
+						free(fit);
+					} else if (args->output_type == SEQ_FITSEQ) {
+						if (fitseq_write_image(&fitseq_file, fit, i)) {
+							siril_log_message(_("Error while converting to SER (no space left?)\n"));
+							args->retval = 1;
+						}
+					} else {
+						gchar *dest_filename = g_strdup_printf("%s%05d", args->destroot, index);
+						if (savefits(dest_filename, fit)) {
+							siril_log_message(_("Error while converting to FITS (no space left?)\n"));
+							args->retval = 1;
+						}
+						clearfits(fit);
+						free(fit);
+						g_free(dest_filename);
 					}
-					clearfits(fit);
-					free(fit);
-				} else if (args->output_type == SEQ_FITSEQ) {
-					if (fitseq_write_image(&fitseq_file, fit, i)) {
-						siril_log_message(_("Error while converting to SER (no space left?)\n"));
-						args->retval = 1;
-					}
-				} else {
-					gchar *dest_filename = g_strdup_printf("%s%05d", args->destroot, index);
-					if (savefits(dest_filename, fit)) {
-						siril_log_message(_("Error while converting to FITS (no space left?)\n"));
-						args->retval = 1;
-					}
-					clearfits(fit);
-					free(fit);
-					g_free(dest_filename);
 				}
 			}
 			frame_index++;

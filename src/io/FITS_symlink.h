@@ -22,19 +22,11 @@
 
 #include <glib.h>
 
-struct _symlink_data {
-	struct timeval t_start;
-	GDir *dir;
-	gchar **list;
-	int start;
-	int total;
-	int nb_linked_files;
-	gboolean command_line;
-	gboolean input_has_a_seq;
-	gchar *destroot;
-	int retval;
-};
-
 gpointer symlink_thread_worker(gpointer p);
+gboolean symlink_uniq_file(gchar *src_filename, gchar *dest_filename);
+
+#ifdef _WIN32
+DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath);
+#endif
 
 #endif /* SRC_IO_FITS_SYMLINK_H_ */
