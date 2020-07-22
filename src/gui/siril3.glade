@@ -3214,9 +3214,10 @@ Note: FITS images will have no effect when the pre-processed sequence is SER or 
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
-                                    <property name="tooltip_markup" translatable="yes">Check this option to create symbolic links when input files are in FITS format.
+                                    <property name="tooltip_markup" translatable="yes">Create a symbolic link for FITS files instead of copying them. This is useful to rename a sequence without duplicating files on the disk.
 
 &lt;b&gt;WARNING: on Windows, the symbolic link operations are only possible in Development mode.&lt;/b&gt;</property>
+                                    <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
                                   </object>
                                   <packing>
