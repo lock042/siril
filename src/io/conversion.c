@@ -444,27 +444,11 @@ gpointer convert_thread_worker(gpointer p) {
 	fitseq fitseq_file;
 	struct _convert_data *args = (struct _convert_data *) p;
 	unsigned int frame_index = 0;
-#ifdef _WIN32
-	gboolean allow_symlink = TRUE;
-#endif
-	gboolean symlink_is_ok = TRUE;
 
 	args->nb_converted_files = 0;
 	args->retval = 0;
 
-#ifdef _WIN32
-	if (args->make_link) {
-		// AllowDevelopmentWithoutDevLicense=1  and AllowAllTrustedApps = 1 if DevMode is enabled
-		// AllowDevelopmentWithoutDevLicense=0  and AllowAllTrustedApps = 0 if DevMode is disabled
-		DWORD cr = read_registre_value(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
-		if (cr != 1 ) {
-			siril_log_color_message(_("You should enable the Developer Mode in order to create symbolic links "
-					"instead of simply copying files.\n"), "red");
-			allow_symlink = FALSE;
-			symlink_is_ok = FALSE;
-		}
-	}
-#endif
+	gboolean allow_symlink = test_if_symlink_is_ok();
 
 	if (args->output_type == SEQ_SER) {
 		if (!args->multiple_output) {
@@ -541,10 +525,10 @@ gpointer convert_thread_worker(gpointer p) {
 			frame_index += added_frames;
 		}
 		else {	// single image
-			if (imagetype == TYPEFITS && args->make_link && symlink_is_ok) {
+			if (imagetype == TYPEFITS && args->make_link && allow_symlink) {
 				gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot, index,
 						com.pref.ext);
-				symlink_uniq_file(src_filename, dest_filename, symlink_is_ok);
+				symlink_uniq_file(src_filename, dest_filename, allow_symlink);
 				g_free(dest_filename);
 			} else {
 				if (args->output_type == SEQ_FITSEQ) {

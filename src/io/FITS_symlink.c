@@ -66,6 +66,22 @@ DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath) {
 }
 #endif
 
+gboolean test_if_symlink_is_ok() {
+#ifdef _WIN32
+	// AllowDevelopmentWithoutDevLicense=1  and AllowAllTrustedApps = 1 if DevMode is enabled
+	// AllowDevelopmentWithoutDevLicense=0  and AllowAllTrustedApps = 0 if DevMode is disabled
+	DWORD cr = read_registre_value(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
+	if (cr != 1 ) {
+		siril_log_color_message(_("You should enable the Developer Mode in order to create symbolic links "
+				"instead of simply copying files.\n"), "red");
+		return FALSE;
+	}
+	return TRUE;
+#else
+	return TRUE;
+#endif
+}
+
 gboolean symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_symlink) {
 	gboolean symlink_is_ok = TRUE;
 	/* remove symlink already existing to avoid error */
