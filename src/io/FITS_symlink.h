@@ -20,6 +20,10 @@
 #ifndef SRC_IO_FITS_SYMLINK_H_
 #define SRC_IO_FITS_SYMLINK_H_
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <glib.h>
 
 gpointer symlink_thread_worker(gpointer p);
