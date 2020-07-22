@@ -39,7 +39,6 @@
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
-#include "io/FITS_symlink.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"

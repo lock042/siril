@@ -27,7 +27,7 @@
 #include <glib.h>
 
 gpointer symlink_thread_worker(gpointer p);
-gboolean symlink_uniq_file(gchar *src_filename, gchar *dest_filename);
+gboolean symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_symlink);
 
 #ifdef _WIN32
 DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath);
