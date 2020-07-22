@@ -3154,9 +3154,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                     <property name="label" translatable="yes">Multiple SER</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
-                                    <property name="tooltip_markup" translatable="yes">Check this option to create symbolic links when input files are in FITS format.
-
-&lt;b&gt;WARNING: on Windows, the symbolic link operations are only possible in Development mode&lt;/b&gt;</property>
+                                    <property name="tooltip_text" translatable="yes">Tick this to create several SER files instead of a single SER file for all input elements. Use this if input elements (films) don't share the same image size or must not be processed together.</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
                                   </object>
@@ -3216,6 +3214,9 @@ Note: FITS images will have no effect when the pre-processed sequence is SER or 
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
+                                    <property name="tooltip_markup" translatable="yes">Check this option to create symbolic links when input files are in FITS format.
+
+&lt;b&gt;WARNING: on Windows, the symbolic link operations are only possible in Development mode.&lt;/b&gt;</property>
                                     <property name="draw_indicator">True</property>
                                   </object>
                                   <packing>
