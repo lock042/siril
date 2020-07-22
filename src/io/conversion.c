@@ -544,7 +544,7 @@ gpointer convert_thread_worker(gpointer p) {
 			if (imagetype == TYPEFITS && args->make_link && symlink_is_ok) {
 				gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot, index,
 						com.pref.ext);
-				symlink_is_ok = symlink_uniq_file(src_filename, dest_filename);
+				symlink_uniq_file(src_filename, dest_filename, symlink_is_ok);
 				g_free(dest_filename);
 			} else {
 				if (args->output_type == SEQ_FITSEQ) {

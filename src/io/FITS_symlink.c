@@ -66,7 +66,7 @@ DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath) {
 }
 #endif
 
-gboolean symlink_uniq_file(gchar *src_filename, gchar *dest_filename) {
+gboolean symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_symlink) {
 	gboolean symlink_is_ok = TRUE;
 	/* remove symlink already existing to avoid error */
 	GStatBuf dest_stat;
