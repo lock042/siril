@@ -2717,7 +2717,8 @@ int process_convert(int nb) {
 		if (!ext)
 			continue;
 		image_type type = get_type_for_extension(ext);
-		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPEMP4 && type != TYPEWEBM) {
+		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPEMP4
+				&& type != TYPEWEBM && type != TYPESER) {
 			list = g_list_append(list, g_strdup(file));
 			count++;
 		}
