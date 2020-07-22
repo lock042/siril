@@ -792,6 +792,14 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 
 int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	int xbayeroff = 0, ybayeroff = 0;
+	gboolean top_down = FALSE;
+
+	if ((com.pref.debayer.use_bayer_header
+				&& !g_strcmp0(fit->row_order, "TOP-DOWN"))) {
+		top_down = TRUE;
+	} else if (g_strcmp0(fit->row_order, "TOP-DOWN") && g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+		top_down = com.pref.debayer.top_down;
+	}
 
 	if (!com.pref.debayer.use_bayer_header) {
 		xbayeroff = com.pref.debayer.xbayeroff;
@@ -820,13 +828,7 @@ int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 		}
 	}
 
-	/* y offset
-	 * or bottom-up debayer
-	 */
-	if ((ybayeroff == 1)
-			|| ((com.pref.debayer.use_bayer_header
-					&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
-					|| !com.pref.debayer.top_down)) {
+	if (ybayeroff == 1) {
 		switch (*pattern) {
 		case BAYER_FILTER_RGGB:
 			*pattern = BAYER_FILTER_GBRG;
@@ -845,10 +847,24 @@ int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 		}
 	}
 
-	/* for top-down debayer: do nothing */
-	if ((com.pref.debayer.use_bayer_header
-			&& !g_strcmp0(fit->row_order, "TOP-DOWN"))) {
-		return 0;
+	/* read bottom-up */
+	if (!top_down) {
+		switch (*pattern) {
+		case BAYER_FILTER_RGGB:
+			*pattern = BAYER_FILTER_GBRG;
+			break;
+		case BAYER_FILTER_BGGR:
+			*pattern = BAYER_FILTER_GRBG;
+			break;
+		case BAYER_FILTER_GBRG:
+			*pattern = BAYER_FILTER_RGGB;
+			break;
+		case BAYER_FILTER_GRBG:
+			*pattern = BAYER_FILTER_BGGR;
+			break;
+		default:
+			return 1;
+		}
 	}
 	return 0;
 }
@@ -1013,7 +1029,8 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+		if (!g_strcmp0(fit->row_order, "BOTTOM-UP"))
+			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
 		retrieve_Bayer_pattern(fit, &pattern);
@@ -1050,7 +1067,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 			return 1;
 
 		fit_debayer_buffer(fit, newbuf);
-		if (interpolation == XTRANS) {
+		if (interpolation == XTRANS && !g_strcmp0(fit->row_order, "BOTTOM-UP")) {
 			fits_flip_top_to_bottom(fit);
 		}
 	}
@@ -1065,7 +1082,8 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+		if (!g_strcmp0(fit->row_order, "BOTTOM-UP"))
+			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
 		retrieve_Bayer_pattern(fit, &pattern);
@@ -1076,7 +1094,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		return 1;
 
 	fit_debayer_buffer(fit, newbuf);
-	if (interpolation == XTRANS) {
+	if (interpolation == XTRANS && !g_strcmp0(fit->row_order, "BOTTOM-UP")) {
 		fits_flip_top_to_bottom(fit);
 	}
 	return 0;

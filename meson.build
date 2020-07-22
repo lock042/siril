@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '0.99.2',
+  version : '0.99.3',
   license : ['GPL3'],
   meson_version: '>=0.51.0',
   default_options : [
@@ -295,9 +295,9 @@ else
 endif
 
 if libjpeg_dep.found()
-  conf_data.set('HAVE_JPEG', true, description : 'Using JPEG images.')
+  conf_data.set('HAVE_LIBJPEG', true, description : 'Using JPEG images.')
 else 
-  conf_data.set('HAVE_JPEG', false, description : 'Using JPEG images.')
+  conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
   warning('libjpeg not found. Not using JPEG importer.')
 endif
 

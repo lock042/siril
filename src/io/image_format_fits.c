@@ -963,9 +963,10 @@ void save_fits_header(fits *fit) {
 			&status);
 
 	status = 0;
-	if (fit->row_order[0] != '\0')
+	if (!g_strcmp0(fit->row_order, "BOTTOM-UP") || !g_strcmp0(fit->row_order, "TOP-DOWN")) {
 		fits_update_key(fit->fptr, TSTRING, "ROWORDER", &fit->row_order,
 				"Order of the rows in image array", &status);
+	}
 
 	/*******************************************************************
 	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
@@ -1863,6 +1864,29 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->dft.norm[2] = from->dft.norm[2];
 
 	return 0;
+}
+
+int copy_fits_from_file(char *source, char *destination) {
+	fitsfile *infptr, *outfptr; /* FITS file pointers defined in fitsio.h */
+	int status = 0; /* status must always be initialized = 0  */
+
+	/* Open the input file */
+	if (!siril_fits_open_diskfile(&infptr, source, READONLY, &status)) {
+		/* Create the output file */
+		if (!siril_fits_create_diskfile(&outfptr, destination, &status)) {
+
+			/* copy the previous, current, and following HDUs */
+			fits_copy_file(infptr, outfptr, 1, 1, 1, &status);
+
+			fits_close_file(outfptr, &status);
+		}
+		fits_close_file(infptr, &status);
+	}
+
+	/* if error occured, print out error message */
+	if (status)
+		report_fits_error(status);
+	return (status);
 }
 
 int save1fits16(const char *filename, fits *fit, int layer) {

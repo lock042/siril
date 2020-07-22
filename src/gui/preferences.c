@@ -30,6 +30,7 @@
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 #include "gui/siril_intro.h"
+#include "gui/fix_xtrans_af.h"
 
 #include "preferences.h"
 
@@ -439,6 +440,11 @@ void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_
 	writeinitfile();
 }
 
+void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.fix_xtrans = gtk_toggle_button_get_active(button);
+	writeinitfile();
+}
+
 void on_filechooser_bias_lib_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	g_free(com.pref.prepro_bias_lib);
 	com.pref.prepro_bias_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
@@ -450,6 +456,7 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *button, gpointer user_da
 
 void on_clear_bias_entry_clicked(GtkButton *button, gpointer user_data) {
 	g_free(com.pref.prepro_bias_lib);
+	com.pref.prepro_bias_lib = NULL;
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
 }
 
@@ -464,6 +471,7 @@ void on_check_button_pref_dark_toggled(GtkToggleButton *button, gpointer user_da
 
 void on_clear_dark_entry_clicked(GtkButton *button, gpointer user_data) {
 	g_free(com.pref.prepro_dark_lib);
+	com.pref.prepro_dark_lib = NULL;
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
 }
 
@@ -478,6 +486,7 @@ void on_check_button_pref_flat_toggled(GtkToggleButton *button, gpointer user_da
 
 void on_clear_flat_entry_clicked(GtkButton *button, gpointer user_data) {
 	g_free(com.pref.prepro_flat_lib);
+	com.pref.prepro_flat_lib = NULL;
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
 }
 
@@ -515,6 +524,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	update_photometry_interface();
 	update_language();
 	initialize_FITS_name_entries();
+	save_xtrans_ui_pixels();
 	fill_script_paths_list();
 	refresh_stars_list(com.stars);
 	save_main_window_state();
