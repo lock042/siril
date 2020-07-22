@@ -2583,7 +2583,7 @@ int process_convertraw(int nb) {
 	args->total = count;
 	args->nb_converted_files = 0;
 	args->command_line = TRUE;
-	args->destroot = destroot;
+	args->destroot = format_basename(destroot);
 	args->input_has_a_seq = FALSE;
 	args->debayer = debayer;
 	args->output_type = output;
@@ -2670,7 +2670,7 @@ int process_link(int nb) {
 	args->total = count;
 	args->nb_converted_files = 0;
 	args->command_line = TRUE;
-	args->destroot = destroot;
+	args->destroot = format_basename(destroot);
 	args->input_has_a_seq = FALSE;
 	args->debayer = FALSE;
 	args->multiple_output = FALSE;
@@ -2759,7 +2759,7 @@ int process_convert(int nb) {
 	args->total = count;
 	args->nb_converted_files = 0;
 	args->command_line = TRUE;
-	args->destroot = destroot;
+	args->destroot = format_basename(destroot);
 	args->input_has_a_seq = FALSE;
 	args->debayer = FALSE;
 	args->multiple_output = FALSE;
