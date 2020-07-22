@@ -1,8 +1,8 @@
 ############################################
-# Script for Siril 0.9
+# Script for Siril 1.0
 # March 2020
 # (C) Cyril Richard
-# DSLR_preprocessing v1.6
+# Preprocessing v1.0
 ########### PREPROCESSING SCRIPT ###########
 # Script for DSLR color camera preprocessing
 # needs 4 sets of RAW images in the working
@@ -13,14 +13,16 @@
 
 #build master-bias
 cd biases
-convertraw bias_
+convert bias -out=../process
+cd ../process
 stack bias_ rej 3 3 -nonorm
 cd ..
 
 cd flats
 #preprocess flats
-convertraw flat_
-preprocess flat_ -bias=../biases/bias_stacked
+convert flat -out=../process
+cd ../process
+preprocess flat_ -bias=bias_stacked
 
 #build master-flat
 stack pp_flat_ rej 3 3 -norm=mul
@@ -28,14 +30,16 @@ cd ..
 
 #build master-dark
 cd darks
-convertraw dark_
+convert dark -out=../process
+cd ../process
 stack dark_ rej 3 3 -nonorm
 cd ..
 
 #preprocess lights
 cd lights
-convertraw light_
-preprocess light_ -dark=../darks/dark_stacked -flat=../flats/pp_flat_stacked -cfa -equalize_cfa -debayer
+convertraw light -out=../process
+cd ../process
+preprocess light_ -dark=dark_stacked -flat=pp_flat_stacked -cfa -equalize_cfa -debayer
 
 #align lights
 register pp_light_

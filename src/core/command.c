@@ -2512,7 +2512,7 @@ int process_convertraw(int nb) {
 		return 1;
 	}
 
-	for (int i = 2; i < 4; i++) {
+	for (int i = 2; i < 5; i++) {
 		if (word[i]) {
 			char *current = word[i], *value;
 			if (!strcmp(current, "-debayer")) {
@@ -2524,6 +2524,21 @@ int process_convertraw(int nb) {
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
 				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ? 1 : atoi(value);
+			} else if (g_str_has_prefix(current, "-out=")) {
+				value = current + 5;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
+					if (!g_mkdir_with_parents(value, 0755) == 0) {
+						siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+						return 1;
+					}
+				}
+				gchar *filename = g_build_filename(value, destroot, NULL);
+				g_free(destroot);
+				destroot = filename;
 			}
 		}
 	}
@@ -2607,11 +2622,29 @@ int process_link(int nb) {
 		return 1;
 	}
 
-	if (word[2]) {
-		char *current = word[2], *value;
-		if (g_str_has_prefix(current, "-start=")) {
-			value = current + 7;
-			idx = (atoi(value) <= 0 || atoi(value) >= 100000) ? 1 : atoi(value);
+	for (int i = 2; i < 4; i++) {
+		if (word[i]) {
+			char *current = word[i], *value;
+			if (g_str_has_prefix(current, "-start=")) {
+				value = current + 7;
+				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ?
+						1 : atoi(value);
+			} else if (g_str_has_prefix(current, "-out=")) {
+				value = current + 5;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
+					if (!g_mkdir_with_parents(value, 0755) == 0) {
+						siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+						return 1;
+					}
+				}
+				gchar *filename = g_build_filename(value, destroot, NULL);
+				g_free(destroot);
+				destroot = filename;
+			}
 		}
 	}
 
@@ -2695,11 +2728,29 @@ int process_convert(int nb) {
 		return 1;
 	}
 
-	if (word[2]) {
-		char *current = word[2], *value;
-		if (g_str_has_prefix(current, "-start=")) {
-			value = current + 7;
-			idx = (atoi(value) <= 0 || atoi(value) >= 100000) ? 1 : atoi(value);
+	for (int i = 2; i < 4; i++) {
+		if (word[i]) {
+			char *current = word[i], *value;
+			if (g_str_has_prefix(current, "-start=")) {
+				value = current + 7;
+				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ?
+						1 : atoi(value);
+			} else if (g_str_has_prefix(current, "-out=")) {
+				value = current + 5;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
+					if (!g_mkdir_with_parents(value, 0755) == 0) {
+						siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+						return 1;
+					}
+				}
+				gchar *filename = g_build_filename(value, destroot, NULL);
+				g_free(destroot);
+				destroot = filename;
+			}
 		}
 	}
 
