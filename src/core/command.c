@@ -2558,7 +2558,7 @@ int process_convertraw(int nb) {
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPERAW) {
-			list = g_list_append(list, g_strdup(file));
+			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
 			count++;
 		}
 	}
@@ -2663,7 +2663,7 @@ int process_link(int nb) {
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPEFITS) {
-			list = g_list_append(list, g_strdup(file));
+			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
 			count++;
 		}
 	}
@@ -2780,7 +2780,7 @@ int process_convert(int nb) {
 		image_type type = get_type_for_extension(ext);
 		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPEMP4
 				&& type != TYPEWEBM && type != TYPESER) {
-			list = g_list_append(list, g_strdup(file));
+			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
 			count++;
 		}
 	}
