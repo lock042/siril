@@ -18,8 +18,8 @@ cd ../process
 stack bias_ rej 3 3 -nonorm
 cd ..
 
-cd flats
 #preprocess flats
+cd flats
 convert flat -out=../process
 cd ../process
 preprocess flat_ -bias=../biases/bias_stacked
@@ -52,4 +52,3 @@ stack r_Ha_pp_light_ rej 3 3 -norm=addscale -output_norm -out=../Ha_result
 
 cd ..
 close
-

@@ -18,8 +18,8 @@ cd ../process
 stack bias_ rej 3 3 -nonorm
 cd ..
 
-cd flats
 #preprocess flats
+cd flats
 convert flat -out=../process
 cd ../process
 preprocess flat_ -bias=../biases/bias_stacked
@@ -64,4 +64,3 @@ linear_match Ha_result 0 0.92
 save OIII_result
 
 close
-
