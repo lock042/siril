@@ -12,9 +12,9 @@ SUBDIRS = subprojects \
 # to be able to choose the language. Also, this should
 # be a recussive make with a separate file list.
 scriptsdir = $(pkgdatadir)/scripts
-scripts_DATA = scripts/Preprocessing.ssf \
-	scripts/Extract_Ha.ssf \
-	scripts/Extract_HaOIII.ssf \
+scripts_DATA = scripts/OSC_Preprocessing.ssf \
+	scripts/OSC_Extract_Ha.ssf \
+	scripts/OSC_Extract_HaOIII.ssf \
 	3rdparty/scripts/en/DSLR_Preprocessing_Drizzle.ssf
 
 doc_DATA = AUTHORS \
