@@ -3218,6 +3218,7 @@ Note: FITS images will have no effect when the pre-processed sequence is SER or 
 
 &lt;b&gt;WARNING: on Windows, the symbolic link operations are only possible in Development mode.&lt;/b&gt;</property>
                                     <property name="halign">start</property>
+                                    <property name="active">True</property>
                                     <property name="draw_indicator">True</property>
                                   </object>
                                   <packing>

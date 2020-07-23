@@ -2512,7 +2512,7 @@ int process_convertraw(int nb) {
 		return 1;
 	}
 
-	for (int i = 2; i < 5; i++) {
+	for (int i = 2; i < 6; i++) {
 		if (word[i]) {
 			char *current = word[i], *value;
 			if (!strcmp(current, "-debayer")) {
@@ -2721,6 +2721,9 @@ int process_convert(int nb) {
 	const gchar *file;
 	GList *list = NULL;
 	int idx = 1;
+	gboolean debayer = FALSE;
+	gboolean make_link = TRUE;
+	sequence_type output = SEQ_REGULAR;
 	gchar *destroot = g_strdup(word[1]);
 
 	if (get_thread_run()) {
@@ -2728,10 +2731,17 @@ int process_convert(int nb) {
 		return 1;
 	}
 
-	for (int i = 2; i < 4; i++) {
+	for (int i = 2; i < 6; i++) {
 		if (word[i]) {
 			char *current = word[i], *value;
-			if (g_str_has_prefix(current, "-start=")) {
+			if (!strcmp(current, "-debayer")) {
+				debayer = TRUE;
+				make_link = FALSE;
+			} else if (!strcmp(current, "-fitseq")) {
+				output = SEQ_FITSEQ;
+				if (!ends_with(destroot, com.pref.ext))
+					str_append(&destroot, com.pref.ext);
+			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
 				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ?
 						1 : atoi(value);
@@ -2812,10 +2822,10 @@ int process_convert(int nb) {
 	args->command_line = TRUE;
 	args->destroot = format_basename(destroot);
 	args->input_has_a_seq = FALSE;
-	args->debayer = FALSE;
+	args->debayer = debayer;
 	args->multiple_output = FALSE;
-	args->output_type = SEQ_REGULAR; // fallback if symlink does not work
-	args->make_link = TRUE;
+	args->output_type = output;
+	args->make_link = make_link;
 	gettimeofday(&(args->t_start), NULL);
 	start_in_new_thread(convert_thread_worker, args);
 
