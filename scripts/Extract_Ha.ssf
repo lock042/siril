@@ -1,10 +1,10 @@
 ############################################
 # Script for Siril 1.0
-# March 2020
+# July 2020
 # (C) Cyril Richard
-# DSLR_extractHa v1.0
+# ExtractHa v1.0
 ########### PREPROCESSING SCRIPT ###########
-# Script for DSLR color camera preprocessing
+# Script for color camera preprocessing
 # needs 4 sets of RAW images in the working
 # directory, within 4 directories:
 # biases, flats, darks and lights 
@@ -13,13 +13,15 @@
 
 #build master-bias
 cd biases
-convertraw bias_
+convertraw bias -out=../process
+cd ../process
 stack bias_ rej 3 3 -nonorm
 cd ..
 
 cd flats
 #preprocess flats
-convertraw flat_
+convertraw flat -out=../process
+cd ../process
 preprocess flat_ -bias=../biases/bias_stacked
 
 #build master-flat
@@ -28,13 +30,15 @@ cd ..
 
 #build master-dark
 cd darks
-convertraw dark_
+convertraw dark -out=../process
+cd ../process
 stack dark_ rej 3 3 -nonorm
 cd ..
 
 #preprocess lights
 cd lights
-convertraw light_
+convertraw light -out=../process
+cd ../process
 preprocess light_ -dark=../darks/dark_stacked -flat=../flats/pp_flat_stacked -cfa -equalize_cfa
 
 #extract Ha
