@@ -4,7 +4,7 @@
 # (C) Cyril Richard
 # Preprocessing v1.0
 ########### PREPROCESSING SCRIPT ###########
-# Script for DSLR color camera preprocessing
+# Script for color camera preprocessing
 # needs 4 sets of RAW images in the working
 # directory, within 4 directories:
 # biases, flats, darks and lights 
