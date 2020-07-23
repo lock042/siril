@@ -13,14 +13,14 @@
 
 #build master-bias
 cd biases
-convertraw bias -out=../process
+convert bias -out=../process
 cd ../process
 stack bias_ rej 3 3 -nonorm
 cd ..
 
 cd flats
 #preprocess flats
-convertraw flat -out=../process
+convert flat -out=../process
 cd ../process
 preprocess flat_ -bias=../biases/bias_stacked
 
@@ -30,14 +30,14 @@ cd ..
 
 #build master-dark
 cd darks
-convertraw dark -out=../process
+convert dark -out=../process
 cd ../process
 stack dark_ rej 3 3 -nonorm
 cd ..
 
 #preprocess lights
 cd lights
-convertraw light -out=../process
+convert light -out=../process
 cd ../process
 preprocess light_ -dark=../darks/dark_stacked -flat=../flats/pp_flat_stacked -cfa -equalize_cfa
 
