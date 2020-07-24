@@ -739,6 +739,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data_pool[i].tmp = malloc(bufferSize);
 		if (!data_pool[i].pix || !data_pool[i].tmp) {
 			PRINT_ALLOC_ERR;
+			fprintf(stderr, "Cannot allocate %lu\n", bufferSize);
 			fprintf(stderr, "CHANGE MEMORY SETTINGS if stacking takes too much.\n");
 			retval = ST_ALLOC_ERROR;
 			goto free_and_close;
