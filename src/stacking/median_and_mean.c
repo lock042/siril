@@ -617,7 +617,8 @@ int stack_median(struct stacking_args *args) {
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	int nb_frames;		/* number of frames actually used */
 	int bitpix, i, naxis, ielem_size, cur_nb = 0, retval = ST_OK, pool_size = 1;
-	long npixels_in_block, naxes[3];
+	size_t npixels_in_block;
+	long naxes[3];
 	double exposure = 0.0;
 	struct _data_block *data_pool = NULL;
 	struct _image_block *blocks = NULL;
@@ -723,7 +724,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 
 	fprintf(stdout, "allocating data for %d threads (each %'lu MB)\n", pool_size,
-			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
+			(size_t)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
 	data_pool = calloc(pool_size, sizeof(struct _data_block));
 	size_t bufferSize = ielem_size * nb_frames * (npixels_in_block + 1) + 4; // buffer for tmp and stack, added 4 byte for alignment
 	fprintf(stdout, "bufferSize: %zu\n", bufferSize);
