@@ -303,8 +303,8 @@ siril-win64/packaging-meson:
 
 flatpak:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
-  only: 
-   - schedules
+  except:
+    - schedules
   image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.36"
   stage: "packaging"
   variables:
