@@ -726,6 +726,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
 	data_pool = calloc(pool_size, sizeof(struct _data_block));
 	size_t bufferSize = ielem_size * nb_frames * (npixels_in_block + 1) + 4; // buffer for tmp and stack, added 4 byte for alignment
+	fprintf(stdout, "bufferSize: %zu\n", bufferSize);
 	if (is_mean) {
 		bufferSize += nb_frames * sizeof(int); // for rejected
 		if (args->type_of_rejection == WINSORIZED) {
@@ -739,7 +740,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data_pool[i].tmp = malloc(bufferSize);
 		if (!data_pool[i].pix || !data_pool[i].tmp) {
 			PRINT_ALLOC_ERR;
-			fprintf(stderr, "Cannot allocate %lu (free memory: %d)\n", bufferSize / BYTES_IN_A_MB, get_available_memory_in_MB());
+			fprintf(stderr, "Cannot allocate %zu (free memory: %d)\n", bufferSize / BYTES_IN_A_MB, get_available_memory_in_MB());
 			fprintf(stderr, "CHANGE MEMORY SETTINGS if stacking takes too much.\n");
 			retval = ST_ALLOC_ERROR;
 			goto free_and_close;
