@@ -3235,8 +3235,13 @@ static gpointer stackone_worker(gpointer garg) {
 
 	retval = stack_one_seq(arg);
 
-	if (!retval)
+	if (retval) {
+		if (retval == ST_ALLOC_ERROR) {
+			siril_log_message(_("It looks like there is a memory allocation error, change memory settings and try to fix it.\n"));
+		}
+	} else {
 		siril_log_message(_("Stacked sequence successfully.\n"));
+	}
 
 	gettimeofday(&t_end, NULL);
 	show_time(arg->t_start, t_end);
