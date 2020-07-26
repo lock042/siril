@@ -325,54 +325,9 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 	return 0;
 }
 
-static int init_images(fitseq *fitseq, fits *example, gboolean create_images) {
+static void init_images(fitseq *fitseq, fits *example) {
 	fitseq->bitpix = example->bitpix;
 	memcpy(fitseq->naxes, example->naxes, sizeof fitseq->naxes);
-
-	if (create_images) {
-		int nb_keys, status = 0;
-		// create first image to save the header and get its size
-		if (fits_create_img(fitseq->fptr, example->bitpix,
-					example->naxis, example->naxes, &status)) {
-			report_fits_error(status);
-			return 1;
-		}
-		siril_debug_print("fits_create_img(naxis = %d, naxes = { %ld, %ld, %ld }, bitpix = %d)\n",
-				example->naxis, example->naxes[0], example->naxes[1],
-				example->naxes[2], example->bitpix);
-		example->fptr = fitseq->fptr;
-		save_fits_header(example);
-		fits_get_hdrspace(fitseq->fptr, &nb_keys, NULL, &status);
-		siril_debug_print("fitseq header size: %d keys\n", nb_keys);
-		if (status)
-			nb_keys = 0;
-
-		for (int i = 1; i < fitseq->frame_count; i++) {
-			// preallocate images
-			if (fits_create_img(fitseq->fptr, example->bitpix,
-						example->naxis, example->naxes, &status)) {
-				report_fits_error(status);
-				return 1;
-			}
-			siril_debug_print("fits_create_img(naxis = %d, naxes = { %ld, %ld, %ld }, bitpix = %d)\n",
-					example->naxis, example->naxes[0], example->naxes[1],
-					example->naxes[2], example->bitpix);
-
-			// preallocate header
-			if (nb_keys > 0) {
-				fits_set_hdrsize(fitseq->fptr, nb_keys, &status);
-				if (status) {
-					siril_debug_print("request for header extension failed\n");
-					report_fits_error(status);
-				}
-			}
-
-
-		}
-		siril_debug_print("Successfully initialized the images of the FITS sequence file %s\n",
-				fitseq->filename);
-	}
-	return 0;
 }
 
 struct _pending_write {
@@ -406,46 +361,55 @@ static void *write_worker(void *a) {
 	fitseq *fitseq = (struct fits_sequence *)a;
 	fitseq_error retval = FITSEQ_OK;
 	int nb_frames_written = 0, status;
+	GList *next_images = NULL;
 
 	do {
-		siril_debug_print("fitseq write: waiting for message %d\n", nb_frames_written);
-		struct _pending_write *task = g_async_queue_pop(fitseq->writes_queue);
-		siril_debug_print("fitseq write: message acquired\n");
-		if (task == ABORT_TASK) {
-			siril_debug_print("fitseq write: abort message\n");
-			retval = FITSEQ_INCOMPLETE;
-			break;
-		}
-		if (fitseq->bitpix && (memcmp(task->image->naxes, fitseq->naxes, sizeof fitseq->naxes) ||
-					task->image->bitpix != fitseq->bitpix)) {
-			siril_log_color_message(_("Cannot add an image with different properties to an existing sequence.\n"), "red");
-			retval = FITSEQ_WRITE_ERROR;
-			break;
-		}
-		int hdu_index = task->index + 1;
-		siril_debug_print("fitseq write: moving to HDU %d\n", hdu_index);
-		status = 0;
-		if (!fitseq->bitpix && init_images(fitseq, task->image, fitseq->frame_count > 0)) {
-			siril_log_color_message(_("Failed to initialize the FITS sequence, aborting\n"), "red");
-			retval = FITSEQ_WRITE_ERROR;
-			break;
+		struct _pending_write *task = NULL;
+		GList *stored;
+		for (stored = next_images; stored != NULL; stored = stored->next) {
+			struct _pending_write *stored_task = (struct _pending_write *)stored->data;
+			if (stored_task->index == nb_frames_written) {
+				task = stored_task;
+				next_images = g_list_delete_link(next_images, stored);
+				siril_debug_print("fitseq write: image %d obtained from waiting list\n", task->index);
+				break;
+			}
 		}
 
-		if (task->index >= 0) {
-			fits_movabs_hdu(fitseq->fptr, hdu_index, NULL, &status); // move to the corresponding HDU
-			if (status) {
-				report_fits_error(status);
-				siril_log_color_message(_("Could not write image %d of the FITS sequence\n"), "red", task->index);
-				retval = FITSEQ_WRITE_ERROR;
+		if (!task) {	// if not in the waiting list, try to get it from processing threads
+			do {
+			siril_debug_print("fitseq write: waiting for message %d\n", nb_frames_written);
+				task = g_async_queue_pop(fitseq->writes_queue);	// blocking
+				if (fitseq->bitpix && (memcmp(task->image->naxes, fitseq->naxes, sizeof fitseq->naxes) ||
+							task->image->bitpix != fitseq->bitpix)) {
+					siril_log_color_message(_("Cannot add an image with different properties to an existing sequence.\n"), "red");
+					retval = FITSEQ_WRITE_ERROR;
+					break;
+				}
+				if (task->index >= 0 && task->index != nb_frames_written) {
+					siril_debug_print("fitseq write: image %d put stored for later use\n", task->index);
+					next_images = g_list_append(next_images, task);
+					task = NULL;
+				}
+			} while (!task);
+			siril_debug_print("fitseq write: image %d received\n", task->index);
+
+			if (task == ABORT_TASK) {
+				siril_debug_print("fitseq write: abort message\n");
+				retval = FITSEQ_INCOMPLETE;
 				break;
 			}
-		} else {
-			if (fits_create_img(fitseq->fptr, task->image->bitpix,
-						task->image->naxis, task->image->naxes, &status)) {
-				report_fits_error(status);
-				retval = FITSEQ_WRITE_ERROR;
-				break;
-			}
+		}
+
+		if (!fitseq->bitpix)
+			init_images(fitseq, task->image);
+
+		status = 0;
+		if (fits_create_img(fitseq->fptr, task->image->bitpix,
+					task->image->naxis, task->image->naxes, &status)) {
+			report_fits_error(status);
+			retval = FITSEQ_WRITE_ERROR;
+			break;
 		}
 
 		siril_log_message(_("fitseq write: Saving FITS image %d, %ld layer(s), %ux%u pixels, %d bits\n"),

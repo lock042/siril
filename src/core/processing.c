@@ -130,7 +130,10 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(input_idx) schedule(static) \
+	if (args->has_output)
+		omp_set_schedule(omp_sched_dynamic, 1);
+	else omp_set_schedule(omp_sched_static, 0);
+#pragma omp parallel for num_threads(com.max_thread) private(input_idx) schedule(runtime) \
 	if(args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
 #endif
 	for (frame = 0; frame < nb_frames; frame++) {
@@ -359,7 +362,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			return 1;
 		} else {
 			// there doesn't seem to be any interest in having a larger queue
-			int max_queue_size = com.max_thread * 2;
+			int max_queue_size = com.max_thread * 3;
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
