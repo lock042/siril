@@ -93,8 +93,9 @@
                 "/lib/pkgconfig"
             ],
             "config-opts": [
-                "-D CMAKE_BUILD_TYPE=RELEASE",
-                "-D BUILD_EXAMPLES=OFF"
+                "-DCMAKE_BUILD_TYPE=RELEASE",
+                "-DBUILD_EXAMPLES=OFF",
+                "-DOPENCV_GENERATE_PKGCONFIG=ON"
             ],
             "sources": [
                 {
