@@ -386,6 +386,12 @@ static void *write_worker(void *a) {
 					retval = FITSEQ_WRITE_ERROR;
 					break;
 				}
+
+				if (task == ABORT_TASK) {
+					siril_debug_print("fitseq write: abort message\n");
+					retval = FITSEQ_INCOMPLETE;
+					break;
+				}
 				if (task->index >= 0 && task->index != nb_frames_written) {
 					siril_debug_print("fitseq write: image %d put stored for later use\n", task->index);
 					next_images = g_list_append(next_images, task);
@@ -393,13 +399,9 @@ static void *write_worker(void *a) {
 				}
 			} while (!task);
 			siril_debug_print("fitseq write: image %d received\n", task->index);
-
-			if (task == ABORT_TASK) {
-				siril_debug_print("fitseq write: abort message\n");
-				retval = FITSEQ_INCOMPLETE;
-				break;
-			}
 		}
+		if (retval == FITSEQ_INCOMPLETE)
+			break;
 
 		if (!fitseq->bitpix)
 			init_images(fitseq, task->image);

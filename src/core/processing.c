@@ -130,7 +130,7 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 
 #ifdef _OPENMP
-	if (args->has_output)
+	if (args->has_output && (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ))
 		omp_set_schedule(omp_sched_dynamic, 1);
 	else omp_set_schedule(omp_sched_static, 0);
 #pragma omp parallel for num_threads(com.max_thread) private(input_idx) schedule(runtime) \
