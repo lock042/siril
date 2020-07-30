@@ -2598,7 +2598,10 @@ int process_convertraw(int nb) {
 	args->total = count;
 	args->nb_converted_files = 0;
 	args->command_line = TRUE;
-	args->destroot = format_basename(destroot);
+	if (output == SEQ_REGULAR)
+		args->destroot = format_basename(destroot);
+	else
+		args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->debayer = debayer;
 	args->output_type = output;
@@ -2820,7 +2823,10 @@ int process_convert(int nb) {
 	args->total = count;
 	args->nb_converted_files = 0;
 	args->command_line = TRUE;
-	args->destroot = format_basename(destroot);
+	if (output == SEQ_REGULAR)
+		args->destroot = format_basename(destroot);
+	else
+		args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->debayer = debayer;
 	args->multiple_output = FALSE;
@@ -3025,12 +3031,6 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
-				}
-				if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
-					if (!g_mkdir_with_parents(value, 0755) == 0) {
-						siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
-						return 1;
-					}
 				}
 				arg->result_file = strdup(value);
 			}
