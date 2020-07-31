@@ -127,15 +127,17 @@ gpointer generic_sequence_worker(gpointer p) {
 
 #ifdef _OPENMP
 	omp_init_lock(&args->lock);
-#endif
-
-#ifdef _OPENMP
 	if (args->has_output && (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ))
 		omp_set_schedule(omp_sched_dynamic, 1);
 	else omp_set_schedule(omp_sched_static, 0);
-#pragma omp parallel for num_threads(com.max_thread) private(input_idx) schedule(runtime) \
+#ifdef HAVE_FFMS2
+#pragma omp parallel for num_threads(com.max_thread) private(input_idx) schedule(static) \
+	if(args->seq->type != SEQ_AVI && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
+#else
+#pragma omp parallel for num_threads(com.max_thread) private(input_idx) schedule(static) \
 	if(args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
-#endif
+#endif // HAVE_FFMS2
+#endif // _OPENMP
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (abort) continue;
 
