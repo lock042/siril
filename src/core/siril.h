@@ -191,22 +191,6 @@ typedef struct save_config_struct save_config;
 
 /* global structures */
 
-/* operations on image data */
-typedef enum {
-	OPER_ADD,
-	OPER_SUB,
-	OPER_MUL,
-	OPER_DIV
-} image_operator;
-
-/* ORDER OF POLYNOMES */
-typedef enum {
-	POLY_1,
-	POLY_2,
-	POLY_3,
-	POLY_4,
-} poly_order;
-
 typedef enum {
 	NORMAL_DISPLAY,	
 	LOG_DISPLAY,
@@ -229,11 +213,11 @@ typedef enum {
 	USER
 } sliders_mode;
 
-enum {
+typedef enum {
 	OPEN_IMAGE_ERROR = -1,
 	OPEN_IMAGE_OK = 0,
 	OPEN_IMAGE_CANCEL = 10,
-};
+} open_image_status;
 
 typedef enum {
 	FILE_CONVERSION,
@@ -308,7 +292,7 @@ struct registration_data {
 	fitted_PSF *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
 	float weighted_fwhm; // used to exclude spurious images.
-	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set 
+	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
 	double quality;
 };
 

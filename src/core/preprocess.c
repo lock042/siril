@@ -247,12 +247,11 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 				prepro->dev = find_deviant_pixels(prepro->dark, prepro->sigma,
 						&(prepro->icold), &(prepro->ihot), FALSE);
 				gchar *str = ngettext("%ld corrected pixel (%ld + %ld)\n", "%ld corrected pixels (%ld + %ld)\n", prepro->icold + prepro->ihot);
-				str = g_strdup_printf(str, prepro->icold + prepro->ihot);
+				str = g_strdup_printf(str, prepro->icold + prepro->ihot, prepro->icold, prepro->ihot);
 				siril_log_message(str);
 				g_free(str);
 			} else
-				siril_log_message(_("Darkmap cosmetic correction "
-						"is only supported with single channel images\n"));
+				siril_log_message(_("Darkmap cosmetic correction is only supported with single channel images\n"));
 		}
 	}
 
