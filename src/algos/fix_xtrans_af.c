@@ -49,48 +49,47 @@ void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 	// af_pixel_matrix is [12][6].
         // Lowercase are AF pixels.  Uppercase are regular.
 
-        if (!g_ascii_strcasecmp("GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG", pattern)) {
-		strcpy(af_matrix[0]  , "GGRGGB");
-		strcpy(af_matrix[1]  , "GGBGGR");
-		strcpy(af_matrix[2]  , "BRGRBG");
-		strcpy(af_matrix[3]  , "GgBGgR");
-		strcpy(af_matrix[4]  , "GGRGGB");
-		strcpy(af_matrix[5]  , "RBGBRG");
-		strcpy(af_matrix[6]  , "GGRGGB");
-		strcpy(af_matrix[7]  , "GgBGgR");
-		strcpy(af_matrix[8]  , "BRGRBG");
-		strcpy(af_matrix[9]  , "GGBGGR");
-		strcpy(af_matrix[10] , "GGRGGB");
-		strcpy(af_matrix[11] , "RBGBRG");
-        } else if (!g_ascii_strcasecmp("RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", pattern)) {
-                strcpy(af_matrix[0]  , "RBGBRG");
-                strcpy(af_matrix[1]  , "GGRGGB");
-                strcpy(af_matrix[2]  , "GGBGGR");
-                strcpy(af_matrix[3]  , "BRGRBG");
-                strcpy(af_matrix[4]  , "GgBGgR");
-                strcpy(af_matrix[5]  , "GGRGGB");
-                strcpy(af_matrix[6]  , "RBGBRG");
-                strcpy(af_matrix[7]  , "GGRGGB");
-                strcpy(af_matrix[8]  , "GgBGgR");
-                strcpy(af_matrix[9]  , "BRGRBG");
-                strcpy(af_matrix[10] , "GGBGGR");
-                strcpy(af_matrix[11] , "GGRGGB");
-        }
+	if (!g_ascii_strcasecmp("GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG", pattern)) {
+		strcpy(af_matrix[0], "GGRGGB");
+		strcpy(af_matrix[1], "GGBGGR");
+		strcpy(af_matrix[2], "BRGRBG");
+		strcpy(af_matrix[3], "GgBGgR");
+		strcpy(af_matrix[4], "GGRGGB");
+		strcpy(af_matrix[5], "RBGBRG");
+		strcpy(af_matrix[6], "GGRGGB");
+		strcpy(af_matrix[7], "GgBGgR");
+		strcpy(af_matrix[8], "BRGRBG");
+		strcpy(af_matrix[9], "GGBGGR");
+		strcpy(af_matrix[10], "GGRGGB");
+		strcpy(af_matrix[11], "RBGBRG");
+	} else if (!g_ascii_strcasecmp("RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", pattern)) {
+		strcpy(af_matrix[0], "RBGBRG");
+		strcpy(af_matrix[1], "GGRGGB");
+		strcpy(af_matrix[2], "GGBGGR");
+		strcpy(af_matrix[3], "BRGRBG");
+		strcpy(af_matrix[4], "GgBGgR");
+		strcpy(af_matrix[5], "GGRGGB");
+		strcpy(af_matrix[6], "RBGBRG");
+		strcpy(af_matrix[7], "GGRGGB");
+		strcpy(af_matrix[8], "GgBGgR");
+		strcpy(af_matrix[9], "BRGRBG");
+		strcpy(af_matrix[10], "GGBGGR");
+		strcpy(af_matrix[11], "GGRGGB");
+	}
 }
 
 // This returns the pixel type based on our AF matrix if we are within the AF rectangle.
 // It returns an X if we are outside of the AF rectangle.
 char get_pixel_type( rectangle af, int x, int y, af_pixel_matrix *af_matrix ) {
 
-	if ( x >= af.x && x <= (af.x + af.w) &&
-             y >= af.y && y <= (af.y + af.h) ) {
+	if (x >= af.x && x <= (af.x + af.w) && y >= af.y && y <= (af.y + af.h)) {
 		// We are within the AF rectangle.
-                // This is written assuming we don't know the size of the matrix.
+		// This is written assuming we don't know the size of the matrix.
 		int matrix_cols = sizeof((*af_matrix)[0]);
-		int matrix_rows = sizeof((*af_matrix))/sizeof((*af_matrix)[0]);
+		int matrix_rows = sizeof((*af_matrix)) / sizeof((*af_matrix)[0]);
 
 		// This will return the corresponding pixel type.
-		return (*af_matrix)[ y%matrix_rows ][ x%matrix_cols ];
+		return (*af_matrix)[y % matrix_rows][x % matrix_cols];
 	} else {
 		// We are outside of the AF rectangle.
 		return 'X';
@@ -177,13 +176,13 @@ int fix_xtrans_ac(fits *fit) {
 
 
 	// af_matrix is an RGB pattern where lowercase letters represent AF pixels and their color.
-	af_pixel_matrix af_matrix = {0};
+	af_pixel_matrix af_matrix = { 0 };
 	set_af_matrix(fit->bayer_pattern, af_matrix);
 
 	WORD *buf = fit->pdata[RLAYER];
 	float *fbuf = fit->fpdata[RLAYER];
 
-	if (af_matrix[0][0]==0) {
+	if (af_matrix[0][0] == 0) {
 		siril_log_color_message(_("This CFA pattern cannot be handled by fix_xtrans_ac.\n"), "red");
 		return 1;
 	}
@@ -195,8 +194,8 @@ int fix_xtrans_ac(fits *fit) {
 							fbuf[x + y * fit->rx] :
 							(float) buf[x + y * fit->rx];
 
-			switch ( get_pixel_type( af, x, y, &af_matrix ) ) {
-                        case 'G': // This is a Green (non-AF) pixel.
+			switch (get_pixel_type(af, x, y, &af_matrix)) {
+			case 'G': // This is a Green (non-AF) pixel.
 				nfcount++;
 				nfsum += (double) pixel;
 				break;
