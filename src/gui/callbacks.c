@@ -554,7 +554,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 			       *checkAutoEvaluate = NULL;
 	static GtkWidget *prepro_button = NULL, *cosme_grid = NULL, *dark_optim = NULL;
        	static GtkWidget *equalize = NULL, *auto_eval = NULL, *flat_norm = NULL;
-       	static GtkWidget *debayer = NULL, *fix_xtrans = NULL;
+       	static GtkWidget *debayer = NULL;
 	static GtkComboBox *output_type = NULL;
 	if (udark == NULL) {
 		udark = GTK_TOGGLE_BUTTON(
@@ -574,7 +574,6 @@ void update_prepro_interface(gboolean allow_debayer) {
 		auto_eval = lookup_widget("checkbutton_auto_evaluate");
 		flat_norm = lookup_widget("entry_flat_norm");
 		debayer = lookup_widget("checkButton_pp_dem");
-		fix_xtrans = lookup_widget("fix_xtrans_af");
 	}
 
 	gtk_widget_set_sensitive(prepro_button,
@@ -591,7 +590,6 @@ void update_prepro_interface(gboolean allow_debayer) {
 			!gtk_toggle_button_get_active(checkAutoEvaluate));
 
 	gtk_widget_set_sensitive(debayer, allow_debayer && gtk_widget_get_sensitive(prepro_button));
-	gtk_widget_set_sensitive(fix_xtrans, gtk_toggle_button_get_active(udark) || gtk_toggle_button_get_active(uoffset));
 
 	gtk_widget_set_sensitive(GTK_WIDGET(output_type), sequence_is_loaded());
 	int type = com.seq.type;
