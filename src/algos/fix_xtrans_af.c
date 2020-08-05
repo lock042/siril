@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
+#include "io/conversion.h"
 
 #include "fix_xtrans_af.h"
 
@@ -49,7 +50,7 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 	// af_pixel_matrix is [12][6].
         // Lowercase are AF pixels.  Uppercase are regular.
 
-	if (!g_ascii_strcasecmp("GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG", pattern)) {
+	if (!g_ascii_strcasecmp(filter_pattern[XTRANS_1], pattern)) {
 		memcpy(af_matrix[0], "GGRGGB", 6);
 		memcpy(af_matrix[1], "GGBGGR", 6);
 		memcpy(af_matrix[2], "BRGRBG", 6);
@@ -62,7 +63,7 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 		memcpy(af_matrix[9], "GGBGGR", 6);
 		memcpy(af_matrix[10], "GGRGGB", 6);
 		memcpy(af_matrix[11], "RBGBRG", 6);
-	} else if (!g_ascii_strcasecmp("RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", pattern)) {
+	} else if (!g_ascii_strcasecmp(filter_pattern[XTRANS_2], pattern)) {
 		memcpy(af_matrix[0], "RBGBRG", 6);
 		memcpy(af_matrix[1], "GGRGGB", 6);
 		memcpy(af_matrix[2], "GGBGGR", 6);
@@ -89,7 +90,6 @@ char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
 		int matrix_rows = sizeof((*af_matrix)) / sizeof((*af_matrix)[0]);
 
 		// This will return the corresponding pixel type.
-	//	printf("matrix_cols=%d\tmatrix_rows=%d\n", matrix_cols, matrix_rows);
 		return (*af_matrix)[y % matrix_rows][x % matrix_cols];
 	} else {
 		// We are outside of the AF rectangle.
@@ -206,7 +206,6 @@ int fix_xtrans_ac(fits *fit) {
 			default: // We don't care about other colors... yet.
 				break;
 			}
-
 		}
 	}
 
