@@ -122,6 +122,12 @@ static float goldenSectionSearch(fits *raw, fits *dark, float a, float b,
 
 static int preprocess(fits *raw, struct preprocessing_data *args) {
 	int ret = 0;
+
+	/** FIX XTRANS AC ISSUE **/
+	if (args->fix_xtrans) {
+		fix_xtrans_ac(raw);
+	}
+
 	if (args->use_bias) {
 		ret = imoper(raw, args->bias, OPER_SUB, args->allow_32bit_output);
 	}

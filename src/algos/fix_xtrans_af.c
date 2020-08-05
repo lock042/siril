@@ -45,32 +45,59 @@ static int get_model(const char *model) {
 	return -1;
 }
 
-static int get_matrix(gchar *pattern) {
-	if (!g_ascii_strcasecmp("GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG", pattern)) {
-		return 0;
-	} else if (!g_ascii_strcasecmp("RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", pattern)) {
-		return 1;
-	}
-	return -1;
+void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
+	// af_pixel_matrix is [12][6].
+        // Lowercase are AF pixels.  Uppercase are regular.
+
+        if (!g_ascii_strcasecmp("GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG", pattern)) {
+		strcpy(af_matrix[0]  , "GGRGGB");
+		strcpy(af_matrix[1]  , "GGBGGR");
+		strcpy(af_matrix[2]  , "BRGRBG");
+		strcpy(af_matrix[3]  , "GgBGgR");
+		strcpy(af_matrix[4]  , "GGRGGB");
+		strcpy(af_matrix[5]  , "RBGBRG");
+		strcpy(af_matrix[6]  , "GGRGGB");
+		strcpy(af_matrix[7]  , "GgBGgR");
+		strcpy(af_matrix[8]  , "BRGRBG");
+		strcpy(af_matrix[9]  , "GGBGGR");
+		strcpy(af_matrix[10] , "GGRGGB");
+		strcpy(af_matrix[11] , "RBGBRG");
+        } else if (!g_ascii_strcasecmp("RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", pattern)) {
+                strcpy(af_matrix[0]  , "RBGBRG");
+                strcpy(af_matrix[1]  , "GGRGGB");
+                strcpy(af_matrix[2]  , "GGBGGR");
+                strcpy(af_matrix[3]  , "BRGRBG");
+                strcpy(af_matrix[4]  , "GgBGgR");
+                strcpy(af_matrix[5]  , "GGRGGB");
+                strcpy(af_matrix[6]  , "RBGBRG");
+                strcpy(af_matrix[7]  , "GGRGGB");
+                strcpy(af_matrix[8]  , "GgBGgR");
+                strcpy(af_matrix[9]  , "BRGRBG");
+                strcpy(af_matrix[10] , "GGBGGR");
+                strcpy(af_matrix[11] , "GGRGGB");
+        }
 }
 
-// This returns true if the pixel is a special auto focus pixel.
-static int is_af_pixel(rectangle af, int x, int y, int matrix) {
-	// x=0, y=0 is the bottom left corner of the image.
-	switch (matrix) {
-	case 0:
-		return (x >= af.x && x <= (af.x + af.w) && y >= af.y && y <= (af.y + af.h)
-				&& (x + 2) % 3 == 0 && ((y + 5) % 12 == 0 || (y + 9) % 12 == 0));
-	case 1:
-		return (x >= af.x && x <= (af.x + af.w) && y >= af.y && y <= (af.y + af.h)
-				&& (x - 1) % 3 == 0 && ((y + 2) % 12 == 0 || (y + 6) % 12 == 0));
-	default:
-		printf("Should not happen.\n");
+// This returns the pixel type based on our AF matrix if we are within the AF rectangle.
+// It returns an X if we are outside of the AF rectangle.
+char get_pixel_type( rectangle af, int x, int y, af_pixel_matrix *af_matrix ) {
+
+	if ( x >= af.x && x <= (af.x + af.w) &&
+             y >= af.y && y <= (af.y + af.h) ) {
+		// We are within the AF rectangle.
+                // This is written assuming we don't know the size of the matrix.
+		int matrix_cols = sizeof((*af_matrix)[0]);
+		int matrix_rows = sizeof((*af_matrix))/sizeof((*af_matrix)[0]);
+
+		// This will return the corresponding pixel type.
+		return (*af_matrix)[ y%matrix_rows ][ x%matrix_cols ];
+	} else {
+		// We are outside of the AF rectangle.
+		return 'X';
 	}
-	return 0;
 }
 
-static int subtract_fudge(fits *fit, rectangle af, float fudge, int matrix) {
+static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix *af_matrix ) {
 	int width = fit->rx;
 	int height = fit->ry;
 
@@ -79,7 +106,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, int matrix) {
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-				if (is_af_pixel(af, x, y, matrix)) {
+				if ( get_pixel_type( af, x, y, af_matrix ) == 'g' ) {
 					// This is an auto focus pixel.  Subtract the fudge.
 					buf[x + y * width] -= roundf_to_WORD(fudge);
 				}
@@ -90,7 +117,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, int matrix) {
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-				if (is_af_pixel(af, x, y, matrix)) {
+				if ( get_pixel_type( af, x, y, af_matrix ) == 'g' ) {
 					// This is an auto focus pixel.  Subtract the fudge.
 					buf[x + y * width] -= fudge;
 				}
@@ -134,6 +161,7 @@ int fix_xtrans_ac(fits *fit) {
 		sam = supported_xtrans[model].sample;
 	}
 
+
 	// non-focus pixels
 	double nfsum = 0.0;
 	float nfmean = 0.f;
@@ -147,30 +175,39 @@ int fix_xtrans_ac(fits *fit) {
 	// The fudge amount to apply to auto focus pixels. (computed)
 	float fudge;
 
+
+	// af_matrix is an RGB pattern where lowercase letters represent AF pixels and their color.
+	af_pixel_matrix af_matrix = {0};
+	set_af_matrix(fit->bayer_pattern, af_matrix);
+
 	WORD *buf = fit->pdata[RLAYER];
 	float *fbuf = fit->fpdata[RLAYER];
-	int matrix = get_matrix(fit->bayer_pattern);
-	if (matrix < 0) {
-		siril_log_color_message(_("This CFA pattern cannot be handled\n"), "red");
+
+	if (af_matrix[0][0]==0) {
+		siril_log_color_message(_("This CFA pattern cannot be handled by fix_xtrans_ac.\n"), "red");
 		return 1;
 	}
 
 	// Loop through sample rectangle and count/sum AF and non-AF pixels.
 	for (unsigned int y = sam.y; y <= (sam.y + sam.h); y++) {
 		for (unsigned int x = sam.x; x <= (sam.x + sam.w); x++) {
-			float pixel =
-					fit->type == DATA_FLOAT ?
+			float pixel = fit->type == DATA_FLOAT ?
 							fbuf[x + y * fit->rx] :
 							(float) buf[x + y * fit->rx];
-			if (is_af_pixel(af, x, y, matrix)) {
-				// This is an AF pixel.
-				afcount++;
-				afsum += (double) pixel;
-			} else {
-				// This is not an AF pixel.
+
+			switch ( get_pixel_type( af, x, y, &af_matrix ) ) {
+                        case 'G': // This is a Green (non-AF) pixel.
 				nfcount++;
 				nfsum += (double) pixel;
+				break;
+			case 'g': // This is a Green AF pixel.
+				afcount++;
+				afsum += (double) pixel;
+				break;
+			default: // We don't care about other colors... yet.
+				break;
 			}
+
 		}
 	}
 
@@ -185,13 +222,14 @@ int fix_xtrans_ac(fits *fit) {
 	afmean = afsum / afcount;
 	fudge = afmean - nfmean;
 
-	// Debug statements.  Remove later???
-	siril_log_message(_("Reg Pixel Mean...   %.10f, Count: %ld\n"), nfmean, nfcount);
-	siril_log_message(_("AF Pixel Mean....   %.10f, Count: %ld\n"), afmean, afcount);
-	siril_log_message(_("AF Pixel Adjust..   %.10f\n"), fudge);
+	// Debug statements.
+	siril_log_message(_("XTRANS non-AF Mean... %.10f (%ld pixels)\n"), nfmean, nfcount);
+	siril_log_message(_("XTRANS AF Mean....... %.10f (%ld pixels)\n"), afmean, afcount);
+	siril_log_message(_("XTRANS AF Adjust..... %.10f\n"), fudge);
+
 
 	// Stay FIT, Subtract the fudge!
-	subtract_fudge(fit, af, fudge, matrix);
+	subtract_fudge(fit, af, fudge, &af_matrix);
 
 	invalidate_stats_from_fit(fit);
 
