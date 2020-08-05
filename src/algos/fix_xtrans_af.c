@@ -45,42 +45,42 @@ static int get_model(const char *model) {
 	return -1;
 }
 
-void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
+static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 	// af_pixel_matrix is [12][6].
         // Lowercase are AF pixels.  Uppercase are regular.
 
 	if (!g_ascii_strcasecmp("GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG", pattern)) {
-		strcpy(af_matrix[0], "GGRGGB");
-		strcpy(af_matrix[1], "GGBGGR");
-		strcpy(af_matrix[2], "BRGRBG");
-		strcpy(af_matrix[3], "GgBGgR");
-		strcpy(af_matrix[4], "GGRGGB");
-		strcpy(af_matrix[5], "RBGBRG");
-		strcpy(af_matrix[6], "GGRGGB");
-		strcpy(af_matrix[7], "GgBGgR");
-		strcpy(af_matrix[8], "BRGRBG");
-		strcpy(af_matrix[9], "GGBGGR");
-		strcpy(af_matrix[10], "GGRGGB");
-		strcpy(af_matrix[11], "RBGBRG");
+		memcpy(af_matrix[0], "GGRGGB", 6);
+		memcpy(af_matrix[1], "GGBGGR", 6);
+		memcpy(af_matrix[2], "BRGRBG", 6);
+		memcpy(af_matrix[3], "GgBGgR", 6);
+		memcpy(af_matrix[4], "GGRGGB", 6);
+		memcpy(af_matrix[5], "RBGBRG", 6);
+		memcpy(af_matrix[6], "GGRGGB", 6);
+		memcpy(af_matrix[7], "GgBGgR", 6);
+		memcpy(af_matrix[8], "BRGRBG", 6);
+		memcpy(af_matrix[9], "GGBGGR", 6);
+		memcpy(af_matrix[10], "GGRGGB", 6);
+		memcpy(af_matrix[11], "RBGBRG", 6);
 	} else if (!g_ascii_strcasecmp("RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", pattern)) {
-		strcpy(af_matrix[0], "RBGBRG");
-		strcpy(af_matrix[1], "GGRGGB");
-		strcpy(af_matrix[2], "GGBGGR");
-		strcpy(af_matrix[3], "BRGRBG");
-		strcpy(af_matrix[4], "GgBGgR");
-		strcpy(af_matrix[5], "GGRGGB");
-		strcpy(af_matrix[6], "RBGBRG");
-		strcpy(af_matrix[7], "GGRGGB");
-		strcpy(af_matrix[8], "GgBGgR");
-		strcpy(af_matrix[9], "BRGRBG");
-		strcpy(af_matrix[10], "GGBGGR");
-		strcpy(af_matrix[11], "GGRGGB");
+		memcpy(af_matrix[0], "RBGBRG", 6);
+		memcpy(af_matrix[1], "GGRGGB", 6);
+		memcpy(af_matrix[2], "GGBGGR", 6);
+		memcpy(af_matrix[3], "BRGRBG", 6);
+		memcpy(af_matrix[4], "GgBGgR", 6);
+		memcpy(af_matrix[5], "GGRGGB", 6);
+		memcpy(af_matrix[6], "RBGBRG", 6);
+		memcpy(af_matrix[7], "GGRGGB", 6);
+		memcpy(af_matrix[8], "GgBGgR", 6);
+		memcpy(af_matrix[9], "BRGRBG", 6);
+		memcpy(af_matrix[10], "GGBGGR", 6);
+		memcpy(af_matrix[11], "GGRGGB", 6);
 	}
 }
 
 // This returns the pixel type based on our AF matrix if we are within the AF rectangle.
 // It returns an X if we are outside of the AF rectangle.
-char get_pixel_type( rectangle af, int x, int y, af_pixel_matrix *af_matrix ) {
+char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
 
 	if (x >= af.x && x <= (af.x + af.w) && y >= af.y && y <= (af.y + af.h)) {
 		// We are within the AF rectangle.
@@ -89,6 +89,7 @@ char get_pixel_type( rectangle af, int x, int y, af_pixel_matrix *af_matrix ) {
 		int matrix_rows = sizeof((*af_matrix)) / sizeof((*af_matrix)[0]);
 
 		// This will return the corresponding pixel type.
+	//	printf("matrix_cols=%d\tmatrix_rows=%d\n", matrix_cols, matrix_rows);
 		return (*af_matrix)[y % matrix_rows][x % matrix_cols];
 	} else {
 		// We are outside of the AF rectangle.
@@ -105,7 +106,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-				if ( get_pixel_type( af, x, y, af_matrix ) == 'g' ) {
+				if (get_pixel_type(af, x, y, af_matrix) == 'g') {
 					// This is an auto focus pixel.  Subtract the fudge.
 					buf[x + y * width] -= roundf_to_WORD(fudge);
 				}
@@ -116,7 +117,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-				if ( get_pixel_type( af, x, y, af_matrix ) == 'g' ) {
+				if (get_pixel_type(af, x, y, af_matrix) == 'g') {
 					// This is an auto focus pixel.  Subtract the fudge.
 					buf[x + y * width] -= fudge;
 				}
@@ -174,7 +175,6 @@ int fix_xtrans_ac(fits *fit) {
 	// The fudge amount to apply to auto focus pixels. (computed)
 	float fudge;
 
-
 	// af_matrix is an RGB pattern where lowercase letters represent AF pixels and their color.
 	af_pixel_matrix af_matrix = { 0 };
 	set_af_matrix(fit->bayer_pattern, af_matrix);
@@ -222,10 +222,9 @@ int fix_xtrans_ac(fits *fit) {
 	fudge = afmean - nfmean;
 
 	// Debug statements.
-	siril_log_message(_("XTRANS non-AF Mean... %.10f (%ld pixels)\n"), nfmean, nfcount);
-	siril_log_message(_("XTRANS AF Mean....... %.10f (%ld pixels)\n"), afmean, afcount);
-	siril_log_message(_("XTRANS AF Adjust..... %.10f\n"), fudge);
-
+	siril_debug_print("XTRANS non-AF Mean... %.10f (%ld pixels)\n", nfmean, nfcount);
+	siril_debug_print("XTRANS AF Mean....... %.10f (%ld pixels)\n", afmean, afcount);
+	siril_debug_print("XTRANS AF Adjust..... %.10f\n", fudge);
 
 	// Stay FIT, Subtract the fudge!
 	subtract_fudge(fit, af, fudge, &af_matrix);
