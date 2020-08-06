@@ -51,29 +51,29 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
         // Lowercase are AF pixels.  Uppercase are regular.
 
 	if (!g_ascii_strcasecmp(filter_pattern[XTRANS_1], pattern)) {
-		memcpy(af_matrix[0], "GGRGGB", 6);
-		memcpy(af_matrix[1], "GGBGGR", 6);
-		memcpy(af_matrix[2], "BRGRBG", 6);
-		memcpy(af_matrix[3], "GgBGgR", 6);
-		memcpy(af_matrix[4], "GGRGGB", 6);
-		memcpy(af_matrix[5], "RBGBRG", 6);
-		memcpy(af_matrix[6], "GgRGgB", 6);
-		memcpy(af_matrix[7], "GgBGgR", 6);
-		memcpy(af_matrix[8], "BRGRBG", 6);
-		memcpy(af_matrix[9], "GGBGGR", 6);
+		memcpy(af_matrix[0],  "GGRGGB", 6);
+		memcpy(af_matrix[1],  "GGBGGR", 6);
+		memcpy(af_matrix[2],  "BRGRBG", 6);
+		memcpy(af_matrix[3],  "GgBGgR", 6);
+		memcpy(af_matrix[4],  "GGRGGB", 6);
+		memcpy(af_matrix[5],  "RBGBRG", 6);
+		memcpy(af_matrix[6],  "GgRGgB", 6);
+		memcpy(af_matrix[7],  "GgBGgR", 6);
+		memcpy(af_matrix[8],  "BRGRBG", 6);
+		memcpy(af_matrix[9],  "GGBGGR", 6);
 		memcpy(af_matrix[10], "GGRGGB", 6);
 		memcpy(af_matrix[11], "RBGBRG", 6);
 	} else if (!g_ascii_strcasecmp(filter_pattern[XTRANS_2], pattern)) {
-		memcpy(af_matrix[0], "RBGBRG", 6);
-		memcpy(af_matrix[1], "GGRGGB", 6);
-		memcpy(af_matrix[2], "GGBGGR", 6);
-		memcpy(af_matrix[3], "BRGRBG", 6);
-		memcpy(af_matrix[4], "GGBGGR", 6);
-		memcpy(af_matrix[5], "GGRGGB", 6);
-		memcpy(af_matrix[6], "RgGBgG", 6); // TODO !!! should be RBGBRG
-		memcpy(af_matrix[7], "GGRGGB", 6);
-		memcpy(af_matrix[8], "GGBGGR", 6);
-		memcpy(af_matrix[9], "BRGRBG", 6);
+		memcpy(af_matrix[0],  "RBGBRG", 6);
+		memcpy(af_matrix[1],  "GGRGGB", 6);
+		memcpy(af_matrix[2],  "GGBGGR", 6);
+		memcpy(af_matrix[3],  "BRGRBG", 6);
+		memcpy(af_matrix[4],  "GGBGGR", 6);
+		memcpy(af_matrix[5],  "GGRGGB", 6);
+		memcpy(af_matrix[6],  "RgGBgG", 6); // TODO !!! should be RBGBRG
+		memcpy(af_matrix[7],  "GGRGGB", 6);
+		memcpy(af_matrix[8],  "GGBGGR", 6);
+		memcpy(af_matrix[9],  "BRGRBG", 6);
 		memcpy(af_matrix[10], "GgBGgR", 6);
 		memcpy(af_matrix[11], "GGRGGB", 6);
 	}
@@ -81,7 +81,7 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 
 // This returns the pixel type based on our AF matrix if we are within the AF rectangle.
 // It returns an X if we are outside of the AF rectangle.
-char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
+static char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
 
 	if (x >= af.x && x <= (af.x + af.w) && y >= af.y && y <= (af.y + af.h)) {
 		// We are within the AF rectangle.

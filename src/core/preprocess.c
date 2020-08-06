@@ -119,10 +119,8 @@ static float goldenSectionSearch(fits *raw, fits *dark, float a, float b,
 	return ((b + a) * 0.5f);
 }
 
-
 static int preprocess(fits *raw, struct preprocessing_data *args) {
 	int ret = 0;
-
 
 	if (args->use_bias) {
 		ret = imoper(raw, args->bias, OPER_SUB, args->allow_32bit_output);
@@ -230,6 +228,19 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 		}
 	}
 
+	/** FIX XTRANS AC ISSUE **/
+	if (prepro->fix_xtrans && prepro->use_dark) {
+		fix_xtrans_ac(prepro->dark);
+	}
+
+	if (prepro->fix_xtrans && prepro->use_bias) {
+		fix_xtrans_ac(prepro->bias);
+	}
+
+	if (prepro->fix_xtrans && prepro->use_flat) {
+		fix_xtrans_ac(prepro->flat);
+	}
+
 	// proceed to cosmetic correction
 	if (prepro->use_cosmetic_correction && prepro->use_dark) {
 		if (strlen(prepro->dark->bayer_pattern) > 4) {
@@ -272,11 +283,6 @@ static int prepro_image_hook(struct generic_seq_args *args, int out_index, int i
 				fit->mini, fit->maxi);
 		invalidate_stats_from_fit(fit);
 #endif
-	}
-
-	/** FIX XTRANS AC ISSUE **/
-	if (prepro->fix_xtrans) {
-		fix_xtrans_ac(fit);
 	}
 
 	if (prepro->debayer) {
