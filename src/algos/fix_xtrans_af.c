@@ -68,13 +68,13 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 		memcpy(af_matrix[1], "GGRGGB", 6);
 		memcpy(af_matrix[2], "GGBGGR", 6);
 		memcpy(af_matrix[3], "BRGRBG", 6);
-		memcpy(af_matrix[4], "GgBGgR", 6);
+		memcpy(af_matrix[4], "GGBGGR", 6);
 		memcpy(af_matrix[5], "GGRGGB", 6);
-		memcpy(af_matrix[6], "RBGBRG", 6);
+		memcpy(af_matrix[6], "RgGBgG", 6);
 		memcpy(af_matrix[7], "GGRGGB", 6);
-		memcpy(af_matrix[8], "GgBGgR", 6);
+		memcpy(af_matrix[8], "GGBGGR", 6);
 		memcpy(af_matrix[9], "BRGRBG", 6);
-		memcpy(af_matrix[10], "GGBGGR", 6);
+		memcpy(af_matrix[10], "GgBGgR", 6);
 		memcpy(af_matrix[11], "GGRGGB", 6);
 	}
 }

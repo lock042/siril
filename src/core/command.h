@@ -37,6 +37,7 @@ int	process_fill2(int nb);
 int	process_findcosme(int nb);
 int	process_findhot(int nb);
 int	process_findstar(int nb);
+int process_fix_xtrans(int nb);
 int	process_fixbanding(int nb);
 int	process_fmedian(int nb);
 int	process_fmul(int nb);
