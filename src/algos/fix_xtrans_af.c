@@ -29,7 +29,7 @@ supported_xtrans_list supported_xtrans[] =
 		{
 		// Camera Name      AF Pixels x,y,w,h        Sample x,y,w,h
 		{ "Fujifilm X-T2", { 1510, 505, 3010, 3017 }, { 1992, 990, 2048, 2048 } },
-		{ "Fujifilm X-T20", { 1510, 505, 3010, 3017 }, { 1992, 990, 2048, 2048 } },
+		{ "Fujifilm X-T20", { 1510, 505, 3010, 3021 }, { 1992, 990, 2048, 2048 } },
 		{ "Fujifilm X-Pro2", { 1500, 505, 3010, 3017 }, { 1992, 990, 2048, 2048 } }
 };
 
@@ -57,7 +57,7 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 		memcpy(af_matrix[3], "GgBGgR", 6);
 		memcpy(af_matrix[4], "GGRGGB", 6);
 		memcpy(af_matrix[5], "RBGBRG", 6);
-		memcpy(af_matrix[6], "GGRGGB", 6);
+		memcpy(af_matrix[6], "GgRGgB", 6);
 		memcpy(af_matrix[7], "GgBGgR", 6);
 		memcpy(af_matrix[8], "BRGRBG", 6);
 		memcpy(af_matrix[9], "GGBGGR", 6);
@@ -70,7 +70,7 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 		memcpy(af_matrix[3], "BRGRBG", 6);
 		memcpy(af_matrix[4], "GGBGGR", 6);
 		memcpy(af_matrix[5], "GGRGGB", 6);
-		memcpy(af_matrix[6], "RgGBgG", 6);
+		memcpy(af_matrix[6], "RgGBgG", 6); // TODO !!! should be RBGBRG
 		memcpy(af_matrix[7], "GGRGGB", 6);
 		memcpy(af_matrix[8], "GGBGGR", 6);
 		memcpy(af_matrix[9], "BRGRBG", 6);
