@@ -237,10 +237,6 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 		fix_xtrans_ac(prepro->bias);
 	}
 
-	if (prepro->fix_xtrans && prepro->use_flat) {
-		fix_xtrans_ac(prepro->flat);
-	}
-
 	// proceed to cosmetic correction
 	if (prepro->use_cosmetic_correction && prepro->use_dark) {
 		if (strlen(prepro->dark->bayer_pattern) > 4) {
