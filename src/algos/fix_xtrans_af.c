@@ -22,15 +22,16 @@
 #include "core/proto.h"
 #include "algos/statistics.h"
 #include "io/conversion.h"
+#include "io/image_format_fits.h"
 
 #include "fix_xtrans_af.h"
 
 supported_xtrans_list supported_xtrans[] =
 		{
 		// Camera Name      AF Pixels x,y,w,h        Sample x,y,w,h
-		{ "Fujifilm X-T2", { 1510, 505, 3010, 3017 }, { 1992, 990, 2048, 2048 } },
-		{ "Fujifilm X-T20", { 1510, 505, 3010, 3021 }, { 1992, 990, 2048, 2048 } },
-		{ "Fujifilm X-Pro2", { 1500, 505, 3010, 3017 }, { 1992, 990, 2048, 2048 } }
+		{ "Fujifilm X-T2",   { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
+		{ "Fujifilm X-T20",  { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
+		{ "Fujifilm X-Pro2", { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } }
 };
 
 static int get_nb_xtrans_supported() {
@@ -51,37 +52,37 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
         // Lowercase are AF pixels.  Uppercase are regular.
 
 	if (!g_ascii_strcasecmp(filter_pattern[XTRANS_1], pattern)) {
-		memcpy(af_matrix[0],  "GGRGGB", 6);
+		memcpy(af_matrix[0],  "GgRGgB", 6);
 		memcpy(af_matrix[1],  "GGBGGR", 6);
 		memcpy(af_matrix[2],  "BRGRBG", 6);
-		memcpy(af_matrix[3],  "GgBGgR", 6);
-		memcpy(af_matrix[4],  "GGRGGB", 6);
+		memcpy(af_matrix[3],  "GGBGGR", 6);
+		memcpy(af_matrix[4],  "GgRGgB", 6);
 		memcpy(af_matrix[5],  "RBGBRG", 6);
-		memcpy(af_matrix[6],  "GgRGgB", 6);
-		memcpy(af_matrix[7],  "GgBGgR", 6);
+		memcpy(af_matrix[6],  "GGRGGB", 6);
+		memcpy(af_matrix[7],  "GGBGGR", 6);
 		memcpy(af_matrix[8],  "BRGRBG", 6);
 		memcpy(af_matrix[9],  "GGBGGR", 6);
 		memcpy(af_matrix[10], "GGRGGB", 6);
 		memcpy(af_matrix[11], "RBGBRG", 6);
 	} else if (!g_ascii_strcasecmp(filter_pattern[XTRANS_2], pattern)) {
 		memcpy(af_matrix[0],  "RBGBRG", 6);
-		memcpy(af_matrix[1],  "GGRGGB", 6);
+		memcpy(af_matrix[1],  "GgRGgB", 6);
 		memcpy(af_matrix[2],  "GGBGGR", 6);
 		memcpy(af_matrix[3],  "BRGRBG", 6);
 		memcpy(af_matrix[4],  "GGBGGR", 6);
-		memcpy(af_matrix[5],  "GGRGGB", 6);
-		memcpy(af_matrix[6],  "RgGBgG", 6); // TODO !!! should be RBGBRG
+		memcpy(af_matrix[5],  "GgRGgB", 6);
+		memcpy(af_matrix[6],  "RBGBRG", 6);
 		memcpy(af_matrix[7],  "GGRGGB", 6);
 		memcpy(af_matrix[8],  "GGBGGR", 6);
 		memcpy(af_matrix[9],  "BRGRBG", 6);
-		memcpy(af_matrix[10], "GgBGgR", 6);
+		memcpy(af_matrix[10], "GGBGGR", 6);
 		memcpy(af_matrix[11], "GGRGGB", 6);
 	}
 }
 
 // This returns the pixel type based on our AF matrix if we are within the AF rectangle.
 // It returns an X if we are outside of the AF rectangle.
-static char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
+char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
 
 	if (x >= af.x && x <= (af.x + af.w) && y >= af.y && y <= (af.y + af.h)) {
 		// We are within the AF rectangle.
@@ -130,6 +131,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 
 int fix_xtrans_ac(fits *fit) {
 	rectangle af, sam;
+	gboolean read_bottom_up = FALSE;
 
 	int model = get_model(fit->instrume);
 	if (model < 0) {
@@ -160,6 +162,14 @@ int fix_xtrans_ac(fits *fit) {
 		af = supported_xtrans[model].af;
 		sam = supported_xtrans[model].sample;
 	}
+
+
+	// Flip the image so the xtrans pattern makes sense.
+	// This matches logic in demosaicing.c.
+	read_bottom_up = (com.pref.debayer.use_bayer_header
+			&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
+			|| (!com.pref.debayer.top_down);
+	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
 
 
 	// non-focus pixels
@@ -227,6 +237,9 @@ int fix_xtrans_ac(fits *fit) {
 
 	// Stay FIT, Subtract the fudge!
 	subtract_fudge(fit, af, fudge, &af_matrix);
+
+	// Flip the image back.
+	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
 
 	invalidate_stats_from_fit(fit);
 
