@@ -29,9 +29,9 @@
 supported_xtrans_list supported_xtrans[] =
 		{
 		// Camera Name      AF Pixels x,y,w,h        Sample x,y,w,h
-		{ "Fujifilm X-T2",   { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
-		{ "Fujifilm X-T20",  { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
-		{ "Fujifilm X-Pro2", { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } }
+		{ "Fujifilm X-T2",   { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } , 0 },
+		{ "Fujifilm X-T20",  { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } , 1 },
+		{ "Fujifilm X-Pro2", { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } , 2 }
 };
 
 static int get_nb_xtrans_supported() {
@@ -47,11 +47,12 @@ static int get_model(const char *model) {
 	return -1;
 }
 
-static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
+static void set_af_matrix(gchar *pattern, int type_of_matrix, af_pixel_matrix af_matrix) {
 	// af_pixel_matrix is [12][6].
         // Lowercase are AF pixels.  Uppercase are regular.
 
-	if (!g_ascii_strcasecmp(filter_pattern[XTRANS_1], pattern)) {
+	switch (type_of_matrix) {
+	case 0:
 		memcpy(af_matrix[0],  "GgRGgB", 6);
 		memcpy(af_matrix[1],  "GGBGGR", 6);
 		memcpy(af_matrix[2],  "BRGRBG", 6);
@@ -64,7 +65,36 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 		memcpy(af_matrix[9],  "GGBGGR", 6);
 		memcpy(af_matrix[10], "GGRGGB", 6);
 		memcpy(af_matrix[11], "RBGBRG", 6);
-	} else if (!g_ascii_strcasecmp(filter_pattern[XTRANS_2], pattern)) {
+		break;
+	case 1:
+		if (!g_ascii_strcasecmp(filter_pattern[XTRANS_1], pattern)) {
+			memcpy(af_matrix[0],  "GgRGgB", 6);
+			memcpy(af_matrix[1],  "GGBGGR", 6);
+			memcpy(af_matrix[2],  "BRGRBG", 6);
+			memcpy(af_matrix[3],  "GGBGGR", 6);
+			memcpy(af_matrix[4],  "GgRGgB", 6);
+			memcpy(af_matrix[5],  "RBGBRG", 6);
+			memcpy(af_matrix[6],  "GGRGGB", 6);
+			memcpy(af_matrix[7],  "GGBGGR", 6);
+			memcpy(af_matrix[8],  "BRGRBG", 6);
+			memcpy(af_matrix[9],  "GGBGGR", 6);
+			memcpy(af_matrix[10], "GGRGGB", 6);
+		} else if (!g_ascii_strcasecmp(filter_pattern[XTRANS_2], pattern)) {
+			memcpy(af_matrix[0],  "RBGBRG", 6);
+			memcpy(af_matrix[1],  "GgRGgB", 6);
+			memcpy(af_matrix[2],  "GGBGGR", 6);
+			memcpy(af_matrix[3],  "BRGRBG", 6);
+			memcpy(af_matrix[4],  "GGBGGR", 6);
+			memcpy(af_matrix[5],  "GgRGgB", 6);
+			memcpy(af_matrix[6],  "RBGBRG", 6);
+			memcpy(af_matrix[7],  "GGRGGB", 6);
+			memcpy(af_matrix[8],  "GGBGGR", 6);
+			memcpy(af_matrix[9],  "BRGRBG", 6);
+			memcpy(af_matrix[10], "GGBGGR", 6);
+			memcpy(af_matrix[11], "GGRGGB", 6);
+		}
+		break;
+	case 2:
 		memcpy(af_matrix[0],  "RBGBRG", 6);
 		memcpy(af_matrix[1],  "GgRGgB", 6);
 		memcpy(af_matrix[2],  "GGBGGR", 6);
@@ -77,6 +107,9 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 		memcpy(af_matrix[9],  "BRGRBG", 6);
 		memcpy(af_matrix[10], "GgBGgR", 6);
 		memcpy(af_matrix[11], "GGRGGB", 6);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -187,7 +220,7 @@ int fix_xtrans_ac(fits *fit) {
 
 	// af_matrix is an RGB pattern where lowercase letters represent AF pixels and their color.
 	af_pixel_matrix af_matrix = { 0 };
-	set_af_matrix(fit->bayer_pattern, af_matrix);
+	set_af_matrix(fit->bayer_pattern, supported_xtrans[model].type_of_matrix, af_matrix);
 
 	WORD *buf = fit->pdata[RLAYER];
 	float *fbuf = fit->fpdata[RLAYER];
