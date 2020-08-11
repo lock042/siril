@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
@@ -29,9 +30,9 @@
 supported_xtrans_list supported_xtrans[] =
 		{
 		// Camera Name      AF Pixels x,y,w,h        Sample x,y,w,h
-		{ "Fujifilm X-T2",   { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } , 0 },
-		{ "Fujifilm X-T20",  { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } , 1 },
-		{ "Fujifilm X-Pro2", { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } , 2 }
+		{ "Fujifilm X-T2",   { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
+		{ "Fujifilm X-T20",  { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
+		{ "Fujifilm X-Pro2", { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } }
 };
 
 static int get_nb_xtrans_supported() {
@@ -47,69 +48,55 @@ static int get_model(const char *model) {
 	return -1;
 }
 
-static void set_af_matrix(gchar *pattern, int type_of_matrix, af_pixel_matrix af_matrix) {
+static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
+	// If we don't find a match, we will not populate af_matrix.
 	// af_pixel_matrix is [12][6].
-        // Lowercase are AF pixels.  Uppercase are regular.
+	// Numbers are candidate green AF patterns.  G's are green.  Hyphens are red or blue.
+	char matrix_str[72] = "G0-G0-G3-G3---G--GG1-G1-G0-G0---G--GG2-G2-G1-G1---G--GG3-G3-G2-G2---G--G";
 
-	switch (type_of_matrix) {
-	case 0:
-		memcpy(af_matrix[0],  "GgRGgB", 6);
-		memcpy(af_matrix[1],  "GGBGGR", 6);
-		memcpy(af_matrix[2],  "BRGRBG", 6);
-		memcpy(af_matrix[3],  "GgBGgR", 6);
-		memcpy(af_matrix[4],  "GgRGgB", 6);
-		memcpy(af_matrix[5],  "RBGBRG", 6);
-		memcpy(af_matrix[6],  "GGRGGB", 6);
-		memcpy(af_matrix[7],  "GgBGgR", 6);
-		memcpy(af_matrix[8],  "BRGRBG", 6);
-		memcpy(af_matrix[9],  "GGBGGR", 6);
-		memcpy(af_matrix[10], "GGRGGB", 6);
-		memcpy(af_matrix[11], "RBGBRG", 6);
-		break;
-	case 1:
-		if (!g_ascii_strcasecmp(filter_pattern[XTRANS_1], pattern)) {
-			memcpy(af_matrix[0],  "GgRGgB", 6);
-			memcpy(af_matrix[1],  "GGBGGR", 6);
-			memcpy(af_matrix[2],  "BRGRBG", 6);
-			memcpy(af_matrix[3],  "GGBGGR", 6);
-			memcpy(af_matrix[4],  "GgRGgB", 6);
-			memcpy(af_matrix[5],  "RBGBRG", 6);
-			memcpy(af_matrix[6],  "GGRGGB", 6);
-			memcpy(af_matrix[7],  "GGBGGR", 6);
-			memcpy(af_matrix[8],  "BRGRBG", 6);
-			memcpy(af_matrix[9],  "GGBGGR", 6);
-			memcpy(af_matrix[10], "GGRGGB", 6);
-		} else if (!g_ascii_strcasecmp(filter_pattern[XTRANS_2], pattern)) {
-			memcpy(af_matrix[0],  "RBGBRG", 6);
-			memcpy(af_matrix[1],  "GgRGgB", 6);
-			memcpy(af_matrix[2],  "GGBGGR", 6);
-			memcpy(af_matrix[3],  "BRGRBG", 6);
-			memcpy(af_matrix[4],  "GGBGGR", 6);
-			memcpy(af_matrix[5],  "GgRGgB", 6);
-			memcpy(af_matrix[6],  "RBGBRG", 6);
-			memcpy(af_matrix[7],  "GGRGGB", 6);
-			memcpy(af_matrix[8],  "GGBGGR", 6);
-			memcpy(af_matrix[9],  "BRGRBG", 6);
-			memcpy(af_matrix[10], "GGBGGR", 6);
-			memcpy(af_matrix[11], "GGRGGB", 6);
+	// Start at new i in matrix_str until we find a match against pattern.
+	for (int i = 0; i < 36; i += 6) {
+
+		// Assume the pattern matches until we find it doesn't.
+		int match = 1;
+
+		// Attempt to match all 36 characters of pattern.
+		for (int j = 0; j < 36; j++) {
+			// If we don't match, we break.  Otherwise we keep looping.
+			if ((pattern[j] == 'G' && matrix_str[j + i] == '-')
+					|| (pattern[j] != 'G' && matrix_str[j + i] != '-')) {
+				match = 0;
+				break;
+			}
 		}
-		break;
-	case 2:
-		memcpy(af_matrix[0],  "RBGBRG", 6);
-		memcpy(af_matrix[1],  "GgRGgB", 6);
-		memcpy(af_matrix[2],  "GGBGGR", 6);
-		memcpy(af_matrix[3],  "BRGRBG", 6);
-		memcpy(af_matrix[4],  "GGBGGR", 6);
-		memcpy(af_matrix[5],  "GgRGgB", 6);
-		memcpy(af_matrix[6],  "RBGBRG", 6);
-		memcpy(af_matrix[7],  "GGRGGB", 6);
-		memcpy(af_matrix[8],  "GGBGGR", 6);
-		memcpy(af_matrix[9],  "BRGRBG", 6);
-		memcpy(af_matrix[10], "GgBGgR", 6);
-		memcpy(af_matrix[11], "GGRGGB", 6);
-		break;
-	default:
-		break;
+
+		// If we still match, then we found our string.
+		// Create an af_matrix starting at offset = i.
+		if (match) {
+			for (int k = 0; k < 72; k++) {
+				if (k < 72 - i) {
+					af_matrix[k / 6][k % 6] = matrix_str[k + i];
+				} else {
+					af_matrix[k / 6][k % 6] = matrix_str[k + i - 72];
+				}
+			}
+
+			// Print the matrix if debug is enabled.
+			siril_debug_print(_("  %.6s\n"), af_matrix[0]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[1]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[2]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[3]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[4]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[5]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[6]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[7]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[8]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[9]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[10]);
+			siril_debug_print(_("  %.6s\n"), af_matrix[11]);
+
+			break;
+		}
 	}
 }
 
@@ -131,7 +118,8 @@ char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
 	}
 }
 
-static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix *af_matrix ) {
+static int subtract_fudge(fits *fit, rectangle af, float fudge,
+		af_pixel_matrix *af_matrix, char af_type) {
 	int width = fit->rx;
 	int height = fit->ry;
 
@@ -140,7 +128,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-				if (get_pixel_type(af, x, y, af_matrix) == 'g') {
+				if (get_pixel_type(af, x, y, af_matrix) == af_type) {
 					// This is an auto focus pixel.  Subtract the fudge.
 					buf[x + y * width] -= roundf_to_WORD(fudge);
 				}
@@ -151,7 +139,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 
 		for (unsigned int y = 0; y < height; y++) {
 			for (unsigned int x = 0; x < width; x++) {
-				if (get_pixel_type(af, x, y, af_matrix) == 'g') {
+				if (get_pixel_type(af, x, y, af_matrix) == af_type) {
 					// This is an auto focus pixel.  Subtract the fudge.
 					buf[x + y * width] -= fudge;
 				}
@@ -170,16 +158,20 @@ int fix_xtrans_ac(fits *fit) {
 	if (model < 0) {
 		siril_log_color_message(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), "red", fit->instrume);
 		if (com.pref.xtrans_af.w != 0 && com.pref.xtrans_af.h != 0) {
-			if (com.pref.xtrans_sample.w > fit->rx || com.pref.xtrans_sample.h > fit->ry) {
-				siril_log_color_message(_("Sample box cannot be bigger than the image.\n"), "red");
+			if (com.pref.xtrans_sample.w > fit->rx
+					|| com.pref.xtrans_sample.h > fit->ry) {
+				siril_log_color_message(_("Sample box cannot be bigger than the image.\n"),	"red");
 				return 1;
 			}
-			if (com.pref.xtrans_af.w > fit->rx || com.pref.xtrans_af.h > fit->ry) {
-				siril_log_color_message(_("AF box cannot be bigger than the image.\n"), "red");
+			if (com.pref.xtrans_af.w > fit->rx
+					|| com.pref.xtrans_af.h > fit->ry) {
+				siril_log_color_message(
+						_("AF box cannot be bigger than the image.\n"), "red");
 				return 1;
 			}
 			af = com.pref.xtrans_af;
-			if (com.pref.xtrans_sample.w != 0 && com.pref.xtrans_sample.h != 0) {
+			if (com.pref.xtrans_sample.w != 0
+					&& com.pref.xtrans_sample.h != 0) {
 				sam = com.pref.xtrans_sample;
 			} else {
 				sam.x = 0;
@@ -188,7 +180,8 @@ int fix_xtrans_ac(fits *fit) {
 				sam.h = fit->ry;
 			}
 		} else {
-			siril_log_color_message(_("No information available in preferences.\n"), "red");
+			siril_log_color_message(
+					_("No information available in preferences.\n"), "red");
 			return 1;
 		}
 	} else {
@@ -196,31 +189,42 @@ int fix_xtrans_ac(fits *fit) {
 		sam = supported_xtrans[model].sample;
 	}
 
-
 	// Flip the image so the xtrans pattern makes sense.
 	// This matches logic in demosaicing.c.
 	read_bottom_up = (com.pref.debayer.use_bayer_header
 			&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
 			|| (!com.pref.debayer.top_down);
-	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
+	if (read_bottom_up) {
+		fits_flip_top_to_bottom(fit);
+	}
 
+	// Struct for holding computations.
+	struct af_type {
+		// non-focus pixels
+		double nfsum;
+		float nfmean;
+		long nfcount;
 
-	// non-focus pixels
-	double nfsum = 0.0;
-	float nfmean = 0.f;
-	long nfcount = 0L;
+		// auto focus pixels
+		double afsum;
+		float afmean;
+		long afcount;
 
-	// auto focus pixels
-	double afsum = 0.0;
-	float afmean = 0.f;
-	long afcount = 0L;
+		// The fudge amount to be computed.
+		float fudge;
 
-	// The fudge amount to apply to auto focus pixels. (computed)
-	float fudge;
+	} af_types[4] = { { 0.0, 0.f, 0L, 0.0, 0.f, 0L, 0.f }
+	                , { 0.0, 0.f, 0L, 0.0, 0.f, 0L, 0.f }
+	                , { 0.0, 0.f, 0L, 0.0, 0.f, 0L, 0.f }
+	                , { 0.0, 0.f, 0L, 0.0, 0.f, 0L, 0.f } };
+
+	// Variables for the winning pattern.
+	float best_fudge = 0.f;
+	char best_af_type = '\0';
 
 	// af_matrix is an RGB pattern where lowercase letters represent AF pixels and their color.
 	af_pixel_matrix af_matrix = { 0 };
-	set_af_matrix(fit->bayer_pattern, supported_xtrans[model].type_of_matrix, af_matrix);
+	set_af_matrix(fit->bayer_pattern, af_matrix);
 
 	WORD *buf = fit->pdata[RLAYER];
 	float *fbuf = fit->fpdata[RLAYER];
@@ -239,40 +243,96 @@ int fix_xtrans_ac(fits *fit) {
 
 			switch (get_pixel_type(af, x, y, &af_matrix)) {
 			case 'G': // This is a Green (non-AF) pixel.
-				nfcount++;
-				nfsum += (double) pixel;
+				af_types[0].nfcount++;
+				af_types[1].nfcount++;
+				af_types[2].nfcount++;
+				af_types[3].nfcount++;
+				af_types[0].nfsum += (double) pixel;
+				af_types[1].nfsum += (double) pixel;
+				af_types[2].nfsum += (double) pixel;
+				af_types[3].nfsum += (double) pixel;
 				break;
-			case 'g': // This is a Green AF pixel.
-				afcount++;
-				afsum += (double) pixel;
+			case '0':
+				af_types[0].afcount++;
+				af_types[1].nfcount++;
+				af_types[2].nfcount++;
+				af_types[3].nfcount++;
+				af_types[0].afsum += (double) pixel;
+				af_types[1].nfsum += (double) pixel;
+				af_types[2].nfsum += (double) pixel;
+				af_types[3].nfsum += (double) pixel;
 				break;
-			default: // We don't care about other colors... yet.
+			case '1':
+				af_types[0].nfcount++;
+				af_types[1].afcount++;
+				af_types[2].nfcount++;
+				af_types[3].nfcount++;
+				af_types[0].nfsum += (double) pixel;
+				af_types[1].afsum += (double) pixel;
+				af_types[2].nfsum += (double) pixel;
+				af_types[3].nfsum += (double) pixel;
+				break;
+			case '2':
+				af_types[0].nfcount++;
+				af_types[1].nfcount++;
+				af_types[2].afcount++;
+				af_types[3].nfcount++;
+				af_types[0].nfsum += (double) pixel;
+				af_types[1].nfsum += (double) pixel;
+				af_types[2].afsum += (double) pixel;
+				af_types[3].nfsum += (double) pixel;
+				break;
+			case '3':
+				af_types[0].nfcount++;
+				af_types[1].nfcount++;
+				af_types[2].nfcount++;
+				af_types[3].afcount++;
+				af_types[0].nfsum += (double) pixel;
+				af_types[1].nfsum += (double) pixel;
+				af_types[2].nfsum += (double) pixel;
+				af_types[3].afsum += (double) pixel;
+				break;
+			default: // This is not a green pixel.
 				break;
 			}
 		}
 	}
 
-	// Make sure we have a valid sample.
-	if (nfcount == 0 || afcount == 0) {
-		siril_log_message(_("Failed to sample enough pixels.\n"));
-		return -1.f;
+	for (int f = 0; f < 4; f++) {
+
+		// Make sure we have a valid sample.
+		if (af_types[f].nfcount == 0 || af_types[f].afcount == 0) {
+			siril_log_message(_("Failed to sample enough pixels for AF type %d.\n"), f);
+			return -1.f;
+		}
+
+		// Compute averages and fudge amount.
+		af_types[f].nfmean = af_types[f].nfsum / af_types[f].nfcount;
+		af_types[f].afmean = af_types[f].afsum / af_types[f].afcount;
+		af_types[f].fudge = af_types[f].afmean - af_types[f].nfmean;
+
+		// Debug statements.
+		siril_debug_print("XTRANS %d non-AF Mean... %.10f (%ld pixels)\n", f, af_types[f].nfmean, af_types[f].nfcount);
+		siril_debug_print("XTRANS %d AF Mean....... %.10f (%ld pixels)\n", f, af_types[f].afmean, af_types[f].afcount);
+		siril_debug_print("XTRANS %d AF Adjust..... %.10f\n", f, af_types[f].fudge);
+
+		// Pick the winner.
+		if (fabsf(af_types[f].fudge) > fabsf(best_fudge)) {
+			best_fudge = af_types[f].fudge;
+			best_af_type = f + '0';  // single digit int to char
+		}
 	}
 
-	// Compute averages and fudge amount.
-	nfmean = nfsum / nfcount;
-	afmean = afsum / afcount;
-	fudge = afmean - nfmean;
-
-	// Debug statements.
-	siril_debug_print("XTRANS non-AF Mean... %.10f (%ld pixels)\n", nfmean, nfcount);
-	siril_debug_print("XTRANS AF Mean....... %.10f (%ld pixels)\n", afmean, afcount);
-	siril_debug_print("XTRANS AF Adjust..... %.10f\n", fudge);
+	// Debug for the winner.
+	siril_debug_print("XTRANS Best Type %c .... %.10f\n", best_af_type, best_fudge);
 
 	// Stay FIT, Subtract the fudge!
-	subtract_fudge(fit, af, fudge, &af_matrix);
+	subtract_fudge(fit, af, best_fudge, &af_matrix, best_af_type);
 
 	// Flip the image back.
-	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
+	if (read_bottom_up) {
+		fits_flip_top_to_bottom(fit);
+	}
 
 	invalidate_stats_from_fit(fit);
 

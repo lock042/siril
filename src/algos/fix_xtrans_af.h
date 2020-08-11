@@ -26,7 +26,6 @@ typedef struct {
 	char *model;       // Model of X-Trans camera.
 	rectangle af;      // Bounding box for auto focus pixels.
 	rectangle sample;  // Sample size for computing adjustment.
-	int type_of_matrix;
 } supported_xtrans_list;
 
 typedef char af_pixel_matrix[12][6]; // I hope 12x6 works for all cases.
