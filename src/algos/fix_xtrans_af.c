@@ -30,9 +30,9 @@
 supported_xtrans_list supported_xtrans[] =
 		{
 		// Camera Name      AF Pixels x,y,w,h        Sample x,y,w,h
-		{ "Fujifilm X-T2",   { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
-		{ "Fujifilm X-T20",  { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } },
-		{ "Fujifilm X-Pro2", { 1510, 504, 3009, 3017 }, { 1992, 990, 2048, 2048 } }
+		{ "Fujifilm X-T2",   { 1510, 504, 3009, 3019 }, { 1992, 990, 2048, 2048 } },
+		{ "Fujifilm X-T20",  { 1510, 504, 3009, 3019 }, { 1992, 990, 2048, 2048 } },
+		{ "Fujifilm X-Pro2", { 1510, 504, 3009, 3019 }, { 1992, 990, 2048, 2048 } }
 };
 
 static int get_nb_xtrans_supported() {
@@ -52,7 +52,10 @@ static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
 	// If we don't find a match, we will not populate af_matrix.
 	// af_pixel_matrix is [12][6].
 	// Numbers are candidate green AF patterns.  G's are green.  Hyphens are red or blue.
-	char matrix_str[72] = "G0-G0-G3-G3---G--GG1-G1-G0-G0---G--GG2-G2-G1-G1---G--GG3-G3-G2-G2---G--G";
+	char matrix_str[72]="G0-G0-G3-G3---G--GG1-G1-G0-G0---G--GG2-G2-G1-G1---G--GG3-G3-G2-G2---G--G";
+
+	// Swap with this to try the inverse.  We haven't found a sensor that works with this yet.
+	//char matrix_str[72]="0G-0G-3G-3G---G--G1G-1G-0G-0G---G--G2G-2G-1G-1G---G--G3G-3G-2G-2G---G--G";
 
 	// Start at new i in matrix_str until we find a match against pattern.
 	for (int i = 0; i < 36; i += 6) {
@@ -118,8 +121,7 @@ char get_pixel_type(rectangle af, int x, int y, af_pixel_matrix *af_matrix) {
 	}
 }
 
-static int subtract_fudge(fits *fit, rectangle af, float fudge,
-		af_pixel_matrix *af_matrix, char af_type) {
+static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix *af_matrix, char af_type ) {
 	int width = fit->rx;
 	int height = fit->ry;
 
@@ -158,20 +160,16 @@ int fix_xtrans_ac(fits *fit) {
 	if (model < 0) {
 		siril_log_color_message(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), "red", fit->instrume);
 		if (com.pref.xtrans_af.w != 0 && com.pref.xtrans_af.h != 0) {
-			if (com.pref.xtrans_sample.w > fit->rx
-					|| com.pref.xtrans_sample.h > fit->ry) {
-				siril_log_color_message(_("Sample box cannot be bigger than the image.\n"),	"red");
+			if (com.pref.xtrans_sample.w > fit->rx || com.pref.xtrans_sample.h > fit->ry) {
+				siril_log_color_message(_("Sample box cannot be bigger than the image.\n"), "red");
 				return 1;
 			}
-			if (com.pref.xtrans_af.w > fit->rx
-					|| com.pref.xtrans_af.h > fit->ry) {
-				siril_log_color_message(
-						_("AF box cannot be bigger than the image.\n"), "red");
+			if (com.pref.xtrans_af.w > fit->rx || com.pref.xtrans_af.h > fit->ry) {
+				siril_log_color_message(_("AF box cannot be bigger than the image.\n"), "red");
 				return 1;
 			}
 			af = com.pref.xtrans_af;
-			if (com.pref.xtrans_sample.w != 0
-					&& com.pref.xtrans_sample.h != 0) {
+			if (com.pref.xtrans_sample.w != 0 && com.pref.xtrans_sample.h != 0) {
 				sam = com.pref.xtrans_sample;
 			} else {
 				sam.x = 0;
@@ -180,8 +178,7 @@ int fix_xtrans_ac(fits *fit) {
 				sam.h = fit->ry;
 			}
 		} else {
-			siril_log_color_message(
-					_("No information available in preferences.\n"), "red");
+			siril_log_color_message(_("No information available in preferences.\n"), "red");
 			return 1;
 		}
 	} else {
@@ -189,17 +186,18 @@ int fix_xtrans_ac(fits *fit) {
 		sam = supported_xtrans[model].sample;
 	}
 
+
 	// Flip the image so the xtrans pattern makes sense.
 	// This matches logic in demosaicing.c.
 	read_bottom_up = (com.pref.debayer.use_bayer_header
 			&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
 			|| (!com.pref.debayer.top_down);
-	if (read_bottom_up) {
-		fits_flip_top_to_bottom(fit);
-	}
+	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
+
 
 	// Struct for holding computations.
-	struct af_type {
+	struct af_type
+	{
 		// non-focus pixels
 		double nfsum;
 		float nfmean;
@@ -220,7 +218,8 @@ int fix_xtrans_ac(fits *fit) {
 
 	// Variables for the winning pattern.
 	float best_fudge = 0.f;
-	char best_af_type = '\0';
+	char  best_af_type = '\0';
+
 
 	// af_matrix is an RGB pattern where lowercase letters represent AF pixels and their color.
 	af_pixel_matrix af_matrix = { 0 };
@@ -292,7 +291,17 @@ int fix_xtrans_ac(fits *fit) {
 				af_types[2].nfsum += (double) pixel;
 				af_types[3].afsum += (double) pixel;
 				break;
-			default: // This is not a green pixel.
+			// case '-': // If we want to include R and B.
+		 	// 	af_types[0].nfcount++;
+		 	// 	af_types[1].nfcount++;
+		 	// 	af_types[2].nfcount++;
+		 	// 	af_types[3].nfcount++;
+		 	// 	af_types[0].nfsum += (double) pixel;
+		 	// 	af_types[1].nfsum += (double) pixel;
+		 	// 	af_types[2].nfsum += (double) pixel;
+		 	// 	af_types[3].nfsum += (double) pixel;
+		 	// 	break;
+			default:
 				break;
 			}
 		}
@@ -302,7 +311,7 @@ int fix_xtrans_ac(fits *fit) {
 
 		// Make sure we have a valid sample.
 		if (af_types[f].nfcount == 0 || af_types[f].afcount == 0) {
-			siril_log_message(_("Failed to sample enough pixels for AF type %d.\n"), f);
+			siril_log_message(_("Failed to sample enough pixels for AF type %d.\n"),f);
 			return -1.f;
 		}
 
@@ -319,7 +328,7 @@ int fix_xtrans_ac(fits *fit) {
 		// Pick the winner.
 		if (fabsf(af_types[f].fudge) > fabsf(best_fudge)) {
 			best_fudge = af_types[f].fudge;
-			best_af_type = f + '0';  // single digit int to char
+			best_af_type = f+'0';  // single digit int to char
 		}
 	}
 
@@ -330,9 +339,7 @@ int fix_xtrans_ac(fits *fit) {
 	subtract_fudge(fit, af, best_fudge, &af_matrix, best_af_type);
 
 	// Flip the image back.
-	if (read_bottom_up) {
-		fits_flip_top_to_bottom(fit);
-	}
+	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
 
 	invalidate_stats_from_fit(fit);
 
