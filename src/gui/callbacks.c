@@ -377,6 +377,7 @@ void update_MenuItem() {
 	gboolean is_a_single_image_loaded;		/* An image is loaded. Not a sequence or only the result of stacking process */
 	gboolean is_a_singleRGB_image_loaded;	/* A RGB image is loaded. Not a sequence or only the result of stacking process */
 	gboolean any_image_is_loaded;			/* Something is loaded. Single image or Sequence */
+	char *str;
 
 	is_a_singleRGB_image_loaded = isrgb(&gfit) && (!sequence_is_loaded()
 			|| (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE
@@ -392,7 +393,19 @@ void update_MenuItem() {
 	gtk_widget_set_sensitive(lookup_widget("header_precision_button"), any_image_is_loaded);
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
 	gtk_widget_set_sensitive(lookup_widget("header_undo_button"), is_undo_available());
+	if (is_undo_available()) {
+		str = g_strdup_printf(_("Undo: \"%s\""), com.history[com.hist_display - 1].history);
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
+		g_free(str);
+	}
+	else gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	gtk_widget_set_sensitive(lookup_widget("header_redo_button"), is_redo_available());
+	if (is_redo_available()) {
+		str = g_strdup_printf(_("Redo: \"%s\""), com.history[com.hist_display].history);
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
+		g_free(str);
+	}
+	else gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
 	/* File Menu */
 	gtk_widget_set_sensitive(lookup_widget("header_save_as_button"), any_image_is_loaded);
 	gtk_widget_set_sensitive(lookup_widget("header_save_button"), is_a_single_image_loaded && com.uniq->fileexist);
@@ -654,33 +667,39 @@ int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb) {
 	return -1;
 }
 
-void calculate_fwhm(GtkWidget *widget) {
-	/* calculate and display FWHM */
-	int layer = match_drawing_area_widget(widget, FALSE);
-	if (layer != -1) {
-		gchar *buf, *label_name;
-		const char *layer_name = untranslated_vport_number_to_name(layer);
-		GtkLabel *label;
-		if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
-			if (com.selection.w < 300 && com.selection.h < 300) {
-				double roundness;
-				double fwhm_val;
-
-				fwhm_val = psf_get_fwhm(&gfit, layer, &roundness);
-				buf = g_strdup_printf(_("fwhm = %.2f, r = %.2f"), fwhm_val,
-						roundness);
-			} else
-				buf = g_strdup_printf(_("fwhm: selection is too large"));
-		} else {
-			buf = g_strdup_printf(("fwhm: no selection"));
-		}
-		label_name = g_strdup_printf("labelfwhm%s", layer_name);
-		label = GTK_LABEL(lookup_widget(label_name));
-		gtk_label_set_text(label, buf);
-
-		g_free(label_name);
+void update_display_selection() {
+	if (com.cvport == RGB_VPORT) return;
+	const char *layer_name = untranslated_vport_number_to_name(com.cvport);
+	gchar *label_name = g_strdup_printf("labelselection_%s", layer_name);
+	if (com.selection.w && com.selection.h) {
+		gchar *buf = g_strdup_printf(_("w: %d h: %d ratio: %.4f"), com.selection.w, com.selection.h,
+			(double)com.selection.w / (double)com.selection.h);
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), buf);
 		g_free(buf);
+	} else {
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), "");
 	}
+	g_free(label_name);
+}
+
+void update_display_fwhm() {
+	if (com.cvport == RGB_VPORT) return;
+	gchar *buf;
+	const char *layer_name = untranslated_vport_number_to_name(com.cvport);
+	gchar *label_name = g_strdup_printf("labelfwhm%s", layer_name);
+	if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
+		if (com.selection.w < 300 && com.selection.h < 300) {
+			double roundness;
+			double fwhm_val = psf_get_fwhm(&gfit, com.cvport, &roundness);
+			buf = g_strdup_printf(_("fwhm = %.2f, r = %.2f"), fwhm_val, roundness);
+		} else
+			buf = g_strdup_printf(_("fwhm: selection is too large"));
+	} else {
+		buf = g_strdup_printf(_("fwhm: no selection"));
+	}
+	gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), buf);
+	g_free(label_name);
+	g_free(buf);
 }
 
 /* displays the opened image file name in the layers window.
@@ -1141,7 +1160,7 @@ void set_GUI_DiskSpace(int64_t space) {
 	const gchar *color = NULL;
 
 	if (space > 0) {
-		if (space < 1000000000) { // we wabt to warn user of space is less than 1GB
+		if (space < 1000000000) { // we want to warn user of space is less than 1GB
 			color = "red";
 		}
 		gchar *mem = pretty_print_memory(space);
@@ -1292,6 +1311,8 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);
+	register_selection_update_callback(update_display_selection);
+	register_selection_update_callback(update_display_fwhm);
 
 	/* initialization of some paths */
 	initialize_path_directory();
@@ -1779,7 +1800,8 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 	set_cutoff_sliders_values();// load the previous known values for sliders
 	set_display_mode();		// change the mode in the combo box if needed
 	redraw(com.cvport, REMAP_ONLY);
-	calculate_fwhm(com.vport[com.cvport]);
+	update_display_selection();	// update the dimensions of the selection when switching page
+	update_display_fwhm();
 }
 
 struct checkSeq_filter_data {
@@ -1879,12 +1901,12 @@ void on_menu_rgb_align_select(GtkMenuItem *menuitem, gpointer user_data) {
 }
 
 void on_rgb_align_dft_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, "Processing: RGB alignment (DFT)");
+	undo_save_state(&gfit, _("RGB alignment (DFT)"));
 	rgb_align(1);
 }
 
 void on_rgb_align_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, "Processing: RGB alignment (PSF)");
+	undo_save_state(&gfit, _("RGB alignment (PSF)"));
 	rgb_align(0);
 }
 

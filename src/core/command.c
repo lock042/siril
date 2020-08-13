@@ -1886,8 +1886,7 @@ int process_subsky(int nb) {
 	}
 
 	if (degree < 1 || degree > 4) {
-		siril_log_message("Polynomial degree order must be within the [1, 4] range.\n");
-		printf("test %d\n", degree);
+		siril_log_message(_("Polynomial degree order must be within the [1, 4] range.\n"));
 		return 1;
 	}
 
@@ -2178,7 +2177,7 @@ int process_extractHa(int nb) {
 				}
 			}
 		} else {
-			siril_log_message("XTRANS pattern not handled for this feature.\n");
+			siril_log_message(_("XTRANS pattern not handled for this feature.\n"));
 			return 1;
 		}
 	}
@@ -2247,7 +2246,7 @@ int process_extractHaOIII(int nb) {
 				}
 			}
 		} else {
-			siril_log_message("XTRANS pattern not handled for this feature.\n");
+			siril_log_message(_("XTRANS pattern not handled for this feature.\n"));
 			return 1;
 		}
 	}
@@ -2523,7 +2522,7 @@ int process_convertraw(int nb) {
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
-				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ? 1 : atoi(value);
+				idx = (atoi(value) <= 0 || atoi(value) >= INDEX_MAX) ? 1 : atoi(value);
 			} else if (g_str_has_prefix(current, "-out=")) {
 				value = current + 5;
 				if (value[0] == '\0') {
@@ -2630,7 +2629,7 @@ int process_link(int nb) {
 			char *current = word[i], *value;
 			if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
-				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ?
+				idx = (atoi(value) <= 0 || atoi(value) >= INDEX_MAX) ?
 						1 : atoi(value);
 			} else if (g_str_has_prefix(current, "-out=")) {
 				value = current + 5;
@@ -2746,7 +2745,7 @@ int process_convert(int nb) {
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
-				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ?
+				idx = (atoi(value) <= 0 || atoi(value) >= INDEX_MAX) ?
 						1 : atoi(value);
 			} else if (g_str_has_prefix(current, "-out=")) {
 				value = current + 5;

@@ -1026,10 +1026,14 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	int width = fit->rx;
 	int height = fit->ry;
 	WORD *buf = fit->data;
+	gboolean read_bottom_up = FALSE;
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		if (!g_strcmp0(fit->row_order, "BOTTOM-UP"))
+		read_bottom_up = (com.pref.debayer.use_bayer_header
+				&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
+				|| (!com.pref.debayer.top_down);
+		if (read_bottom_up)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
@@ -1067,7 +1071,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 			return 1;
 
 		fit_debayer_buffer(fit, newbuf);
-		if (interpolation == XTRANS && !g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+		if (interpolation == XTRANS && read_bottom_up) {
 			fits_flip_top_to_bottom(fit);
 		}
 	}
@@ -1079,10 +1083,14 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	int width = fit->rx;
 	int height = fit->ry;
 	float *buf = fit->fdata;
+	gboolean read_bottom_up = FALSE;
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		if (!g_strcmp0(fit->row_order, "BOTTOM-UP"))
+		read_bottom_up = (com.pref.debayer.use_bayer_header
+				&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
+				|| (!com.pref.debayer.top_down);
+		if (read_bottom_up)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
@@ -1094,7 +1102,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		return 1;
 
 	fit_debayer_buffer(fit, newbuf);
-	if (interpolation == XTRANS && !g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+	if (interpolation == XTRANS && read_bottom_up) {
 		fits_flip_top_to_bottom(fit);
 	}
 	return 0;
@@ -1227,7 +1235,7 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 				}
 			}
 		} else {
-			siril_log_message("XTRANS pattern not handled for this feature.\n");
+			siril_log_message(_("XTRANS pattern not handled for this feature.\n"));
 			return 1;
 		}
 	}
@@ -1419,7 +1427,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 				}
 			}
 		} else {
-			siril_log_message("XTRANS pattern not handled for this feature.\n");
+			siril_log_message(_("XTRANS pattern not handled for this feature.\n"));
 			return 1;
 		}
 	}

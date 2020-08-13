@@ -1933,7 +1933,6 @@ enter a visible wavelength in nm</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Undo</property>
                 <property name="action_name">app.undo</property>
                 <child>
                   <object class="GtkImage">
@@ -1955,7 +1954,6 @@ enter a visible wavelength in nm</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Redo</property>
                 <property name="action_name">app.redo</property>
                 <property name="use_underline">True</property>
                 <child>
@@ -2199,7 +2197,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
             <property name="max_length">3</property>
             <property name="width_chars">3</property>
             <property name="max_width_chars">2</property>
-            <property name="text" translatable="yes">1</property>
+            <property name="text">1</property>
             <property name="progress_pulse_step">1</property>
             <property name="input_purpose">digits</property>
             <property name="adjustment">adjCPU</property>
@@ -2344,7 +2342,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="vseparator7">
+                              <object class="GtkSeparator" id="vseparatorr1">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="orientation">vertical</property>
@@ -2359,17 +2357,16 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labeldensity_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="width_chars">30</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">4</property>
+                                <property name="padding">12</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="vseparator4">
+                              <object class="GtkSeparator" id="vseparatorr2">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="orientation">vertical</property>
@@ -2395,7 +2392,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="separator5">
+                              <object class="GtkSeparator" id="vseparatorr3">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="orientation">vertical</property>
@@ -2404,6 +2401,31 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">5</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelselection_red">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="width_chars">30</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">3</property>
+                                <property name="position">6</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSeparator" id="vseparatorr4">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">7</property>
                               </packing>
                             </child>
                             <child>
@@ -2416,7 +2438,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
-                                <property name="position">6</property>
+                                <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
@@ -2511,7 +2533,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labeldensity_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="width_chars">30</property>
+                                <property name="width_chars">22</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2546,7 +2568,32 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="separator6">
+                              <object class="GtkSeparator" id="vseparatorg3">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">False</property>
+                                <property name="position">5</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelselection_green">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="width_chars">30</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">3</property>
+                                <property name="position">6</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSeparator" id="vseparatorg4">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="orientation">vertical</property>
@@ -2554,7 +2601,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">5</property>
+                                <property name="position">7</property>
                               </packing>
                             </child>
                             <child>
@@ -2566,7 +2613,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
-                                <property name="position">6</property>
+                                <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
@@ -2665,8 +2712,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labeldensity_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">The value stored in pointed pixels will appear here.</property>
-                                <property name="width_chars">30</property>
+                                <property name="width_chars">22</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2701,7 +2747,32 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="separator7">
+                              <object class="GtkSeparator" id="vseparatorb3">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">False</property>
+                                <property name="position">5</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelselection_blue">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="width_chars">30</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">3</property>
+                                <property name="position">6</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSeparator" id="vseparatorb4">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="orientation">vertical</property>
@@ -2709,7 +2780,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">5</property>
+                                <property name="position">7</property>
                               </packing>
                             </child>
                             <child>
@@ -2721,7 +2792,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
-                                <property name="position">6</property>
+                                <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
