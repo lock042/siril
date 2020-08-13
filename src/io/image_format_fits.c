@@ -1503,7 +1503,7 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	return 0;
 }
 
-int siril_fit_compress(fits *f) {
+int siril_fits_compress(fits *f) {
 	int status = 0;
 	int comp_type = -1;
 	siril_debug_print("Compressing FIT file with method %d and quantization %f\n",
@@ -1570,7 +1570,7 @@ int savefits(const char *name, fits *f) {
 	}
 
 	if (com.pref.comp.fits_enabled) {
-		status = siril_fit_compress(f);
+		status = siril_fits_compress(f);
 		if (status) {
 			report_fits_error(status);
 			return 1;

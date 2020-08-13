@@ -433,7 +433,7 @@ static void *write_worker(void *a) {
 		task->image->fptr = fitseq->fptr;
 
 		if (com.pref.comp.fits_enabled) {
-			status = siril_fit_compress(task->image);
+			status = siril_fits_compress(task->image);
 			if (status) {
 				report_fits_error(status);
 				retval = FITSEQ_WRITE_ERROR;
