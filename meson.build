@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '0.99.3',
+  version : '0.99.4',
   license : ['GPL3'],
   meson_version: '>=0.51.0',
   default_options : [
@@ -200,7 +200,6 @@ endif
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()
-  # TODO: Static link but still install the .a lib???
   sub_proj = cmake.subproject('librtprocess', cmake_options: '-DBUILD_SHARED_LIBS=OFF')
   rtprocess_dep = sub_proj.dependency('rtprocess')
   rtprocess_inc = sub_proj.include_directories('rtprocess')

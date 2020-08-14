@@ -2532,7 +2532,7 @@ int process_convertraw(int nb) {
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
-				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ? 1 : atoi(value);
+				idx = (atoi(value) <= 0 || atoi(value) >= INDEX_MAX) ? 1 : atoi(value);
 			} else if (g_str_has_prefix(current, "-out=")) {
 				value = current + 5;
 				if (value[0] == '\0') {
@@ -2639,7 +2639,7 @@ int process_link(int nb) {
 			char *current = word[i], *value;
 			if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
-				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ?
+				idx = (atoi(value) <= 0 || atoi(value) >= INDEX_MAX) ?
 						1 : atoi(value);
 			} else if (g_str_has_prefix(current, "-out=")) {
 				value = current + 5;
@@ -2755,7 +2755,7 @@ int process_convert(int nb) {
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
-				idx = (atoi(value) <= 0 || atoi(value) >= 100000) ?
+				idx = (atoi(value) <= 0 || atoi(value) >= INDEX_MAX) ?
 						1 : atoi(value);
 			} else if (g_str_has_prefix(current, "-out=")) {
 				value = current + 5;
@@ -3588,4 +3588,49 @@ int process_extract(int nb) {
 
 int process_reloadscripts(int nb){
 	return refresh_scripts(NULL);
+}
+
+
+int process_requires(int nb) {
+	gchar **version, **required;
+	gint major, minor, micro;
+	gint req_major, req_minor, req_micro;
+
+	version = g_strsplit(PACKAGE_VERSION, ".", 3);
+	required = g_strsplit(word[1], ".", 3);
+
+	if (g_strv_length(required) != 3) {
+		siril_log_color_message(_("Required version is not correct.\n"), "red");
+
+		g_strfreev(version);
+		g_strfreev(required);
+		return 1;
+	}
+
+	major = atoi(version[0]);
+	minor = atoi(version[1]);
+	micro = atoi(version[2]);
+
+	req_major = atoi(required[0]);
+	req_minor = atoi(required[1]);
+	req_micro = atoi(required[2]);
+
+	g_strfreev(version);
+	g_strfreev(required);
+
+	if ((major > req_major || (major == req_major && minor > req_minor)
+			|| (major == req_major && minor == req_minor && micro >= req_micro))) {
+		// no need to output something in script conditions
+		if (!com.script) {
+			siril_log_message(_("The required version of Siril is ok.\n"));
+		}
+		return 0;
+	} else {
+		if (!com.script) {
+			siril_log_color_message(_("A newer version of Siril is required, please update your version.\n"), "red");
+		} else {
+			siril_log_color_message(_("The script you are executing requires a newer version of Siril to run (%s), aborting.\n"), "red", word[1]);
+		}
+		return 1;
+	}
 }
