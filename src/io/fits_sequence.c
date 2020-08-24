@@ -648,5 +648,11 @@ static void notify_data_freed(fitseq *fitseq, int index) {
 void fitseq_set_number_of_outputs(int number_of_outputs) {
 	siril_debug_print("fitseq number of outputs: %d\n", number_of_outputs);
 	nb_outputs = number_of_outputs;
-	outputs = calloc(number_of_outputs, sizeof(struct _outputs_struct));
+	if (number_of_outputs > 1) {
+		outputs = calloc(number_of_outputs, sizeof(struct _outputs_struct));
+	} else {
+		if (outputs)
+			free(outputs);
+		outputs = NULL;
+	}
 }

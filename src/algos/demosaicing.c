@@ -1508,6 +1508,7 @@ static int dual_finalize(struct generic_seq_args *args) {
 	retval = seq_finalize_hook(args) || retval;
 	cfa_args->new_ser_oiii = NULL;
 	cfa_args->new_fitseq_oiii = NULL;
+	fitseq_set_number_of_outputs(1);
 	return retval;
 }
 
