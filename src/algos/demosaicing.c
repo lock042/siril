@@ -1561,10 +1561,18 @@ static int dual_save(struct generic_seq_args *args, int out_index, int in_index,
 		}
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "Ha_", in_index);
-		retval1 = save1fits16(dest, double_data->ha, 0);
+		if (fit->type == DATA_USHORT) {
+			retval1 = save1fits16(dest, double_data->ha, RLAYER);
+		} else {
+			retval1 = save1fits32(dest, double_data->ha, RLAYER);
+		}
 		free(dest);
 		dest = fit_sequence_get_image_filename_prefixed(args->seq, "OIII_", in_index);
-		retval2 = save1fits16(dest, double_data->oiii, 0);
+		if (fit->type == DATA_USHORT) {
+			retval2 = save1fits16(dest, double_data->oiii, RLAYER);
+		} else {
+			retval2 = save1fits32(dest, double_data->oiii, RLAYER);
+		}
 		free(dest);
 		clearfits(double_data->ha);
 		clearfits(double_data->oiii);
@@ -1699,18 +1707,18 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 
 	if (fit->type == DATA_USHORT) {
 		if (!(ret = split_cfa_ushort(fit, &f_cfa0, &f_cfa1, &f_cfa2, &f_cfa3))) {
-			ret = save1fits16(cfa0, &f_cfa0, 0) ||
-				save1fits16(cfa1, &f_cfa1, 0) ||
-				save1fits16(cfa2, &f_cfa2, 0) ||
-				save1fits16(cfa3, &f_cfa3, 0);
+			ret = save1fits16(cfa0, &f_cfa0, RLAYER) ||
+				save1fits16(cfa1, &f_cfa1, RLAYER) ||
+				save1fits16(cfa2, &f_cfa2, RLAYER) ||
+				save1fits16(cfa3, &f_cfa3, RLAYER);
 		}
 	}
 	else if (fit->type == DATA_FLOAT) {
 		if (!(ret = split_cfa_float(fit, &f_cfa0, &f_cfa1, &f_cfa2, &f_cfa3))) {
-			ret = save1fits32(cfa0, &f_cfa0, 0) ||
-				save1fits32(cfa1, &f_cfa1, 0) ||
-				save1fits32(cfa2, &f_cfa2, 0) ||
-				save1fits32(cfa3, &f_cfa3, 0);
+			ret = save1fits32(cfa0, &f_cfa0, RLAYER) ||
+				save1fits32(cfa1, &f_cfa1, RLAYER) ||
+				save1fits32(cfa2, &f_cfa2, RLAYER) ||
+				save1fits32(cfa3, &f_cfa3, RLAYER);
 		}
 	}
 
