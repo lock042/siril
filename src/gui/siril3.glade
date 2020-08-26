@@ -1786,6 +1786,13 @@ enter a visible wavelength in nm</property>
     <property name="show_numbers">True</property>
     <signal name="item-activated" handler="on_open_recent_action_item_activated" swapped="no"/>
   </object>
+  <object class="GtkAdjustment" id="register_minpairs">
+    <property name="lower">10</property>
+    <property name="upper">2000</property>
+    <property name="value">10</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">1</property>
+  </object>
   <object class="GtkImage" id="removefilter2">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -4785,6 +4792,44 @@ WARNING: no new sequence is built, registration data is stored in the original s
                                             <property name="fill">True</property>
                                             <property name="padding">4</property>
                                             <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="label_minpairs">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Minimum Star Pairs:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spinbut_minpairs">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="tooltip_text" translatable="yes">The minimum number of star pairs a given frame can have with the reference frame can have. If a given light frame has less star pairs, it will not be registered.</property>
+                                            <property name="halign">start</property>
+                                            <property name="max_length">4</property>
+                                            <property name="width_chars">4</property>
+                                            <property name="max_width_chars">4</property>
+                                            <property name="text">10</property>
+                                            <property name="progress_pulse_step">1</property>
+                                            <property name="input_purpose">digits</property>
+                                            <property name="adjustment">register_minpairs</property>
+                                            <property name="numeric">True</property>
+                                            <property name="value">10</property>
+                                            <style>
+                                              <class name="small-spinbutton"/>
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">3</property>
                                           </packing>
                                         </child>
                                       </object>
@@ -20029,7 +20074,7 @@ The technique gives very good compression for astronomical images and is relativ
                         <property name="fill">True</property>
                         <property name="position">6</property>
                       </packing>
-                    </child>
+                    </child>                    
                   </object>
                   <packing>
                     <property name="name">preferences_p7</property>
