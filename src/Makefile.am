@@ -194,6 +194,8 @@ siril_common_SOURCES = \
 	io/sequence.c \
 	io/sequence.h \
 	io/sequence_export.c \
+	io/seqwriter.h \
+	io/seqwriter.c \
 	io/ser.c \
 	io/ser.h \
 	io/single_image.c \
