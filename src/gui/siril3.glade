@@ -1291,6 +1291,126 @@ enter a visible wavelength in nm</property>
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="menu_gray_selection">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Selection</property>
+        <property name="use_underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="menu5">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_free">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Free ratio</property>
+                <property name="tooltip_text" translatable="yes">Free ratio</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="active">True</property>
+                <signal name="toggled" handler="on_menuitem_selection_free_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_preserve">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Preserve ratio</property>
+                <property name="tooltip_text" translatable="yes">Preserve the original ratio of the image</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_free</property>
+                <signal name="toggled" handler="on_menuitem_selection_preserve_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparatorMenuItem" id="menu_gray_separator_selection_1">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_16_9">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">16/9</property>
+                <property name="tooltip_text" translatable="yes">Landscape 16/9th ratio</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_free</property>
+                <signal name="toggled" handler="on_menuitem_selection_16_9_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_4_3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">4/3</property>
+                <property name="tooltip_text" translatable="yes">Landscape 4/3th ratio</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_free</property>
+                <signal name="toggled" handler="on_menuitem_selection_4_3_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_1_1">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">1/1</property>
+                <property name="tooltip_text" translatable="yes">Squared ratio</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_free</property>
+                <signal name="toggled" handler="on_menuitem_selection_1_1_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_3_4">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">3/4</property>
+                <property name="tooltip_text" translatable="yes">Portrait 3/4th ratio</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_free</property>
+                <signal name="toggled" handler="on_menuitem_selection_3_4_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_9_16">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">9/16</property>
+                <property name="tooltip_text" translatable="yes">Portrait 9/16th ratio</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_free</property>
+                <signal name="toggled" handler="on_menuitem_selection_9_16_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparatorMenuItem" id="menu_gray_separator_selection_2">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menuitem_selection_all">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Select All</property>
+                <property name="tooltip_text" translatable="yes">Select the whole image and reset ratio</property>
+                <property name="use_underline">True</property>
+                <signal name="activate" handler="on_menuitem_selection_all_activate" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menu_gray_crop">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -2844,11 +2964,12 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                   <object class="GtkDrawingArea" id="drawingareargb">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="events">GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
+                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
                                     <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                                     <signal name="popup-menu" handler="rgb_area_popup_menu_handler" swapped="no"/>
+									<signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                     <signal name="scroll-event" handler="on_drawingarea_scroll_event" object="zoom_to_fit_check_button" swapped="no"/>
                                   </object>
                                 </child>
@@ -19917,48 +20038,6 @@ The technique gives very good compression for astronomical images and is relativ
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkFrame" id="frame23">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label_xalign">0</property>
-                        <property name="shadow_type">none</property>
-                        <child>
-                          <object class="GtkAlignment" id="alignment24">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="left_padding">12</property>
-                            <child>
-                              <object class="GtkEntry" id="miscCopyright">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="tooltip_text" translatable="yes">Copyright when saving image as TIFF</property>
-                                <property name="width_chars">50</property>
-                                <signal name="changed" handler="on_miscCopyright_changed" swapped="no"/>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label120">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="margin_top">10</property>
-                            <property name="margin_bottom">10</property>
-                            <property name="label" translatable="yes">Copyright TIFF</property>
-                            <property name="single_line_mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkFrame" id="frame16">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -19989,6 +20068,48 @@ The technique gives very good compression for astronomical images and is relativ
                             <property name="margin_top">10</property>
                             <property name="margin_bottom">10</property>
                             <property name="label" translatable="yes">Warning Dialog</property>
+                            <property name="single_line_mode">True</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame" id="frame23">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label_xalign">0</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignment24">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="left_padding">12</property>
+                            <child>
+                              <object class="GtkEntry" id="miscCopyright">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="tooltip_text" translatable="yes">Copyright when saving image as TIFF</property>
+                                <property name="width_chars">50</property>
+                                <signal name="changed" handler="on_miscCopyright_changed" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="label120">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="margin_top">10</property>
+                            <property name="margin_bottom">10</property>
+                            <property name="label" translatable="yes">Copyright TIFF</property>
                             <property name="single_line_mode">True</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>
@@ -20061,6 +20182,7 @@ The technique gives very good compression for astronomical images and is relativ
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
+                                <property name="halign">start</property>
                                 <property name="active">True</property>
                                 <property name="draw_indicator">True</property>
                                 <signal name="toggled" handler="on_miscAskUpdateStartup_toggled" swapped="no"/>
