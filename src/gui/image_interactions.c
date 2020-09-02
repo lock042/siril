@@ -781,6 +781,7 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 			cairo_matrix_transform_point(&com.display_matrix, &evpos.x, &evpos.y);
 			com.display_offset.x += event->x - evpos.x;
 			com.display_offset.y += event->y - evpos.y;
+			adjust_vport_size_to_image();
 			redraw(com.cvport, REMAP_NONE);
 		}
 	}
