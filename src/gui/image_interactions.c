@@ -637,6 +637,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	g_free(label);
 
 	if (com.translating) {
+		GtkToggleToolButton *button = (GtkToggleToolButton *)user_data;
+		if (gtk_toggle_tool_button_get_active(button))
+			gtk_toggle_tool_button_set_active(button, FALSE);
+
 		pointi ev = { round_to_int(event->x), round_to_int(event->y) };
 		point delta = { ev.x - com.start.x , ev.y - com.start.y };
 		com.start = ev;
