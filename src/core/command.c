@@ -499,6 +499,7 @@ int process_crop(int nb) {
 
 	crop(&gfit, &area);
 	delete_selected_area();
+	reset_display_offset();
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
@@ -882,7 +883,6 @@ int process_resample(int nb) {
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_LINEAR);
 	
-	adjust_vport_size_to_image();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);

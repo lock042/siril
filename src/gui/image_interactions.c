@@ -162,6 +162,11 @@ void delete_selected_area() {
 	new_selection_zone();
 }
 
+void reset_display_offset() {
+	com.display_offset.x = 0;
+	com.display_offset.y = 0;
+}
+
 /*
  * Button events
  */
@@ -223,8 +228,10 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_preserve")), com.ratio == original_ratio);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_16_9")), com.ratio == 16.0 / 9.0);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_4_3")), com.ratio == 4.0 / 3.0);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_3_2")), com.ratio == 3.0 / 2.0);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_1_1")), com.ratio == 1.0 / 1.0);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_3_4")), com.ratio == 3.0 / 4.0);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_2_3")), com.ratio == 2.0 / 3.0);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_9_16")), com.ratio == 9.0 / 16.0);
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_preserve"), is_a_single_image_loaded || sequence_is_loaded());
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_all"), is_a_single_image_loaded || sequence_is_loaded());
@@ -312,6 +319,12 @@ void on_menuitem_selection_4_3_toggled(GtkCheckMenuItem *menuitem, gpointer user
 	}
 }
 
+void on_menuitem_selection_3_2_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		set_selection_ratio(3.0 / 2.0);
+	}
+}
+
 void on_menuitem_selection_1_1_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
 		set_selection_ratio(1.0 / 1.0);
@@ -321,6 +334,12 @@ void on_menuitem_selection_1_1_toggled(GtkCheckMenuItem *menuitem, gpointer user
 void on_menuitem_selection_3_4_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
 		set_selection_ratio(3.0 / 4.0);
+	}
+}
+
+void on_menuitem_selection_2_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		set_selection_ratio(2.0 / 3.0);
 	}
 }
 
@@ -623,6 +642,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	g_free(label);
 
 	if (com.translating) {
+		GtkToggleToolButton *button = (GtkToggleToolButton *)user_data;
+		if (gtk_toggle_tool_button_get_active(button))
+			gtk_toggle_tool_button_set_active(button, FALSE);
+
 		pointi ev = { round_to_int(event->x), round_to_int(event->y) };
 		point delta = { ev.x - com.start.x , ev.y - com.start.y };
 		com.start = ev;
@@ -694,14 +717,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				} else if (is_inside_of_sel(zoomed, zoom)) {
 					set_cursor("all-scroll");
 				} else {
-					if (event->state & get_primary()) {
-						set_cursor("all-scroll");
-					} else {
-						set_cursor("crosshair");
-					}
+					set_cursor("crosshair");
 				}
 			} else {
-				if (event->state & get_primary()) {
+				if ((event->state & get_primary()) || is_inside_of_sel(zoomed, zoom)) {
 					set_cursor("all-scroll");
 				} else {
 					set_cursor("crosshair");
@@ -795,9 +814,7 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 void on_zoom_to_fit_check_button_toggled(GtkToggleToolButton *button, gpointer data) {
 	if (gtk_toggle_tool_button_get_active(button)) {
 		com.zoom_value = -1;
-		com.display_offset.x = 0;
-		com.display_offset.y = 0;
-		adjust_vport_size_to_image();
+		reset_display_offset();
 		redraw(com.cvport, REMAP_NONE);
 	} else {
 		com.zoom_value = get_zoom_val();
@@ -809,8 +826,6 @@ void on_zoom_to_one_button_clicked(GtkToolButton *button, gpointer user_data) {
 	if (gtk_toggle_tool_button_get_active(tbutton))
 		gtk_toggle_tool_button_set_active(tbutton, FALSE);
 	com.zoom_value = 1;
-	com.display_offset.x = 0;
-	com.display_offset.y = 0;
-	adjust_vport_size_to_image();
+	reset_display_offset();
 	redraw(com.cvport, REMAP_NONE);
 }
