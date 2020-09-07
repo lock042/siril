@@ -417,6 +417,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 	float norm;
 	gchar *description = NULL, *copyright = NULL;
 	gchar *filename = g_strdup(name);
+	uint32_t profile_len = -1;
+	const unsigned char *profile;
+
 	if (!ends_with(filename, ".tif") && (!ends_with(filename, ".tiff"))) {
 		filename = str_append(&filename, ".tif");
 	}
@@ -453,22 +456,21 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->maxi);
 	TIFFSetField(tif, TIFFTAG_SOFTWARE, PACKAGE " v" VERSION);
 
-	uint32_t profile_len;
-	const unsigned char *profile = get_sRGB_profile_data(&profile_len);
-
-	if (profile_len > 0) {
-		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
-	}
-
-	if (nsamples == 1)
+	if (nsamples == 1) {
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-	else if (nsamples == 3)
+		profile = get_gray_profile_data(&profile_len);
+	} else if (nsamples == 3) {
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-	else {
+		profile = get_sRGB_profile_data(&profile_len);
+	} else {
 		TIFFClose(tif);
 		siril_log_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
 		free(filename);
 		return 1;
+	}
+
+	if (profile_len > 0) {
+		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
 
 	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
@@ -936,7 +938,6 @@ static uint8_t *convert_data8(fits *image) {
 
 int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		gboolean is_colour) {
-
 	int32_t ret = -1;
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -1003,8 +1004,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		const unsigned char *profile = get_sRGB_profile_data(&profile_len);
 
 		if (profile_len > 0) {
-			png_set_iCCP(png_ptr, info_ptr, *name ? name : "icc", 0,
-					(png_const_bytep) profile, profile_len);
+			png_set_iCCP(png_ptr, info_ptr, *name ? name : "icc", 0, (png_const_bytep) profile, profile_len);
 		}
 	} else {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
@@ -1029,12 +1029,12 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		/* swap bytes of 16 bit files to most significant bit first */
 		png_set_swap(png_ptr);
 		WORD *data = convert_data(fit);
-		for (unsigned i = 0; i < height; i++)
-			row_pointers[i] = (png_bytep) ((uint16_t*) data	+ (size_t) samples_per_pixel * i * width);
+		for (unsigned i = 0, j = height - 1; i < height; i++)
+			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
 		uint8_t *data = convert_data8(fit);
-		for (unsigned i = 0; i < height; i++)
-			row_pointers[i] = (uint8_t*) data + (size_t) samples_per_pixel * i * width;
+		for (unsigned i = 0, j = height - 1; i < height; i++)
+			row_pointers[j--] = (uint8_t*) data + (size_t) samples_per_pixel * i * width;
 	}
 
 	png_write_image(png_ptr, row_pointers);
