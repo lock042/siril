@@ -1004,13 +1004,19 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		const unsigned char *profile = get_sRGB_profile_data(&profile_len);
 
 		if (profile_len > 0) {
-			png_set_iCCP(png_ptr, info_ptr, *name ? name : "icc", 0, (png_const_bytep) profile, profile_len);
+			png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
 		}
 	} else {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
 				PNG_COLOR_TYPE_GRAY,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 				PNG_FILTER_TYPE_DEFAULT);
+		uint32_t profile_len;
+		const unsigned char *profile = get_gray_profile_data(&profile_len);
+
+		if (profile_len > 0) {
+			png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
+		}
 	}
 
 	/* Write the file header information.  REQUIRED */
@@ -1076,8 +1082,8 @@ static void get_FITS_date(time_t date, char *date_obs) {
 	/* If the gmtime() call has failed, "secs" is too big. */
 	if (t) {
 		g_snprintf(date_obs, FLEN_VALUE, "%04d-%02d-%02dT%02d:%02d:%02d",
-				t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min,
-				t->tm_sec);
+				t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour,
+				t->tm_min, t->tm_sec);
 	}
 }
 
