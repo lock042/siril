@@ -725,6 +725,7 @@ int savejpg(const char *name, fits *fit, int quality){
 
 	//## FINISH COMPRESSION AND CLOSE FILE:
 	jpeg_finish_compress(&cinfo);
+
 	fclose(f);
 	jpeg_destroy_compress(&cinfo);
 	free(image_buffer);
@@ -995,13 +996,15 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	 * PNG_INTERLACE_ADAM7, and the compression_type and filter_type MUST
 	 * currently be PNG_COMPRESSION_TYPE_BASE and PNG_FILTER_TYPE_BASE. REQUIRED
 	 */
+	uint32_t profile_len = -1;
+	const unsigned char *profile;
+
 	if (is_colour) {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
 				PNG_COLOR_TYPE_RGB,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 				PNG_FILTER_TYPE_DEFAULT);
-		uint32_t profile_len;
-		const unsigned char *profile = get_sRGB_profile_data(&profile_len);
+		profile = get_sRGB_profile_data(&profile_len);
 
 		if (profile_len > 0) {
 			png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
@@ -1011,12 +1014,11 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 				PNG_COLOR_TYPE_GRAY,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 				PNG_FILTER_TYPE_DEFAULT);
-		uint32_t profile_len;
-		const unsigned char *profile = get_gray_profile_data(&profile_len);
+		profile = get_gray_profile_data(&profile_len);
+	}
 
-		if (profile_len > 0) {
-			png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
-		}
+	if (profile_len > 0) {
+		png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
 	}
 
 	/* Write the file header information.  REQUIRED */
