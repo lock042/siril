@@ -1010,7 +1010,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
 				PNG_COLOR_TYPE_GRAY,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
-				PNG_FILTER_TYPE_BASE);
+				PNG_FILTER_TYPE_DEFAULT);
 	}
 
 	/* Write the file header information.  REQUIRED */
@@ -1018,7 +1018,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	png_bytep *row_pointers = malloc((size_t) height * sizeof(png_bytep));
 
-    int samples_per_pixel;
+	int samples_per_pixel;
 	if (is_colour) {
 		samples_per_pixel = 3;
 	} else {
@@ -1040,6 +1040,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	png_write_image(png_ptr, row_pointers);
 
 	/* Clean up after the write, and free any memory allocated */
+	png_write_end(png_ptr, info_ptr);
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 
 	siril_log_message(_("Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"),
