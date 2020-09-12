@@ -282,9 +282,10 @@ static int prepro_image_hook(struct generic_seq_args *args, int out_index, int i
 	}
 
 	if (prepro->debayer) {
+		// not for SER because it is done on-the-fly
 		if (!prepro->seq || prepro->seq->type == SEQ_REGULAR
-				|| prepro->seq->type == SEQ_SER
-				|| prepro->seq->type == SEQ_FITSEQ) {
+				|| prepro->seq->type == SEQ_FITSEQ
+				|| (prepro->seq->type == SEQ_SER && prepro->debayer_ser)) {
 			debayer_if_needed(TYPEFITS, fit, TRUE);
 		}
 

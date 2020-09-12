@@ -22,6 +22,7 @@ struct preprocessing_data {
 	gboolean debayer;
 	gboolean equalize_cfa;
 	gboolean allow_32bit_output;
+	gboolean debayer_ser;
 	float normalisation;
 	int retval;
 	const char *ppprefix;	 // prefix for output files
