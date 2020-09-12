@@ -25,6 +25,7 @@
 #include "algos/background_extraction.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "gui/open_dialog.h"
 #include "image_interactions.h"
 #include "image_display.h"
 #include "callbacks.h"
@@ -242,6 +243,10 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_9_16")), com.ratio == 9.0 / 16.0);
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_preserve"), is_a_single_image_loaded || sequence_is_loaded());
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_all"), is_a_single_image_loaded || sequence_is_loaded());
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_0")), com.pref.selection_guides == 0);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_2")), com.pref.selection_guides == 2);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_3")), com.pref.selection_guides == 3);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_5")), com.pref.selection_guides == 5);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -371,6 +376,30 @@ void on_menuitem_selection_all_activate(GtkMenuItem *menuitem, gpointer user_dat
 	}
 }
 
+void menuitem_selection_guides_0_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 0;
+	}
+}
+
+void menuitem_selection_guides_2_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 2;
+	}
+}
+
+void menuitem_selection_guides_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 3;
+	}
+}
+
+void menuitem_selection_guides_5_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 5;
+	}
+}
+
 gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
 	do_popup_rgbmenu(widget, NULL);
 	return TRUE;
@@ -378,6 +407,19 @@ gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
 
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
+
+	/* when double clicking on drawing area  (if no images loaded)
+	 * you can load an image This feature is in GIMP and I really
+	 * love it: lazy world :).
+	 */
+	if (!single_image_is_loaded() && !sequence_is_loaded()) {
+		if (event->button == GDK_BUTTON_PRIMARY
+				&& event->type == GDK_DOUBLE_BUTTON_PRESS) {
+			header_open_button_clicked();
+		}
+		return FALSE;
+	}
+
 	double zoom = get_zoom_val();
 
 	// evpos.x/evpos.y = cursor position in image coordinate

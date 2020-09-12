@@ -547,7 +547,7 @@ struct save_config_struct {
 };
 
 struct pref_struct {
-	gboolean first_use; // use to display information at first use
+	gboolean first_start; // use to display information at first use
 	/* state of window */
 	gboolean remember_windows;
 	rectangle main_w_pos;
@@ -586,6 +586,8 @@ struct pref_struct {
 	compconf comp;
 
 	gboolean force_to_16bit;
+
+	gint selection_guides;	// number of elements of the grid guides (2 for a simple cross, 3 for the 3 thirds rule, etc.)
 
 	gchar *copyright;		// User copyright when saving image as TIFF
 };
