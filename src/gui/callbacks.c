@@ -1049,7 +1049,27 @@ static void load_accels() {
 	add_accelerator(GTK_APPLICATION(application), "app.logs", "F7");
 
 	add_accelerator(GTK_APPLICATION(application), "app.hide_show_toolbar", "<Primary>T");
+
+	add_accelerator(GTK_APPLICATION(application), "app.zoom_out", "minus");
+	add_accelerator(GTK_APPLICATION(application), "app.zoom_in", "plus");
 }
+
+gboolean on_entry_focus_in_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	GApplication *application = g_application_get_default();
+
+	add_accelerator(GTK_APPLICATION(application), "app.zoom_out", NULL);
+	add_accelerator(GTK_APPLICATION(application), "app.zoom_in", NULL);
+	return FALSE;
+}
+
+gboolean on_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	GApplication *application = g_application_get_default();
+
+	add_accelerator(GTK_APPLICATION(application), "app.zoom_out", "minus");
+	add_accelerator(GTK_APPLICATION(application), "app.zoom_in", "plus");
+	return FALSE;
+}
+
 
 /* Initialize the combobox when loading new single_image */
 void initialize_display_mode() {
@@ -1111,14 +1131,16 @@ void set_GUI_misc() {
 
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.save.quit);
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup"));
 #ifdef HAVE_LIBCURL
+	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.check_update);
 #else
 	gtk_widget_set_visible(lookup_widget("frame24"), FALSE);
 #endif
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.save.script);
+	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("script_check_version"));
+	gtk_toggle_button_set_active(ToggleButton, com.pref.check_script_version);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.show_thumbnails);
 	GtkComboBox *thumb_box = GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"));
@@ -1348,8 +1370,8 @@ void initialize_all_GUI(gchar *supported_files) {
 #endif
 	update_spinCPU(com.max_thread);
 
-	if (com.pref.first_use) {
-		com.pref.first_use = FALSE;
+	if (com.pref.first_start) {
+		com.pref.first_start = FALSE;
 		writeinitfile();
 
 		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
@@ -1584,11 +1606,17 @@ void save_main_window_state() {
 
 void load_main_window_state() {
 	GtkWidget *win = lookup_widget("control_window");
+	GdkRectangle workarea = {0};
+	gdk_monitor_get_workarea(
+	    gdk_display_get_primary_monitor(gdk_display_get_default()),
+	    &workarea);
 
-	int x = com.pref.main_w_pos.x;
-	int y = com.pref.main_w_pos.y;
 	int w = com.pref.main_w_pos.w;
 	int h = com.pref.main_w_pos.h;
+
+	int x = CLAMP(com.pref.main_w_pos.x, 0, workarea.width - w);
+	int y = CLAMP(com.pref.main_w_pos.y, 0, workarea.height - h);
+
 	if (com.pref.remember_windows && w > 0 && h > 0) {
 		if (com.pref.is_maximized) {
 			gtk_window_maximize(GTK_WINDOW(win));

@@ -26,6 +26,8 @@ Complete refactoring
 * New preference entries with darks/biases/flat libraries
 * New preliminary Meson support (Florian Benedetti)
 * New ROWORDER FITS keyword that should be used by several programm now
+* Image display refactoring (Guillaume Roguez)
+* Added color profile in TIFF and PNG files
 * X(Y)BAYEROFF can now be configured in preferences
 * Parallelizing conversion and some other functions
 * CI file was totally rewritten (Florian Benedetti)
@@ -40,6 +42,8 @@ Complete refactoring
 * Fixed a bug of inaccessible directories in MacOS Catalina
 * Fixed crash on some OpenCV operation with monochrome images
 * Fixed annoying error boxes about missing disk drives on Windows
+* Fixed memory leak in minmax algorithms
+* Fixed a bug in FITS from DSLR debayer
 
 v0.9.12, November 04, 2019
 Performance and stability update for v0.9.11

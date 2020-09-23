@@ -28,6 +28,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -169,6 +170,7 @@ static gboolean end_script(gpointer p) {
 
 gpointer execute_script(gpointer p) {
 	FILE *fp = (FILE *)p;
+	gboolean check_required = FALSE;
 	ssize_t read;
 	char *linef, *myline;
 	int line = 0, retval = 0;
@@ -178,6 +180,10 @@ gpointer execute_script(gpointer p) {
 
 	com.script = TRUE;
 	com.stop_script = FALSE;
+	/* Now we want to save the cwd in order to come back after
+	 * script execution
+	 */
+	gchar *saved_cwd = g_strdup(com.wd);
 	gettimeofday(&t_start, NULL);
 	startmem = get_available_memory_in_MB();
 #if (_POSIX_C_SOURCE < 200809L)
@@ -201,9 +207,20 @@ gpointer execute_script(gpointer p) {
 		}
 		if (linef[0] == '\0' || linef[0] == '\n')
 			continue;
+
 		myline = strdup(linef);
 		display_command_on_status_bar(line, myline);
 		parseLine(myline, read, &wordnb);
+		if (!g_ascii_strcasecmp(word[0], "requires")) {
+			check_required = TRUE;
+		} else {
+			if (com.pref.check_script_version && check_required == FALSE) {
+				siril_log_color_message(_("The \"requires\" command is needed at the top the script file."
+						" This command is needed to check script compatibility.\n"), "red");
+				retval = 1;
+				break;
+			}
+		}
 		if ((retval = executeCommand(wordnb))) {
 			removeEOL(linef);
 			siril_log_message(_("Error in line %d: '%s'.\n"), line, linef);
@@ -225,6 +242,9 @@ gpointer execute_script(gpointer p) {
 	free(linef);
 	fclose(fp);
 	com.script = FALSE;
+	/* Now we want to restore the saved cwd */
+	changedir(saved_cwd, NULL);
+	writeinitfile();
 	siril_add_idle(end_script, NULL);
 	if (!retval) {
 		siril_log_message(_("Script execution finished successfully.\n"));
@@ -235,6 +255,7 @@ gpointer execute_script(gpointer p) {
 		msg[strlen(msg)-1] = '\0';
 		set_progress_bar_data(msg, PROGRESS_DONE);
 	}
+	g_free(saved_cwd);
 	fprintf(stderr, "Script thread exiting\n");
 	return GINT_TO_POINTER(retval);
 }

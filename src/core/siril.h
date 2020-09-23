@@ -77,6 +77,8 @@ typedef unsigned short WORD;	// default type for internal image data
 
 #define ZOOM_MAX	128
 #define ZOOM_MIN	0.03125
+#define ZOOM_IN		1.5
+#define ZOOM_OUT    1.0 / ZOOM_IN
 #define ZOOM_NONE	1.0
 #define ZOOM_FIT	-1.0	// or any value < 0
 #define ZOOM_DEFAULT	ZOOM_FIT
@@ -547,7 +549,7 @@ struct save_config_struct {
 };
 
 struct pref_struct {
-	gboolean first_use; // use to display information at first use
+	gboolean first_start; // use to display information at first use
 	/* state of window */
 	gboolean remember_windows;
 	rectangle main_w_pos;
@@ -569,6 +571,7 @@ struct pref_struct {
 	gboolean show_thumbnails; // show or don't show thumbnails in open dialog box
 	gint thumbnail_size;
 	gboolean check_update; // check update at startup
+	gboolean check_script_version; // check the requires command in scripts
 
 	gint combo_theme;           // value of the combobox theme
 	gchar *combo_lang;           // string value of the combobox lang
@@ -586,6 +589,8 @@ struct pref_struct {
 	compconf comp;
 
 	gboolean force_to_16bit;
+
+	gint selection_guides;	// number of elements of the grid guides (2 for a simple cross, 3 for the 3 thirds rule, etc.)
 
 	gchar *copyright;		// User copyright when saving image as TIFF
 };

@@ -79,13 +79,12 @@ static int readinitfile() {
 	/* Debayer setting */
 	config_setting_t *debayer_setting = config_lookup(&config, keywords[BAY]);
 	if (debayer_setting) {
-		config_setting_lookup_bool(debayer_setting, "ser_use_bayer_header", &com.pref.debayer.use_bayer_header);
-		config_setting_lookup_int(debayer_setting, "pattern", &com.pref.debayer.bayer_pattern);
-		config_setting_lookup_bool(debayer_setting, "debayer_top_down", &com.pref.debayer.top_down);
+		config_setting_lookup_bool(debayer_setting, "use_bayer_header", &com.pref.debayer.use_bayer_header);
+		config_setting_lookup_int(debayer_setting, "bayer_pattern", &com.pref.debayer.bayer_pattern);
+		config_setting_lookup_bool(debayer_setting, "roworder_top_down", &com.pref.debayer.top_down);
 		config_setting_lookup_int(debayer_setting, "debayer_algo", (int*)&com.pref.debayer.bayer_inter);
-		config_setting_lookup_int(debayer_setting, "xbayeroff", &com.pref.debayer.xbayeroff);
-		config_setting_lookup_int(debayer_setting, "ybayeroff", &com.pref.debayer.ybayeroff);
-
+		config_setting_lookup_int(debayer_setting, "x_bayer_offset", &com.pref.debayer.xbayeroff);
+		config_setting_lookup_int(debayer_setting, "y_bayer_offset", &com.pref.debayer.ybayeroff);
 	}
 
 	/* Preprocessing settings */
@@ -175,15 +174,31 @@ static int readinitfile() {
 		int type;
 		const char *swap_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
-		config_setting_lookup_bool(misc_setting, "first_use_1_0_0", &com.pref.first_use);
-		config_setting_lookup_bool(misc_setting, "confirm_quit", &com.pref.save.quit);
-		config_setting_lookup_bool(misc_setting, "confirm_script", &com.pref.save.script);
-		config_setting_lookup_bool(misc_setting, "show_thumbnails", &com.pref.show_thumbnails);
+		if (config_setting_lookup_bool(misc_setting, "first_start_0_99_6", &com.pref.first_start) == CONFIG_FALSE) {
+			com.pref.first_start = TRUE;
+		}
+		if (config_setting_lookup_bool(misc_setting, "confirm_quit", &com.pref.save.quit) == CONFIG_FALSE) {
+			com.pref.save.quit = FALSE;
+		}
+		if (config_setting_lookup_bool(misc_setting, "scripts_warning", &com.pref.save.script) == CONFIG_FALSE) {
+			com.pref.save.script = TRUE;
+		}
+		if (config_setting_lookup_bool(misc_setting, "check_requires", &com.pref.check_script_version) == CONFIG_FALSE) {
+			com.pref.check_script_version = TRUE;
+		}
+		if (config_setting_lookup_bool(misc_setting, "show_thumbnails", &com.pref.show_thumbnails) == CONFIG_FALSE) {
+			com.pref.show_thumbnails = TRUE;
+		}
+		if (config_setting_lookup_bool(misc_setting, "remember_winpos", &com.pref.remember_windows) == CONFIG_FALSE) {
+			com.pref.remember_windows = TRUE;
+		}
+		if (config_setting_lookup_bool(misc_setting, "check_update_at_startup", &com.pref.check_update) == CONFIG_FALSE) {
+			com.pref.check_update = TRUE;
+		}
 		config_setting_lookup_int(misc_setting, "thumbnail_size", &com.pref.thumbnail_size);
 		config_setting_lookup_int(misc_setting, "theme", &com.pref.combo_theme);
 		config_setting_lookup_string(misc_setting, "lang", &lang);
 		com.pref.combo_lang = g_strdup(lang);
-		config_setting_lookup_bool(misc_setting, "remember_winpos", &com.pref.remember_windows);
 		config_setting_lookup_bool(misc_setting, "is_maximized", &com.pref.is_maximized);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		com.pref.swap_dir = g_strdup(swap_dir);
@@ -191,9 +206,9 @@ static int readinitfile() {
 		com.pref.ext = g_strdup(extension);
 		config_setting_lookup_int(misc_setting, "FITS_type", &type);
 		com.pref.force_to_16bit = (type == 0);
+		config_setting_lookup_int(misc_setting, "selection_guides", &com.pref.selection_guides);
 		config_setting_lookup_string(misc_setting, "copyright", &copyright);
 		com.pref.copyright = g_strdup(copyright);
-		config_setting_lookup_bool(misc_setting, "check_update", &com.pref.check_update);
 
 		misc_setting = config_lookup(&config, "misc-settings.scripts_paths");
 		if (misc_setting != NULL) {
@@ -267,21 +282,21 @@ static void _save_debayer(config_t *config, config_setting_t *root) {
 
 	debayer_group = config_setting_add(root, keywords[BAY], CONFIG_TYPE_GROUP);
 
-	debayer_setting = config_setting_add(debayer_group, "ser_use_bayer_header",	CONFIG_TYPE_BOOL);
+	debayer_setting = config_setting_add(debayer_group, "use_bayer_header",	CONFIG_TYPE_BOOL);
 	config_setting_set_bool(debayer_setting, com.pref.debayer.use_bayer_header);
 
-	debayer_setting = config_setting_add(debayer_group, "pattern", CONFIG_TYPE_INT);
+	debayer_setting = config_setting_add(debayer_group, "bayer_pattern", CONFIG_TYPE_INT);
 	config_setting_set_int(debayer_setting, com.pref.debayer.bayer_pattern);
 
-	debayer_setting = config_setting_add(debayer_group, "debayer_top_down", CONFIG_TYPE_BOOL);
+	debayer_setting = config_setting_add(debayer_group, "roworder_top_down", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(debayer_setting, com.pref.debayer.top_down);
 
 	debayer_setting = config_setting_add(debayer_group, "debayer_algo", CONFIG_TYPE_INT);
 	config_setting_set_int(debayer_setting, com.pref.debayer.bayer_inter);
 
-	debayer_setting = config_setting_add(debayer_group, "xbayeroff", CONFIG_TYPE_INT);
+	debayer_setting = config_setting_add(debayer_group, "x_bayer_offset", CONFIG_TYPE_INT);
 	config_setting_set_int(debayer_setting, com.pref.debayer.xbayeroff);
-	debayer_setting = config_setting_add(debayer_group, "ybayeroff", CONFIG_TYPE_INT);
+	debayer_setting = config_setting_add(debayer_group, "y_bayer_offset", CONFIG_TYPE_INT);
 	config_setting_set_int(debayer_setting, com.pref.debayer.ybayeroff);
 }
 
@@ -420,8 +435,8 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 	misc_setting = config_setting_add(misc_group, "swap_directory", CONFIG_TYPE_STRING);
 	config_setting_set_string(misc_setting, com.pref.swap_dir);
 
-	misc_setting = config_setting_add(misc_group, "first_use_1_0_0", CONFIG_TYPE_BOOL);
-	config_setting_set_bool(misc_setting, com.pref.first_use);
+	misc_setting = config_setting_add(misc_group, "first_start_0_99_6", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(misc_setting, com.pref.first_start);
 
 	misc_setting = config_setting_add(misc_group, "extension", CONFIG_TYPE_STRING);
 	config_setting_set_string(misc_setting, com.pref.ext);
@@ -429,14 +444,20 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 	misc_setting = config_setting_add(misc_group, "FITS_type", CONFIG_TYPE_INT);
 	config_setting_set_int(misc_setting, com.pref.force_to_16bit ? 0 : 1);
 
+	misc_setting = config_setting_add(misc_group, "selection_guides", CONFIG_TYPE_INT);
+	config_setting_set_int(misc_setting, com.pref.selection_guides);
+
 	misc_setting = config_setting_add(misc_group, "copyright", CONFIG_TYPE_STRING);
 	config_setting_set_string(misc_setting, com.pref.copyright);
 
 	misc_setting = config_setting_add(misc_group, "confirm_quit", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.save.quit);
 
-	misc_setting = config_setting_add(misc_group, "confirm_script", CONFIG_TYPE_BOOL);
+	misc_setting = config_setting_add(misc_group, "scripts_warning", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.save.script);
+
+	misc_setting = config_setting_add(misc_group, "check_requires", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(misc_setting, com.pref.check_script_version);
 
 	misc_setting = config_setting_add(misc_group, "show_thumbnails", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.show_thumbnails);
@@ -467,7 +488,7 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 	misc_setting = config_setting_add(misc_group, "is_maximized", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.is_maximized);
 
-	misc_setting = config_setting_add(misc_group, "check_update", CONFIG_TYPE_BOOL);
+	misc_setting = config_setting_add(misc_group, "check_update_at_startup", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.check_update);
 }
 

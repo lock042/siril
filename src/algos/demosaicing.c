@@ -741,7 +741,7 @@ static int fast_xtrans_interpolate(const WORD *bayer, WORD *dst, int sx, int sy,
 #undef fcol
 
 static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
-		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6]) {
+		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6], int bit_depth) {
 	WORD *newbuf;
 	size_t npixels;
 	int retval;
@@ -794,14 +794,17 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 
 int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	int xbayeroff = 0, ybayeroff = 0;
-	gboolean top_down = FALSE;
+	gboolean top_down = com.pref.debayer.top_down;
 
-	if ((com.pref.debayer.use_bayer_header
-				&& !g_strcmp0(fit->row_order, "TOP-DOWN"))) {
-		top_down = TRUE;
-	} else if (g_strcmp0(fit->row_order, "TOP-DOWN") && g_strcmp0(fit->row_order, "BOTTOM-UP")) {
-		top_down = com.pref.debayer.top_down;
+	if (com.pref.debayer.use_bayer_header) {
+		if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+			top_down = TRUE;
+		} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+			top_down = FALSE;
+		}
 	}
+
+	siril_debug_print("Debayer will be done %s\n", top_down ? "top-down" : "bottom-up");
 
 	if (!com.pref.debayer.use_bayer_header) {
 		xbayeroff = com.pref.debayer.xbayeroff;
@@ -850,7 +853,7 @@ int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	}
 
 	/* read bottom-up */
-	if (!top_down) {
+	if (!top_down && !(fit->ry % 2)) {
 		switch (*pattern) {
 		case BAYER_FILTER_RGGB:
 			*pattern = BAYER_FILTER_GBRG;
@@ -928,10 +931,10 @@ WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, senso
  * @return a new buffer of demosaiced data
  */
 WORD *debayer_buffer(WORD *buf, int *width, int *height,
-		interpolation_method interpolation, sensor_pattern pattern) {
+		interpolation_method interpolation, sensor_pattern pattern, int bit_depth) {
 	if (USE_SIRIL_DEBAYER)
-		return debayer_buffer_siril(buf, width, height, interpolation, pattern, NULL);
-	return debayer_buffer_new_ushort(buf, width, height, interpolation, pattern, NULL);
+		return debayer_buffer_siril(buf, width, height, interpolation, pattern, NULL, bit_depth);
+	return debayer_buffer_new_ushort(buf, width, height, interpolation, pattern, NULL, bit_depth);
 }
 
 float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sensor_pattern pattern) {
@@ -1028,14 +1031,18 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	int width = fit->rx;
 	int height = fit->ry;
 	WORD *buf = fit->data;
-	gboolean read_bottom_up = FALSE;
+	gboolean top_down = com.pref.debayer.top_down;
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		read_bottom_up = (com.pref.debayer.use_bayer_header
-				&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
-				|| (!com.pref.debayer.top_down);
-		if (read_bottom_up)
+		if (com.pref.debayer.use_bayer_header) {
+			if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+				top_down = TRUE;
+			} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+				top_down = FALSE;
+			}
+		}
+		if (!top_down)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
@@ -1043,7 +1050,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	}
 
 	if (USE_SIRIL_DEBAYER) {
-		WORD *newbuf = debayer_buffer_siril(buf, &width, &height, interpolation, pattern, xtrans);
+		WORD *newbuf = debayer_buffer_siril(buf, &width, &height, interpolation, pattern, xtrans, fit->bitpix);
 		if (!newbuf)
 			return 1;
 
@@ -1068,12 +1075,12 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		}
 	} else {
 		// use librtprocess debayer
-		WORD *newbuf = debayer_buffer_new_ushort(buf, &width, &height, interpolation, pattern, xtrans);
+		WORD *newbuf = debayer_buffer_new_ushort(buf, &width, &height, interpolation, pattern, xtrans, fit->bitpix);
 		if (!newbuf)
 			return 1;
 
 		fit_debayer_buffer(fit, newbuf);
-		if (interpolation == XTRANS && read_bottom_up) {
+		if (interpolation == XTRANS && !top_down) {
 			fits_flip_top_to_bottom(fit);
 		}
 	}
@@ -1085,14 +1092,18 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	int width = fit->rx;
 	int height = fit->ry;
 	float *buf = fit->fdata;
-	gboolean read_bottom_up = FALSE;
+	gboolean top_down = com.pref.debayer.top_down;
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
-		read_bottom_up = (com.pref.debayer.use_bayer_header
-				&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
-				|| (!com.pref.debayer.top_down);
-		if (read_bottom_up)
+		if (com.pref.debayer.use_bayer_header) {
+			if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+				top_down = TRUE;
+			} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+				top_down = FALSE;
+			}
+		}
+		if (!top_down)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
 	} else {
@@ -1104,7 +1115,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		return 1;
 
 	fit_debayer_buffer(fit, newbuf);
-	if (interpolation == XTRANS && read_bottom_up) {
+	if (interpolation == XTRANS && !top_down) {
 		fits_flip_top_to_bottom(fit);
 	}
 	return 0;

@@ -126,6 +126,8 @@ static GActionEntry app_entries[] = {
 	{ "plot", tab_plot_activate },
 	{ "stacking", tab_stacking_activate },
 	{ "logs", tab_logs_activate },
+	{ "zoom_out", zoom_out_activate },
+	{ "zoom_in", zoom_in_activate },
 	{ "hide_show_toolbar", toolbar_activate }
 };
 
@@ -237,13 +239,10 @@ static void siril_app_activate(GApplication *application) {
 	initialize_stacking_default();
 
 	/* we also initialize a couple of important variables */
-	com.pref.first_use = TRUE;
 	com.pref.stack.mem_mode = 0;
 	com.pref.stack.memory_ratio = 0.9;
 	com.pref.stack.memory_amount = 4.0;
-	com.pref.show_thumbnails = TRUE;
 	com.pref.thumbnail_size = 256;
-	com.pref.remember_windows = TRUE;
 	com.pref.ext = g_strdup(".fit");
 	com.pref.force_to_16bit = FALSE;
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());

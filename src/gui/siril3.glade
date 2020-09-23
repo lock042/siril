@@ -1304,7 +1304,7 @@ enter a visible wavelength in nm</property>
               <object class="GtkRadioMenuItem" id="menuitem_selection_free">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Free ratio</property>
+                <property name="tooltip_text" translatable="yes">Free aspect ratio</property>
                 <property name="label" translatable="yes">Free ratio</property>
                 <property name="use_underline">True</property>
                 <property name="active">True</property>
@@ -1316,7 +1316,7 @@ enter a visible wavelength in nm</property>
               <object class="GtkRadioMenuItem" id="menuitem_selection_preserve">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Preserve the original ratio of the image</property>
+                <property name="tooltip_text" translatable="yes">Preserve the original aspect ratio of the image</property>
                 <property name="label" translatable="yes">Preserve ratio</property>
                 <property name="use_underline">True</property>
                 <property name="draw_as_radio">True</property>
@@ -1334,8 +1334,8 @@ enter a visible wavelength in nm</property>
               <object class="GtkRadioMenuItem" id="menuitem_selection_16_9">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Landscape 16/9th ratio</property>
-                <property name="label">16/9</property>
+                <property name="tooltip_text" translatable="yes">Aspect ratio of the selection</property>
+                <property name="label">16:9</property>
                 <property name="use_underline">True</property>
                 <property name="draw_as_radio">True</property>
                 <property name="group">menuitem_selection_free</property>
@@ -1343,23 +1343,11 @@ enter a visible wavelength in nm</property>
               </object>
             </child>
             <child>
-              <object class="GtkRadioMenuItem" id="menuitem_selection_4_3">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Landscape 4/3th ratio</property>
-                <property name="label">4/3</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-                <property name="group">menuitem_selection_free</property>
-                <signal name="toggled" handler="on_menuitem_selection_4_3_toggled" swapped="no"/>
-              </object>
-            </child>
-            <child>
               <object class="GtkRadioMenuItem" id="menuitem_selection_3_2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Landscape 3/2th ratio</property>
-                <property name="label">3/2</property>
+                <property name="tooltip_text" translatable="yes">Aspect ratio of the selection</property>
+                <property name="label">3:2</property>
                 <property name="use_underline">True</property>
                 <property name="draw_as_radio">True</property>
                 <property name="group">menuitem_selection_free</property>
@@ -1367,11 +1355,23 @@ enter a visible wavelength in nm</property>
               </object>
             </child>
             <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_4_3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Aspect ratio of the selection</property>
+                <property name="label">4:3</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_free</property>
+                <signal name="toggled" handler="on_menuitem_selection_4_3_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
               <object class="GtkRadioMenuItem" id="menuitem_selection_1_1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Squared ratio</property>
-                <property name="label">1/1</property>
+                <property name="tooltip_text" translatable="yes">Aspect ratio of the selection</property>
+                <property name="label">1:1</property>
                 <property name="use_underline">True</property>
                 <property name="draw_as_radio">True</property>
                 <property name="group">menuitem_selection_free</property>
@@ -1382,8 +1382,8 @@ enter a visible wavelength in nm</property>
               <object class="GtkRadioMenuItem" id="menuitem_selection_3_4">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Portrait 3/4th ratio</property>
-                <property name="label">3/4</property>
+                <property name="tooltip_text" translatable="yes">Aspect ratio of the selection</property>
+                <property name="label">3:4</property>
                 <property name="use_underline">True</property>
                 <property name="draw_as_radio">True</property>
                 <property name="group">menuitem_selection_free</property>
@@ -1394,8 +1394,8 @@ enter a visible wavelength in nm</property>
               <object class="GtkRadioMenuItem" id="menuitem_selection_2_3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Portrait 2/3th ratio</property>
-                <property name="label">2/3</property>
+                <property name="tooltip_text" translatable="yes">Aspect ratio of the selection</property>
+                <property name="label">2:3</property>
                 <property name="use_underline">True</property>
                 <property name="draw_as_radio">True</property>
                 <property name="group">menuitem_selection_free</property>
@@ -1406,8 +1406,8 @@ enter a visible wavelength in nm</property>
               <object class="GtkRadioMenuItem" id="menuitem_selection_9_16">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Portrait 9/16th ratio</property>
-                <property name="label">9/16</property>
+                <property name="tooltip_text" translatable="yes">Aspect ratio of the selection</property>
+                <property name="label">9:16</property>
                 <property name="use_underline">True</property>
                 <property name="draw_as_radio">True</property>
                 <property name="group">menuitem_selection_free</property>
@@ -1428,6 +1428,59 @@ enter a visible wavelength in nm</property>
                 <property name="label" translatable="yes">Select All</property>
                 <property name="use_underline">True</property>
                 <signal name="activate" handler="on_menuitem_selection_all_activate" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparatorMenuItem" id="menu_gray_separator_selection_3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_guides_0">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">No guides on the selection</property>
+                <property name="label" translatable="yes">No guides</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <signal name="toggled" handler="menuitem_selection_guides_0_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_guides_2">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Center line guides on the selection</property>
+                <property name="label" translatable="yes">Center lines</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_guides_0</property>
+                <signal name="toggled" handler="menuitem_selection_guides_2_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_guides_3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">3 thirds grid guides on the selection</property>
+                <property name="label" translatable="yes">Rule of thirds</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_guides_0</property>
+                <signal name="toggled" handler="menuitem_selection_guides_3_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRadioMenuItem" id="menuitem_selection_guides_5">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">5 fifhts grid guides on the selection</property>
+                <property name="label" translatable="yes">Rule of fifths</property>
+                <property name="use_underline">True</property>
+                <property name="draw_as_radio">True</property>
+                <property name="group">menuitem_selection_guides_0</property>
+                <signal name="toggled" handler="menuitem_selection_guides_5_toggled" swapped="no"/>
               </object>
             </child>
           </object>
@@ -1460,7 +1513,7 @@ enter a visible wavelength in nm</property>
       <object class="GtkMenuItem" id="menu_rgb_savefits">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to 48-bit FITS</property>
+        <property name="label" translatable="yes">Save RGB image to FITS</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="on_menu_rgb_savefits_activate" swapped="no"/>
       </object>
@@ -1469,7 +1522,7 @@ enter a visible wavelength in nm</property>
       <object class="GtkMenuItem" id="menu_rgb_savetiff">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to 24- or 48-bit TIFF</property>
+        <property name="label" translatable="yes">Save RGB image to TIFF</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="on_menu_rgb_savetiff_activate" swapped="no"/>
       </object>
@@ -1478,7 +1531,7 @@ enter a visible wavelength in nm</property>
       <object class="GtkMenuItem" id="menu_rgb_savebmp">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to 24-bit BMP</property>
+        <property name="label" translatable="yes">Save RGB image to BMP</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="on_menu_rgb_savebmp_activate" swapped="no"/>
       </object>
@@ -1496,7 +1549,7 @@ enter a visible wavelength in nm</property>
       <object class="GtkMenuItem" id="menu_rgb_savepng">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to 48-bit PNG</property>
+        <property name="label" translatable="yes">Save RGB image to PNG</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="on_menu_rgb_savepng_activate" swapped="no"/>
       </object>
@@ -1505,7 +1558,7 @@ enter a visible wavelength in nm</property>
       <object class="GtkMenuItem" id="menu_rgb_save8ppm">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to 48-bit PPM</property>
+        <property name="label" translatable="yes">Save RGB image to PPM</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="on_menu_rgb_save8ppm_activate" swapped="no"/>
       </object>
@@ -1792,6 +1845,7 @@ enter a visible wavelength in nm</property>
                 <property name="label" translatable="yes">Horizontal Mirror</property>
                 <property name="use_underline">True</property>
                 <signal name="activate" handler="on_menuitem_mirrorx_activate" swapped="no"/>
+                <accelerator key="Up" signal="activate" modifiers="GDK_CONTROL_MASK"/>
               </object>
             </child>
             <child>
@@ -1801,6 +1855,7 @@ enter a visible wavelength in nm</property>
                 <property name="label" translatable="yes">Vertical Mirror</property>
                 <property name="use_underline">True</property>
                 <signal name="activate" handler="on_menuitem_mirrory_activate" swapped="no"/>
+                <accelerator key="Down" signal="activate" modifiers="GDK_CONTROL_MASK"/>
               </object>
             </child>
             <child>
@@ -2459,8 +2514,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                                     <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" object="zoom_to_fit_check_button" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" object="zoom_to_fit_check_button" swapped="no"/>
+                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
                                 </child>
                               </object>
@@ -2473,41 +2528,18 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkBox" id="hbox1">
+                          <object class="GtkBox" id="hboxr">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="halign">start</property>
+                            <property name="valign">center</property>
                             <property name="spacing">2</property>
-                            <child>
-                              <object class="GtkLabel" id="labelred">
-                                <property name="width_request">60</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Red</property>
-                                <property name="justify">center</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorr1">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
                             <child>
                               <object class="GtkLabel" id="labeldensity_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="valign">center</property>
+                                <property name="ellipsize">end</property>
+                                <property name="width_chars">22</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2583,19 +2615,21 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labelfwhmred">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">end</property>
                                 <property name="label" translatable="yes">fwhm: no selection</property>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
+                                <property name="pack_type">end</property>
                                 <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">False</property>
+                            <property name="fill">True</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
@@ -2635,8 +2669,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                                     <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" object="zoom_to_fit_check_button" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" object="zoom_to_fit_check_button" swapped="no"/>
+                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
                                 </child>
                               </object>
@@ -2652,38 +2686,13 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           <object class="GtkBox" id="hboxg">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="halign">start</property>
+                            <property name="valign">center</property>
                             <property name="spacing">2</property>
-                            <child>
-                              <object class="GtkLabel" id="labelgreen">
-                                <property name="width_request">60</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Green</property>
-                                <property name="justify">center</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorg1">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
                             <child>
                               <object class="GtkLabel" id="labeldensity_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="ellipsize">end</property>
                                 <property name="width_chars">22</property>
                               </object>
                               <packing>
@@ -2710,6 +2719,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">current green file</property>
+                                <property name="ellipsize">start</property>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
@@ -2759,18 +2769,20 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labelfwhmgreen">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">end</property>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
+                                <property name="pack_type">end</property>
                                 <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">False</property>
+                            <property name="fill">True</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
@@ -2814,8 +2826,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
                                     <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" object="zoom_to_fit_check_button" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" object="zoom_to_fit_check_button" swapped="no"/>
+                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
                                 </child>
                               </object>
@@ -2828,41 +2840,16 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkBox" id="hboxr">
+                          <object class="GtkBox" id="hboxb">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="halign">start</property>
+                            <property name="valign">center</property>
                             <property name="spacing">2</property>
-                            <child>
-                              <object class="GtkLabel" id="labelblue">
-                                <property name="width_request">60</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Blue</property>
-                                <property name="justify">center</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorb1">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
                             <child>
                               <object class="GtkLabel" id="labeldensity_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="ellipsize">end</property>
                                 <property name="width_chars">22</property>
                               </object>
                               <packing>
@@ -2889,6 +2876,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">current blue file</property>
+                                <property name="ellipsize">start</property>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
@@ -2938,18 +2926,20 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labelfwhmblue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">end</property>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
+                                <property name="pack_type">end</property>
                                 <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">False</property>
+                            <property name="fill">True</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
@@ -2992,9 +2982,9 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                     <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" object="zoom_to_fit_check_button" swapped="no"/>
+                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                     <signal name="popup-menu" handler="rgb_area_popup_menu_handler" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" object="zoom_to_fit_check_button" swapped="no"/>
+                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
                                 </child>
                               </object>
@@ -3011,20 +3001,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="spacing">2</property>
-                            <child>
-                              <object class="GtkLabel" id="labelblue1">
-                                <property name="width_request">60</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">RGB</property>
-                                <property name="justify">center</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
                             <child>
                               <object class="GtkLabel" id="labeldensityrgb">
                                 <property name="visible">True</property>
@@ -3330,6 +3306,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                     <property name="hexpand">True</property>
                                     <signal name="activate" handler="on_convroot_entry_activate" swapped="no"/>
                                     <signal name="changed" handler="on_convtoroot_changed" swapped="no"/>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                     <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
                                   </object>
                                   <packing>
@@ -3727,6 +3705,8 @@ WARNING: it will erase all registration and statistics data.</property>
                                     <property name="tooltip_text" translatable="yes">Base name for the exported sequence</property>
                                     <property name="width_chars">50</property>
                                     <signal name="changed" handler="on_entryExportSeq_changed" swapped="no"/>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                     <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
                                   </object>
                                   <packing>
@@ -4080,6 +4060,8 @@ A first computation pass will be done on all images before exporting, it may tak
 All images in the sequence will be divided by the master flat image (each pixel value).</property>
                                     <property name="width_chars">40</property>
                                     <property name="text">master-flat.fit</property>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -4155,6 +4137,8 @@ All images in the sequence will be divided by the master flat image (each pixel 
 The dark master image will be removed from all images in the sequence.</property>
                                     <property name="width_chars">40</property>
                                     <property name="text">master-dark.fit</property>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -4186,6 +4170,8 @@ The dark master image will be removed from all images in the sequence.</property
 The bias/offset master image will be removed from all images in the sequence.</property>
                                     <property name="width_chars">40</property>
                                     <property name="text">master-bias.fit</property>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -4570,6 +4556,8 @@ Hot pixels are located on the master-dark.</property>
                                     <property name="tooltip_text" translatable="yes">Prefix of the image names resulting from the pre-processing.</property>
                                     <property name="halign">start</property>
                                     <property name="text">pp_</property>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -4839,6 +4827,8 @@ When processing images, registration data is taken from the default layer if ava
                                             <property name="width_chars">10</property>
                                             <property name="text">r_</property>
                                             <property name="caps_lock_warning">False</property>
+                                            <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                            <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -5641,6 +5631,8 @@ To be enabled, the reference image must have been explicitly set and already dis
                                     <property name="width_chars">10</property>
                                     <property name="text">Plot</property>
                                     <signal name="changed" handler="on_GtkEntryCSV_changed" swapped="no"/>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -6620,6 +6612,8 @@ WARNING: This option should not be checked for master stacking.</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="invisible_char">●</property>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
@@ -6878,6 +6872,8 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                                     <property name="truncate_multiline">True</property>
                                     <property name="placeholder_text" translatable="yes">Type "help" for the list of supported commands</property>
                                     <property name="input_hints">GTK_INPUT_HINT_WORD_COMPLETION | GTK_INPUT_HINT_NONE</property>
+                                    <signal name="focus-in-event" handler="on_entry_focus_in_event" swapped="no"/>
+                                    <signal name="focus-out-event" handler="on_entry_focus_out_event" swapped="no"/>
                                     <signal name="key-press-event" handler="on_command_key_press_event" swapped="no"/>
                                   </object>
                                   <packing>
@@ -7404,6 +7400,34 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkToolButton" id="zoom_out">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">Shrink the image</property>
+                    <property name="action_name">app.zoom_out</property>
+                    <property name="use_underline">True</property>
+                    <property name="icon_name">zoom-out</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="zoom_in">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">Enlarge the image</property>
+                    <property name="action_name">app.zoom_in</property>
+                    <property name="use_underline">True</property>
+                    <property name="icon_name">zoom-in</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkToggleToolButton" id="zoom_to_fit_check_button">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -7429,7 +7453,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                     <property name="valign">center</property>
                     <property name="use_underline">True</property>
                     <property name="icon_name">zoom-original-symbolic</property>
-                    <signal name="clicked" handler="on_zoom_to_one_button_clicked" object="zoom_to_fit_check_button" swapped="no"/>
+                    <signal name="clicked" handler="on_zoom_to_one_button_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -8263,6 +8287,22 @@ artifacts may appear.</property>
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">3</property>
+                        <property name="width">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkButton_IPS_flip">
+                        <property name="label" translatable="yes">Flip image if needed</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="halign">end</property>
+                        <property name="active">True</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">8</property>
                         <property name="width">5</property>
                       </packing>
                     </child>
@@ -10528,68 +10568,19 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           </packing>
         </child>
         <child>
-          <object class="GtkBox" id="box15">
+          <object class="GtkBox" id="box41">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
+            <property name="margin_top">2</property>
+            <property name="spacing">10</property>
             <child>
-              <object class="GtkBox" id="box41">
+              <object class="GtkButton" id="composition_layers_autoadjust">
+                <property name="label" translatable="yes">Adjust layers brightness</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_top">2</property>
-                <property name="spacing">10</property>
-                <child>
-                  <object class="GtkButton" id="composition_layers_autoadjust">
-                    <property name="label" translatable="yes">Adjust layers brightness</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="tooltip_text" translatable="yes">Automatically adjust the brightness of the colours picked for layers so that they don't overflow when compositing (based on max value for each image). Colour hues are unchanged.</property>
-                    <signal name="clicked" handler="on_compositing_autoadjust_clicked" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="composition_rgbcolor">
-                    <property name="label" translatable="yes">Finalize colour balance</property>
-                    <property name="visible">True</property>
-                    <property name="sensitive">False</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="tooltip_text" translatable="yes">Open the RGB calibration tool on the resulting image. This will modify the result in a destructive way to align the three channels of the result.
-Modifying parameters in this windows afterward will void the colour balance, and it will have to be remade.</property>
-                    <signal name="clicked" handler="on_composition_rgbcolor_clicked" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkComboBoxText" id="composition_combo_coloringtype">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Type of luminance-based colour composition. They represent the way of adding colour information to luminance data.</property>
-                    <property name="active">0</property>
-                    <items>
-                      <item translatable="yes">HSL composition</item>
-                      <item translatable="yes">HSV composition</item>
-                      <item translatable="yes">CIE L*a*b* composition</item>
-                    </items>
-                    <signal name="changed" handler="on_composition_combo_coloringtype_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="pack_type">end</property>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Automatically adjust the brightness of the colours picked for layers so that they don't overflow when compositing (based on max value for each image). Colour hues are unchanged.</property>
+                <signal name="clicked" handler="on_compositing_autoadjust_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -10598,20 +10589,40 @@ Modifying parameters in this windows afterward will void the colour balance, and
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="label170">
+              <object class="GtkButton" id="composition_rgbcolor">
+                <property name="label" translatable="yes">Finalize colour balance</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">WARNING: You should not perform a LRGB combination with linear images. Process images before.</property>
-                <property name="single_line_mode">True</property>
-                <style>
-                  <class name="label-info"/>
-                </style>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Open the RGB calibration tool on the resulting image. This will modify the result in a destructive way to align the three channels of the result.
+Modifying parameters in this windows afterward will void the colour balance, and it will have to be remade.</property>
+                <signal name="clicked" handler="on_composition_rgbcolor_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="composition_combo_coloringtype">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Type of luminance-based colour composition. They represent the way of adding colour information to luminance data.</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">HSL composition</item>
+                  <item translatable="yes">HSV composition</item>
+                  <item translatable="yes">CIE L*a*b* composition</item>
+                </items>
+                <signal name="changed" handler="on_composition_combo_coloringtype_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack_type">end</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -10999,6 +11010,8 @@ Modifying parameters in this windows afterward will void the colour balance, and
               <object class="GtkScale" id="scaleCosmeAmount">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">0: No correction
+1 : 100% corrected</property>
                 <property name="adjustment">adjCosmeAmount</property>
                 <property name="round_digits">2</property>
                 <property name="digits">2</property>
@@ -12551,7 +12564,7 @@ Uncheck if images come from a monochrome sensor.</property>
             </child>
             <child>
               <object class="GtkButton" id="button_histo_close">
-                <property name="label">gtk-cancel</property>
+                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -17933,9 +17946,7 @@ If the selection is empty, the whole image will be used as reference.</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
-                                    <property name="tooltip_markup" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. If data are stored in top-down orientation (as they usual do), you need to check this box in order to debayer the file in the right orientation.
-
-&lt;b&gt;If the keyword ROWORDER is found while you are using Bayer information from file's header, then Siril will follow its value rather than this option.&lt;/b&gt;</property>
+                                    <property name="tooltip_markup" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. If data are stored in top-down orientation (as they usual do), you need to check this box in order to debayer the file in the right orientation.</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
                                   </object>
@@ -19115,14 +19126,46 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                             <property name="can_focus">False</property>
                             <property name="left_padding">12</property>
                             <child>
-                              <object class="GtkCheckButton" id="miscAskScript">
-                                <property name="label" translatable="yes">Don't show warning before script execution</property>
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">False</property>
-                                <property name="halign">start</property>
-                                <property name="draw_indicator">True</property>
-                                <signal name="toggled" handler="on_miscAskScript_toggled" swapped="no"/>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="miscAskScript">
+                                    <property name="label" translatable="yes">Don't show warning before script execution</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw_indicator">True</property>
+                                    <signal name="toggled" handler="on_miscAskScript_toggled" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="script_check_version">
+                                    <property name="label" translatable="yes">"Requires" command is mandatory in scripts</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">False</property>
+                                    <property name="tooltip_markup" translatable="yes">If this option is checked, scripts cannot be executed without the "requires" command. That ensures the compatibility between scripts and Siril.
+
+&lt;span foreground="red"&gt;&lt;b&gt;WARNING: uncheck this option only if you know what you are doing!&lt;/b&gt;&lt;/span&gt;</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw_indicator">True</property>
+                                    <signal name="toggled" handler="on_script_check_version_toggled" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -19133,7 +19176,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                             <property name="can_focus">False</property>
                             <property name="margin_top">10</property>
                             <property name="margin_bottom">10</property>
-                            <property name="label" translatable="yes">Warning Dialog</property>
+                            <property name="label" translatable="yes">Warning Dialogs</property>
                             <property name="single_line_mode">True</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>

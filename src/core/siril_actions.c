@@ -31,6 +31,8 @@
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/script_menu.h"
+#include "gui/image_interactions.h"
+#include "gui/image_display.h"
 
 #include "siril_actions.h"
 
@@ -183,4 +185,16 @@ void toolbar_activate(GSimpleAction *action,
 		GVariant *parameter, gpointer user_data) {
 	GtkWidget *w = lookup_widget("toolbarbox");
 	gtk_widget_set_visible(w, !gtk_widget_get_visible(w));
+}
+
+void zoom_in_activate(GSimpleAction *action,
+		GVariant *parameter, gpointer user_data) {
+	point center = get_center_of_vport();
+	update_zoom(center.x, center.y, ZOOM_IN);
+}
+
+void zoom_out_activate(GSimpleAction *action,
+		GVariant *parameter, gpointer user_data) {
+	point center = get_center_of_vport();
+	update_zoom(center.x, center.y, ZOOM_OUT);
 }

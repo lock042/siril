@@ -16,38 +16,41 @@
 #
 ###################################################
 
+setcpu 2
+setmem 0.5
 requires 0.99.4
 
-#Création du master-offset (ou dark de flat)
-cd offsets
-convert offset -out=../process
-cd ../process
-stack offset rej 3 3 -nonorm
-cd ..
+##Création du master-offset (ou dark de flat)
+#cd offsets
+#convert offset -out=../process
+#cd ../process
+#stack offset rej 3 3 -nonorm
+#cd ..
+#
+##Pré-traitement des flats avec retrait de l'offset (ou dark de flat)
+#cd flats
+#convert flat -out=../process
+#cd ../process
+#preprocess flat -dark=offset_stacked
+#
+##Création du master-flat
+#stack pp_flat rej 3 3 -norm=mul
+#cd ..
+#
+##Création du master-dark
+#cd darks
+#convert dark -out=../process
+#cd ../process
+#stack dark rej 3 3 -nonorm
+#cd ..
+#
+##pré-traitement des brutes
+#cd brutes
+#convert brute -out=../process
+#cd ../process
+#preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cfa -equalize_cfa -debayer
 
-#Pré-traitement des flats avec retrait de l'offset (ou dark de flat)
-cd flats
-convert flat -out=../process
-cd ../process
-preprocess flat -dark=offset_stacked
-
-#Création du master-flat
-stack pp_flat rej 3 3 -norm=mul
-cd ..
-
-#Création du master-dark
-cd darks
-convert dark -out=../process
-cd ../process
-stack dark rej 3 3 -nonorm
-cd ..
-
-#pré-traitement des brutes
-cd brutes
-convert brute -out=../process
-cd ../process
-preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cfa -equalize_cfa -debayer
-
+cd process
 #Alignement des brutes
 register pp_brute
 

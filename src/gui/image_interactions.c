@@ -25,6 +25,7 @@
 #include "algos/background_extraction.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "gui/open_dialog.h"
 #include "image_interactions.h"
 #include "image_display.h"
 #include "callbacks.h"
@@ -167,6 +168,19 @@ void reset_display_offset() {
 	com.display_offset.y = 0;
 }
 
+void reset_zoom_default() {
+	com.zoom_value = ZOOM_DEFAULT;
+	if (com.zoom_value == ZOOM_FIT && !com.script) {
+		gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(lookup_widget("zoom_to_fit_check_button")), TRUE);
+	}
+}
+
+static void update_zoom_fit_button() {
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("zoom_to_fit_check_button"));
+	if (gtk_toggle_tool_button_get_active(button))
+		gtk_toggle_tool_button_set_active(button, FALSE);
+}
+
 /*
  * Button events
  */
@@ -235,6 +249,10 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_9_16")), com.ratio == 9.0 / 16.0);
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_preserve"), is_a_single_image_loaded || sequence_is_loaded());
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_all"), is_a_single_image_loaded || sequence_is_loaded());
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_0")), com.pref.selection_guides == 0);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_2")), com.pref.selection_guides == 2);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_3")), com.pref.selection_guides == 3);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_5")), com.pref.selection_guides == 5);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -313,15 +331,15 @@ void on_menuitem_selection_16_9_toggled(GtkCheckMenuItem *menuitem, gpointer use
 	}
 }
 
-void on_menuitem_selection_4_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(4.0 / 3.0);
-	}
-}
-
 void on_menuitem_selection_3_2_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
 		set_selection_ratio(3.0 / 2.0);
+	}
+}
+
+void on_menuitem_selection_4_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		set_selection_ratio(4.0 / 3.0);
 	}
 }
 
@@ -364,6 +382,30 @@ void on_menuitem_selection_all_activate(GtkMenuItem *menuitem, gpointer user_dat
 	}
 }
 
+void menuitem_selection_guides_0_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 0;
+	}
+}
+
+void menuitem_selection_guides_2_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 2;
+	}
+}
+
+void menuitem_selection_guides_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 3;
+	}
+}
+
+void menuitem_selection_guides_5_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(menuitem)) {
+		com.pref.selection_guides = 5;
+	}
+}
+
 gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
 	do_popup_rgbmenu(widget, NULL);
 	return TRUE;
@@ -371,6 +413,19 @@ gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
 
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
+
+	/* when double clicking on drawing area  (if no images loaded)
+	 * you can load an image This feature is in GIMP and I really
+	 * love it: lazy world :).
+	 */
+	if (!single_image_is_loaded() && !sequence_is_loaded()) {
+		if (event->button == GDK_BUTTON_PRIMARY
+				&& event->type == GDK_DOUBLE_BUTTON_PRESS) {
+			header_open_button_clicked();
+		}
+		return FALSE;
+	}
+
 	double zoom = get_zoom_val();
 
 	// evpos.x/evpos.y = cursor position in image coordinate
@@ -378,7 +433,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	cairo_matrix_transform_point(&com.image_matrix, &evpos.x, &evpos.y);
 
 	// same as evpos but rounded to integer and clamped to image bounds
-	pointi zoomed = { round_to_int(evpos.x), round_to_int(evpos.y) };
+	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
 	if (inside) {
@@ -386,8 +441,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			if (event->button == GDK_BUTTON_PRIMARY) {
 				// viewport translation
 				com.translating = TRUE;
-				com.start.x = round_to_int(event->x);
-				com.start.y = round_to_int(event->y);
+				com.start.x = (int)(event->x);
+				com.start.y = (int)(event->y);
 				return TRUE;
 			}
 		}
@@ -497,7 +552,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	cairo_matrix_transform_point(&com.image_matrix, &evpos.x, &evpos.y);
 
 	// same as evpos but rounded to integer and clamped to image bounds
-	pointi zoomed = { round_to_int(evpos.x), round_to_int(evpos.y) };
+	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
 	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
@@ -596,7 +651,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	cairo_matrix_transform_point(&com.image_matrix, &evpos.x, &evpos.y);
 
 	// same as evpos but rounded to integer and clamped to image bounds
-	pointi zoomed = { round_to_int(evpos.x), round_to_int(evpos.y) };
+	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
 	const char *suffix = untranslated_vport_number_to_name(com.cvport);
@@ -642,11 +697,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	g_free(label);
 
 	if (com.translating) {
-		GtkToggleToolButton *button = (GtkToggleToolButton *)user_data;
-		if (gtk_toggle_tool_button_get_active(button))
-			gtk_toggle_tool_button_set_active(button, FALSE);
+		update_zoom_fit_button();
 
-		pointi ev = { round_to_int(event->x), round_to_int(event->y) };
+		pointi ev = { (int)(event->x), (int)(event->y) };
 		point delta = { ev.x - com.start.x , ev.y - com.start.y };
 		com.start = ev;
 		com.display_offset.x += delta.x;
@@ -745,6 +798,32 @@ void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 	}
 }
 
+gboolean update_zoom(gdouble x, gdouble y, double scale) {
+	// event position in image coordinates before changing the zoom value
+	point evpos = { x, y };
+	cairo_matrix_transform_point(&com.image_matrix, &evpos.x, &evpos.y);
+	gdouble factor;
+	gboolean zoomed = FALSE;
+
+	update_zoom_fit_button();
+
+	com.zoom_value = get_zoom_val();
+
+	factor = com.zoom_value * scale;
+
+	if (factor >= ZOOM_MIN && factor <= ZOOM_MAX) {
+		zoomed = TRUE;
+		com.zoom_value = factor;
+		adjust_vport_size_to_image();
+		cairo_matrix_transform_point(&com.display_matrix, &evpos.x, &evpos.y);
+		com.display_offset.x += x - evpos.x;
+		com.display_offset.y += y - evpos.y;
+		adjust_vport_size_to_image();
+		redraw(com.cvport, REMAP_NONE);
+	}
+	return zoomed;
+}
+
 gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, gpointer user_data) {
 	gboolean handled = FALSE;
 
@@ -752,60 +831,24 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 		return FALSE;
 
 	if (event->state & get_primary()) {
-		GtkToggleToolButton *button = (GtkToggleToolButton *)user_data;
-		if (gtk_toggle_tool_button_get_active(button))
-			gtk_toggle_tool_button_set_active(button, FALSE);
-
-		// event position in image coordinates before changing the zoom value
-		point evpos = { event->x, event->y };
-		cairo_matrix_transform_point(&com.image_matrix, &evpos.x, &evpos.y);
-
 		point delta;
-		gdouble factor;
 
 		switch (event->direction) {
 		case GDK_SCROLL_SMOOTH:	// what's that?
-			handled = TRUE;
 			gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
 			if (delta.y < 0) {
-				if (com.zoom_value * 1.5 > ZOOM_MAX) {
-					return handled;
-				}
-				factor = 1.5;
+				return update_zoom(event->x, event->y, ZOOM_IN);
 			}
 			if (delta.y > 0) {
-				if (com.zoom_value / 1.5 < ZOOM_MIN) {
-					return handled;
-				}
-				factor = 1. / 1.5;
+				return update_zoom(event->x, event->y, ZOOM_OUT);
 			}
 			break;
 		case GDK_SCROLL_DOWN:
-			handled = TRUE;
-			if (com.zoom_value / 1.5 < ZOOM_MIN) {
-				return handled;
-			}
-			factor = 1. / 1.5;
-			break;
+			return update_zoom(event->x, event->y, ZOOM_OUT);
 		case GDK_SCROLL_UP:
-			handled = TRUE;
-			if (com.zoom_value * 1.5 > ZOOM_MAX) {
-				return handled;
-			}
-			factor = 1.5;
-			break;
+			return update_zoom(event->x, event->y, ZOOM_IN);
 		default:
 			handled = FALSE;
-		}
-
-		if (handled) {
-			com.zoom_value *= factor;
-			adjust_vport_size_to_image();
-			cairo_matrix_transform_point(&com.display_matrix, &evpos.x, &evpos.y);
-			com.display_offset.x += event->x - evpos.x;
-			com.display_offset.y += event->y - evpos.y;
-			adjust_vport_size_to_image();
-			redraw(com.cvport, REMAP_NONE);
 		}
 	}
 	return handled;
@@ -813,7 +856,7 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 
 void on_zoom_to_fit_check_button_toggled(GtkToggleToolButton *button, gpointer data) {
 	if (gtk_toggle_tool_button_get_active(button)) {
-		com.zoom_value = -1;
+		com.zoom_value = ZOOM_DEFAULT;
 		reset_display_offset();
 		redraw(com.cvport, REMAP_NONE);
 	} else {
@@ -822,10 +865,8 @@ void on_zoom_to_fit_check_button_toggled(GtkToggleToolButton *button, gpointer d
 }
 
 void on_zoom_to_one_button_clicked(GtkToolButton *button, gpointer user_data) {
-	GtkToggleToolButton *tbutton = (GtkToggleToolButton*) user_data;
-	if (gtk_toggle_tool_button_get_active(tbutton))
-		gtk_toggle_tool_button_set_active(tbutton, FALSE);
-	com.zoom_value = 1;
+	update_zoom_fit_button();
+	com.zoom_value = ZOOM_NONE;
 	reset_display_offset();
 	redraw(com.cvport, REMAP_NONE);
 }
