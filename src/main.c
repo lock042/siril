@@ -202,6 +202,7 @@ static void siril_app_startup (GApplication *application) {
 
 static void siril_app_activate(GApplication *application) {
 	gchar *cwd_forced = NULL;
+	unsigned char initial_GdkScale = 1;
 
 	memset(&com, 0, sizeof(struct cominf));	// needed? doesn't hurt
 	com.initfile = NULL;
@@ -310,7 +311,16 @@ static void siril_app_activate(GApplication *application) {
 		/* Load preferred theme */
 		load_prefered_theme(com.pref.combo_theme);
 		/* Load the css sheet for general style */
-		load_css_style_sheet();
+	    if (com.pref.pseudo_HiDPISupport) {
+	        // Reading/updating GDK_SCALE early if it exists
+	        const gchar *gscale = g_getenv("GDK_SCALE");
+	        if (gscale && gscale[0] == '2') {
+	            initial_GdkScale = 2;
+	        }
+	        // HOMBRE: On Windows, if resolution is set to 200%, Gtk internal variables are SCALE=2 and DPI=96
+	        g_setenv("GDK_SCALE", "1", TRUE);
+	    }
+		load_css_style_sheet(initial_GdkScale);
 		/* Load glade file */
 		load_glade_file();
 		/* Passing GApplication to the control center */

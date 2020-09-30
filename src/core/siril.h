@@ -552,6 +552,7 @@ struct pref_struct {
 	gboolean first_start; // use to display information at first use
 	/* state of window */
 	gboolean remember_windows;
+	gboolean pseudo_HiDPISupport;
 	rectangle main_w_pos;
 	gboolean is_maximized;
 

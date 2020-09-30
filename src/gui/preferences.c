@@ -417,6 +417,10 @@ void on_rememberWindowsCheck_toggled(GtkToggleButton *togglebutton, gpointer use
 	com.pref.remember_windows = gtk_toggle_button_get_active(togglebutton);
 }
 
+void on_pseudoHiDPI_check_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	com.pref.pseudo_HiDPISupport = gtk_toggle_button_get_active(togglebutton);
+}
+
 void on_show_preview_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *label = lookup_widget("thumbnails_label_size");
 	GtkWidget *box = lookup_widget("thumbnails_box_size");

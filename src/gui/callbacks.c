@@ -1147,6 +1147,8 @@ void set_GUI_misc() {
 	gtk_combo_box_set_active(thumb_box, com.pref.thumbnail_size == 256 ? 1: 0);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.remember_windows);
+	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("pseudoHiDPI_check"));
+	gtk_toggle_button_set_active(ToggleButton, com.pref.pseudo_HiDPISupport);
 
 	memory_percent = GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio"));
 	gtk_spin_button_set_value(memory_percent, com.pref.stack.memory_ratio);

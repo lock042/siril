@@ -192,6 +192,9 @@ static int readinitfile() {
 		if (config_setting_lookup_bool(misc_setting, "remember_winpos", &com.pref.remember_windows) == CONFIG_FALSE) {
 			com.pref.remember_windows = TRUE;
 		}
+		if (config_setting_lookup_bool(misc_setting, "pseudo_HiDPISupport", &com.pref.pseudo_HiDPISupport) == CONFIG_FALSE) {
+			com.pref.pseudo_HiDPISupport = FALSE;
+		}
 		if (config_setting_lookup_bool(misc_setting, "check_update_at_startup", &com.pref.check_update) == CONFIG_FALSE) {
 			com.pref.check_update = TRUE;
 		}
@@ -473,6 +476,9 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 
 	misc_setting = config_setting_add(misc_group, "remember_winpos", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.remember_windows);
+
+	misc_setting = config_setting_add(misc_group, "pseudo_HiDPISupport", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(misc_setting, com.pref.pseudo_HiDPISupport);
 
 	misc_setting = config_setting_add(misc_group, "scripts_paths", CONFIG_TYPE_LIST);
 	while (list) {

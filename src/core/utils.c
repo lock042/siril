@@ -994,7 +994,7 @@ static const gchar *checking_css_filename() {
 /**
  * Loads the css sheet
  */
-void load_css_style_sheet () {
+void load_css_style_sheet (unsigned char initial_GdkScale) {
 	GtkCssProvider *css_provider;
 	GdkDisplay *display;
 	GdkScreen *screen;
@@ -1019,6 +1019,10 @@ void load_css_style_sheet () {
 				GTK_STYLE_PROVIDER(css_provider),
 				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 		gtk_css_provider_load_from_path(css_provider, CSSFile, NULL);
+		if (initial_GdkScale == 2) {
+			gchar *test = "label, entry, combobox, spinbutton, checkbutton, textview { font-size: 1.8em; }";
+			gtk_css_provider_load_from_data(css_provider, test, -1, NULL);
+		}
 		g_fprintf(stdout, _("Successfully loaded '%s'\n"), CSSFile);
 		g_object_unref(css_provider);
 	}
