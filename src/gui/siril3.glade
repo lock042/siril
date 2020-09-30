@@ -19355,7 +19355,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
-                                    <property name="tooltip_text" translatable="yes">Remember position and size of image displaying windows. This feature may not work on all architectures.</property>
+                                    <property name="tooltip_text" translatable="yes">Update font size for 4K screens.</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
                                     <signal name="toggled" handler="on_pseudoHiDPI_check_toggled" swapped="no"/>

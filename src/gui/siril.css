@@ -3,7 +3,8 @@ entry,
 combobox,
 spinbutton,
 checkbutton,
-textview {
+textview,
+progressbar {
    font-size: 0.9em; 
 }
 
