@@ -177,6 +177,8 @@ siril_common_SOURCES = \
 	gui/siril_intro.h \
 	gui/siril_preview.c \
 	gui/siril_preview.h \
+	gui/siril_scalable.c \
+	gui/siril_scalable.h \
 	gui/statistics_list.c \
 	io/conversion.c \
 	io/conversion.h \

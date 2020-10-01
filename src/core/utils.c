@@ -43,6 +43,7 @@
 #include "io/sequence.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
+#include "gui/siril_scalable.h"
 #include "io/single_image.h"
 
 /**
@@ -994,7 +995,7 @@ static const gchar *checking_css_filename() {
 /**
  * Loads the css sheet
  */
-void load_css_style_sheet (unsigned char initial_GdkScale) {
+void load_css_style_sheet() {
 	GtkCssProvider *css_provider;
 	GdkDisplay *display;
 	GdkScreen *screen;
@@ -1019,10 +1020,12 @@ void load_css_style_sheet (unsigned char initial_GdkScale) {
 				GTK_STYLE_PROVIDER(css_provider),
 				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 		gtk_css_provider_load_from_path(css_provider, CSSFile, NULL);
-		if (initial_GdkScale == 2) {
-			gchar *test = "label, entry, combobox, spinbutton, checkbutton, textview { font-size: 1.8em; }";
-			gtk_css_provider_load_from_data(css_provider, test, -1, NULL);
-		}
+		if (com.pref.pseudo_HiDPISupport) {
+			gdouble font_scale = 0.9;
+			gchar *new_font_size = g_strdup_printf("label, entry, combobox, spinbutton, checkbutton, textview, progressbar { font-size: %lfem; }", font_scale * getScale());
+			gtk_css_provider_load_from_data(css_provider, new_font_size, -1, NULL);
+			g_free(new_font_size);
+        }
 		g_fprintf(stdout, _("Successfully loaded '%s'\n"), CSSFile);
 		g_object_unref(css_provider);
 	}
