@@ -829,6 +829,126 @@ int process_ls(int nb){
 }
 #endif
 
+int	process_merge(int nb) {
+	int retval = 0, nb_seq = nb-2;
+	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
+	for (int i = 0; i < nb_seq; i++) {
+		if (!(seqs[i] = readseqfile(word[i+1]))) {
+			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i+1]);
+			retval = 1;
+			goto merge_clean_up;
+		}
+	}
+
+	for (int i = 1; i < nb_seq; i++) {
+		if (seqs[i]->rx != seqs[0]->rx ||
+				seqs[i]->ry != seqs[0]->ry ||
+				seqs[i]->nb_layers != seqs[0]->nb_layers ||
+				seqs[i]->bitpix != seqs[0]->bitpix ||
+				seqs[i]->type != seqs[0]->type) {
+			siril_log_message(_("All sequences must be the same format for merging. Sequence `%s' is different\n"), word[i+1]);
+			retval = 1;
+			goto merge_clean_up;
+		}
+	}
+
+	char *outseq_name;
+	struct ser_struct out_ser;
+	fitseq out_fitseq;
+	switch (seqs[0]->type) {
+		case SEQ_REGULAR:
+			// do it with symlinks?
+			break;
+
+		case SEQ_SER:
+			if (ends_with(word[nb-1], ".ser"))
+				outseq_name = g_strdup(word[nb-1]);
+			else outseq_name = g_strdup_printf("%s.ser", word[nb-1]);
+			if (ser_create_file(outseq_name, &out_ser, TRUE, seqs[0]->ser_file)) {
+				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb-1]);
+				retval = 1;
+				goto merge_clean_up;
+			}
+			free(outseq_name);
+			seqwriter_set_max_active_blocks(2);
+			int written_frames = 0;
+			for (int i = 0; i < nb_seq; i++) {
+				for (unsigned int frame = 0; frame < seqs[i]->number; frame++) {
+					seqwriter_wait_for_memory();
+					fits *fit = calloc(1, sizeof(fits));
+					if (ser_read_frame(seqs[i]->ser_file, frame, fit)) {
+						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i+1]);
+						retval = 1;
+						ser_close_and_delete_file(&out_ser);
+						goto merge_clean_up;
+					}
+
+					if (ser_write_frame_from_fit(&out_ser, fit, written_frames)) {
+						siril_log_message(_("Failed to write frame %d in merged sequence\n"), written_frames);
+						retval = 1;
+						ser_close_and_delete_file(&out_ser);
+						goto merge_clean_up;
+					}
+					written_frames++;
+				}
+			}
+			if (ser_write_and_close(&out_ser)) {
+				siril_log_message(_("Error while finalizing the merged sequence\n"));
+				retval = 1;
+			}
+			break;
+
+		case SEQ_FITSEQ:
+			if (ends_with(word[nb-1], com.pref.ext))
+				outseq_name = g_strdup(word[nb-1]);
+			else outseq_name = g_strdup_printf("%s.%s", word[nb-1], com.pref.ext);
+			if (fitseq_create_file(word[nb-1], &out_fitseq, -1)) {
+				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb-1]);
+				retval = 1;
+				goto merge_clean_up;
+			}
+			free(outseq_name);
+			seqwriter_set_max_active_blocks(2);
+			written_frames = 0;
+			for (int i = 0; i < nb_seq; i++) {
+				for (unsigned int frame = 0; frame < seqs[i]->number; frame++) {
+					seqwriter_wait_for_memory();
+					fits *fit = calloc(1, sizeof(fits));
+					if (fitseq_read_frame(seqs[i]->fitseq_file, frame, fit, FALSE, -1)) {
+						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i+1]);
+						retval = 1;
+						fitseq_close_and_delete_file(&out_fitseq);
+						goto merge_clean_up;
+					}
+
+					if (fitseq_write_image(&out_fitseq, fit, written_frames)) {
+						siril_log_message(_("Failed to write frame %d in merged sequence\n"), written_frames);
+						retval = 1;
+						fitseq_close_and_delete_file(&out_fitseq);
+						goto merge_clean_up;
+					}
+					written_frames++;
+				}
+			}
+			if (fitseq_close_file(&out_fitseq)) {
+				siril_log_message(_("Error while finalizing the merged sequence\n"));
+				retval = 1;
+			}
+			break;
+		default:
+			siril_log_message(_("This type of sequence cannot be created by Siril, aborting the merge\n"));
+			retval = 1;
+	}
+
+merge_clean_up:
+	for (int i = 0; i < nb_seq; i++) {
+		if (seqs[i])
+			free_sequence(seqs[i], TRUE);
+	}
+	free(seqs);
+	return retval;
+}
+
 int	process_mirrorx(int nb){
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;

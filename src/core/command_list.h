@@ -85,9 +85,10 @@ static command commands[] = {
 	{"ls", 0, "ls", process_ls, STR_LS, FALSE},
 #endif
 
+	{"merge", 2, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE},
 	{"mirrorx", 0, "mirrorx", process_mirrorx, STR_MIRRORX, TRUE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE},
-	{"mtf", 3, "mtf", process_mtf, STR_MTF, TRUE},
+	{"mtf", 3, "mtf low mid high", process_mtf, STR_MTF, TRUE},
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE},
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE},
