@@ -1020,6 +1020,11 @@ void load_css_style_sheet() {
 				GTK_STYLE_PROVIDER(css_provider),
 				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 		gtk_css_provider_load_from_path(css_provider, CSSFile, NULL);
+		if (com.pref.pseudo_HiDPISupport) {
+			gchar *new_font_size = g_strdup_printf("label, entry, combobox, spinbutton, checkbutton, textview, progressbar { font-size: %lfem; }", 0.9 * getScale());
+			gtk_css_provider_load_from_data(css_provider, new_font_size, -1, NULL);
+			g_free(new_font_size);
+        }
 		g_fprintf(stdout, _("Successfully loaded '%s'\n"), CSSFile);
 		g_object_unref(css_provider);
 	}
