@@ -322,12 +322,12 @@ static void siril_app_activate(GApplication *application) {
 			// HOMBRE: On Windows, if resolution is set to 200%, Gtk internal variables are SCALE=2 and DPI=96
 	        g_setenv("GDK_SCALE", "1", TRUE);
 	    }
+		siril_scalable_init();
 		load_css_style_sheet();
 		/* Load glade file */
 		load_glade_file();
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(lookup_widget("control_window")),	GTK_APPLICATION(application));
-		siril_scalable_init(GTK_WINDOW(lookup_widget("control_window")));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
 		/* Check for update */

@@ -36,6 +36,6 @@
 
 double getDPI();
 int getScale();
-void siril_scalable_init(GtkWindow *window);
+void siril_scalable_init();
 
 #endif /* SRC_GUI_SIRIL_SCALABLE_H_ */

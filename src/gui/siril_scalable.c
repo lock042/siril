@@ -21,8 +21,8 @@
 #include "core/siril.h"
 #include "siril_scalable.h"
 
-double dpi = 0.;
-int scale = 0;
+static double dpi = 0.;
+static int scale = 0;
 
 void set_DPInScale(const double newDPI, const int newScale) {
 	if (!com.pref.pseudo_HiDPISupport) {
@@ -56,12 +56,12 @@ int getScale() {
 	return scale;
 }
 
-void siril_scalable_init(GtkWindow *window) {
+void siril_scalable_init() {
 	dpi = 0.;
 	scale = 0;
 
-	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
+	GdkMonitor *gdk_monitor = gdk_display_get_primary_monitor(gdk_display_get_default());
 	set_DPInScale(gdk_screen_get_resolution(gdk_screen_get_default()),
-			max((int )com.initial_GdkScale, gdk_window_get_scale_factor(gdk_window)));
+			max((int )com.initial_GdkScale, gdk_monitor_get_scale_factor(gdk_monitor)));
 	siril_debug_print("dpi=%lf, scale=%d\n", dpi, scale);
 }
