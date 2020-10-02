@@ -3,8 +3,9 @@ entry,
 combobox,
 spinbutton,
 checkbutton,
-textview {
-   font-size: 0.9em; 
+textview,
+progressbar {
+   font-size: %lfem;
 }
 
 GtkBox {
