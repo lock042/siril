@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/siril_app_dirs.h"
 
 #include "siril_css.h"
@@ -58,7 +59,7 @@ void load_css_style_sheet () {
 		gchar *css_buffer = get_buffer_from_css_file(CSSFile);
 		if (css_buffer) {
 			/* update font scale */
-			gchar *updated_css = g_strdup_printf(css_buffer, com.pref.font_scale / 100.0);
+			gchar *updated_css = g_strdup_printf(css_buffer, 1.0 + (com.pref.font_scale - 100.0) / 1000.0);
 
 			GtkCssProvider *css_provider = gtk_css_provider_new();
 			GdkDisplay *display = gdk_display_get_default();
@@ -77,3 +78,4 @@ void load_css_style_sheet () {
 	}
 	g_free(CSSFile);
 }
+

@@ -1,11 +1,5 @@
-label,
-entry,
-combobox,
-spinbutton,
-checkbutton,
-textview,
-progressbar {
-   font-size: %lfem;
+* {
+    font-size: %lfem; 
 }
 
 GtkBox {
