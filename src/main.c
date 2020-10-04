@@ -59,6 +59,7 @@
 #include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
+#include "gui/siril_css.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 
@@ -128,6 +129,7 @@ static GActionEntry app_entries[] = {
 	{ "logs", tab_logs_activate },
 	{ "zoom_out", zoom_out_activate },
 	{ "zoom_in", zoom_in_activate },
+	{ "zoom_fit", zoom_fit_activate, NULL, "true", change_zoom_fit_state },
 	{ "hide_show_toolbar", toolbar_activate }
 };
 

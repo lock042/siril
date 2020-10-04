@@ -177,8 +177,9 @@ void reset_zoom_default() {
 
 static void update_zoom_fit_button() {
 	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("zoom_to_fit_check_button"));
-	if (gtk_toggle_tool_button_get_active(button))
+	if (gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, FALSE);
+	}
 }
 
 /*
@@ -411,6 +412,12 @@ gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
 	return TRUE;
 }
 
+static GdkModifierType get_primary() {
+	return gdk_keymap_get_modifier_mask(
+			gdk_keymap_get_for_display(gdk_display_get_default()),
+			GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
+}
+
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 
@@ -437,7 +444,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	gboolean inside = clamp2image(&zoomed);
 
 	if (inside) {
-		if ((event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
+		if (event->state & get_primary()) {
 			if (event->button == GDK_BUTTON_PRIMARY) {
 				// viewport translation
 				com.translating = TRUE;
@@ -545,12 +552,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	return FALSE;
 }
 
-static GdkModifierType get_primary() {
-	return gdk_keymap_get_modifier_mask(
-			gdk_keymap_get_for_display(gdk_display_get_default()),
-			GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
-}
-
 gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 	// evpos.x/evpos.y = cursor position in image coordinate
@@ -561,7 +562,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
-	if (event->state & get_primary()) {	// left click
+	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		if (com.translating) {
 			com.translating = FALSE;
 		} else if (com.drawing && mouse_status == MOUSE_ACTION_SELECT_REG_AREA) {
@@ -852,16 +853,6 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 		}
 	}
 	return handled;
-}
-
-void on_zoom_to_fit_check_button_toggled(GtkToggleToolButton *button, gpointer data) {
-	if (gtk_toggle_tool_button_get_active(button)) {
-		com.zoom_value = ZOOM_DEFAULT;
-		reset_display_offset();
-		redraw(com.cvport, REMAP_NONE);
-	} else {
-		com.zoom_value = get_zoom_val();
-	}
 }
 
 void on_zoom_to_one_button_clicked(GtkToolButton *button, gpointer user_data) {
