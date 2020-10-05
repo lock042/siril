@@ -519,7 +519,7 @@ void process_destroot(sequence_type output_type) {
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else {
-		destroot = format_basename(destroot);
+		destroot = format_basename(destroot, TRUE);
 		seq_exists = check_if_seq_exist(destroot, TRUE);
 	}
 

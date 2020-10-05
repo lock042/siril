@@ -121,7 +121,7 @@ double get_normalized_value(fits*);
 void swap_param(double*, double*);
 char* remove_ext_from_filename(const char *basename);
 gchar* str_append(char **data, const char *newdata);
-char* format_basename(char *root);
+char *format_basename(char *root, gboolean can_free);
 float compute_slope(WORD *lo, WORD *hi);
 double encodeJD(dateTime dt);
 gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);

@@ -944,9 +944,10 @@ gchar* str_append(gchar** data, const gchar* newdata) {
  * Cut a base name to 120 characters and add a trailing underscore if needed.
  * WARNING: may return a newly allocated string and free the argument
  * @param root the original base name
+ * @param can_free allow root to be freed in case a new string is allocated
  * @return a string ending with trailing underscore
  */
-char *format_basename(char *root) {
+char *format_basename(char *root, gboolean can_free) {
 	int len = strlen(root);
 	if (len > 120) {
 		root[120] = '\0';
@@ -958,7 +959,8 @@ char *format_basename(char *root) {
 
 	char *appended = malloc(len + 2);
 	sprintf(appended, "%s_", root);
-	free(root);
+	if (can_free)
+		free(root);
 	return appended;
 }
 

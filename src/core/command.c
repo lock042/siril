@@ -841,44 +841,46 @@ int process_merge(int nb) {
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
 	GList *list = NULL;
 	for (int i = 0; i < nb_seq; i++) {
-		char *seqpath1 = strdup(word[1]), *seqpath2 = strdup(word[1]);
+		char *seqpath1 = strdup(word[i+1]), *seqpath2 = strdup(word[i+1]);
 		char *dir = dirname(seqpath1);
 		char *seqname = basename(seqpath2);
-		free(seqpath1); free(seqpath2);
 		if (dir[0] != '\0' && !(dir[0] == '.' && dir[1] == '\0'))
 			changedir(dir, NULL);
 		if (!(seqs[i] = load_sequence(seqname, NULL))) {
 			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i+1]);
 			retval = 1;
+			free(seqpath1); free(seqpath2);
 			goto merge_clean_up;
 		}
 		if (seq_check_basic_data(seqs[i], FALSE) < 0) {
 			siril_log_message(_("Sequence `%s' is invalid, could not merge\n"), word[i+1]);
 			retval = 1;
+			free(seqpath1); free(seqpath2);
 			goto merge_clean_up;
 		}
 
-		if (i == 0) continue;
-		if (seqs[i]->rx != seqs[0]->rx ||
-				seqs[i]->ry != seqs[0]->ry ||
-				seqs[i]->nb_layers != seqs[0]->nb_layers ||
-				seqs[i]->bitpix != seqs[0]->bitpix ||
-				seqs[i]->type != seqs[0]->type) {
+		if (i != 0 && (seqs[i]->rx != seqs[0]->rx ||
+					seqs[i]->ry != seqs[0]->ry ||
+					seqs[i]->nb_layers != seqs[0]->nb_layers ||
+					seqs[i]->bitpix != seqs[0]->bitpix ||
+					seqs[i]->type != seqs[0]->type)) {
 			siril_log_message(_("All sequences must be the same format for merging. Sequence `%s' is different\n"), word[i+1]);
 			retval = 1;
+			free(seqpath1); free(seqpath2);
 			goto merge_clean_up;
 		}
-		
-		if (seqs[0]->type == SEQ_REGULAR) {
+
+		if (seqs[i]->type == SEQ_REGULAR) {
 			// we need to build the list of files
 			char filename[256];
-			for (int image = 0; image < seqs[0]->number; image++) {
+			for (int image = 0; image < seqs[i]->number; image++) {
 				fit_sequence_get_image_filename(seqs[i], image, filename, TRUE);
 				list = g_list_append(list, g_build_filename(dir, filename, NULL));
 			}
 		}
+		free(seqpath1); free(seqpath2);
+		changedir(dest_dir, NULL);	// they're all relative to this one
 	}
-	changedir(dest_dir, NULL);
 
 	char *outseq_name;
 	struct ser_struct out_ser;
@@ -891,7 +893,7 @@ int process_merge(int nb) {
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(word[nb-1]);
+			args->destroot = format_basename(word[nb-1], FALSE);
 			args->input_has_a_seq = FALSE;
 			args->debayer = FALSE;
 			args->multiple_output = FALSE;
@@ -942,8 +944,8 @@ int process_merge(int nb) {
 		case SEQ_FITSEQ:
 			if (ends_with(word[nb-1], com.pref.ext))
 				outseq_name = g_strdup(word[nb-1]);
-			else outseq_name = g_strdup_printf("%s.%s", word[nb-1], com.pref.ext);
-			if (fitseq_create_file(word[nb-1], &out_fitseq, -1)) {
+			else outseq_name = g_strdup_printf("%s%s", word[nb-1], com.pref.ext);
+			if (fitseq_create_file(outseq_name, &out_fitseq, -1)) {
 				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb-1]);
 				retval = 1;
 				goto merge_clean_up;
@@ -2775,7 +2777,7 @@ int process_convertraw(int nb) {
 	args->list = files_to_convert;
 	args->total = count;
 	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot);
+		args->destroot = format_basename(destroot, TRUE);
 	else
 		args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
@@ -2872,7 +2874,7 @@ int process_link(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	args->destroot = format_basename(destroot);
+	args->destroot = format_basename(destroot, TRUE);
 	args->input_has_a_seq = FALSE;
 	args->debayer = FALSE;
 	args->multiple_output = FALSE;
@@ -2980,7 +2982,7 @@ int process_convert(int nb) {
 	args->list = files_to_link;
 	args->total = count;
 	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot);
+		args->destroot = format_basename(destroot, TRUE);
 	else
 		args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
