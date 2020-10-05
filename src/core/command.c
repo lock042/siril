@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <opencv2/core/version.hpp>
 #include <glib.h>
+#include <libgen.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -829,18 +830,35 @@ int process_ls(int nb){
 }
 #endif
 
-int	process_merge(int nb) {
+int process_merge(int nb) {
 	int retval = 0, nb_seq = nb-2;
+	if (!com.wd) {
+		siril_log_message(_("Merge: no working directory set.\n"));
+		set_cursor_waiting(FALSE);
+		return 1;
+	}
+	char *dest_dir = strdup(com.wd);
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
+	GList *list = NULL;
 	for (int i = 0; i < nb_seq; i++) {
-		if (!(seqs[i] = readseqfile(word[i+1]))) {
+		char *seqpath1 = strdup(word[1]), *seqpath2 = strdup(word[1]);
+		char *dir = dirname(seqpath1);
+		char *seqname = basename(seqpath2);
+		free(seqpath1); free(seqpath2);
+		if (dir[0] != '\0' && !(dir[0] == '.' && dir[1] == '\0'))
+			changedir(dir, NULL);
+		if (!(seqs[i] = load_sequence(seqname, NULL))) {
 			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i+1]);
 			retval = 1;
 			goto merge_clean_up;
 		}
-	}
+		if (seq_check_basic_data(seqs[i], FALSE) < 0) {
+			siril_log_message(_("Sequence `%s' is invalid, could not merge\n"), word[i+1]);
+			retval = 1;
+			goto merge_clean_up;
+		}
 
-	for (int i = 1; i < nb_seq; i++) {
+		if (i == 0) continue;
 		if (seqs[i]->rx != seqs[0]->rx ||
 				seqs[i]->ry != seqs[0]->ry ||
 				seqs[i]->nb_layers != seqs[0]->nb_layers ||
@@ -850,14 +868,37 @@ int	process_merge(int nb) {
 			retval = 1;
 			goto merge_clean_up;
 		}
+		
+		if (seqs[0]->type == SEQ_REGULAR) {
+			// we need to build the list of files
+			char filename[256];
+			for (int image = 0; image < seqs[0]->number; image++) {
+				fit_sequence_get_image_filename(seqs[i], image, filename, TRUE);
+				list = g_list_append(list, g_build_filename(dir, filename, NULL));
+			}
+		}
 	}
+	changedir(dest_dir, NULL);
 
 	char *outseq_name;
 	struct ser_struct out_ser;
+	struct _convert_data *args;
 	fitseq out_fitseq;
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
-			// do it with symlinks?
+			// use the conversion, it makes symbolic links or copies as a fallback
+			args = malloc(sizeof(struct _convert_data));
+			args->start = 0;
+			args->total = 0; // init to get it from glist_to_array()
+			args->list = glist_to_array(list, &args->total);
+			args->destroot = format_basename(word[nb-1]);
+			args->input_has_a_seq = FALSE;
+			args->debayer = FALSE;
+			args->multiple_output = FALSE;
+			args->output_type = SEQ_REGULAR; // fallback if symlink does not work
+			args->make_link = TRUE;
+			gettimeofday(&(args->t_start), NULL);
+			start_in_new_thread(convert_thread_worker, args);
 			break;
 
 		case SEQ_SER:
@@ -946,6 +987,8 @@ merge_clean_up:
 			free_sequence(seqs[i], TRUE);
 	}
 	free(seqs);
+	g_chdir(dest_dir);
+	free(dest_dir);
 	return retval;
 }
 
@@ -2705,6 +2748,7 @@ int process_convertraw(int nb) {
 			count++;
 		}
 	}
+	g_dir_close(dir);
 	if (!count) {
 		siril_log_message(_("No RAW files were found for conversion\n"));
 		return 1;
@@ -2712,15 +2756,7 @@ int process_convertraw(int nb) {
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
-	char **files_to_convert = malloc(count * sizeof(char *));
-	if (!files_to_convert) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-	GList *orig_list = list;
-	for (int i = 0; i < count && list; list = list->next, i++)
-		files_to_convert[i] = g_strdup(list->data);
-	g_list_free_full(orig_list, g_free);
+	char **files_to_convert = glist_to_array(list, &count);
 
 	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "green", count);
 
@@ -2736,11 +2772,8 @@ int process_convertraw(int nb) {
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
-	args->dir = dir;
 	args->list = files_to_convert;
 	args->total = count;
-	args->nb_converted_files = 0;
-	args->command_line = TRUE;
 	if (output == SEQ_REGULAR)
 		args->destroot = format_basename(destroot);
 	else
@@ -2813,6 +2846,7 @@ int process_link(int nb) {
 			count++;
 		}
 	}
+	g_dir_close(dir);
 	if (!count) {
 		siril_log_message(_("No FITS files were found for link\n"));
 		return 1;
@@ -2820,15 +2854,7 @@ int process_link(int nb) {
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
-	char **files_to_link = malloc(count * sizeof(char *));
-	if (!files_to_link) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-	GList *orig_list = list;
-	for (int i = 0; i < count && list; list = list->next, i++)
-		files_to_link[i] = g_strdup(list->data);
-	g_list_free_full(orig_list, g_free);
+	char **files_to_link = glist_to_array(list, &count);
 
 	siril_log_color_message(_("Link: processing %d FITS files...\n"), "green", count);
 
@@ -2844,11 +2870,8 @@ int process_link(int nb) {
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
-	args->dir = dir;
 	args->list = files_to_link;
 	args->total = count;
-	args->nb_converted_files = 0;
-	args->command_line = TRUE;
 	args->destroot = format_basename(destroot);
 	args->input_has_a_seq = FALSE;
 	args->debayer = FALSE;
@@ -2930,6 +2953,7 @@ int process_convert(int nb) {
 			count++;
 		}
 	}
+	g_dir_close(dir);
 	if (!count) {
 		siril_log_message(_("No files were found for convert\n"));
 		return 1;
@@ -2937,15 +2961,7 @@ int process_convert(int nb) {
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
-	char **files_to_link = malloc(count * sizeof(char *));
-	if (!files_to_link) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-	GList *orig_list = list;
-	for (int i = 0; i < count && list; list = list->next, i++)
-		files_to_link[i] = g_strdup(list->data);
-	g_list_free_full(orig_list, g_free);
+	char **files_to_link = glist_to_array(list, &count);
 
 	siril_log_color_message(_("Convert: processing %d files...\n"), "green", count);
 
@@ -2961,11 +2977,8 @@ int process_convert(int nb) {
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
-	args->dir = dir;
 	args->list = files_to_link;
 	args->total = count;
-	args->nb_converted_files = 0;
-	args->command_line = TRUE;
 	if (output == SEQ_REGULAR)
 		args->destroot = format_basename(destroot);
 	else

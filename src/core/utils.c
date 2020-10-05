@@ -1114,3 +1114,24 @@ GtkWidget* popover_new(GtkWidget *widget, const gchar *text) {
 
 	return popover;
 }
+
+char **glist_to_array(GList *list, int *arg_count) {
+	int count;
+	if (arg_count && *arg_count > 0)
+		count = *arg_count;
+	else {
+		count = g_list_length(list);
+		if (arg_count)
+			*arg_count = count;
+	}
+	char **array = malloc(count * sizeof(char *));
+	if (!array) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	GList *orig_list = list;
+	for (int i = 0; i < count && list; list = list->next, i++)
+		array[i] = g_strdup(list->data);
+	g_list_free_full(orig_list, g_free);
+	return array;
+}

@@ -362,6 +362,7 @@ int processcommand(const char *line) {
 	return 0;
 }
 
+// loads the sequence from com.wd
 sequence *load_sequence(const char *name, char **get_filename) {
 	gchar *file = g_strdup(name);
 	gchar *altfile = NULL;
