@@ -4,7 +4,10 @@
 #define MyAppName "SiriL"
 #define MyAppExeName "siril.exe"
 #define MyAppVersion @PACKAGE_VERSION@
-#define MyBuildBasePath @MESON_INSTALL_PREFIX@
+#define MyAppPublisher "Free-Astro"
+#define MyAppURL "https://www.siril.org/"
+#define MyAppExeName "siril.exe"
+#define MyBuildBasePath "."
 #define MySourceBasePath @PACKAGE_SOURCE_DIR@
 
 [Setup]
@@ -15,9 +18,9 @@ AppId={{ADA3C347-68C3-4EAA-92B3-C1BDBD836EDB}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher=Free-Astro
-AppPublisherURL=https://www.siril.org/
-AppSupportURL=https://www.siril.org/
-AppUpdatesURL=https://www.siril.org/
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonpf}\{#MyAppName}\{#MyAppVersion}
 DefaultGroupName={#MyAppName}
 LicenseFile={#MyBuildBasePath}\share\doc\siril\LICENCE.md
