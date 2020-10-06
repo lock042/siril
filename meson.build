@@ -364,7 +364,13 @@ git_data.set_quoted('SIRIL_GIT_VERSION_ABBREV', git_version)
 git_data.set_quoted('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
 
 ## WINDOWS iss packaging
-configure_file("${PROJECT_SOURCE_DIR}/platform-specific/windows/WindowsInnoSetup.iss.in" "${PROJECT_SOURCE_DIR}/build/windows/WindowsInnoSetup.iss")
+#if platform_windows
+configure_file(
+    input : 'platform-specific/windows/WindowsInnoSetup.iss.in',
+    output : 'WindowsInnoSetup.iss',
+    configuration : conf_data
+    )
+#endif
 
 ################################################################################
 # Externals dependencies

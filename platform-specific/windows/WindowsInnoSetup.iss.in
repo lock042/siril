@@ -3,9 +3,9 @@
 
 #define MyAppName "SiriL"
 #define MyAppExeName "siril.exe"
-#define MyAppVersion "${PACKAGE_VERSION}"
-#define MyBuildBasePath "${MESON_INSTALL_PREFIX}"
-#define MySourceBasePath "${PROJECT_SOURCE_DIR}"
+#define MyAppVersion @PACKAGE_VERSION@
+#define MyBuildBasePath @MESON_INSTALL_PREFIX@
+#define MySourceBasePath @PACKAGE_SOURCE_DIR@
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
