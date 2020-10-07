@@ -14,7 +14,7 @@ gimp_app_rc = configure_file(
 inno_setup = configure_file(
   input : 'WindowsInnoSetup.iss.in',
   output : 'WindowsInnoSetup.iss',
-  configuration : conf_data
+  configuration : conf_data,
 )
 
 win_res += winm.compile_resources('siril.rc', depend_files: ['siril.ico', 'text-x-seq.ico'])
