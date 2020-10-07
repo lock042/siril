@@ -272,11 +272,12 @@ conf_data.set_quoted('PACKAGE_DATA_DIR', siril_datadir, description : 'Define to
 conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the locale directory.')
 
 versionconfig = configuration_data()
-versionconfig.set('SIRIL_FULL_NAME',     meson.project_name())
-versionconfig.set('SIRIL_MAJOR_VERSION', siril_version_major)
-versionconfig.set('SIRIL_MINOR_VERSION', siril_version_minor)
-versionconfig.set('SIRIL_MICRO_VERSION', siril_version_micro)
-versionconfig.set('SIRIL_VERSION',       siril_version)
+versionconfig.set('SIRIL_FULL_NAME',        meson.project_name())
+versionconfig.set('SIRIL_MAJOR_VERSION',    siril_version_major)
+versionconfig.set('SIRIL_MINOR_VERSION',    siril_version_minor)
+versionconfig.set('SIRIL_MICRO_VERSION',    siril_version_micro)
+versionconfig.set('SIRIL_VERSION',          siril_version)
+versionconfig.set('SIRIL_LAST_COMMIT_YEAR', git_last_commit_year)
 
 # Check for available headers
 foreach header : [
@@ -412,9 +413,9 @@ externals_dep = declare_dependency(
 ################################################################################
 # Sources directories
 
-subdir('src')
 subdir('platform-specific')
 subdir('build')
+subdir('src')
 subdir('pixmaps')
 subdir('po')
 subdir('scripts')
