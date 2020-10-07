@@ -178,6 +178,12 @@ siril_lib = static_library('siril',
 siril_dep = declare_dependency(link_with: siril_lib,
                                dependencies: externals_dep,
                                include_directories: siril_inc_dir)
+                               
+if platform_windows 
+  win_res += winm.compile_resources('siril.rc', depend_files: ['siril.ico', 'text-x-seq.ico'])
+else
+  win_res = []
+endif
 
 
 ################################################################################

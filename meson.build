@@ -412,9 +412,9 @@ externals_dep = declare_dependency(
 ################################################################################
 # Sources directories
 
+subdir('src')
 subdir('platform-specific')
 subdir('build')
-subdir('src')
 subdir('pixmaps')
 subdir('po')
 subdir('scripts')
