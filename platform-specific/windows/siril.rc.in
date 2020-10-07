@@ -1,0 +1,67 @@
+#include <winver.h>
+#include "git-version.h"
+
+#define _QUOTE(x) #x
+#define QUOTE(x) _QUOTE(x)
+#define CONCAT(x,y) x ## y
+
+#define VER_COMPANYNAME_STR         "Team Free-astro"
+
+#define VER_PRODUCTVERSION          @SIRIL_MAJOR_VERSION@,@SIRIL_MINOR_VERSION@,@SIRIL_MICRO_VERSION@,0
+#define VER_PRODUCTVERSION_STR      "@SIRIL_MAJOR_VERSION@.@SIRIL_MINOR_VERSION@.@SIRIL_MICRO_VERSION@\0"
+#define VER_PRODUCTNAME_STR         "@PACKAGE_NAME@"
+
+#define VER_FILEVERSION             @SIRIL_MAJOR_VERSION@,@SIRIL_MINOR_VERSION@,@SIRIL_MICRO_VERSION@,0
+#define VER_FILEVERSION_STR         "@SIRIL_MAJOR_VERSION@.@SIRIL_MINOR_VERSION@.@SIRIL_MICRO_VERSION@.0\0"
+
+#define VER_FILEDESCRIPTION_STR     "@PACKAGE_NAME@"
+#define VER_INTERNALNAME_STR        QUOTE(INTERNALNAME_STR)
+#define VER_ORIGINALFILENAME_STR    QUOTE(ORIGINALFILENAME_STR)
+
+#define VER_LEGALCOPYRIGHT_STR      "Copyright © 2005-" SIRIL_GIT_LAST_COMMIT_YEAR
+
+#ifndef DEBUG
+#define VER_DEBUG                   0                 
+#else
+#define VER_DEBUG                   VS_FF_DEBUG
+#endif
+
+#ifndef SIRIL_UNSTABLE
+#define VER_PRERELEASE              0
+#else
+#define VER_PRERELEASE              VS_FF_PRERELEASE
+#endif
+
+
+1 ICON "siril.ico" 
+2 ICON "text-x-seq.ico"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    	VER_FILEVERSION
+PRODUCTVERSION 	VER_PRODUCTVERSION
+FILEFLAGSMASK  	VS_FFI_FILEFLAGSMASK
+FILEFLAGS      	(VER_PRERELEASE|VER_DEBUG)
+FILEOS         	VOS__WINDOWS32
+FILETYPE       	VFT_APP
+FILESUBTYPE    	VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",      VER_COMPANYNAME_STR
+            VALUE "FileDescription",  VER_FILEDESCRIPTION_STR
+            VALUE "FileVersion",      VER_FILEVERSION_STR
+            VALUE "InternalName",     VER_INTERNALNAME_STR
+            VALUE "OriginalFilename", VER_ORIGINALFILENAME_STR
+            VALUE "ProductName",      VER_PRODUCTNAME_STR
+            VALUE "ProductVersion",   VER_PRODUCTVERSION_STR
+            VALUE "LegalCopyright",   VER_LEGALCOPYRIGHT_STR
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END

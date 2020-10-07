@@ -271,6 +271,12 @@ conf_data.set_quoted('PACKAGE_BUGREPORT', 'https://gitlab.com/free-astro/siril/i
 conf_data.set_quoted('PACKAGE_DATA_DIR', siril_datadir, description : 'Define to the data directory.')
 conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the locale directory.')
 
+versionconfig = configuration_data()
+versionconfig.set('SIRIL_MAJOR_VERSION', siril_version_major)
+versionconfig.set('SIRIL_MINOR_VERSION', siril_version_minor)
+versionconfig.set('SIRIL_MICRO_VERSION', siril_version_micro)
+versionconfig.set('SIRIL_VERSION',       siril_version)
+
 # Check for available headers
 foreach header : [
     { 'm': 'HAVE_EXECINFO_H',     'v': 'execinfo.h' },
