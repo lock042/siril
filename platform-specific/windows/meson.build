@@ -12,7 +12,7 @@ gimp_app_rc = configure_file(
 )
 
 inno_setup = configure_file(
-  input : 'platform-specific/windows/WindowsInnoSetup.iss.in',
+  input : 'WindowsInnoSetup.iss.in',
   output : 'WindowsInnoSetup.iss',
   configuration : conf_data
 )
