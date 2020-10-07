@@ -17,7 +17,7 @@
 #define VER_INTERNALNAME_STR        QUOTE(INTERNALNAME_STR)
 #define VER_ORIGINALFILENAME_STR    QUOTE(ORIGINALFILENAME_STR)
 
-#define VER_LEGALCOPYRIGHT_STR      "Copyright © 2005-"@SIRIL_LAST_COMMIT_YEAR@" team free-astro"
+#define VER_LEGALCOPYRIGHT_STR      "Copyright © 2005-@SIRIL_LAST_COMMIT_YEAR@ team free-astro"
 
 #ifndef DEBUG
 #define VER_DEBUG                   0                 
