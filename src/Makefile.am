@@ -313,7 +313,7 @@ endif #!SIRIL_DEBUG
 #	mkdir -p $(top_builddir)/platform-specific/windows/
 #	$(WINDRES) $< $@
 #siril_LDADD += $(top_builddir)/platform-specific/windows/siril.res.o
-endif #HAVE_WINDRES
+#endif #HAVE_WINDRES
 else
 if !PLATFORM_OSX
 AM_LDFLAGS += -rdynamic
