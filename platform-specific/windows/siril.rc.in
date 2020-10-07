@@ -28,8 +28,8 @@
 #endif
 
 
-1 ICON "siril.ico" 
-2 ICON "text-x-seq.ico"
+1 ICON "/platform-specific/windows/siril.ico" 
+2 ICON "/platform-specific/windows/text-x-seq.ico"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION    	VER_FILEVERSION
