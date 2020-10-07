@@ -433,15 +433,3 @@ install_data(['AUTHORS', 'LICENSE.md'],
              rename : ['doc/siril/AUTHORS', 'doc/siril/LICENSE.md'],
              install_dir : siril_share)
 
-
-################################################################################
-# Post build
-
-warning('''
-        MESON BUILD IS STILL EXPERIMENTAL!
-
-        we encourage usage of meson if you want to test and
-        report bugs. Yet if you are a packager, DO NOT USE
-        meson until we fix all known issues and bugs.
-        ''')
-
