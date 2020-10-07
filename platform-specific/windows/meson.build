@@ -24,5 +24,5 @@ win_res += winm.compile_resources(
       '--define', 'INTERNALNAME_STR="@0@"'    .format(meson.project_name()),
       '--define', 'TOP_SRCDIR="@0@"'          .format(meson.source_root()),
     ],
-   depend_files: ['siril.ico', 'text-x-seq.ico'],
+   depend_files: ['/platform-specific/windows/tsiril.ico', '/platform-specific/windows/text-x-seq.ico'],
 )
