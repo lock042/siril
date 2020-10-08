@@ -842,21 +842,21 @@ int process_merge(int nb) {
 	GList *list = NULL;
 	for (int i = 0; i < nb_seq; i++) {
 		char *seqpath1 = strdup(word[i + 1]), *seqpath2 = strdup(word[i + 1]);
-		char *dir = dirname(seqpath1);
+		char *dir = g_path_get_dirname(seqpath1);
 		char *seqname = g_path_get_basename(seqpath2);
 		if (dir[0] != '\0' && !(dir[0] == '.' && dir[1] == '\0'))
 			changedir(dir, NULL);
 		if (!(seqs[i] = load_sequence(seqname, NULL))) {
 			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i + 1]);
 			retval = 1;
-			free(seqpath1); free(seqpath2);	g_free(seqname);
+			free(seqpath1); free(seqpath2);	g_free(seqname); g_free(dir);
 			goto merge_clean_up;
 		}
 		g_free(seqname);
 		if (seq_check_basic_data(seqs[i], FALSE) < 0) {
 			siril_log_message(_("Sequence `%s' is invalid, could not merge\n"), word[i + 1]);
 			retval = 1;
-			free(seqpath1); free(seqpath2);
+			free(seqpath1); free(seqpath2); g_free(dir);
 			goto merge_clean_up;
 		}
 
@@ -867,7 +867,7 @@ int process_merge(int nb) {
 					seqs[i]->type != seqs[0]->type)) {
 			siril_log_message(_("All sequences must be the same format for merging. Sequence `%s' is different\n"), word[i + 1]);
 			retval = 1;
-			free(seqpath1); free(seqpath2);
+			free(seqpath1); free(seqpath2); g_free(dir);
 			goto merge_clean_up;
 		}
 
@@ -879,7 +879,7 @@ int process_merge(int nb) {
 				list = g_list_append(list, g_build_filename(dir, filename, NULL));
 			}
 		}
-		free(seqpath1); free(seqpath2);
+		free(seqpath1); free(seqpath2); g_free(dir);
 		changedir(dest_dir, NULL);	// they're all relative to this one
 	}
 
