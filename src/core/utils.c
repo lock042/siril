@@ -668,7 +668,7 @@ int stat_file(const char *filename, image_type *type, char **realname) {
  *  @param[out] err error message when return value is different of 1. Can be NULL if message is not needed.
  *  @return 0 if success, any other values for error
  */
-int changedir(const char *dir, gchar **err) {
+int siril_change_dir(const char *dir, gchar **err) {
 	gchar *error = NULL;
 	int retval = 0;
 

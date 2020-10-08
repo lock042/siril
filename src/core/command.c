@@ -515,7 +515,7 @@ int process_cd(int nb) {
 	g_strlcpy(filename, word[1], 250);
 
 	expand_home_in_filename(filename, 256);
-	retval = changedir(filename, NULL);
+	retval = siril_change_dir(filename, NULL);
 	if (!retval) {
 		writeinitfile();
 		if (!com.script) {
@@ -845,7 +845,7 @@ int process_merge(int nb) {
 		char *dir = g_path_get_dirname(seqpath1);
 		char *seqname = g_path_get_basename(seqpath2);
 		if (dir[0] != '\0' && !(dir[0] == '.' && dir[1] == '\0'))
-			changedir(dir, NULL);
+			siril_change_dir(dir, NULL);
 		if (!(seqs[i] = load_sequence(seqname, NULL))) {
 			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i + 1]);
 			retval = 1;
@@ -880,7 +880,7 @@ int process_merge(int nb) {
 			}
 		}
 		free(seqpath1); free(seqpath2); g_free(dir);
-		changedir(dest_dir, NULL);	// they're all relative to this one
+		siril_change_dir(dest_dir, NULL);	// they're all relative to this one
 	}
 
 	char *outseq_name;

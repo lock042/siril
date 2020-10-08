@@ -246,7 +246,7 @@ gpointer execute_script(gpointer p) {
 	fclose(fp);
 	com.script = FALSE;
 	/* Now we want to restore the saved cwd */
-	changedir(saved_cwd, NULL);
+	siril_change_dir(saved_cwd, NULL);
 	writeinitfile();
 	siril_add_idle(end_script, NULL);
 	if (!retval) {
