@@ -3260,8 +3260,7 @@ int process_stackall(int nb) {
 			}
 			if (!word[2 + shift] || !word[3 + shift] || (arg->sig[0] = atof(word[2 + shift])) < 0.0
 					|| (arg->sig[1] = atof(word[3 + shift])) < 0.0) {
-				siril_log_message(_("The average stacking with rejection uses the Winsorized "
-										"rejection here and requires two extra arguments: sigma low and high.\n"));
+				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
 				goto failure;
 			}
 			arg->method = stack_mean_with_rejection;
@@ -3269,7 +3268,7 @@ int process_stackall(int nb) {
 			allow_norm = TRUE;
 		}
 		else {
-			siril_log_message(_("Stacking method type '%s' is invalid\n"), word[1]);
+			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), word[2], "red");
 			goto failure;
 		}
 		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, FALSE))
@@ -3371,8 +3370,7 @@ int process_stackone(int nb) {
 			}
 			if (!word[3 + shift] || !word[4 + shift] || (arg->sig[0] = atof(word[3 + shift])) < 0.0
 					|| (arg->sig[1] = atof(word[4 + shift])) < 0.0) {
-				siril_log_message(_("The average stacking with rejection uses the Winsorized "
-										"rejection here and requires two extra arguments: sigma low and high.\n"));
+				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
 				goto failure;
 			}
 			arg->method = stack_mean_with_rejection;
@@ -3380,7 +3378,7 @@ int process_stackone(int nb) {
 			allow_norm = TRUE;
 		}
 		else {
-			siril_log_message(_("Stacking method type '%s' is invalid\n"), word[2]);
+			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), word[2], "red");
 			goto failure;
 		}
 		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, TRUE))
