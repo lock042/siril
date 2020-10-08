@@ -844,6 +844,17 @@ int process_merge(int nb) {
 		char *seqpath1 = strdup(word[i + 1]), *seqpath2 = strdup(word[i + 1]);
 		char *dir = g_path_get_dirname(seqpath1);
 		char *seqname = g_path_get_basename(seqpath2);
+        
+#ifdef _WIN32
+        for (int ii=0;ii<strlen(dir);ii++)
+        {
+            if ( dir[ii] == '/' )
+            {
+                dir[ii] = G_DIR_SEPARATOR ;
+            }
+        }
+#endif
+
 		if (dir[0] != '\0' && !(dir[0] == '.' && dir[1] == '\0'))
 			siril_change_dir(dir, NULL);
 		if (!(seqs[i] = load_sequence(seqname, NULL))) {
