@@ -3251,6 +3251,9 @@ int process_stackall(int nb) {
 			case 'l':
 				arg->type_of_rejection = LINEARFIT;
 				break;
+			case 'w':
+				arg->type_of_rejection = WINSORIZED;
+				break;
 			default:
 				arg->type_of_rejection = WINSORIZED;
 				shift = 0;
@@ -3358,6 +3361,9 @@ int process_stackone(int nb) {
 				break;
 			case 'l':
 				arg->type_of_rejection = LINEARFIT;
+				break;
+			case 'w':
+				arg->type_of_rejection = WINSORIZED;
 				break;
 			default:
 				arg->type_of_rejection = WINSORIZED;
