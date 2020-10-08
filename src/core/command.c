@@ -841,19 +841,20 @@ int process_merge(int nb) {
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
 	GList *list = NULL;
 	for (int i = 0; i < nb_seq; i++) {
-		char *seqpath1 = strdup(word[i+1]), *seqpath2 = strdup(word[i+1]);
+		char *seqpath1 = strdup(word[i + 1]), *seqpath2 = strdup(word[i + 1]);
 		char *dir = dirname(seqpath1);
-		char *seqname = basename(seqpath2);
+		char *seqname = g_path_get_basename(seqpath2);
 		if (dir[0] != '\0' && !(dir[0] == '.' && dir[1] == '\0'))
 			changedir(dir, NULL);
 		if (!(seqs[i] = load_sequence(seqname, NULL))) {
-			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i+1]);
+			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i + 1]);
 			retval = 1;
-			free(seqpath1); free(seqpath2);
+			free(seqpath1); free(seqpath2);	g_free(seqname);
 			goto merge_clean_up;
 		}
+		g_free(seqname);
 		if (seq_check_basic_data(seqs[i], FALSE) < 0) {
-			siril_log_message(_("Sequence `%s' is invalid, could not merge\n"), word[i+1]);
+			siril_log_message(_("Sequence `%s' is invalid, could not merge\n"), word[i + 1]);
 			retval = 1;
 			free(seqpath1); free(seqpath2);
 			goto merge_clean_up;
@@ -864,7 +865,7 @@ int process_merge(int nb) {
 					seqs[i]->nb_layers != seqs[0]->nb_layers ||
 					seqs[i]->bitpix != seqs[0]->bitpix ||
 					seqs[i]->type != seqs[0]->type)) {
-			siril_log_message(_("All sequences must be the same format for merging. Sequence `%s' is different\n"), word[i+1]);
+			siril_log_message(_("All sequences must be the same format for merging. Sequence `%s' is different\n"), word[i + 1]);
 			retval = 1;
 			free(seqpath1); free(seqpath2);
 			goto merge_clean_up;
@@ -893,7 +894,7 @@ int process_merge(int nb) {
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(word[nb-1], FALSE);
+			args->destroot = format_basename(word[nb - 1], FALSE);
 			args->input_has_a_seq = FALSE;
 			args->debayer = FALSE;
 			args->multiple_output = FALSE;
@@ -904,11 +905,11 @@ int process_merge(int nb) {
 			break;
 
 		case SEQ_SER:
-			if (ends_with(word[nb-1], ".ser"))
-				outseq_name = g_strdup(word[nb-1]);
-			else outseq_name = g_strdup_printf("%s.ser", word[nb-1]);
+			if (ends_with(word[nb - 1], ".ser"))
+				outseq_name = g_strdup(word[nb - 1]);
+			else outseq_name = g_strdup_printf("%s.ser", word[nb - 1]);
 			if (ser_create_file(outseq_name, &out_ser, TRUE, seqs[0]->ser_file)) {
-				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb-1]);
+				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb - 1]);
 				retval = 1;
 				goto merge_clean_up;
 			}
@@ -920,7 +921,7 @@ int process_merge(int nb) {
 					seqwriter_wait_for_memory();
 					fits *fit = calloc(1, sizeof(fits));
 					if (ser_read_frame(seqs[i]->ser_file, frame, fit)) {
-						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i+1]);
+						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);
 						retval = 1;
 						ser_close_and_delete_file(&out_ser);
 						goto merge_clean_up;
@@ -942,11 +943,11 @@ int process_merge(int nb) {
 			break;
 
 		case SEQ_FITSEQ:
-			if (ends_with(word[nb-1], com.pref.ext))
-				outseq_name = g_strdup(word[nb-1]);
-			else outseq_name = g_strdup_printf("%s%s", word[nb-1], com.pref.ext);
+			if (ends_with(word[nb - 1], com.pref.ext))
+				outseq_name = g_strdup(word[nb - 1]);
+			else outseq_name = g_strdup_printf("%s%s", word[nb - 1], com.pref.ext);
 			if (fitseq_create_file(outseq_name, &out_fitseq, -1)) {
-				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb-1]);
+				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb - 1]);
 				retval = 1;
 				goto merge_clean_up;
 			}
@@ -958,7 +959,7 @@ int process_merge(int nb) {
 					seqwriter_wait_for_memory();
 					fits *fit = calloc(1, sizeof(fits));
 					if (fitseq_read_frame(seqs[i]->fitseq_file, frame, fit, FALSE, -1)) {
-						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i+1]);
+						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);
 						retval = 1;
 						fitseq_close_and_delete_file(&out_fitseq);
 						goto merge_clean_up;
@@ -1187,13 +1188,13 @@ int process_set_mag_seq(int nb) {
 	double mag = atof(word[1]);
 	int i;
 	for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++);
-	com.seq.reference_star = i-1;
+	com.seq.reference_star = i - 1;
 	if (i == 0) {
 		siril_log_message(_("Run a PSF for the sequence first (see seqpsf)\n"));
 		return 1;
 	}
 	com.seq.reference_mag = mag;
-	siril_log_message(_("Reference magnitude has been set for star %d to %f and will be computed for each image\n"), i-1, mag);
+	siril_log_message(_("Reference magnitude has been set for star %d to %f and will be computed for each image\n"), i - 1, mag);
 	drawPlot();
 	return 0;
 }
