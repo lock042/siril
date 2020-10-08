@@ -3237,13 +3237,8 @@ int process_stackall(int nb) {
 			arg->method = stack_median;
 			allow_norm = TRUE;
 		} else if (!strcmp(word[1], "rej") || !strcmp(word[1], "mean")) {
-			if (!word[3] || !word[4] || (arg->sig[0] = atof(word[3])) < 0.0
-					|| (arg->sig[1] = atof(word[4])) < 0.0) {
-				siril_log_message(_("The average stacking with rejection uses the Winsorized "
-										"rejection here and requires two extra arguments: sigma low and high.\n"));
-				goto failure;
-			}
-			switch (word[2][0]) {
+			int shift = 1;
+			switch (word[3][0]) {
 			case 'p':
 				arg->type_of_rejection = PERCENTILE;
 				break;
@@ -3258,9 +3253,16 @@ int process_stackall(int nb) {
 				break;
 			default:
 				arg->type_of_rejection = WINSORIZED;
+				shift = 0;
+			}
+			if (!word[2 + shift] || !word[3 + shift] || (arg->sig[0] = atof(word[2 + shift])) < 0.0
+					|| (arg->sig[1] = atof(word[3 + shift])) < 0.0) {
+				siril_log_message(_("The average stacking with rejection uses the Winsorized "
+										"rejection here and requires two extra arguments: sigma low and high.\n"));
+				goto failure;
 			}
 			arg->method = stack_mean_with_rejection;
-			start_arg_opt = 5;
+			start_arg_opt = 4 + shift;
 			allow_norm = TRUE;
 		}
 		else {
@@ -3343,12 +3345,7 @@ int process_stackone(int nb) {
 			arg->method = stack_median;
 			allow_norm = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
-			if (!word[4] || !word[5] || (arg->sig[0] = atof(word[4])) < 0.0
-					|| (arg->sig[1] = atof(word[5])) < 0.0) {
-				siril_log_message(_("The average stacking with rejection uses the Winsorized "
-										"rejection here and requires two extra arguments: sigma low and high.\n"));
-				goto failure;
-			}
+			int shift = 1;
 			switch (word[3][0]) {
 			case 'p':
 				arg->type_of_rejection = PERCENTILE;
@@ -3364,9 +3361,16 @@ int process_stackone(int nb) {
 				break;
 			default:
 				arg->type_of_rejection = WINSORIZED;
+				shift = 0;
+			}
+			if (!word[3 + shift] || !word[4 + shift] || (arg->sig[0] = atof(word[3 + shift])) < 0.0
+					|| (arg->sig[1] = atof(word[4 + shift])) < 0.0) {
+				siril_log_message(_("The average stacking with rejection uses the Winsorized "
+										"rejection here and requires two extra arguments: sigma low and high.\n"));
+				goto failure;
 			}
 			arg->method = stack_mean_with_rejection;
-			start_arg_opt = 6;
+			start_arg_opt = 5 + shift;
 			allow_norm = TRUE;
 		}
 		else {
