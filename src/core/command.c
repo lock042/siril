@@ -996,7 +996,7 @@ merge_clean_up:
 			free_sequence(seqs[i], TRUE);
 	}
 	free(seqs);
-	g_chdir(dest_dir);
+	siril_change_dir(dest_dir, NULL);
 	free(dest_dir);
 	return retval;
 }
