@@ -20,7 +20,7 @@ meson ${BUILDDIR} \
 
 
 ninja -C ${BUILDDIR} -j$(nproc)
-DESTDIR=$PWD/${BUILDDIR}/appdir ninja -C ${BUILDDIR} -j$(nproc) install; find appdir/
+DESTDIR=$PWD/${BUILDDIR}/appdir ninja -C ${BUILDDIR} -j$(nproc) install; find ${BUILDDIR}/appdir/
 cd ${BUILDDIR}
 cp ../AppRun appdir/AppRun ; chmod +x appdir/AppRun
 cp ./appdir/usr/share/icons/hicolor/256x256/apps/siril.png ./appdir/org.free_astro.siril.png
