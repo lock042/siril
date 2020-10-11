@@ -375,6 +375,8 @@ static gpointer fetch_url(gpointer p) {
 			g_fprintf(stderr, "Fetch failed with code %ld for URL %s\n", code,
 					args->url);
 		}
+		g_fprintf(stderr, "Fetch succeeded with code %ld for URL %s\n", code,
+				args->url);
 		args->code = code;
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
