@@ -336,9 +336,11 @@ static gpointer fetch_url(gpointer p) {
 	curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-	if (curl_easy_perform(curl) == CURLE_OK) {
+	int retval = curl_easy_perform(curl);
+	if (retval == CURLE_OK) {
 		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.4);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
 		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.6);
@@ -377,6 +379,10 @@ static gpointer fetch_url(gpointer p) {
 		g_fprintf(stderr, "Fetch succeeded with code %ld for URL %s\n", code,
 				args->url);
 		args->code = code;
+	} else {
+		siril_log_color_message(_("Cannot retrieve information from the URL. Error: [%n]\n"), retval);
+		g_free(content);
+		return NULL;
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 
