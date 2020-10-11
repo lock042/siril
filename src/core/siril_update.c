@@ -308,7 +308,7 @@ static gboolean end_update_idle(gpointer p) {
 static gpointer fetch_url(gpointer p) {
 	struct ucontent *content;
 	gchar *result;
-	long code;
+	long code = -1L;
 	int retries;
 	unsigned int s;
 	struct _update_data *args = (struct _update_data *) p;
@@ -336,7 +336,6 @@ static gpointer fetch_url(gpointer p) {
 	curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
 	if (curl_easy_perform(curl) == CURLE_OK) {
