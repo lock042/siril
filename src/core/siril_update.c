@@ -381,8 +381,6 @@ static gpointer fetch_url(gpointer p) {
 		args->code = code;
 	} else {
 		siril_log_color_message(_("Cannot retrieve information from the URL. Error: [%n]\n"), retval);
-		g_free(content);
-		return NULL;
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 
