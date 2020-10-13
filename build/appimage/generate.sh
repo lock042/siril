@@ -10,13 +10,18 @@ export DEBIAN_FRONTEND=noninteractive
 # Build Siril and install to appdir/
 ########################################################################
 
-mkdir -p build/appimage/build
-NOCONFIGURE=1 ./autogen.sh
-cd build/appimage/build
-../../../configure --prefix=/usr --enable-relocatable-bundle
-make -j$(nproc)
-make -j$(nproc) DESTDIR=$PWD/appdir install; find appdir/
-echo $PWD
+BUILDDIR=build/appimage/build
+PREFIX=/usr
+
+meson ${BUILDDIR} \
+    --prefix=${PREFIX} \
+    --buildtype=release \
+    -Drelocatable-bundle=yes 
+
+
+ninja -C ${BUILDDIR} -j$(nproc)
+DESTDIR=$PWD/${BUILDDIR}/appdir ninja -C ${BUILDDIR} -j$(nproc) install; find ${BUILDDIR}/appdir/
+cd ${BUILDDIR}
 cp ../AppRun appdir/AppRun ; chmod +x appdir/AppRun
 cp ./appdir/usr/share/icons/hicolor/256x256/apps/siril.png ./appdir/org.free_astro.siril.png
 

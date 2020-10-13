@@ -246,7 +246,7 @@ gpointer execute_script(gpointer p) {
 	fclose(fp);
 	com.script = FALSE;
 	/* Now we want to restore the saved cwd */
-	changedir(saved_cwd, NULL);
+	siril_change_dir(saved_cwd, NULL);
 	writeinitfile();
 	siril_add_idle(end_script, NULL);
 	if (!retval) {
@@ -349,7 +349,7 @@ int processcommand(const char *line) {
 		len = strlen(line);
 		parseLine(myline, len, &wordnb);
 		if (executeCommand(wordnb)) {
-			siril_log_message(_("Command execution failed.\n"));
+			siril_log_color_message(_("Command execution failed.\n"), "red");
 			if (!com.script && !com.headless) {
 				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
 			}
@@ -362,6 +362,7 @@ int processcommand(const char *line) {
 	return 0;
 }
 
+// loads the sequence from com.wd
 sequence *load_sequence(const char *name, char **get_filename) {
 	gchar *file = g_strdup(name);
 	gchar *altfile = NULL;
