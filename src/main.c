@@ -221,6 +221,7 @@ static void siril_app_activate(GApplication *application) {
 
 	global_initialization();
 
+	 siril_log_message("long: %d\n", sizeof(long));
 	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
 
 	/***************
