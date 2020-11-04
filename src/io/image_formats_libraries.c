@@ -197,6 +197,75 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	return retval;
 }
 
+static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, float **data) {
+	uint32_t rowsperstrip;
+	uint16_t config;
+	int retval = nsamples;
+
+	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
+	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
+
+	size_t npixels = width * height;
+	*data = malloc(npixels * sizeof(float) * nsamples);
+	if (!*data) {
+		PRINT_ALLOC_ERR;
+		return OPEN_IMAGE_ERROR;
+	}
+	float *gbuf[3] = { *data, *data, *data };
+	if (nsamples == 4) {
+		siril_log_message(_("Alpha channel is ignored.\n"));
+	}
+	if ((nsamples == 3) || (nsamples == 4)) {
+		gbuf[1] = *data + npixels;
+		gbuf[2] = *data + npixels * 2;
+	}
+
+	const tmsize_t scanline = TIFFScanlineSize(tif);
+	uint32_t *buf = (uint32_t *)_TIFFmalloc(TIFFStripSize(tif));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return OPEN_IMAGE_ERROR;
+	}
+	for (uint32_t row = 0; row < height; row += rowsperstrip) {
+		uint32_t nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
+		switch (config) {
+		case PLANARCONFIG_CONTIG:
+			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
+				siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
+				retval = OPEN_IMAGE_ERROR;
+				break;
+			}
+			for (size_t i = 0; i < width * nrow; i++) {
+				*gbuf[RLAYER]++ = buf[i * nsamples + 0] / (float) UINT32_MAX;
+				if ((nsamples == 3) || (nsamples == 4)) {
+					*gbuf[GLAYER]++ = buf[i * nsamples + 1] / (float) UINT32_MAX;
+					*gbuf[BLAYER]++ = buf[i * nsamples + 2] / (float) UINT32_MAX;
+				}
+			}
+			break;
+		case PLANARCONFIG_SEPARATE:
+			if (nsamples >= 3)		//don't need to read the alpha
+				nsamples = 3;
+			for (int j = 0; j < nsamples; j++) {	//loop on the layer
+				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j),
+						buf, nrow * scanline) < 0) {
+					siril_log_message(_("An unexpected error was encountered while trying to read the file.\n"));
+					retval = OPEN_IMAGE_ERROR;
+					break;
+				}
+				for (size_t i = 0; i < width * nrow; i++)
+					*gbuf[j]++ = buf[i] / (float) UINT32_MAX;
+			}
+			break;
+		default:
+			siril_log_message(_("Unknown TIFF file.\n"));
+			retval = OPEN_IMAGE_ERROR;
+		}
+	}
+	_TIFFfree(buf);
+	return retval;
+}
+
 static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, WORD **data) {
 	int retval = nsamples;
 
@@ -274,6 +343,8 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	uint16_t nbits, nsamples, color;
 	WORD *data = NULL;
 	float *fdata = NULL;
+	uint16 sampleformat = 0;
+	gchar *date_obs = NULL;
 	
 	TIFF* tif = Siril_TIFFOpen(name, "r");
 	if (!tif) {
@@ -284,10 +355,19 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
+	TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &nbits);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &color);
-	TIFFGetFieldDefaulted(tif, TIFFTAG_MINSAMPLEVALUE, &(fit->lo));
-	TIFFGetFieldDefaulted(tif, TIFFTAG_MAXSAMPLEVALUE, &(fit->hi));
+
+	// Retrieve the Date/Time as in the TIFF TAG
+	gchar *date_time;
+
+	if (TIFFGetField(tif, TIFFTAG_DATETIME, &date_time)) {
+		int year, month, day, h, m, s;
+		sscanf(date_time, "%04d:%02d:%02d %02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
+		date_obs = g_strdup_printf("%04d-%02d-%02dT%02d:%02d:%02d",
+				year, month, day, h, m, s);
+	}
 
 	size_t npixels = width * height;
 
@@ -302,7 +382,14 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 			break;
 
 		case 32:
-			retval = readtifstrip32(tif, width, height, nsamples, &fdata);
+			if (sampleformat == SAMPLEFORMAT_IEEEFP) {
+				retval = readtifstrip32(tif, width, height, nsamples, &fdata);
+			} else if (sampleformat == SAMPLEFORMAT_UINT) {
+				retval = readtifstrip32uint(tif, width, height, nsamples, &fdata);
+			} else {
+				siril_log_message(_("Siril cannot read this TIFF format.\n"));
+				retval = OPEN_IMAGE_ERROR;
+			}
 			break;
 
 		default :
@@ -316,6 +403,10 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 		return OPEN_IMAGE_ERROR;
 	}
 	clearfits(fit);
+	if (date_obs) {
+		g_snprintf(fit->date_obs, sizeof(fit->date_obs), "%s", date_obs);
+		g_free(date_obs);
+	}
 	fit->rx = width;
 	fit->ry = height;
 	fit->naxes[0] = width;
@@ -477,6 +568,16 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 		siril_log_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
 		free(filename);
 		return 1;
+	}
+
+	if (fit->date_obs[0]) {
+		int year, month, day, h, m, s;
+		sscanf(fit->date_obs, "%04d-%02d-%02dT%02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
+		gchar *date_time = g_strdup_printf("%04d:%02d:%02d %02d:%02d:%02d",
+				year, month, day, h, m, s);
+
+		TIFFSetField(tif, TIFFTAG_DATETIME, date_time);
+		g_free(date_time);
 	}
 
 	if (embeded_icc && profile_len > 0) {

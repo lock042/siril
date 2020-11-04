@@ -381,11 +381,6 @@ static gpointer fetch_url(gpointer p) {
 		args->code = code;
 	} else {
 		siril_log_color_message(_("Cannot retrieve information from the update URL. Error: [%ld]\n"), "red", retval);
-		set_progress_bar_data(NULL, PROGRESS_DONE);
-		g_free(content);
-		free(args);
-		set_cursor_waiting(FALSE);
-		return NULL;
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 

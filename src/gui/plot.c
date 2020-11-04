@@ -31,10 +31,13 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
+#include "core/processing.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
+#include "gui/sequence_list.h"
 #include "kplot.h"
 #include "algos/PSF.h"
 #include "io/ser.h"
@@ -44,8 +47,8 @@
 #define XLABELSIZE 15
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*varCurve = NULL, *buttonExport = NULL, *buttonClearAll = NULL,
-		*buttonClearLatest = NULL, *arcsec = NULL;
+		*varCurve = NULL, *buttonClearAll = NULL,
+		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL;
 static pldata *plot_data;
 static struct kpair ref;
 static gboolean is_fwhm = FALSE, use_photometry = FALSE, requires_color_update =
@@ -56,11 +59,11 @@ static enum photmetry_source selected_source = ROUNDNESS;
 static int julian0 = 0;
 static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
+static gboolean force_Julian = FALSE;
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
 static void free_colors(struct kplotcfg *cfg);
-void on_GtkEntryCSV_changed(GtkEditable *editable, gpointer user_data);
 
 static pldata *alloc_plot_data(int size) {
 	pldata *plot = calloc(1, sizeof(pldata));
@@ -68,15 +71,32 @@ static pldata *alloc_plot_data(int size) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
+	plot->frame = calloc(size, sizeof(double));
+	if (!plot->frame) {
+		PRINT_ALLOC_ERR;
+		free(plot);
+		return NULL;
+	}
+	plot->julian = calloc(size, sizeof(double));
+	if (!plot->julian) {
+		PRINT_ALLOC_ERR;
+		free(plot->frame);
+		free(plot);
+		return NULL;
+	}
 	plot->data = calloc(size, sizeof(struct kpair));
 	if (!plot->data) {
 		PRINT_ALLOC_ERR;
+		free(plot->frame);
+		free(plot->julian);
 		free(plot);
 		return NULL;
 	}
 	plot->err = calloc(size, sizeof(struct kpair));
 	if (!plot->err) {
 		PRINT_ALLOC_ERR;
+		free(plot->frame);
+		free(plot->julian);
 		free(plot->data);
 		free(plot);
 		return NULL;
@@ -93,14 +113,15 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl)
 			continue;
-		plot->data[j].x = (double) i;
+		plot->data[j].x = (double) i + 1;
 		plot->data[j].y = is_fwhm ?	seq->regparam[layer][i].fwhm :
 						seq->regparam[layer][i].quality;
+		plot->frame[j] =  plot->data[j].x;
 		j++;
 	}
 	plot->nb = j;
 
-	ref.x = (double) ref_image;
+	ref.x = (double) ref_image + 1;
 	ref.y = is_fwhm ?
 			seq->regparam[layer][ref_image].fwhm :
 			seq->regparam[layer][ref_image].quality;
@@ -162,6 +183,30 @@ static double dateTimestamp_toJulian(char *timestamp, double exp) {
 	return encodeJD(dt);
 }
 
+static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
+	if (seq->type == SEQ_SER && seq->ser_file->ts
+			&& seq->ser_file->ts_max > seq->ser_file->ts_min) {
+		double julian = serTimestamp_toJulian(seq->ser_file->ts[i]);
+		plot->julian[j] = julian - (double)julian0;
+	} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
+				seq->imgparam[i].date_obs) {
+		char *tsi = seq->imgparam[i].date_obs;
+		double julian = dateTimestamp_toJulian(tsi, seq->exposure);
+		plot->julian[j] = julian - (double)julian0;
+	} else {
+		plot->julian[j] = (double) i + 1; // should not happen.
+	}
+	plot->frame[j] = (double) i + 1;
+
+	if (julian0 && force_Julian) {
+		plot->data[j].x = plot->julian[j];
+	} else {
+		plot->data[j].x = plot->frame[j];
+	}
+
+	plot->err[j].x = plot->data[j].x;
+}
+
 static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		int ref_image, pldata *plot) {
 	int i, j;
@@ -185,27 +230,14 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 				char *ts0 = seq->imgparam[i].date_obs;
 				julian0 = (int) dateTimestamp_toJulian(ts0, seq->exposure);
 			}
-			if (julian0) {
+			if (julian0 && force_Julian) {
 				xlabel = calloc(XLABELSIZE, sizeof(char));
 				g_snprintf(xlabel, XLABELSIZE, "(JD) %d +", julian0);
 			} else {
 				xlabel = g_strdup(_("Frames"));
 			}
 		}
-
-		if (julian0 && seq->type == SEQ_SER && seq->ser_file->ts
-				&& seq->ser_file->ts_max > seq->ser_file->ts_min) {
-			double julian = serTimestamp_toJulian(seq->ser_file->ts[i]);
-			plot->data[j].x = julian - (double)julian0;
-		} else if (julian0 && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
-					seq->imgparam[i].date_obs) {
-			char *tsi = seq->imgparam[i].date_obs;
-			double julian = dateTimestamp_toJulian(tsi, seq->exposure);
-			plot->data[j].x = julian - (double)julian0;
-		} else {
-			plot->data[j].x = (double) i;
-		}
-		plot->err[j].x = plot->data[j].x;
+		set_x_values(seq, plot, i, j);
 
 		switch (selected_source) {
 			case ROUNDNESS:
@@ -284,7 +316,7 @@ static gboolean gnuplot_is_available() {
 }
 #endif
 
-static int lightCurve(pldata *plot, sequence *seq) {
+static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, k, nbImages = 0, ret = 0;
 	pldata *tmp_plot = plot;
 	double *vmag, *err, *x, *real_x;
@@ -386,23 +418,11 @@ static int lightCurve(pldata *plot, sequence *seq) {
 	gnuplot_plot_xyyerr(gplot, x, vmag, err, nbImages, "");
 
 	/* Exporting data in a dat file */
-	GtkEntry *EntryCSV = GTK_ENTRY(lookup_widget("GtkEntryCSV"));
-	const gchar *file = gtk_entry_get_text(EntryCSV);
-	if (file && file[0] != '\0') {
-		gchar *filename = g_strndup(file, strlen(file) + 5);
-		g_strlcat(filename, ".dat", strlen(file) + 5);
-		ret = gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nbImages,
-				"JD_UT V-C err");
-		if (!ret) {
-			char *msg = siril_log_message(_("%s has been saved.\n"), filename);
-			siril_message_dialog( GTK_MESSAGE_INFO, _("Information"), msg);
-
-		} else {
-			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"),
-					_("Something went wrong while saving plot"));
-
-		}
-		g_free(filename);
+	ret = gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nbImages, "JD_UT V-C err");
+	if (!ret) {
+		siril_log_message(_("%s has been saved.\n"), filename);
+	} else {
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 	}
 
 	free(vmag);
@@ -411,65 +431,55 @@ static int lightCurve(pldata *plot, sequence *seq) {
 	return 0;
 }
 
-static int exportCSV(pldata *plot, sequence *seq) {
+static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, ret = 0;
-	const gchar *file;
-	gchar *filename, *msg;
-	GtkEntry *EntryCSV;
 
-	EntryCSV = GTK_ENTRY(lookup_widget("GtkEntryCSV"));
-	file = gtk_entry_get_text(EntryCSV);
-	if (file && file[0] != '\0') {
-		filename = g_strndup(file, strlen(file) + 5);
-		g_strlcat(filename, ".csv", strlen(file) + 5);
-		FILE *csv = g_fopen(filename, "w");
-		if (csv == NULL) {
-			ret = 1;
-		} else {
-			if (use_photometry) {
-				pldata *tmp_plot = plot;
-				for (i = 0, j = 0; i < plot->nb; i++) {
-					if (!seq->imgparam[i].incl)
-						continue;
-					int x = 0;
-					double date = tmp_plot->data[j].x;
-					if (julian0) {
-						date += julian0;
-					}
-					fprintf(csv, "%.10lf", date);
-					while (x < MAX_SEQPSF && seq->photometry[x]) {
-						fprintf(csv, ", %g", tmp_plot->data[j].y);
-						tmp_plot = tmp_plot->next;
-						++x;
-					}
-					fprintf(csv, "\n");
-					tmp_plot = plot;
-					j++;
+	FILE *csv = g_fopen(filename, "w");
+	if (csv == NULL) {
+		ret = 1;
+	} else {
+		if (use_photometry) {
+			pldata *tmp_plot = plot;
+			for (i = 0, j = 0; i < plot->nb; i++) {
+				if (!seq->imgparam[i].incl)
+					continue;
+				int x = 0;
+				double date = tmp_plot->data[j].x;
+				if (julian0) {
+					date += julian0;
 				}
-			} else {
-				for (i = 0, j = 0; i < plot->nb; i++) {
-					if (!seq->imgparam[i].incl)
-						continue;
-					double date = plot->data[j].x;
-					if (julian0) {
-						date += julian0;
-					}
-					fprintf(csv, "%.10lf, %g\n", date, plot->data[j].y);
-					j++;
+				fprintf(csv, "%.10lf", date);
+				while (x < MAX_SEQPSF && seq->photometry[x]) {
+					fprintf(csv, ", %g", tmp_plot->data[j].y);
+					tmp_plot = tmp_plot->next;
+					++x;
 				}
+				fprintf(csv, "\n");
+				tmp_plot = plot;
+				j++;
 			}
-			g_free(filename);
-			fclose(csv);
+		} else {
+			for (i = 0, j = 0; i < plot->nb; i++) {
+				if (!seq->imgparam[i].incl)
+					continue;
+				double date = plot->data[j].x;
+				if (julian0) {
+					date += julian0;
+				}
+				fprintf(csv, "%.10lf, %g\n", date, plot->data[j].y);
+				j++;
+			}
 		}
+		fclose(csv);
 	}
 	if (!ret) {
-		msg = siril_log_message(_("%s.csv has been saved.\n"), file);
-		siril_message_dialog( GTK_MESSAGE_INFO, _("Information"), msg);
+		siril_log_message(_("%s has been saved.\n"), filename);
 	} else {
 		siril_message_dialog( GTK_MESSAGE_INFO, _("Error"),
 				_("Something went wrong while saving plot"));
 
 	}
+
 	return 0;
 }
 
@@ -477,6 +487,10 @@ static void free_plot_data() {
 	pldata *plot = plot_data;
 	while (plot) {
 		pldata *next = plot->next;
+		if (plot->julian)
+			free(plot->julian);
+		if (plot->frame)
+			free(plot->frame);
 		if (plot->data)
 			free(plot->data);
 		if (plot->err)
@@ -497,15 +511,8 @@ void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 	gtk_widget_set_visible(combo, use_photometry);
 	gtk_widget_set_visible(varCurve, use_photometry);
 	gtk_widget_set_visible(arcsec, use_photometry);
+	gtk_widget_set_visible(julianw, use_photometry);
 	drawPlot();
-}
-
-void on_GtkEntryCSV_changed(GtkEditable *editable, gpointer user_data) {
-	const gchar *txt;
-	if (!buttonExport)
-		return;
-	txt = gtk_entry_get_text(GTK_ENTRY(editable));
-	gtk_widget_set_sensitive(buttonExport, txt[0] != '\0' && plot_data);
 }
 
 void reset_plot() {
@@ -516,7 +523,7 @@ void reset_plot() {
 		gtk_widget_set_visible(combo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
 		gtk_widget_set_visible(arcsec, FALSE);
-		gtk_widget_set_sensitive(buttonExport, FALSE);
+		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
 		gtk_widget_set_sensitive(buttonClearAll, FALSE);
 	}
@@ -543,8 +550,8 @@ void drawPlot() {
 		combo = lookup_widget("plotCombo");
 		varCurve = lookup_widget("varCurvePhotometry");
 		arcsec = lookup_widget("arcsecPhotometry");
+		julianw = lookup_widget("JulianPhotometry");
 		sourceCombo = lookup_widget("plotSourceCombo");
-		buttonExport = lookup_widget("ButtonSaveCSV");
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 	}
@@ -603,19 +610,53 @@ void drawPlot() {
 
 		build_registration_dataset(seq, layer, ref_image, plot_data);
 	}
-	on_GtkEntryCSV_changed(GTK_EDITABLE(lookup_widget("GtkEntryCSV")), NULL);
+	gtk_widget_set_sensitive(julianw, julian0);
 	gtk_widget_queue_draw(drawingPlot);
+}
+
+static void set_filter(GtkFileChooser *dialog, const gchar *format) {
+	GtkFileFilter *f = gtk_file_filter_new();
+	gchar *name = g_strdup_printf(_("Output files (*%s)"), format);
+	gchar *pattern = g_strdup_printf(_("*%s"), format);
+	gtk_file_filter_set_name(f, name);
+	gtk_file_filter_add_pattern(f, pattern);
+	gtk_file_chooser_add_filter(dialog, f);
+	gtk_file_chooser_set_filter(dialog, f);
+
+	g_free(name);
+	g_free(pattern);
+}
+
+static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *)) {
+	GtkWindow *control_window = GTK_WINDOW(lookup_widget("control_window"));
+	SirilWidget *widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
+	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
+
+	gtk_file_chooser_set_current_folder(dialog, com.wd);
+	gtk_file_chooser_set_select_multiple(dialog, FALSE);
+	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
+	gtk_file_chooser_set_current_name(dialog, format);
+	set_filter(dialog, format);
+
+	gint res = siril_dialog_run(widgetdialog);
+	if (res == GTK_RESPONSE_ACCEPT) {
+		gchar *file = gtk_file_chooser_get_filename(dialog);
+		export_function(plot_data, &com.seq, file);
+
+		g_free(file);
+	}
+	siril_widget_destroy(widgetdialog);
 }
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	exportCSV(plot_data, &com.seq);
+	save_dialog(".csv", exportCSV);
 	set_cursor_waiting(FALSE);
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	lightCurve(plot_data, &com.seq);
+	save_dialog(".dat", lightCurve);
 	set_cursor_waiting(FALSE);
 }
 
@@ -653,7 +694,7 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	guint width, height, i, j;
 	double mean, color;
-	int min, max, nb_graphs = 0;
+	int nb_graphs = 0;
 	struct kpair *avg;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
@@ -664,10 +705,20 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		pldata *plot = plot_data;
 		d1 = ref_d = mean_d = NULL;
 
+		color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
+
 		kplotcfg_defaults(&cfgplot);
 		kdatacfg_defaults(&cfgdata);
 		set_colors(&cfgplot);
+		cfgplot.ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
+		cfgplot.border = BORDER_ALL;
+		cfgplot.borderline.clr.type = KPLOTCTYPE_RGBA;
+		cfgplot.borderline.clr.rgba[0] = 0.5;
+		cfgplot.borderline.clr.rgba[1] = 0.5;
+		cfgplot.borderline.clr.rgba[2] = 0.5;
+		cfgplot.borderline.clr.rgba[3] = 1.0;
 		cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
+		cfgplot.xtics = 3;
 		cfgplot.yaxislabel = ylabel;
 		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
@@ -688,21 +739,19 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		/* mean and min/max */
 		mean = kdata_ymean(d1);
 		//sigma = kdata_ystddev(d1);
-		min = plot_data->data[0].x;
-		/* if reference is ploted, we take it as maximum if it is */
-		max = (plot_data->data[plot_data->nb - 1].x > ref.x) ?
-				plot_data->data[plot_data->nb - 1].x + 1 : ref.x + 1;
+		int min_data = kdata_xmin(d1, NULL);
+		int max_data = kdata_xmax(d1, NULL);
 
 		if (nb_graphs == 1) {
-			avg = calloc(max - min, sizeof(struct kpair));
-			j = min;
-			for (i = 0; i < max - min; i++) {
+			avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
+			j = min_data;
+			for (i = 0; i < (max_data - min_data) + 1; i++) {
 				avg[i].x = plot_data->data[j].x;
 				avg[i].y = mean;
 				++j;
 			}
 
-			mean_d = kdata_array_alloc(avg, max - min);
+			mean_d = kdata_array_alloc(avg, (max_data - min_data) + 1);
 			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
 			free(avg);
 
@@ -714,8 +763,6 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 		width = gtk_widget_get_allocated_width(widget);
 		height = gtk_widget_get_allocated_height(widget);
-
-		color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
 
 		cairo_set_source_rgb(cr, color, color, color);
 		cairo_rectangle(cr, 0.0, 0.0, width, height);
@@ -732,6 +779,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			redraw(com.cvport, REMAP_ONLY);
 			requires_color_update = FALSE;
 		}
+
 		free_colors(&cfgplot);
 		kplot_free(p);
 		kdata_destroy(d1);
@@ -751,13 +799,18 @@ void on_arcsecPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
 	drawPlot();
 }
 
+void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
+	force_Julian = gtk_toggle_button_get_active(button);
+	drawPlot();
+}
+
 static void update_ylabel() {
 	selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	gtk_widget_set_sensitive(varCurve, selected_source == MAGNITUDE);
 	gboolean arcsec_is_ok = (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.f
 			&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
 			&& gfit.binning_y > 0);
-	gtk_widget_set_sensitive(arcsec, selected_source == FWHM && arcsec_is_ok);
+	gtk_widget_set_visible(arcsec, selected_source == FWHM && arcsec_is_ok);
 	switch (selected_source) {
 	case ROUNDNESS:
 		ylabel = _("Star roundness (1 is round)");
@@ -831,4 +884,123 @@ static void set_colors(struct kplotcfg *cfg) {
 
 static void free_colors(struct kplotcfg *cfg) {
 	free(cfg->clrs);
+}
+
+static int get_index_of_frame(gdouble x, gdouble y) {
+	if (!plot_data) return -1;
+	if (!com.seq.imgparam) return -1;
+
+	pldata *plot = plot_data;
+
+	point min = { plot->frame[0], plot->data[0].y };
+	point max = { plot->frame[com.seq.selnum - 1], plot->data[com.seq.selnum - 1].y };
+	point intervale = { get_dimx() / (max.x - min.x), get_dimy() / (max.y - min.y)};
+	point pos = { x - get_offsx(), get_dimy() - y + get_offsy() };
+
+	int index = (int) round(pos.x / intervale.x) + (int) min.x - 1;
+	if (index >= 0 && index <= max.x && com.seq.imgparam[index].incl) {
+		return index;
+	}
+	return -1;
+}
+
+gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
+		GdkEventMotion *event, gpointer user_data) {
+
+	gtk_widget_set_has_tooltip(widget, FALSE);
+
+	int index = get_index_of_frame(event->x, event->y);
+	if (index >= 0) {
+		gchar *tooltip_text = g_strdup_printf("Frame: %d", (index + 1));
+		gtk_widget_set_tooltip_text(widget, tooltip_text);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+gboolean on_DrawingPlot_enter_notify_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	if (plot_data) {
+		set_cursor("tcross");
+	}
+	return TRUE;
+}
+
+gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	if (get_thread_run()) {
+		set_cursor_waiting(TRUE);
+	} else {
+		/* trick to get default cursor */
+		set_cursor_waiting(FALSE);
+	}
+	return TRUE;
+}
+
+static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
+	static GtkMenu *menu = NULL;
+	static GtkMenuItem *menu_item = NULL;
+
+	int index = get_index_of_frame(event->x, event->y);
+	if (index < 0) return;
+
+	if (!menu) {
+		menu = GTK_MENU(lookup_widget("menu_plot"));
+		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
+		menu_item = GTK_MENU_ITEM(lookup_widget("menu_plot_exclude"));
+	}
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+#else
+	int button, event_time;
+
+	if (event) {
+		button = event->button;
+		event_time = event->time;
+	} else {
+		button = 0;
+		event_time = gtk_get_current_event_time();
+	}
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
+			event_time);
+#endif
+	gchar *str = g_strdup_printf(_("Exclude Frame %d"), index + 1);
+	gtk_menu_item_set_label(menu_item, str);
+
+	g_free(str);
+}
+
+gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer user_data) {
+	do_popup_plotmenu(widget, event);
+	return TRUE;
+}
+
+static signed long extract_int_from_label(const gchar *str) {
+	gchar *p = (gchar *)str;
+	while (*p) {
+		if (g_ascii_isdigit(*p) || ((*p == '-' || *p == '+') && g_ascii_isdigit(*(p + 1)))) {
+	        // Found a number
+	        return g_ascii_strtoll(p, &p, 10); // return number
+	    } else {
+	        // Otherwise, move on to the next character.
+	        p++;
+	    }
+	}
+	return -1;
+}
+
+void on_menu_plot_exclude_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	const gchar *label = gtk_menu_item_get_label(menuitem);
+	gint index;
+
+	index = extract_int_from_label(label);
+	if (index > 0) {
+		index--;
+
+		exclude_single_frame(index);
+		update_seqlist();
+	}
 }
