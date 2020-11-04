@@ -205,6 +205,7 @@ struct _outputs_struct {
 };
 static struct _outputs_struct *outputs;
 
+// 0 or less means no limit
 void seqwriter_set_max_active_blocks(int max) {
 	siril_log_message(_("Number of images allowed in the FITS write queue: %d (zero or less is unlimited)\n"), max);
 	configured_max_active_blocks = max;
