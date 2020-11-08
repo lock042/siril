@@ -180,11 +180,15 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	GFile *file = g_file_new_for_uri(changelog_url);
 
 	if (!g_file_load_contents(file, NULL, &result, NULL, NULL, &error)) {
-		// TODO: handle errors
+		gchar *name = g_file_get_basename(file);
+		printf("Error loading %s: %s\n", name, error->message);
+		g_clear_error(&error);
+		g_free(name);
 	}
 
 	g_free(changelog_url);
 	g_free(str);
+	g_object_unref(file);
 
 	return result;
 }
@@ -196,26 +200,30 @@ static gboolean end_update_idle(gpointer p) {
 	version_number current_version, last_version_available;
 	struct _update_data *args = (struct _update_data *) p;
 
-	last_version_available = get_last_version_number(args->content);
-	current_version = get_current_version_number();
-	gint x = last_version_available.major_version;
-	gint y = last_version_available.minor_version;
-	gint z = last_version_available.micro_version;
-	gint patch = last_version_available.patched_version;
+	if (args->content) {
+		last_version_available = get_last_version_number(args->content);
+		current_version = get_current_version_number();
+		gint x = last_version_available.major_version;
+		gint y = last_version_available.minor_version;
+		gint z = last_version_available.micro_version;
+		gint patch = last_version_available.patched_version;
 		if (compare_version(current_version, last_version_available) < 0) {
-		msg = siril_log_message(_("New version is available. You can download it at "
-						"<a href=\"%s%d.%d.%d\">%s%d.%d.%d</a>\n"),
-				download_url, x, y, z, download_url, x, y, z);
-		changelog = get_changelog(x, y, z, patch);
-		data = parse_changelog(changelog);
-		/* force the verbose variable */
-		args->verbose = TRUE;
-	} else if (compare_version(current_version, last_version_available) > 0) {
-		if (args->verbose)
-			msg = siril_log_message(_("No update check: this is a development version\n"));
+			msg = siril_log_message(_("New version is available. You can download it at "
+							"<a href=\"%s%d.%d.%d\">%s%d.%d.%d</a>\n"),
+					download_url, x, y, z, download_url, x, y, z);
+			changelog = get_changelog(x, y, z, patch);
+			data = parse_changelog(changelog);
+			/* force the verbose variable */
+			args->verbose = TRUE;
+		} else if (compare_version(current_version, last_version_available)	> 0) {
+			if (args->verbose)
+				msg = siril_log_message(_("No update check: this is a development version\n"));
+		} else {
+			if (args->verbose)
+				msg = siril_log_message(_("Siril is up to date\n"));
+		}
 	} else {
-		if (args->verbose)
-			msg = siril_log_message(_("Siril is up to date\n"));
+		msg = args->msg;
 	}
 	set_cursor_waiting(FALSE);
 	if (msg && args->verbose)
@@ -236,11 +244,15 @@ static gpointer fetch_url(gpointer p) {
 	GFile *file = g_file_new_for_uri(args->url);
 	GError *error = NULL;
 
-	if (g_file_load_contents(file, NULL, &args->content, NULL, NULL, &error)) {
-		gdk_threads_add_idle(end_update_idle, args);
-	} else {
-		// TODO: show errors
+	if (!g_file_load_contents(file, NULL, &args->content, NULL, NULL, &error)) {
+		gchar *name = g_file_get_basename(file);
+		args->msg = siril_log_message("Error loading %s: %s\n", name, error->message);
+		g_clear_error(&error);
+		g_free(name);
 	}
+	gdk_threads_add_idle(end_update_idle, args);
+	g_object_unref(file);
+
 	return NULL;
 }
 

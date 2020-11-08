@@ -32,6 +32,7 @@ struct _update_data {
 	gchar *url;
 	gchar *content;
 	gboolean verbose;
+	char *msg;
 };
 
 void siril_check_updates(gboolean verbose);

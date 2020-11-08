@@ -421,8 +421,12 @@ static gpointer fetch_url(const gchar *url) {
 	gchar *content = NULL;
 
 	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
-		// TODO: handle errors
+		gchar *name = g_file_get_basename(file);
+		printf("Error loading %s: %s\n", name, error->message);
+		g_clear_error(&error);
+		g_free(name);
 	}
+	g_object_unref(file);
 	return content;
 }
 
