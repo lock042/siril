@@ -22,8 +22,6 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_LIBCURL
-
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -685,5 +683,3 @@ void on_button_cc_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 	gtk_spin_button_set_value(selection_cc_bkg_value[2], com.selection.w);
 	gtk_spin_button_set_value(selection_cc_bkg_value[3], com.selection.h);
 }
-
-#endif

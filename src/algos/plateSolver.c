@@ -27,9 +27,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
-#ifdef HAVE_LIBCURL
-#include <curl/curl.h>
-#endif
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/sleef.h"
@@ -41,8 +39,6 @@
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
-
-#ifdef HAVE_LIBCURL
 
 #include "gui/PSF_list.h"
 #include "algos/PSF.h"
@@ -174,7 +170,7 @@ static void fov_in_DHMS(double var, gchar *fov) {
 		g_snprintf(fov, 256, "%.2lf\"", decS);
 }
 
-static int parse_curl_buffer(char *buffer, struct object *obj) {
+static int parse_content_buffer(char *buffer, struct object *obj) {
 	char **token, **fields;
 	point center;
 	int nargs, i = 0, resolver = -1;
@@ -419,102 +415,15 @@ static gchar *get_catalog_url(point center, double mag_limit, double dfov, int t
 	return g_string_free(url, FALSE);
 }
 
-/*****
- * HTTP functions
- ****/
+static gpointer fetch_url(const gchar *url) {
+	GFile *file = g_file_new_for_uri(url);
+	GError *error = NULL;
+	gchar *content = NULL;
 
-static CURL *curl;
-static const int DEFAULT_FETCH_RETRIES = 10;
-
-struct ucontent {
-	char *data;
-	size_t len;
-};
-
-static void init() {
-	if (!curl) {
-		printf("initializing CURL\n");
-		curl_global_init(CURL_GLOBAL_ALL);
-		curl = curl_easy_init();
+	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
+		// TODO: handle errors
 	}
-
-	if (!curl)
-		exit(EXIT_FAILURE);
-}
-
-static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
-	size_t realsize = size * nmemb;
-	struct ucontent *mem = (struct ucontent *) userp;
-
-	mem->data = realloc(mem->data, mem->len + realsize + 1);
-
-	memcpy(&(mem->data[mem->len]), buffer, realsize);
-	mem->len += realsize;
-	mem->data[mem->len] = 0;
-
-	return realsize;
-}
-
-static char *fetch_url(const char *url) {
-	struct ucontent *content = malloc(sizeof(struct ucontent));
-	char *result, *error;
-	long code;
-	int retries;
-	unsigned int s;
-
-	printf("fetch_url(): %s\n", url);
-
-	init();
-
-	result = NULL;
-
-	retries = DEFAULT_FETCH_RETRIES;
-
-	retrieve: content->data = malloc(1);
-	content->data[0] = '\0';
-	content->len = 0;
-
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-
-	if (curl_easy_perform(curl) == CURLE_OK) {
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-
-		switch (code) {
-		case 200:
-			result = content->data;
-			break;
-		case 500:
-		case 502:
-		case 503:
-		case 504:
-			printf("Fetch failed with code %ld for URL %s\n", code, url);
-
-			if (retries) {
-				s = 2 * (DEFAULT_FETCH_RETRIES - retries) + 2;
-				printf("Wait %uds before retry\n", s);
-				sleep(s);
-
-				free(content->data);
-				retries--;
-				goto retrieve;
-			}
-
-			break;
-		default:
-			error = siril_log_message(_("Fetch failed with code %ld for URL %s\n"), code, url);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), error);
-		}
-	}
-
-	if (!result)
-		free(content->data);
-
-	free(content);
-
-	return result;
+	return content;
 }
 
 static online_catalog get_online_catalog(double fov, double m) {
@@ -1241,8 +1150,8 @@ static void url_encode(gchar **qry) {
 }
 
 static void search_object_in_catalogs(const gchar *object) {
-	GString *url;
-	gchar *gcurl, *result, *name;
+	GString *string_url;
+	gchar *url, *result, *name;
 	struct object obj;
 	GtkTreeView *GtkTreeViewIPS;
 
@@ -1256,21 +1165,21 @@ static void search_object_in_catalogs(const gchar *object) {
 	/* replace whitespaces by %20 for html purposes */
 	url_encode(&name);
 
-	url = g_string_new(CDSSESAME);
-	url = g_string_append(url, "/-oI/A?");
-	url = g_string_append(url, name);
-	gcurl = g_string_free(url, FALSE);
+	string_url = g_string_new(CDSSESAME);
+	string_url = g_string_append(string_url, "/-oI/A?");
+	string_url = g_string_append(string_url, name);
+	url = g_string_free(string_url, FALSE);
 
-	result = fetch_url(gcurl);
+	result = fetch_url(url);
 	if (result) {
-		parse_curl_buffer(result, &obj);
+		parse_content_buffer(result, &obj);
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		add_object_to_list();
 		g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		free_Platedobject();
 	}
 	set_cursor_waiting(FALSE);
-	g_free(gcurl);
+	g_free(url);
 	g_free(result);
 	g_free(name);
 }
@@ -1434,8 +1343,6 @@ int fill_plate_solver_structure(struct plate_solver_data *args) {
 	args->fit = &gfit;
 	return 0;
 }
-
-#endif
 
 gboolean confirm_delete_wcs_keywords(fits *fit) {
 	gboolean erase = TRUE;
