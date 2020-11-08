@@ -415,7 +415,7 @@ static gchar *get_catalog_url(point center, double mag_limit, double dfov, int t
 	return g_string_free(url, FALSE);
 }
 
-static gpointer fetch_url(const gchar *url) {
+static gchar fetch_url(const gchar *url) {
 	GFile *file = g_file_new_for_uri(url);
 	GError *error = NULL;
 	gchar *content = NULL;
