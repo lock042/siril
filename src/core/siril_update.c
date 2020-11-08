@@ -195,6 +195,7 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 
 static gboolean end_update_idle(gpointer p) {
 	char *msg = NULL;
+	GtkMessageType message_type;
 	gchar *changelog = NULL;
 	gchar *data = NULL;
 	version_number current_version, last_version_available;
@@ -222,12 +223,14 @@ static gboolean end_update_idle(gpointer p) {
 			if (args->verbose)
 				msg = siril_log_message(_("Siril is up to date\n"));
 		}
+		message_type = GTK_MESSAGE_INFO;
 	} else {
 		msg = args->msg;
+		message_type = GTK_MESSAGE_ERROR;
 	}
 	set_cursor_waiting(FALSE);
 	if (msg && args->verbose)
-		siril_data_dialog(GTK_MESSAGE_INFO, _("Software Update"), msg, data);
+		siril_data_dialog(message_type, _("Software Update"), msg, data);
 
 	/* free data */
 	g_free(args->content);
