@@ -110,12 +110,14 @@ static void save_log_file(gchar *filename) {
 	str = gtk_text_buffer_get_text(log, &start, &end, FALSE);
 
 	GFile *file = g_file_new_for_path(filename);
-	GOutputStream *output_stream = (GOutputStream *)g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
+			G_FILE_CREATE_NONE, NULL, &error);
 
 	if (output_stream == NULL) {
 		if (error != NULL) {
+			g_printerr("%s\n", error->message);
 			g_clear_error(&error);
-			siril_log_message(_("File [%s] does not exist\n"), filename);
+			siril_log_message(_("Cannot create logfile [%s]\n"), filename);
 		}
 		g_object_unref(file);
 		return;
@@ -124,7 +126,7 @@ static void save_log_file(gchar *filename) {
     gsize bytes_written = 0;
 	if (!g_output_stream_write_all(output_stream, str, strlen(str),
 			&bytes_written, NULL, &error)) {
-		g_printerr("%s", error->message);
+		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
 	}
 

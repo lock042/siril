@@ -173,23 +173,30 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	gchar *script_file = g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT);
 	GFile *file = g_file_new_for_path(script_file);
-	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, &error);
 
-	if (input_stream == NULL) {
-		if (error != NULL) {
-			g_clear_error(&error);
-			siril_log_message(_("File [%s] does not exist\n"), script_file);
+    GFileInfo *info;
+
+	info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+			G_FILE_QUERY_INFO_NONE, NULL, &error);
+	if (info) {
+		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
+
+		if (input_stream == NULL) {
+			if (error != NULL) {
+				g_clear_error(&error);
+				siril_log_message(_("File [%s] does not exist\n"), script_file);
+			}
+
+			g_free(script_file);
+			g_object_unref(file);
+			return;
 		}
-
-		g_free(script_file);
-		g_object_unref(file);
-		return;
+		/* ensure that everything is closed */
+		process_close(0);
+		/* Then, run script */
+		siril_log_message(_("Starting script %s\n"), script_file);
+		com.script_thread = g_thread_new("script", execute_script, input_stream);
 	}
-	/* ensure that everything is closed */
-	process_close(0);
-	/* Then, run script */
-	siril_log_message(_("Starting script %s\n"), script_file);
-	com.script_thread = g_thread_new("script", execute_script, input_stream);
 
 	g_free(script_file);
 	g_object_unref(file);
