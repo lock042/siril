@@ -226,6 +226,7 @@ static void siril_app_activate(GApplication *application) {
 				g_object_unref(file);
 				exit(EXIT_FAILURE);
 			}
+			g_object_unref(file);
 		}
 #ifdef _WIN32
 		ReconnectIO(1);

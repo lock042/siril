@@ -83,9 +83,9 @@ enum COORD_COL {
 
 static int
 proc_star_file(const char *file, int racol, int deccol, double ra, double dec,
-		FILE *out_fp, int doASEC);
+		GFile *out_fp, int doASEC);
 
-int convert_catalog_coords(const char *fileA, point coord, FILE *out) {
+int convert_catalog_coords(const char *fileA, point coord, GFile *out) {
 	int doASEC = 1;
 	double ra = coord.x;
 	double dec = coord.y;
@@ -126,10 +126,12 @@ int racol, /* I: position of column with RA positions */
 int deccol, /* I: position of column with Dec positions */
 double central_ra, /* I: central RA of tangent plane (degrees) */
 double central_dec, /* I: central Dec of tangent plane (degrees) */
-FILE *out_fp, /* I: place output into this stream */
+GFile *file_out, /* I: place output into this stream */
 int doASEC /* I: if > 0, write offsets in arcsec */
 ) {
-	char line[LINELEN];
+	gchar *line;
+	GError *error = NULL;
+	GInputStream *input_stream = NULL;
 	char col[MAX_DATA_COL + 1][MAX_COL_LENGTH + 1];
 	int i, ncol;
 	int last_column = -1;
@@ -138,18 +140,28 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 	double dec_rad;
 	double delta_ra;
 	double xx, yy, xi, eta;
-	FILE *in_fp;
 
-	if ((in_fp = g_fopen(file, "r")) == NULL) {
-		shError("proc_star_file: can't open file %s for input", file);
-		return (SH_GENERIC_ERROR);
+	GFile *file_in = g_file_new_for_path(file);
+
+	input_stream = (GInputStream*) g_file_read(file_in, NULL, &error);
+
+	if (input_stream == NULL) {
+		if (error != NULL) {
+			shError("proc_star_file: can't open file %s for input", file);
+			g_clear_error(&error);
+		}
+
+		g_object_unref(file_in);
+		return SH_GENERIC_ERROR;
 	}
 
 	last_column = (racol > deccol ? racol : deccol);
 	//cent_ra_rad = central_ra*DEGTORAD;
 	cent_dec_rad = central_dec * DEGTORAD;
 
-	while (fgets(line, LINELEN, in_fp) != NULL) {
+	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	gsize length = 0;
+	while ((line = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL))) {
 
 		if (line[0] == COMMENT_CHAR) {
 			continue;
@@ -263,13 +275,26 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 			i++;
 		}
 		gchar *newline = g_strjoinv(" ", token);
-		fprintf(out_fp, "%s\n", newline);
+		gchar *output_line = g_strconcat (newline, "\n", NULL);
+		GOutputStream *output_stream = (GOutputStream *)g_file_append_to(file_out, G_FILE_CREATE_NONE, NULL, &error);
+		if (output_stream) {
+			g_output_stream_write_all(output_stream, output_line, strlen(output_line), NULL, NULL, NULL);
+		} else {
+			if (error != NULL) {
+				shError("proc_star_file: can't open file %s for input", file);
+				g_clear_error(&error);
+			}
+		}
 
+		g_object_unref(output_stream);
 		g_strfreev(token);
 		g_free(newline);
+		g_free(output_line);
 		g_free(l);
 	}
 
-	fclose(in_fp);
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
+	g_object_unref(file_in);
 	return (SH_SUCCESS);
 }

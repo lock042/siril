@@ -458,7 +458,7 @@ static gchar *download_catalog(online_catalog onlineCatalog, point catalog_cente
 	gchar *url;
 	gchar *buffer = NULL;
 	GError *error = NULL;
-	FILE *fproj = NULL;
+//	FILE *fproj = NULL;
 	gchar *foutput = NULL;
 
 	/* ------------------- get Vizier catalog in catalog.dat -------------------------- */
@@ -471,7 +471,7 @@ static gchar *download_catalog(online_catalog onlineCatalog, point catalog_cente
 
 	if (output_stream == NULL) {
 		if (error != NULL) {
-			g_printerr("%s\n", error->message);
+			g_warning("%s\n", error->message);
 			g_clear_error(&error);
 			fprintf(stderr, "plateSolver: Cannot open catalogue\n");
 		}
@@ -484,29 +484,33 @@ static gchar *download_catalog(online_catalog onlineCatalog, point catalog_cente
 	    gsize bytes_written = 0;
 		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer),
 				&bytes_written, NULL, &error)) {
-			g_printerr("%s\n", error->message);
+			g_warning("%s\n", error->message);
 			g_clear_error(&error);
 			g_object_unref(file);
 			return NULL;
 		}
 		const gchar *filename = g_file_peek_path(file);
 		g_object_unref(output_stream);
-		g_object_unref(file);
 
 		/* -------------------------------------------------------------------------------- */
 
 		/* --------- Project coords of Vizier catalog and save it into catalog.proj ------- */
 
-		foutput = g_build_filename(g_get_tmp_dir(), "catalog.proj", NULL);
-		fproj = g_fopen(foutput, "w+t");
-		if (fproj == NULL) {
-			fprintf(stderr, "plateSolver: Cannot open fproj\n");
-			g_free(foutput);
-			return NULL;
+		GFile *fproj = g_file_new_build_filename(g_get_tmp_dir(), "catalog.proj", NULL);
+
+		/* We want to remove the file if already exisit */
+		if (!g_file_delete(fproj, NULL, &error)
+				&& !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND)) {
+			// deletion failed for some reason other than the file not existing:
+			// so report the error
+			g_warning("Failed to delete %s: %s", g_file_peek_path(fproj),
+					error->message);
 		}
 
 		convert_catalog_coords(filename, catalog_center, fproj);
-		fclose(fproj);
+		foutput = g_file_get_path(fproj);
+		g_object_unref(file);
+		g_object_unref(fproj);
 
 		/* -------------------------------------------------------------------------------- */
 
