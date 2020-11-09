@@ -164,12 +164,15 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 	while ((line = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL))) {
 
 		if (line[0] == COMMENT_CHAR) {
+			g_free(line);
 			continue;
 		}
 		if (is_blank(line)) {
+			g_free(line);
 			continue;
 		}
 		if (g_str_has_prefix(line, "---")) {
+			g_free(line);
 			continue;
 		}
 
@@ -189,6 +192,7 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 			shError(
 					"proc_star_file: not enough entries in following line; skipping");
 			shError("  %s", line);
+			g_free(line);
 			continue;
 		}
 
@@ -196,11 +200,13 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 		if (get_value(col[racol], &raval) != SH_SUCCESS) {
 			shError("read_data_file: can't read RA value from %s; skipping",
 					col[racol]);
+			g_free(line);
 			continue;
 		}
 		if (get_value(col[deccol], &decval) != SH_SUCCESS) {
 			shError("read_data_file: can't read Dec value from %s; skipping",
 					col[deccol]);
+			g_free(line);
 			continue;
 		}
 
@@ -249,10 +255,9 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 		 * in radians or arcseconds.  
 		 */
 
-		gchar *l = g_strdup(line);
-		l = g_strstrip(l);
+		line = g_strstrip(line);
 
-		gchar **token = g_strsplit_set(l, " \t", -1);
+		gchar **token = g_strsplit_set(line, " \t", -1);
 		i = 0;
 		while (token[i] && strcmp(token[i], "\n")) {
 			if (i == racol) {
@@ -290,7 +295,7 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 		g_strfreev(token);
 		g_free(newline);
 		g_free(output_line);
-		g_free(l);
+		g_free(line);
 	}
 
 	g_object_unref(data_input);

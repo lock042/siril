@@ -170,7 +170,7 @@ static gboolean end_script(gpointer p) {
 gpointer execute_script(gpointer p) {
 	GInputStream *input_stream = (GInputStream*) p;
 	gboolean check_required = FALSE;
-	gchar *buffer, *myline;
+	gchar *buffer;
 	int line = 0, retval = 0;
 	int wordnb;
 	int startmem, endmem;
@@ -193,22 +193,25 @@ gpointer execute_script(gpointer p) {
 		++line;
 		if (com.stop_script) {
 			retval = 1;
+			g_free (buffer);
 			break;
 		}
 		/* Displays comments */
 		if (buffer[0] == '#') {
 			siril_log_color_message("%s\n", "blue", buffer);
+			g_free (buffer);
 			continue;
 		}
-		if (buffer[0] == '\0')
+		if (buffer[0] == '\0') {
+			g_free (buffer);
 			continue;
+		}
 
 		/* in Windows case, remove trailing CR */
 		remove_trailing_cr(buffer);
 
-		myline = g_strdup(buffer);
-		display_command_on_status_bar(line, myline);
-		parseLine(myline, length, &wordnb);
+		display_command_on_status_bar(line, buffer);
+		parseLine(buffer, length, &wordnb);
 		/* check for requires command */
 		if (!g_ascii_strcasecmp(word[0], "requires")) {
 			check_required = TRUE;
@@ -217,25 +220,26 @@ gpointer execute_script(gpointer p) {
 				siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
 						" This command is needed to check script compatibility.\n"), "red");
 				retval = 1;
+				g_free (buffer);
 				break;
 			}
 		}
 		if ((retval = execute_command(wordnb))) {
 			siril_log_message(_("Error in line %d: '%s'.\n"), line, buffer);
 			siril_log_message(_("Exiting batch processing.\n"));
-			g_free(myline);
+			g_free (buffer);
 			break;
 		}
 		if (waiting_for_thread()) {
-			g_free(myline);
 			retval = 1;
+			g_free (buffer);
 			break;	// abort script on command failure
 		}
 		endmem = get_available_memory_in_MB();
 		siril_debug_print("End of command %s, memory difference: %d MB\n", word[0], startmem - endmem);
 		startmem = endmem;
 		memset(word, 0, sizeof word);
-		g_free(myline);
+		g_free (buffer);
 	}
 	g_free(buffer);
 	g_object_unref(data_input);
