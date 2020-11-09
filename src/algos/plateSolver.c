@@ -480,11 +480,10 @@ static gchar *download_catalog(online_catalog onlineCatalog, point catalog_cente
 
 	buffer = fetch_url(url);
 	if (buffer) {
-	    gsize bytes_written = 0;
-		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer),
-				&bytes_written, NULL, &error)) {
+		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
+			g_object_unref(output_stream);
 			g_object_unref(file);
 			return NULL;
 		}
@@ -798,6 +797,7 @@ static int read_NOMAD_catalog(GInputStream *stream, fitted_PSF **cstars) {
 		i++;
 		g_free(line);
 	}
+	g_object_unref(data_input);
 	sort_stars(cstars, i);
 	siril_log_message(_("Catalog NOMAD size: %d objects\n"), i);
 	return i;
@@ -834,6 +834,7 @@ static int read_TYCHO2_catalog(GInputStream *stream, fitted_PSF **cstars) {
 		cstars[i + 1] = NULL;
 		i++;
 	}
+	g_object_unref(data_input);
 	sort_stars(cstars, i);
 	siril_log_message(_("Catalog TYCHO-2 size: %d objects\n"), i);
 	return i;
@@ -874,6 +875,7 @@ static int read_GAIA_catalog(GInputStream *stream, fitted_PSF **cstars) {
 		i++;
 		g_free(line);
 	}
+	g_object_unref(data_input);
 	sort_stars(cstars, i);
 	siril_log_message(_("Catalog Gaia DR2 size: %d objects\n"), i);
 	return i;
@@ -914,6 +916,7 @@ static int read_PPMXL_catalog(GInputStream *stream, fitted_PSF **cstars) {
 		i++;
 		g_free(line);
 	}
+	g_object_unref(data_input);
 	sort_stars(cstars, i);
 	siril_log_message(_("Catalog PPMXL size: %d objects\n"), i);
 	return i;
@@ -954,6 +957,7 @@ static int read_BRIGHT_STARS_catalog(GInputStream *stream, fitted_PSF **cstars) 
 		i++;
 		g_free(line);
 	}
+	g_object_unref(data_input);
 	sort_stars(cstars, i);
 	siril_log_message(_("Catalog Bright stars size: %d objects\n"), i);
 	return i;
@@ -994,6 +998,7 @@ static int read_APASS_catalog(GInputStream *stream, fitted_PSF **cstars) {
 		i++;
 		g_free(line);
 	}
+	g_object_unref(data_input);
 	sort_stars(cstars, i);
 	siril_log_message(_("Catalog APASS size: %d objects\n"), i);
 	return i;

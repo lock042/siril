@@ -26,46 +26,6 @@
  *
  */
 
-/*
- * <AUTO>
- * FILE: project_coords.c
- *
- * <HTML>
- * Project (RA, Dec) coords of a list of stars around some central point,
- *   creating a list with "plate coordinates" xi and eta, corresponding
- *   to the positions of the stars on a tangent plane projection.
- *
- * Given 
- *    - an ASCII file consisting of a list of stars, with one line per
- *        star and multiple columns of information separated by white space
- *    - the numbers of the columns containing RA and Dec coords of stars
- *        (in decimal degrees)
- *    - a central RA and Dec, each in decimal degrees
- *
- * run through the data file.  For each entry, calculate the projected 
- * coords (xi, eta) of the star, then replace the (RA, Dec) values with
- * these projected values.  Leave all other information in the ASCII 
- * file as-is.
- *
- * Print the results to stdout, or place them into the file given
- * by the optional "outfile" command-line argument.
- *
- * Usage: project_coords starfile1 xcol ycol ra dec [outfile=] 
- *
- * 6/28/2001: added 10 missing "%s" in the sscanf format string
- *            used to read in data in "proc_star_file".  
- *            MWR
- *
- * 10/25/2003: added new command-line options "asec" and "arcsec",
- *             which cause the output (xi, eta) values to be
- *             converted from radians to arcseconds before being
- *             printed to output.  Thanks to John Blakeslee and
- *             the ACS team.
- *
- * </HTML>
- * </AUTO>
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

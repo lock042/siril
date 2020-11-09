@@ -115,7 +115,7 @@ static void save_log_file(gchar *filename) {
 
 	if (output_stream == NULL) {
 		if (error != NULL) {
-			g_printerr("%s\n", error->message);
+			g_warning("%s\n", error->message);
 			g_clear_error(&error);
 			siril_log_message(_("Cannot create logfile [%s]\n"), filename);
 		}
@@ -126,7 +126,7 @@ static void save_log_file(gchar *filename) {
     gsize bytes_written = 0;
 	if (!g_output_stream_write_all(output_stream, str, strlen(str),
 			&bytes_written, NULL, &error)) {
-		g_printerr("%s\n", error->message);
+		g_warning("%s\n", error->message);
 		g_clear_error(&error);
 	}
 
