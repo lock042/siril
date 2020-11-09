@@ -82,10 +82,10 @@ enum COORD_COL {
 #undef DEBUG           /* get some of diagnostic output */
 
 static int
-proc_star_file(char *file, int racol, int deccol, double ra, double dec,
+proc_star_file(const char *file, int racol, int deccol, double ra, double dec,
 		FILE *out_fp, int doASEC);
 
-int convert_catalog_coords(char *fileA, point coord, FILE *out) {
+int convert_catalog_coords(const char *fileA, point coord, FILE *out) {
 	int doASEC = 1;
 	double ra = coord.x;
 	double dec = coord.y;
@@ -121,7 +121,7 @@ int convert_catalog_coords(char *fileA, point coord, FILE *out) {
  *   SH_GENERIC_ERROR      if not
  */
 
-static int proc_star_file(char *file, /* I: name of input file with star list */
+static int proc_star_file(const char *file, /* I: name of input file with star list */
 int racol, /* I: position of column with RA positions */
 int deccol, /* I: position of column with Dec positions */
 double central_ra, /* I: central RA of tangent plane (degrees) */

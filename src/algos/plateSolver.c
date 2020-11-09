@@ -456,27 +456,42 @@ static online_catalog get_online_catalog(double fov, double m) {
 
 static gchar *download_catalog(online_catalog onlineCatalog, point catalog_center, double fov, double m) {
 	gchar *url;
-	char *buffer = NULL;
-	FILE *catalog = NULL;
+	gchar *buffer = NULL;
+	GError *error = NULL;
 	FILE *fproj = NULL;
-	gchar *filename, *foutput = NULL;
+	gchar *foutput = NULL;
 
 	/* ------------------- get Vizier catalog in catalog.dat -------------------------- */
 
 	url = get_catalog_url(catalog_center, m, fov, onlineCatalog);
 
-	filename = g_build_filename(g_get_tmp_dir(), "catalog.dat", NULL);
-	catalog = g_fopen(filename, "w+t");
-	if (catalog == NULL) {
-		fprintf(stderr, "plateSolver: Cannot open catalogue\n");
+	GFile *file = g_file_new_build_filename(g_get_tmp_dir(), "catalog.dat", NULL);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
+			G_FILE_CREATE_NONE, NULL, &error);
+
+	if (output_stream == NULL) {
+		if (error != NULL) {
+			g_printerr("%s\n", error->message);
+			g_clear_error(&error);
+			fprintf(stderr, "plateSolver: Cannot open catalogue\n");
+		}
+		g_object_unref(file);
 		return NULL;
 	}
+
 	buffer = fetch_url(url);
 	if (buffer) {
-		fprintf(catalog, "%s", buffer);
-		g_free(url);
-		free(buffer);
-		fclose(catalog);
+	    gsize bytes_written = 0;
+		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer),
+				&bytes_written, NULL, &error)) {
+			g_printerr("%s\n", error->message);
+			g_clear_error(&error);
+			g_object_unref(file);
+			return NULL;
+		}
+		const gchar *filename = g_file_peek_path(file);
+		g_object_unref(output_stream);
+		g_object_unref(file);
 
 		/* -------------------------------------------------------------------------------- */
 
@@ -496,8 +511,6 @@ static gchar *download_catalog(online_catalog onlineCatalog, point catalog_cente
 		/* -------------------------------------------------------------------------------- */
 
 		is_result.px_cat_center = catalog_center;
-
-		g_free(filename);
 	}
 	return foutput;
 }
