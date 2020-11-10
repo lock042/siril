@@ -161,6 +161,16 @@ static void search_for_locale_dir() {
 #endif
 }
 
+static void search_for_gio_dir() {
+	const gchar *relocated_path = g_getenv("APPDIR");
+	if (relocated_path != NULL) {
+		gchar *gio_dir = g_build_filename(relocated_path, "usr", "lib", "x86_64-linux-gnu/", "gio", "modules", NULL);
+		g_setenv ("GIO_MODULE_DIR", gio_dir, TRUE);
+
+		g_free(gio_dir);
+	}
+}
+
 /** Public functions **/
 
 const gchar* siril_get_locale_dir() {
@@ -179,6 +189,7 @@ const gchar* siril_get_config_dir() {
 }
 
 void initialize_siril_directories() {
+	search_for_gio_dir();
 	search_for_data_dir();
 	search_for_locale_dir();
 	search_for_startup_dir();
