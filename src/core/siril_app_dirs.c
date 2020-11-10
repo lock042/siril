@@ -165,8 +165,7 @@ static void search_for_gio_dir() {
 	const gchar *relocated_path = g_getenv("APPDIR");
 	if (relocated_path != NULL) {
 		gchar *gio_dir = g_build_filename(relocated_path, "usr", "lib", "x86_64-linux-gnu/", "gio", "modules", NULL);
-		g_setenv ("GIO_MODULE_DIR", gio_dir, TRUE);
-		g_setenv ("GIO_EXTRA_MODULES", gio_dir, TRUE);
+		g_io_modules_load_all_in_directory(gio_dir);
 
 		g_free(gio_dir);
 	}
