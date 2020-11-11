@@ -20,7 +20,6 @@
 #ifndef SRC_CORE_SIRIL_UPDATE_H_
 #define SRC_CORE_SIRIL_UPDATE_H_
 
-#ifdef HAVE_LIBCURL
 
 typedef struct {
 	gint major_version;
@@ -36,7 +35,7 @@ struct _update_data {
 	gboolean verbose;
 };
 
+//void siril_check_updates(gboolean verbose);
 void siril_check_updates(gboolean verbose);
 
-#endif /* HAVE_LIBCURL */
 #endif /* SRC_CORE_SIRIL_UPDATE_H_ */

@@ -78,16 +78,7 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#ifdef OS_X
-static int64_t find_space(const gchar *name) {
-	NSError *error;
-
-	NSDictionary* fileAttributes = [[NSFileManager defaultManager] attributesOfFileSystemForPath:@name
-	                                                                                   error:&error];
-	int64_t freeSpace = [[fileAttributes objectForKey:NSFileSystemFreeSize] longLongValue];
-	return freeSpace;
-}
-#elif HAVE_SYS_STATVFS_H
+#if HAVE_SYS_STATVFS_H
 static int64_t find_space(const gchar *name) {
 	struct statvfs st;
 	int64_t available;
@@ -201,8 +192,9 @@ static unsigned long long update_used_RAM_memory() {
  * @return always return TRUE
  */
 gboolean update_displayed_memory() {
-	set_GUI_MEM(update_used_RAM_memory());
-	set_GUI_DiskSpace((double)find_space(com.wd));
+	set_GUI_MEM(update_used_RAM_memory(), "labelmem");
+	set_GUI_DiskSpace((double)find_space(com.wd), "labelFreeSpace");
+	set_GUI_DiskSpace((double)find_space(com.pref.swap_dir), "free_mem_swap");
 	return TRUE;
 }
 

@@ -194,6 +194,18 @@ else # == 'platform-default'
   endif
 endif
 
+if get_option('enable-libcurl') == 'yes'
+  enable_libcurl= true
+elif get_option('enable-libcurl') == 'no'
+  enable_libcurl = false
+else # == 'platform-default'
+  if platform_osx
+      enable_libcurl = true
+  else
+      enable_libcurl = false
+  endif
+endif
+
 # Dependencies
 no_dep = dependency('', required: false)
 
@@ -263,7 +275,10 @@ ffmpeg = [
   dependency('libswscale', required : false),
   dependency('libswresample', required : false)
 ]
-libcurl_dep = dependency('libcurl', required : false)
+libcurl_dep = no_dep
+if enable_libcurl
+  libcurl_dep = dependency('libcurl', required : false)
+endif
 criterion_dep = dependency('criterion', required : false)
 
 ################################################################################
@@ -371,7 +386,6 @@ if libcurl_dep.found()
   conf_data.set('HAVE_LIBCURL', true, description : 'Using Curl.')
 else 
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
-  warning('libcurl not found. Not using Curl.')
 endif
 
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
@@ -390,6 +404,7 @@ externals_dep = declare_dependency(
     m_dep,
     glib_dep,
     gtk_dep,
+    libcurl_dep,
     gsl_dep,
     opencv_dep,
     rtprocess_dep,
@@ -401,10 +416,8 @@ externals_dep = declare_dependency(
     libtiff_dep,
     libjpeg_dep,
     libpng_dep,
-    libcurl_dep,
     libheif_dep,
     ffms2_dep,
-    libcurl_dep,
     openmp_dep,
     kplot_dep,
     ffmpeg

@@ -27,22 +27,15 @@
 #define CSS_FILENAME "siril.css"
 
 static gchar *get_buffer_from_css_file(gchar *css) {
-	FILE *css_file = g_fopen(css, "r");
-	if (css_file == NULL) {
-		PRINT_ALLOC_ERR;
-		return NULL;
+	GFile *file = g_file_new_for_path(css);
+	GError *error = NULL;
+	gchar *str;
+
+	if (!g_file_load_contents(file, NULL, &str, NULL, NULL, &error)) {
+		printf("Error loading %s: %s\n", g_file_peek_path(file), error->message);
+		g_clear_error(&error);
 	}
-	fseek(css_file, 0, SEEK_END);
-	long fsize = ftell(css_file);
-	fseek(css_file, 0, SEEK_SET);  /* same as rewind(f); */
-
-	char *string = malloc(fsize + 1);
-	fread(string, 1, fsize, css_file);
-	fclose(css_file);
-
-	string[fsize] = 0;
-
-	return string;
+	return str;
 }
 
 /**
