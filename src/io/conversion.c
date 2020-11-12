@@ -888,7 +888,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 
 static seqread_status open_next_sequence(const char *src_filename, convert_status *convert, gboolean test_only) {
 	const char *src_ext = get_filename_ext(src_filename);
-	gchar *name = g_utf8_strrchr(src_filename, strlen(src_filename), G_DIR_SEPARATOR);
+	gchar *name = g_path_get_basename(src_filename);
 	image_type imagetype = get_type_for_extension(src_ext);
 	if (imagetype == TYPEUNDEF) {
 		return OPEN_ERROR;
