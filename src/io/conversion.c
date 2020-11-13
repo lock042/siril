@@ -689,23 +689,24 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 			conv->next_image_in_file = 0;
 		}
 		else retval = GOT_OK_SEQ;
-
 	}
 #endif
-	// else, read next file
-	seqread_status next_status;
-	do {
-		char *filename = conv->args->list[conv->next_file++];
-		// it should not be a sequence here
-		next_status = open_next_sequence(filename, conv, TRUE);
-		if (next_status == OPEN_NOT_A_SEQ) {
-			reader->filename = filename;
-			reader->allow_link = conv->allow_link;
-			if (conv->next_file == conv->args->total)
-				retval = GOT_OK_LAST_FILE;
-			else retval = GOT_OK_FILE;
-		}
-	} while (next_status == OPEN_ERROR && conv->next_file < conv->args->total);
+	else {
+		// else, read next file
+		seqread_status next_status;
+		do {
+			char *filename = conv->args->list[conv->next_file++];
+			// it should not be a sequence here
+			next_status = open_next_sequence(filename, conv, TRUE);
+			if (next_status == OPEN_NOT_A_SEQ) {
+				reader->filename = filename;
+				reader->allow_link = conv->allow_link;
+				if (conv->next_file == conv->args->total)
+					retval = GOT_OK_LAST_FILE;
+				else retval = GOT_OK_FILE;
+			}
+		} while (next_status == OPEN_ERROR && conv->next_file < conv->args->total);
+	}
 	return retval;
 }
 
@@ -761,15 +762,19 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		if (ser_read_frame(reader->ser, reader->index, fit))
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
-		if (reader->close_sequence_after_read)
+		if (reader->close_sequence_after_read) {
+			siril_debug_print("Closing input SER sequence %s\n", reader->ser->filename);
 			ser_close_file(reader->ser);
+		}
 	} else if (reader->fitseq) {
 		fit = calloc(1, sizeof(fits));
 		if (fitseq_read_frame(reader->fitseq, reader->index, fit, FALSE, get_thread_id(reader)))
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
-		if (reader->close_sequence_after_read)
+		if (reader->close_sequence_after_read) {
+			siril_debug_print("Closing input FITS sequence file %s\n", reader->fitseq->filename);
 			fitseq_close_file(reader->fitseq);
+		}
 	}
 #ifdef HAVE_FFMS2
 	else if (reader->film) {
@@ -777,8 +782,10 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		if (film_read_frame(reader->film, reader->index, fit) != FILM_SUCCESS)
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
-		if (reader->close_sequence_after_read)
+		if (reader->close_sequence_after_read) {
+			siril_debug_print("Closing input film %s\n", reader->film->filename);
 			film_close_file(reader->film);
+		}
 	}
 #endif
 	else if (reader->filename) {

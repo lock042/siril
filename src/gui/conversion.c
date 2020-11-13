@@ -551,7 +551,7 @@ void on_prepro_output_type_combo1_changed(GtkComboBox *combo, gpointer user_data
 	}
 
 	sequence_type output = gtk_combo_box_get_active(combo);
-	gtk_widget_set_visible(multiple_ser, output == SEQ_SER);
+	gtk_widget_set_visible(multiple_ser, output == SEQ_SER || output == SEQ_FITSEQ);
 	gtk_widget_set_visible(convert_symlink, output == SEQ_REGULAR);
 	process_destroot(output);
 	check_for_conversion_form_completeness();
