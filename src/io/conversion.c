@@ -434,6 +434,7 @@ typedef enum {
 	GOT_OK_LAST_IN_SEQ,
 	GOT_OK_FILE,
 	GOT_OK_LAST_FILE,
+	GOT_OK_LAST_IN_SEQ_LAST_FILE,
 
 	/* for next file opening */
 	OPEN_ERROR,
@@ -523,7 +524,7 @@ static void open_next_seq(convert_status *conv);
 static seqread_status open_next_sequence(const char *src_filename, convert_status *convert, gboolean test_only);
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader);
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
-		struct writer_data *writer, gboolean end_of_input_seq);
+		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
 static void create_sequence_filename(sequence_type output_type, const char *destroot, int index, char *output, int outsize);
 static seqwrite_status write_image(fits *fit, struct writer_data *writer);
 static void print_reader(struct reader_data *reader);
@@ -598,7 +599,9 @@ gpointer convert_thread_worker(gpointer p) {
 		print_reader(reader);
 
 		struct writer_data *writer = calloc(1, sizeof(struct writer_data));
-		seqwrite_status wstatus = get_next_write_details(args, &convert, writer, rstatus == GOT_OK_LAST_IN_SEQ);
+		seqwrite_status wstatus = get_next_write_details(args, &convert, writer,
+				rstatus == GOT_OK_LAST_IN_SEQ || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE,
+				rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE || rstatus == GOT_OK_LAST_FILE);
 		if (wstatus == GOT_WRITE_ERROR) {
 			siril_debug_print("got writer error\n");
 			free(reader);
@@ -613,7 +616,7 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_log_message(_("Failed to queue image conversion task, aborting"));
 			break;
 		}
-		if (rstatus == GOT_OK_LAST_FILE)
+		if (rstatus == GOT_OK_LAST_FILE || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE)
 			break;
 		if (rstatus == GOT_OK_LAST_IN_SEQ) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
@@ -654,7 +657,8 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 		reader->index = conv->next_image_in_file++;
 		if (conv->next_image_in_file == conv->current_ser->frame_count) {
 			reader->close_sequence_after_read = TRUE;
-			retval = GOT_OK_LAST_IN_SEQ;
+			retval = conv->next_file == conv->args->total ?
+				GOT_OK_LAST_IN_SEQ_LAST_FILE : GOT_OK_LAST_IN_SEQ;
 			conv->current_ser = NULL;
 			conv->next_image_in_file = 0;
 		}
@@ -666,7 +670,8 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 		reader->nb_threads = conv->number_of_threads;
 		if (conv->next_image_in_file == conv->current_fitseq->frame_count) {
 			reader->close_sequence_after_read = TRUE;
-			retval = GOT_OK_LAST_IN_SEQ;
+			retval = conv->next_file == conv->args->total ?
+				GOT_OK_LAST_IN_SEQ_LAST_FILE : GOT_OK_LAST_IN_SEQ;
 			conv->current_fitseq = NULL;
 			conv->next_image_in_file = 0;
 		}
@@ -678,7 +683,8 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 		reader->index = conv->next_image_in_file++;
 		if (conv->next_image_in_file == conv->current_film->frame_count) {
 			reader->close_sequence_after_read = TRUE;
-			retval = GOT_OK_LAST_IN_SEQ;
+			retval = conv->next_file == conv->args->total ?
+				GOT_OK_LAST_IN_SEQ_LAST_FILE : GOT_OK_LAST_IN_SEQ;
 			conv->current_film = NULL;
 			conv->next_image_in_file = 0;
 		}
@@ -699,7 +705,7 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 				retval = GOT_OK_LAST_FILE;
 			else retval = GOT_OK_FILE;
 		}
-	} while (next_status == OPEN_ERROR);
+	} while (next_status == OPEN_ERROR && conv->next_file < conv->args->total);
 	return retval;
 }
 
@@ -709,7 +715,7 @@ static void open_next_seq(convert_status *conv) {
 		const char *filename = conv->args->list[conv->next_file];
 		status = open_next_sequence(filename, conv, FALSE);
 		if (status == OPEN_ERROR) {
-			siril_log_color_message(_("File %s was not recognised as readable by Siril, skipping\n"), filename);
+			siril_log_color_message(_("File %s was not recognised as readable by Siril, skipping\n"), "salmon", filename);
 		}
 		else if (status == OPEN_OK) {
 			conv->next_file++;
@@ -722,7 +728,6 @@ static void open_next_seq(convert_status *conv) {
 static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
-
 	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
 
 	if (!retval)
@@ -793,6 +798,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 }
 
 static int make_link(struct readwrite_data *rwdata) {
+	siril_debug_print("making link: %s -> %s\n", rwdata->reader->filename, rwdata->writer->filename);
 	if (rwdata->writer->filename) {
 		symlink_uniq_file(rwdata->reader->filename, rwdata->writer->filename, TRUE);
 		free(rwdata->reader);
@@ -815,6 +821,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		return;
 	}
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {
+		siril_debug_print("read error, ignoring image\n");
 		conv->failed_images++;	// TODO mutex?
 		return;
 	}
@@ -828,33 +835,37 @@ static void pool_worker(gpointer data, gpointer user_data) {
 }
 
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
-		struct writer_data *writer, gboolean end_of_input_seq) {
+		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image) {
 	if (!args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
-			if (!conv->current_ser) {
+			if (!conv->output_ser) {
 				// TODO make filename with extension
-				ser_init_struct(conv->current_ser);
-				if (ser_create_file(args->destroot, conv->current_ser, TRUE, NULL)) {
+				conv->output_ser = malloc(sizeof(struct ser_struct));
+				ser_init_struct(conv->output_ser);
+				if (ser_create_file(args->destroot, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
 				}
 			}
-			writer->ser = conv->current_ser;
+			writer->ser = conv->output_ser;
 			writer->index = conv->next_image_in_output++;
 			writer->have_seqwriter = TRUE;
+			writer->close_sequence_after_write = last_file_and_image;
 			return GOT_OK_WRITE;
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
-			if (!conv->current_fitseq) {
-				if (fitseq_create_file(args->destroot, conv->current_fitseq,
+			if (!conv->output_fitseq) {
+				conv->output_fitseq = malloc(sizeof(struct ser_struct));
+				if (fitseq_create_file(args->destroot, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
 				}
 			}
-			writer->fitseq = conv->current_fitseq;
+			writer->fitseq = conv->output_fitseq;
 			writer->index = conv->next_image_in_output++;
 			writer->have_seqwriter = TRUE;
+			writer->close_sequence_after_write = last_file_and_image;
 			return GOT_OK_WRITE;
 		}
 		else {
@@ -865,15 +876,18 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		}
 	} else {
 		if (args->output_type == SEQ_SER) {
-			writer->ser = conv->current_ser;
+			writer->ser = conv->output_ser;
 			writer->index = conv->next_image_in_output++;
-			if (end_of_input_seq && conv->next_file != conv->args->total) {
-				char dest_filename[128];
-				create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++, dest_filename, 128);
-				ser_init_struct(conv->current_ser);
-				if (ser_create_file(dest_filename, conv->current_ser, TRUE, NULL)) {
-					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
-					return GOT_WRITE_ERROR;
+			if (end_of_input_seq) {
+				if (conv->next_file != conv->args->total) {
+					char dest_filename[128];
+					create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++, dest_filename, 128);
+					conv->output_ser = malloc(sizeof(struct ser_struct));
+					ser_init_struct(conv->output_ser);
+					if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
+						siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
+						return GOT_WRITE_ERROR;
+					}
 				}
 				writer->close_sequence_after_write = TRUE;
 			}
@@ -976,6 +990,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 		}
 		else retval = WRITE_OK;
 		if (writer->close_sequence_after_write) {
+			siril_debug_print("closing write SER sequence\n");
 			if (retval == WRITE_OK)
 				ser_write_and_close(writer->ser);
 			else ser_close_and_delete_file(writer->ser);
@@ -987,6 +1002,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 		}
 		else retval = WRITE_OK;
 		if (writer->close_sequence_after_write) {
+			siril_debug_print("closing write FITS sequence\n");
 			if (retval == WRITE_OK)
 				fitseq_close_file(writer->fitseq);
 			else fitseq_close_and_delete_file(writer->fitseq);
