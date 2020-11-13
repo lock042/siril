@@ -137,7 +137,7 @@ static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
 	} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
 				seq->imgparam[i].date_obs) {
 		GDateTime *tsi = siril_copy_date_time(seq->imgparam[i].date_obs);
-		double julian = date_time_to_Julian(tsi, seq->exposure);
+		double julian = date_time_to_mid_exposure_Julian(tsi, seq->exposure);
 		plot->julian[j] = julian - (double)julian0;
 
 		g_date_time_unref(tsi);
@@ -176,7 +176,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 					seq->imgparam[i].date_obs) {
 				/* Get FITS start date */
 				GDateTime *ts0 = siril_copy_date_time(seq->imgparam[i].date_obs);
-				julian0 = (int) date_time_to_Julian(ts0, seq->exposure);
+				julian0 = (int) date_time_to_mid_exposure_Julian(ts0, seq->exposure);
 
 				g_date_time_unref(ts0);
 			}

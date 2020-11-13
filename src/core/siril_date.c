@@ -64,94 +64,12 @@ static gchar* g_date_time_format_iso8601(GDateTime *datetime) {
 #endif
 
 /**
- * Build filename in the iso8601 format
- * @return a newly allocated string formatted in ISO 8601 format
- *     or %NULL in the case that there was an error. The string
- *     should be freed with g_free().
- */
-gchar* build_timestamp_filename() {
-	GDateTime *dt = g_date_time_new_now_local();
-	gchar *iso8601_string = NULL;
-	if (dt) {
-		iso8601_string = g_date_time_format_iso8601(dt);
-		g_date_time_unref(dt);
-	}
-
-	return iso8601_string;
-}
-
-/**
- * SER timestamp are converted to GDateTime
- * @param SER timestamp in us
- * @return a newly allocated GDateTime that should be freed
- * with g_date_time_unref().
- */
-GDateTime *ser_timestamp_to_date_time(uint64_t timestamp) {
-	GDateTime *dt, *new_dt = NULL;
-	uint64_t t1970_ms = (timestamp - 621355968000000000UL) / 10000;
-	int64_t secs = t1970_ms / 1000;
-	int ms = t1970_ms % 1000;
-
-	dt = g_date_time_new_from_unix_utc(secs);
-	if (dt) {
-		/* add milliseconds */
-		new_dt = g_date_time_add_seconds(dt, (gdouble) ms * 0.001);
-
-		g_date_time_unref(dt);
-	}
-
-	return new_dt;
-}
-
-/**
- * Converts SER timestamp to Julian Date
- * @param SER timestamp in us
- * @return a double value representing the Julian date
- */
-double ser_timestamp_to_Julian(uint64_t timestamp) {
-	double julian_date = 0.0;
-	GDateTime *dt;
-
-	dt = ser_timestamp_to_date_time(timestamp);
-	if (dt) {
-		/* convert to Julian date */
-		julian_date = encode_to_Julian_date(dt);
-
-		g_date_time_unref(dt);
-	}
-
-	return julian_date;
-}
-
-/**
- * Converts a date_time to Julian Date, It takes the middle
- * of the exposure as center
- * @param dt GDateTime
- * @param exp exposure time in seconds
- * @return a double value representing the Julian date
- */
-double date_time_to_Julian(GDateTime *dt, double exp) {
-	double julian = 0.0;
-	/* we take the middle of the exposure */
-	if (dt) {
-		GDateTime *new_dt = g_date_time_add_seconds(dt, exp / 2.0);
-		if (new_dt) {
-			julian = encode_to_Julian_date(new_dt);
-
-			g_date_time_unref(new_dt);
-		}
-	}
-
-	return julian;
-}
-
-/**
  * From a datetime it computes the Julian date needed in photometry
  * (code borrowed from muniwin)
  * @param dt timestamp in GDateTime format
  * @return the Julian date
  */
-double encode_to_Julian_date(GDateTime *dt) {
+static double date_time_to_Julian(GDateTime *dt) {
 	double jd1;
 	int before, d1, d2;
 	int year, month, day;
@@ -207,19 +125,100 @@ double encode_to_Julian_date(GDateTime *dt) {
 }
 
 /**
+ * Build filename in the iso8601 format
+ * @return a newly allocated string formatted in ISO 8601 format
+ *     or %NULL in the case that there was an error. The string
+ *     should be freed with g_free().
+ */
+gchar* build_timestamp_filename() {
+	GDateTime *dt = g_date_time_new_now_local();
+	gchar *iso8601_string = NULL;
+	if (dt) {
+		iso8601_string = g_date_time_format_iso8601(dt);
+		g_date_time_unref(dt);
+	}
+
+	return iso8601_string;
+}
+
+/**
+ * SER timestamp are converted to GDateTime
+ * @param SER timestamp in us
+ * @return a newly allocated GDateTime that should be freed
+ * with g_date_time_unref().
+ */
+GDateTime *ser_timestamp_to_date_time(uint64_t timestamp) {
+	GDateTime *dt, *new_dt = NULL;
+	uint64_t t1970_ms = (timestamp - 621355968000000000UL) / 10000;
+	int64_t secs = t1970_ms / 1000;
+	int ms = t1970_ms % 1000;
+
+	dt = g_date_time_new_from_unix_utc(secs);
+	if (dt) {
+		/* add milliseconds */
+		new_dt = g_date_time_add_seconds(dt, (gdouble) ms * 0.001);
+
+		g_date_time_unref(dt);
+	}
+
+	return new_dt;
+}
+
+/**
+ * Converts SER timestamp to Julian Date
+ * @param SER timestamp in us
+ * @return a double value representing the Julian date
+ */
+double ser_timestamp_to_Julian(uint64_t timestamp) {
+	double julian_date = 0.0;
+	GDateTime *dt;
+
+	dt = ser_timestamp_to_date_time(timestamp);
+	if (dt) {
+		/* convert to Julian date */
+		julian_date = date_time_to_Julian(dt);
+
+		g_date_time_unref(dt);
+	}
+
+	return julian_date;
+}
+
+/**
+ * Converts a date_time to Julian Date, It takes the middle
+ * of the exposure as center
+ * @param dt GDateTime
+ * @param exp exposure time in seconds
+ * @return a double value representing the Julian date
+ */
+double date_time_to_mid_exposure_Julian(GDateTime *dt, double exp) {
+	double julian = 0.0;
+	/* we take the middle of the exposure */
+	if (dt) {
+		GDateTime *new_dt = g_date_time_add_seconds(dt, exp / 2.0);
+		if (new_dt) {
+			julian = date_time_to_Julian(new_dt);
+
+			g_date_time_unref(new_dt);
+		}
+	}
+
+	return julian;
+}
+
+/**
  * From a char * in FITS format to a GDateTime
  * @param date
  * @return a GDateTime or NULL if date is not in the right format
  */
 GDateTime *siril_FITS_to_date_time(char *date) {
-	int year = 0, month = 0, day = 0, hour = 0, min = 0;
-	float sec = 0.f;
+	gint year = 0, month = 0, day = 0, hour = 0, min = 0;
+	gdouble sec = 0.f;
 
 	if (date[0] == '\0')
 		return NULL;
 
-	if (sscanf(date, "%04d-%02d-%02dT%02d:%02d:%f", &year, &month, &day, &hour,
-			&min, &sec) != 6) {
+	if (sscanf(date, "%04d-%02d-%02dT%02d:%02d:%lf", &year, &month, &day, &hour, &min, &sec) != 6) {
 		return NULL;
 	}
 	GTimeZone *tz = g_time_zone_new_utc();
