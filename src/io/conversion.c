@@ -855,7 +855,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (!conv->output_fitseq) {
-				conv->output_fitseq = malloc(sizeof(struct ser_struct));
+				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
 				if (fitseq_create_file(args->destroot, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
@@ -894,7 +894,21 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			return GOT_OK_WRITE;
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
-			// TODO
+			writer->fitseq = conv->output_fitseq;
+			writer->index = conv->next_image_in_output++;
+			if (end_of_input_seq) {
+				if (conv->next_file != conv->args->total) {
+					char dest_filename[128];
+					create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++, dest_filename, 128);
+					conv->output_fitseq = malloc(sizeof(struct fits_sequence));
+					if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
+						siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
+						return GOT_WRITE_ERROR;
+					}
+				}
+				writer->close_sequence_after_write = TRUE;
+			}
+			return GOT_OK_WRITE;
 		}
 	}
 	return GOT_WRITE_ERROR;
