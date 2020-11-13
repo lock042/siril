@@ -22,6 +22,7 @@
 
 #include <glib.h>
 
+gchar *build_timestamp_filename();
 double encode_to_Julian_date(GDateTime *date);
 GDateTime *siril_FITS_to_date_time(gchar *date);
 gchar *siril_format_date_time(GDateTime *date);

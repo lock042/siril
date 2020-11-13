@@ -22,10 +22,61 @@
 
 #include "siril_date.h"
 
+#if !GLIB_CHECK_VERSION(2,62,0)
+/**
+ * g_date_time_format_iso8601:
+ * @datetime: A #GDateTime
+ *
+ * Format @datetime in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601),
+ * including the date, time and time zone, and return that as a UTF-8 encoded
+ * string.
+ *
+ * Returns: a newly allocated string formatted in ISO 8601 format
+ *     or %NULL in the case that there was an error. The string
+ *     should be freed with g_free().
+ * Since: 2.62
+ */
+static gchar* g_date_time_format_iso8601(GDateTime *datetime) {
+	GString *outstr = NULL;
+	gchar *main_date = NULL;
+	time_t offset;
+
+	/* Main date and time. */
+	main_date = g_date_time_format(datetime, "%Y-%m-%dT%H:%M:%S");
+	outstr = g_string_new(main_date);
+	g_free(main_date);
+
+	/* Timezone. Format it as `%:::z` unless the offset is zero, in which case
+	 * we can simply use `Z`. */
+	offset = g_date_time_get_utc_offset(datetime);
+
+	if (offset == 0) {
+		g_string_append_c(outstr, 'Z');
+	} else {
+		gchar *time_zone = g_date_time_format(datetime, "%:::z");
+		g_string_append(outstr, time_zone);
+		g_free(time_zone);
+	}
+
+	return g_string_free(outstr, FALSE);
+}
+#endif
+
+gchar* build_timestamp_filename() {
+	GDateTime *dt = g_date_time_new_now_local();
+	if (dt) {
+		gchar *iso8601_string = g_date_time_format_iso8601(dt);
+		g_date_time_unref(dt);
+		return iso8601_string;
+	} else {
+		return NULL;
+	}
+}
+
 /**
  * From a datetime it computes the Julian date needed in photometry
  * (code borrowed from muniwin)
- * @param dt timestamp in datetime format
+ * @param dt timestamp in GDateTime format
  * @return the Julian date
  */
 double encode_to_Julian_date(GDateTime *dt) {

@@ -1129,14 +1129,16 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		}
 	}
 
-	for (j=0; j<seq->number; j++) {
+	for (j = 0; j < seq->number; j++) {
 		if (seq->fptr && seq->fptr[j]) {
 			int status = 0;
 			fits_close_file(seq->fptr[j], &status);
 		}
 		if (seq->imgparam) {
-			if (seq->imgparam[j].date_obs)
+			if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
+					seq->imgparam[j].date_obs) {
 				g_date_time_unref(seq->imgparam[j].date_obs);
+			}
 		}
 	}
 	if (seq->seqname)	free(seq->seqname);
@@ -1523,7 +1525,6 @@ gboolean end_seqpsf(gpointer p) {
 			update_seqlist();
 			fill_sequence_list(seq, layer, FALSE);
 		}
-
 		set_layers_for_registration();	// update display of available reg data
 		drawPlot();
 		notify_new_photometry();	// switch to and update plot tab

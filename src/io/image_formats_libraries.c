@@ -1420,7 +1420,6 @@ static int readraw(const char *name, fits *fit) {
 			fit->aperture = raw->other.aperture;
 		g_snprintf(fit->instrume, FLEN_VALUE, "%s %s", raw->idata.make,
 				raw->idata.model);
-//		get_FITS_date(raw->other.timestamp, fit->date_obs);
 		fit->date_obs = g_date_time_new_from_unix_utc(raw->other.timestamp);
 		mirrorx(fit, FALSE);
 	}
@@ -1585,7 +1584,6 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 		fit->aperture = raw->other.aperture;
 	g_snprintf(fit->instrume, FLEN_VALUE, "%s %s", raw->idata.make,
 			raw->idata.model);
-//	get_FITS_date(raw->other.timestamp, fit->date_obs);
 	fit->date_obs = g_date_time_new_from_unix_utc(raw->other.timestamp);
 	if (filters)
 		g_snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);

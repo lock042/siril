@@ -417,8 +417,6 @@ struct ffit {
 	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
 	gboolean unbinned;
 	char row_order[FLEN_VALUE];
-//	char date_obs[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss observation start, UT
-//	char date[FLEN_VALUE];		// YYYY-MM-DDThh:mm:ss creation of file, UT
 	GDateTime *date, *date_obs;
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
