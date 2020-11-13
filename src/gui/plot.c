@@ -129,44 +129,15 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 
 }
 
-static const uint64_t epochTicks = 621355968000000000UL;
-
-static double serTimestamp_toJulian(uint64_t timestamp) {
-	GDateTime *dt;
-	double julian_date;
-	uint64_t t1970_ms = (timestamp - epochTicks) / 10000;
-	int64_t unix_time = t1970_ms / 1000;
-
-	dt = g_date_time_new_from_unix_utc(unix_time);
-	julian_date = encode_to_Julian_date(dt);
-
-	g_date_time_unref(dt);
-
-	return julian_date;
-}
-
-static double dateTimestamp_toJulian(GDateTime *dt, double exp) {
-	if (!dt)
-		return -1;
-
-	/* we take the middle of the exposure */
-	GDateTime *new_dt = g_date_time_add_seconds(dt, exp / 2.0);
-	double julian = encode_to_Julian_date(new_dt);
-
-	g_date_time_unref(new_dt);
-
-	return julian;
-}
-
 static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
 	if (seq->type == SEQ_SER && seq->ser_file->ts
 			&& seq->ser_file->ts_max > seq->ser_file->ts_min) {
-		double julian = serTimestamp_toJulian(seq->ser_file->ts[i]);
+		double julian = ser_timestamp_to_Julian(seq->ser_file->ts[i]);
 		plot->julian[j] = julian - (double)julian0;
 	} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
 				seq->imgparam[i].date_obs) {
 		GDateTime *tsi = siril_copy_date_time(seq->imgparam[i].date_obs);
-		double julian = dateTimestamp_toJulian(tsi, seq->exposure);
+		double julian = date_time_to_Julian(tsi, seq->exposure);
 		plot->julian[j] = julian - (double)julian0;
 
 		g_date_time_unref(tsi);
@@ -200,12 +171,12 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 			if (seq->type == SEQ_SER && seq->ser_file->ts
 					&& seq->ser_file->ts_max > seq->ser_file->ts_min) {
 				/* Get SER start date */
-				julian0 = (int) serTimestamp_toJulian(seq->ser_file->ts[i]);
+				julian0 = (int) ser_timestamp_to_Julian(seq->ser_file->ts[i]);
 			} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
 					seq->imgparam[i].date_obs) {
 				/* Get FITS start date */
 				GDateTime *ts0 = siril_copy_date_time(seq->imgparam[i].date_obs);
-				julian0 = (int) dateTimestamp_toJulian(ts0, seq->exposure);
+				julian0 = (int) date_time_to_Julian(ts0, seq->exposure);
 
 				g_date_time_unref(ts0);
 			}

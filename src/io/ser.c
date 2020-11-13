@@ -45,34 +45,17 @@
 
 static gboolean user_warned = FALSE;
 
-/* 62135596800 sec from year 0001 to 01 janv. 1970 00:00:00 GMT */
-static const uint64_t epochTicks = 621355968000000000UL;
-
 static int ser_write_header(struct ser_struct *ser_file);
 static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index);
 static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *fit, int frame_no);
 
-/* Given a SER timestamp, return a char string representation
- * MUST be freed
- */
-static GDateTime *ser_timestamp(uint64_t timestamp) {
-	uint64_t t1970_ms = (timestamp - epochTicks) / 10000;
-	int64_t secs = t1970_ms / 1000;
-	int ms = t1970_ms % 1000;
-	GDateTime *dt = g_date_time_new_from_unix_utc(secs);
-
-	GDateTime *final_dt = g_date_time_add_seconds(dt, (gdouble) ms / 1E3);
-	g_date_time_unref(dt);
-
-	return final_dt;
-}
 
 /* Output SER timestamp */
 static int display_date(uint64_t timestamp, char *txt) {
 	if (timestamp == 0)
 		return -1;
 
-	GDateTime *date = ser_timestamp(timestamp);
+	GDateTime *date = ser_timestamp_to_date_time(timestamp);
 	if (date) {
 		gchar *str = siril_format_date_time(date);
 		fprintf(stdout, "%s%s\n", txt, str);
@@ -414,7 +397,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	}
 
 	if (!fit->date_obs)
-		ser_file->date = g_date_time_to_unix(fit->date);
+		ser_file->date = (uint64_t) g_date_time_to_unix(fit->date);
 	return 0;
 }
 
@@ -495,7 +478,7 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 	int i = 0;
 	if (ser_file->ts)
 		free(ser_file->ts);
-	ser_file->ts = calloc(8, ser_file->frame_count);
+	ser_file->ts = calloc(sizeof(uint64_t), ser_file->frame_count);
 	if (!ser_file->ts) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -504,11 +487,9 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 
 	GSList *t = timestamp;
 	while (t && i < ser_file->frame_count) {
-//		uint64_t utc, local;
-//		FITS_date_key_to_Unix_time(t->data, &utc, &local);
-		uint64_t utc = g_date_time_to_unix((GDateTime *)t->data);
+		uint64_t utc = (uint64_t) g_date_time_to_unix((GDateTime *)t->data);
 		t = t->next;
-		memcpy(&ser_file->ts[i], &utc, 8);
+		memcpy(&ser_file->ts[i], &utc, sizeof(uint64_t));
 		i++;
 	}
 }
@@ -828,7 +809,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit) {
 
 	/* copy the SER timestamp to the fits */
 	if (ser_file->ts) {
-		GDateTime *timestamp = ser_timestamp(ser_file->ts[frame_no]);
+		GDateTime *timestamp = ser_timestamp_to_date_time(ser_file->ts[frame_no]);
 		if (timestamp) {
 			if (fit->date_obs) {
 				g_date_time_unref(fit->date_obs);
@@ -1075,7 +1056,7 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		return -1;
 	fit->top_down = TRUE;
 	if (ser_file->ts) {
-		GDateTime *timestamp = ser_timestamp(ser_file->ts[frame_no]);
+		GDateTime *timestamp = ser_timestamp_to_date_time(ser_file->ts[frame_no]);
 		if (timestamp) {
 			if (fit->date_obs) {
 				g_date_time_unref(fit->date_obs);
