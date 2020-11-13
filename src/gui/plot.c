@@ -31,6 +31,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_date.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "gui/callbacks.h"
@@ -131,56 +132,30 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 static const uint64_t epochTicks = 621355968000000000UL;
 
 static double serTimestamp_toJulian(uint64_t timestamp) {
-	struct tm *t;
-	dateTime dt;
+	GDateTime *dt;
+	double julian_date;
 	uint64_t t1970_ms = (timestamp - epochTicks) / 10000;
-	time_t secs = t1970_ms / 1000;
-	int ms = t1970_ms % 1000;
-#ifdef HAVE_GMTIME_R
-	struct tm t_;
-#endif
+	int64_t unix_time = t1970_ms / 1000;
 
-#ifdef _WIN32
-	t = gmtime (&secs);
-#else
-#ifdef HAVE_GMTIME_R
-	t = gmtime_r (&secs, &t_);
-#else
-	t = gmtime(&secs);
-#endif /* HAVE_GMTIME_R */
-#endif /* _WIN32 */
+	dt = g_date_time_new_from_unix_utc(unix_time);
+	julian_date = encode_to_Julian_date(dt);
 
-	/* If the gmtime() call has failed, "secs" is too big. */
-	if (t == NULL) {
-		return -1.0;
-	}
+	g_date_time_unref(dt);
 
-	/* Get real year and month */
-	memset(&dt, 0, sizeof(dateTime));
-	dt.year = t->tm_year + 1900;
-	dt.month = t->tm_mon + 1;
-	dt.day = t->tm_mday;
-	dt.hour = t->tm_hour;
-	dt.min = t->tm_min;
-	dt.sec = t->tm_sec;
-	dt.ms = ms;
-
-	return encodeJD(dt);
+	return julian_date;
 }
 
-static double dateTimestamp_toJulian(char *timestamp, double exp) {
-	dateTime dt;
-
-	if (timestamp[0] == '\0')
+static double dateTimestamp_toJulian(GDateTime *dt, double exp) {
+	if (!dt)
 		return -1;
 
-	memset(&dt, 0, sizeof(dateTime));
-	sscanf(timestamp, "%04d-%02d-%02dT%02d:%02d:%02d.%02d", &dt.year, &dt.month, &dt.day,
-			&dt.hour, &dt.min, &dt.sec, &dt.ms);
-	/* we add exposure / 2 to the timestamp */
-	dt.sec += exp / 2.0;
+	/* we take the middle of the exposure */
+	GDateTime *new_dt = g_date_time_add_seconds(dt, exp / 2.0);
+	double julian = encode_to_Julian_date(new_dt);
 
-	return encodeJD(dt);
+	g_date_time_unref(new_dt);
+
+	return julian;
 }
 
 static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
@@ -190,9 +165,11 @@ static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
 		plot->julian[j] = julian - (double)julian0;
 	} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
 				seq->imgparam[i].date_obs) {
-		char *tsi = seq->imgparam[i].date_obs;
+		GDateTime *tsi = siril_copy_date_time(seq->imgparam[i].date_obs);
 		double julian = dateTimestamp_toJulian(tsi, seq->exposure);
 		plot->julian[j] = julian - (double)julian0;
+
+		g_date_time_unref(tsi);
 	} else {
 		plot->julian[j] = (double) i + 1; // should not happen.
 	}
@@ -227,8 +204,10 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 			} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
 					seq->imgparam[i].date_obs) {
 				/* Get FITS start date */
-				char *ts0 = seq->imgparam[i].date_obs;
+				GDateTime *ts0 = siril_copy_date_time(seq->imgparam[i].date_obs);
 				julian0 = (int) dateTimestamp_toJulian(ts0, seq->exposure);
+
+				g_date_time_unref(ts0);
 			}
 			if (julian0 && force_Julian) {
 				xlabel = calloc(XLABELSIZE, sizeof(char));

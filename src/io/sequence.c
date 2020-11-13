@@ -37,8 +37,9 @@
 #include <libgen.h>
 
 #include "core/siril.h"
-#include "core/OS_utils.h"
 #include "core/proto.h"
+#include "core/siril_date.h"
+#include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/undo.h"
 #include "gui/callbacks.h"
@@ -1135,7 +1136,7 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		}
 		if (seq->imgparam) {
 			if (seq->imgparam[j].date_obs)
-				free(seq->imgparam[j].date_obs);
+				g_date_time_unref(seq->imgparam[j].date_obs);
 		}
 	}
 	if (seq->seqname)	free(seq->seqname);
@@ -1422,8 +1423,9 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 			//fprintf(stdout, "moving area to %d, %d\n", args->area.x, args->area.y);
 		}
 
-		if (!args->seq->imgparam[index].date_obs && fit->date_obs[0] != '\0')
-			args->seq->imgparam[index].date_obs = strdup(fit->date_obs);
+		if (!args->seq->imgparam[index].date_obs && fit->date_obs) {
+			args->seq->imgparam[index].date_obs = siril_copy_date_time(fit->date_obs);
+		}
 		data->exposure = fit->exposure;
 	}
 	else {
