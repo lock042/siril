@@ -76,12 +76,10 @@ gchar* build_timestamp_filename() {
 		iso8601_string = g_date_time_format_iso8601(dt);
 		g_date_time_unref(dt);
 	}
+
 	return iso8601_string;
 }
 
-/* Given a SER timestamp, return a char string representation
- * MUST be freed
- */
 /**
  * SER timestamp are converted to GDateTime
  * @param SER timestamp in us
@@ -211,18 +209,18 @@ double encode_to_Julian_date(GDateTime *dt) {
 /**
  * From a char * in FITS format to a GDateTime
  * @param date
- * @return a GDateTime
+ * @return a GDateTime or NULL if date is not in the right format
  */
 GDateTime *siril_FITS_to_date_time(char *date) {
 	int year = 0, month = 0, day = 0, hour = 0, min = 0;
 	float sec = 0.f;
 
 	if (date[0] == '\0')
-		return 0;
+		return NULL;
 
 	if (sscanf(date, "%04d-%02d-%02dT%02d:%02d:%f", &year, &month, &day, &hour,
 			&min, &sec) != 6) {
-		return 0;
+		return NULL;
 	}
 	GTimeZone *tz = g_time_zone_new_utc();
 	GDateTime *new_date = g_date_time_new(tz, year, month, day, hour, min, sec);
@@ -262,5 +260,6 @@ GDateTime *siril_copy_date_time(GDateTime *from) {
 
 		g_time_zone_unref(tz);
 	}
+
 	return to;
 }
