@@ -50,13 +50,13 @@ static pointf compute_velocity(int64_t t1, int64_t t2, pointf d1, pointf d2) {
 	return px_per_hour;
 }
 
-static int get_comet_shift(int64_t ref, int64_t img, pointf px_per_hour, float *reg_x, float *reg_y) {
+static int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg) {
 	float delta_t;
 
-	delta_t = (float)img - (float)ref;
-	delta_t /= 3600.f;
-	*reg_x = delta_t * px_per_hour.x;
-	*reg_y = delta_t * px_per_hour.y;
+	delta_t = (float) g_date_time_difference(img, ref);
+	delta_t /= 3600000000.f;
+	reg->x = delta_t * px_per_hour.x;
+	reg->y = delta_t * px_per_hour.y;
 
 	return 0;
 }
@@ -72,13 +72,13 @@ static void update_velocity() {
 	g_free(v_txt);
 }
 
-static void update_entry1(float x, float y) {
+static void update_entry1(pointf pt) {
 	GtkEntry *entry_x = GTK_ENTRY(lookup_widget("entry1_x_comet"));
 	GtkEntry *entry_y = GTK_ENTRY(lookup_widget("entry1_y_comet"));
 	gchar *txt_x, *txt_y;
 
-	txt_x = g_strdup_printf("%7.2f", x);
-	txt_y = g_strdup_printf("%7.2f", y);
+	txt_x = g_strdup_printf("%7.2f", pt.x);
+	txt_y = g_strdup_printf("%7.2f", pt.y);
 
 	gtk_entry_set_text(entry_x, txt_x);
 	gtk_entry_set_text(entry_y, txt_y);
@@ -87,13 +87,13 @@ static void update_entry1(float x, float y) {
 	g_free(txt_y);
 }
 
-static void update_entry2(float x, float y) {
+static void update_entry2(pointf pt) {
 	GtkEntry *entry_x = GTK_ENTRY(lookup_widget("entry2_x_comet"));
 	GtkEntry *entry_y = GTK_ENTRY(lookup_widget("entry2_y_comet"));
 	gchar *txt_x, *txt_y;
 
-	txt_x = g_strdup_printf("%7.2f", x);
-	txt_y = g_strdup_printf("%7.2f", y);
+	txt_x = g_strdup_printf("%7.2f", pt.x);
+	txt_y = g_strdup_printf("%7.2f", pt.y);
 
 	gtk_entry_set_text(entry_x, txt_x);
 	gtk_entry_set_text(entry_y, txt_y);
@@ -130,7 +130,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 							_("Unable to convert DATE-OBS to a valid date"),
 							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
 				}
-				update_entry1(pos_of_image1.x, pos_of_image1.y);
+				update_entry1(pos_of_image1);
 			}
 		}
 		set_cursor_waiting(FALSE);
@@ -159,7 +159,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 							_("Unable to convert DATE-OBS to a valid date"),
 							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
 				}
-				update_entry2(pos_of_image2.x, pos_of_image2.y);
+				update_entry2(pos_of_image2);
 			}
 		}
 		set_cursor_waiting(FALSE);
@@ -185,7 +185,7 @@ void on_entry_comet_changed(GtkEditable *editable, gpointer user_data) {
 struct comet_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
-	int64_t reference_date;
+	GDateTime *reference_date;
 };
 
 static int comet_align_prepare_hook(struct generic_seq_args *args) {
@@ -215,7 +215,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		free(cadata->current_regdata);
 		return 1;
 	}
-	cadata->reference_date = g_date_time_to_unix(ref.date_obs);
+	cadata->reference_date = siril_copy_date_time(ref.date_obs);
 	clearfits(&ref);
 
 	if (regargs->x2upscale)
@@ -227,18 +227,17 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 static int comet_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
 	struct comet_align_data *cadata = args->user;
 	struct registration_args *regargs = cadata->regargs;
-	float reg_x, reg_y;
+	pointf reg = { 0.f, 0.f };
 
 	if (!regargs->cumul) {
 		/* data initialization */
-		set_shifts(args->seq, in_index, regargs->layer, 0.f, 0.f, FALSE);
+		set_shifts(args->seq, in_index, regargs->layer, reg.x, reg.y, FALSE);
 	}
 
-	int64_t date_obs = g_date_time_to_unix(fit->date_obs);
-	get_comet_shift(cadata->reference_date, date_obs, velocity, &reg_x, &reg_y);
+	get_comet_shift(cadata->reference_date, fit->date_obs, velocity, &reg);
 
 	/* get_comet_shift does not car about orientation of image */
-	set_shifts(args->seq, in_index, regargs->layer, -reg_x, reg_y, FALSE);
+	set_shifts(args->seq, in_index, regargs->layer, -reg.x, reg.y, FALSE);
 	return 0;
 }
 
@@ -251,8 +250,11 @@ static int comet_align_finalize_hook(struct generic_seq_args *args) {
 		args->seq->regparam[regargs->layer] = NULL;
 	}
 
-	free(args->user);
-	args->user = NULL;
+	if (cadata->reference_date)
+		g_date_time_unref(cadata->reference_date);
+
+	free(cadata);
+	cadata = NULL;
 	return 0;
 }
 
