@@ -31,21 +31,23 @@
 #include "registration.h"
 
 static pointf velocity = { 0.f, 0.f };
-static int64_t t_of_image_1 = 0;
-static int64_t t_of_image_2 = 0;
+static GDateTime *t_of_image_1 = NULL;
+static GDateTime *t_of_image_2 = NULL;
 static pointf pos_of_image1 = { 0 };
 static pointf pos_of_image2 = { 0 };
 
-static pointf compute_velocity(int64_t t1, int64_t t2, pointf d1, pointf d2) {
+static pointf compute_velocity(GDateTime *t1, GDateTime *t2, pointf d1, pointf d2) {
 	float delta_t;
-	pointf delta_d, px_per_hour;
+	pointf delta_d, px_per_hour = { 0.f, 0.f };
 
-	delta_t = (float) t2 - (float) t1;
-	delta_d.x = d2.x - d1.x;
-	delta_d.y = d2.y - d1.y;
+	if (t1 && t2) {
+		delta_t = g_date_time_difference(t2, t1);
+		delta_d.x = d2.x - d1.x;
+		delta_d.y = d2.y - d1.y;
 
-	px_per_hour.x = delta_d.x / delta_t * 3600.f;
-	px_per_hour.y = delta_d.y / delta_t * 3600.f;
+		px_per_hour.x = delta_d.x / delta_t * 3600000000.f;
+		px_per_hour.y = delta_d.y / delta_t * 3600000000.f;
+	}
 
 	return px_per_hour;
 }
@@ -53,11 +55,12 @@ static pointf compute_velocity(int64_t t1, int64_t t2, pointf d1, pointf d2) {
 static int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg) {
 	float delta_t;
 
-	delta_t = (float) g_date_time_difference(img, ref);
-	delta_t /= 3600000000.f;
-	reg->x = delta_t * px_per_hour.x;
-	reg->y = delta_t * px_per_hour.y;
-
+	if (img && ref) {
+		delta_t = (float) g_date_time_difference(img, ref);
+		delta_t /= 3600000000.f;
+		reg->x = delta_t * px_per_hour.x;
+		reg->y = delta_t * px_per_hour.y;
+	}
 	return 0;
 }
 
@@ -124,7 +127,10 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 						_("There is no timestamp stored in the file"),
 						_("Siril cannot perform the registration without date information in the file."));
 			} else {
-				t_of_image_1 = g_date_time_to_unix(gfit.date_obs);
+				if (t_of_image_1) {
+					g_date_time_unref(t_of_image_1);
+				}
+				t_of_image_1 = siril_copy_date_time(gfit.date_obs);
 				if (!t_of_image_1) {
 					siril_message_dialog(GTK_MESSAGE_ERROR,
 							_("Unable to convert DATE-OBS to a valid date"),
@@ -153,7 +159,10 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 						_("There is no timestamp stored in the file"),
 						_("Siril cannot perform the registration without date information in the file."));
 			} else {
-				t_of_image_2 = g_date_time_to_unix(gfit.date_obs);
+				if (t_of_image_2) {
+					g_date_time_unref(t_of_image_2);
+				}
+				t_of_image_2 = siril_copy_date_time(gfit.date_obs);
 				if (!t_of_image_2) {
 					siril_message_dialog(GTK_MESSAGE_ERROR,
 							_("Unable to convert DATE-OBS to a valid date"),
