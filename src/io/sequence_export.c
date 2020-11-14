@@ -408,7 +408,7 @@ static gpointer export_sequence(gpointer ptr) {
 				break;
 #endif
 			case TYPESER:
-				strTime = siril_copy_date_time(destfit.date_obs);
+				strTime = g_date_time_ref(destfit.date_obs);
 				timestamp = g_slist_append (timestamp, strTime);
 				if (ser_write_frame_from_fit(ser_file, &destfit, i - skipped))
 					siril_log_message(

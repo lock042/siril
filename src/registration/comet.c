@@ -130,7 +130,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 				if (t_of_image_1) {
 					g_date_time_unref(t_of_image_1);
 				}
-				t_of_image_1 = siril_copy_date_time(gfit.date_obs);
+				t_of_image_1 = g_date_time_ref(gfit.date_obs);
 				if (!t_of_image_1) {
 					siril_message_dialog(GTK_MESSAGE_ERROR,
 							_("Unable to convert DATE-OBS to a valid date"),
@@ -162,7 +162,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 				if (t_of_image_2) {
 					g_date_time_unref(t_of_image_2);
 				}
-				t_of_image_2 = siril_copy_date_time(gfit.date_obs);
+				t_of_image_2 = g_date_time_ref(gfit.date_obs);
 				if (!t_of_image_2) {
 					siril_message_dialog(GTK_MESSAGE_ERROR,
 							_("Unable to convert DATE-OBS to a valid date"),
@@ -224,7 +224,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		free(cadata->current_regdata);
 		return 1;
 	}
-	cadata->reference_date = siril_copy_date_time(ref.date_obs);
+	cadata->reference_date = g_date_time_ref(ref.date_obs);
 	clearfits(&ref);
 
 	if (regargs->x2upscale)

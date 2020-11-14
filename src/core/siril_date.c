@@ -238,27 +238,3 @@ GDateTime *siril_FITS_to_date_time(char *date) {
 gchar *siril_format_date_time(GDateTime *date) {
 	return g_date_time_format(date, "%Y-%m-%dT%H:%M:%S.%f");
 }
-
-/**
- * Makes a copy of a GDateTime given in parameters
- * @param from, a datetime
- * @return a newly allocated GDateTime that should be freed
- * with g_date_time_unref().
- */
-GDateTime *siril_copy_date_time(GDateTime *from) {
-	GDateTime *to = NULL;
-	if (from) {
-		GTimeZone *tz = g_date_time_get_timezone(from);
-
-		to = g_date_time_new(tz, g_date_time_get_year(from),
-				g_date_time_get_month(from),
-				g_date_time_get_day_of_month(from),
-				g_date_time_get_hour(from),
-				g_date_time_get_minute(from),
-				g_date_time_get_seconds(from));
-
-		g_time_zone_unref(tz);
-	}
-
-	return to;
-}

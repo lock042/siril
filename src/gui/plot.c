@@ -133,10 +133,11 @@ static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
 	if (seq->type == SEQ_SER && seq->ser_file->ts
 			&& seq->ser_file->ts_max > seq->ser_file->ts_min) {
 		double julian = ser_timestamp_to_Julian(seq->ser_file->ts[i]);
+		printf("%lf et %lf\n", julian, (double)julian0);
 		plot->julian[j] = julian - (double)julian0;
 	} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
 				seq->imgparam[i].date_obs) {
-		GDateTime *tsi = siril_copy_date_time(seq->imgparam[i].date_obs);
+		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
 		double julian = date_time_to_mid_exposure_Julian(tsi, seq->exposure);
 		plot->julian[j] = julian - (double)julian0;
 
@@ -175,7 +176,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 			} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
 					seq->imgparam[i].date_obs) {
 				/* Get FITS start date */
-				GDateTime *ts0 = siril_copy_date_time(seq->imgparam[i].date_obs);
+				GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
 				julian0 = (int) date_time_to_mid_exposure_Julian(ts0, seq->exposure);
 
 				g_date_time_unref(ts0);
