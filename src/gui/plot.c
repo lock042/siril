@@ -131,8 +131,16 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 
 static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
 	if (seq->imgparam[i].date_obs) {
+		double julian;
 		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
-		double julian = date_time_to_mid_exposure_Julian(tsi, seq->exposure);
+		if (seq->exposure) {
+			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure / 2.0);
+			julian = date_time_to_Julian(new_dt);
+			g_date_time_unref(new_dt);
+		} else {
+			julian = date_time_to_Julian(tsi);
+		}
+
 		plot->julian[j] = julian - (double)julian0;
 
 		g_date_time_unref(tsi);
@@ -164,8 +172,13 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		if (!julian0 && !xlabel) {
 			if (seq->imgparam[i].date_obs) {
 				GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
-				julian0 = (int) date_time_to_mid_exposure_Julian(ts0, seq->exposure);
-
+				if (seq->exposure) {
+					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure / 2.0);
+					julian0 = (int) date_time_to_Julian(new_dt);
+					g_date_time_unref(new_dt);
+				} else {
+					julian0 = (int) date_time_to_Julian(ts0);
+				}
 				g_date_time_unref(ts0);
 			}
 			if (julian0 && force_Julian) {

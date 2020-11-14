@@ -69,7 +69,7 @@ static gchar* g_date_time_format_iso8601(GDateTime *datetime) {
  * @param dt timestamp in GDateTime format
  * @return the Julian date
  */
-static double date_time_to_Julian(GDateTime *dt) {
+double date_time_to_Julian(GDateTime *dt) {
 	double jd1;
 	int before, d1, d2;
 	int year, month, day;
@@ -162,28 +162,6 @@ GDateTime *ser_timestamp_to_date_time(uint64_t timestamp) {
 	}
 
 	return new_dt;
-}
-
-/**
- * Converts a date_time to Julian Date, It takes the middle
- * of the exposure as center
- * @param dt GDateTime
- * @param exp exposure time in seconds
- * @return a double value representing the Julian date
- */
-double date_time_to_mid_exposure_Julian(GDateTime *dt, double exp) {
-	double julian = 0.0;
-	/* we take the middle of the exposure */
-	if (dt) {
-		GDateTime *new_dt = g_date_time_add_seconds(dt, exp / 2.0);
-		if (new_dt) {
-			julian = date_time_to_Julian(new_dt);
-
-			g_date_time_unref(new_dt);
-		}
-	}
-
-	return julian;
 }
 
 /**

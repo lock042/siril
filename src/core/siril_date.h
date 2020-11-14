@@ -24,7 +24,7 @@
 
 gchar *build_timestamp_filename();
 GDateTime *ser_timestamp_to_date_time(uint64_t timestamp);
-double date_time_to_mid_exposure_Julian(GDateTime *dt, double exp);
+double date_time_to_Julian(GDateTime *dt);
 GDateTime *siril_FITS_to_date_time(gchar *date);
 gchar *siril_format_date_time(GDateTime *date);
 

@@ -1135,8 +1135,7 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 			fits_close_file(seq->fptr[j], &status);
 		}
 		if (seq->imgparam) {
-			if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
-					seq->imgparam[j].date_obs) {
+			if (seq->imgparam[j].date_obs) {
 				g_date_time_unref(seq->imgparam[j].date_obs);
 			}
 		}
