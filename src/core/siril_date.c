@@ -165,26 +165,6 @@ GDateTime *ser_timestamp_to_date_time(uint64_t timestamp) {
 }
 
 /**
- * Converts SER timestamp to Julian Date
- * @param SER timestamp in us
- * @return a double value representing the Julian date
- */
-double ser_timestamp_to_Julian(uint64_t timestamp) {
-	double julian_date = 0.0;
-	GDateTime *dt;
-
-	dt = ser_timestamp_to_date_time(timestamp);
-	if (dt) {
-		/* convert to Julian date */
-		julian_date = date_time_to_Julian(dt);
-
-		g_date_time_unref(dt);
-	}
-
-	return julian_date;
-}
-
-/**
  * Converts a date_time to Julian Date, It takes the middle
  * of the exposure as center
  * @param dt GDateTime
@@ -232,8 +212,8 @@ GDateTime *siril_FITS_to_date_time(char *date) {
  *
  * @param date, a GDateTIme
  * @return a newly allocated string formatted as expected in
- * FITS header: "%Y-%m-%dT%H:%M:%S.%f". The string should be
- * freed with g_free().
+ * FITS header: "%Y-%m-%dT%H:%M:%S.%f" or NULL in the case that
+ * there was an error  The string should be freed with g_free().
  */
 gchar *siril_format_date_time(GDateTime *date) {
 	return g_date_time_format(date, "%Y-%m-%dT%H:%M:%S.%f");

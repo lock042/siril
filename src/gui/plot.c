@@ -130,12 +130,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 }
 
 static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
-	if (seq->type == SEQ_SER && seq->ser_file->ts
-			&& seq->ser_file->ts_max > seq->ser_file->ts_min) {
-		double julian = ser_timestamp_to_Julian(seq->ser_file->ts[i]);
-		plot->julian[j] = julian - (double)julian0;
-	} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
-				seq->imgparam[i].date_obs) {
+	if (seq->imgparam[i].date_obs) {
 		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
 		double julian = date_time_to_mid_exposure_Julian(tsi, seq->exposure);
 		plot->julian[j] = julian - (double)julian0;
@@ -167,14 +162,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		if (!seq->imgparam[i].incl || !psfs[i])
 			continue;
 		if (!julian0 && !xlabel) {
-			/* X axis init */
-			if (seq->type == SEQ_SER && seq->ser_file->ts
-					&& seq->ser_file->ts_max > seq->ser_file->ts_min) {
-				/* Get SER start date */
-				julian0 = (int) ser_timestamp_to_Julian(seq->ser_file->ts[i]);
-			} else if ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ) &&
-					seq->imgparam[i].date_obs) {
-				/* Get FITS start date */
+			if (seq->imgparam[i].date_obs) {
 				GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
 				julian0 = (int) date_time_to_mid_exposure_Julian(ts0, seq->exposure);
 
@@ -665,8 +653,10 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 		i--;
 		free_photometry_set(&com.seq, i);
 	}
-	if (i == 0)
+	if (i == 0) {
 		reset_plot();
+		clear_stars_list();
+	}
 	drawPlot();
 }
 
@@ -676,6 +666,7 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 		free_photometry_set(&com.seq, i);
 	}
 	reset_plot();
+	clear_stars_list();
 	drawPlot();
 }
 
