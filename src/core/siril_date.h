@@ -25,7 +25,7 @@
 gchar *build_timestamp_filename();
 GDateTime *ser_timestamp_to_date_time(uint64_t timestamp);
 double date_time_to_Julian(GDateTime *dt);
-GDateTime *siril_FITS_to_date_time(gchar *date);
-gchar *siril_format_date_time(GDateTime *date);
+GDateTime *FITS_date_to_date_time(gchar *date);
+gchar *date_time_to_FITS_date(GDateTime *date);
 
 #endif /* SRC_CORE_SIRIL_DATE_H_ */

@@ -189,6 +189,10 @@ void on_entry_comet_changed(GtkEditable *editable, gpointer user_data) {
 	update_velocity();
 }
 
+pointf get_velocity() {
+	return velocity;
+}
+
 /***** generic moving object registration *****/
 
 struct comet_align_data {

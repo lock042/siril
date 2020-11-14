@@ -57,7 +57,7 @@ static int display_date(uint64_t timestamp, char *txt) {
 
 	GDateTime *date = ser_timestamp_to_date_time(timestamp);
 	if (date) {
-		gchar *str = siril_format_date_time(date);
+		gchar *str = date_time_to_FITS_date(date);
 		fprintf(stdout, "%s%s\n", txt, str);
 		free(str);
 	}
@@ -123,7 +123,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 
 		// Seek to start of timestamps
 		for (i = 0; i < ser_file->frame_count; i++) {
-			if ((int64_t)-1 == fseek64(ser_file->file, offset+(i*8), SEEK_SET))
+			if ((int64_t) -1 == fseek64(ser_file->file, offset + (i * 8), SEEK_SET))
 				return -1;
 
 			if (8 != fread(&ser_file->ts[i], 1, 8, ser_file->file))

@@ -32,6 +32,8 @@
  * including the date, time and time zone, and return that as a UTF-8 encoded
  * string.
  *
+ * Since GLib 2.66, this will output to sub-second precision if needed.
+ *
  * Returns: a newly allocated string formatted in ISO 8601 format
  *     or %NULL in the case that there was an error. The string
  *     should be freed with g_free().
@@ -41,9 +43,15 @@ static gchar* g_date_time_format_iso8601(GDateTime *datetime) {
 	GString *outstr = NULL;
 	gchar *main_date = NULL;
 	time_t offset;
+	gchar *format = "%Y-%m-%dT%H:%M:%S";
+
+	/* if datetime has sub-second non-zero values below the second precision we
+	 * should print them as well */
+	if (g_date_time_get_microsecond(datetime) % G_TIME_SPAN_SECOND != 0)
+		format = "%Y-%m-%dT%H:%M:%S.%f";
 
 	/* Main date and time. */
-	main_date = g_date_time_format(datetime, "%Y-%m-%dT%H:%M:%S");
+	main_date = g_date_time_format(datetime, format);
 	outstr = g_string_new(main_date);
 	g_free(main_date);
 
@@ -69,11 +77,12 @@ static gchar* g_date_time_format_iso8601(GDateTime *datetime) {
  * @param dt timestamp in GDateTime format
  * @return the Julian date
  */
-double date_time_to_Julian(GDateTime *dt) {
-	double jd1;
-	int before, d1, d2;
-	int year, month, day;
-	int hour, min, sec, ms;
+gdouble date_time_to_Julian(GDateTime *dt) {
+	gdouble jd1;
+	gboolean before;
+	gint d1, d2;
+	gint year, month, day;
+	gint hour, min, sec, ms;
 
 	if (!dt) return 0;
 
@@ -86,24 +95,24 @@ double date_time_to_Julian(GDateTime *dt) {
 	/* Compute Julian date from input citizen year, month and day. */
 	/* Tested for YEAR>0 except 1582-10-07/15 */
 	if (year > 1582) {
-		before = 0;
+		before = FALSE;
 	} else if (year < 1582) {
-		before = 1;
+		before = TRUE;
 	} else if (month > 10) {
-		before = 0;
+		before = FALSE;
 	} else if (month < 10) {
-		before = 1;
+		before = TRUE;
 	} else if (day >= 15) {
-		before = 0;
+		before = FALSE;
 	} else {
-		before = 1;
+		before = TRUE;
 	}
 	if (month <= 2) {
-		d1 = (int) (365.25 * (year - 1));
-		d2 = (int) (30.6001 * (month + 13));
+		d1 = (gint) (365.25 * (year - 1));
+		d2 = (gint) (30.6001 * (month + 13));
 	} else {
-		d1 = (int) (365.25 * (year));
-		d2 = (int) (30.6001 * (month + 1));
+		d1 = (gint) (365.25 * (year));
+		d2 = (gint) (30.6001 * (month + 1));
 	}
 
 	hour = g_date_time_get_hour(dt);
@@ -151,7 +160,7 @@ GDateTime *ser_timestamp_to_date_time(uint64_t timestamp) {
 	GDateTime *dt, *new_dt = NULL;
 	uint64_t t1970_ms = (timestamp - 621355968000000000UL) / 10000;
 	int64_t secs = t1970_ms / 1000;
-	int ms = t1970_ms % 1000;
+	gint ms = t1970_ms % 1000;
 
 	dt = g_date_time_new_from_unix_utc(secs);
 	if (dt) {
@@ -169,9 +178,9 @@ GDateTime *ser_timestamp_to_date_time(uint64_t timestamp) {
  * @param date
  * @return a GDateTime or NULL if date is not in the right format
  */
-GDateTime *siril_FITS_to_date_time(char *date) {
+GDateTime *FITS_date_to_date_time(char *date) {
 	gint year = 0, month = 0, day = 0, hour = 0, min = 0;
-	gdouble sec = 0.f;
+	gdouble sec = 0.0;
 
 	if (date[0] == '\0')
 		return NULL;
@@ -193,6 +202,6 @@ GDateTime *siril_FITS_to_date_time(char *date) {
  * FITS header: "%Y-%m-%dT%H:%M:%S.%f" or NULL in the case that
  * there was an error  The string should be freed with g_free().
  */
-gchar *siril_format_date_time(GDateTime *date) {
+gchar *date_time_to_FITS_date(GDateTime *date) {
 	return g_date_time_format(date, "%Y-%m-%dT%H:%M:%S.%f");
 }

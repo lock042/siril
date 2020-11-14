@@ -81,7 +81,7 @@ static void read_fits_date_obs_header(fits *fit) {
 			g_snprintf(date_obs, sizeof(date_obs), "%04d-%02d-%02dT%s", year, month, day, ut_start);
 		}
 	}
-	fit->date_obs = siril_FITS_to_date_time(date_obs);
+	fit->date_obs = FITS_date_to_date_time(date_obs);
 }
 
 void fit_get_photometry_data(fits *fit) {
@@ -304,7 +304,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	char date[FLEN_VALUE];
 	fits_read_key(fit->fptr, TSTRING, "DATE", &date, NULL, &status);
-	fit->date = siril_FITS_to_date_time(date);
+	fit->date = FITS_date_to_date_time(date);
 
 	__tryToFindKeywords(fit->fptr, TDOUBLE, Focal, &fit->focal_length);
 	if (!sequence_is_loaded() || com.seq.current == 0)
@@ -1010,7 +1010,7 @@ void save_fits_header(fits *fit) {
 
 	status = 0;
 	if (fit->date_obs) {
-		gchar *formatted_date = siril_format_date_time(fit->date_obs);
+		gchar *formatted_date = date_time_to_FITS_date(fit->date_obs);
 		fits_update_key(fit->fptr, TSTRING, "DATE-OBS", &formatted_date,
 				"YYYY-MM-DDThh:mm:ss observation start, UT", &status);
 		g_free(formatted_date);
