@@ -141,7 +141,7 @@ static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
 			julian = date_time_to_Julian(tsi);
 		}
 
-		plot->julian[j] = julian - (double)julian0;
+		plot->julian[j] = julian - (double) julian0;
 
 		g_date_time_unref(tsi);
 	} else {

@@ -18,7 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 #include <glib.h>
-#include <stdio.h>
+#include <glib/gprintf.h>
 #include <stdint.h>
 
 #include "siril_date.h"
