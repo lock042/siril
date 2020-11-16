@@ -7,6 +7,11 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <gtk/gtk.h>
 #include <fitsio.h>	// fitsfile
 #include <gsl/gsl_histogram.h>
