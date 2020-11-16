@@ -158,7 +158,7 @@ gchar* build_timestamp_filename() {
 GDateTime *ser_timestamp_to_date_time(guint64 timestamp) {
 	GDateTime *dt, *new_dt = NULL;
 	guint64 t1970_ms = (timestamp - 621355968000000000UL) / 10000;
-	int64_t secs = t1970_ms / 1000;
+	gint64 secs = t1970_ms / 1000;
 	gint ms = t1970_ms % 1000;
 
 	dt = g_date_time_new_from_unix_utc(secs);
@@ -177,7 +177,7 @@ GDateTime *ser_timestamp_to_date_time(guint64 timestamp) {
  * @param date
  * @return a GDateTime or NULL if date is not in the right format
  */
-GDateTime *FITS_date_to_date_time(char *date) {
+GDateTime *FITS_date_to_date_time(gchar *date) {
 	gint year = 0, month = 0, day = 0, hour = 0, min = 0;
 	gdouble sec = 0.0;
 
