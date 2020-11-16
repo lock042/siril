@@ -254,8 +254,8 @@ int test_available_space(gint64 req_size) {
 		g_free(missing);
 		return res;
 	}
-	siril_debug_print("Tested free space ok: %ld for %ld MB free\n",
-			(long)(req_size / BYTES_IN_A_MB), (long)(free_space / BYTES_IN_A_MB));
+	siril_debug_print("Tested free space ok: %" G_GINT64_FORMAT " for %" G_GINT64_FORMAT " MB free\n",
+			(gint64)(req_size / BYTES_IN_A_MB), (gint64)(free_space / BYTES_IN_A_MB));
 	return 0;
 }
 

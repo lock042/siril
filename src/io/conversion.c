@@ -41,6 +41,7 @@
 #include "io/films.h"
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
+#include "io/image_formats_libraries.h"
 #include "io/sequence.h"
 #include "io/seqwriter.h"
 #include "io/ser.h"

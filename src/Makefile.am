@@ -194,6 +194,7 @@ siril_common_SOURCES = \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
 	io/image_formats_libraries.c \
+	io/image_formats_libraries.h \
 	io/mp4_output.c \
 	io/mp4_output.h \
 	io/seqfile.c \

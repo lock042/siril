@@ -26,11 +26,7 @@
 #include <math.h>
 
 #ifdef HAVE_LIBTIFF
-#define uint64 uint64_hack_
-#define int64 int64_hack_
 #include <tiffio.h>
-#undef uint64
-#undef int64
 #endif
 #ifdef HAVE_LIBJPEG
 #include <jpeglib.h>
@@ -55,14 +51,15 @@
 #include "gui/progress_and_log.h"
 #include "single_image.h"
 #include "image_format_fits.h"
+#include "image_formats_libraries.h"
 
 /********************* TIFF IMPORT AND EXPORT *********************/
 
 #ifdef HAVE_LIBTIFF
 
-static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples, WORD **data) {
-	uint32_t rowsperstrip;
-	uint16_t config;
+static int readtifstrip(TIFF* tif, guint32 width, guint32 height, guint16 nsamples, WORD **data) {
+	guint32 rowsperstrip;
+	guint16 config;
 	int retval = nsamples;
 
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
@@ -89,8 +86,8 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 		PRINT_ALLOC_ERR;
 		return OPEN_IMAGE_ERROR;
 	}
-	for (uint32_t row = 0; row < height; row += rowsperstrip){
-		uint32_t nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
+	for (guint32 row = 0; row < height; row += rowsperstrip){
+		guint32 nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
@@ -128,9 +125,9 @@ static int readtifstrip(TIFF* tif, uint32 width, uint32 height, uint16 nsamples,
 	return retval;
 }
 
-static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, float **data) {
-	uint32_t rowsperstrip;
-	uint16_t config;
+static int readtifstrip32(TIFF* tif, guint32 width, guint32 height, guint16 nsamples, float **data) {
+	guint32 rowsperstrip;
+	guint16 config;
 	int retval = nsamples;
 
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
@@ -157,8 +154,8 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 		PRINT_ALLOC_ERR;
 		return OPEN_IMAGE_ERROR;
 	}
-	for (uint32_t row = 0; row < height; row += rowsperstrip) {
-		uint32_t nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
+	for (guint32 row = 0; row < height; row += rowsperstrip) {
+		guint32 nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
@@ -197,9 +194,9 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	return retval;
 }
 
-static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, float **data) {
-	uint32_t rowsperstrip;
-	uint16_t config;
+static int readtifstrip32uint(TIFF* tif, guint32 width, guint32 height, guint16 nsamples, float **data) {
+	guint32 rowsperstrip;
+	guint16 config;
 	int retval = nsamples;
 
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
@@ -221,13 +218,13 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	}
 
 	const tmsize_t scanline = TIFFScanlineSize(tif);
-	uint32_t *buf = (uint32_t *)_TIFFmalloc(TIFFStripSize(tif));
+	guint32 *buf = (guint32 *)_TIFFmalloc(TIFFStripSize(tif));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 		return OPEN_IMAGE_ERROR;
 	}
-	for (uint32_t row = 0; row < height; row += rowsperstrip) {
-		uint32_t nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
+	for (guint32 row = 0; row < height; row += rowsperstrip) {
+		guint32 nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
@@ -266,7 +263,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	return retval;
 }
 
-static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, WORD **data) {
+static int readtif8bits(TIFF* tif, guint32 width, guint32 height, guint16 nsamples, WORD **data) {
 	int retval = nsamples;
 
 	size_t npixels = width * height;
@@ -285,7 +282,7 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	}
 
 	/* get the data */
-	uint32_t *raster = (uint32_t*) _TIFFmalloc(npixels * sizeof(uint32_t));
+	guint32 *raster = (guint32*) _TIFFmalloc(npixels * sizeof(guint32));
 	if (raster != NULL) {
 		if (TIFFReadRGBAImage(tif, width, height, raster, 0)) {
 			for (int j = 0; j < height; j++) {
@@ -309,12 +306,12 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	return retval;
 }
 
-static uint16_t get_compression_mode() {
+static guint16 get_compression_mode() {
 	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
 	if (gtk_toggle_button_get_active(button))
-		return (uint16_t) COMPRESSION_ADOBE_DEFLATE;
+		return (guint16) COMPRESSION_ADOBE_DEFLATE;
 	else
-		return (uint16_t) COMPRESSION_NONE;
+		return (guint16) COMPRESSION_NONE;
 }
 
 static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
@@ -339,11 +336,11 @@ static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
  */
 int readtif(const char *name, fits *fit, gboolean force_float) {
 	int retval = 0;
-	uint32_t height, width;
-	uint16_t nbits, nsamples, color;
+	guint32 height, width;
+	guint16 nbits, nsamples, color;
 	WORD *data = NULL;
 	float *fdata = NULL;
-	uint16 sampleformat = 0;
+	guint16 sampleformat = 0;
 	
 	TIFF* tif = Siril_TIFFOpen(name, "r");
 	if (!tif) {
@@ -505,12 +502,12 @@ static void get_tif_data_from_ui(gchar **description, gchar **copyright, gboolea
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 
-int savetif(const char *name, fits *fit, uint16_t bitspersample){
+int savetif(const char *name, fits *fit, guint16 bitspersample){
 	int retval = 0;
 	float norm;
 	gchar *description = NULL, *copyright = NULL;
 	gchar *filename = g_strdup(name);
-	uint32_t profile_len = 0;
+	guint32 profile_len = 0;
 	const unsigned char *profile;
 	gboolean write_ok = TRUE;
 	gboolean embeded_icc = TRUE;
@@ -525,9 +522,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 		free(filename);
 		return 1;
 	}
-	const uint16_t nsamples = (uint16_t) fit->naxes[2];
-	const uint32_t width = (uint32_t) fit->rx;
-	const uint32_t height = (uint32_t) fit->ry;
+	const guint16 nsamples = (guint16) fit->naxes[2];
+	const guint32 width = (guint32) fit->rx;
+	const guint32 height = (guint32) fit->ry;
 	
 	get_tif_data_from_ui(&description, &copyright, &embeded_icc);
 
@@ -595,9 +592,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 
 		norm = fit->orig_bitpix != BYTE_IMG ? UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE : 1.f;
 
-		for (uint32_t row = height; row-- > 0;) {
-			for (uint32_t col = 0; col < width; col++) {
-				for (uint16_t n = 0; n < nsamples; n++) {
+		for (guint32 row = height; row-- > 0;) {
+			for (guint32 col = 0; col < width; col++) {
+				for (guint16 n = 0; n < nsamples; n++) {
 					buf8[col * nsamples + n] =
 							(fit->type == DATA_USHORT) ?
 									gbuf[n][col + row * width] * norm :
@@ -625,9 +622,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 
 		norm = fit->orig_bitpix == BYTE_IMG ? USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE : 1.f;
 
-		for (uint32_t row = height; row-- > 0;) {
-			for (uint32_t col = 0; col < width; col++) {
-				for (uint16_t n = 0; n < nsamples; n++) {
+		for (guint32 row = height; row-- > 0;) {
+			for (guint32 col = 0; col < width; col++) {
+				for (guint16 n = 0; n < nsamples; n++) {
 					buf16[col * nsamples + n] =
 							(fit->type == DATA_USHORT) ?
 									gbuf[n][(col + row * width)] * norm :
@@ -653,9 +650,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 			break;
 		}
 
-		for (uint32_t row = height; row-- > 0;) {
-			for (uint32_t col = 0; col < width; col++) {
-				for (uint16_t n = 0; n < nsamples; n++) {
+		for (guint32 row = height; row-- > 0;) {
+			for (guint32 col = 0; col < width; col++) {
+				for (guint16 n = 0; n < nsamples; n++) {
 					buf32[col * nsamples + n] =
 							(fit->type == DATA_USHORT) ?
 									(fit->orig_bitpix == BYTE_IMG ?
@@ -1032,21 +1029,21 @@ static WORD *convert_data(fits *image) {
 	return buffer;
 }
 
-static uint8_t *convert_data8(fits *image) {
+static guint8 *convert_data8(fits *image) {
 	size_t ndata = image->rx * image->ry;
 	const long ch = image->naxes[2];
 
-	uint8_t *buffer = malloc(ndata * ch * sizeof(uint8_t));
+	guint8 *buffer = malloc(ndata * ch * sizeof(guint8));
 	if (!buffer) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 	for (size_t i = 0, j = 0; i < ndata * ch; i += ch, j++) {
 		if (image->type == DATA_USHORT) {
-			buffer[i + 0] = (uint8_t) image->pdata[RLAYER][j];
+			buffer[i + 0] = (guint8) image->pdata[RLAYER][j];
 			if (ch > 1) {
-				buffer[i + 1] = (uint8_t) image->pdata[GLAYER][j];
-				buffer[i + 2] = (uint8_t) image->pdata[BLAYER][j];
+				buffer[i + 1] = (guint8) image->pdata[GLAYER][j];
+				buffer[i + 2] = (guint8) image->pdata[BLAYER][j];
 			}
 		} else if (image->type == DATA_FLOAT) {
 			buffer[i + 0] = float_to_uchar_range(image->fpdata[RLAYER][j]);
@@ -1063,13 +1060,13 @@ static uint8_t *convert_data8(fits *image) {
 	return buffer;
 }
 
-int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
+int savepng(const char *name, fits *fit, guint32 bytes_per_sample,
 		gboolean is_colour) {
-	int32_t ret = -1;
+	gint32 ret = -1;
 	png_structp png_ptr;
 	png_infop info_ptr;
-	const uint32_t width = fit->rx;
-	const uint32_t height = fit->ry;
+	const guint32 width = fit->rx;
+	const guint32 height = fit->ry;
 
 	char *filename = strdup(name);
 	if (!ends_with(filename, ".png")) {
@@ -1122,7 +1119,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	 * PNG_INTERLACE_ADAM7, and the compression_type and filter_type MUST
 	 * currently be PNG_COMPRESSION_TYPE_BASE and PNG_FILTER_TYPE_BASE. REQUIRED
 	 */
-	uint32_t profile_len = 0;
+	guint32 profile_len = 0;
 	const unsigned char *profile;
 
 	if (is_colour) {
@@ -1164,11 +1161,11 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		png_set_swap(png_ptr);
 		WORD *data = convert_data(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
-			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
+			row_pointers[j--] = (png_bytep) ((guint16*) data + (size_t) samples_per_pixel * i * width);
 	} else {
-		uint8_t *data = convert_data8(fit);
+		guint8 *data = convert_data8(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
-			row_pointers[j--] = (uint8_t*) data + (size_t) samples_per_pixel * i * width;
+			row_pointers[j--] = (guint8*) data + (size_t) samples_per_pixel * i * width;
 	}
 
 	png_write_image(png_ptr, row_pointers);
@@ -1614,7 +1611,7 @@ int open_raw_files(const char *name, fits *fit, gboolean debayer) {
 #define MAX_THUMBNAIL_SIZE com.pref.thumbnail_size
 
 struct HeifImage {
-	uint32_t ID;
+	guint32 ID;
 	char caption[100]; // image text (filled with resolution description)
 	struct heif_image *thumbnail;
 	int width, height;
@@ -1625,7 +1622,7 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 
 	// get list of all (top level) image IDs
 
-	uint32_t *IDs = malloc(numImages * sizeof(uint32_t));
+	guint32 *IDs = malloc(numImages * sizeof(guint32));
 	heif_context_get_list_of_top_level_image_IDs(heif, IDs, numImages);
 
 	// --- Load a thumbnail for each image.
@@ -1752,7 +1749,7 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 	return TRUE;
 }
 
-static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
+static gboolean heif_dialog(struct heif_context *heif, guint32 *selected_image) {
 	int numImages = heif_context_get_number_of_top_level_images(heif);
 
 	struct HeifImage *heif_images = malloc(numImages * sizeof(struct HeifImage));
@@ -1786,7 +1783,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 		gtk_list_store_set(liststore, &iter, 0, heif_images[i].caption, -1);
 
 		int stride;
-		const uint8_t *data = heif_image_get_plane_readonly(
+		const guint8 *data = heif_image_get_plane_readonly(
 				heif_images[i].thumbnail, heif_channel_interleaved, &stride);
 
 		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB,
@@ -1935,7 +1932,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	}
 
 	int stride;
-	const uint8_t* udata = heif_image_get_plane_readonly(img, heif_channel_interleaved, &stride);
+	const guint8* udata = heif_image_get_plane_readonly(img, heif_channel_interleaved, &stride);
 	const int width = heif_image_get_width(img, heif_channel_interleaved);
 	const int height = heif_image_get_height(img, heif_channel_interleaved);
 

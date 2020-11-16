@@ -22,6 +22,7 @@
  * on big endian systems.
  */
 
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -51,7 +52,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 
 
 /* Output SER timestamp */
-static int display_date(uint64_t timestamp, char *txt) {
+static int display_date(guint64 timestamp, char *txt) {
 	if (timestamp == 0)
 		return -1;
 
@@ -98,7 +99,7 @@ static char *convert_color_id_to_char(ser_color color_id) {
 static int ser_read_timestamp(struct ser_struct *ser_file) {
 	int i;
 	gboolean timestamps_in_order = TRUE;
-	uint64_t previous_ts = 0L;
+	guint64 previous_ts = 0L;
 	int64_t frame_size;
 
 	ser_file->fps = -1.0;	// will be calculated from the timestamps
@@ -133,9 +134,9 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 		}
 
 		/* Check order of Timestamps */
-		uint64_t *ts_ptr = ser_file->ts;
-		uint64_t min_ts = *ts_ptr;
-		uint64_t max_ts = *ts_ptr;
+		guint64 *ts_ptr = ser_file->ts;
+		guint64 min_ts = *ts_ptr;
+		guint64 max_ts = *ts_ptr;
 
 		for (i = 0; i < ser_file->frame_count; i++) {
 			if (*ts_ptr < previous_ts) {
@@ -290,7 +291,7 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 			(int64_t)ser_file->byte_pixel_depth * (int64_t)ser_file->frame_count;
 
 		for (i = 0; i < ser_file->frame_count; i++) {
-			uint64_t ts;
+			guint64 ts;
 
 			if (i >= ser_file->ts_alloc)
 				break;
@@ -397,7 +398,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	}
 
 	if (!fit->date_obs)
-		ser_file->date = (uint64_t) g_date_time_to_unix(fit->date);
+		ser_file->date = (guint64) g_date_time_to_unix(fit->date);
 	return 0;
 }
 
@@ -445,7 +446,7 @@ static int ser_alloc_ts(struct ser_struct *ser_file, int frame_no) {
 	omp_set_lock(&ser_file->ts_lock);
 #endif
 	if (ser_file->ts_alloc <= frame_no) {
-		uint64_t *new = realloc(ser_file->ts, (frame_no + 1) * 2 * sizeof(uint64_t));
+		guint64 *new = realloc(ser_file->ts, (frame_no + 1) * 2 * sizeof(guint64));
 		if (!new) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -478,7 +479,7 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 	int i = 0;
 	if (ser_file->ts)
 		free(ser_file->ts);
-	ser_file->ts = calloc(sizeof(uint64_t), ser_file->frame_count);
+	ser_file->ts = calloc(sizeof(guint64), ser_file->frame_count);
 	if (!ser_file->ts) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -487,9 +488,9 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 
 	GSList *t = timestamp;
 	while (t && i < ser_file->frame_count) {
-		uint64_t utc = (uint64_t) g_date_time_to_unix((GDateTime *)t->data);
+		guint64 utc = (guint64) g_date_time_to_unix((GDateTime *)t->data);
 		t = t->next;
-		memcpy(&ser_file->ts[i], &utc, sizeof(uint64_t));
+		memcpy(&ser_file->ts[i], &utc, sizeof(guint64));
 		i++;
 	}
 }
@@ -1171,8 +1172,8 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	ser_file->frame_count++;
 
 	if (!ser_alloc_ts(ser_file, frame_no)) {
-		uint64_t utc;
-		utc = (uint64_t) g_date_time_to_unix(fit->date_obs);
+		guint64 utc;
+		utc = (guint64) g_date_time_to_unix(fit->date_obs);
 		ser_file->ts[frame_no] = utc;
 	}
 

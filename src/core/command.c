@@ -42,6 +42,7 @@
 #include "core/OS_utils.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
+#include "io/image_formats_libraries.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"

@@ -1,8 +1,7 @@
 #ifndef _SEQUENCE_H_
 #define _SEQUENCE_H_
 
-#include <stdint.h>
-#include "../core/siril.h"
+#include "core/siril.h"
 
 int	read_single_sequence(char *realname, image_type imagetype);
 int	seqsetnum(int image_number);
@@ -13,7 +12,7 @@ char *	seq_get_image_filename(sequence *seq, int index, char *name_buf);
 int	seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, int thread_id);
 int	seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int thread_id);
 int	seq_load_image(sequence *seq, int index, gboolean load_it);
-int64_t seq_compute_size(sequence *seq, int nb_frames, data_type type);
+gint64 seq_compute_size(sequence *seq, int nb_frames, data_type type);
 gboolean check_if_seq_exist(gchar *name, gboolean name_is_base);
 int	seq_open_image(sequence *seq, int index);
 void	seq_close_image(sequence *seq, int index);

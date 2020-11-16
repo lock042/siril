@@ -34,6 +34,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_formats_libraries.h"
 
 #include "save_dialog.h"
 

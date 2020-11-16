@@ -24,7 +24,6 @@
 
 #include <gtk/gtk.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 #include <time.h>
 #include <sys/types.h>
@@ -547,8 +546,8 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
  * @param nb_frames number of frames to compute the size of the sequence of
  * @return the size of the sequence in bytes, or -1 if an error happened.
  */
-int64_t seq_compute_size(sequence *seq, int nb_frames, data_type depth) {
-	int64_t frame_size, size = -1LL;
+gint64 seq_compute_size(sequence *seq, int nb_frames, data_type depth) {
+	gint64 frame_size, size = -1LL;
 #ifdef HAVE_FFMS2
 	GStatBuf sts;
 #endif
@@ -1623,9 +1622,9 @@ int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_fl
 		fprintf(stderr, "############ FACTOR UNINIT (set to 1) ############\n");
 		factor = 1.0;
 	}
-	uint64_t newx = round_to_int((double)seq->rx * factor);
-	uint64_t newy = round_to_int((double)seq->ry * factor);
-	uint64_t memory_per_image = newx * newy * seq->nb_layers;
+	guint64 newx = round_to_int((double)seq->rx * factor);
+	guint64 newy = round_to_int((double)seq->ry * factor);
+	guint64 memory_per_image = newx * newy * seq->nb_layers;
 	if (force_float || get_data_type(seq->bitpix) == DATA_FLOAT)
 		memory_per_image *= sizeof(float);
 	else memory_per_image *= sizeof(WORD);

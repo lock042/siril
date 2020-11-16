@@ -10,6 +10,7 @@
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
+#include "io/image_formats_libraries.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif

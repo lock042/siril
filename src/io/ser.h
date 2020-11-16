@@ -1,12 +1,8 @@
 #ifndef _SER_H_
 #define _SER_H_
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
 
 #include <stdio.h>
-#include <stdint.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -45,7 +41,6 @@
 #define fseek64 _fseeki64  // Windows
 #define ftell64 _ftelli64  // Windows
 #endif
-
 
 #define SER_HEADER_LEN 178
 
@@ -99,13 +94,13 @@ struct ser_struct {
 	char observer[40];		// 40	(42)
 	char instrument[40];		// 40	(82)
 	char telescope[40];		// 40	(122)
-	uint64_t date;		// 8	(162)
-	uint64_t date_utc;	// 8 (170)
+	guint64 date;		// 8	(162)
+	guint64 date_utc;	// 8 (170)
 
 	/* timestamps (not in the header, timestamps are in trailer) */
-	uint64_t *ts;			// total timestamps
+	guint64 *ts;			// total timestamps
 	int ts_alloc;			// allocated number of elements in ts
-	uint64_t ts_min, ts_max;// min and max timestamp
+	guint64 ts_min, ts_max;// min and max timestamp
 	double fps;				// frame rate
 
 	int64_t filesize;			// size of the file

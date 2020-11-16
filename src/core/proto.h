@@ -2,13 +2,6 @@
 #define PROTO_H_
 #include <stdint.h>
 #include "core/siril.h"
-#ifdef HAVE_LIBTIFF
-#define uint64 uint64_hack_
-#define int64 int64_hack_
-#include <tiffio.h>
-#undef uint64
-#undef int64
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,31 +32,6 @@ struct pic_struct {
 	FILE *file;
 };
 int readpic(const char *name, fits *fit);
-
-/****************** image_formats_libraries.h ******************/
-#ifdef HAVE_LIBTIFF
-int readtif(const char *name, fits *fit, gboolean force_float);
-int savetif(const char *name, fits *fit, uint16 bitspersample);
-#endif
-
-#ifdef HAVE_LIBJPEG
-int readjpg(const char*, fits*);
-int savejpg(const char*, fits*, int);
-#endif
-
-#ifdef HAVE_LIBPNG
-int readpng(const char*, fits*);
-int savepng(const char *filename, fits *fit, uint32_t bytes_per_sample,
-		gboolean is_colour);
-#endif
-
-#ifdef HAVE_LIBRAW
-int open_raw_files(const char*, fits*, gboolean);
-#endif
-
-#ifdef HAVE_LIBHEIF
-int readheif(const char* name, fits *fit, gboolean interactive);
-#endif
 
 /****************** utils.h ******************/
 int round_to_int(double x);
