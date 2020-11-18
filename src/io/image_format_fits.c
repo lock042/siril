@@ -1022,12 +1022,12 @@ void save_fits_header(fits *fit) {
 	status = 0;
 	if (fit->expstart > 0.)
 		fits_update_key(fit->fptr, TDOUBLE, "EXPSTART", &(fit->expstart),
-				"Exposure start time (modified Julian date)", &status);
+				"Exposure start time (standard Julian date)", &status);
 
 	status = 0;
 	if (fit->expend > 0.)
 		fits_update_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->expend),
-				"Exposure end time (modified Julian date)", &status);
+				"Exposure end time (standard Julian date)", &status);
 
 	/* all keywords below are non-standard */
 	status = 0;
@@ -1172,17 +1172,15 @@ void save_fits_header(fits *fit) {
 
 /********************** public functions ************************************/
 
-GDateTime *get_date_data_from_fitsfile(fitsfile *fptr, double *exposure) {
+void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure) {
 	char date_obs[FLEN_VALUE];
-	GDateTime *dt = NULL;
 
 	__tryToFindKeywords(fptr, TDOUBLE, Exposure, exposure);
 	int status = 0;
 	fits_read_key(fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
 	if (!status) {
-		dt = FITS_date_to_date_time(date_obs);
+		*dt = FITS_date_to_date_time(date_obs);
 	}
-	return dt;
 }
 
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {

@@ -33,6 +33,35 @@
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
 
+typedef struct {
+	GDateTime *date_obs;
+	gdouble exposure;
+} DateEvent;
+
+static void free_list_date(gpointer data) {
+	DateEvent *item = data;
+
+	g_date_time_unref(item->date_obs);
+	g_slice_free(DateEvent, item);
+}
+
+static DateEvent* new_item(GDateTime *dt, gdouble exposure) {
+	DateEvent *item;
+
+	item = g_slice_new(DateEvent);
+	item->exposure = exposure;
+	item->date_obs = dt;
+
+	return item;
+}
+
+static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
+	const DateEvent *dt1 = (const DateEvent *) a;
+	const DateEvent *dt2 = (const DateEvent *) b;
+
+	return g_date_time_compare(dt1->date_obs, dt2->date_obs);
+}
+
 // in this case, N is the number of frames, so int is fine
 static float siril_stats_ushort_sd(const WORD data[], int N) {
 	double accumulator = 0.0; // accumulating in double precision is important for accuracy
@@ -66,36 +95,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
  * values, in the other some values can be rejected and the average of the
  * remaining ones is used.
  * ****************************************************************************/
-
-
-typedef struct {
-	GDateTime *date_obs;
-	gdouble exposure;
-} DateEvent;
-
-static void free_list_date(gpointer data) {
-	DateEvent *item = data;
-
-	g_date_time_unref(item->date_obs);
-	g_slice_free(DateEvent, data);
-}
-
-static DateEvent* new_item(GDateTime *dt, gdouble exposure) {
-	DateEvent *item;
-
-	item = g_slice_new(DateEvent);
-	item->exposure = exposure;
-	item->date_obs = dt;
-
-	return item;
-}
-
-static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
-	const DateEvent *dt1 = (const DateEvent *) a;
-	const DateEvent *dt2 = (const DateEvent *) b;
-
-	return g_date_time_compare(dt1->date_obs, dt2->date_obs);
-}
 
 int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes, GList **list_date, fits *fit) {
 	char msg[256], filename[256];
@@ -162,7 +161,9 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			}
 
 			gdouble current_exp;
-			GDateTime *dt = get_date_data_from_fitsfile(args->seq->fptr[image_index], &current_exp);
+			GDateTime *dt = NULL;
+
+			get_date_data_from_fitsfile(args->seq->fptr[image_index], &dt, &current_exp);
 			if (dt) {
 				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
 			}
@@ -660,10 +661,15 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 			exposure += ((DateEvent *)list->data)->exposure;
 		}
 
+		/* go to the first stacked image and get needed values */
 		list_date = g_list_first(list_date);
 		date_obs = g_date_time_ref(((DateEvent *)list_date->data)->date_obs);
 		start = date_time_to_Julian(((DateEvent *)list_date->data)->date_obs);
 
+		/* go to the last stacked image and get needed values
+		 * This time we need to add the exposure to the date_obs
+		 * to exactly retrieve the end of the exposure
+		 */
 		list_date = g_list_last(list_date);
 		gdouble last_exp = ((DateEvent *)list_date->data)->exposure;
 		GDateTime *last_date = ((DateEvent *)list_date->data)->date_obs;
