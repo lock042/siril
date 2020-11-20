@@ -192,15 +192,15 @@ void update_prepro_preferences() {
 	}
 	com.pref.use_flat_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")));
 
-	com.pref.xtrans_af.x = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_x"))));
-	com.pref.xtrans_af.y = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_y"))));
-	com.pref.xtrans_af.w = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_w"))));
-	com.pref.xtrans_af.h = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_h"))));
+	com.pref.xtrans_af.x = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_x"))), NULL, 10);
+	com.pref.xtrans_af.y = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_y"))), NULL, 10);
+	com.pref.xtrans_af.w = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_w"))), NULL, 10);
+	com.pref.xtrans_af.h = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_h"))), NULL, 10);
 
-	com.pref.xtrans_sample.x = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_x"))));
-	com.pref.xtrans_sample.y = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_y"))));
-	com.pref.xtrans_sample.w = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_w"))));
-	com.pref.xtrans_sample.h = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_h"))));
+	com.pref.xtrans_sample.x = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_x"))), NULL, 10);
+	com.pref.xtrans_sample.y = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_y"))), NULL, 10);
+	com.pref.xtrans_sample.w = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_w"))), NULL, 10);
+	com.pref.xtrans_sample.h = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_h"))), NULL, 10);
 }
 
 void on_button_reset_photometry_clicked(GtkButton *button, gpointer user_data) {
@@ -410,15 +410,6 @@ void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
 	reset_swapdir();
 }
 
-void on_spinbutton_mem_ratio_value_changed(GtkSpinButton *button, gpointer user_data) {
-	gdouble mem = gtk_spin_button_get_value(button);
-	com.pref.stack.memory_ratio = mem;
-}
-
-void on_spinbutton_mem_amount_value_changed(GtkSpinButton *button, gpointer user_data) {
-	gdouble mem = gtk_spin_button_get_value(button);
-	com.pref.stack.memory_amount = mem;
-}
 
 void on_spinbutton_comp_fits_quantization_value_changed(GtkSpinButton *button, gpointer user_data) {
 	gdouble quantization = gtk_spin_button_get_value(button);
@@ -431,11 +422,6 @@ void on_spinbutton_comp_fits_quantization_value_changed(GtkSpinButton *button, g
 			gtk_spin_button_set_value(button, com.pref.comp.fits_quantization != 0.0 ? com.pref.comp.fits_quantization : 16.0);
 		}
 	}
-	com.pref.comp.fits_quantization = quantization;
-}
-
-void on_spinbutton_comp_fits_hcompress_scale_value_changed(GtkSpinButton *button, gpointer user_data) {
-	com.pref.comp.fits_hcompress_scale = gtk_spin_button_get_value(button);
 }
 
 void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) {
@@ -445,7 +431,6 @@ void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) 
 	if (gtk_spin_button_get_value(button) == 0.0) {
 		gtk_spin_button_set_value(button, 16.0);
 	}
-	com.pref.comp.fits_method = method;
 	gtk_widget_set_sensitive(hcompress_scale_spin, (method == HCOMPRESS_COMP) ? TRUE : FALSE);
 }
 
@@ -542,9 +527,6 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 		gtk_file_chooser_set_filename(swap_dir, com.pref.swap_dir);
 		return;
 	}
-
-	g_free(com.pref.swap_dir);
-	com.pref.swap_dir = dir;
 }
 
 
@@ -552,64 +534,22 @@ void on_show_preview_button_toggled(GtkToggleButton *togglebutton, gpointer user
 	GtkWidget *label = lookup_widget("thumbnails_label_size");
 	GtkWidget *box = lookup_widget("thumbnails_box_size");
 
-	com.pref.show_thumbnails = gtk_toggle_button_get_active(togglebutton);
-	gtk_widget_set_sensitive(label, com.pref.show_thumbnails);
-	gtk_widget_set_sensitive(box, com.pref.show_thumbnails);
-}
-
-void on_thumbnails_box_size_changed(GtkComboBoxText *box, gpointer user_data) {
-	com.pref.thumbnail_size = (gtk_combo_box_get_active(GTK_COMBO_BOX(box)) == 0) ? 128 : 256;
-}
-
-void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.prepro_cfa = gtk_toggle_button_get_active(button);
-}
-
-void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.prepro_equalize_cfa = gtk_toggle_button_get_active(button);
-}
-
-void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.fix_xtrans = gtk_toggle_button_get_active(button);
+	gtk_widget_set_sensitive(label, gtk_toggle_button_get_active(togglebutton));
+	gtk_widget_set_sensitive(box, gtk_toggle_button_get_active(togglebutton));
 }
 
 
 void on_clear_bias_entry_clicked(GtkButton *button, gpointer user_data) {
-	g_free(com.pref.prepro_bias_lib);
-	com.pref.prepro_bias_lib = NULL;
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
-}
-
-void on_filechooser_dark_lib_file_set(GtkFileChooserButton *widget, gpointer user_data) {
-	g_free(com.pref.prepro_dark_lib);
-	com.pref.prepro_dark_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
-}
-
-void on_check_button_pref_dark_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.use_dark_lib = gtk_toggle_button_get_active(button);
 }
 
 void on_clear_dark_entry_clicked(GtkButton *button, gpointer user_data) {
-	g_free(com.pref.prepro_dark_lib);
-	com.pref.prepro_dark_lib = NULL;
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
-}
-
-void on_filechooser_flat_lib_file_set(GtkFileChooserButton *widget, gpointer user_data) {
-	g_free(com.pref.prepro_flat_lib);
-	com.pref.prepro_flat_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
-}
-
-void on_check_button_pref_flat_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.use_flat_lib = gtk_toggle_button_get_active(button);
 }
 
 void on_clear_flat_entry_clicked(GtkButton *button, gpointer user_data) {
-	g_free(com.pref.prepro_flat_lib);
-	com.pref.prepro_flat_lib = NULL;
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
 }
-
 
 void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("settings_window");
@@ -653,7 +593,7 @@ void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
 	}
 }
 
-static void set_preferences_ui_to_default(preferences *pref) {
+static void set_preferences_ui(preferences *pref) {
 	/* tab 1 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_multipliers")), pref->raw_set.auto_mul);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("Red_spinbutton")), pref->raw_set.mul[0]);
@@ -685,22 +625,22 @@ static void set_preferences_ui_to_default(preferences *pref) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")), pref->prepro_flat_lib != NULL);
 
 	gchar tmp[256];
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.x);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_af.x);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_x")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.y);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_af.y);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_y")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.w);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_af.w);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_w")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.h);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_af.h);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_h")), tmp);
 
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.x);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_sample.x);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_x")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.y);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_sample.y);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_y")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.w);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_sample.w);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_w")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.h);
+	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_sample.h);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_h")), tmp);
 
 	/* tab 4 */
@@ -737,7 +677,7 @@ static void set_preferences_ui_to_default(preferences *pref) {
 
 	/* tab 8 */
 	gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_swap")), pref->swap_dir);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext);
+	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_to_16bit ? 0 : 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->save.quit);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright);
@@ -763,10 +703,6 @@ static void dump_ui_to_global_var() {
 	update_misc_preferences();
 }
 
-static void dump_global_var_to_ui() {
-
-}
-
 void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	dump_ui_to_global_var();
 
@@ -778,6 +714,12 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	set_preferences_ui_to_default(&com.pref);
+	set_preferences_ui(&com.pref);
 	siril_close_dialog("settings_window");
 }
+
+void initialize_default_preferences() {
+	set_preferences_ui(&pref_init);
+	dump_ui_to_global_var();
+}
+

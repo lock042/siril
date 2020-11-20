@@ -36,5 +36,6 @@ void initialize_path_directory();
 void set_libraw_settings_menu_available(gboolean activate);
 void initialize_compression_param();
 void set_GUI_compression();
+void initialize_default_preferences();
 
 #endif /* SRC_GUI_PREFERENCES_H_ */
