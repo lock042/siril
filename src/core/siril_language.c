@@ -188,5 +188,4 @@ void update_language() {
 		gchar *str = gtk_combo_box_text_get_active_text(lang_combo);
 		com.pref.combo_lang = extract_locale_from_string(str);
 	}
-	writeinitfile();
 }

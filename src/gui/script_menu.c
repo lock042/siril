@@ -64,34 +64,6 @@ static GSList *initialize_script_paths(){
 	return list;
 }
 
-static GSList *get_list_from_textview() {
-	GSList *list = NULL;
-	static GtkTextBuffer *tbuf = NULL;
-	static GtkTextView *text = NULL;
-	GtkTextIter start, end;
-	gchar *txt;
-	gint i = 0;
-
-	if (!tbuf) {
-		text = GTK_TEXT_VIEW(lookup_widget("GtkTxtScriptPath"));
-		tbuf = gtk_text_view_get_buffer(text);
-	}
-	gtk_text_buffer_get_bounds(tbuf, &start, &end);
-	txt = gtk_text_buffer_get_text(tbuf, &start, &end, TRUE);
-	if (txt) {
-		gchar **token = g_strsplit(txt, "\n", -1);
-		while (token[i]) {
-			if (*token[i] != '\0')
-				list = g_slist_prepend(list, g_strdup(token[i]));
-			i++;
-		}
-		list = g_slist_reverse(list);
-		g_strfreev(token);
-	}
-
-	return list;
-}
-
 static void add_path_to_gtkText(gchar *path) {
 	static GtkTextBuffer *tbuf = NULL;
 	static GtkTextView *text = NULL;
@@ -264,7 +236,7 @@ int initialize_script_menu(gboolean UpdateScriptPath) {
 int refresh_scripts(gchar **error) {
 	gchar *err = NULL;
 	int retval;
-	GSList *list = get_list_from_textview();
+	GSList *list = get_list_from_preferences();
 	if (list == NULL) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
 		retval = 1;
@@ -279,17 +251,37 @@ int refresh_scripts(gchar **error) {
 	return retval;
 }
 
-void fill_script_paths_list() {
-	g_slist_free_full(com.pref.script_path, g_free);
-	GSList *list = get_list_from_textview();
-	com.pref.script_path = list;
-	writeinitfile();
-}
-
-
 /* Get Scripts menu */
 
 #define GET_SCRIPTS_URL "https://free-astro.org/index.php?title=Siril:scripts"
+
+GSList *get_list_from_preferences() {
+	GSList *list = NULL;
+	static GtkTextBuffer *tbuf = NULL;
+	static GtkTextView *text = NULL;
+	GtkTextIter start, end;
+	gchar *txt;
+	gint i = 0;
+
+	if (!tbuf) {
+		text = GTK_TEXT_VIEW(lookup_widget("GtkTxtScriptPath"));
+		tbuf = gtk_text_view_get_buffer(text);
+	}
+	gtk_text_buffer_get_bounds(tbuf, &start, &end);
+	txt = gtk_text_buffer_get_text(tbuf, &start, &end, TRUE);
+	if (txt) {
+		gchar **token = g_strsplit(txt, "\n", -1);
+		while (token[i]) {
+			if (*token[i] != '\0')
+				list = g_slist_prepend(list, g_strdup(token[i]));
+			i++;
+		}
+		list = g_slist_reverse(list);
+		g_strfreev(token);
+	}
+
+	return list;
+}
 
 void siril_get_on_script_pages() {
 	gboolean ret;

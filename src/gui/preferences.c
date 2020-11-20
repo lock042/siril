@@ -31,6 +31,7 @@
 #include "gui/PSF_list.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
+#include "stacking/stacking.h"
 
 #include "preferences.h"
 
@@ -42,6 +43,84 @@
  * Set swap dir to default
  */
 
+static preferences pref_init = {
+		TRUE, // first_start
+		TRUE, // remember_windows
+		{ 0, 0, 0, 0 }, // main_w_pos
+		FALSE, // is_maximized
+		FALSE, // prepro_cfa
+		TRUE, // prepro_equalize_cfa
+		FALSE, // fix_xtrans
+		{ 0, 0, 0, 0 }, // xtrans_af
+		{ 0, 0, 0, 0 }, // xtrans_sample
+		NULL, // prepro_bias_lib
+		FALSE, // use_bias_lib
+		NULL, // prepro_dark_lib
+		FALSE, // use_dark_lib
+		NULL, // prepro_flat_lib
+		FALSE, // use_flat_lib
+		{ // save structure
+				TRUE, // show quit
+				TRUE, // show scripts message
+		},
+		TRUE, // show_thumbnails
+		256, //thumbnail_size
+		TRUE, // check_update
+		TRUE, // check_script_version
+		0, // combo_theme
+		100, // font_scale
+		0, // combo_lang
+		NULL, // ext
+		NULL, // TODO !!! swap_dir
+		NULL, // script_path
+		{
+				{1.0, 1.0, 1.0}, // mul[3]
+				1.0, // bright
+				1, //auto_mul
+				0, // use_camera_wb
+				0, // use_auto_wb
+				2, // user_qual
+				0, // user_black
+				{ 1.0, 1.0 }, //gamm[2]
+		},
+		{
+				FALSE, // open_debayer
+				TRUE, // use_bayer_header
+				BAYER_FILTER_RGGB, // bayer_pattern
+				BAYER_RCD, // bayer_inter
+				TRUE, // top_down
+				0, // xbayeroff
+				0, // ybayeroff
+		},
+		{
+				2.3, // gain
+				20.0, // inner
+				30.0, // outer
+				0, // minval
+				65535, // maxval
+		},
+		{
+				0,
+				ADDITIVE_SCALING,
+				WINSORIZED,
+				3.0, 3.0,
+				5.0, 5.0,
+				3.0, 3.0,
+				RATIO,
+				0.9,
+				10,
+		},
+		{
+				FALSE, // fits_enabled
+				0, // fits_method
+				16.0, // fits_quantization
+				4.0, // fits_hcompress_scale
+		},
+		FALSE, // force_to_16bit
+		0, // selection_guides
+		NULL,
+};
+
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	const gchar *dir;
@@ -52,11 +131,10 @@ static void reset_swapdir() {
 		g_free(com.pref.swap_dir);
 		com.pref.swap_dir = g_strdup(dir);
 		gtk_file_chooser_set_filename(swap_dir, dir);
-		writeinitfile();
 	}
 }
 
-void update_libraw_and_debayer_interface() {
+void update_libraw_preferences() {
 	/**********COLOR ADJUSTEMENT**************/
 	com.pref.raw_set.bright = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("Brightness_spinbutton")));
 	com.pref.raw_set.mul[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("Red_spinbutton")));
@@ -86,13 +164,43 @@ void update_libraw_and_debayer_interface() {
 		com.pref.raw_set.gamm[0] = 2.40;
 		com.pref.raw_set.gamm[1] = 12.92;
 	}
-	/* We write in config file */
-	/*************SER**********************/
+}
+
+void update_debayer_preferences() {
 	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")));
 	com.pref.debayer.top_down = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")));
 	com.pref.debayer.xbayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")));
 	com.pref.debayer.ybayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")));
-	writeinitfile();
+	com.pref.debayer.bayer_pattern = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboBayer_pattern")));
+	com.pref.debayer.bayer_inter = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")));
+}
+
+void update_prepro_preferences() {
+	if (com.pref.prepro_bias_lib) {
+		g_free(com.pref.prepro_bias_lib);
+		com.pref.prepro_bias_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib")));
+	}
+	com.pref.use_bias_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias")));
+	if (com.pref.prepro_dark_lib) {
+		g_free(com.pref.prepro_dark_lib);
+		com.pref.prepro_dark_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib")));
+	}
+	com.pref.use_dark_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark")));
+	if (com.pref.prepro_flat_lib) {
+		g_free(com.pref.prepro_flat_lib);
+		com.pref.prepro_flat_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib")));
+	}
+	com.pref.use_flat_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")));
+
+	com.pref.xtrans_af.x = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_x"))));
+	com.pref.xtrans_af.y = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_y"))));
+	com.pref.xtrans_af.w = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_w"))));
+	com.pref.xtrans_af.h = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_h"))));
+
+	com.pref.xtrans_sample.x = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_x"))));
+	com.pref.xtrans_sample.y = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_y"))));
+	com.pref.xtrans_sample.w = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_w"))));
+	com.pref.xtrans_sample.h = atoi(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_h"))));
 }
 
 void on_button_reset_photometry_clicked(GtkButton *button, gpointer user_data) {
@@ -104,13 +212,74 @@ void on_button_reset_photometry_clicked(GtkButton *button, gpointer user_data) {
 	gfit.cvf = tmp;
 }
 
-void update_photometry_interface() {
+static void update_photometry_preferences() {
 	com.pref.phot_set.gain = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")));
 	com.pref.phot_set.inner = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")));
 	com.pref.phot_set.outer = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")));
 	com.pref.phot_set.minval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")));
 	com.pref.phot_set.maxval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")));
-	writeinitfile();
+}
+
+static void update_scripts_preferences() {
+	com.pref.script_path = get_list_from_preferences();
+	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
+	com.pref.save.script = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+}
+
+static void update_user_interface_preferences() {
+	update_language();
+	com.pref.combo_theme = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_theme")));
+	com.pref.font_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")));
+	com.pref.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
+	com.pref.show_thumbnails = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")));
+	com.pref.thumbnail_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"))) == 1 ? 256 : 128;
+}
+
+static void update_performances_preferences() {
+	GSList * tmp_list = gtk_radio_button_get_group (GTK_RADIO_BUTTON(lookup_widget("memfreeratio_radio")));
+	GtkToggleButton *tmp_button = NULL;//Create a temp toggle button.
+
+	while (tmp_list) {
+		tmp_button = tmp_list->data;
+		tmp_list = tmp_list->next;
+
+		if (gtk_toggle_button_get_active(tmp_button))
+			break;
+
+		tmp_button = NULL; //We've enumerated all of them, and none of them is active.
+	}
+	if (tmp_button) {
+		com.pref.stack.mem_mode = gtk_toggle_button_get_active(tmp_button);
+	}
+
+	com.pref.stack.memory_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")));
+	com.pref.stack.memory_amount = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")));
+
+	com.pref.comp.fits_enabled = !(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio"))));
+	com.pref.comp.fits_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method")));
+	com.pref.comp.fits_quantization = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization")));
+	com.pref.comp.fits_hcompress_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")));
+}
+
+static void update_misc_preferences() {
+	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+
+	g_free(com.pref.swap_dir);
+	com.pref.swap_dir = gtk_file_chooser_get_filename (swap_dir);
+
+	g_free(com.pref.ext);
+	const gchar *ext = gtk_combo_box_get_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")));
+	com.pref.ext = g_strdup(ext);
+
+	com.pref.force_to_16bit = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combobox_type"))) == 0;
+
+	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
+
+	g_free(com.pref.copyright);
+	const gchar *copy = gtk_entry_get_text(GTK_ENTRY(lookup_widget("miscCopyright")));
+	com.pref.copyright = g_strdup(copy);
+
+	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
 }
 
 void set_GUI_LIBRAW() {
@@ -237,14 +406,6 @@ void set_libraw_settings_menu_available(gboolean activate) {
 	}
 }
 
-void on_comboBayer_pattern_changed(GtkComboBox* box, gpointer user_data) {
-	com.pref.debayer.bayer_pattern = gtk_combo_box_get_active(box);
-}
-
-void on_comboBayer_inter_changed(GtkComboBox* box, gpointer user_data) {
-	com.pref.debayer.bayer_inter = gtk_combo_box_get_active(box);
-}
-
 void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
 	reset_swapdir();
 }
@@ -252,13 +413,11 @@ void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
 void on_spinbutton_mem_ratio_value_changed(GtkSpinButton *button, gpointer user_data) {
 	gdouble mem = gtk_spin_button_get_value(button);
 	com.pref.stack.memory_ratio = mem;
-	writeinitfile();
 }
 
 void on_spinbutton_mem_amount_value_changed(GtkSpinButton *button, gpointer user_data) {
 	gdouble mem = gtk_spin_button_get_value(button);
 	com.pref.stack.memory_amount = mem;
-	writeinitfile();
 }
 
 void on_spinbutton_comp_fits_quantization_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -273,17 +432,10 @@ void on_spinbutton_comp_fits_quantization_value_changed(GtkSpinButton *button, g
 		}
 	}
 	com.pref.comp.fits_quantization = quantization;
-	writeinitfile();
 }
 
 void on_spinbutton_comp_fits_hcompress_scale_value_changed(GtkSpinButton *button, gpointer user_data) {
 	com.pref.comp.fits_hcompress_scale = gtk_spin_button_get_value(button);
-	writeinitfile();
-}
-
-void on_pref_fontsize_value_changed(GtkSpinButton *button, gpointer user_data) {
-	com.pref.font_scale = gtk_spin_button_get_value(button);
-	writeinitfile();
 }
 
 void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) {
@@ -294,7 +446,6 @@ void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) 
 		gtk_spin_button_set_value(button, 16.0);
 	}
 	com.pref.comp.fits_method = method;
-	writeinitfile();
 	gtk_widget_set_sensitive(hcompress_scale_spin, (method == HCOMPRESS_COMP) ? TRUE : FALSE);
 }
 
@@ -376,21 +527,7 @@ void on_comp_fits_radio_toggled(GtkToggleButton *togglebutton, gpointer user_dat
 		com.pref.comp.fits_method = method;
 		com.pref.comp.fits_quantization = gtk_spin_button_get_value(GTK_SPIN_BUTTON(quantization_spin));
 		com.pref.comp.fits_hcompress_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(hcompress_scale_spin));
-		writeinitfile();
 	}
-}
-
-void on_combobox_ext_changed(GtkComboBox *box, gpointer user_data) {
-	if (com.pref.ext)
-		free(com.pref.ext);
-
-	com.pref.ext = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(box));
-	writeinitfile();
-}
-
-void on_combobox_type_changed(GtkComboBox *box, gpointer user_data) {
-	com.pref.force_to_16bit = gtk_combo_box_get_active(box) == 0;
-	writeinitfile();
 }
 
 void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
@@ -408,13 +545,8 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 
 	g_free(com.pref.swap_dir);
 	com.pref.swap_dir = dir;
-	writeinitfile();
 }
 
-
-void on_rememberWindowsCheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	com.pref.remember_windows = gtk_toggle_button_get_active(togglebutton);
-}
 
 void on_show_preview_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *label = lookup_widget("thumbnails_label_size");
@@ -431,27 +563,16 @@ void on_thumbnails_box_size_changed(GtkComboBoxText *box, gpointer user_data) {
 
 void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro_cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro_equalize_cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.fix_xtrans = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
-void on_filechooser_bias_lib_file_set(GtkFileChooserButton *widget, gpointer user_data) {
-	g_free(com.pref.prepro_bias_lib);
-	com.pref.prepro_bias_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
-}
-
-void on_check_button_pref_bias_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.use_bias_lib = gtk_toggle_button_get_active(button);
-}
 
 void on_clear_bias_entry_clicked(GtkButton *button, gpointer user_data) {
 	g_free(com.pref.prepro_bias_lib);
@@ -489,41 +610,6 @@ void on_clear_flat_entry_clicked(GtkButton *button, gpointer user_data) {
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
 }
 
-void on_confirmDontShowButton_toggled(GtkToggleButton *togglebutton,
-		gpointer user_data) {
-
-	com.pref.save.quit = gtk_toggle_button_get_active(togglebutton);
-	set_GUI_misc();
-	writeinitfile();
-}
-
-void on_miscAskScript_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-
-	com.pref.save.script = gtk_toggle_button_get_active(togglebutton);
-	set_GUI_misc();
-	writeinitfile();
-}
-
-void on_script_check_version_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-
-	com.pref.check_script_version = gtk_toggle_button_get_active(togglebutton);
-	set_GUI_misc();
-	writeinitfile();
-}
-
-void on_miscAskUpdateStartup_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-
-	com.pref.check_update = gtk_toggle_button_get_active(togglebutton);
-	set_GUI_misc();
-	writeinitfile();
-}
-
-void on_miscCopyright_changed(GtkEditable *editable, gpointer user_data) {
-	g_free(com.pref.copyright);
-	com.pref.copyright = NULL;
-	const gchar *value = gtk_entry_get_text(GTK_ENTRY(editable));
-	com.pref.copyright = g_strdup(value);
-}
 
 void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("settings_window");
@@ -537,18 +623,6 @@ void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {
 	if (retval) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot refresh script list"), error);
 	}
-}
-
-void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	update_libraw_and_debayer_interface();
-	update_photometry_interface();
-	update_language();
-	initialize_FITS_name_entries();
-	save_xtrans_ui_pixels();
-	fill_script_paths_list();
-	refresh_stars_list(com.stars);
-	save_main_window_state();
-	siril_close_dialog("settings_window");
 }
 
 void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
@@ -577,4 +651,133 @@ void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
 				_("Inner radius value must be less than outer. Please change the value."));
 	}
+}
+
+static void set_preferences_ui_to_default(preferences *pref) {
+	/* tab 1 */
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_multipliers")), pref->raw_set.auto_mul);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("Red_spinbutton")), pref->raw_set.mul[0]);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("Blue_spinbutton")), pref->raw_set.mul[2]);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("Brightness_spinbutton")), pref->raw_set.bright);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_blackpoint")), pref->raw_set.user_black);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm0")), pref->raw_set.gamm[0]);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_dcraw_inter")), pref->raw_set.user_qual); // VNG
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_cam")), pref->raw_set.use_camera_wb);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto")), pref->raw_set.use_auto_wb);
+
+	/* tab 2 */
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")), pref->debayer.use_bayer_header);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_pattern")), pref->debayer.bayer_pattern);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")), pref->debayer.bayer_inter);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")), pref->debayer.xbayeroff);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")), pref->debayer.ybayeroff);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")), pref->debayer.top_down);
+
+	/* tab 3 */
+	// TODO : transfer value into gtk_file_chooser
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib")));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias")), pref->prepro_bias_lib != NULL);
+
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib")));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark")), pref->prepro_dark_lib != NULL);
+
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib")));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")), pref->prepro_flat_lib != NULL);
+
+	gchar tmp[256];
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.x);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_x")), tmp);
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.y);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_y")), tmp);
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.w);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_w")), tmp);
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_af.h);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_h")), tmp);
+
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.x);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_x")), tmp);
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.y);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_y")), tmp);
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.w);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_w")), tmp);
+	g_snprintf(tmp, sizeof(tmp), "%.0lf", pref->xtrans_sample.h);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_h")), tmp);
+
+	/* tab 4 */
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), pref->phot_set.inner);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), pref->phot_set.gain);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), pref->phot_set.minval);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);
+
+	/* tab 5 */
+	/* TODO: script list */
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->save.script);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->check_update);
+
+	/* tab 6 */
+	/* TODO: .LANGUAGE */
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_language")), 0); /* System Language */
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_theme")), pref->combo_theme); /* Dark Theme */
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")), pref->font_scale);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")), pref->remember_windows);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->show_thumbnails);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->thumbnail_size == 256 ? 1 : 0);
+
+	/* tab 7 */
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->stack.mem_mode == RATIO);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->stack.mem_mode == AMOUNT);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memunlimited_radio")), pref->stack.mem_mode == UNLIMITED);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->stack.memory_ratio);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")), pref->stack.memory_amount);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio")), !pref->comp.fits_enabled);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method")), pref->comp.fits_method); /* Rice compression */
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization")), pref->comp.fits_quantization);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")), pref->comp.fits_hcompress_scale);
+
+	/* tab 8 */
+	gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_swap")), pref->swap_dir);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_to_16bit ? 0 : 1);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->save.quit);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
+}
+
+static void dump_ui_to_global_var() {
+	/* tab 1 */
+	update_libraw_preferences();
+	/* tab 2 */
+	update_debayer_preferences();
+	/* tab 3 */
+	update_prepro_preferences();
+	/* tab 4 */
+	update_photometry_preferences();
+	/* tab 5 */
+	update_scripts_preferences();
+	/* tab 6 */
+	update_user_interface_preferences();
+	/* tab 7 */
+	update_performances_preferences();
+	/* tab 8 */
+	update_misc_preferences();
+}
+
+static void dump_global_var_to_ui() {
+
+}
+
+void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	dump_ui_to_global_var();
+
+	initialize_FITS_name_entries();
+	refresh_stars_list(com.stars);
+	save_main_window_state();
+	siril_close_dialog("settings_window");
+	writeinitfile();
+}
+
+void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	set_preferences_ui_to_default(&com.pref);
+	siril_close_dialog("settings_window");
 }
