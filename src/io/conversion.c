@@ -456,6 +456,11 @@ typedef enum {
 	WRITE_OK
 } seqwrite_status;
 
+struct reader_seq_counter {
+	gint count;
+	gboolean close_sequence_after_read;
+};
+
 /* single image reading information */
 struct reader_data {
 	/* read from an opened sequence, whichever is not NULL */
@@ -467,7 +472,7 @@ struct reader_data {
 	struct film_struct *film;
 #endif
 	int index;
-	gboolean close_sequence_after_read;
+	struct reader_seq_counter *seq_count;
 
 	/* or read from a file to open */
 	char *filename;
@@ -505,6 +510,7 @@ typedef struct {
 #endif
 	int next_file;		// index in the list of input files
 	int next_image_in_file;	// index in an input sequence
+	struct reader_seq_counter *seq_count;
 
 	/* output */
 	struct ser_struct *output_ser;
@@ -646,6 +652,39 @@ gpointer convert_thread_worker(gpointer p) {
 
 }
 
+static struct reader_seq_counter *get_new_counter() {
+	struct reader_seq_counter *counter = malloc(sizeof(struct reader_seq_counter));
+	counter->count = 0;
+	counter->close_sequence_after_read = FALSE;
+	return counter;
+}
+
+static void count_reader(struct reader_seq_counter *counter, gboolean close_after_read) {
+	g_atomic_int_inc(&counter->count);
+	counter->close_sequence_after_read = close_after_read;
+}
+
+static void finish_read_seq(struct reader_data *reader) {
+	gboolean last = g_atomic_int_dec_and_test(&reader->seq_count->count);
+	if (last && reader->seq_count->close_sequence_after_read) {
+		if (reader->ser) {
+			siril_debug_print("Closing input SER sequence %s\n", reader->ser->filename);
+			ser_close_file(reader->ser);
+		}
+		else if (reader->fitseq) {
+			siril_debug_print("Closing input FITS sequence file %s\n", reader->fitseq->filename);
+			fitseq_close_file(reader->fitseq);
+		}
+#ifdef HAVE_FFMS2
+		else if (reader->film) {
+			siril_debug_print("Closing input film %s\n", reader->film->filename);
+			film_close_file(reader->film);
+		}
+#endif
+		free(reader->seq_count);
+	}
+}
+
 /* the reader part, reader arg must be zeroed */
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader) {
 	seqread_status retval = GOT_READ_ERROR;
@@ -655,8 +694,9 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 	if (conv->current_ser) {
 		reader->ser = conv->current_ser;
 		reader->index = conv->next_image_in_file++;
+		reader->seq_count = conv->seq_count;
+		count_reader(reader->seq_count, conv->next_image_in_file == conv->current_ser->frame_count);
 		if (conv->next_image_in_file == conv->current_ser->frame_count) {
-			reader->close_sequence_after_read = TRUE;
 			retval = conv->next_file == conv->args->total ?
 				GOT_OK_LAST_IN_SEQ_LAST_FILE : GOT_OK_LAST_IN_SEQ;
 			conv->current_ser = NULL;
@@ -668,8 +708,9 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 		reader->index = conv->next_image_in_file++;
 		reader->threads = conv->threads;
 		reader->nb_threads = conv->number_of_threads;
+		reader->seq_count = conv->seq_count;
+		count_reader(reader->seq_count, conv->next_image_in_file == conv->current_fitseq->frame_count);
 		if (conv->next_image_in_file == conv->current_fitseq->frame_count) {
-			reader->close_sequence_after_read = TRUE;
 			retval = conv->next_file == conv->args->total ?
 				GOT_OK_LAST_IN_SEQ_LAST_FILE : GOT_OK_LAST_IN_SEQ;
 			conv->current_fitseq = NULL;
@@ -681,8 +722,9 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 	else if (conv->current_film) {
 		reader->film = conv->current_film;
 		reader->index = conv->next_image_in_file++;
+		reader->seq_count = conv->seq_count;
+		count_reader(reader->seq_count, conv->next_image_in_file == conv->current_film->frame_count);
 		if (conv->next_image_in_file == conv->current_film->frame_count) {
-			reader->close_sequence_after_read = TRUE;
 			retval = conv->next_file == conv->args->total ?
 				GOT_OK_LAST_IN_SEQ_LAST_FILE : GOT_OK_LAST_IN_SEQ;
 			conv->current_film = NULL;
@@ -762,19 +804,13 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		if (ser_read_frame(reader->ser, reader->index, fit))
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
-		if (reader->close_sequence_after_read) {
-			siril_debug_print("Closing input SER sequence %s\n", reader->ser->filename);
-			ser_close_file(reader->ser);
-		}
+		finish_read_seq(reader);
 	} else if (reader->fitseq) {
 		fit = calloc(1, sizeof(fits));
 		if (fitseq_read_frame(reader->fitseq, reader->index, fit, FALSE, get_thread_id(reader)))
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
-		if (reader->close_sequence_after_read) {
-			siril_debug_print("Closing input FITS sequence file %s\n", reader->fitseq->filename);
-			fitseq_close_file(reader->fitseq);
-		}
+		finish_read_seq(reader);
 	}
 #ifdef HAVE_FFMS2
 	else if (reader->film) {
@@ -782,10 +818,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		if (film_read_frame(reader->film, reader->index, fit) != FILM_SUCCESS)
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
-		if (reader->close_sequence_after_read) {
-			siril_debug_print("Closing input film %s\n", reader->film->filename);
-			film_close_file(reader->film);
-		}
+		finish_read_seq(reader);
 	}
 #endif
 	else if (reader->filename) {
@@ -829,7 +862,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	}
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {
 		siril_debug_print("read error, ignoring image\n");
-		conv->failed_images++;	// TODO mutex?
+		g_atomic_int_inc(&conv->failed_images);
 		return;
 	}
 
@@ -943,6 +976,7 @@ static seqread_status open_next_sequence(const char *src_filename, convert_statu
 			convert->current_film = NULL;
 			return OPEN_ERROR;
 		}
+		convert->seq_count = get_new_counter();
 		return OPEN_OK;
 	}
 #endif
@@ -961,6 +995,7 @@ static seqread_status open_next_sequence(const char *src_filename, convert_statu
 			convert->current_ser = NULL;
 			return OPEN_ERROR;
 		}
+		convert->seq_count = get_new_counter();
 		return OPEN_OK;
 	}
 	else if (imagetype == TYPEFITS && fitseq_is_fitseq(name, NULL)) {
@@ -978,6 +1013,7 @@ static seqread_status open_next_sequence(const char *src_filename, convert_statu
 			convert->current_fitseq = NULL;
 			return OPEN_ERROR;
 		}
+		convert->seq_count = get_new_counter();
 		return OPEN_OK;
 	}
 	return OPEN_NOT_A_SEQ;
@@ -1050,18 +1086,18 @@ static void print_reader(struct reader_data *reader) {
 	if (reader->ser)
 		siril_debug_print("I> reader: %s image %d%s%s\n", reader->ser->filename,
 				reader->index,
-				reader->close_sequence_after_read ? " (close after read)" : "",
+				reader->seq_count->close_sequence_after_read ? " (close after read)" : "",
 				reader->debayer ? " (debayer)" : "");
 	else if (reader->fitseq)
 		siril_debug_print("I> reader: %s image %d%s%s\n", reader->fitseq->filename,
 				reader->index,
-				reader->close_sequence_after_read ? " (close after read)" : "",
+				reader->seq_count->close_sequence_after_read ? " (close after read)" : "",
 				reader->debayer ? " (debayer)" : "");
 #ifdef HAVE_FFMS2
 	else if (reader->film)
 		siril_debug_print("I> reader: %s image %d%s%s\n", reader->film->filename,
 				reader->index,
-				reader->close_sequence_after_read ? " (close after read)" : "",
+				reader->seq_count->close_sequence_after_read ? " (close after read)" : "",
 				reader->debayer ? " (debayer)" : "");
 #endif
 	else siril_debug_print("I> reader: %s%s\n", reader->filename,
