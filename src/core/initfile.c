@@ -540,33 +540,13 @@ int writeinitfile() {
 }
 
 void init_settings() {
-	/* initialize photometric variables */
-	initialize_photometric_param();
 	/* initialize peaker variables */
 	init_peaker_default();
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
-	/* initialize stacking-relatede stuff */
-	initialize_stacking_default();
-
-	com.pref.stack.mem_mode = 0;
-	com.pref.stack.memory_ratio = 0.9;
-	com.pref.stack.memory_amount = 4.0;
-	com.pref.thumbnail_size = 256;
-	com.pref.ext = g_strdup(".fit");
-	com.pref.force_to_16bit = FALSE;
-	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 
 	com.wd = g_strdup(siril_get_startup_dir());
-
-	com.pref.first_start = TRUE;
-	com.pref.save.quit = FALSE;
-	com.pref.save.script = TRUE;
-	com.pref.check_script_version = TRUE;
-	com.pref.show_thumbnails = TRUE;
-	com.pref.remember_windows = TRUE;
-	com.pref.check_update = TRUE;
-	com.pref.font_scale = 100.0;
+	initialize_default_preferences();
 }
 
 int checkinitfile() {

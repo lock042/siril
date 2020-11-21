@@ -39,10 +39,6 @@
 #define W_OK 2
 #endif
 
-/*
- * Set swap dir to default
- */
-
 static preferences pref_init = {
 		TRUE, // first_start
 		TRUE, // remember_windows
@@ -70,7 +66,7 @@ static preferences pref_init = {
 		0, // combo_theme
 		100, // font_scale
 		0, // combo_lang
-		NULL, // ext
+		NULL, // TODO ext
 		NULL, // TODO !!! swap_dir
 		NULL, // script_path
 		{
@@ -657,7 +653,7 @@ static void set_preferences_ui(preferences *pref) {
 
 	/* tab 6 */
 	/* TODO: .LANGUAGE */
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_language")), 0); /* System Language */
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_language")), 0); /* TODO System Language */
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_theme")), pref->combo_theme); /* Dark Theme */
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")), pref->font_scale);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")), pref->remember_windows);
@@ -703,6 +699,24 @@ static void dump_ui_to_global_var() {
 	update_misc_preferences();
 }
 
+static void reset_preferences() {
+	memcpy(&com.pref, &pref_init, sizeof(preferences));
+	/* set dynamic values */
+	if (!com.pref.ext) com.pref.ext = g_strdup(".fit");
+	if (!com.pref.swap_dir) com.pref.swap_dir = g_strdup(g_get_tmp_dir());
+	// TODO script list
+}
+
+static void free_preferences() {
+	g_free(com.pref.ext);
+	g_free(com.pref.swap_dir);
+	// TODO script list
+}
+
+void initialize_default_preferences() {
+	reset_preferences();
+}
+
 void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	dump_ui_to_global_var();
 
@@ -718,8 +732,9 @@ void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("settings_window");
 }
 
-void initialize_default_preferences() {
-	set_preferences_ui(&pref_init);
-	dump_ui_to_global_var();
+void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	reset_preferences();
+	set_preferences_ui(&com.pref);
 }
+
 

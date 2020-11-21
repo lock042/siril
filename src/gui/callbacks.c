@@ -1277,9 +1277,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* Keybord Shortcuts */
 	load_accels();
 
-	/* Select combo boxes that trigger some text display or other things */
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboboxstack_methods")), 0);
-
 	GtkLabel *label_supported = GTK_LABEL(lookup_widget("label_supported_types"));
 	gtk_label_set_text(label_supported, supported_files);
 
@@ -1295,15 +1292,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* initialize command completion */
 	init_completion_command();
 
-	/* initialize preprocessing */
-	initialize_preprocessing();
-
-	/* initialize registration methods */
-	initialize_registration_methods();
-
-	/* initialize stacking methods */
-	initialize_stacking_methods();
-
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);
 	register_selection_update_callback(update_display_selection);
@@ -1314,8 +1302,6 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	initialize_FITS_name_entries();
 
-	init_xtrans_ui_pixels();
-
 	initialize_log_tags();
 
 	/* support for converting files by dragging onto the GtkTreeView */
@@ -1324,17 +1310,17 @@ void initialize_all_GUI(gchar *supported_files) {
 			GDK_ACTION_COPY);
 
 	set_GUI_CWD();
-	set_GUI_misc();
+//	set_GUI_misc();
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
-	set_GUI_compression();
-	set_GUI_photometry();
+//	set_GUI_compression();
+//	set_GUI_photometry();
 	init_peaker_GUI();
-#ifdef HAVE_LIBRAW
-	set_libraw_settings_menu_available(TRUE);	// enable libraw settings
-	set_GUI_LIBRAW();
-#else
-	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
-#endif
+//#ifdef HAVE_LIBRAW
+//	set_libraw_settings_menu_available(TRUE);	// enable libraw settings
+//	set_GUI_LIBRAW();
+//#else
+//	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
+//#endif
 	update_spinCPU(com.max_thread);
 
 	if (com.pref.first_start) {
@@ -1490,19 +1476,19 @@ void on_menu_gray_header_activate(GtkMenuItem *menuitem, gpointer user_data) {
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* focal_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.focal_length = atof(focal_entry);
+	gfit.focal_length = g_ascii_strtod(focal_entry, NULL);
 	drawPlot();
 }
 
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchX_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.pixel_size_x = (float) atof(pitchX_entry);
+	gfit.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
 	drawPlot();
 }
 
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchY_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.pixel_size_y = (float) atof(pitchY_entry);
+	gfit.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
 	drawPlot();
 }
 
@@ -1682,7 +1668,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar *txt = gtk_entry_get_text(GTK_ENTRY(editable));
 	if (g_ascii_isalnum(txt[0])) {
 
-		int value = atoi(txt);
+		guint value = g_ascii_strtoull(txt, NULL, 10);
 
 		if (com.sliders != USER) {
 			com.sliders = USER;
@@ -1740,7 +1726,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar *txt = gtk_entry_get_text(GTK_ENTRY(editable));
 	if (g_ascii_isalnum(txt[0])) {
 
-		int value = atoi(txt);
+		guint value = g_ascii_strtoull(txt, NULL, 10);
 
 		if (com.sliders != USER) {
 			com.sliders = USER;
