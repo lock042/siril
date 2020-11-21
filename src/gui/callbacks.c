@@ -1277,6 +1277,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* Keybord Shortcuts */
 	load_accels();
 
+	/* Select combo boxes that trigger some text display or other things */
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboboxstack_methods")), 0);
+
 	GtkLabel *label_supported = GTK_LABEL(lookup_widget("label_supported_types"));
 	gtk_label_set_text(label_supported, supported_files);
 
@@ -1292,6 +1295,15 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* initialize command completion */
 	init_completion_command();
 
+	/* initialize preprocessing */
+	initialize_preprocessing();
+
+	/* initialize registration methods */
+	initialize_registration_methods();
+
+	/* initialize stacking methods */
+	initialize_stacking_methods();
+
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);
 	register_selection_update_callback(update_display_selection);
@@ -1302,6 +1314,8 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	initialize_FITS_name_entries();
 
+	init_xtrans_ui_pixels();
+
 	initialize_log_tags();
 
 	/* support for converting files by dragging onto the GtkTreeView */
@@ -1310,17 +1324,17 @@ void initialize_all_GUI(gchar *supported_files) {
 			GDK_ACTION_COPY);
 
 	set_GUI_CWD();
-//	set_GUI_misc();
+	set_GUI_misc();
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
-//	set_GUI_compression();
-//	set_GUI_photometry();
+	set_GUI_compression();
+	set_GUI_photometry();
 	init_peaker_GUI();
-//#ifdef HAVE_LIBRAW
-//	set_libraw_settings_menu_available(TRUE);	// enable libraw settings
-//	set_GUI_LIBRAW();
-//#else
-//	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
-//#endif
+#ifdef HAVE_LIBRAW
+	set_libraw_settings_menu_available(TRUE);	// enable libraw settings
+	set_GUI_LIBRAW();
+#else
+	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
+#endif
 	update_spinCPU(com.max_thread);
 
 	if (com.pref.first_start) {
