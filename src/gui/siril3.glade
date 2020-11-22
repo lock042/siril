@@ -18151,7 +18151,6 @@ If the selection is empty, the whole image will be used as reference.</property>
                                       <item>GBRG</item>
                                       <item>GRBG</item>
                                     </items>
-                                    <signal name="changed" handler="on_comboBayer_pattern_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -18200,7 +18199,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                       <item translatable="yes">LMMSE</item>
                                       <item translatable="yes">RCD</item>
                                     </items>
-                                    <signal name="changed" handler="on_comboBayer_inter_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -18336,7 +18334,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="filter">filefilter_fits</property>
                                     <property name="title" translatable="yes">master-bias</property>
                                     <property name="width_chars">40</property>
-                                    <signal name="file-set" handler="on_filechooser_bias_lib_file_set" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -18351,7 +18348,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="filter">filefilter_fits</property>
                                     <property name="title" translatable="yes">master-dark</property>
                                     <property name="width_chars">40</property>
-                                    <signal name="file-set" handler="on_filechooser_dark_lib_file_set" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -18366,7 +18362,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="filter">filefilter_fits</property>
                                     <property name="title" translatable="yes">master-flat</property>
                                     <property name="width_chars">40</property>
-                                    <signal name="file-set" handler="on_filechooser_flat_lib_file_set" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -18445,7 +18440,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="tooltip_text" translatable="yes">Use the chosen master as default file in the pre-processing tab</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_check_button_pref_flat_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">3</property>
@@ -18461,7 +18455,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="tooltip_text" translatable="yes">Use the chosen master as default file in the pre-processing tab</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_check_button_pref_dark_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">3</property>
@@ -18477,7 +18470,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="tooltip_text" translatable="yes">Use the chosen master as default file in the pre-processing tab</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_check_button_pref_bias_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">3</property>
@@ -19287,7 +19279,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="receives_default">False</property>
                                     <property name="halign">start</property>
                                     <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_miscAskScript_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -19307,7 +19298,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="halign">start</property>
                                     <property name="active">True</property>
                                     <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_script_check_version_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -19451,7 +19441,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="adjustment">adj_fontsize</property>
                                     <property name="numeric">True</property>
                                     <property name="value">100</property>
-                                    <signal name="value-changed" handler="on_pref_fontsize_value_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -19532,7 +19521,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                 <property name="halign">start</property>
                                 <property name="active">True</property>
                                 <property name="draw_indicator">True</property>
-                                <signal name="toggled" handler="on_rememberWindowsCheck_toggled" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -19612,7 +19600,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                       <item translatable="yes">Small (128x128)</item>
                                       <item translatable="yes">Normal (256x256)</item>
                                     </items>
-                                    <signal name="changed" handler="on_thumbnails_box_size_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -19743,7 +19730,6 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
                                     <property name="value">0.90000000000000002</property>
-                                    <signal name="value-changed" handler="on_spinbutton_mem_ratio_value_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -19763,7 +19749,6 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
                                     <property name="value">4</property>
-                                    <signal name="value-changed" handler="on_spinbutton_mem_amount_value_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -19987,7 +19972,6 @@ The technique gives very good compression for astronomical images and is relativ
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
                                     <property name="value">4</property>
-                                    <signal name="value-changed" handler="on_spinbutton_comp_fits_hcompress_scale_value_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">2</property>
@@ -20220,7 +20204,6 @@ The technique gives very good compression for astronomical images and is relativ
                                       <item id=".fits" translatable="yes">.fits</item>
                                       <item id=".fts" translatable="yes">.fts</item>
                                     </items>
-                                    <signal name="changed" handler="on_combobox_ext_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -20251,7 +20234,6 @@ The technique gives very good compression for astronomical images and is relativ
                                       <item translatable="yes">16-bit unsigned integer</item>
                                       <item translatable="yes">32-bit floating point</item>
                                     </items>
-                                    <signal name="changed" handler="on_combobox_type_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -20353,7 +20335,6 @@ The technique gives very good compression for astronomical images and is relativ
                                 <property name="receives_default">False</property>
                                 <property name="halign">start</property>
                                 <property name="draw_indicator">True</property>
-                                <signal name="toggled" handler="on_confirmDontShowButton_toggled" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -20440,7 +20421,6 @@ The technique gives very good compression for astronomical images and is relativ
                                 <property name="halign">start</property>
                                 <property name="active">True</property>
                                 <property name="draw_indicator">True</property>
-                                <signal name="toggled" handler="on_miscAskUpdateStartup_toggled" swapped="no"/>
                               </object>
                             </child>
                           </object>
