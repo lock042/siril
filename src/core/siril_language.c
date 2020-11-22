@@ -178,14 +178,13 @@ void language_init(const gchar *language) {
 	setlocale(LC_ALL, "");
 }
 
-void update_language() {
+gchar *get_interface_language() {
 	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(lookup_widget("combo_language"));
 
-	g_free(com.pref.combo_lang);
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lang_combo)) == 0) {
-		com.pref.combo_lang = g_strdup("");
+		return g_strdup("");
 	} else {
 		gchar *str = gtk_combo_box_text_get_active_text(lang_combo);
-		com.pref.combo_lang = extract_locale_from_string(str);
+		return extract_locale_from_string(str);
 	}
 }

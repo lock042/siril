@@ -223,7 +223,7 @@ static void update_scripts_preferences() {
 }
 
 static void update_user_interface_preferences() {
-	update_language();
+	com.pref.combo_lang = get_interface_language();
 	com.pref.combo_theme = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_theme")));
 	com.pref.font_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")));
 	com.pref.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
@@ -688,6 +688,7 @@ static void free_preferences() {
 	g_free(com.pref.ext);
 	g_free(com.pref.swap_dir);
 	g_free(com.pref.copyright);
+	g_free(com.pref.combo_lang);
 	// TODO script list
 }
 
