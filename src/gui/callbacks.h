@@ -2,7 +2,6 @@
 #define CALLBACKS_H
 
 #include <sys/time.h>
-#include <stdint.h>
 #include "core/siril.h"	// for sliders_mode
 
 GtkWidget* lookup_widget (const gchar *widget_name);
@@ -15,10 +14,10 @@ void set_sliders_value_to_gfit();
 void initialize_display_mode();
 void set_display_mode();
 void adjust_exclude(int n, gboolean changed);
-int adjust_sellabel();
+void adjust_sellabel();
 void set_GUI_CWD();
-void set_GUI_MEM(unsigned long long size, const gchar *label);
-void set_GUI_DiskSpace(int64_t mem, const gchar *label);
+void set_GUI_MEM(guint64 used, const gchar *label);
+void set_GUI_DiskSpace(gint64 mem, const gchar *label);
 void set_GUI_misc();
 void set_icon_entry(GtkEntry *entry, gchar *string);
 void update_MenuItem();

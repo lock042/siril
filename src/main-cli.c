@@ -50,15 +50,12 @@
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
 #include "core/OS_utils.h"
-#include "algos/star_finder.h"
-#include "algos/photometry.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
-#include "stacking/stacking.h"
 
 /* the global variables of the whole project */
 cominfo com;	// the main data struct
@@ -154,35 +151,10 @@ static void siril_app_activate(GApplication *application) {
 
 	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
 
-	/***************
-	 *  initialization of some parameters that need to be done before
-	 * checkinitfile
-	 ***************/
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();
-	/* initialize photometric variables */
-	initialize_photometric_param();
-	/* initialize peaker variables */
-	init_peaker_default();
-	/* initialize sequence-related stuff */
-	initialize_sequence(&com.seq, TRUE);
-	/* initialize stacking-relatede stuff */
-	initialize_stacking_default();
-
-	/* we also initialize a couple of important variables */
-	com.pref.stack.mem_mode = 0;
-	com.pref.stack.memory_ratio = 0.9;
-	com.pref.stack.memory_amount = 4.0;
-	com.pref.thumbnail_size = 256;
-	com.pref.ext = g_strdup(".fit");
-	com.pref.force_to_16bit = FALSE;
-	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
-
-	/* set default CWD, and load init file
-	 * checkinitfile will load all saved parameters
-	 * */
-	com.wd = g_strdup(siril_get_startup_dir());
 	startup_cwd = g_get_current_dir();
+
 	if (checkinitfile()) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
 		exit(EXIT_FAILURE);

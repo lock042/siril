@@ -930,10 +930,20 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
 		int nb_frames = reg_args->process_all_frames ? reg_args->seq->number : reg_args->seq->selnum;
-		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
+		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
 		if (test_available_space(size) > 0) {
+			free(reg_args);
+			unreserve_thread();
+			return;
+		}
+	} else if (method->method_ptr == register_comet) {
+		pointf velocity = get_velocity();
+		if ((velocity.x == 0.0 && velocity.y == 0.0)
+				|| isinf(velocity.x) || isinf(velocity.y)) {
+			msg = siril_log_color_message(_("The object is not moving, please check your registration data.\n"), "red");
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), msg);
 			free(reg_args);
 			unreserve_thread();
 			return;

@@ -1,8 +1,8 @@
 #include <string.h>
 
-#include "algos/geometry.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_date.h"
 #include "sequence.h"
 #include "ser.h"
 #include "stacking/stacking.h"
@@ -18,6 +18,8 @@
 #ifdef HAVE_FFMPEG
 #include "io/mp4_output.h"
 #endif
+#include "algos/geometry.h"
+
 
 struct exportseq_args {
 	sequence *seq;
@@ -79,7 +81,7 @@ static gpointer export_sequence(gpointer ptr) {
 	struct ser_struct *ser_file = NULL;
 	GSList *timestamp = NULL;
 	char *filter_descr;
-	gchar *strTime;
+	GDateTime *strTime;
 #ifdef HAVE_FFMPEG
 	struct mp4_struct *mp4_file = NULL;
 #endif
@@ -406,7 +408,7 @@ static gpointer export_sequence(gpointer ptr) {
 				break;
 #endif
 			case TYPESER:
-				strTime = strdup(destfit.date_obs);
+				strTime = g_date_time_ref(destfit.date_obs);
 				timestamp = g_slist_append (timestamp, strTime);
 				if (ser_write_frame_from_fit(ser_file, &destfit, i - skipped))
 					siril_log_message(
@@ -452,7 +454,7 @@ free_and_reset_progress_bar:
 		ser_convertTimeStamp(ser_file, timestamp);
 		ser_write_and_close(ser_file);
 		free(ser_file);
-		g_slist_free_full(timestamp, g_free);
+		g_slist_free_full(timestamp, (GDestroyNotify) g_date_time_unref);
 	}
 	else if (args->convflags == TYPEAVI) {
 		avi_file_close(0);
@@ -521,11 +523,11 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	case EXPORT_MP4:
 	case EXPORT_WEBM:
 		fpsEntry = GTK_ENTRY(lookup_widget("entryAviFps"));
-		args->avi_fps = atoi(gtk_entry_get_text(fpsEntry));
+		args->avi_fps = g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL);
 		widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
-		args->dest_width = atof(gtk_entry_get_text(widthEntry));
+		args->dest_width = g_ascii_strtoll(gtk_entry_get_text(widthEntry), NULL, 10);
 		heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
-		args->dest_height = atof(gtk_entry_get_text(heightEntry));
+		args->dest_height = g_ascii_strtoll(gtk_entry_get_text(heightEntry), NULL, 10);
 		checkResize = GTK_TOGGLE_BUTTON(lookup_widget("checkAviResize"));
 		adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(builder,"adjustment3"));
 		args->quality = (int)gtk_adjustment_get_value(adjQual);
@@ -602,7 +604,7 @@ void on_entryAviWidth_changed(GtkEditable *editable, gpointer user_data) {
 
 	if (com.selection.w && com.selection.h) return;
 	ratio = (double) com.seq.ry / (double) com.seq.rx;
-	width = atof(gtk_entry_get_text(GTK_ENTRY(editable)));
+	width = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)),NULL);
 	height = ratio * width;
 	c_height = g_strdup_printf("%d", (int)(height));
 
@@ -619,7 +621,7 @@ void on_entryAviHeight_changed(GtkEditable *editable, gpointer user_data) {
 
 	if (com.selection.w && com.selection.h) return;
 	ratio = (double) com.seq.rx / (double) com.seq.ry;
-	height = atof(gtk_entry_get_text(GTK_ENTRY(editable)));
+	height = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
 	width = ratio * height;
 	c_width = g_strdup_printf("%d", (int)(width));
 

@@ -130,6 +130,7 @@ siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OF
 if platform_linux
   siril_link_arg += '-rdynamic'
 elif platform_bsd
+  siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
   siril_link_arg += '-lexecinfo'
 elif platform_windows
@@ -199,7 +200,7 @@ if get_option('enable-libcurl') == 'yes'
 elif get_option('enable-libcurl') == 'no'
   enable_libcurl = false
 else # == 'platform-default'
-  if platform_osx
+  if platform_windows or platform_osx
       enable_libcurl = true
   else
       enable_libcurl = false
