@@ -154,7 +154,7 @@ static void initialize_convert() {
 	}
 
 	gboolean multiple, debayer, symbolic_link;
-	GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("multipleSER"));
+	GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("multiple_seq"));
 	multiple = gtk_toggle_button_get_active(toggle);
 	toggle = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
 	debayer = gtk_toggle_button_get_active(toggle);
@@ -173,12 +173,6 @@ static void initialize_convert() {
 	if (output_type == SEQ_REGULAR && debayer && symbolic_link) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
 				_("The symbolic link option is not allowed with the debayer one, please uncheck one option."));
-		g_list_free_full(list, g_free);
-		return;
-	}
-	if (multiple && there_is_a_ser) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
-				_("The Multiple SER option is not allowed in SER conversion, please uncheck the option."));
 		g_list_free_full(list, g_free);
 		return;
 	}
@@ -544,14 +538,14 @@ void on_demosaicing_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 
 void on_prepro_output_type_combo1_changed(GtkComboBox *combo, gpointer user_data) {
-	static GtkWidget *multiple_ser = NULL, *convert_symlink = NULL;
-	if (!multiple_ser) {
-		multiple_ser = lookup_widget("multipleSER");
+	static GtkWidget *multiple_seq = NULL, *convert_symlink = NULL;
+	if (!multiple_seq) {
+		multiple_seq = lookup_widget("multiple_seq");
 		convert_symlink = lookup_widget("convert_symlink");
 	}
 
 	sequence_type output = gtk_combo_box_get_active(combo);
-	gtk_widget_set_visible(multiple_ser, output == SEQ_SER || output == SEQ_FITSEQ);
+	gtk_widget_set_visible(multiple_seq, output == SEQ_SER || output == SEQ_FITSEQ);
 	gtk_widget_set_visible(convert_symlink, output == SEQ_REGULAR);
 	process_destroot(output);
 	check_for_conversion_form_completeness();

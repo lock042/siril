@@ -526,8 +526,9 @@ typedef struct {
 } convert_status;
 
 static void pool_worker(gpointer data, gpointer user_data);
-static void open_next_seq(convert_status *conv);
-static seqread_status open_next_sequence(const char *src_filename, convert_status *convert, gboolean test_only);
+static void open_next_input_seq(convert_status *conv);
+static seqread_status open_next_input_sequence(const char *src_filename, convert_status *convert, gboolean test_only);
+static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv);
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader);
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
@@ -577,7 +578,7 @@ gpointer convert_thread_worker(gpointer p) {
 	args->retval = 0;
 	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok();
 	args->make_link &= allow_symlink;
-	if (args->multiple_output && (args->output_type != SEQ_SER || args->output_type != SEQ_FITSEQ)) {
+	if (args->multiple_output && args->output_type != SEQ_SER && args->output_type != SEQ_FITSEQ) {
 		siril_log_message(_("disabling incompatible multiple output option in conversion\n"));
 		args->multiple_output = FALSE;
 	}
@@ -593,7 +594,8 @@ gpointer convert_thread_worker(gpointer p) {
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
 	GThreadPool *pool = g_thread_pool_new(pool_worker, &convert, com.max_thread, FALSE, NULL);
-	open_next_seq(&convert);
+	open_next_input_seq(&convert);
+	open_next_output_seq(args, &convert);
 	do {
 		struct reader_data *reader = calloc(1, sizeof(struct reader_data));
 		seqread_status rstatus = get_next_read_details(&convert, reader);
@@ -626,12 +628,12 @@ gpointer convert_thread_worker(gpointer p) {
 			break;
 		if (rstatus == GOT_OK_LAST_IN_SEQ) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
-			open_next_seq(&convert);
+			open_next_input_seq(&convert);
 			// change write sequence in case of multiple and wait for pool
 			// TODO wait for writer
 		}
 
-	} while(com.run_thread);
+	} while (com.run_thread);
 	siril_debug_print("conversion scheduling loop finished, waiting for conversion tasks to finish\n");
 	g_thread_pool_free(pool, FALSE, TRUE);
 	siril_debug_print("conversion tasks finished\n");
@@ -739,7 +741,7 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 		do {
 			char *filename = conv->args->list[conv->next_file++];
 			// it should not be a sequence here
-			next_status = open_next_sequence(filename, conv, TRUE);
+			next_status = open_next_input_sequence(filename, conv, TRUE);
 			if (next_status == OPEN_NOT_A_SEQ) {
 				reader->filename = filename;
 				reader->allow_link = conv->allow_link;
@@ -752,11 +754,11 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 	return retval;
 }
 
-static void open_next_seq(convert_status *conv) {
+static void open_next_input_seq(convert_status *conv) {
 	seqread_status status;
 	do {
 		const char *filename = conv->args->list[conv->next_file];
-		status = open_next_sequence(filename, conv, FALSE);
+		status = open_next_input_sequence(filename, conv, FALSE);
 		if (status == OPEN_ERROR) {
 			siril_log_color_message(_("File %s was not recognised as readable by Siril, skipping\n"), "salmon", filename);
 		}
@@ -919,16 +921,8 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			writer->ser = conv->output_ser;
 			writer->index = conv->next_image_in_output++;
 			if (end_of_input_seq) {
-				if (conv->next_file != conv->args->total) {
-					char dest_filename[128];
-					create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++, dest_filename, 128);
-					conv->output_ser = malloc(sizeof(struct ser_struct));
-					ser_init_struct(conv->output_ser);
-					if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
-						siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
-						return GOT_WRITE_ERROR;
-					}
-				}
+				if (open_next_output_seq(args, conv) == GOT_WRITE_ERROR)
+					return GOT_WRITE_ERROR;
 				writer->close_sequence_after_write = TRUE;
 			}
 			return GOT_OK_WRITE;
@@ -937,15 +931,8 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			writer->fitseq = conv->output_fitseq;
 			writer->index = conv->next_image_in_output++;
 			if (end_of_input_seq) {
-				if (conv->next_file != conv->args->total) {
-					char dest_filename[128];
-					create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++, dest_filename, 128);
-					conv->output_fitseq = malloc(sizeof(struct fits_sequence));
-					if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
-						siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
-						return GOT_WRITE_ERROR;
-					}
-				}
+				if (open_next_output_seq(args, conv) == GOT_WRITE_ERROR)
+					return GOT_WRITE_ERROR;
 				writer->close_sequence_after_write = TRUE;
 			}
 			return GOT_OK_WRITE;
@@ -954,7 +941,38 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	return GOT_WRITE_ERROR;
 }
 
-static seqread_status open_next_sequence(const char *src_filename, convert_status *convert, gboolean test_only) {
+static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv) {
+	if (args->multiple_output) {
+		if (args->output_type == SEQ_SER) {
+			if (conv->next_file != conv->args->total) {
+				char dest_filename[128];
+				create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++, dest_filename, 128);
+				conv->output_ser = malloc(sizeof(struct ser_struct));
+				ser_init_struct(conv->output_ser);
+				if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
+					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
+					return GOT_WRITE_ERROR;
+				}
+				conv->next_image_in_output = 0;
+			}
+		}
+		else if (args->output_type == SEQ_FITSEQ) {
+			if (conv->next_file != conv->args->total) {
+				char dest_filename[128];
+				create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++, dest_filename, 128);
+				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
+				if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
+					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
+					return GOT_WRITE_ERROR;
+				}
+				conv->next_image_in_output = 0;
+			}
+		}
+	}
+	return GOT_OK_WRITE;
+}
+
+static seqread_status open_next_input_sequence(const char *src_filename, convert_status *convert, gboolean test_only) {
 	const char *src_ext = get_filename_ext(src_filename);
 	gchar *name = g_path_get_basename(src_filename);
 	image_type imagetype = get_type_for_extension(src_ext);
