@@ -181,9 +181,9 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args) {
 	return ret;
 }
 
-static int64_t prepro_compute_size_hook(struct generic_seq_args *args, int nb_images) {
+static gint64 prepro_compute_size_hook(struct generic_seq_args *args, int nb_images) {
 	struct preprocessing_data *prepro = args->user;
-	int64_t size = seq_compute_size(args->seq, nb_images, args->output_type);
+	gint64 size = seq_compute_size(args->seq, nb_images, args->output_type);
 	if (prepro->debayer)
 		size *= 3;
 	return size;
@@ -539,7 +539,7 @@ static void test_for_master_files(struct preprocessing_data *args) {
 				args->autolevel = gtk_toggle_button_get_active(autobutton);
 				if (!args->autolevel) {
 					GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
-					args->normalisation = atof(gtk_entry_get_text(norm_entry));
+					args->normalisation = g_ascii_strtod(gtk_entry_get_text(norm_entry), NULL);
 				}
 			}
 		}

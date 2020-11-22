@@ -17,27 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_CORE_OS_UTILS_H_
-#define SRC_CORE_OS_UTILS_H_
+#ifndef SRC_CORE_SIRIL_DATE_H_
+#define SRC_CORE_SIRIL_DATE_H_
 
 #include <glib.h>
 
-gboolean update_displayed_memory();
-int test_available_space(gint64 req_size);
-guint64 get_available_memory();
-int get_max_memory_in_MB();
-#ifdef _WIN32
-gchar *get_special_folder(int csidl);
-int ReconnectIO(int OpenNewConsole);
-#endif
-SirilWidget* siril_file_chooser_open(GtkWindow *parent,
-		GtkFileChooserAction action);
-SirilWidget* siril_file_chooser_add(GtkWindow *parent,
-		GtkFileChooserAction action);
-SirilWidget* siril_file_chooser_save(GtkWindow *parent,
-		GtkFileChooserAction action);
-gint siril_dialog_run(SirilWidget *widgetdialog);
-void siril_widget_destroy(SirilWidget *widgetdialog);
-gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
+gchar *build_timestamp_filename();
+GDateTime *ser_timestamp_to_date_time(guint64 timestamp);
+double date_time_to_Julian(GDateTime *dt);
+GDateTime *FITS_date_to_date_time(gchar *date);
+gchar *date_time_to_FITS_date(GDateTime *date);
 
-#endif /* SRC_CORE_OS_UTILS_H_ */
+#endif /* SRC_CORE_SIRIL_DATE_H_ */

@@ -20,7 +20,6 @@
 
 #include <gsl/gsl_histogram.h>
 #include <string.h>
-#include <stdint.h>
 #include <math.h>
 #include <float.h>
 #include "core/siril.h"
@@ -57,7 +56,7 @@ static double histo_color_r[] = { 1.0, 0.0, 0.0, 0.0 };
 static double histo_color_g[] = { 0.0, 1.0, 0.0, 0.0 };
 static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
 static float graph_height = 0.f;	// the max value of all bins
-static uint64_t clipped[] = { 0, 0 };
+static guint64 clipped[] = { 0, 0 };
 
 static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
 static GtkToggleToolButton *toggleGrid = NULL, *toggleCurve = NULL;
@@ -566,7 +565,7 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 		WORD mtf;
 		float binval = gsl_histogram_get(histo, i);
 		float pxl = ((float)i / norm);
-		uint64_t clip[2] = { 0, 0 };
+		guint64 clip[2] = { 0, 0 };
 
 		if (i < round_to_WORD(lo * norm)) {
 			pxl = lo;
@@ -1073,7 +1072,7 @@ gboolean on_drawingarea_histograms_button_release_event(GtkWidget *widget,
 }
 
 void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
-	float mid = atof(gtk_entry_get_text(entry));
+	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (mid <= _shadows) mid = _shadows;
 	if (mid >= _highlights) mid = _highlights;
 	_midtones = mid;
@@ -1087,7 +1086,7 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 }
 
 void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
-	float lo = atof(gtk_entry_get_text(entry));
+	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
 	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
@@ -1101,7 +1100,7 @@ void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 }
 
 void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
-	float hi = atof(gtk_entry_get_text(entry));
+	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (hi <= _shadows) hi = _shadows;
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;

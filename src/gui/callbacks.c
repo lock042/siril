@@ -312,27 +312,42 @@ void set_display_mode() {
 
 /* fill the label indicating how many images are selected in the gray and
  * which one is the reference image, at the bottom of the main window */
-int adjust_sellabel() {
-	static GtkLabel *global_label = NULL;
-	char *bufferglobal;
+void adjust_sellabel() {
+	static GtkLabel *global_label = NULL, *label_name_of_seq = NULL;
+	gchar *buffer_global, *buffer_title;
 
 	if (global_label == NULL) {
 		global_label = GTK_LABEL(lookup_widget("labelseq"));
+		label_name_of_seq = GTK_LABEL(lookup_widget("label_name_of_seq"));
 	}
 
 	if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 
-		bufferglobal = g_strdup_printf(_("%s, %d/%d images selected"), seq_basename, com.seq.selnum, com.seq.number);
+		buffer_global = g_strdup_printf(_("%s, %d/%d images selected"),
+				seq_basename, com.seq.selnum, com.seq.number);
+		buffer_title = g_strdup(_("Sequence:"));
+
 		g_free(seq_basename);
+	} else if (single_image_is_loaded()) {
+		gchar *filename = g_path_get_basename(com.uniq->filename);
+
+		buffer_global = g_strdup_printf("%s", filename);
+		buffer_title = g_strdup(_("Image:"));
+
+		g_free(filename);
 	} else {
-		bufferglobal = g_strdup(_("- none -"));
+		buffer_global = g_strdup(_("- none -"));
+		buffer_title = NULL;
+
 		gtk_widget_set_sensitive(lookup_widget("goregister_button"), FALSE);
 	}
 
-	gtk_label_set_text(global_label, bufferglobal);
-	g_free(bufferglobal);
-	return 0;
+	gtk_label_set_text(label_name_of_seq, buffer_title);
+	gtk_label_set_text(global_label, buffer_global);
+
+	g_free(buffer_global);
+	g_free(buffer_title);
 }
 
 void set_icon_entry(GtkEntry *entry, gchar *string) {
@@ -641,7 +656,7 @@ void update_display_selection() {
 	const char *layer_name = untranslated_vport_number_to_name(com.cvport);
 	gchar *label_name = g_strdup_printf("labelselection_%s", layer_name);
 	if (com.selection.w && com.selection.h) {
-		gchar *buf = g_strdup_printf(_("w: %d h: %d ratio: %.4f"), com.selection.w, com.selection.h,
+		gchar *buf = g_strdup_printf(_("W: %d H: %d ratio: %.4f"), com.selection.w, com.selection.h,
 			(double)com.selection.w / (double)com.selection.h);
 		gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), buf);
 		g_free(buf);
@@ -1116,13 +1131,13 @@ void set_GUI_misc() {
 	gtk_combo_box_set_active_id(fit_ext, com.pref.ext);
 }
 
-/* size is in kiB */
-void set_GUI_MEM(unsigned long long size, const gchar *label) {
+/* size is in Bytes */
+void set_GUI_MEM(guint64 used, const gchar *label) {
 	if (com.headless)
 		return;
 	gchar *str;
-	if (size != 0) {
-		gchar *mem = pretty_print_memory(size * 1024);
+	if (used > 0) {
+		gchar *mem = g_format_size_full(used, G_FORMAT_SIZE_IEC_UNITS);
 		str = g_strdup_printf(_("Mem: %s"), mem);
 		g_free(mem);
 	} else {
@@ -1132,7 +1147,7 @@ void set_GUI_MEM(unsigned long long size, const gchar *label) {
 	g_free(str);
 }
 
-void set_GUI_DiskSpace(int64_t space, const gchar *label) {
+void set_GUI_DiskSpace(gint64 space, const gchar *label) {
 	if (com.headless)
 		return;
 	gchar *str;
@@ -1140,10 +1155,10 @@ void set_GUI_DiskSpace(int64_t space, const gchar *label) {
 	gtk_style_context_remove_class(context, "label-info");
 
 	if (space > 0) {
-		if (space < 1000000000) { // we want to warn user of space is less than 1GB
+		if (space < 1073741824) { // we want to warn user of space is less than 1GiB
 			gtk_style_context_add_class(context, "label-info");
 		}
-		gchar *mem = pretty_print_memory(space);
+		gchar *mem = g_format_size_full(space, G_FORMAT_SIZE_IEC_UNITS);
 		str = g_strdup_printf(_("Disk Space: %s"), mem);
 		g_free(mem);
 	} else {
@@ -1475,19 +1490,19 @@ void on_menu_gray_header_activate(GtkMenuItem *menuitem, gpointer user_data) {
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* focal_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.focal_length = atof(focal_entry);
+	gfit.focal_length = g_ascii_strtod(focal_entry, NULL);
 	drawPlot();
 }
 
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchX_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.pixel_size_x = (float) atof(pitchX_entry);
+	gfit.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
 	drawPlot();
 }
 
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchY_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.pixel_size_y = (float) atof(pitchY_entry);
+	gfit.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
 	drawPlot();
 }
 
@@ -1667,7 +1682,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar *txt = gtk_entry_get_text(GTK_ENTRY(editable));
 	if (g_ascii_isalnum(txt[0])) {
 
-		int value = atoi(txt);
+		guint value = g_ascii_strtoull(txt, NULL, 10);
 
 		if (com.sliders != USER) {
 			com.sliders = USER;
@@ -1725,7 +1740,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar *txt = gtk_entry_get_text(GTK_ENTRY(editable));
 	if (g_ascii_isalnum(txt[0])) {
 
-		int value = atoi(txt);
+		guint value = g_ascii_strtoull(txt, NULL, 10);
 
 		if (com.sliders != USER) {
 			com.sliders = USER;

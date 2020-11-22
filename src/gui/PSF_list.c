@@ -404,6 +404,7 @@ void add_star_to_list(fitted_PSF *star) {
 			-1);
 
 	units = star->units;
+	display_status();
 }
 
 void fill_stars_list(fits *fit, fitted_PSF **stars) {
@@ -419,7 +420,6 @@ void fill_stars_list(fits *fit, fitted_PSF **stars) {
 		i++;
 	}
 	com.selected_star = -1;
-	display_status();	//no stars selected
 }
 
 void refresh_stars_list(fitted_PSF **star){
@@ -504,7 +504,7 @@ void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_info_menu_dynamic_psf_clicked(GtkButton *button, gpointer user_data) {
-		siril_open_dialog("stars_list_window");
+	siril_open_dialog("stars_list_window");
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
