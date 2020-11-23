@@ -133,7 +133,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, &dont_show_again);
 		com.pref.save.warn_script = !dont_show_again;
 		/* update setting buttons */
-		set_GUI_misc();
+	//	set_GUI_misc();
 		/* update config file */
 		writeinitfile();
 		if (!confirm) {

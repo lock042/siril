@@ -224,14 +224,18 @@ static void update_photometry_preferences() {
 
 static void update_scripts_preferences() {
 	com.pref.script_path = get_list_from_preferences_dialog();
-	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
-	com.pref.save.warn_script = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
+	com.pref.save.warn_script = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
+	com.pref.check_script_version = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 }
 
 static void update_user_interface_preferences() {
 	com.pref.combo_lang = get_interface_language();
-	com.pref.combo_theme = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_theme")));
-	siril_set_theme(com.pref.combo_theme);
+	int theme = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_theme")));
+	if (theme != com.pref.combo_theme) {
+		theme = com.pref.combo_theme;
+		siril_set_theme(com.pref.combo_theme);
+	}
 	com.pref.font_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")));
 	com.pref.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
 	com.pref.show_thumbnails = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")));
@@ -598,7 +602,7 @@ static void set_preferences_ui(preferences *pref) {
 	/* tab 5 */
 	pref->script_path = set_list_to_preferences_dialog(pref->script_path);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->save.warn_script);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->check_update);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->check_script_version);
 
 	/* tab 6 */
 	siril_language_fill_combo(pref->combo_lang);
