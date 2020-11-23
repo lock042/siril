@@ -67,7 +67,7 @@ static preferences pref_init = {
 		100, // font_scale
 		0, // combo_lang
 		NULL, // ext
-		NULL, // TODO !!! swap_dir
+		NULL, // swap_dir
 		NULL, // script_path
 		{
 				{1.0, 1.0, 1.0}, // mul[3]
@@ -232,7 +232,7 @@ static void update_photometry_preferences() {
 }
 
 static void update_scripts_preferences() {
-	com.pref.script_path = get_list_from_preferences();
+	com.pref.script_path = get_list_from_preferences_dialog();
 	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.save.script = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 }
@@ -284,10 +284,8 @@ static void update_performances_preferences() {
 static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 
-	g_free(com.pref.swap_dir);
-	com.pref.swap_dir = gtk_file_chooser_get_filename (swap_dir);
+	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
 
-	g_free(com.pref.ext);
 	const gchar *ext = gtk_combo_box_get_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")));
 	com.pref.ext = g_strdup(ext);
 
@@ -295,57 +293,10 @@ static void update_misc_preferences() {
 
 	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 
-	g_free(com.pref.copyright);
 	const gchar *copy = gtk_entry_get_text(GTK_ENTRY(lookup_widget("miscCopyright")));
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
-}
-
-void set_GUI_LIBRAW() {
-	/**********COLOR ADJUSTEMENT**************/
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("Brightness_spinbutton")), com.pref.raw_set.bright);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("Red_spinbutton")), com.pref.raw_set.mul[0]);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("Blue_spinbutton")), com.pref.raw_set.mul[2]);
-
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_multipliers")), com.pref.raw_set.auto_mul);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_blackpoint")), com.pref.raw_set.user_black);
-
-	/**************WHITE BALANCE**************/
-	if (com.pref.raw_set.use_camera_wb) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_cam")), com.pref.raw_set.use_camera_wb);
-	}
-
-	if (com.pref.raw_set.use_auto_wb) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto")), com.pref.raw_set.use_auto_wb);
-	}
-
-	/********MATRIX INTERPOLATION**************/
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_dcraw_inter")), com.pref.raw_set.user_qual);
-
-	/********GAMMA CORRECTION**************/
-	if (com.pref.raw_set.gamm[0] == 1.0 && com.pref.raw_set.gamm[1] == 1.0)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm0")), TRUE);
-	else if (com.pref.raw_set.gamm[0] == 2.222 && com.pref.raw_set.gamm[1] == 4.5)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm1")), TRUE);
-	else
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_gamm2")), TRUE);
-
-	/********** DEBAYER ******************/
-	GtkComboBox *pattern = GTK_COMBO_BOX(lookup_widget("comboBayer_pattern"));
-	GtkComboBox *inter = GTK_COMBO_BOX(lookup_widget("comboBayer_inter"));
-	GtkToggleButton *compat = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility"));
-	GtkToggleButton *use_header = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header"));
-	GtkToggleButton *demosaicingButton = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-	GtkSpinButton *xbayer_spin = GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin"));
-	GtkSpinButton *ybayer_spin = GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin"));
-	gtk_combo_box_set_active(pattern, com.pref.debayer.bayer_pattern);
-	gtk_combo_box_set_active(inter, com.pref.debayer.bayer_inter);
-	gtk_toggle_button_set_active(compat, com.pref.debayer.top_down);
-	gtk_toggle_button_set_active(use_header, com.pref.debayer.use_bayer_header);
-	gtk_toggle_button_set_active(demosaicingButton,	com.pref.debayer.open_debayer);
-	gtk_spin_button_set_value(xbayer_spin, com.pref.debayer.xbayeroff);
-	gtk_spin_button_set_value(ybayer_spin, com.pref.debayer.ybayeroff);
 }
 
 void on_checkbutton_cam_toggled(GtkButton *button, gpointer user_data) {
@@ -656,7 +607,7 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);
 
 	/* tab 5 */
-	/* TODO: script list */
+	set_list_to_preferences_dialog(pref->script_path);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->save.script);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->check_update);
 
@@ -711,23 +662,29 @@ static void reset_preferences() {
 	memcpy(&com.pref, &pref_init, sizeof(preferences));
 }
 
-//static void free_preferences(preferences *pref) {
-//	g_free(pref->ext);
-//	g_free(pref->swap_dir);
-//	g_free(pref->copyright);
-//	g_free(pref->combo_lang);
-//	// TODO script list
-//}
+static void free_preferences(preferences *pref) {
+	g_free(pref->ext);
+	pref->ext = NULL;
+	g_free(pref->swap_dir);
+	pref->swap_dir = NULL;
+	g_free(pref->copyright);
+	pref->copyright = NULL;
+	g_free(pref->combo_lang);
+	pref->combo_lang = NULL;
+	g_slist_free_full(pref->script_path, g_free);
+	pref->script_path = NULL;
+}
 
 void initialize_default_preferences() {
 	reset_preferences();
 }
 
 void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	free_preferences(&com.pref);
 	dump_ui_to_global_var();
 
-	initialize_FITS_name_entries();
-	refresh_stars_list(com.stars);
+	initialize_FITS_name_entries(); // To update UI with new preferences
+	refresh_star_list(com.stars); // To update star list with new preferences
 	save_main_window_state();
 	siril_close_dialog("settings_window");
 	writeinitfile();
@@ -739,7 +696,10 @@ void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	set_preferences_ui(&pref_init);
+	int confirm = siril_confirm_dialog(_("Reset all preferences"), _("Do you really want to reset all preferences to default value?"));
+	if (confirm) {
+		set_preferences_ui(&pref_init);
+	}
 }
 
 gchar *get_swap_dir() {

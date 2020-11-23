@@ -27,7 +27,6 @@ typedef enum {
 	HCOMPRESS_COMP
 } compression_mode;
 
-void set_GUI_LIBRAW();
 void update_libraw_and_debayer_interface();
 void update_photometry_interface();
 void set_GUI_photometry();

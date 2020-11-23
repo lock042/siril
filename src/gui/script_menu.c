@@ -85,11 +85,13 @@ static void add_path_to_gtkText(gchar *path) {
 	gtk_text_view_scroll_to_mark(text, insert_mark, 0.0, TRUE, 0.0, 1.0);
 }
 
-static void fill_gtkText(GSList *list) {
-	while (list) {
-		add_path_to_gtkText((gchar *) list->data);
-		list = list->next;
-	}
+static void clear_gtk_list() {
+	GtkTextView *text = GTK_TEXT_VIEW(lookup_widget("GtkTxtScriptPath"));
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
+	GtkTextIter start_iter, end_iter;
+	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
+	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
+	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
 }
 
 static GSList *search_script(const char *path) {
@@ -174,7 +176,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	g_object_unref(file);
 }
 
-int initialize_script_menu(gboolean update_script_path) {
+int initialize_script_menu() {
 	static GtkWidget *menuscript = NULL;
 	GSList *list, *script, *s;
 	GtkWidget *menu;
@@ -183,20 +185,13 @@ int initialize_script_menu(gboolean update_script_path) {
 	if (!menuscript) {
 		menuscript = lookup_widget("header_scripts_button");
 	}
-
-	if (!com.pref.script_path) {
-		script = initialize_script_paths();
-		com.pref.script_path = script;
-	} else {
-		script = com.pref.script_path;
-	}
 	
-	if (update_script_path) {
-		fill_gtkText(script);
-	}
+	set_list_to_preferences_dialog(com.pref.script_path);
 
 	menu = gtk_menu_new();
 	gtk_widget_hide(menuscript);
+
+	script = com.pref.script_path;
 
 	for (s = script; s; s = s->next) {
 		list = search_script(s->data);
@@ -236,7 +231,7 @@ int initialize_script_menu(gboolean update_script_path) {
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
 	int retval;
-	GSList *list = get_list_from_preferences();
+	GSList *list = get_list_from_preferences_dialog();
 	if (list == NULL) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
 		retval = 1;
@@ -251,11 +246,7 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
-/* Get Scripts menu */
-
-#define GET_SCRIPTS_URL "https://free-astro.org/index.php?title=Siril:scripts"
-
-GSList *get_list_from_preferences() {
+GSList *get_list_from_preferences_dialog() {
 	GSList *list = NULL;
 	static GtkTextBuffer *tbuf = NULL;
 	static GtkTextView *text = NULL;
@@ -282,6 +273,21 @@ GSList *get_list_from_preferences() {
 
 	return list;
 }
+
+void set_list_to_preferences_dialog(GSList *list) {
+	clear_gtk_list();
+	if (list == NULL) {
+		list = initialize_script_paths();
+	}
+	while (list) {
+		add_path_to_gtkText((gchar *) list->data);
+		list = list->next;
+	}
+}
+
+/* Get Scripts menu */
+
+#define GET_SCRIPTS_URL "https://free-astro.org/index.php?title=Siril:scripts"
 
 void siril_get_on_script_pages() {
 	gboolean ret;
