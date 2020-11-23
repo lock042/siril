@@ -128,8 +128,10 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	}
 
 	if (com.pref.save.warn_script) {
+		gboolean dont_show_again;
 		gboolean confirm = siril_confirm_dialog_and_remember(
-				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, &com.pref.save.warn_script);
+				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, &dont_show_again);
+		com.pref.save.warn_script = !dont_show_again;
 		/* update setting buttons */
 		set_GUI_misc();
 		/* update config file */

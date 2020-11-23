@@ -93,18 +93,18 @@ static preferences pref_init = {
 				20.0, // inner
 				30.0, // outer
 				0, // minval
-				65535, // maxval
+				60000, // maxval
 		},
 		{
-				0,
-				ADDITIVE_SCALING,
-				WINSORIZED,
-				3.0, 3.0,
-				5.0, 5.0,
-				3.0, 3.0,
-				RATIO,
-				0.9,
-				10,
+				0, // stack method
+				ADDITIVE_SCALING, // normalisation
+				WINSORIZED, // type of rejection
+				3.0, 3.0, // sigma low sigma high
+				5.0, 5.0, // linear low linear high
+				3.0, 3.0, // percentile low percentile high
+				RATIO, // memory management
+				0.9, // memory ratio
+				10, // memory amount
 		},
 		{
 				FALSE, // fits_enabled
@@ -114,7 +114,7 @@ static preferences pref_init = {
 		},
 		FALSE, // force_to_16bit
 		0, // selection_guides
-		NULL,
+		NULL, // copyright
 };
 
 void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -212,15 +212,6 @@ void update_prepro_preferences() {
 	com.pref.xtrans_sample.y = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_y"))), NULL, 10);
 	com.pref.xtrans_sample.w = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_w"))), NULL, 10);
 	com.pref.xtrans_sample.h = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_sample_h"))), NULL, 10);
-}
-
-void on_button_reset_photometry_clicked(GtkButton *button, gpointer user_data) {
-
-	initialize_photometric_param();
-	double tmp = gfit.cvf;
-	gfit.cvf = 0.0;
-	set_GUI_photometry();
-	gfit.cvf = tmp;
 }
 
 static void update_photometry_preferences() {
