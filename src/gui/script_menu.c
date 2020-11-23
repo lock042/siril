@@ -127,9 +127,9 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 		return;
 	}
 
-	if (!com.pref.save.script) {
+	if (com.pref.save.warn_script) {
 		gboolean confirm = siril_confirm_dialog_and_remember(
-				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, &com.pref.save.script);
+				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, &com.pref.save.warn_script);
 		/* update setting buttons */
 		set_GUI_misc();
 		/* update config file */
@@ -186,12 +186,10 @@ int initialize_script_menu() {
 		menuscript = lookup_widget("header_scripts_button");
 	}
 	
-	set_list_to_preferences_dialog(com.pref.script_path);
+	script = set_list_to_preferences_dialog(com.pref.script_path);
 
 	menu = gtk_menu_new();
 	gtk_widget_hide(menuscript);
-
-	script = com.pref.script_path;
 
 	for (s = script; s; s = s->next) {
 		list = search_script(s->data);
@@ -223,6 +221,7 @@ int initialize_script_menu() {
 			g_slist_free_full(list, g_free);
 		}
 	}
+
 	writeinitfile();
 
 	return 0;
@@ -238,7 +237,7 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.script_path, g_free);
 		com.pref.script_path = list;
-		retval = initialize_script_menu(FALSE);
+		retval = initialize_script_menu();
 	}
 	if (error) {
 		*error = err;
@@ -274,15 +273,15 @@ GSList *get_list_from_preferences_dialog() {
 	return list;
 }
 
-void set_list_to_preferences_dialog(GSList *list) {
+GSList *set_list_to_preferences_dialog(GSList *list) {
 	clear_gtk_list();
 	if (list == NULL) {
 		list = initialize_script_paths();
 	}
-	while (list) {
+	for (GSList *l = list; l; l = l->next) {
 		add_path_to_gtkText((gchar *) list->data);
-		list = list->next;
 	}
+	return list;
 }
 
 /* Get Scripts menu */

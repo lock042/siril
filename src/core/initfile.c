@@ -184,8 +184,8 @@ static int readinitfile() {
 		if (config_setting_lookup_bool(misc_setting, "confirm_quit", &com.pref.save.quit) == CONFIG_FALSE) {
 			com.pref.save.quit = FALSE;
 		}
-		if (config_setting_lookup_bool(misc_setting, "scripts_warning", &com.pref.save.script) == CONFIG_FALSE) {
-			com.pref.save.script = TRUE;
+		if (config_setting_lookup_bool(misc_setting, "scripts_warning", &com.pref.save.warn_script) == CONFIG_FALSE) {
+			com.pref.save.warn_script = TRUE;
 		}
 		if (config_setting_lookup_bool(misc_setting, "check_requires", &com.pref.check_script_version) == CONFIG_FALSE) {
 			com.pref.check_script_version = TRUE;
@@ -461,7 +461,7 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 	config_setting_set_bool(misc_setting, com.pref.save.quit);
 
 	misc_setting = config_setting_add(misc_group, "scripts_warning", CONFIG_TYPE_BOOL);
-	config_setting_set_bool(misc_setting, com.pref.save.script);
+	config_setting_set_bool(misc_setting, com.pref.save.warn_script);
 
 	misc_setting = config_setting_add(misc_group, "check_requires", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.check_script_version);

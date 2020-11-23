@@ -1102,7 +1102,7 @@ void set_GUI_misc() {
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.check_update);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.save.script);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.save.warn_script);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("script_check_version"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.check_script_version);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button"));
@@ -1290,7 +1290,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	update_MenuItem();
-	initialize_script_menu(TRUE);
+	initialize_script_menu();
 
 	/* initialize command completion */
 	init_completion_command();

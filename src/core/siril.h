@@ -544,7 +544,7 @@ struct star_finder_struct {
 
 struct save_config_struct {
 	gboolean quit;
-	gboolean script;
+	gboolean warn_script;
 };
 
 /**

@@ -234,7 +234,7 @@ static void update_photometry_preferences() {
 static void update_scripts_preferences() {
 	com.pref.script_path = get_list_from_preferences_dialog();
 	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
-	com.pref.save.script = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+	com.pref.save.warn_script = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 }
 
 static void update_user_interface_preferences() {
@@ -607,8 +607,8 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);
 
 	/* tab 5 */
-	set_list_to_preferences_dialog(pref->script_path);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->save.script);
+	pref->script_path = set_list_to_preferences_dialog(pref->script_path);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->save.warn_script);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->check_update);
 
 	/* tab 6 */
