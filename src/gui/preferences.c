@@ -231,6 +231,7 @@ static void update_scripts_preferences() {
 static void update_user_interface_preferences() {
 	com.pref.combo_lang = get_interface_language();
 	com.pref.combo_theme = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_theme")));
+	siril_set_theme(com.pref.combo_theme);
 	com.pref.font_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")));
 	com.pref.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
 	com.pref.show_thumbnails = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")));
@@ -484,16 +485,6 @@ void on_clear_flat_entry_clicked(GtkButton *button, gpointer user_data) {
 void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("settings_window");
 	start_intro_script();
-}
-
-void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
-	GtkSettings *settings;
-
-	int active = gtk_combo_box_get_active(box);
-
-	settings = gtk_settings_get_default();
-	g_object_set(settings, "gtk-application-prefer-dark-theme", active == 0, NULL);
-	update_icons_to_theme(active == 0);
 }
 
 void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {
