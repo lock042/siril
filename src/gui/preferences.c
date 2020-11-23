@@ -553,31 +553,28 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")), pref->debayer.top_down);
 
 	/* tab 3 */
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib")));
-	if (com.pref.prepro_bias_lib && (g_file_test(com.pref.prepro_bias_lib, G_FILE_TEST_EXISTS))) {
+	if (pref->prepro_bias_lib && (g_file_test(pref->prepro_bias_lib, G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib"));
 		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias"));
 
-		gtk_file_chooser_set_filename(button, com.pref.prepro_bias_lib);
-		gtk_toggle_button_set_active(toggle, com.pref.use_bias_lib);
+		gtk_file_chooser_set_filename(button, pref->prepro_bias_lib);
+		gtk_toggle_button_set_active(toggle, pref->use_bias_lib);
 	}
 
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib")));
-	if (com.pref.prepro_dark_lib && (g_file_test(com.pref.prepro_dark_lib, G_FILE_TEST_EXISTS))) {
+	if (pref->prepro_dark_lib && (g_file_test(pref->prepro_dark_lib, G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib"));
 		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark"));
 
-		gtk_file_chooser_set_filename(button, com.pref.prepro_dark_lib);
-		gtk_toggle_button_set_active(toggle, com.pref.use_dark_lib);
+		gtk_file_chooser_set_filename(button, pref->prepro_dark_lib);
+		gtk_toggle_button_set_active(toggle, pref->use_dark_lib);
 	}
 
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib")));
-	if (com.pref.prepro_flat_lib && (g_file_test(com.pref.prepro_flat_lib, G_FILE_TEST_EXISTS))) {
+	if (pref->prepro_flat_lib && (g_file_test(pref->prepro_flat_lib, G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib"));
 		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat"));
 
-		gtk_file_chooser_set_filename(button, com.pref.prepro_flat_lib);
-		gtk_toggle_button_set_active(toggle, com.pref.use_flat_lib);
+		gtk_file_chooser_set_filename(button, pref->prepro_flat_lib);
+		gtk_toggle_button_set_active(toggle, pref->use_flat_lib);
 	}
 
 	gchar tmp[256];
@@ -708,6 +705,6 @@ gchar *get_swap_dir() {
 	return gtk_file_chooser_get_filename(swap_dir);
 }
 
-void set_preferences_ui_from_global() {
+void set_preferences_dialog_from_global() {
 	set_preferences_ui(&com.pref);
 }

@@ -35,7 +35,7 @@ void set_libraw_settings_menu_available(gboolean activate);
 void initialize_compression_param();
 void set_GUI_compression();
 void initialize_default_preferences();
-void set_preferences_ui_from_global();
+void set_preferences_dialog_from_global();
 gchar *get_swap_dir();
 
 #endif /* SRC_GUI_PREFERENCES_H_ */
