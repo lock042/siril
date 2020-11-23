@@ -132,7 +132,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 		gboolean confirm = siril_confirm_dialog_and_remember(
 				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, &dont_show_again);
 		com.pref.save.warn_script = !dont_show_again;
-		/* We do not user set_GUI_misc because some button state can be in a state not saved if the
+		/* We do not use set_GUI_misc because some button state can be in an unsaved state if the
 		 * preference dialog is opened
 		 */
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), com.pref.save.warn_script);

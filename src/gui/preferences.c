@@ -117,21 +117,6 @@ static preferences pref_init = {
 		NULL, // copyright
 };
 
-void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.prepro_cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
-}
-
-void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.prepro_equalize_cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
-}
-
-void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.pref.fix_xtrans = gtk_toggle_button_get_active(button);
-	writeinitfile();
-}
-
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	const gchar *dir;
@@ -177,7 +162,7 @@ static void update_libraw_preferences() {
 	}
 }
 
-void update_debayer_preferences() {
+static void update_debayer_preferences() {
 	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")));
 	com.pref.debayer.top_down = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")));
 	com.pref.debayer.xbayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")));
@@ -186,7 +171,7 @@ void update_debayer_preferences() {
 	com.pref.debayer.bayer_inter = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")));
 }
 
-void update_prepro_preferences() {
+static void update_prepro_preferences() {
 	if (com.pref.prepro_bias_lib) {
 		g_free(com.pref.prepro_bias_lib);
 		com.pref.prepro_bias_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib")));
@@ -464,7 +449,6 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 	}
 }
 
-
 void on_show_preview_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *label = lookup_widget("thumbnails_label_size");
 	GtkWidget *box = lookup_widget("thumbnails_box_size");
@@ -472,7 +456,6 @@ void on_show_preview_button_toggled(GtkToggleButton *togglebutton, gpointer user
 	gtk_widget_set_sensitive(label, gtk_toggle_button_get_active(togglebutton));
 	gtk_widget_set_sensitive(box, gtk_toggle_button_get_active(togglebutton));
 }
-
 
 void on_clear_bias_entry_clicked(GtkButton *button, gpointer user_data) {
 	gtk_file_chooser_unselect_all((GtkFileChooser *)user_data);
@@ -704,3 +687,23 @@ gchar *get_swap_dir() {
 void set_preferences_dialog_from_global() {
 	set_preferences_ui(&com.pref);
 }
+
+
+/* these one are not on the preference dialog */
+
+void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.prepro_cfa = gtk_toggle_button_get_active(button);
+	writeinitfile();
+}
+
+void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.prepro_equalize_cfa = gtk_toggle_button_get_active(button);
+	writeinitfile();
+}
+
+void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.fix_xtrans = gtk_toggle_button_get_active(button);
+	writeinitfile();
+}
+
+/* ********************************** */
