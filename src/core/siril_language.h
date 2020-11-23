@@ -28,7 +28,7 @@ typedef struct {
 
 
 void siril_language_parser_init();
-void siril_language_fill_combo();
+void siril_language_fill_combo(const gchar *language);
 void language_init(const gchar *language);
 gchar *get_interface_language();
 

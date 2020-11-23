@@ -66,7 +66,7 @@ static preferences pref_init = {
 		0, // combo_theme
 		100, // font_scale
 		0, // combo_lang
-		NULL, // TODO ext
+		NULL, // ext
 		NULL, // TODO !!! swap_dir
 		NULL, // script_path
 		{
@@ -116,6 +116,21 @@ static preferences pref_init = {
 		0, // selection_guides
 		NULL,
 };
+
+void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.prepro_cfa = gtk_toggle_button_get_active(button);
+	writeinitfile();
+}
+
+void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.prepro_equalize_cfa = gtk_toggle_button_get_active(button);
+	writeinitfile();
+}
+
+void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.fix_xtrans = gtk_toggle_button_get_active(button);
+	writeinitfile();
+}
 
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
@@ -232,7 +247,7 @@ static void update_user_interface_preferences() {
 }
 
 static void update_performances_preferences() {
-	GSList * tmp_list = gtk_radio_button_get_group (GTK_RADIO_BUTTON(lookup_widget("memfreeratio_radio")));
+	GSList *tmp_list = gtk_radio_button_get_group (GTK_RADIO_BUTTON(lookup_widget("memfreeratio_radio")));
 	GtkWidget *ratio, *amount;
 	GtkToggleButton *tmp_button = NULL;//Create a temp toggle button.
 
@@ -396,10 +411,10 @@ void set_GUI_photometry() {
 	}
 }
 
-void initialize_path_directory() {
+void initialize_path_directory(const gchar *path) {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
-	if (com.pref.swap_dir && com.pref.swap_dir[0] != '\0') {
-		gtk_file_chooser_set_filename (swap_dir, com.pref.swap_dir);
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (swap_dir, path);
 	} else {
 		gtk_file_chooser_set_filename (swap_dir, g_get_tmp_dir());
 	}
@@ -531,7 +546,7 @@ void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
 
 void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error;
-	int retval = refresh_scripts(&error);
+	int retval = refresh_scripts(FALSE, &error);
 
 	if (retval) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot refresh script list"), error);
@@ -587,15 +602,32 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")), pref->debayer.top_down);
 
 	/* tab 3 */
-	// TODO : transfer value into gtk_file_chooser
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib")));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias")), pref->prepro_bias_lib != NULL);
+	if (com.pref.prepro_bias_lib && (g_file_test(com.pref.prepro_bias_lib, G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib"));
+		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias"));
+
+		gtk_file_chooser_set_filename(button, com.pref.prepro_bias_lib);
+		gtk_toggle_button_set_active(toggle, com.pref.use_bias_lib);
+	}
 
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib")));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark")), pref->prepro_dark_lib != NULL);
+	if (com.pref.prepro_dark_lib && (g_file_test(com.pref.prepro_dark_lib, G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib"));
+		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark"));
+
+		gtk_file_chooser_set_filename(button, com.pref.prepro_dark_lib);
+		gtk_toggle_button_set_active(toggle, com.pref.use_dark_lib);
+	}
 
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib")));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")), pref->prepro_flat_lib != NULL);
+	if (com.pref.prepro_flat_lib && (g_file_test(com.pref.prepro_flat_lib, G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib"));
+		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat"));
+
+		gtk_file_chooser_set_filename(button, com.pref.prepro_flat_lib);
+		gtk_toggle_button_set_active(toggle, com.pref.use_flat_lib);
+	}
 
 	gchar tmp[256];
 	g_snprintf(tmp, sizeof(tmp), "%d", pref->xtrans_af.x);
@@ -629,9 +661,8 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->check_update);
 
 	/* tab 6 */
-	/* TODO: .LANGUAGE */
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_language")), 0); /* TODO System Language */
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_theme")), pref->combo_theme); /* Dark Theme */
+	siril_language_fill_combo(pref->combo_lang);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_theme")), pref->combo_theme);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")), pref->font_scale);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")), pref->remember_windows);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->show_thumbnails);
@@ -644,13 +675,13 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->stack.memory_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")), pref->stack.memory_amount);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio")), !pref->comp.fits_enabled);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method")), pref->comp.fits_method); /* Rice compression */
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method")), pref->comp.fits_method);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization")), pref->comp.fits_quantization);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")), pref->comp.fits_hcompress_scale);
 
 	/* tab 8 */
-	gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_swap")), pref->swap_dir);
-	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext);
+	initialize_path_directory(pref->swap_dir);
+	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext == NULL ? ".fit" : pref->ext);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_to_16bit ? 0 : 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->save.quit);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
@@ -678,19 +709,15 @@ static void dump_ui_to_global_var() {
 
 static void reset_preferences() {
 	memcpy(&com.pref, &pref_init, sizeof(preferences));
-	/* set dynamic values */
-	if (!com.pref.ext) com.pref.ext = g_strdup(".fit");
-	if (!com.pref.swap_dir) com.pref.swap_dir = g_strdup(g_get_tmp_dir());
-	// TODO script list
 }
 
-static void free_preferences() {
-	g_free(com.pref.ext);
-	g_free(com.pref.swap_dir);
-	g_free(com.pref.copyright);
-	g_free(com.pref.combo_lang);
-	// TODO script list
-}
+//static void free_preferences(preferences *pref) {
+//	g_free(pref->ext);
+//	g_free(pref->swap_dir);
+//	g_free(pref->copyright);
+//	g_free(pref->combo_lang);
+//	// TODO script list
+//}
 
 void initialize_default_preferences() {
 	reset_preferences();
@@ -712,6 +739,15 @@ void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	reset_preferences();
+	set_preferences_ui(&pref_init);
+}
+
+gchar *get_swap_dir() {
+	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+
+	return gtk_file_chooser_get_filename(swap_dir);
+}
+
+void set_preferences_ui_from_global() {
 	set_preferences_ui(&com.pref);
 }

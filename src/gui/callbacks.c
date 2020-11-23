@@ -40,11 +40,11 @@
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "compositing/align_rgb.h"
+#include "preferences.h"
 #include "image_display.h"
 #include "image_interactions.h"
 #include "callbacks.h"
 #include "plot.h"
-#include "preferences.h"
 #include "message_dialog.h"
 #include "PSF_list.h"
 #include "histogram.h"
@@ -1272,7 +1272,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	init_mouse();
 
 	/* populate language combo */
-	siril_language_fill_combo();
+	siril_language_fill_combo(com.pref.combo_lang);
 
 	/* Keybord Shortcuts */
 	load_accels();
@@ -1309,12 +1309,14 @@ void initialize_all_GUI(gchar *supported_files) {
 	register_selection_update_callback(update_display_selection);
 	register_selection_update_callback(update_display_fwhm);
 
+	set_preferences_ui_from_global();
+
 	/* initialization of some paths */
-	initialize_path_directory();
+	//initialize_path_directory(com.pref.swap_dir);
 
 	initialize_FITS_name_entries();
 
-	init_xtrans_ui_pixels();
+	//init_xtrans_ui_pixels();
 
 	initialize_log_tags();
 
@@ -1324,14 +1326,14 @@ void initialize_all_GUI(gchar *supported_files) {
 			GDK_ACTION_COPY);
 
 	set_GUI_CWD();
-	set_GUI_misc();
+	//set_GUI_misc();
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
-	set_GUI_compression();
-	set_GUI_photometry();
+	//set_GUI_compression();
+	//set_GUI_photometry();
 	init_peaker_GUI();
 #ifdef HAVE_LIBRAW
 	set_libraw_settings_menu_available(TRUE);	// enable libraw settings
-	set_GUI_LIBRAW();
+	//set_GUI_LIBRAW();
 #else
 	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
 #endif

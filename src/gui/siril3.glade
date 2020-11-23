@@ -18630,6 +18630,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_af_h">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">3</property>
@@ -18640,6 +18641,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_af_w">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">3</property>
@@ -18650,6 +18652,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_af_y">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -18660,6 +18663,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_af_x">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -18755,6 +18759,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_sample_x">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -18765,6 +18770,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_sample_y">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -18775,6 +18781,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_sample_w">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">3</property>
@@ -18785,6 +18792,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                           <object class="GtkEntry" id="xtrans_sample_h">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="text">0</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">3</property>
@@ -20291,7 +20299,6 @@ The technique gives very good compression for astronomical images and is relativ
                                 <property name="can_focus">True</property>
                                 <property name="tooltip_text" translatable="yes">Copyright when saving image as TIFF</property>
                                 <property name="width_chars">50</property>
-                                <signal name="changed" handler="on_miscCopyright_changed" swapped="no"/>
                               </object>
                             </child>
                           </object>

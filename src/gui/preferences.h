@@ -20,7 +20,6 @@
 #ifndef SRC_GUI_PREFERENCES_H_
 #define SRC_GUI_PREFERENCES_H_
 
-
 typedef enum {
 	RICE_COMP,
 	GZIP1_COMP,
@@ -32,10 +31,12 @@ void set_GUI_LIBRAW();
 void update_libraw_and_debayer_interface();
 void update_photometry_interface();
 void set_GUI_photometry();
-void initialize_path_directory();
+void initialize_path_directory(const gchar *path);
 void set_libraw_settings_menu_available(gboolean activate);
 void initialize_compression_param();
 void set_GUI_compression();
 void initialize_default_preferences();
+void set_preferences_ui_from_global();
+gchar *get_swap_dir();
 
 #endif /* SRC_GUI_PREFERENCES_H_ */

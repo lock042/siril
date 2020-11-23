@@ -174,7 +174,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	g_object_unref(file);
 }
 
-int initialize_script_menu(gboolean UpdateScriptPath) {
+int initialize_script_menu(gboolean update_script_path) {
 	static GtkWidget *menuscript = NULL;
 	GSList *list, *script, *s;
 	GtkWidget *menu;
@@ -191,7 +191,7 @@ int initialize_script_menu(gboolean UpdateScriptPath) {
 		script = com.pref.script_path;
 	}
 	
-	if (UpdateScriptPath) {
+	if (update_script_path) {
 		fill_gtkText(script);
 	}
 
@@ -233,7 +233,7 @@ int initialize_script_menu(gboolean UpdateScriptPath) {
 	return 0;
 }
 
-int refresh_scripts(gchar **error) {
+int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
 	int retval;
 	GSList *list = get_list_from_preferences();
