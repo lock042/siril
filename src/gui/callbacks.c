@@ -1091,7 +1091,7 @@ void set_GUI_misc() {
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.save.warn_script);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("script_check_version"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.check_script_version);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.script_check_requires);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.show_thumbnails);
 	GtkComboBox *thumb_box = GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"));

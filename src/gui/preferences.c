@@ -62,7 +62,7 @@ static preferences pref_init = {
 		TRUE, // show_thumbnails
 		256, //thumbnail_size
 		TRUE, // check_update
-		TRUE, // check_script_version
+		TRUE, // script_check_requires
 		0, // combo_theme
 		100, // font_scale
 		0, // combo_lang
@@ -226,7 +226,7 @@ static void update_scripts_preferences() {
 	com.pref.script_path = get_list_from_preferences_dialog();
 	com.pref.save.quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.save.warn_script = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
-	com.pref.check_script_version = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 }
 
 static void update_user_interface_preferences() {
@@ -602,7 +602,7 @@ static void set_preferences_ui(preferences *pref) {
 	/* tab 5 */
 	pref->script_path = set_list_to_preferences_dialog(pref->script_path);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->save.warn_script);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->check_script_version);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 
 	/* tab 6 */
 	siril_language_fill_combo(pref->combo_lang);
