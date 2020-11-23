@@ -154,16 +154,6 @@ static void update_icons_to_theme(gboolean is_dark) {
 	}
 }
 
-void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
-	GtkSettings *settings;
-
-	com.pref.combo_theme = gtk_combo_box_get_active(box);
-
-	settings = gtk_settings_get_default();
-	g_object_set(settings, "gtk-application-prefer-dark-theme", com.pref.combo_theme == 0, NULL);
-	update_icons_to_theme(com.pref.combo_theme == 0);
-}
-
 static void initialize_theme_GUI() {
 	GtkComboBox *box;
 

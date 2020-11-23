@@ -486,6 +486,16 @@ void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
 	start_intro_script();
 }
 
+void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
+	GtkSettings *settings;
+
+	int active = gtk_combo_box_get_active(box);
+
+	settings = gtk_settings_get_default();
+	g_object_set(settings, "gtk-application-prefer-dark-theme", active == 0, NULL);
+	update_icons_to_theme(active == 0);
+}
+
 void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error;
 	int retval = refresh_scripts(FALSE, &error);
