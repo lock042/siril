@@ -73,7 +73,7 @@ static preferences pref_init = {
 		.prepro_flat_lib = NULL,
 		.use_flat_lib = FALSE,
 		{ // save
-				.quit = TRUE,
+				.quit = FALSE,
 				.warn_script = TRUE,
 		},
 		.show_thumbnails = TRUE,
