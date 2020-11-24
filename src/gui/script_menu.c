@@ -283,7 +283,7 @@ GSList *set_list_to_preferences_dialog(GSList *list) {
 		list = initialize_script_paths();
 	}
 	for (GSList *l = list; l; l = l->next) {
-		add_path_to_gtkText((gchar *) list->data);
+		add_path_to_gtkText((gchar *) l->data);
 	}
 	return list;
 }
