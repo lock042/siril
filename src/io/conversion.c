@@ -881,10 +881,10 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	if (!args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (!conv->output_ser) {
-				// TODO make filename with extension
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
-				if (ser_create_file(args->destroot, conv->output_ser, TRUE, NULL)) {
+				char *dest = ends_with(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
+				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
 				}
@@ -898,7 +898,8 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (!conv->output_fitseq) {
 				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
-				if (fitseq_create_file(args->destroot, conv->output_fitseq,
+				char *dest = ends_with(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
+				if (fitseq_create_file(dest, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
@@ -1038,17 +1039,18 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 }
 
 static void create_sequence_filename(sequence_type output_type, const char *destroot, int index, char *output, int outsize) {
-	char dest_end = destroot[strlen(destroot)-1];
+	char *destroot_noext = remove_ext_from_filename(destroot);
+	char dest_end = destroot_noext[strlen(destroot_noext)-1];
 	gboolean append_underscore = dest_end != '_' && dest_end != '-' && (dest_end < '0' || dest_end > '9');
 	switch (output_type) {
 		case SEQ_REGULAR:
-			snprintf(output, outsize, "%s%s%05d%s", destroot, append_underscore ? "_" : "", index, com.pref.ext);
+			snprintf(output, outsize, "%s%s%05d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		case SEQ_SER:
-			snprintf(output, outsize, "%s%s%03d.ser", destroot, append_underscore ? "_" : "", index);
+			snprintf(output, outsize, "%s%s%03d.ser", destroot_noext, append_underscore ? "_" : "", index);
 			break;
 		case SEQ_FITSEQ:
-			snprintf(output, outsize, "%s%s%03d%s", destroot, append_underscore ? "_" : "", index, com.pref.ext);
+			snprintf(output, outsize, "%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
@@ -1064,6 +1066,9 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 			siril_log_message(_("Error while converting to SER (no space left?)\n"));
 		}
 		else retval = WRITE_OK;
+		/* TODO: this close may happen before all writes are done
+		 * solution: close after pool join and close multiple after seqwriter join
+		 */
 		if (writer->close_sequence_after_write) {
 			siril_debug_print("closing write SER sequence\n");
 			if (retval == WRITE_OK)

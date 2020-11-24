@@ -922,9 +922,11 @@ char *remove_ext_from_filename(const char *filename) {
 	p = strrchr(filename, '.');
 
 	if (p == NULL) {
-		file = malloc(1);
+		return strdup(filename);
+		// shouldnt it be a strdup instead?
+		/*file = malloc(1);
 		file[0] = '\0';
-		return file;
+		return file;*/
 	}
 
 	filelen = p - filename;
