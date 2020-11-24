@@ -539,16 +539,6 @@ int writeinitfile() {
 	return 0;
 }
 
-void init_settings() {
-	/* initialize peaker variables */
-	init_peaker_default();
-	/* initialize sequence-related stuff */
-	initialize_sequence(&com.seq, TRUE);
-
-	com.wd = g_strdup(siril_get_startup_dir());
-	initialize_default_preferences();
-}
-
 int checkinitfile() {
 	/* First we try to read the file given on command line */
 	if (!readinitfile()) {
@@ -572,7 +562,7 @@ int checkinitfile() {
 
 	if (readinitfile()) {
 		/* init file does not exist, so we create it */
-		init_settings();
+		initialize_default_preferences();
 		return writeinitfile();
 	}
 	return 0;
