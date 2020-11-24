@@ -39,82 +39,103 @@
 #define W_OK 2
 #endif
 
+static gchar *sw_dir = NULL;
+
 static preferences pref_init = {
-		TRUE, // first_start
-		TRUE, // remember_windows
-		{ 0, 0, 0, 0 }, // main_w_pos
-		FALSE, // is_maximized
-		FALSE, // prepro_cfa
-		TRUE, // prepro_equalize_cfa
-		FALSE, // fix_xtrans
-		{ 0, 0, 0, 0 }, // xtrans_af
-		{ 0, 0, 0, 0 }, // xtrans_sample
-		NULL, // prepro_bias_lib
-		FALSE, // use_bias_lib
-		NULL, // prepro_dark_lib
-		FALSE, // use_dark_lib
-		NULL, // prepro_flat_lib
-		FALSE, // use_flat_lib
-		{ // save structure
-				TRUE, // show quit
-				TRUE, // show scripts message
+		.first_start = TRUE,
+		.remember_windows = TRUE,
+		{ // main_w_pos
+				.x = 0,
+				.y = 0,
+				.w = 0,
+				.h = 0
 		},
-		TRUE, // show_thumbnails
-		256, //thumbnail_size
-		TRUE, // check_update
-		TRUE, // script_check_requires
-		0, // combo_theme
-		100, // font_scale
-		0, // combo_lang
-		NULL, // ext
-		NULL, // swap_dir
-		NULL, // script_path
-		{
-				{1.0, 1.0, 1.0}, // mul[3]
-				1.0, // bright
-				1, //auto_mul
-				0, // use_camera_wb
-				0, // use_auto_wb
-				2, // user_qual
-				0, // user_black
-				{ 1.0, 1.0 }, //gamm[2]
+		.is_maximized = FALSE,
+		.prepro_cfa = FALSE,
+		.prepro_equalize_cfa = TRUE,
+		.fix_xtrans = FALSE,
+		{ // xtrans_af
+				.x = 0,
+				.y = 0,
+				.w = 0,
+				.h = 0
 		},
-		{
-				FALSE, // open_debayer
-				TRUE, // use_bayer_header
-				BAYER_FILTER_RGGB, // bayer_pattern
-				BAYER_RCD, // bayer_inter
-				TRUE, // top_down
-				0, // xbayeroff
-				0, // ybayeroff
+		{ //xtrans_sample
+				.x = 0,
+				.y = 0,
+				.w = 0,
+				.h = 0
 		},
-		{
-				2.3, // gain
-				20.0, // inner
-				30.0, // outer
-				0, // minval
-				60000, // maxval
+		.prepro_bias_lib = NULL,
+		.use_bias_lib = FALSE,
+		.prepro_dark_lib = NULL,
+		.use_dark_lib = FALSE,
+		.prepro_flat_lib = NULL,
+		.use_flat_lib = FALSE,
+		{ // save
+				.quit = TRUE,
+				.warn_script = TRUE,
 		},
+		.show_thumbnails = TRUE,
+		.thumbnail_size = 256,
+		.check_update = TRUE,
+		.script_check_requires = TRUE,
+		.combo_theme = 0,
+		.font_scale = 100,
+		.combo_lang = 0,
+		.ext = NULL,
+		.swap_dir = NULL,
+		.script_path = NULL,
 		{
-				0, // stack method
-				ADDITIVE_SCALING, // normalisation
-				WINSORIZED, // type of rejection
-				3.0, 3.0, // sigma low sigma high
-				5.0, 5.0, // linear low linear high
-				3.0, 3.0, // percentile low percentile high
-				RATIO, // memory management
-				0.9, // memory ratio
-				10, // memory amount
+				{
+						1.0, 1.0, 1.0 // mul[3]
+				},
+				.bright = 1.0,
+				.auto_mul = 1,
+				.use_camera_wb = 0,
+				.use_auto_wb = 0,
+				.user_qual = 2,
+				.user_black = 0,
+				{
+						1.0, 1.0 // gamm[2]
+				},
 		},
 		{
-				FALSE, // fits_enabled
-				0, // fits_method
-				16.0, // fits_quantization
-				4.0, // fits_hcompress_scale
+				.open_debayer = FALSE,
+				.use_bayer_header = TRUE,
+				.bayer_pattern = BAYER_FILTER_RGGB,
+				.bayer_inter = BAYER_RCD,
+				.top_down = TRUE,
+				.xbayeroff = 0,
+				.ybayeroff = 0,
 		},
-		FALSE, // force_to_16bit
-		0, // selection_guides
-		NULL, // copyright
+		{
+				.gain = 2.3,
+				.inner = 20.0,
+				.outer = 30.0,
+				.minval = 0,
+				.maxval = 60000,
+		},
+		{
+				.method = 0,
+				.normalisation_method = ADDITIVE_SCALING,
+				.rej_method = WINSORIZED,
+				.sigma_low = 3.0, .sigma_high = 3.0,
+				.linear_low = 5.0, .linear_high = 5.0,
+				.percentile_low = 3.0, .percentile_high = 3.0,
+				.mem_mode = RATIO,
+				.memory_ratio = 0.9,
+				.memory_amount = 10,
+		},
+		{
+				.fits_enabled = FALSE,
+				.fits_method = 0,
+				.fits_quantization = 16.0,
+				.fits_hcompress_scale = 4.0,
+		},
+		.force_to_16bit = FALSE,
+		.selection_guides = 0,
+		.copyright = NULL,
 };
 
 static void reset_swapdir() {
@@ -447,6 +468,10 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 		gtk_file_chooser_set_filename(swap_dir, com.pref.swap_dir);
 		return;
 	}
+	if (sw_dir) {
+		g_free(sw_dir);
+		sw_dir = gtk_file_chooser_get_filename(swap_dir);
+	}
 }
 
 void on_show_preview_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -681,7 +706,10 @@ void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
 gchar *get_swap_dir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 
-	return gtk_file_chooser_get_filename(swap_dir);
+	if (sw_dir == NULL) {
+		sw_dir = gtk_file_chooser_get_filename(swap_dir);
+	}
+	return sw_dir;
 }
 
 void set_preferences_dialog_from_global() {
