@@ -22,15 +22,15 @@
 #include <config.h>
 #endif
 
-
-#include <stdio.h>
+#ifdef HAVE_WCSLIB
 #include <wcslib.h>
+#endif
 
 #include "core/siril.h"
 
 #include "siril_wcs.h"
 
-static struct wcsprm *wcs;
+static struct wcsprm *wcs = NULL;
 
 gboolean load_WCS(fits* fit) {
 #ifdef HAVE_WCSLIB
@@ -40,8 +40,7 @@ gboolean load_WCS(fits* fit) {
 
 	if (fits_hdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status)) {
 		char errmsg[512];
-		fits_get_errstatus(status, errmsg);
-//        lastError = errmsg;
+		report_fits_error(status);
 		return FALSE;
 	}
 
@@ -50,14 +49,15 @@ gboolean load_WCS(fits* fit) {
 		free(header);
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
-//        lastError = QString("wcspih ERROR %1: %2.").arg(status).arg(wcshdr_errmsg[status]);
+		siril_debug_print("wcspih error %d: %s.", status, wcshdr_errmsg[status]);
+
 		return FALSE;
 	}
 
 	free(header);
 
 	if (wcs == NULL) {
-//        lastError = i18n("No world coordinate systems found.");
+	siril_debug_print("No world coordinate systems found.");
 		return FALSE;
 	}
 
@@ -65,21 +65,21 @@ gboolean load_WCS(fits* fit) {
 	if (wcs->crpix[0] == 0) {
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
-//        lastError = i18n("No world coordinate systems found.");
+		siril_debug_print("No world coordinate systems found.");
 		return FALSE;
 	}
 
-	int stat1[2], naxis[2];
+	int stat[2], naxis[2];
 	naxis[0] = fit->rx;
 	naxis[1] = fit->ry;
-	wcsfix(7, naxis, wcs, &stat1[0]);
+	wcsfix(7, naxis, wcs, &stat[0]);
 	if ((status = wcsset(wcs)) != 0) {
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
-//        lastError = QString("wcsset error %1: %2.").arg(status).arg(wcs_errmsg[status]);
+		siril_debug_print("wcsset error %d: %s.", status, wcs_errmsg[status]);
 		return FALSE;
 	}
-//
+
 	return TRUE;
 #else
 	return FALSE:
@@ -99,7 +99,6 @@ void pix2wcs(double pixel_x, double pixel_y, double *world_x, double *world_y) {
 	if ((status = wcsp2s(wcs, 1, 2, &pixcrd[0], &imgcrd[0], &phi, &theta,
 			&world[0], &stat[0])) != 0) {
 	} else {
-		//printf("(%lf / %lf)\n\n\n\n", world[0], world[1]);
 		*world_x = world[0];
 		*world_y = world[1];
 	}
