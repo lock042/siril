@@ -16,6 +16,7 @@ AM_CPPFLAGS = \
 	$(CFITSIO_CFLAGS) \
 	$(GSL_CFLAGS) \
 	$(FFMS2_CFLAGS) \
+	$(WCSLIB_CFLAGS) \
 	$(LIBCONFIG_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
@@ -60,6 +61,8 @@ siril_common_SOURCES = \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
 	algos/transform.c \
+	algos/siril_wcs.h \
+	algos/siril_wcs.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
 	compositing/compositing.c \
@@ -261,6 +264,7 @@ siril_common_LDADD = \
 	$(FFMS2_LIBS) \
 	$(LIBCONFIG_LIBS) \
 	$(LIBCURL) \
+	$(WCSLIB_LIBS) \
 	$(EXTRA_LIBS) \
 	$(LIBATOMIC_LIBS) \
 	$(libdbghelp) \

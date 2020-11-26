@@ -239,6 +239,11 @@ m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
         [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl ])],
         AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+        
+dnl check wcslib
+PKG_CHECK_MODULES(WCSLIB, [wcslib],
+		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
+		  AC_MSG_WARN([wcslib not found. Not using WCS API.]))
 
 dnl ================================================================
 dnl Collect some arguments.

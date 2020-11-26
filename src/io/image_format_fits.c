@@ -42,6 +42,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "image_format_fits.h"
+#include "algos/siril_wcs.h"
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
 static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
@@ -365,6 +366,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota2), NULL, &status);
 
+	load_WCS(fit);
 
 	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************
@@ -1348,6 +1350,7 @@ void clearfits(fits *fit) {
 			free_stats(fit->stats[i]);
 		free(fit->stats);
 	}
+	free_wcs();
 	memset(fit, 0, sizeof(fits));
 }
 

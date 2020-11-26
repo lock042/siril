@@ -18,11 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "algos/background_extraction.h"
+#include "algos/siril_wcs.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/open_dialog.h"
@@ -641,6 +644,33 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	return FALSE;
 }
 
+static gchar *conv_dec_2_str(double dec) {
+	int degree, min;
+	double sec;
+	char sig = ' ';
+
+	if (dec < 0) sig = '-';
+
+	dec = fabs(dec);
+
+	degree = (int) dec;
+	min = abs((int) ((dec - degree) * 60.0));
+	sec = (fabs((dec - degree) * 60.0) - min) * 60.0;
+	return g_strdup_printf("%c%02d°%02dm%2.3lfs", sig, degree, min, sec);
+}
+
+static gchar *conv_ra_2_str(double ra) {
+	int hour, min;
+	double sec;
+
+	ra = fabs(ra);
+
+	hour = (int)(ra / 15.0);
+	min = (int)(((ra / 15.0) - hour) * 60.0);
+	sec = ((((ra / 15.0) - hour) * 60.0) - min) * 60.0;
+	return g_strdup_printf("%02dh%02dm%2.3lfs", hour, min, sec);
+}
+
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
 	if (gfit.type == DATA_UNSUPPORTED) return FALSE;
@@ -657,9 +687,11 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 
 	const char *suffix = untranslated_vport_number_to_name(com.cvport);
 	gchar *label = g_strdup_printf("labeldensity_%s", suffix);
+	gchar *label_wcs = g_strdup_printf("labelwcs_%s", suffix);
 
 	if (inside && com.cvport < RGB_VPORT) {
 		char *buffer = NULL;
+		char *wcs_buffer = NULL;
 		char *format = NULL;
 		int coords_width = 3;
 
@@ -685,17 +717,33 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
 					+ zoomed.x]);
 		}
+		double world_x, world_y;
+		pix2wcs((double) zoomed.x, (double) zoomed.y, &world_x, &world_y);
+		if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+			gchar *ra = conv_ra_2_str(world_x);
+			gchar *dec = conv_dec_2_str(world_y);
+			wcs_buffer = g_strdup_printf("%s %s", ra, dec);
+
+			gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), wcs_buffer);
+
+			g_free(ra);
+			g_free(dec);
+			g_free(wcs_buffer);
+		}
 
 		if (buffer) {
 			gtk_label_set_text(GTK_LABEL(lookup_widget(label)), buffer);
+
 			g_free(buffer);
 			g_free(format);
 		}
 	} else if (widget != com.vport[RGB_VPORT]) {
 		gtk_label_set_text(GTK_LABEL(lookup_widget(label)), "");
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), "");
 	}
 
 	g_free(label);
+	g_free(label_wcs);
 
 	if (com.translating) {
 		update_zoom_fit_button();
