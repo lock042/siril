@@ -34,6 +34,7 @@
 static struct wcsprm *wcs = NULL;
 
 gboolean load_WCS_from_memory(fits *fit) {
+#ifdef HAVE_WCSLIB
 	if (wcs) {
 		free_wcs();
 	}
@@ -60,6 +61,9 @@ gboolean load_WCS_from_memory(fits *fit) {
 	wcs->equinox = (double) fit->wcs.equinox;
 
 	return TRUE;
+#else
+	return FALSE;
+#endif
 }
 
 gboolean load_WCS(fits* fit) {
