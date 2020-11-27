@@ -31,6 +31,8 @@
 
 #include "siril_wcs.h"
 
+#define NAXIS 2
+
 static struct wcsprm *wcs = NULL;
 
 gboolean load_WCS_from_memory(fits *fit) {
@@ -40,7 +42,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 	wcs = calloc(1, sizeof(struct wcsprm));
 	wcs->flag = -1;
-	wcsinit(1, fit->naxis, wcs, 0, 0, 0);
+	wcsinit(1, NAXIS, wcs, 0, 0, 0);
 
 	wcs->cd[0] = fit->wcs.cd1_1;
 	wcs->cd[1] = fit->wcs.cd1_2;
@@ -59,7 +61,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	wcs->cdelt[0] = fit->wcs.cdelt1;
 	wcs->cdelt[1] = fit->wcs.cdelt2;
 
-	wcs->equinox = (double) fit->wcs.equinox;
+	wcs->equinox = fit->wcs.equinox;
 
 	return TRUE;
 #else

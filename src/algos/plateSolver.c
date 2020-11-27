@@ -788,7 +788,7 @@ static void update_gfit(image_solved image) {
 	gfit.wcs.crpix2 = image.y;
 	gfit.wcs.crval1 = image.ra;
 	gfit.wcs.crval2 = image.dec;
-	gfit.wcs.equinox = 2000;
+	gfit.wcs.equinox = 2000.0;
 	deg_to_HMS(image.ra, "ra", gfit.wcs.objctra);
 	deg_to_HMS(image.dec, "dec", gfit.wcs.objctdec);
 	gfit.wcs.cdelt1 = image.resolution / 3600.0;
@@ -1518,7 +1518,7 @@ int fill_plate_solver_structure(struct plate_solver_data *args) {
 gboolean confirm_delete_wcs_keywords(fits *fit) {
 	gboolean erase = TRUE;
 
-	if (fit->wcs.equinox > 0) {
+	if (fit->wcs.equinox > 0.0) {
 		erase = siril_confirm_dialog(_("Astrometric solution detected"),
 				_("The astrometric solution contained in "
 				"the image will be erased by the geometric transformation and no undo "
@@ -1528,7 +1528,7 @@ gboolean confirm_delete_wcs_keywords(fits *fit) {
 }
 
 void invalidate_WCS_keywords(fits *fit) {
-	if (fit->wcs.equinox > 0) {
+	if (fit->wcs.equinox > 0.0) {
 		memset(&fit->wcs, 0, sizeof(fit->wcs));
 	}
 }

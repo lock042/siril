@@ -368,7 +368,7 @@ struct single_image {
 };
 
 struct wcs_struct {
-	unsigned int equinox;
+	double equinox;
 	double crpix1, crpix2;
 	double crval1, crval2;
 	double cdelt1, cdelt2;

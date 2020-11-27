@@ -334,7 +334,7 @@ void read_fits_header(fits *fit) {
 	 * ******************* PLATE SOLVING KEYWORDS **********************
 	 * ****************************************************************/
 	status = 0;
-	fits_read_key(fit->fptr, TUINT, "EQUINOX", &(fit->wcs.equinox), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcs.equinox), NULL, &status);
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra), NULL, &status);
@@ -890,9 +890,8 @@ int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *statu
 static void save_wcs_keywords(fits *fit) {
 	int status = 0;
 
-	if (fit->wcs.equinox > 0) {
-		fits_update_key(fit->fptr, TUINT, "EQUINOX", &(fit->wcs.equinox),
-						"Equatorial equinox", &status);
+	if (fit->wcs.equinox > 0.0) {
+		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcs.equinox),	"Equatorial equinox", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
 		status = 0;
