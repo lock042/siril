@@ -48,6 +48,7 @@
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/plateSolver.h"
+#include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "registration/matching/match.h"
 #include "registration/matching/apply_match.h"
@@ -1187,6 +1188,7 @@ static gboolean end_plate_solver(gpointer p) {
 			flip_astrometry_data(args->fit);
 			redraw(com.cvport, REMAP_ALL);
 		}
+		load_WCS_from_memory(args->fit);
 	}
 	g_free(args->catalogStars);
 	g_free(args->message);

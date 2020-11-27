@@ -27,10 +27,40 @@
 #endif
 
 #include "core/siril.h"
+#include "io/image_format_fits.h"
 
 #include "siril_wcs.h"
 
 static struct wcsprm *wcs = NULL;
+
+gboolean load_WCS_from_memory(fits *fit) {
+	if (wcs) {
+		free_wcs();
+	}
+	wcs = calloc(1, sizeof(struct wcsprm));
+	wcs->flag = -1;
+	wcsinit(1, fit->naxis, wcs, -1, -1, -1);
+	wcs->cd[0] = fit->wcs.cd1_1;
+	wcs->cd[1] = fit->wcs.cd1_2;
+	wcs->cd[2] = fit->wcs.cd2_1;
+	wcs->cd[3] = fit->wcs.cd2_2;
+
+	wcs->crval[0] = fit->wcs.crval1;
+	wcs->crval[1] = fit->wcs.crval2;
+
+	wcs->crota[0] = fit->wcs.crota1;
+	wcs->crota[1] = fit->wcs.crota2;
+
+	wcs->crpix[0] = fit->wcs.crpix1;
+	wcs->crpix[1] = fit->wcs.crpix2;
+
+	wcs->cdelt[0] = fit->wcs.cdelt1;
+	wcs->cdelt[1] = fit->wcs.cdelt2;
+
+	wcs->equinox = (double) fit->wcs.equinox;
+
+	return TRUE;
+}
 
 gboolean load_WCS(fits* fit) {
 #ifdef HAVE_WCSLIB
@@ -38,8 +68,11 @@ gboolean load_WCS(fits* fit) {
 	char *header;
 	int nkeyrec, nreject, nwcs;
 
+	if (wcs) {
+		free_wcs();
+	}
+
 	if (fits_hdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status)) {
-		char errmsg[512];
 		report_fits_error(status);
 		return FALSE;
 	}
@@ -49,7 +82,7 @@ gboolean load_WCS(fits* fit) {
 		free(header);
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
-		siril_debug_print("wcspih error %d: %s.", status, wcshdr_errmsg[status]);
+		siril_debug_print("wcspih error %d: %s.\n", status, wcshdr_errmsg[status]);
 
 		return FALSE;
 	}
@@ -57,7 +90,7 @@ gboolean load_WCS(fits* fit) {
 	free(header);
 
 	if (wcs == NULL) {
-	siril_debug_print("No world coordinate systems found.");
+	siril_debug_print("No world coordinate systems found.\n");
 		return FALSE;
 	}
 
@@ -65,7 +98,7 @@ gboolean load_WCS(fits* fit) {
 	if (wcs->crpix[0] == 0) {
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
-		siril_debug_print("No world coordinate systems found.");
+		siril_debug_print("No world coordinate systems found.\n");
 		return FALSE;
 	}
 
@@ -76,7 +109,7 @@ gboolean load_WCS(fits* fit) {
 	if ((status = wcsset(wcs)) != 0) {
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
-		siril_debug_print("wcsset error %d: %s.", status, wcs_errmsg[status]);
+		siril_debug_print("wcsset error %d: %s.\n", status, wcs_errmsg[status]);
 		return FALSE;
 	}
 
@@ -89,6 +122,7 @@ gboolean load_WCS(fits* fit) {
 void pix2wcs(double pixel_x, double pixel_y, double *world_x, double *world_y) {
 	*world_x = -1.0;
 	*world_y = -1.0;
+	if (wcs == NULL) return;
 #ifdef HAVE_WCSLIB
 	double phi = 0, theta = 0, world[2], pixcrd[2], imgcrd[2];
 	int status, stat[2];

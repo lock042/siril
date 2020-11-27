@@ -656,7 +656,7 @@ static gchar *conv_dec_2_str(double dec) {
 	degree = (int) dec;
 	min = abs((int) ((dec - degree) * 60.0));
 	sec = (fabs((dec - degree) * 60.0) - min) * 60.0;
-	return g_strdup_printf("%c%02d°%02dm%2.3lfs", sig, degree, min, sec);
+	return g_strdup_printf("%c%02d°%02d\'%02d\'\'", sig, degree, min, (int)sec);
 }
 
 static gchar *conv_ra_2_str(double ra) {
@@ -668,7 +668,7 @@ static gchar *conv_ra_2_str(double ra) {
 	hour = (int)(ra / 15.0);
 	min = (int)(((ra / 15.0) - hour) * 60.0);
 	sec = ((((ra / 15.0) - hour) * 60.0) - min) * 60.0;
-	return g_strdup_printf("%02dh%02dm%2.3lfs", hour, min, sec);
+	return g_strdup_printf("%02dh%02dm%02ds", hour, min, (int)sec);
 }
 
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
@@ -688,6 +688,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	const char *suffix = untranslated_vport_number_to_name(com.cvport);
 	gchar *label = g_strdup_printf("labeldensity_%s", suffix);
 	gchar *label_wcs = g_strdup_printf("labelwcs_%s", suffix);
+
+	gtk_label_set_text(GTK_LABEL(lookup_widget(label)), "");
+	gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), "");
 
 	if (inside && com.cvport < RGB_VPORT) {
 		char *buffer = NULL;
@@ -722,7 +725,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
 			gchar *ra = conv_ra_2_str(world_x);
 			gchar *dec = conv_dec_2_str(world_y);
-			wcs_buffer = g_strdup_printf("%s %s", ra, dec);
+			wcs_buffer = g_strdup_printf("%s , %s", ra, dec);
 
 			gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), wcs_buffer);
 
@@ -737,9 +740,6 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			g_free(buffer);
 			g_free(format);
 		}
-	} else if (widget != com.vport[RGB_VPORT]) {
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label)), "");
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), "");
 	}
 
 	g_free(label);

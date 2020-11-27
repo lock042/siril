@@ -2569,9 +2569,25 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             <property name="valign">center</property>
                             <property name="spacing">2</property>
                             <child>
+                              <object class="GtkLabel" id="labelfilename_red">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_text" translatable="yes">current red file</property>
+                                <property name="halign">start</property>
+                                <property name="ellipsize">start</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">6</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkLabel" id="labeldensity_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="ellipsize">end</property>
                                 <property name="width_chars">22</property>
@@ -2580,18 +2596,19 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="padding">12</property>
-                                <property name="position">0</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkLabel" id="labelwcs_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -2604,20 +2621,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
                                 <property name="position">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelfilename_red">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">current red file</property>
-                                <property name="ellipsize">start</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">6</property>
-                                <property name="position">4</property>
                               </packing>
                             </child>
                             <child>
@@ -2636,6 +2639,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labelselection_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                                 <property name="width_chars">30</property>
                               </object>
                               <packing>
@@ -2735,9 +2739,25 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             <property name="valign">center</property>
                             <property name="spacing">2</property>
                             <child>
+                              <object class="GtkLabel" id="labelfilename_green">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_text" translatable="yes">current green file</property>
+                                <property name="halign">start</property>
+                                <property name="ellipsize">start</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">8</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkLabel" id="labeldensity_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                                 <property name="ellipsize">end</property>
                                 <property name="width_chars">22</property>
                               </object>
@@ -2745,18 +2765,19 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="padding">4</property>
-                                <property name="position">0</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkLabel" id="labelwcs_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -2769,20 +2790,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
                                 <property name="position">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelfilename_green">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">current green file</property>
-                                <property name="ellipsize">start</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">8</property>
-                                <property name="position">4</property>
                               </packing>
                             </child>
                             <child>
@@ -2801,6 +2808,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labelselection_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                                 <property name="width_chars">30</property>
                               </object>
                               <packing>
@@ -2903,9 +2911,25 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             <property name="valign">center</property>
                             <property name="spacing">2</property>
                             <child>
+                              <object class="GtkLabel" id="labelfilename_blue">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_text" translatable="yes">current blue file</property>
+                                <property name="halign">start</property>
+                                <property name="ellipsize">start</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">8</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkLabel" id="labeldensity_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                                 <property name="ellipsize">end</property>
                                 <property name="width_chars">22</property>
                               </object>
@@ -2913,18 +2937,19 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="padding">4</property>
-                                <property name="position">0</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkLabel" id="labelwcs_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -2937,20 +2962,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
                                 <property name="position">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelfilename_blue">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">current blue file</property>
-                                <property name="ellipsize">start</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">8</property>
-                                <property name="position">4</property>
                               </packing>
                             </child>
                             <child>
@@ -2969,6 +2980,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkLabel" id="labelselection_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="halign">start</property>
                                 <property name="width_chars">30</property>
                               </object>
                               <packing>
