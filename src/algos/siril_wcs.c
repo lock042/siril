@@ -40,7 +40,8 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 	wcs = calloc(1, sizeof(struct wcsprm));
 	wcs->flag = -1;
-	wcsinit(1, fit->naxis, wcs, -1, -1, -1);
+	wcsinit(1, fit->naxis, wcs, 0, 0, 0);
+
 	wcs->cd[0] = fit->wcs.cd1_1;
 	wcs->cd[1] = fit->wcs.cd1_2;
 	wcs->cd[2] = fit->wcs.cd2_1;
@@ -66,7 +67,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 #endif
 }
 
-gboolean load_WCS(fits* fit) {
+gboolean load_WCS_from_file(fits* fit) {
 #ifdef HAVE_WCSLIB
 	int status = 0;
 	char *header;

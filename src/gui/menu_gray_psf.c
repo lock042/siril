@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include "core/siril.h"
 #include "core/proto.h"
 
@@ -25,6 +26,7 @@
 #include "core/command.h"
 #include "io/sequence.h"
 #include "algos/star_finder.h"
+#include "algos/siril_wcs.h"
 
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -33,7 +35,7 @@
 #include "gui/PSF_list.h"
 
 void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	gchar *msg;
+	gchar *msg, *coordinates;
 	fitted_PSF *result = NULL;
 	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
 	char *str;
@@ -56,17 +58,33 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		str = "true reduced";
 	else
 		str = "relative";
-	msg = g_strdup_printf(_("Centroid Coordinates:\n\t\tx0=%.2fpx\n\t\ty0=%.2fpx\n\n"
+
+	double x = result->x0 + com.selection.x;
+	double y = com.selection.y + com.selection.h - result->y0;
+	double world_x, world_y;
+	pix2wcs(x, y, &world_x, &world_y);
+	if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+		gchar *ra = conv_ra_2_str(world_x);
+		gchar *dec = conv_dec_2_str(world_y);
+		coordinates = g_strdup_printf("x0=%.2fpx\t%s J%d\n\t\ty0=%.2fpx\t%s J%d", x, ra, gfit.wcs.equinox, y, dec, gfit.wcs.equinox);
+
+		g_free(ra);
+		g_free(dec);
+	} else {
+		coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
+	}
+
+	msg = g_strdup_printf(_("Centroid Coordinates:\n\t\t%s\n\n"
 				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\n"
 				"Angle:\n\t\t%0.2fdeg\n\n"
 				"Background Value:\n\t\tB=%.6f\n\n"
 				"Maximal Intensity:\n\t\tA=%.6f\n\n"
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
-				"RMSE:\n\t\tRMSE=%.3e"), result->x0 + com.selection.x,
-			com.selection.y + com.selection.h - result->y0, result->fwhmx,
+				"RMSE:\n\t\tRMSE=%.3e"), coordinates, result->fwhmx,
 			result->units, result->fwhmy, result->units, result->angle, result->B,
 			result->A, str, result->mag + com.magOffset, result->s_mag, result->rmse);
 	show_data_dialog(msg, "PSF Results");
+	g_free(coordinates);
 	g_free(msg);
 	free(result);
 }

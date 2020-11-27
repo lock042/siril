@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -1098,4 +1099,31 @@ char **glist_to_array(GList *list, int *arg_count) {
 		array[i] = g_strdup(list->data);
 	g_list_free_full(orig_list, g_free);
 	return array;
+}
+
+gchar *conv_dec_2_str(double dec) {
+	int degree, min;
+	double sec;
+	char sig = ' ';
+
+	if (dec < 0) sig = '-';
+
+	dec = fabs(dec);
+
+	degree = (int) dec;
+	min = abs((int) ((dec - degree) * 60.0));
+	sec = (fabs((dec - degree) * 60.0) - min) * 60.0;
+	return g_strdup_printf("%c%02d°%02d\'%02d\"", sig, degree, min, (int)sec);
+}
+
+gchar *conv_ra_2_str(double ra) {
+	int hour, min;
+	double sec;
+
+	ra = fabs(ra);
+
+	hour = (int)(ra / 15.0);
+	min = (int)(((ra / 15.0) - hour) * 60.0);
+	sec = ((((ra / 15.0) - hour) * 60.0) - min) * 60.0;
+	return g_strdup_printf(" %02dh%02dm%02ds", hour, min, (int)sec);
 }

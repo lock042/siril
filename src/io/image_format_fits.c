@@ -366,7 +366,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota2), NULL, &status);
 
-	load_WCS(fit);
+	load_WCS_from_file(fit);
 
 	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************

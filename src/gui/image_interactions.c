@@ -644,33 +644,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	return FALSE;
 }
 
-static gchar *conv_dec_2_str(double dec) {
-	int degree, min;
-	double sec;
-	char sig = ' ';
-
-	if (dec < 0) sig = '-';
-
-	dec = fabs(dec);
-
-	degree = (int) dec;
-	min = abs((int) ((dec - degree) * 60.0));
-	sec = (fabs((dec - degree) * 60.0) - min) * 60.0;
-	return g_strdup_printf("%c%02d°%02d\'%02d\'\'", sig, degree, min, (int)sec);
-}
-
-static gchar *conv_ra_2_str(double ra) {
-	int hour, min;
-	double sec;
-
-	ra = fabs(ra);
-
-	hour = (int)(ra / 15.0);
-	min = (int)(((ra / 15.0) - hour) * 60.0);
-	sec = ((((ra / 15.0) - hour) * 60.0) - min) * 60.0;
-	return g_strdup_printf("%02dh%02dm%02ds", hour, min, (int)sec);
-}
-
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
 	if (gfit.type == DATA_UNSUPPORTED) return FALSE;
@@ -689,56 +662,58 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	gchar *label = g_strdup_printf("labeldensity_%s", suffix);
 	gchar *label_wcs = g_strdup_printf("labelwcs_%s", suffix);
 
-	gtk_label_set_text(GTK_LABEL(lookup_widget(label)), "");
-	gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), "");
+	if (com.cvport < RGB_VPORT) {
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label)), "");
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), "");
 
-	if (inside && com.cvport < RGB_VPORT) {
-		char *buffer = NULL;
-		char *wcs_buffer = NULL;
-		char *format = NULL;
-		int coords_width = 3;
+		if (inside) {
+			char *buffer = NULL;
+			char *wcs_buffer = NULL;
+			char *format = NULL;
+			int coords_width = 3;
 
-		if (gfit.rx >= 1000 || gfit.ry >= 1000)
+			if (gfit.rx >= 1000 || gfit.ry >= 1000)
 			coords_width = 4;
-		if (gfit.type == DATA_USHORT && gfit.pdata[com.cvport] != NULL) {
-			int val_width = 3;
-			char *format_base_ushort = "x: %%.%dd y: %%.%dd = %%.%dd";
-			if (gfit.hi >= 1000)
-				val_width = 4;
-			if (gfit.hi >= 10000)
-				val_width = 5;
-			format = g_strdup_printf(format_base_ushort,
-					coords_width, coords_width, val_width);
-			buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
-					gfit.pdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
-					+ zoomed.x]);
-		} else if (gfit.type == DATA_FLOAT  && gfit.fpdata[com.cvport] != NULL) {
-			char *format_base_float = "x: %%.%dd y: %%.%dd = %%f";
-			format = g_strdup_printf(format_base_float,
-					coords_width, coords_width);
-			buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
-					gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
-					+ zoomed.x]);
-		}
-		double world_x, world_y;
-		pix2wcs((double) zoomed.x, (double) zoomed.y, &world_x, &world_y);
-		if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
-			gchar *ra = conv_ra_2_str(world_x);
-			gchar *dec = conv_dec_2_str(world_y);
-			wcs_buffer = g_strdup_printf("%s , %s", ra, dec);
+			if (gfit.type == DATA_USHORT && gfit.pdata[com.cvport] != NULL) {
+				int val_width = 3;
+				char *format_base_ushort = "x: %%.%dd y: %%.%dd = %%.%dd";
+				if (gfit.hi >= 1000)
+					val_width = 4;
+				if (gfit.hi >= 10000)
+					val_width = 5;
+				format = g_strdup_printf(format_base_ushort,
+						coords_width, coords_width, val_width);
+				buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
+						gfit.pdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
+											   + zoomed.x]);
+			} else if (gfit.type == DATA_FLOAT  && gfit.fpdata[com.cvport] != NULL) {
+				char *format_base_float = "x: %%.%dd y: %%.%dd = %%f";
+				format = g_strdup_printf(format_base_float,
+						coords_width, coords_width);
+				buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
+						gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
+												+ zoomed.x]);
+				}
+			double world_x, world_y;
+			pix2wcs((double) zoomed.x, (double) zoomed.y, &world_x, &world_y);
+			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+				gchar *ra = conv_ra_2_str(world_x);
+				gchar *dec = conv_dec_2_str(world_y);
+				wcs_buffer = g_strdup_printf("%s , %s", ra, dec);
 
-			gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), wcs_buffer);
+				gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), wcs_buffer);
 
-			g_free(ra);
-			g_free(dec);
-			g_free(wcs_buffer);
-		}
+				g_free(ra);
+				g_free(dec);
+				g_free(wcs_buffer);
+			}
 
-		if (buffer) {
-			gtk_label_set_text(GTK_LABEL(lookup_widget(label)), buffer);
+			if (buffer) {
+				gtk_label_set_text(GTK_LABEL(lookup_widget(label)), buffer);
 
-			g_free(buffer);
-			g_free(format);
+				g_free(buffer);
+				g_free(format);
+			}
 		}
 	}
 
