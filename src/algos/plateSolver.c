@@ -691,7 +691,7 @@ static gboolean has_any_keywords() {
 	return (gfit.focal_length > 0.0 ||
 			gfit.pixel_size_x > 0.f ||
 			gfit.pixel_size_y > 0.f ||
-			(gfit.wcs.crval1 > 0.0 && gfit.wcs.crval2 != 0.0) ||
+			(gfit.wcs.crval[0] > 0.0 && gfit.wcs.crval[1] != 0.0) ||
 			(gfit.wcs.objctra[0] != '\0' && gfit.wcs.objctdec[0] != '\0'));
 }
 
@@ -700,10 +700,10 @@ static void update_coords() {
 	DEC k_dec;
 	gboolean south;
 
-	if (gfit.wcs.crval1 != 0.0 && gfit.wcs.crval2 != 0.0) {
+	if (gfit.wcs.crval[0] != 0.0 && gfit.wcs.crval[1] != 0.0) {
 		// first transform coords to RA and DEC
-		k_ra = convert_ra(gfit.wcs.crval1);
-		k_dec = convert_dec(gfit.wcs.crval2);
+		k_ra = convert_ra(gfit.wcs.crval[0]);
+		k_dec = convert_dec(gfit.wcs.crval[1]);
 		south = k_dec.degree < 0.0;
 
 		k_dec.degree = abs(k_dec.degree);
@@ -768,40 +768,40 @@ static void update_image_parameters_GUI() {
 }
 
 static void cd_x(wcs_info *wcs) {
-	double rot = (wcs->crota1 + wcs->crota2) / 2;
+	double rot = (wcs->crota[0] + wcs->crota[1]) / 2;
 	rot = rot * M_PI / 180.0;
 	double sinrot, cosrot;
 	double2 sc;
 	sc = xsincos(rot);
 	sinrot = sc.x;
 	cosrot = sc.y;
-	wcs->cd1_1 = wcs->cdelt1 * cosrot;
-	wcs->cd2_2 = wcs->cdelt2 * cosrot;
-	wcs->cd2_1 = wcs->cdelt1 * sinrot;
-	wcs->cd1_2 = -wcs->cdelt2 * sinrot;
+	wcs->cd[0][0] = wcs->cdelt[0] * cosrot;
+	wcs->cd[1][1] = wcs->cdelt[1] * cosrot;
+	wcs->cd[1][0] = wcs->cdelt[0] * sinrot;
+	wcs->cd[0][1] = -wcs->cdelt[1] * sinrot;
 }
 
 static void update_gfit(image_solved image) {
 	gfit.focal_length = image.focal;
 	gfit.pixel_size_x = gfit.pixel_size_y = image.pixel_size;
-	gfit.wcs.crpix1 = image.x;
-	gfit.wcs.crpix2 = image.y;
-	gfit.wcs.crval1 = image.ra;
-	gfit.wcs.crval2 = image.dec;
+	gfit.wcs.crpix[0] = image.x;
+	gfit.wcs.crpix[1] = image.y;
+	gfit.wcs.crval[0] = image.ra;
+	gfit.wcs.crval[1] = image.dec;
 	gfit.wcs.equinox = 2000.0;
 	deg_to_HMS(image.ra, "ra", gfit.wcs.objctra);
 	deg_to_HMS(image.dec, "dec", gfit.wcs.objctdec);
-	gfit.wcs.cdelt1 = image.resolution / 3600.0;
-	gfit.wcs.cdelt2 = -gfit.wcs.cdelt1;
-	gfit.wcs.crota1 = gfit.wcs.crota2 = -image.crota;
+	gfit.wcs.cdelt[0] = image.resolution / 3600.0;
+	gfit.wcs.cdelt[1] = -gfit.wcs.cdelt[0];
+	gfit.wcs.crota[0] = gfit.wcs.crota[1] = -image.crota;
 	cd_x(&gfit.wcs);
 }
 
 static void flip_astrometry_data(fits *fit) {
-	fit->wcs.cd1_1 = -fit->wcs.cd1_1;
-	fit->wcs.cd2_2 = -fit->wcs.cd2_2;
-	fit->wcs.crota1 = -fit->wcs.crota1 - 180.0;
-	fit->wcs.crota2 = fit->wcs.crota1;
+	fit->wcs.cd[0][0] = -fit->wcs.cd[0][0];
+	fit->wcs.cd[1][1] = -fit->wcs.cd[1][1];
+	fit->wcs.crota[0] = -fit->wcs.crota[0] - 180.0;
+	fit->wcs.crota[1] = fit->wcs.crota[0];
 }
 
 static void print_platesolving_results(Homography H, image_solved image, gboolean *flip_image) {

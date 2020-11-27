@@ -37,6 +37,7 @@ static struct wcsprm *wcs = NULL;
 
 gboolean load_WCS_from_memory(fits *fit) {
 #ifdef HAVE_WCSLIB
+	int status;
 	if (wcs) {
 		free_wcs();
 	}
@@ -44,25 +45,36 @@ gboolean load_WCS_from_memory(fits *fit) {
 	wcs->flag = -1;
 	wcsinit(1, NAXIS, wcs, 0, 0, 0);
 
-	wcs->cd[0] = fit->wcs.cd1_1;
-	wcs->cd[1] = fit->wcs.cd1_2;
-	wcs->cd[2] = fit->wcs.cd2_1;
-	wcs->cd[3] = fit->wcs.cd2_2;
+	double *cdij = wcs->cd;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			*(cdij++) = fit->wcs.cd[i][j];
+		}
+	}
 
-	wcs->crval[0] = fit->wcs.crval1;
-	wcs->crval[1] = fit->wcs.crval2;
+	for (int i = 0; i < NAXIS; i++) {
+		wcs->crval[i] = fit->wcs.crval[i];
+	}
 
-	wcs->crota[0] = fit->wcs.crota1;
-	wcs->crota[1] = fit->wcs.crota2;
+	for (int i = 0; i < NAXIS; i++) {
+		wcs->crota[i] = fit->wcs.crota[i];
+	}
 
-	wcs->crpix[0] = fit->wcs.crpix1;
-	wcs->crpix[1] = fit->wcs.crpix2;
+	for (int i = 0; i < NAXIS; i++) {
+		wcs->crpix[i] = fit->wcs.crpix[i];
+	}
 
-	wcs->cdelt[0] = fit->wcs.cdelt1;
-	wcs->cdelt[1] = fit->wcs.cdelt2;
+	for (int i = 0; i < NAXIS; i++) {
+		wcs->cdelt[i] = fit->wcs.cdelt[i];
+	}
 
 	wcs->equinox = fit->wcs.equinox;
 
+	if ((status = wcsset(wcs)) != 0) {
+		free_wcs();
+		siril_debug_print("wcsset error %d: %s.\n", status, wcs_errmsg[status]);
+		return FALSE;
+	}
 	return TRUE;
 #else
 	return FALSE;
@@ -84,13 +96,11 @@ gboolean load_WCS_from_file(fits* fit) {
 		return FALSE;
 	}
 
-	if ((status = wcspih(header, nkeyrec, WCSHDR_all, -3, &nreject, &nwcs, &wcs))
-			!= 0) {
+	if ((status = wcspih(header, nkeyrec, WCSHDR_all, -3, &nreject, &nwcs, &wcs)) != 0) {
 		free(header);
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
 		siril_debug_print("wcspih error %d: %s.\n", status, wcshdr_errmsg[status]);
-
 		return FALSE;
 	}
 

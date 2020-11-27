@@ -343,28 +343,40 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix1), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix[0]), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix2), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix[1]), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval1), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval[0]), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval[1]), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt1), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcs.cd[0][0]), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt2), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcs.cd[0][1]), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota1), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcs.cd[1][0]), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota2), NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcs.cd[1][1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt[1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota[1]), NULL, &status);
 
 	load_WCS_from_file(fit);
 
@@ -908,29 +920,29 @@ static void save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), "Image center declination (dms)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix1), "Axis1 reference pixel", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix[0]), "Axis1 reference pixel", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix2), "Axis2 reference pixel", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix[1]), "Axis2 reference pixel", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval1), "Axis1 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval[0]), "Axis1 reference value", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval2), "Axis2 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval[1]), "Axis2 reference value", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcs.cd1_1), "Scale matrix (1, 1)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcs.cd[0][0]), "Scale matrix (1, 1)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcs.cd1_2), "Scale matrix (1, 2)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcs.cd[0][1]), "Scale matrix (1, 2)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcs.cd2_1), "Scale matrix (2, 1)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcs.cd[1][0]), "Scale matrix (2, 1)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcs.cd2_2), "Scale matrix (2, 2)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcs.cd[1][1]), "Scale matrix (2, 2)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt1), "Axis1 scale", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]), "Axis1 scale", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt2), "Axis2 scale", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt[1]), "Axis2 scale", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota1), "Axis1 rotation angle (deg)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota[0]), "Axis1 rotation angle (deg)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota2), "Axis2 rotation angle (deg)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota[1]), "Axis2 rotation angle (deg)", &status);
 	}
 }
 
