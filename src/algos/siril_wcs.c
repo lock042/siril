@@ -82,7 +82,7 @@ gboolean load_WCS(fits* fit) {
 
 	return TRUE;
 #else
-	return FALSE:
+	return FALSE;
 #endif
 }
 
@@ -107,7 +107,9 @@ void pix2wcs(double pixel_x, double pixel_y, double *world_x, double *world_y) {
 
 void free_wcs() {
 	// Clean up.
+#ifdef HAVE_WCSLIB
 	wcsfree(wcs);
 	free(wcs);
 	wcs = NULL;
+#endif
 }
