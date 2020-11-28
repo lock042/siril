@@ -31,14 +31,19 @@
 
 #include "siril_wcs.h"
 
+/* we force naxis to 2 */
 #define NAXIS 2
 
 static struct wcsprm *wcs = NULL;
 
+gboolean has_wcs(){
+	return wcs != NULL;
+}
+
 gboolean load_WCS_from_memory(fits *fit) {
 #ifdef HAVE_WCSLIB
 	int status;
-	if (wcs) {
+	if (has_wcs()) {
 		free_wcs();
 	}
 	wcs = calloc(1, sizeof(struct wcsprm));
@@ -87,7 +92,7 @@ gboolean load_WCS_from_file(fits* fit) {
 	char *header;
 	int nkeyrec, nreject, nwcs;
 
-	if (wcs) {
+	if (has_wcs()) {
 		free_wcs();
 	}
 
@@ -106,8 +111,8 @@ gboolean load_WCS_from_file(fits* fit) {
 
 	free(header);
 
-	if (wcs == NULL) {
-	siril_debug_print("No world coordinate systems found.\n");
+	if (!has_wcs()) {
+		siril_debug_print("No world coordinate systems found.\n");
 		return FALSE;
 	}
 
@@ -139,7 +144,7 @@ gboolean load_WCS_from_file(fits* fit) {
 void pix2wcs(double pixel_x, double pixel_y, double *world_x, double *world_y) {
 	*world_x = -1.0;
 	*world_y = -1.0;
-	if (wcs == NULL) return;
+	if (!has_wcs()) return;
 #ifdef HAVE_WCSLIB
 	double phi = 0, theta = 0, world[2], pixcrd[2], imgcrd[2];
 	int status, stat[2];

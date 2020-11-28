@@ -21,6 +21,7 @@
 #ifndef SRC_ALGOS_SIRIL_WCS_H_
 #define SRC_ALGOS_SIRIL_WCS_H_
 
+gboolean has_wcs();
 gboolean load_WCS_from_file(fits* fit);
 gboolean load_WCS_from_memory(fits *fit);
 void pix2wcs(double pixel_x, double pixel_y, double *world_x, double *world_y);

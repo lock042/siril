@@ -168,7 +168,7 @@ static void fov_in_DHMS(double var, gchar *fov) {
 	decM = abs((int) ((var - deg) * 60));
 	decS = (fabs((var - deg) * 60) - decM) * 60;
 	if (deg > 0)
-		g_snprintf(fov, 256, "%02dd %02d\' %.2lf\"", deg, decM, decS);
+		g_snprintf(fov, 256, "%02dd %02dm %.2lfs", deg, decM, decS);
 	else if (decM > 0)
 		g_snprintf(fov, 256, "%02d\' %.2lf\"", decM, decS);
 	else if (decS > 0.0)
@@ -807,8 +807,8 @@ static void flip_astrometry_data(fits *fit) {
 static void print_platesolving_results(Homography H, image_solved image, gboolean *flip_image) {
 	double rotation, det, scaleX, scaleY;
 	double inliers;
-	char RA[256] = { 0 };
-	char DEC[256] = { 0 };
+	gchar *RA;
+	gchar *DEC;
 	char field_x[256] = { 0 };
 	char field_y[256] = { 0 };
 
@@ -857,12 +857,14 @@ static void print_platesolving_results(Homography H, image_solved image, gboolea
 	fov_in_DHMS(image.fov.x / 60.0, field_x);
 	fov_in_DHMS(image.fov.y / 60.0, field_y);
 	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
-	deg_to_HMS(image.ra, "ra", RA);
-	deg_to_HMS(image.dec, "dec", DEC);
+	RA = conv_ra_2_str(image.ra);
+	DEC = conv_dec_2_str(image.dec);
 	siril_log_message(_("Image center: RA: %s, DEC: %s\n"), RA, DEC);
 
 	*flip_image = *flip_image && det < 0;
 
+	g_free(RA);
+	g_free(DEC);
 
    	update_gfit(image);
 }
