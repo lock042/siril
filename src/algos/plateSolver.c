@@ -524,6 +524,8 @@ static gchar *fetch_url(const gchar *url) {
 	GError *error = NULL;
 	gchar *content = NULL;
 
+	printf("fetch_url(): %s\n", url);
+
 	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
 		siril_log_message(_("Error loading url: %s: %s\n"), url, error->message);
 		g_clear_error(&error);
@@ -776,9 +778,9 @@ static void cd_x(wcs_info *wcs) {
 	sinrot = sc.x;
 	cosrot = sc.y;
 	wcs->cd[0][0] = wcs->cdelt[0] * cosrot;
+	wcs->cd[0][1] = wcs->cdelt[0] * sinrot;
+	wcs->cd[1][0] = -wcs->cdelt[1] * sinrot;
 	wcs->cd[1][1] = wcs->cdelt[1] * cosrot;
-	wcs->cd[1][0] = wcs->cdelt[0] * sinrot;
-	wcs->cd[0][1] = -wcs->cdelt[1] * sinrot;
 }
 
 static void update_gfit(image_solved image) {
