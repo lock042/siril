@@ -770,7 +770,7 @@ static void update_image_parameters_GUI() {
 }
 
 static void cd_x(wcs_info *wcs) {
-	double rot = (wcs->crota[0] + wcs->crota[1]) / 2;
+	double rot = (wcs->crota[0] + wcs->crota[1]) / 2.0;
 	rot = rot * M_PI / 180.0;
 	double sinrot, cosrot;
 	double2 sc;
