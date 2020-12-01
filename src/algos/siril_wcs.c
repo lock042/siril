@@ -40,20 +40,70 @@ gboolean has_wcs(){
 	return wcs != NULL;
 }
 
+//static int parse_header_str(gchar *orig_header, gchar **header, int *nkeys, int *status) {
+//	char keybuf[162], keyname[FLEN_KEYWORD], *headptr;
+//	gchar **token = g_strsplit_set(orig_header, "\n", -1);
+//	int totkeys = g_strv_length(token);
+//
+//	*nkeys = 0;
+//
+//	*header = (char*) calloc((totkeys + 1) * 80 + 1, 1);
+//	if (!(*header)) {
+//		PRINT_ALLOC_ERR;
+//	}
+//
+//    headptr = *header;
+//
+//	/* read every keyword */
+//	for (int i = 0; i < totkeys; i++) {
+//		strcpy(keybuf, token[i]);
+//		/* pad record with blanks so that it is at least 80 chars long */
+//		strcat(keybuf,
+//				"                                                                                ");
+//
+//		keyname[0] = '\0';
+//		strncat(keyname, keybuf, 8); /* copy the keyword name */
+//
+//		if (!g_strcmp0("COMMENT ", keyname) || !g_strcmp0("HISTORY ", keyname)
+//				|| !g_strcmp0("        ", keyname))
+//			continue; /* skip this commentary keyword */
+//
+//		/* not in exclusion list, add this keyword to the string */
+//		strcpy(headptr, keybuf);
+//		headptr += 80;
+//		(*nkeys)++;
+//	}
+//
+//
+//    /* add the END keyword */
+//    strcpy(headptr,
+//    "END                                                                             ");
+//    headptr += 80;
+//    (*nkeys)++;
+//    g_strfreev(token);
+//
+//    *headptr = '\0';   /* terminate the header string */
+//    /* minimize the allocated memory */
+//    *header = (char *) realloc(*header, (*nkeys *80) + 1);
+//    return *status;
+//}
+
 gboolean load_WCS_from_memory(fits *fit) {
 #ifdef HAVE_WCSLIB
 	int status;
-	if (has_wcs()) {
-		free_wcs();
+	if (!has_wcs()) {
+		wcs = calloc(1, sizeof(struct wcsprm));
+		wcs->flag = -1;
+		wcsinit(1, NAXIS, wcs, 0, 0, 0);
 	}
-	wcs = calloc(1, sizeof(struct wcsprm));
-	wcs->flag = -1;
-	wcsinit(1, NAXIS, wcs, 0, 0, 0);
+	char CTYPE[2][9] = {"RA---TAN", "DEC--TAN"};
 
 	double *cdij = wcs->cd;
+	double *pcij = wcs->pc;
 	for (int i = 0; i < NAXIS; i++) {
 		for (int j = 0; j < NAXIS; j++) {
 			*(cdij++) = fit->wcs.cd[i][j];
+			*(pcij++) = fit->wcs.cd[i][j];
 		}
 	}
 
@@ -70,10 +120,16 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		wcs->cdelt[i] = fit->wcs.cdelt[i];
+		wcs->cdelt[i] = 1;
+	}
+
+	for (int i = 0; i < NAXIS; i++) {
+		strcpy(wcs->ctype[i], &CTYPE[i][0]);
 	}
 
 	wcs->equinox = fit->wcs.equinox;
+	wcs->lonpole = 180;
+	wcs->latpole = fit->wcs.crval[1];
 
 	if ((status = wcsset(wcs)) != 0) {
 		free_wcs();
@@ -86,52 +142,55 @@ gboolean load_WCS_from_memory(fits *fit) {
 #endif
 }
 
+
 gboolean load_WCS_from_file(fits* fit) {
 #ifdef HAVE_WCSLIB
-	int status = 0;
+	int status = 0, wcs_status = 0;
 	char *header;
+	struct wcsprm *data = NULL;
 	int nkeyrec, nreject, nwcs;
 
 	if (has_wcs()) {
 		free_wcs();
 	}
 
-	if (fits_hdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status)) {
+	ffhdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status);
+	if (status) {
 		report_fits_error(status);
 		return FALSE;
 	}
 
-	if ((status = wcspih(header, nkeyrec, WCSHDR_all, -3, &nreject, &nwcs, &wcs)) != 0) {
-		free(header);
-		wcsvfree(&nwcs, &wcs);
-		wcs = NULL;
-		siril_debug_print("wcspih error %d: %s.\n", status, wcshdr_errmsg[status]);
-		return FALSE;
-	}
+	wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
 
+	if (wcs_status == 0) {
+		for (int i = 0; i < nwcs; i++) {
+			/* Find the master celestial WCS coordinates */
+			struct wcsprm *prm = data + i;
+			if (prm->naxis == 3) {
+				cdfix(prm);
+			}
+			wcsset(prm);
+			if (prm->lng >= 0 && prm->lat >= 0
+					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
+				wcs = (struct wcsprm *) calloc(1, sizeof(struct wcsprm));
+				wcs->flag = -1;
+				status = wcssub(1, prm, 0, 0, wcs);
+				if (status == 0) {
+					break;
+				} else {
+					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
+					wcsvfree(&nwcs, &wcs);
+					wcs = NULL;
+				}
+			}
+		}
+	}
 	free(header);
 
 	if (!has_wcs()) {
 		siril_debug_print("No world coordinate systems found.\n");
-		return FALSE;
-	}
-
-	// FIXME: Call above goes through EVEN if no WCS is present, so we're adding this to return for now.
-	if (wcs->crpix[0] == 0) {
 		wcsvfree(&nwcs, &wcs);
 		wcs = NULL;
-		siril_debug_print("No world coordinate systems found.\n");
-		return FALSE;
-	}
-
-	int stat[2], naxis[2];
-	naxis[0] = fit->rx;
-	naxis[1] = fit->ry;
-	wcsfix(7, naxis, wcs, &stat[0]);
-	if ((status = wcsset(wcs)) != 0) {
-		wcsvfree(&nwcs, &wcs);
-		wcs = NULL;
-		siril_debug_print("wcsset error %d: %s.\n", status, wcs_errmsg[status]);
 		return FALSE;
 	}
 
@@ -141,23 +200,41 @@ gboolean load_WCS_from_file(fits* fit) {
 #endif
 }
 
-void pix2wcs(double pixel_x, double pixel_y, double *world_x, double *world_y) {
-	*world_x = -1.0;
-	*world_y = -1.0;
-	if (!has_wcs()) return;
+void pix2wcs(double x, double y, double *r, double *d) {
+	*r = -1.0;
+	*d = -1.0;
 #ifdef HAVE_WCSLIB
-	double phi = 0, theta = 0, world[2], pixcrd[2], imgcrd[2];
-	int status, stat[2];
+	int status, stat[NWCSFIX];
+	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
-	pixcrd[0] = pixel_x;
-	pixcrd[1] = pixel_y;
+	pixcrd[0] = x;
+	pixcrd[1] = y;
 
-	if ((status = wcsp2s(wcs, 1, 2, &pixcrd[0], &imgcrd[0], &phi, &theta,
-			&world[0], &stat[0])) != 0) {
-	} else {
-		*world_x = world[0];
-		*world_y = world[1];
-	}
+	status = wcsp2s(wcs, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
+	if (status != 0)
+		return;
+
+	*r = world[0];
+	*d = world[1];
+#endif
+}
+
+void wcs2pix(double r, double d, double *x, double *y) {
+	*x = -1.0;
+	*y = -1.0;
+#ifdef HAVE_WCSLIB
+	int status, stat[NWCSFIX];
+	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
+
+	world[0] = r;
+	world[1] = d;
+
+	status = wcss2p(wcs, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
+	if (status != 0)
+		return;
+
+	*x = pixcrd[0];
+	*y = pixcrd[1];
 #endif
 }
 

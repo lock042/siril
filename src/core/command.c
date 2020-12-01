@@ -77,6 +77,7 @@
 #include "algos/noise.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "algos/geometry.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
@@ -84,6 +85,7 @@
 #include "registration/registration.h"
 #include "registration/matching/match.h"
 #include "algos/fix_xtrans_af.h"
+#include "algos/annotate.h"
 
 #include "command.h"
 #include "command_def.h"
@@ -659,6 +661,22 @@ int process_linear_match(int nb) {
 	}
 	clearfits(&ref);
 	set_cursor_waiting(FALSE);
+	return 0;
+}
+
+int process_annotate(int nb) {
+	if (has_wcs()) {
+		GSList *list = find_objects(&gfit);
+		for (GSList *l = list; l; l = l->next) {
+			siril_log_message(_("Object found: %s\n"), get_catalogue_object_code(l->data));
+		}
+//		g_slist_free_full(list, (GDestroyNotify) free_object);
+		com.found_object = list;
+		redraw(com.cvport, REMAP_NONE);
+		redraw_previews();
+	} else {
+		siril_log_color_message(_("No WCS Information\n"), "red");
+	}
 	return 0;
 }
 

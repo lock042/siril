@@ -23,6 +23,8 @@ AM_CPPFLAGS = \
 siril_common_SOURCES = \
 	core/siril.h \
 	core/proto.h \
+	algos/annotate.c \
+	algos/annotate.h \
 	algos/background_extraction.c \
 	algos/background_extraction.h \
 	algos/colors.c \

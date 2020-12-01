@@ -17,6 +17,7 @@ configure_file(output : 'config.h',
 # Generate Siril static library with all sources
 
 src_files = [ 
+  'algos/annotate.c',
   'algos/background_extraction.c',
   'algos/colors.c',
   'algos/demosaicing.c',

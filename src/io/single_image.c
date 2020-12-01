@@ -26,6 +26,7 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "algos/statistics.h"
+#include "algos/annotate.h"
 #include "algos/background_extraction.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
@@ -76,6 +77,8 @@ void free_image_data() {
 		clear_sampling_setting_box();	// clear focal and pixel pitch info
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
+		g_slist_free_full(com.found_object, (GDestroyNotify)free_object);
+		com.found_object = NULL;
 		reset_display_offset();
 		reset_zoom_default();
 	}

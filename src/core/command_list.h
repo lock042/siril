@@ -23,6 +23,7 @@ struct {
 static command commands[] = {
 	/* name,	nbarg,	usage,		function pointer, definition, scriptable */
 	{"addmax", 1,	"addmax filename", process_addmax, STR_ADDMAX, FALSE},
+	{"annotate", 0,	"annotate", process_annotate, STR_ASINH, FALSE},
 	{"asinh", 1,	"asinh stretch", process_asinh, STR_ASINH, TRUE},
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE},

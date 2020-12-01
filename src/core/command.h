@@ -6,6 +6,7 @@
 #endif
 
 int	process_addmax(int nb);
+int process_annotate(int nb);
 int	process_asinh(int nb);
 
 int	process_bg(int nb);

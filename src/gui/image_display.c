@@ -26,6 +26,8 @@
 #include "algos/colors.h"
 #include "algos/background_extraction.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
+#include "algos/annotate.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "callbacks.h"
@@ -702,6 +704,28 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
+static void draw_annotates(const draw_data_t* dd) {
+	if (!com.found_object) return;
+	cairo_t *cr = dd->cr;
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.9);
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	GSList *list;
+	for (list = com.found_object; list; list = list->next) {
+		CatalogObjects *object = (CatalogObjects *)list->data;
+		gdouble radius = get_catalogue_object_radius(object);
+		gdouble world_x = get_catalogue_object_ra(object);
+		gdouble world_y = get_catalogue_object_dec(object);
+		gdouble x, y;
+
+		wcs2pix(world_x, world_y, &x, &y);
+		y = gfit.ry - y;
+
+		cairo_arc(cr, x, y, radius * 10, 0., 2. * M_PI);
+		cairo_stroke(cr);
+	}
+}
+
 static gboolean redraw_idle(gpointer p) {
 	redraw(com.cvport, GPOINTER_TO_INT(p)); // draw stars
 	return FALSE;
@@ -852,6 +876,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* detected stars and highlight the selected star */
 	draw_stars(&dd);
+
+	/* detected objects */
+	draw_annotates(&dd);
 
 	/* background removal gradient selection boxes */
 	draw_brg_boxes(&dd);

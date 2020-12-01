@@ -700,9 +700,10 @@ void psf_display_result(fitted_PSF *result, rectangle *area) {
 
 	double x = result->x0 + area->x;
 	double y = area->y + area->h - result->y0;
-	double world_x, world_y;
-	pix2wcs(x, y, &world_x, &world_y);
-	if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+
+	if (has_wcs()) {
+		double world_x, world_y;
+		pix2wcs(x, y, &world_x, &world_y);
 		gchar *ra = conv_ra_2_str(world_x);
 		gchar *dec = conv_dec_2_str(world_y);
 		coordinates = g_strdup_printf("x0=%0.2f px, y0=%0.2f px (%s , %s)", x, y, ra, dec);

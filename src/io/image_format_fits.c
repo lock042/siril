@@ -906,11 +906,12 @@ static void save_wcs_keywords(fits *fit) {
 		int wcaxes = 2;
 		fits_update_key(fit->fptr, TINT, "WCSAXES", &wcaxes, "Highest value of the WCS key-word index", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcs.equinox),	"Equatorial equinox", &status);
-		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcs.equinox),	"Equatorial equinox", &status);
+		status = 0;
 
 		/* Needed for Aladin compatibility */
 		if (fit->naxes[2] == 3) {
@@ -927,6 +928,10 @@ static void save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix[1]), "Axis2 reference pixel", &status);
 		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg", "X pixel scale units", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg", "Y pixel scale units", &status);
+		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval[0]), "Axis1 reference value", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval[1]), "Axis2 reference value", &status);
@@ -938,6 +943,10 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcs.cd[1][0]), "Scale matrix (2, 1)", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcs.cd[1][1]), "Scale matrix (2, 2)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "IMAGEW", &(fit->rx), "Image width, in pixels.", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "IMAGEH", &(fit->ry), "Image height, in pixels.", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]), "Axis1 scale", &status);
 		status = 0;

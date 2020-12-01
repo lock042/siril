@@ -17,15 +17,17 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef SRC_ALGOS_ANNOTATE_H_
+#define SRC_ALGOS_ANNOTATE_H_
 
-#ifndef SRC_ALGOS_SIRIL_WCS_H_
-#define SRC_ALGOS_SIRIL_WCS_H_
+typedef struct _CatalogObjects CatalogObjects;
 
-gboolean has_wcs();
-gboolean load_WCS_from_file(fits* fit);
-gboolean load_WCS_from_memory(fits *fit);
-void pix2wcs(double pixel_x, double pixel_y, double *world_x, double *world_y);
-void wcs2pix(double world_x, double world_y, double *pixel_x, double *pixel_y);
-void free_wcs();
+GSList *find_objects(fits *fit);
+gchar *get_catalogue_object_code(CatalogObjects *object);
+gchar *get_catalogue_object_name(CatalogObjects *object);
+gdouble get_catalogue_object_ra(CatalogObjects *object);
+gdouble get_catalogue_object_dec(CatalogObjects *object);
+gdouble get_catalogue_object_radius(CatalogObjects *object);
+void free_object(CatalogObjects *object);
 
-#endif /* SRC_ALGOS_SIRIL_WCS_H_ */
+#endif /* SRC_ALGOS_ANNOTATE_H_ */

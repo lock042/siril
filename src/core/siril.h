@@ -686,6 +686,7 @@ struct cominf {
 	double magOffset;		// offset to reduce the real magnitude, single image
 	
 	GSList *grad_samples;
+	GSList *found_object;
 
 	int max_thread;			// maximum of thread used for parallel execution
 
