@@ -57,6 +57,26 @@ gboolean is_inside(int circle_x, int circle_y, int rad, int x, int y) {
 		return FALSE;
 }
 
+static gboolean already_exist(GSList *list, double ra, double dec) {
+	for (GSList *l = list; l; l = l->next) {
+		gdouble cur_ra = ((CatalogObjects *)l->data)->ra;
+		gdouble cur_dec = ((CatalogObjects *)l->data)->dec;
+
+		/* round to 3 digits */
+		cur_ra = roundf(cur_ra * 1000) / 1000;
+		cur_dec = roundf(cur_dec * 1000) / 1000;
+
+		ra = roundf(ra * 1000) / 1000;
+		dec = roundf(dec * 1000) / 1000;
+
+		/* compare */
+		if (cur_ra == ra && cur_dec == dec) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 static GSList *load_catalog(const gchar *catalogue) {
 	GFile *file;
 	gchar *line;
@@ -81,8 +101,9 @@ static GSList *load_catalog(const gchar *catalogue) {
 		if (g_str_has_prefix (line, "Code")) {
 			continue;
 		}
-		CatalogObjects *object = g_new(CatalogObjects, 1);
 		gchar **token = g_strsplit(line, "\t", -1);
+
+		CatalogObjects *object = g_new(CatalogObjects, 1);
 		object->code = g_strdup(token[0]);
 		object->ra = g_ascii_strtod(token[1], NULL) * 15.0;
 		object->dec = g_strcmp0(token[2], "-") ? g_ascii_strtod(token[3], NULL) : g_ascii_strtod(token[3], NULL) * -1.0;
@@ -117,8 +138,10 @@ GSList *find_objects(fits *fit) {
 
 			if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
 					cur->ra, cur->dec)) {
-				CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name);
-				targets = g_slist_prepend(targets, new_object);
+				if (!already_exist(targets, cur->ra, cur->dec)) {
+					CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name);
+					targets = g_slist_prepend(targets, new_object);
+				}
 			}
 		}
 

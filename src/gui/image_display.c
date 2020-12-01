@@ -718,18 +718,22 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble world_y = get_catalogue_object_dec(object);
 		gchar *code = get_catalogue_object_code(object);
 		gdouble x, y;
+		gint offset = 0;
 
 		wcs2pix(world_x, world_y, &x, &y);
 		y = gfit.ry - y;
 
-		gdouble size = gfit.rx / 60.0;
+		gdouble size = gfit.rx / 300.0;
+		if (!g_str_has_prefix(code , "M")) {
+			offset = size / dd->zoom;
+		}
 
 		if (x > 0 && x < gfit.rx && y > 0 && y < gfit.ry) {
 //			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
 //			cairo_stroke(cr);
 			if (code) {
-				cairo_set_font_size(cr, size);
-				cairo_move_to(cr, x, y);
+				cairo_set_font_size(cr, size / dd->zoom);
+				cairo_move_to(cr, x, y + offset);
 				cairo_show_text(cr, code);
 				cairo_stroke(cr);
 			}

@@ -128,7 +128,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 
 	wcs->equinox = fit->wcs.equinox;
-	wcs->lonpole = 180;
+//	wcs->lonpole = 180;
 	wcs->latpole = fit->wcs.crval[1];
 
 	if ((status = wcsset(wcs)) != 0) {
