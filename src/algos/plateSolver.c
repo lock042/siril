@@ -1535,4 +1535,7 @@ void invalidate_WCS_keywords(fits *fit) {
 	if (fit->wcs.equinox > 0.0) {
 		memset(&fit->wcs, 0, sizeof(fit->wcs));
 	}
+	if (has_wcs()) {
+		free_wcs();
+	}
 }

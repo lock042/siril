@@ -172,9 +172,13 @@ gboolean load_WCS_from_file(fits* fit) {
 			wcsset(prm);
 			if (prm->lng >= 0 && prm->lat >= 0
 					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
-				wcs = (struct wcsprm *) calloc(1, sizeof(struct wcsprm));
+				int axes[2], nsub;
+				nsub = 2;
+				axes[0] = WCSSUB_LONGITUDE;
+				axes[1] = WCSSUB_LATITUDE;
+				wcs = (struct wcsprm*) calloc(1, sizeof(struct wcsprm));
 				wcs->flag = -1;
-				status = wcssub(1, prm, 0, 0, wcs);
+				status = wcssub(1, prm, &nsub, axes, wcs);
 				if (status == 0) {
 					break;
 				} else {

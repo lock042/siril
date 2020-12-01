@@ -27,7 +27,7 @@
 
 #include "annotate.h"
 
-static const gchar *cat[] = { "messier.txt"/*, "ngc.txt", "ic.txt"*/ };
+static const gchar *cat[] = { "messier.txt", "ngc.txt", "ic.txt" };
 
 struct _CatalogObjects {
 	gchar *code;
@@ -43,41 +43,18 @@ static CatalogObjects *new_catalog_object(gchar *code, gdouble ra, gdouble dec, 
 	object->ra = ra;
 	object->dec = dec;
 	object->radius = radius;
-	if (name) {
-		object->name = g_strdup(name);
-	}
+	object->name = g_strdup(name);
 	return object;
 }
 
-/* A utility function to calculate area of
- triangle formed by (x1, y1), (x2, y2) and
- (x3, y3) */
-static float area(float x1, float y1, float x2, float y2, float x3, float y3) {
-	return fabs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2.0);
-}
-/* A function to check whether point P(x, y)
- lies inside the rectangle formed by A(x1, y1),
- B(x2, y2), C(x3, y3) and D(x4, y4) */
-static gboolean is_in_picture(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4,
-		float x, float y) {
-	/* Calculate area of rectangle ABCD */
-	float A = area(x1, y1, x2, y2, x3, y3) + area(x1, y1, x4, y4, x3, y3);
-
-	/* Calculate area of triangle PAB */
-	float A1 = area(x, y, x1, y1, x2, y2);
-
-	/* Calculate area of triangle PBC */
-	float A2 = area(x, y, x2, y2, x3, y3);
-
-	/* Calculate area of triangle PCD */
-	float A3 = area(x, y, x3, y3, x4, y4);
-
-	/* Calculate area of triangle PAD */
-	float A4 = area(x, y, x1, y1, x4, y4);
-
-	/* Check if sum of A1, A2, A3 and A4
-	 is same as A */
-	return (A >= A1 + A2 + A3 + A4);
+gboolean is_inside(int circle_x, int circle_y, int rad, int x, int y) {
+	// Compare radius of circle with distance
+	// of its center from given point
+	if ((x - circle_x) * (x - circle_x) + (y - circle_y) * (y - circle_y)
+			<= rad * rad)
+		return TRUE;
+	else
+		return FALSE;
 }
 
 static GSList *load_catalog(const gchar *catalogue) {
@@ -106,16 +83,11 @@ static GSList *load_catalog(const gchar *catalogue) {
 		}
 		CatalogObjects *object = g_new(CatalogObjects, 1);
 		gchar **token = g_strsplit(line, "\t", -1);
-		gint nargs = g_strv_length(token);
 		object->code = g_strdup(token[0]);
 		object->ra = g_ascii_strtod(token[1], NULL) * 15.0;
 		object->dec = g_strcmp0(token[2], "-") ? g_ascii_strtod(token[3], NULL) : g_ascii_strtod(token[3], NULL) * -1.0;
 		object->radius = g_ascii_strtod(token[4], NULL) * 0.5;
-		if (nargs > 6) {
-			object->name = g_strdup(token[6]);
-		} else {
-			object->name = NULL;
-		}
+		object->name = g_strdup(token[6]);
 
 		list = g_slist_prepend(list, (gpointer) object);
 
@@ -136,17 +108,15 @@ GSList *find_objects(fits *fit) {
 		GSList *list = load_catalog(cat[i]);
 
 		for (GSList *l = list; l; l = l->next) {
-			gdouble x1, y1, x2, y2, x3, y3, x4, y4;
+			gdouble x1, y1, x2, y2;
 
-			pix2wcs(0, fit->ry, &x1, &y1);
-			pix2wcs(fit->rx, fit->ry, &x2, &y2);
-			pix2wcs(0, 0, &x3, &y3);
-			pix2wcs(fit->rx, 0, &x4, &y4);
+			pix2wcs(fit->rx / 2, fit->ry / 2, &x1, &y1);
+			pix2wcs(0, 0, &x2, &y2);
 
 			CatalogObjects *cur = (CatalogObjects *)l->data;
 
-			printf("%s: %lf, %lf, %lf, %lf\t%lf %lf\n", cur->code, x1, y1, x4, y4, cur->ra, cur->dec);
-			if (is_in_picture(x1, y1, x2, y2, x3, y3, x4, y4, cur->ra, cur->dec)) {
+			if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
+					cur->ra, cur->dec)) {
 				CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name);
 				targets = g_slist_prepend(targets, new_object);
 			}

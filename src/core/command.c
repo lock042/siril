@@ -670,7 +670,6 @@ int process_annotate(int nb) {
 		for (GSList *l = list; l; l = l->next) {
 			siril_log_message(_("Object found: %s\n"), get_catalogue_object_code(l->data));
 		}
-//		g_slist_free_full(list, (GDestroyNotify) free_object);
 		com.found_object = list;
 		redraw(com.cvport, REMAP_NONE);
 		redraw_previews();
