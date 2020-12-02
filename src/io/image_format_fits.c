@@ -947,10 +947,14 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "IMAGEW", &(fit->rx), "Image width, in pixels.", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "IMAGEH", &(fit->ry), "Image height, in pixels.", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]), "Axis1 scale", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt[1]), "Axis2 scale", &status);
+		if (fit->wcs.cdelt[0] != 0.0) {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]),	"Axis1 scale", &status);
+		}
+		if (fit->wcs.cdelt[1] != 0.0) {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt[1]), "Axis2 scale", &status);
+		}
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota[0]), "Axis1 rotation angle (deg)", &status);
 		status = 0;

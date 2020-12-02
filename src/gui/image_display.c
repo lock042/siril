@@ -708,32 +708,46 @@ static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.9);
+	cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
 	cairo_set_line_width(cr, 1.5 / dd->zoom);
 	GSList *list;
 	for (list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
-//		gdouble radius = get_catalogue_object_radius(object);
+		gdouble radius = get_catalogue_object_radius(object);
 		gdouble world_x = get_catalogue_object_ra(object);
 		gdouble world_y = get_catalogue_object_dec(object);
 		gchar *code = get_catalogue_object_code(object);
+		gdouble resolution = get_wcs_image_resolution();
 		gdouble x, y;
-		gint offset = 0;
+		gdouble size = 16;
+
+		radius = radius / resolution / 60.0;
 
 		wcs2pix(world_x, world_y, &x, &y);
 		y = gfit.ry - y;
 
-		gdouble size = gfit.rx / 300.0;
-		if (!g_str_has_prefix(code , "M")) {
-			offset = size / dd->zoom;
-		}
-
 		if (x > 0 && x < gfit.rx && y > 0 && y < gfit.ry) {
-//			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
-//			cairo_stroke(cr);
+			if (radius > 5) {
+				cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
+				cairo_stroke(cr);
+			} else {
+				/* it is ponctual */
+				cairo_move_to(cr, x, y - 20);
+				cairo_line_to(cr, x, y - 10);
+				cairo_stroke(cr);
+				cairo_move_to(cr, x, y + 20);
+				cairo_line_to(cr, x, y + 10);
+				cairo_stroke(cr);
+				cairo_move_to(cr, x - 20, y);
+				cairo_line_to(cr, x - 10, y);
+				cairo_move_to(cr, x + 20, y);
+				cairo_line_to(cr, x + 10, y);
+				cairo_stroke(cr);
+			}
 			if (code) {
+				gdouble offset = radius > 5 ? radius * 0.8 : 10;
 				cairo_set_font_size(cr, size / dd->zoom);
-				cairo_move_to(cr, x, y + offset);
+				cairo_move_to(cr, x + offset, y - offset);
 				cairo_show_text(cr, code);
 				cairo_stroke(cr);
 			}

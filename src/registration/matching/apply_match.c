@@ -154,14 +154,15 @@ static int proc_star_file(image_solved *solved, TRANS *trans) {
 	double z, alpha, delta;
 	double delta_ra, delta_dec;
 	double rsquared;
-	double ra = solved->px_cat_center.x;
-	double dec = solved->px_cat_center.y;
+	point px_cat_center = get_image_solved_px_cat_center(solved);
+	double ra = px_cat_center.x;
+	double dec = px_cat_center.y;
 
 	r_dec = dec * DEGTORAD;
 
 //	while (s && s[i]) {
-	xval = solved->x; //s[i]->xpos;
-	yval = solved->y; //s[i]->ypos;
+	xval = get_image_solved_x(solved); //s[i]->xpos;
+	yval = get_image_solved_y(solved); //s[i]->ypos;
 	/*
 	 * let's transform from (x,y) to (delta_ra, delta_dec),
 	 * using either a linear, quadratic, or cubic transformation
@@ -243,8 +244,8 @@ static int proc_star_file(image_solved *solved, TRANS *trans) {
 #ifdef DEBUG
 	fprintf(stdout, "new RA = %10.5f, new dec = %10.5f\n", alpha, delta);
 #endif
-	solved->ra = alpha;
-	solved->dec = delta;
+	set_image_solved_ra(solved, alpha);
+	set_image_solved_dec(solved, delta);
 
 //	i++;
 //	}

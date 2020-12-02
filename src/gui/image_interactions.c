@@ -691,8 +691,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				format = g_strdup_printf(format_base_float,
 						coords_width, coords_width);
 				buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
-						gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
-												+ zoomed.x]);
+						gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
 			}
 			if (has_wcs()) {
 				double world_x, world_y;
@@ -700,7 +699,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
 					gchar *ra = conv_ra_2_str(world_x);
 					gchar *dec = conv_dec_2_str(world_y);
-					wcs_buffer = g_strdup_printf("%s , %s", ra, dec);
+					wcs_buffer = g_strdup_printf("α = %s , δ = %s", ra, dec);
 
 					gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), wcs_buffer);
 

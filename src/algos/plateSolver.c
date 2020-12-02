@@ -66,6 +66,45 @@ enum {
 
 #undef DEBUG           /* get some of diagnostic output */
 
+typedef enum {
+	RESOLVER_NED,
+	RESOLVER_SIMBAD,
+	RESOLVER_VIZIER,
+	RESOLVER_NUMBER
+} resolver;
+
+struct _RA {
+	int hour;
+	int min;
+	double sec;
+};
+
+struct _Dec {
+	int degree;
+	int min;
+	double sec;
+};
+
+struct object {
+	gchar *name;
+	double radius;
+	int maxRecords;
+	alpha alpha;
+	delta Dec;
+	point imageCenter;
+	gboolean south;
+};
+
+struct image_solved_struct {
+	point px_size;
+	point px_cat_center;
+	point fov;
+	double x, y;
+	double ra, dec;
+	double resolution, pixel_size, focal;
+	double crota;
+};
+
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 		gpointer user_data);
 
@@ -104,27 +143,27 @@ static void initialize_ips_dialog() {
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
 
-static RA convert_ra(double var) {
-	RA ra;
+static alpha convert_ra(double var) {
+	alpha ra;
 	ra.hour = (int)(var / 15.0);
 	ra.min = (int)(((var / 15.0) - ra.hour) * 60.0);
 	ra.sec = ((((var / 15.0) - ra.hour) * 60.0) - ra.min) * 60.0;
 	return ra;
 }
 
-static double ra_to_x(RA ra) {
+static double ra_to_x(alpha ra) {
 	return ra.hour * 15.0 + ra.min * 15.0 / 60.0 + ra.sec * 15.0 / 3600.0;
 }
 
-static DEC convert_dec(double var) {
-	DEC dec;
+static delta convert_dec(double var) {
+	delta dec;
 	dec.degree = (int) var;
 	dec.min = abs((int) ((var - dec.degree) * 60.0));
 	dec.sec = (fabs((var - dec.degree) * 60.0) - dec.min) * 60.0;
 	return dec;
 }
 
-static double dec_to_y(DEC dec) {
+static double dec_to_y(delta dec) {
 	if (dec.degree > 0) {
 		return ((dec.sec / 3600.0) + (dec.min / 60.0) + dec.degree);
 	} else {
@@ -195,8 +234,8 @@ static int parse_content_buffer(char *buffer, struct object *obj) {
 			sscanf(fields[1], "%lf", &center.x);
 			sscanf(fields[2], "%lf", &center.y);
 			if (resolver != -1) {
-				/* RA coordinates */
-				platedObject[resolver].RA = convert_ra(center.x);
+				/* alpha coordinates */
+				platedObject[resolver].alpha = convert_ra(center.x);
 
 				/* Dec coordinates */
 				platedObject[resolver].Dec = convert_dec(center.y);
@@ -285,11 +324,11 @@ static point get_center_of_catalog() {
 	GtkSpinButton *GtkSpinIPS_Dec_deg, *GtkSpinIPS_Dec_m;
 	GtkEntry *GtkEntryIPS_RA_s, *GtkEntryIPS_Dec_s;
 	GtkToggleButton *GtkCheckButtonIPS_S;
-	RA ra;
-	DEC dec;
+	alpha ra;
+	delta dec;
 	point result;
 
-	/* get RA center */
+	/* get alpha center */
 	GtkSpinIPS_RA_h = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_h"));
 	GtkSpinIPS_RA_m = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_m"));
 	GtkEntryIPS_RA_s = GTK_ENTRY(lookup_widget("GtkEntryIPS_RA_s"));
@@ -669,7 +708,7 @@ static void unselect_all_items() {
 	gtk_tree_selection_unselect_all(selection);
 }
 
-static void update_coordinates(RA ra, DEC Dec, gboolean south) {
+static void update_coordinates(alpha ra, delta Dec, gboolean south) {
 	gchar *RA_sec, *Dec_sec;
 
 	RA_sec = g_strdup_printf("%6.4lf", ra.sec);
@@ -698,12 +737,12 @@ static gboolean has_any_keywords() {
 }
 
 static void update_coords() {
-	RA k_ra;
-	DEC k_dec;
+	alpha k_ra;
+	delta k_dec;
 	gboolean south;
 
 	if (gfit.wcs.crval[0] != 0.0 && gfit.wcs.crval[1] != 0.0) {
-		// first transform coords to RA and DEC
+		// first transform coords to alpha and delta
 		k_ra = convert_ra(gfit.wcs.crval[0]);
 		k_dec = convert_dec(gfit.wcs.crval[1]);
 		south = k_dec.degree < 0.0;
@@ -809,8 +848,8 @@ static void flip_astrometry_data(fits *fit) {
 static void print_platesolving_results(Homography H, image_solved image, gboolean *flip_image) {
 	double rotation, det, scaleX, scaleY;
 	double inliers;
-	gchar *RA;
-	gchar *DEC;
+	gchar *alpha;
+	gchar *delta;
 	char field_x[256] = { 0 };
 	char field_y[256] = { 0 };
 
@@ -859,14 +898,14 @@ static void print_platesolving_results(Homography H, image_solved image, gboolea
 	fov_in_DHMS(image.fov.x / 60.0, field_x);
 	fov_in_DHMS(image.fov.y / 60.0, field_y);
 	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
-	RA = conv_ra_2_str(image.ra);
-	DEC = conv_dec_2_str(image.dec);
-	siril_log_message(_("Image center: RA: %s, DEC: %s\n"), RA, DEC);
+	alpha = conv_ra_2_str(image.ra);
+	delta = conv_dec_2_str(image.dec);
+	siril_log_message(_("Image center: alpha: %s, delta: %s\n"), alpha, delta);
 
 	*flip_image = *flip_image && det < 0;
 
-	g_free(RA);
-	g_free(DEC);
+	g_free(alpha);
+	g_free(delta);
 
    	update_gfit(image);
 }
@@ -1173,8 +1212,8 @@ static gboolean end_plate_solver(gpointer p) {
 		}
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 	} else {
-		RA ra;
-		DEC Dec;
+		alpha ra;
+		delta Dec;
 
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
@@ -1436,7 +1475,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 		}
 
 		if (selected_item >= 0) {
-			update_coordinates(platedObject[selected_item].RA,
+			update_coordinates(platedObject[selected_item].alpha,
 					platedObject[selected_item].Dec, platedObject[selected_item].south);
 		}
 
@@ -1538,4 +1577,26 @@ void invalidate_WCS_keywords(fits *fit) {
 	if (has_wcs()) {
 		free_wcs();
 	}
+}
+
+/** some getters and setters */
+
+point get_image_solved_px_cat_center(image_solved *image) {
+	return image->px_cat_center;
+}
+
+double get_image_solved_x(image_solved *image) {
+	return image->x;
+}
+
+double get_image_solved_y(image_solved *image) {
+	return image->y;
+}
+
+void set_image_solved_ra(image_solved *image, double ra) {
+	image->ra = ra;
+}
+
+void set_image_solved_dec(image_solved *image, double dec) {
+	image->dec = dec;
 }

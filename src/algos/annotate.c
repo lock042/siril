@@ -59,18 +59,15 @@ gboolean is_inside(int circle_x, int circle_y, int rad, int x, int y) {
 
 static gboolean already_exist(GSList *list, double ra, double dec) {
 	for (GSList *l = list; l; l = l->next) {
-		gdouble cur_ra = ((CatalogObjects *)l->data)->ra;
+		gdouble tolerance = 20.0 / 3600.0;
+
 		gdouble cur_dec = ((CatalogObjects *)l->data)->dec;
 
-		/* round to 3 digits */
-		cur_ra = roundf(cur_ra * 1000) / 1000;
-		cur_dec = roundf(cur_dec * 1000) / 1000;
-
-		ra = roundf(ra * 1000) / 1000;
-		dec = roundf(dec * 1000) / 1000;
+        double minDec = cur_dec - tolerance;
+        double maxDec = cur_dec + tolerance;
 
 		/* compare */
-		if (cur_ra == ra && cur_dec == dec) {
+		if (dec > minDec && dec < maxDec) {
 			return TRUE;
 		}
 	}
@@ -138,6 +135,7 @@ GSList *find_objects(fits *fit) {
 
 			if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
 					cur->ra, cur->dec)) {
+				printf("%s\n", cur->code);
 				if (!already_exist(targets, cur->ra, cur->dec)) {
 					CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name);
 					targets = g_slist_prepend(targets, new_object);

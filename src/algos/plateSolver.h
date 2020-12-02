@@ -12,6 +12,10 @@
 #define CDSSESAME "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame"
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
 
+typedef struct image_solved_struct image_solved;
+typedef struct _RA alpha;
+typedef struct _Dec delta;
+
 typedef enum {
 	TYCHO2,
 	NOMAD,
@@ -20,13 +24,6 @@ typedef enum {
 	BRIGHT_STARS,
 	APASS
 } online_catalog;
-
-typedef enum {
-	RESOLVER_NED,
-	RESOLVER_SIMBAD,
-	RESOLVER_VIZIER,
-	RESOLVER_NUMBER
-} resolver;
 
 struct plate_solver_data {
 	online_catalog onlineCatalog;
@@ -41,45 +38,17 @@ struct plate_solver_data {
 	gboolean flip_image;
 };
 
-struct RA_struct {
-	int hour;
-	int min;
-	double sec;
-};
-typedef struct RA_struct RA;
-
-struct Dec_struct {
-	int degree;
-	int min;
-	double sec;
-};
-typedef struct Dec_struct DEC;
-
-struct object {
-	gchar *name;
-	double radius;
-	int maxRecords;
-	RA RA;
-	DEC Dec;
-	point imageCenter;
-	gboolean south;
-};
-
-struct image_solved_struct {
-	point px_size;
-	point px_cat_center;
-	point fov;
-	double x, y;
-	double ra, dec;
-	double resolution, pixel_size, focal;
-	double crota;
-};
-typedef struct image_solved_struct image_solved;
 
 int fill_plate_solver_structure(struct plate_solver_data *args);
 gpointer match_catalog(gpointer p);
 
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void invalidate_WCS_keywords(fits *fit);
+
+point get_image_solved_px_cat_center(image_solved *image);
+double get_image_solved_x(image_solved *image);
+double get_image_solved_y(image_solved *image);
+void set_image_solved_ra(image_solved *image, double ra);
+void set_image_solved_dec(image_solved *image, double dec);
 
 #endif /* SRC_ALGOS_PLATESOLVER_H_ */

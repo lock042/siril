@@ -94,8 +94,9 @@ gboolean load_WCS_from_memory(fits *fit) {
 	if (!has_wcs()) {
 		wcs = calloc(1, sizeof(struct wcsprm));
 		wcs->flag = -1;
-		wcsinit(1, NAXIS, wcs, 0, 0, 0);
 	}
+	wcsinit(1, NAXIS, wcs, 0, 0, 0);
+
 	char CTYPE[2][9] = {"RA---TAN", "DEC--TAN"};
 
 	double *cdij = wcs->cd;
@@ -240,6 +241,18 @@ void wcs2pix(double r, double d, double *x, double *y) {
 	*x = pixcrd[0];
 	*y = pixcrd[1];
 #endif
+}
+
+double get_wcs_image_resolution() {
+	double resolution = 1.0;
+#ifdef HAVE_WCSLIB
+	if (has_wcs()) {
+		double res_x = sqrt(wcs->cd[0] * wcs->cd[0] + wcs->cd[2] * wcs->cd[2]);
+		double res_y = sqrt(wcs->cd[1] * wcs->cd[1] + wcs->cd[3] * wcs->cd[3]);
+		resolution = (res_x + res_y) * 0.5;
+	}
+#endif
+	return resolution;
 }
 
 void free_wcs() {
