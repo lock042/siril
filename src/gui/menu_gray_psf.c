@@ -63,7 +63,7 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	double y = com.selection.y + com.selection.h - result->y0;
 	if (has_wcs()) {
 		double world_x, world_y;
-		pix2wcs(x, y, &world_x, &world_y);
+		pix2wcs(x, (double) gfit.ry - y, &world_x, &world_y);
 		gchar *ra = conv_ra_2_str(world_x);
 		gchar *dec = conv_dec_2_str(world_y);
 		coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);

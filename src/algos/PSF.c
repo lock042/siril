@@ -703,7 +703,7 @@ void psf_display_result(fitted_PSF *result, rectangle *area) {
 
 	if (has_wcs()) {
 		double world_x, world_y;
-		pix2wcs(x, y, &world_x, &world_y);
+		pix2wcs(x, (double) gfit.ry - y, &world_x, &world_y);
 		gchar *ra = conv_ra_2_str(world_x);
 		gchar *dec = conv_dec_2_str(world_y);
 		coordinates = g_strdup_printf("x0=%0.2f px, y0=%0.2f px (%s , %s)", x, y, ra, dec);

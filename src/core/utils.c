@@ -1104,7 +1104,7 @@ char **glist_to_array(GList *list, int *arg_count) {
 gchar *conv_dec_2_str(double dec) {
 	int degree, min;
 	double sec;
-	char sig = ' ';
+	char sig = '+';
 
 	if (dec < 0) sig = '-';
 

@@ -167,6 +167,7 @@ gboolean load_WCS_from_file(fits* fit) {
 		for (int i = 0; i < nwcs; i++) {
 			/* Find the master celestial WCS coordinates */
 			struct wcsprm *prm = data + i;
+			/* ctype3 = 'RGB' fix */
 			if (prm->naxis == 3) {
 				cdfix(prm);
 			}

@@ -676,7 +676,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			coords_width = 4;
 			if (gfit.type == DATA_USHORT && gfit.pdata[com.cvport] != NULL) {
 				int val_width = 3;
-				char *format_base_ushort = "x: %%.%dd y: %%.%dd = %%.%dd";
+				char *format_base_ushort = "x = %%.%dd, y = %%.%dd (%%.%dd)";
 				if (gfit.hi >= 1000)
 					val_width = 4;
 				if (gfit.hi >= 10000)
@@ -687,7 +687,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 						gfit.pdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
 											   + zoomed.x]);
 			} else if (gfit.type == DATA_FLOAT  && gfit.fpdata[com.cvport] != NULL) {
-				char *format_base_float = "x: %%.%dd y: %%.%dd = %%f";
+				char *format_base_float = "x = %%.%dd, y = %%.%dd (%%f)";
 				format = g_strdup_printf(format_base_float,
 						coords_width, coords_width);
 				buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
@@ -699,7 +699,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
 					gchar *ra = conv_ra_2_str(world_x);
 					gchar *dec = conv_dec_2_str(world_y);
-					wcs_buffer = g_strdup_printf("α = %s , δ = %s", ra, dec);
+					wcs_buffer = g_strdup_printf("α =%s, δ = %s", ra, dec); /* the format with no space before %s is on purpose */
 
 					gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), wcs_buffer);
 

@@ -903,9 +903,6 @@ static void save_wcs_keywords(fits *fit) {
 	int status = 0;
 
 	if (fit->wcs.equinox > 0.0) {
-		int wcaxes = 2;
-		fits_update_key(fit->fptr, TINT, "WCSAXES", &wcaxes, "Highest value of the WCS key-word index", &status);
-		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
@@ -947,18 +944,18 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "IMAGEW", &(fit->rx), "Image width, in pixels.", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "IMAGEH", &(fit->ry), "Image height, in pixels.", &status);
-		if (fit->wcs.cdelt[0] != 0.0) {
-			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]),	"Axis1 scale", &status);
-		}
-		if (fit->wcs.cdelt[1] != 0.0) {
-			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt[1]), "Axis2 scale", &status);
-		}
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota[0]), "Axis1 rotation angle (deg)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota[1]), "Axis2 rotation angle (deg)", &status);
+//		if (fit->wcs.cdelt[0] != 0.0) {
+//			status = 0;
+//			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]),	"Axis1 scale", &status);
+//		}
+//		if (fit->wcs.cdelt[1] != 0.0) {
+//			status = 0;
+//			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt[1]), "Axis2 scale", &status);
+//		}
+//		status = 0;
+//		fits_update_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota[0]), "Axis1 rotation angle (deg)", &status);
+//		status = 0;
+//		fits_update_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota[1]), "Axis2 rotation angle (deg)", &status);
 	}
 }
 
