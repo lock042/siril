@@ -11,4 +11,4 @@ install_data(['org.free_astro.siril.appdata.xml'
              rename : ['metainfo/org.free_astro.siril.appdata.xml'
                       ,'mime/packages/siril.xml'
                       ,'applications/org.free_astro.siril.desktop'],
-             install_dir : siril_datadir)
+             install_dir : siril_share)
