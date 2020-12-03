@@ -1304,9 +1304,6 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	initialize_log_tags();
 
-	gint test = gtk_image_get_pixel_size(GTK_IMAGE(lookup_widget("image_colormap")));
-	printf("test : %d\n", test);
-
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);
 	register_selection_update_callback(update_display_selection);

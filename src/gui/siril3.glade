@@ -7484,8 +7484,9 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                   <object class="GtkToggleToolButton" id="annotate_button">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Display object name if WCS information are available</property>
+                    <property name="tooltip_text" translatable="yes">Show object names if WCS information is available</property>
                     <property name="use_underline">True</property>
+                    <property name="stock_id">gtk-missing-image</property>
                     <signal name="toggled" handler="on_annotate_button_toggled" swapped="no"/>
                   </object>
                   <packing>
