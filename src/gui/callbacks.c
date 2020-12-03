@@ -31,6 +31,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/OS_utils.h"
+#include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/conversion.h"
 #include "io/films.h"
@@ -383,6 +384,11 @@ void update_MenuItem() {
 	/* toolbar button */
 	gtk_widget_set_sensitive(lookup_widget("header_precision_button"), any_image_is_loaded);
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
+#ifdef HAVE_WCSLIB
+	gtk_widget_set_sensitive(lookup_widget("annotate_button"), has_wcs());
+#else
+	gtk_widget_set_sensitive(lookup_widget("annotate_button"), FALSE);
+#endif
 	gtk_widget_set_sensitive(lookup_widget("header_undo_button"), is_undo_available());
 	if (is_undo_available()) {
 		str = g_strdup_printf(_("Undo: \"%s\""), com.history[com.hist_display - 1].history);
@@ -1297,6 +1303,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_FITS_name_entries();
 
 	initialize_log_tags();
+
+	gint test = gtk_image_get_pixel_size(GTK_IMAGE(lookup_widget("image_colormap")));
+	printf("test : %d\n", test);
 
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);

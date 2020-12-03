@@ -664,23 +664,6 @@ int process_linear_match(int nb) {
 	return 0;
 }
 
-#ifdef HAVE_WCSLIB
-int process_annotate(int nb) {
-	if (has_wcs()) {
-		GSList *list = find_objects(&gfit);
-		for (GSList *l = list; l; l = l->next) {
-			siril_log_message(_("Object found: %s\n"), get_catalogue_object_code(l->data));
-		}
-		com.found_object = list;
-		redraw(com.cvport, REMAP_NONE);
-		redraw_previews();
-	} else {
-		siril_log_color_message(_("No WCS Information\n"), "red");
-	}
-	return 0;
-}
-#endif
-
 int process_asinh(int nb) {
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;

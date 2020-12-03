@@ -7381,6 +7381,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                 <property name="halign">start</property>
                 <property name="valign">center</property>
                 <property name="show_arrow">False</property>
+                <property name="icon_size">5</property>
                 <child>
                   <object class="GtkToolItem" id="tool_item_display">
                     <property name="visible">True</property>
@@ -7463,6 +7464,29 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                     <property name="use_underline">True</property>
                     <property name="icon_widget">image_colormap</property>
                     <signal name="toggled" handler="on_colormap_button_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="separateur8">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleToolButton" id="annotate_button">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="tooltip_text" translatable="yes">Display object name if WCS information are available</property>
+                    <property name="use_underline">True</property>
+                    <signal name="toggled" handler="on_annotate_button_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

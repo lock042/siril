@@ -1233,6 +1233,7 @@ static gboolean end_plate_solver(gpointer p) {
 		}
 		load_WCS_from_memory(args->fit);
 	}
+	update_MenuItem();
 	g_free(args->catalogStars);
 	g_free(args->message);
 	free(args);

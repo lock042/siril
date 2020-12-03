@@ -24,6 +24,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
+#include "gui/image_display.h"
 
 #include "annotate.h"
 
@@ -135,7 +136,6 @@ GSList *find_objects(fits *fit) {
 
 			if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
 					cur->ra, cur->dec)) {
-				printf("%s\n", cur->code);
 				if (!already_exist(targets, cur->ra, cur->dec)) {
 					CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name);
 					targets = g_slist_prepend(targets, new_object);
@@ -176,4 +176,19 @@ void free_object(CatalogObjects *object) {
 	g_free(object->code);
 	g_free(object->name);
 	g_free(object);
+}
+
+/*** UI callbacks **///
+
+void on_annotate_button_toggled(GtkToggleToolButton *togglebutton,
+		gpointer user_data) {
+	if (gtk_toggle_tool_button_get_active(togglebutton)) {
+		if (has_wcs()) {
+			com.found_object = find_objects(&gfit);
+		}
+	} else {
+		g_slist_free_full(com.found_object, (GDestroyNotify) free_object);
+		com.found_object = NULL;
+	}
+	redraw(com.cvport, REMAP_NONE);
 }

@@ -6,9 +6,6 @@
 #endif
 
 int	process_addmax(int nb);
-#ifdef HAVE_WCSLIB
-int process_annotate(int nb);
-#endif
 int	process_asinh(int nb);
 
 int	process_bg(int nb);
