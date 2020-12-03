@@ -199,7 +199,7 @@ deps-win64:
     - ./setup.py install --prefix=`pwd`/../.local
     - cd ..
     - pip3 install zstandard
-    - apt install wcslib-dev
+    - apt-get install -y wcslib-dev
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
