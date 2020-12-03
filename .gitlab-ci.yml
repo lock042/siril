@@ -105,7 +105,7 @@ build-image-win64:
     - echo "RUN wget ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib.tar.bz2 \\" >> Dockerfile
     - echo " && tar xfv wcslib.tar.bz2 \\" >> Dockerfile
     - echo " && cd wcslib-7.3.1 \\" >> Dockerfile
-    - echo " && ./configure LIBS="-pthread -lcurl -lm" --without-pgplot --disable-fortran \\" >> Dockerfile
+    - echo " && ./configure LIBS="-pthread -lm" --without-pgplot --disable-fortran \\" >> Dockerfile
     - echo " && make install \\" >> Dockerfile
     - echo " && cd .. \\" >> Dockerfile
     - echo " && rm -rf wcslib-7.3.1 \\" >> Dockerfile
