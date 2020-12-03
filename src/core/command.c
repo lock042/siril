@@ -664,6 +664,7 @@ int process_linear_match(int nb) {
 	return 0;
 }
 
+#ifdef HAVE_WCSLIB
 int process_annotate(int nb) {
 	if (has_wcs()) {
 		GSList *list = find_objects(&gfit);
@@ -678,6 +679,7 @@ int process_annotate(int nb) {
 	}
 	return 0;
 }
+#endif
 
 int process_asinh(int nb) {
 	if (!single_image_is_loaded()) {
