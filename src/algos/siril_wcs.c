@@ -263,3 +263,4 @@ void free_wcs() {
 	free(wcs);
 	wcs = NULL;
 #endif
+}

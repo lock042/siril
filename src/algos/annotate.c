@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "gui/callbacks.h"
 #include "algos/siril_wcs.h"
 #include "gui/image_display.h"
 
