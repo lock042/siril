@@ -916,34 +916,42 @@ static void save_wcs_keywords(fits *fit) {
 			fits_update_key(fit->fptr, TSTRING, "CTYPE3", "RGB", "RGB image", &status);
 		}
 
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra),	"Image center R.A. (hms)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), "Image center declination (dms)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix[0]), "Axis1 reference pixel", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix[1]), "Axis2 reference pixel", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg", "X pixel scale units", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg", "Y pixel scale units", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval[0]), "Axis1 reference value", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval[1]), "Axis2 reference value", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcs.cd[0][0]), "Scale matrix (1, 1)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcs.cd[0][1]), "Scale matrix (1, 2)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcs.cd[1][0]), "Scale matrix (2, 1)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcs.cd[1][1]), "Scale matrix (2, 2)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "IMAGEW", &(fit->rx), "Image width, in pixels.", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "IMAGEH", &(fit->ry), "Image height, in pixels.", &status);
+		if (fit->wcs.objctra[0] != '\0') {
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcs.objctra),	"Image center R.A. (hms)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcs.objctdec), "Image center declination (dms)", &status);
+		}
+		if (fit->wcs.crpix[0] != '\0') {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcs.crpix[0]), "Axis1 reference pixel", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcs.crpix[1]), "Axis2 reference pixel", &status);
+		}
+		if (fit->wcs.crval[0] != '\0') {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcs.crval[0]), "Axis1 reference value", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcs.crval[1]), "Axis2 reference value", &status);
+		}
+		if ((fit->wcs.cd[0][0] != 0.0) && (fit->wcs.cd[0][1] != 0.0) && (fit->wcs.cd[1][0] != 0.0) && (fit->wcs.cd[1][1] != 0.0)) {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcs.cd[0][0]), "Scale matrix (1, 1)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcs.cd[0][1]), "Scale matrix (1, 2)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcs.cd[1][0]), "Scale matrix (2, 1)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcs.cd[1][1]), "Scale matrix (2, 2)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TINT, "IMAGEW", &(fit->rx), "Image width, in pixels.", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TINT, "IMAGEH", &(fit->ry), "Image height, in pixels.", &status);
+		}
+//		status = 0;
+//		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg", "X pixel scale units", &status);
+//		status = 0;
+//		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg", "Y pixel scale units", &status);
 //		if (fit->wcs.cdelt[0] != 0.0) {
 //			status = 0;
 //			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]),	"Axis1 scale", &status);

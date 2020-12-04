@@ -2168,7 +2168,6 @@ int process_subsky(int nb) {
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
 
-		invalidate_stats_from_fit(&gfit);
 		adjust_cutoff_from_updated_gfit();
 		redraw(com.cvport, REMAP_ALL);
 	}

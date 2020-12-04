@@ -601,6 +601,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkImage" id="astrometry">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">pixmaps/astrometry_dark.png</property>
+  </object>
   <object class="GtkColorChooserDialog" id="colorchooserdialog">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
@@ -7508,7 +7513,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                     <property name="can_focus">False</property>
                     <property name="tooltip_text" translatable="yes">Show object names if WCS information is available</property>
                     <property name="use_underline">True</property>
-                    <property name="stock_id">gtk-missing-image</property>
+                    <property name="icon_widget">astrometry</property>
                     <signal name="toggled" handler="on_annotate_button_toggled" swapped="no"/>
                   </object>
                   <packing>

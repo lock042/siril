@@ -689,18 +689,13 @@ void on_header_save_as_button_clicked() {
 }
 
 static gboolean snapshot_notification_close(gpointer user_data) {
-
 	gtk_widget_hide(GTK_WIDGET(user_data));
 	return FALSE;
 }
 
 static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPixbuf *pixbuf) {
-	gchar *text;
-	gchar *bname;
-
-	bname = g_path_get_basename(filename);
-
-	text = g_strdup_printf("Snapshot <b>%s</b> was saved into the Working directory.", bname);
+	gchar *bname = g_path_get_basename(filename);
+	gchar *text = g_strdup_printf("Snapshot <b>%s</b> was saved into the working directory.", bname);
 	GtkWidget *popover = popover_new_with_image(widget, text, pixbuf);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_popover_popup(GTK_POPOVER(popover));
