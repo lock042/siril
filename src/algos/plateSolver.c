@@ -48,6 +48,7 @@
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/plateSolver.h"
+#include "algos/annotate.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "registration/matching/match.h"
@@ -753,7 +754,7 @@ static void update_coords() {
 	} else if (gfit.wcs.objctra[0] != '\0' && gfit.wcs.objctdec[0] != '\0') {
 		sscanf(gfit.wcs.objctra, "%d %d %lf", &k_ra.hour, &k_ra.min, &k_ra.sec);
 		sscanf(gfit.wcs.objctdec, "%d %d %lf", &k_dec.degree, &k_dec.min, &k_dec.sec);
-		south = k_dec.degree < 0.0;
+		south = gfit.wcs.objctdec[0] == '-';
 
 		k_dec.degree = abs(k_dec.degree);
 		update_coordinates(k_ra, k_dec, south);
