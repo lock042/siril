@@ -29,11 +29,6 @@ static gchar* g_date_time_format_timestamp(GDateTime *datetime) {
 	gchar *main_date = NULL;
 	gchar *format = "%Y-%m-%dT%H:%M:%S";
 
-	/* if datetime has sub-second non-zero values below the second precision we
-	 * should print them as well */
-	if (g_date_time_get_microsecond(datetime) % G_TIME_SPAN_SECOND != 0)
-		format = "%Y-%m-%dT%H:%M:%S.%f";
-
 	/* Main date and time. */
 	main_date = g_date_time_format(datetime, format);
 	outstr = g_string_new(main_date);
