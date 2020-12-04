@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/siril_date.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
@@ -683,6 +684,86 @@ void on_header_save_as_button_clicked() {
 				gtk_widget_show(savepopup);
 				gtk_window_present_with_time(GTK_WINDOW(savepopup),	GDK_CURRENT_TIME);
 			}
+		}
+	}
+}
+
+static gboolean snapshot_notification_close(gpointer user_data) {
+
+	gtk_widget_hide(GTK_WIDGET(user_data));
+	return FALSE;
+}
+
+static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPixbuf *pixbuf) {
+	gchar *text;
+	gchar *bname;
+
+	bname = g_path_get_basename(filename);
+
+	text = g_strdup_printf("Snapshot <b>%s</b> was saved into the Working directory.", bname);
+	GtkWidget *popover = popover_new_with_image(widget, text, pixbuf);
+#if GTK_CHECK_VERSION(3, 22, 0)
+	gtk_popover_popup(GTK_POPOVER(popover));
+#else
+	gtk_widget_show(popover);
+#endif
+	g_free(bname);
+	g_free(text);
+	return popover;
+}
+
+static void snapshot_callback(GObject *source_object, GAsyncResult *result,
+		gpointer user_data) {
+	GError *error = NULL;
+
+	if (!gdk_pixbuf_save_to_stream_finish(result, &error)) {
+		siril_log_message(_("Cannot take snapshot: %s\n"), error->message);
+		g_clear_error(&error);
+	} else {
+		GtkWidget *widget = lookup_widget("header_snapshot_button");
+		GtkWidget *popover = snapshot_notification(widget, (gchar *)user_data, (GdkPixbuf *)source_object);
+		g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
+	}
+}
+
+void on_header_snapshot_button_clicked() {
+	GError *error = NULL;
+	GString *string;
+	gchar * filename;
+	GdkPixbuf *pixbuf;
+	GFile *file;
+	GOutputStream *stream;
+	GtkWidget *widget;
+	GtkAllocation allocation_w = { 0 };
+	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
+
+	widget = lookup_widget(area[com.cvport]);
+	filename = build_timestamp_filename();
+	string = g_string_new(filename);
+	string = g_string_prepend(string, _("Screenshot-"));
+	string = g_string_append(string, ".png");
+	g_free(filename);
+	filename = g_string_free(string, FALSE);
+
+    gtk_widget_get_allocation(widget, &allocation_w);
+	GdkWindow *window = gtk_widget_get_parent_window(widget);
+	if (window) {
+		pixbuf = gdk_pixbuf_get_from_window(window, allocation_w.x, allocation_w.y, allocation_w.width, allocation_w.height);
+		file = g_file_new_build_filename(com.wd, filename, NULL);
+		g_free(filename);
+
+		if (pixbuf) {
+			stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
+			if (stream == NULL) {
+				if (error != NULL) {
+					g_warning("%s\n", error->message);
+					g_clear_error(&error);
+				}
+				g_object_unref(file);
+				return;
+			}
+			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
+					snapshot_callback, (gpointer) g_file_peek_path(file), NULL);
 		}
 	}
 }

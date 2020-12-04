@@ -192,3 +192,7 @@ void on_annotate_button_toggled(GtkToggleToolButton *togglebutton,
 	}
 	redraw(com.cvport, REMAP_NONE);
 }
+
+void initialize_wcs_toggle_button() {
+	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button")), FALSE);
+}

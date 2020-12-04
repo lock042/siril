@@ -56,6 +56,11 @@ void save_as_action_activate(GSimpleAction *action, GVariant *parameter,
 	on_header_save_as_button_clicked();
 }
 
+void snapshot_action_activate(GSimpleAction *action, GVariant *parameter,
+		gpointer user_data) {
+	on_header_snapshot_button_clicked();
+}
+
 void undo_action_activate(GSimpleAction *action, GVariant *parameter,
 		gpointer user_data) {
 	set_cursor_waiting(TRUE);

@@ -740,6 +740,7 @@ static void draw_annotates(const draw_data_t* dd) {
 				cairo_stroke(cr);
 				cairo_move_to(cr, x - 20, y);
 				cairo_line_to(cr, x - 10, y);
+				cairo_stroke(cr);
 				cairo_move_to(cr, x + 20, y);
 				cairo_line_to(cr, x + 10, y);
 				cairo_stroke(cr);

@@ -29,5 +29,6 @@ gdouble get_catalogue_object_ra(CatalogObjects *object);
 gdouble get_catalogue_object_dec(CatalogObjects *object);
 gdouble get_catalogue_object_radius(CatalogObjects *object);
 void free_object(CatalogObjects *object);
+void initialize_wcs_toggle_button();
 
 #endif /* SRC_ALGOS_ANNOTATE_H_ */

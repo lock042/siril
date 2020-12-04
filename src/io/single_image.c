@@ -56,6 +56,7 @@ void close_single_image() {
 	 */
 	if (!com.headless) {
 		siril_close_preview_dialogs();
+		initialize_wcs_toggle_button();
 	}
 	free_image_data();
 	undo_flush();

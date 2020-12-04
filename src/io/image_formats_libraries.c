@@ -860,8 +860,8 @@ int savejpg(const char *name, fits *fit, int quality){
 	free(filename);
 	return OPEN_IMAGE_OK;
 }
-#endif	// HAVE_LIBJPEG
 
+#endif	// HAVE_LIBJPEG
 
 /********************* PNG IMPORT *********************/
 

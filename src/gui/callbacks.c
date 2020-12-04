@@ -406,6 +406,7 @@ void update_MenuItem() {
 	/* File Menu */
 	gtk_widget_set_sensitive(lookup_widget("header_save_as_button"), any_image_is_loaded);
 	gtk_widget_set_sensitive(lookup_widget("header_save_button"), is_a_single_image_loaded && com.uniq->fileexist);
+	gtk_widget_set_sensitive(lookup_widget("header_snapshot_button"), any_image_is_loaded);
 	gtk_widget_set_sensitive(lookup_widget("info_menu_headers"), any_image_is_loaded && gfit.header != NULL);
 	gtk_widget_set_sensitive(lookup_widget("menu_gray_header"), any_image_is_loaded && gfit.header != NULL);
 	gtk_widget_set_sensitive(lookup_widget("info_menu_informations"), any_image_is_loaded);

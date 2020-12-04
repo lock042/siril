@@ -1578,6 +1578,7 @@ void invalidate_WCS_keywords(fits *fit) {
 	if (has_wcs()) {
 		free_wcs();
 	}
+	initialize_wcs_toggle_button();
 }
 
 /** some getters and setters */
