@@ -1,4 +1,4 @@
-cataloguedir = $(datadir)/catalogue
+cataloguedir = $(pkgdatadir)/catalogue
 
 catalogue_DATA = messier.txt \
 		ngc.txt \
