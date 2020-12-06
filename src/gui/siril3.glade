@@ -2560,11 +2560,11 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkLabel" id="labelfwhmred">
+                          <object class="GtkLabel" id="labelfilename_red">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="tooltip_text" translatable="yes">current red file</property>
                             <property name="halign">end</property>
-                            <property name="label" translatable="yes">fwhm</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -2609,12 +2609,14 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             <property name="valign">center</property>
                             <property name="spacing">2</property>
                             <child>
-                              <object class="GtkLabel" id="labelfilename_red">
+                              <object class="GtkLabel" id="labelfwhmred">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">current red file</property>
                                 <property name="halign">start</property>
-                                <property name="ellipsize">start</property>
+                                <property name="label" translatable="yes">fwhm</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
@@ -2698,6 +2700,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">end</property>
+                                <property name="ellipsize">start</property>
                                 <property name="width_chars">30</property>
                                 <style>
                                   <class name="label-data"/>
@@ -2736,11 +2739,11 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkLabel" id="labelfwhmgreen">
+                          <object class="GtkLabel" id="labelfilename_green">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="tooltip_text" translatable="yes">current green file</property>
                             <property name="halign">end</property>
-                            <property name="label" translatable="yes">fwhm</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -2785,12 +2788,15 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             <property name="valign">center</property>
                             <property name="spacing">2</property>
                             <child>
-                              <object class="GtkLabel" id="labelfilename_green">
+                              <object class="GtkLabel" id="labelfwhmgreen">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">current green file</property>
                                 <property name="halign">start</property>
+                                <property name="label" translatable="yes">fwhm</property>
                                 <property name="ellipsize">start</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
@@ -2916,11 +2922,11 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkLabel" id="labelfwhmblue">
+                          <object class="GtkLabel" id="labelfilename_blue">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="tooltip_text" translatable="yes">current blue file</property>
                             <property name="halign">end</property>
-                            <property name="label" translatable="yes">fwhm</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -2965,12 +2971,14 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             <property name="valign">center</property>
                             <property name="spacing">2</property>
                             <child>
-                              <object class="GtkLabel" id="labelfilename_blue">
+                              <object class="GtkLabel" id="labelfwhmblue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">current blue file</property>
                                 <property name="halign">start</property>
                                 <property name="ellipsize">start</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
@@ -3096,9 +3104,10 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkLabel" id="labelfilename_rgb">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="halign">end</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>

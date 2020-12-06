@@ -57,8 +57,6 @@
 #include "registration/matching/atpmatch.h"
 #include "registration/matching/project_coords.h"
 
-#define RADCONV ((3600.0 * 180.0) / M_PI) / 1.0E3
-
 enum {
 	COLUMN_RESOLVER,		// string
 	COLUMN_NAME,		// string

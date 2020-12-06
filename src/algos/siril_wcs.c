@@ -253,7 +253,21 @@ double get_wcs_image_resolution() {
 		resolution = (res_x + res_y) * 0.5;
 	}
 #endif
+	if (resolution <= 0.0) {
+		if (gfit.focal_length >= 0.0 && gfit.pixel_size_x >= 0.0 && gfit.pixel_size_y == gfit.pixel_size_x)
+			resolution = RADCONV / gfit.focal_length * gfit.pixel_size_x;
+	}
 	return resolution;
+}
+
+double *get_wcs_crval() {
+	static double ret[NWCSFIX] = { 0 };
+	if (has_wcs()) {
+		for (int i = 0; i < NAXIS; i++) {
+			ret[i] = wcs->crval[i];
+		}
+	}
+	return ret;
 }
 
 void free_wcs() {

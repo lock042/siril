@@ -123,16 +123,26 @@ static GSList *load_catalog(const gchar *catalogue) {
 GSList *find_objects(fits *fit) {
 	if (!has_wcs()) return NULL;
 	GSList *targets = NULL;
+	gdouble x1, y1, x2, y2;
+	double *crval;
+	double resolution;
+
+	crval = get_wcs_crval();
+	resolution = get_wcs_image_resolution();
+
+	x1 = crval[0];
+	y1 = crval[1];
+
+	if (x1 == 0.0 && y1 == 0.0) return NULL;
+	if (resolution <= 0.0) return NULL;
+
+	x2 = x1 + fit->rx * resolution;
+	y2 = y1 + fit->ry * resolution;
 
 	for (int i = 0; i < G_N_ELEMENTS(cat); i++) {
 		GSList *list = load_catalog(cat[i]);
 
 		for (GSList *l = list; l; l = l->next) {
-			gdouble x1, y1, x2, y2;
-
-			pix2wcs(fit->rx / 2, fit->ry / 2, &x1, &y1);
-			pix2wcs(0, 0, &x2, &y2);
-
 			CatalogObjects *cur = (CatalogObjects *)l->data;
 
 			if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),

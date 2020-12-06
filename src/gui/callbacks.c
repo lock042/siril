@@ -704,7 +704,7 @@ void update_display_fwhm() {
  */
 void display_filename() {
 	GtkLabel *fn_label;
-	int nb_layers;
+	int nb_layers, vport;
 	char *filename;
 	if (com.uniq) {	// unique image
 		filename = com.uniq->filename;
@@ -714,9 +714,10 @@ void display_filename() {
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		nb_layers = com.seq.nb_layers;
 	}
+	vport = nb_layers > 1 ? nb_layers + 1 : nb_layers;
 
 	gchar *	base_name = g_path_get_basename(filename);
-	for (int channel = 0; channel < nb_layers; channel++) {
+	for (int channel = 0; channel < vport; channel++) {
 		gchar *c = g_strdup_printf("labelfilename_%s", untranslated_vport_number_to_name(channel));
 		fn_label = GTK_LABEL(lookup_widget(c));
 		gtk_label_set_text(fn_label, base_name);

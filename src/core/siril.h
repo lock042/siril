@@ -54,6 +54,7 @@
 
 #define SQR(x) ((x)*(x))
 #endif
+#define RADCONV ((3600.0 * 180.0) / M_PI) / 1.0E3
 
 #define USHRT_MAX_DOUBLE ((double)USHRT_MAX)
 #define SHRT_MAX_DOUBLE ((double)SHRT_MAX)
