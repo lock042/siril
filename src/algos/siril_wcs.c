@@ -245,7 +245,7 @@ void wcs2pix(double r, double d, double *x, double *y) {
 }
 
 double get_wcs_image_resolution() {
-	double resolution = 1.0;
+	double resolution = -1.0;
 #ifdef HAVE_WCSLIB
 	if (has_wcs()) {
 		double res_x = sqrt(wcs->cd[0] * wcs->cd[0] + wcs->cd[2] * wcs->cd[2]);

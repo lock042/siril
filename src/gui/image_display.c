@@ -721,6 +721,8 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble x, y;
 		gdouble size = 16;
 
+		if (resolution <= 0) return;
+
 		radius = radius / resolution / 60.0;
 
 		wcs2pix(world_x, world_y, &x, &y);

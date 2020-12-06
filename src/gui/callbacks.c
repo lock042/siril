@@ -705,8 +705,7 @@ void update_display_fwhm() {
 void display_filename() {
 	GtkLabel *fn_label;
 	int nb_layers;
-	char *str, *filename;
-	gchar *base_name;
+	char *filename;
 	if (com.uniq) {	// unique image
 		filename = com.uniq->filename;
 		nb_layers = com.uniq->nb_layers;
@@ -715,24 +714,15 @@ void display_filename() {
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		nb_layers = com.seq.nb_layers;
 	}
-	base_name = g_path_get_basename(filename);
-	fn_label = GTK_LABEL(lookup_widget("labelfilename_red"));
-	str = g_strdup_printf(_("%s (channel 0)"), base_name);
-	gtk_label_set_text(fn_label, str);
-	g_free(str);
 
-	if (nb_layers == 3) {	//take in charge both sequence and single image
-		fn_label = GTK_LABEL(lookup_widget("labelfilename_green"));
-		str = g_strdup_printf(_("%s (channel 1)"), base_name);
-		gtk_label_set_text(fn_label, str);
-		g_free(str);
-
-		fn_label = GTK_LABEL(lookup_widget("labelfilename_blue"));
-		str = g_strdup_printf(_("%s (channel 2)"), base_name);
-		gtk_label_set_text(fn_label, str);
-		g_free(str);
-
+	gchar *	base_name = g_path_get_basename(filename);
+	for (int channel = 0; channel < nb_layers; channel++) {
+		gchar *c = g_strdup_printf("labelfilename_%s", untranslated_vport_number_to_name(channel));
+		fn_label = GTK_LABEL(lookup_widget(c));
+		gtk_label_set_text(fn_label, base_name);
+		g_free(c);
 	}
+
 	if (!com.uniq) {
 		free(filename);
 	}

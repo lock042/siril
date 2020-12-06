@@ -2560,6 +2560,19 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
                         <child>
+                          <object class="GtkLabel" id="labelfwhmred">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">fwhm</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkScrolledWindow" id="scrolledwindowr">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -2586,7 +2599,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -2611,36 +2624,31 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labeldensity_red">
+                              <object class="GtkSeparator" id="vseparatorr3">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="valign">center</property>
-                                <property name="ellipsize">end</property>
-                                <property name="width_chars">22</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
+                                <property name="orientation">vertical</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">12</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelwcs_red">
+                              <object class="GtkLabel" id="labelselection_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="halign">start</property>
+                                <property name="halign">end</property>
+                                <property name="ellipsize">start</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
+                                <property name="expand">True</property>
                                 <property name="fill">True</property>
+                                <property name="padding">3</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
@@ -2657,19 +2665,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="vseparatorr3">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">5</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelselection_red">
+                              <object class="GtkLabel" id="labeldensity_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>
@@ -2679,10 +2675,10 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 </style>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">3</property>
-                                <property name="position">6</property>
+                                <property name="padding">12</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                             <child>
@@ -2694,29 +2690,30 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">7</property>
+                                <property name="position">5</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelfwhmred">
+                              <object class="GtkLabel" id="labelwcs_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">end</property>
-                                <property name="label" translatable="yes">fwhm: no selection</property>
+                                <property name="width_chars">30</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">3</property>
-                                <property name="pack_type">end</property>
-                                <property name="position">8</property>
+                                <property name="position">6</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
@@ -2738,6 +2735,19 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel" id="labelfwhmgreen">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">fwhm</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
                         <child>
                           <object class="GtkScrolledWindow" id="scrolledwindowg">
                             <property name="visible">True</property>
@@ -2765,7 +2775,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -2790,36 +2800,20 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labeldensity_green">
+                              <object class="GtkLabel" id="labelselection_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="ellipsize">end</property>
-                                <property name="width_chars">22</property>
+                                <property name="halign">end</property>
+                                <property name="ellipsize">start</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
+                                <property name="expand">True</property>
                                 <property name="fill">True</property>
-                                <property name="padding">4</property>
+                                <property name="padding">3</property>
                                 <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelwcs_green">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -2831,7 +2825,36 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labeldensity_green">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="width_chars">30</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="padding">4</property>
                                 <property name="position">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSeparator" id="vseparatorg4">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                             <child>
@@ -2847,7 +2870,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelselection_green">
+                              <object class="GtkLabel" id="labelwcs_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>
@@ -2857,43 +2880,16 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 </style>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">3</property>
-                                <property name="position">6</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorg4">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">7</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelfwhmgreen">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">end</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">3</property>
-                                <property name="pack_type">end</property>
-                                <property name="position">8</property>
+                                <property name="position">6</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
@@ -2919,6 +2915,19 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel" id="labelfwhmblue">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">fwhm</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
                         <child>
                           <object class="GtkScrolledWindow" id="scrolledwindowb">
                             <property name="visible">True</property>
@@ -2946,7 +2955,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -2971,39 +2980,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labeldensity_blue">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="ellipsize">end</property>
-                                <property name="width_chars">22</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="padding">4</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelwcs_blue">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkSeparator" id="vseparatorb2">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -3012,7 +2988,24 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
-                                <property name="position">3</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelselection_blue">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="ellipsize">start</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">3</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -3024,11 +3017,11 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
-                                <property name="position">5</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelselection_blue">
+                              <object class="GtkLabel" id="labeldensity_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>
@@ -3038,10 +3031,10 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 </style>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">3</property>
-                                <property name="position">6</property>
+                                <property name="padding">4</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                             <child>
@@ -3053,28 +3046,30 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">7</property>
+                                <property name="position">5</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelfwhmblue">
+                              <object class="GtkLabel" id="labelwcs_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="halign">end</property>
+                                <property name="halign">start</property>
+                                <property name="width_chars">30</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">3</property>
-                                <property name="pack_type">end</property>
-                                <property name="position">8</property>
+                                <property name="position">6</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
@@ -3100,6 +3095,17 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
                         <child>
                           <object class="GtkScrolledWindow" id="scrolledwindowrgb">
                             <property name="visible">True</property>
@@ -3127,7 +3133,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -3158,7 +3164,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
