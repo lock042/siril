@@ -512,6 +512,15 @@ static void draw_empty_image(const draw_data_t* dd) {
 #endif /* SIRIL_UNSTABLE */
 }
 
+static void update_zoom_label() {
+	const char *suffix = untranslated_vport_number_to_name(com.cvport);
+	gchar *label_zoom = g_strdup_printf("labelzoom_%s", suffix);
+	gchar *zoom_buffer = g_strdup_printf("%d%%", (int) (get_zoom_val() * 100.0));
+	gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom)), zoom_buffer);
+	g_free(zoom_buffer);
+	g_free(label_zoom);
+}
+
 static void draw_vport(const draw_data_t* dd) {
 	cairo_set_source_surface(dd->cr, com.surface[dd->vport], 0, 0);
 	cairo_pattern_set_filter(cairo_get_source(dd->cr), dd->filter);
@@ -524,6 +533,7 @@ static void draw_main_image(const draw_data_t* dd) {
 	if ((dd->vport == RGB_VPORT && com.rgbbuf) || com.graybuf[dd->vport]) {
 		cairo_transform(dd->cr, &com.display_matrix);
 		draw_vport(dd);
+		update_zoom_label();
 	} else {
 		// For empty image, coordinates are untouched
 		draw_empty_image(dd);

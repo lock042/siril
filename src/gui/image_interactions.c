@@ -275,7 +275,6 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 #endif
 }
 
-
 static void enforce_ratio_and_clamp() {
 	if (com.ratio > 0.0
 		&& !(com.freezeX && com.freezeY)) {
