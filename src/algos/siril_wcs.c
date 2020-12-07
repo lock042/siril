@@ -25,6 +25,7 @@
 #include <math.h>
 #ifdef HAVE_WCSLIB
 #include <wcslib.h>
+#include <wcsfix.h>
 #endif
 
 #include "core/siril.h"
