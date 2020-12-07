@@ -29,7 +29,11 @@
 
 #include "annotate.h"
 
-static const gchar *cat[] = { "messier.txt", "ngc.txt", "ic.txt" };
+static const gchar *cat[] = {
+		"messier.txt",
+		"ngc.txt",
+		"ic.txt"
+};
 
 struct _CatalogObjects {
 	gchar *code;
@@ -61,6 +65,7 @@ gboolean is_inside(int circle_x, int circle_y, int rad, int x, int y) {
 
 static gboolean already_exist(GSList *list, double ra, double dec) {
 	for (GSList *l = list; l; l = l->next) {
+		/* set a tolerance for "same object" test */
 		gdouble tolerance = 20.0 / 3600.0;
 
 		gdouble cur_dec = ((CatalogObjects *)l->data)->dec;
@@ -68,7 +73,7 @@ static gboolean already_exist(GSList *list, double ra, double dec) {
         double minDec = cur_dec - tolerance;
         double maxDec = cur_dec + tolerance;
 
-		/* compare */
+		/* compare (only on DEC, is it enough?) */
 		if (dec > minDec && dec < maxDec) {
 			return TRUE;
 		}
@@ -131,12 +136,14 @@ static GSList *find_objects(fits *fit) {
 	crval = get_wcs_crval();
 	resolution = get_wcs_image_resolution();
 
+	/* get center of the image */
 	x1 = crval[0];
 	y1 = crval[1];
 
 	if (x1 == 0.0 && y1 == 0.0) return NULL;
 	if (resolution <= 0.0) return NULL;
 
+	/* get radius of the fov */
 	x2 = x1 + fit->rx * resolution;
 	y2 = y1 + fit->ry * resolution;
 
@@ -146,6 +153,7 @@ static GSList *find_objects(fits *fit) {
 		for (GSList *l = list; l; l = l->next) {
 			CatalogObjects *cur = (CatalogObjects *)l->data;
 
+			/* Search for objects in the circle of radius defined by the image */
 			if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
 					cur->ra, cur->dec)) {
 				if (!already_exist(targets, cur->ra, cur->dec)) {
@@ -154,7 +162,6 @@ static GSList *find_objects(fits *fit) {
 				}
 			}
 		}
-
 		g_slist_free_full(list, (GDestroyNotify) free_object);
 	}
 

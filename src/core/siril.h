@@ -591,8 +591,9 @@ struct pref_struct {
 	struct debayer_config debayer;	// debayer settings
 	phot phot_set;          // photometry settings
 
-	stackconf stack;
-	compconf comp;
+	stackconf stack; // stacking option
+	compconf comp; // compression option
+	gboolean rgb_aladin; // Add CTYPE3='RGB' in the FITS header
 
 	gboolean force_to_16bit;
 

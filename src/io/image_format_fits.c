@@ -911,7 +911,7 @@ static void save_wcs_keywords(fits *fit) {
 		status = 0;
 
 		/* Needed for Aladin compatibility */
-		if (fit->naxes[2] == 3) {
+		if (fit->naxes[2] == 3 && com.pref.rgb_aladin) {
 			status = 0;
 			fits_update_key(fit->fptr, TSTRING, "CTYPE3", "RGB", "RGB image", &status);
 		}
@@ -948,22 +948,6 @@ static void save_wcs_keywords(fits *fit) {
 			status = 0;
 			fits_update_key(fit->fptr, TINT, "IMAGEH", &(fit->ry), "Image height, in pixels.", &status);
 		}
-//		status = 0;
-//		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg", "X pixel scale units", &status);
-//		status = 0;
-//		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg", "Y pixel scale units", &status);
-//		if (fit->wcs.cdelt[0] != 0.0) {
-//			status = 0;
-//			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcs.cdelt[0]),	"Axis1 scale", &status);
-//		}
-//		if (fit->wcs.cdelt[1] != 0.0) {
-//			status = 0;
-//			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcs.cdelt[1]), "Axis2 scale", &status);
-//		}
-//		status = 0;
-//		fits_update_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcs.crota[0]), "Axis1 rotation angle (deg)", &status);
-//		status = 0;
-//		fits_update_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcs.crota[1]), "Axis2 rotation angle (deg)", &status);
 	}
 }
 
