@@ -669,7 +669,7 @@ void update_display_selection() {
 	const char *layer_name = untranslated_vport_number_to_name(com.cvport);
 	gchar *label_name = g_strdup_printf("labelselection_%s", layer_name);
 	if (com.selection.w && com.selection.h) {
-		gchar *buf = g_strdup_printf(_("W: %d H: %d ratio: %.4f"), com.selection.w, com.selection.h,
+		gchar *buf = g_strdup_printf(_("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
 			(double)com.selection.w / (double)com.selection.h);
 		gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), buf);
 		g_free(buf);
@@ -688,7 +688,7 @@ void update_display_fwhm() {
 		if (com.selection.w < 300 && com.selection.h < 300) {
 			double roundness;
 			double fwhm_val = psf_get_fwhm(&gfit, com.cvport, &roundness);
-			buf = g_strdup_printf(_("fwhm = %.2f, r = %.2f"), fwhm_val, roundness);
+			buf = g_strdup_printf(_("fwhm: %.2f, r: %.2f"), fwhm_val, roundness);
 		} else
 			buf = g_strdup_printf(_("fwhm: selection is too large"));
 	} else {
