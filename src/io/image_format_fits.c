@@ -44,6 +44,13 @@
 #include "image_format_fits.h"
 #include "algos/siril_wcs.h"
 
+const char *fit_extension[] = {
+		".fit",
+		".fits",
+		".fts",
+		".fits.fz"
+};
+
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
 static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
 static char *PixSizeX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", NULL };
@@ -1615,7 +1622,15 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	if (!ends_with(name, com.pref.ext)) {
+	gboolean right_extension = FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
+		if (ends_with(name, fit_extension[i])) {
+			right_extension = TRUE;
+			break;
+		}
+	}
+
+	if (!right_extension) {
 		snprintf(filename, 255, "%s%s", name, com.pref.ext);
 	} else {
 		snprintf(filename, 255, "%s", name);

@@ -136,12 +136,14 @@ static GSList *find_objects(fits *fit) {
 	crval = get_wcs_crval();
 	resolution = get_wcs_image_resolution();
 
+	if (crval == NULL) return NULL;
+	if (crval[0] == 0.0 && crval[1] == 0.0) return NULL;
+	if (resolution <= 0.0) return NULL;
+
 	/* get center of the image */
 	x1 = crval[0];
 	y1 = crval[1];
 
-	if (x1 == 0.0 && y1 == 0.0) return NULL;
-	if (resolution <= 0.0) return NULL;
 
 	/* get radius of the fov */
 	x2 = x1 + fit->rx * resolution;

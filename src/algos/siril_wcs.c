@@ -264,6 +264,7 @@ double get_wcs_image_resolution() {
 }
 
 double *get_wcs_crval() {
+#ifdef HAVE_WCSLIB
 	static double ret[NWCSFIX] = { 0 };
 	if (has_wcs()) {
 		for (int i = 0; i < NAXIS; i++) {
@@ -271,6 +272,9 @@ double *get_wcs_crval() {
 		}
 	}
 	return ret;
+#else
+	return NULL;
+#endif
 }
 
 void free_wcs() {
