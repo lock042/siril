@@ -22,7 +22,6 @@
 
 typedef struct _CatalogObjects CatalogObjects;
 
-GSList *find_objects(fits *fit);
 gchar *get_catalogue_object_code(CatalogObjects *object);
 gchar *get_catalogue_object_name(CatalogObjects *object);
 gdouble get_catalogue_object_ra(CatalogObjects *object);

@@ -120,7 +120,7 @@ static GSList *load_catalog(const gchar *catalogue) {
 	return list;
 }
 
-GSList *find_objects(fits *fit) {
+static GSList *find_objects(fits *fit) {
 	if (!has_wcs()) return NULL;
 	GSList *targets = NULL;
 	gdouble x1, y1, x2, y2;
