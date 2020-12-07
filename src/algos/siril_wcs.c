@@ -22,6 +22,7 @@
 #include <config.h>
 #endif
 
+#include <math.h>
 #ifdef HAVE_WCSLIB
 #include <wcslib.h>
 #endif
