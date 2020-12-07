@@ -17971,7 +17971,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                   </object>
                   <packing>
                     <property name="name">preferences_p1</property>
-                    <property name="title" translatable="yes">FITS/SER debayer</property>
+                    <property name="title" translatable="yes">FITS/SER Debayer</property>
                   </packing>
                 </child>
                 <child>
@@ -18406,7 +18406,7 @@ The technique gives very good compression for astronomical images and is relativ
                   </object>
                   <packing>
                     <property name="name">preferences_p8</property>
-                    <property name="title" translatable="yes">FITS options</property>
+                    <property name="title" translatable="yes">FITS Options</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
@@ -18939,7 +18939,7 @@ The technique gives very good compression for astronomical images and is relativ
                   </object>
                   <packing>
                     <property name="name">preferences_p2</property>
-                    <property name="title" translatable="yes">DSLR RAW debayer</property>
+                    <property name="title" translatable="yes">DSLR RAW Debayer</property>
                     <property name="position">2</property>
                   </packing>
                 </child>
