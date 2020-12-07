@@ -116,6 +116,7 @@ static GSList *load_catalog(const gchar *catalogue) {
 	}
 	list = g_slist_reverse(list);
 
+	g_object_unref(data_input);
 	g_object_unref(file);
 	return list;
 }

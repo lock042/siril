@@ -694,15 +694,13 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 }
 
 static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPixbuf *pixbuf) {
-	gchar *bname = g_path_get_basename(filename);
-	gchar *text = g_strdup_printf("Snapshot <b>%s</b> was saved into the working directory.", bname);
+	gchar *text = g_strdup_printf("Snapshot <b>%s</b> was saved into the working directory.", filename);
 	GtkWidget *popover = popover_new_with_image(widget, text, pixbuf);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_popover_popup(GTK_POPOVER(popover));
 #else
 	gtk_widget_show(popover);
 #endif
-	g_free(bname);
 	g_free(text);
 	return popover;
 }
@@ -715,9 +713,12 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 		siril_log_message(_("Cannot take snapshot: %s\n"), error->message);
 		g_clear_error(&error);
 	} else {
+		gchar *filename = (gchar *)user_data;
 		GtkWidget *widget = lookup_widget("header_snapshot_button");
-		GtkWidget *popover = snapshot_notification(widget, (gchar *)user_data, (GdkPixbuf *)source_object);
+		GtkWidget *popover = snapshot_notification(widget, filename, (GdkPixbuf *)source_object);
 		g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
+
+		g_free(filename);
 	}
 }
 
@@ -735,7 +736,7 @@ void on_header_snapshot_button_clicked() {
 	widget = lookup_widget(area[com.cvport]);
 	filename = build_timestamp_filename();
 	string = g_string_new(filename);
-	string = g_string_prepend(string, _("Screenshot-"));
+	string = g_string_prepend(string, _("Snapshot-"));
 	string = g_string_append(string, ".png");
 	g_free(filename);
 	filename = g_string_free(string, FALSE);
@@ -758,7 +759,11 @@ void on_header_snapshot_button_clicked() {
 				return;
 			}
 			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
-					snapshot_callback, (gpointer) g_file_peek_path(file), NULL);
+					snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
+
+			g_object_unref(stream);
+			g_object_unref(pixbuf);
+			g_object_unref(file);
 		}
 	}
 }

@@ -191,6 +191,7 @@ gboolean load_WCS_from_file(fits* fit) {
 			}
 		}
 	}
+	wcsvfree(&nwcs, &data);
 	free(header);
 
 	if (!has_wcs()) {
