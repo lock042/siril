@@ -513,12 +513,14 @@ static void draw_empty_image(const draw_data_t* dd) {
 }
 
 static void update_zoom_label() {
-	const char *suffix = untranslated_vport_number_to_name(com.cvport);
-	gchar *label_zoom = g_strdup_printf("labelzoom_%s", suffix);
-	gchar *zoom_buffer = g_strdup_printf("%d%%", (int) (get_zoom_val() * 100.0));
-	gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom)), zoom_buffer);
-	g_free(zoom_buffer);
-	g_free(label_zoom);
+	if (com.cvport < RGB_VPORT) {
+		const char *suffix = untranslated_vport_number_to_name(com.cvport);
+		gchar *label_zoom = g_strdup_printf("labelzoom_%s", suffix);
+		gchar *zoom_buffer = g_strdup_printf("%d%%", (int) (get_zoom_val() * 100.0));
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom)), zoom_buffer);
+		g_free(zoom_buffer);
+		g_free(label_zoom);
+	}
 }
 
 static void draw_vport(const draw_data_t* dd) {

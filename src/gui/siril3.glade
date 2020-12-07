@@ -18108,7 +18108,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                             <property name="left_padding">12</property>
                             <child>
                               <object class="GtkCheckButton" id="check_button_aladin">
-                                <property name="label" translatable="yes">Enable Aladin compatibility</property>
+                                <property name="label" translatable="yes">Enable Aladin compatibility (CTYPE3 = 'RGB ')</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
