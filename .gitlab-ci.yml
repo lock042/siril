@@ -201,6 +201,7 @@ deps-win64:
     - pip3 install zstandard
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
+    - export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
     
   artifacts:
