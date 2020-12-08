@@ -461,6 +461,11 @@ struct reader_seq_counter {
 	gboolean close_sequence_after_read;
 };
 
+struct writer_seq_counter {
+	gint count;
+	gboolean close_sequence_after_write;
+};
+
 /* single image reading information */
 struct reader_data {
 	/* read from an opened sequence, whichever is not NULL */
@@ -487,7 +492,7 @@ struct writer_data {
 	struct ser_struct *ser;
 	fitseq *fitseq;
 	int index;
-	gboolean close_sequence_after_write;
+	struct writer_seq_counter *seq_count;
 	gboolean have_seqwriter;
 
 	/* or write to a FITS files sequence */
@@ -510,13 +515,14 @@ typedef struct {
 #endif
 	int next_file;		// index in the list of input files
 	int next_image_in_file;	// index in an input sequence
-	struct reader_seq_counter *seq_count;
+	struct reader_seq_counter *readseq_count;
 
 	/* output */
 	struct ser_struct *output_ser;
 	fitseq *output_fitseq;
 	int output_file_number;	// also serves as number of converted images
 	int next_image_in_output;
+	struct writer_seq_counter *writeseq_count;
 	gboolean allow_link;
 
 	int number_of_threads;	// size of threads, size of pool
@@ -589,7 +595,7 @@ gpointer convert_thread_worker(gpointer p) {
 
 	convert_status convert = { 0 };
 	convert.args = args;
-	convert.output_file_number = args->start;
+	convert.output_file_number = args->start + 1;
 	convert.number_of_threads = com.max_thread;
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
@@ -630,7 +636,7 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
 			// change write sequence in case of multiple and wait for pool
-			// TODO wait for writer
+			// TODO wait for writer: the only problem now is memory taken by several writers
 		}
 
 	} while (com.run_thread);
@@ -654,16 +660,28 @@ gpointer convert_thread_worker(gpointer p) {
 
 }
 
-static struct reader_seq_counter *get_new_counter() {
+static struct reader_seq_counter *get_new_read_counter() {
 	struct reader_seq_counter *counter = malloc(sizeof(struct reader_seq_counter));
 	counter->count = 0;
 	counter->close_sequence_after_read = FALSE;
 	return counter;
 }
 
+static struct writer_seq_counter *get_new_write_counter() {
+	struct writer_seq_counter *counter = malloc(sizeof(struct writer_seq_counter));
+	counter->count = 0;
+	counter->close_sequence_after_write = FALSE;
+	return counter;
+}
+
 static void count_reader(struct reader_seq_counter *counter, gboolean close_after_read) {
 	g_atomic_int_inc(&counter->count);
 	counter->close_sequence_after_read = close_after_read;
+}
+
+static void count_writer(struct writer_seq_counter *counter, gboolean close_after_write) {
+	g_atomic_int_inc(&counter->count);
+	counter->close_sequence_after_write = close_after_write;
 }
 
 static void finish_read_seq(struct reader_data *reader) {
@@ -696,7 +714,7 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 	if (conv->current_ser) {
 		reader->ser = conv->current_ser;
 		reader->index = conv->next_image_in_file++;
-		reader->seq_count = conv->seq_count;
+		reader->seq_count = conv->readseq_count;
 		count_reader(reader->seq_count, conv->next_image_in_file == conv->current_ser->frame_count);
 		if (conv->next_image_in_file == conv->current_ser->frame_count) {
 			retval = conv->next_file == conv->args->total ?
@@ -710,7 +728,7 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 		reader->index = conv->next_image_in_file++;
 		reader->threads = conv->threads;
 		reader->nb_threads = conv->number_of_threads;
-		reader->seq_count = conv->seq_count;
+		reader->seq_count = conv->readseq_count;
 		count_reader(reader->seq_count, conv->next_image_in_file == conv->current_fitseq->frame_count);
 		if (conv->next_image_in_file == conv->current_fitseq->frame_count) {
 			retval = conv->next_file == conv->args->total ?
@@ -724,7 +742,7 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 	else if (conv->current_film) {
 		reader->film = conv->current_film;
 		reader->index = conv->next_image_in_file++;
-		reader->seq_count = conv->seq_count;
+		reader->seq_count = conv->readseq_count;
 		count_reader(reader->seq_count, conv->next_image_in_file == conv->current_film->frame_count);
 		if (conv->next_image_in_file == conv->current_film->frame_count) {
 			retval = conv->next_file == conv->args->total ?
@@ -892,7 +910,8 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			writer->ser = conv->output_ser;
 			writer->index = conv->next_image_in_output++;
 			writer->have_seqwriter = TRUE;
-			writer->close_sequence_after_write = last_file_and_image;
+			writer->seq_count = conv->writeseq_count;
+			count_writer(writer->seq_count, last_file_and_image);
 			return GOT_OK_WRITE;
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
@@ -908,7 +927,8 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			writer->fitseq = conv->output_fitseq;
 			writer->index = conv->next_image_in_output++;
 			writer->have_seqwriter = TRUE;
-			writer->close_sequence_after_write = last_file_and_image;
+			writer->seq_count = conv->writeseq_count;
+			count_writer(writer->seq_count, last_file_and_image);
 			return GOT_OK_WRITE;
 		}
 		else {
@@ -921,21 +941,19 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		if (args->output_type == SEQ_SER) {
 			writer->ser = conv->output_ser;
 			writer->index = conv->next_image_in_output++;
-			if (end_of_input_seq) {
-				if (open_next_output_seq(args, conv) == GOT_WRITE_ERROR)
-					return GOT_WRITE_ERROR;
-				writer->close_sequence_after_write = TRUE;
-			}
+			writer->seq_count = conv->writeseq_count;
+			count_writer(writer->seq_count, end_of_input_seq);
+			if (end_of_input_seq && open_next_output_seq(args, conv) == GOT_WRITE_ERROR)
+				return GOT_WRITE_ERROR;
 			return GOT_OK_WRITE;
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
 			writer->fitseq = conv->output_fitseq;
 			writer->index = conv->next_image_in_output++;
-			if (end_of_input_seq) {
-				if (open_next_output_seq(args, conv) == GOT_WRITE_ERROR)
-					return GOT_WRITE_ERROR;
-				writer->close_sequence_after_write = TRUE;
-			}
+			writer->seq_count = conv->writeseq_count;
+			count_writer(writer->seq_count, end_of_input_seq);
+			if (end_of_input_seq && open_next_output_seq(args, conv) == GOT_WRITE_ERROR)
+				return GOT_WRITE_ERROR;
 			return GOT_OK_WRITE;
 		}
 	}
@@ -955,6 +973,7 @@ static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_
 					return GOT_WRITE_ERROR;
 				}
 				conv->next_image_in_output = 0;
+				conv->writeseq_count = get_new_write_counter();
 			}
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
@@ -967,6 +986,7 @@ static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_
 					return GOT_WRITE_ERROR;
 				}
 				conv->next_image_in_output = 0;
+				conv->writeseq_count = get_new_write_counter();
 			}
 		}
 	}
@@ -995,7 +1015,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			convert->current_film = NULL;
 			return OPEN_ERROR;
 		}
-		convert->seq_count = get_new_counter();
+		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
 	}
 #endif
@@ -1014,7 +1034,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			convert->current_ser = NULL;
 			return OPEN_ERROR;
 		}
-		convert->seq_count = get_new_counter();
+		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
 	}
 	else if (imagetype == TYPEFITS && fitseq_is_fitseq(name, NULL)) {
@@ -1032,7 +1052,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			convert->current_fitseq = NULL;
 			return OPEN_ERROR;
 		}
-		convert->seq_count = get_new_counter();
+		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
 	}
 	return OPEN_NOT_A_SEQ;
@@ -1066,10 +1086,8 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 			siril_log_message(_("Error while converting to SER (no space left?)\n"));
 		}
 		else retval = WRITE_OK;
-		/* TODO: this close may happen before all writes are done
-		 * solution: close after pool join and close multiple after seqwriter join
-		 */
-		if (writer->close_sequence_after_write) {
+		gboolean last = g_atomic_int_dec_and_test(&writer->seq_count->count);
+		if (last && writer->seq_count->close_sequence_after_write) {
 			siril_debug_print("closing write SER sequence\n");
 			if (retval == WRITE_OK)
 				ser_write_and_close(writer->ser);
@@ -1081,7 +1099,8 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 			siril_log_message(_("Error while converting to FITSEQ (no space left?)\n"));
 		}
 		else retval = WRITE_OK;
-		if (writer->close_sequence_after_write) {
+		gboolean last = g_atomic_int_dec_and_test(&writer->seq_count->count);
+		if (last && writer->seq_count->close_sequence_after_write) {
 			siril_debug_print("closing write FITS sequence\n");
 			if (retval == WRITE_OK)
 				fitseq_close_file(writer->fitseq);
@@ -1131,11 +1150,11 @@ static void print_writer(struct writer_data *writer) {
 	if (writer->ser)
 		siril_debug_print("O> writer: %s image %d%s\n", writer->ser->filename,
 				writer->index,
-				writer->close_sequence_after_write ? " (close after write)" : "");
+				writer->seq_count->close_sequence_after_write ? " (close after write)" : "");
 	else if (writer->fitseq)
 		siril_debug_print("O> writer: %s image %d%s\n", writer->fitseq->filename,
 				writer->index,
-				writer->close_sequence_after_write ? " (close after write)" : "");
+				writer->seq_count->close_sequence_after_write ? " (close after write)" : "");
 	else siril_debug_print("O> writer: %s\n", writer->filename);
 }
 
