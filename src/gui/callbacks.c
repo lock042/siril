@@ -904,8 +904,8 @@ void set_output_filename_to_sequence_name() {
 	if (!com.seq.seqname || *com.seq.seqname == '\0')
 		return;
 	msg = g_strdup_printf("%s%sstacked%s", com.seq.seqname,
-			ends_with(com.seq.seqname, "_") ?
-			"" : (ends_with(com.seq.seqname, "-") ? "" : "_"), com.pref.ext);
+			g_str_has_suffix(com.seq.seqname, "_") ?
+			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com.pref.ext);
 	gtk_entry_set_text(output_file, msg);
 
 	g_free(msg);

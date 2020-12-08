@@ -966,7 +966,7 @@ int	get_index_and_basename(const char *filename, char **basename, int *index, in
 	*basename = NULL;
 	fnlen = strlen(filename);
 	if (fnlen < strlen(com.pref.ext)+2) return -1;
-	if (!ends_with(filename, com.pref.ext)) return -1;
+	if (!g_str_has_suffix(filename, com.pref.ext)) return -1;
 	i = fnlen-strlen(com.pref.ext)-1;
 	if (!isdigit(filename[i])) return -1;
 	digit_idx = i;

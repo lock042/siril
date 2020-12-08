@@ -379,9 +379,9 @@ int processcommand(const char *line) {
 sequence *load_sequence(const char *name, char **get_filename) {
 	gchar *file = g_strdup(name);
 	gchar *altfile = NULL;
-	if (!ends_with(name, ".seq")) {
+	if (!g_str_has_suffix(name, ".seq")) {
 		str_append(&file, ".seq");
-		if (!ends_with(name, "_"))
+		if (!g_str_has_suffix(name, "_"))
 			altfile = g_strdup_printf("%s_.seq", name);
 	}
 

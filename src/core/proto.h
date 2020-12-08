@@ -104,7 +104,6 @@ uint64_t cpu_to_be64(uint64_t x);
 uint64_t le64_to_cpu(uint64_t x);
 uint64_t be64_to_cpu(uint64_t x);
 gboolean isrgb(fits *fit);
-gboolean ends_with(const char *str, const char *ending);
 int get_extension_index(const char *filename);
 image_type get_type_from_filename(const gchar *filename);
 int is_readable_file(const char *filename);

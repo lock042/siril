@@ -82,7 +82,7 @@ sequence * readseqfile(const char *name){
 	if (!name) return NULL;
 	fprintf(stdout, "Reading sequence file `%s'.\n", name);
 
-	if(!ends_with(name, ".seq")){
+	if(!g_str_has_suffix(name, ".seq")){
 		seqfilename = malloc(strlen(name) + 6);	/* 6 stands for a max length of 4 + '.' + '\0' */
 		sprintf(seqfilename, "%s.seq", name);
 	} else {

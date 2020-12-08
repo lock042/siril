@@ -515,7 +515,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 	gboolean write_ok = TRUE;
 	gboolean embeded_icc = TRUE;
 
-	if (!ends_with(filename, ".tif") && (!ends_with(filename, ".tiff"))) {
+	if (!g_str_has_suffix(filename, ".tif") && (!g_str_has_suffix(filename, ".tiff"))) {
 		filename = str_append(&filename, ".tif");
 	}
 
@@ -774,7 +774,7 @@ int savejpg(const char *name, fits *fit, int quality){
 	jpeg_create_compress(&cinfo);
 
 	char *filename = strdup(name);
-	if (!ends_with(filename, ".jpg") && (!ends_with(filename, ".jpeg"))) {
+	if (!g_str_has_suffix(filename, ".jpg") && (!g_str_has_suffix(filename, ".jpeg"))) {
 		filename = str_append(&filename, ".jpg");
 	}
 
@@ -1072,7 +1072,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	const uint32_t height = fit->ry;
 
 	char *filename = strdup(name);
-	if (!ends_with(filename, ".png")) {
+	if (!g_str_has_suffix(filename, ".png")) {
 		filename = str_append(&filename, ".png");
 	}
 

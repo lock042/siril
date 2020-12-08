@@ -29,6 +29,8 @@
 
 #include "annotate.h"
 
+static GSList *siril_catalogue_list = NULL;
+
 /* set a tolerance for "same object" test, in degree */
 #define TOLERANCE 20.0 / 3600.0;
 
@@ -127,8 +129,23 @@ static GSList *load_catalog(const gchar *catalogue) {
 	list = g_slist_reverse(list);
 
 	g_object_unref(data_input);
+	g_object_unref(input_stream);
 	g_object_unref(file);
 	return list;
+}
+
+static void load_all_catalogues() {
+	for (int i = 0; i < G_N_ELEMENTS(cat); i++) {
+		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(cat[i]));
+	}
+}
+
+static GSList *get_siril_catalogue_list() {
+	return siril_catalogue_list;
+}
+
+static gboolean is_catalogue_loaded() {
+	return siril_catalogue_list != NULL;
 }
 
 static GSList *find_objects(fits *fit) {
@@ -153,31 +170,21 @@ static GSList *find_objects(fits *fit) {
 	x2 = x1 + fit->rx * resolution;
 	y2 = y1 + fit->ry * resolution;
 
-	/* TODO: hat's a very inefficient way to search:
-	 * opening the files every time we want to look
-	 * for something and checking all entries. The
-	 * files could be sorted by RA or DEC which would
-	 * filter out most candidates and then a check of
-	 * all the remaining would be better. If someday bigger
-	 * catalogues are added, other approaches like space
-	 * partitioning with trees would prove more adequate.
-	 */
-	for (int i = 0; i < G_N_ELEMENTS(cat); i++) {
-		GSList *list = load_catalog(cat[i]);
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	GSList *list = get_siril_catalogue_list();
 
-		for (GSList *l = list; l; l = l->next) {
-			CatalogObjects *cur = (CatalogObjects *)l->data;
+	for (GSList *l = list; l; l = l->next) {
+		CatalogObjects *cur = (CatalogObjects *)l->data;
 
-			/* Search for objects in the circle of radius defined by the image */
-			if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
-					cur->ra, cur->dec)) {
-				if (!already_exist(targets, cur->ra, cur->dec)) {
-					CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name);
-					targets = g_slist_prepend(targets, new_object);
-				}
+		/* Search for objects in the circle of radius defined by the image */
+		if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
+				cur->ra, cur->dec)) {
+			if (!already_exist(targets, cur->ra, cur->dec)) {
+				CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name);
+				targets = g_slist_prepend(targets, new_object);
 			}
 		}
-		g_slist_free_full(list, (GDestroyNotify) free_object);
 	}
 
 	if (targets) {

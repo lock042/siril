@@ -328,7 +328,7 @@ int savebmp(const char *name, fits *fit) {
 	bmpinfoheader[27] = (unsigned char) (datasize >> 24);
 
 	char *filename = strdup(name);
-	if (!ends_with(filename, ".bmp")) {
+	if (!g_str_has_suffix(filename, ".bmp")) {
 		filename = str_append(&filename, ".bmp");
 	}
 
@@ -684,12 +684,12 @@ int saveNetPBM(const char *name, fits *fit) {
 	char *filename = strdup(name);
 
 	if (fit->naxes[2] == 1) {
-		if (!ends_with(filename, ".pgm")) {
+		if (!g_str_has_suffix(filename, ".pgm")) {
 			filename = str_append(&filename, ".pgm");
 		}
 		retval = savepgm(filename, fit);
 	} else {
-		if (!ends_with(filename, ".ppm") && !ends_with(filename, ".pnm")) {
+		if (!g_str_has_suffix(filename, ".ppm") && !g_str_has_suffix(filename, ".pnm")) {
 			filename = str_append(&filename, ".ppm");
 		}
 		retval = saveppm(filename, fit);

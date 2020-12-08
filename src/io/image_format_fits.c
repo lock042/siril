@@ -1624,7 +1624,7 @@ int savefits(const char *name, fits *f) {
 
 	gboolean right_extension = FALSE;
 	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
-		if (ends_with(name, fit_extension[i])) {
+		if (g_str_has_suffix(name, fit_extension[i])) {
 			right_extension = TRUE;
 			break;
 		}

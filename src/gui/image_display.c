@@ -515,7 +515,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 
 static void update_zoom_label() {
 	static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb"};
-	static gchar zoom_buffer[256];
+	static gchar zoom_buffer[256] = { 0 };
 	if (com.cvport < RGB_VPORT) {
 		g_sprintf(zoom_buffer, "%d%%", (int) (get_zoom_val() * 100.0));
 		gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom[com.cvport])), zoom_buffer);

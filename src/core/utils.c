@@ -494,24 +494,6 @@ gboolean isrgb(fits *fit) {
 }
 
 /**
- *  Looks whether the string str ends with ending. This is case insensitive
- *  @param str the string to check
- *  @param ending the suffix to look for
- *  @return TRUE if str ends with ending
- */
-gboolean ends_with(const char *str, const char *ending) {
-	if (!str || str[0] == '\0')
-		return FALSE;
-	if (!ending || ending[0] == '\0')
-		return TRUE;
-	int ending_len = strlen(ending);
-	int str_len = strlen(str);
-	if (ending_len > str_len)
-		return FALSE;
-	return !strncasecmp(str + str_len - ending_len, ending, ending_len);
-}
-
-/**
  *  Searches for an extension '.something' in filename from the end
  *  @param filename input filename
  *  @return the index of the first '.' found
@@ -808,7 +790,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	gtk_combo_box_text_remove_all(seqcombo);
 
 	if (sequence_name_to_select) {
-	       if (ends_with(sequence_name_to_select, ".seq"))
+	       if (g_str_has_suffix(sequence_name_to_select, ".seq"))
 		       seqname = strdup(sequence_name_to_select);
 	       else {
 		       seqname = malloc(strlen(sequence_name_to_select) + 5);

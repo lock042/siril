@@ -914,7 +914,7 @@ int process_merge(int nb) {
 			break;
 
 		case SEQ_SER:
-			if (ends_with(word[nb - 1], ".ser"))
+			if (g_str_has_suffix(word[nb - 1], ".ser"))
 				outseq_name = g_strdup(word[nb - 1]);
 			else outseq_name = g_strdup_printf("%s.ser", word[nb - 1]);
 			if (ser_create_file(outseq_name, &out_ser, TRUE, seqs[0]->ser_file)) {
@@ -952,7 +952,7 @@ int process_merge(int nb) {
 			break;
 
 		case SEQ_FITSEQ:
-			if (ends_with(word[nb - 1], com.pref.ext))
+			if (g_str_has_suffix(word[nb - 1], com.pref.ext))
 				outseq_name = g_strdup(word[nb - 1]);
 			else outseq_name = g_strdup_printf("%s%s", word[nb - 1], com.pref.ext);
 			if (fitseq_create_file(outseq_name, &out_fitseq, -1)) {
@@ -1785,7 +1785,7 @@ int process_cosme(int nb) {
 		return 1;
 	}
 
-	if (!ends_with(word[1], ".lst")) {
+	if (!g_str_has_suffix(word[1], ".lst")) {
 		filename = g_strdup_printf("%s.lst", word[1]);
 	} else {
 		filename = g_strdup(word[1]);
@@ -2772,7 +2772,7 @@ int process_convertraw(int nb) {
 				debayer = TRUE;
 			} else if (!strcmp(current, "-fitseq")) {
 				output = SEQ_FITSEQ;
-				if (!ends_with(destroot, com.pref.ext))
+				if (!g_str_has_suffix(destroot, com.pref.ext))
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
@@ -2978,7 +2978,7 @@ int process_convert(int nb) {
 				make_link = FALSE;
 			} else if (!strcmp(current, "-fitseq")) {
 				output = SEQ_FITSEQ;
-				if (!ends_with(destroot, com.pref.ext))
+				if (!g_str_has_suffix(destroot, com.pref.ext))
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
@@ -3345,8 +3345,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 		if (!arg->result_file) {
 			char filename[256];
-			char *suffix = ends_with(seq->seqname, "_") ||
-				ends_with(com.seq.seqname, "-") ? "" : "_";
+			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
+				g_str_has_suffix(com.seq.seqname, "-") ? "" : "_";
 			snprintf(filename, 256, "%s%sstacked%s",
 					seq->seqname, suffix, com.pref.ext);
 			arg->result_file = strdup(filename);
@@ -3401,7 +3401,7 @@ static gpointer stackall_worker(gpointer garg) {
 
 	siril_log_message(_("Starting stacking of found sequences...\n"));
 	while ((file = g_dir_read_name(dir)) != NULL) {
-		if (ends_with(file, ".seq")) {
+		if (g_str_has_suffix(file, ".seq")) {
 			arg->seqfile = strdup(file);
 			stack_one_seq(arg);
 
