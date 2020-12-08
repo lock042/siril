@@ -110,6 +110,7 @@ static GSList *load_catalog(const gchar *catalogue) {
 	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
 				NULL, NULL))) {
 		if (g_str_has_prefix (line, "Code")) {
+			g_free(line);
 			continue;
 		}
 		gchar **token = g_strsplit(line, "\t", -1);
