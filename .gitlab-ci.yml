@@ -231,7 +231,6 @@ siril-win64/testing-meson:
     - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
     - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
-    - export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
     - mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
     - echo 'crossroad cmake .. && make && make install' | crossroad w64 siril --run="-"
     - cd ../../..
@@ -266,7 +265,6 @@ siril-win64/testing-autotools:
     - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
     - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
-    - export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
     - mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
     - echo 'crossroad cmake .. && make && make install' | crossroad w64 siril --run="-"
     - cd ../../..
