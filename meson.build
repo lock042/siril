@@ -503,6 +503,6 @@ summary(
     'FFMPEG'    : ffmpeg_found,
     'libcurl'   : libcurl_dep.found(),
     'wcslib'    : wcs_dep.found(),
-    'criterion' : libraw_dep.found(),
+    'criterion' : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
