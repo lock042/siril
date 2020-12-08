@@ -209,6 +209,7 @@ deps-win64:
     expire_in: 2 hours
     paths:
       - .local/
+      - _deps/
   needs: ["build-image-win64"]
 
 siril-win64/testing-meson:
