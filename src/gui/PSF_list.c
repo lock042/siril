@@ -27,6 +27,7 @@
 #include "core/OS_utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"

@@ -225,16 +225,6 @@ typedef enum {
 } open_image_status;
 
 typedef enum {
-	FILE_CONVERSION,
-	IMAGE_SEQ,
-	PRE_PROC,
-	REGISTRATION,
-	PLOT,
-	STACKING,
-	OUTPUT_LOGS
-} main_tabs;
-
-typedef enum {
 	BAYER_BILINEAR,
 	BAYER_VNG,
 	BAYER_AHD,

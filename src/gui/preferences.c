@@ -24,6 +24,7 @@
 #include "core/siril_language.h"
 #include "algos/photometry.h"
 #include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"

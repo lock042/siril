@@ -37,6 +37,7 @@
 #include "core/sleef.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "gui/photometric_cc.h"
@@ -502,7 +503,7 @@ static char *fetch_url(const char *url) {
 	int retries;
 	unsigned int s;
 
-	printf("fetch_url(): %s\n", url);
+	siril_debug_print("fetch_url(): %s\n", url);
 
 	init();
 
@@ -562,7 +563,7 @@ static gchar *fetch_url(const gchar *url) {
 	GError *error = NULL;
 	gchar *content = NULL;
 
-	printf("fetch_url(): %s\n", url);
+	siril_debug_print("fetch_url(): %s\n", url);
 
 	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
 		siril_log_message(_("Error loading url: %s: %s\n"), url, error->message);

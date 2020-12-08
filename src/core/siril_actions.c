@@ -25,6 +25,7 @@
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "gui/about_dialog.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/open_dialog.h"
 #include "gui/save_dialog.h"

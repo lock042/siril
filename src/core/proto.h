@@ -125,8 +125,6 @@ char *format_basename(char *root, gboolean can_free);
 float compute_slope(WORD *lo, WORD *hi);
 gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
 gchar *siril_truncate_str(gchar *str, gint size);
-GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
-GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf);
 char **glist_to_array(GList *list, int *arg_count);
 gchar *conv_dec_2_str(double dec);
 gchar *conv_ra_2_str(double ra);

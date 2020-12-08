@@ -30,6 +30,7 @@
 #include "algos/background_extraction.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"

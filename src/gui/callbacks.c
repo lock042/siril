@@ -45,6 +45,7 @@
 #include "image_display.h"
 #include "image_interactions.h"
 #include "callbacks.h"
+#include "utils.h"
 #include "plot.h"
 #include "message_dialog.h"
 #include "PSF_list.h"
@@ -71,28 +72,6 @@ layer_info predefined_layers_colors[] = {
  * Memory label static functions
  */
 
-struct _label_data {
-	const char *label_name;
-	char *text;
-};
-
-static gboolean set_label_text_idle(gpointer p) {
-	struct _label_data *args = (struct _label_data *) p;
-	GtkLabel *label = GTK_LABEL(lookup_widget(args->label_name));
-
-	gtk_label_set_text(label, args->text);
-	free(args->text);
-	free(args);
-	return FALSE;
-}
-
-static void set_label_text_from_main_thread(const char *label_name, const char *text) {
-	struct _label_data *data = malloc(sizeof(struct _label_data));
-	data->label_name = label_name;
-	data->text = strdup(text);
-	gdk_threads_add_idle(set_label_text_idle, data);
-}
-
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
 	GtkWidget *scalemin = lookup_widget("scalemin");
@@ -109,10 +88,6 @@ void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	gtk_widget_set_sensitive(minmax, sensitive);
 	gtk_widget_set_sensitive(hilo, sensitive);
 	gtk_widget_set_sensitive(user, sensitive);
-}
-
-GtkWidget* lookup_widget(const gchar *widget_name) {
-	return GTK_WIDGET(gtk_builder_get_object(builder, widget_name));
 }
 
 static void update_theme_button(const gchar *button_name, const gchar *path) {
@@ -666,37 +641,34 @@ int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb) {
 
 void update_display_selection() {
 	if (com.cvport == RGB_VPORT) return;
-	const char *layer_name = untranslated_vport_number_to_name(com.cvport);
-	gchar *label_name = g_strdup_printf("labelselection_%s", layer_name);
+	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb"};
+	static gchar selection_buffer[256] = { 0 };
+
 	if (com.selection.w && com.selection.h) {
-		gchar *buf = g_strdup_printf(_("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
+		g_sprintf(selection_buffer, _("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
 			(double)com.selection.w / (double)com.selection.h);
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), buf);
-		g_free(buf);
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[com.cvport])), selection_buffer);
 	} else {
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), "");
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[com.cvport])), "");
 	}
-	g_free(label_name);
 }
 
 void update_display_fwhm() {
 	if (com.cvport == RGB_VPORT) return;
-	gchar *buf;
-	const char *layer_name = untranslated_vport_number_to_name(com.cvport);
-	gchar *label_name = g_strdup_printf("labelfwhm%s", layer_name);
+	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb"};
+	static gchar fwhm_buffer[256] = { 0 };
+
 	if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
 		if (com.selection.w < 300 && com.selection.h < 300) {
 			double roundness;
 			double fwhm_val = psf_get_fwhm(&gfit, com.cvport, &roundness);
-			buf = g_strdup_printf(_("fwhm: %.2f, r: %.2f"), fwhm_val, roundness);
+			g_sprintf(fwhm_buffer, _("fwhm: %.2f, r: %.2f"), fwhm_val, roundness);
 		} else
-			buf = g_strdup_printf(_("fwhm: selection is too large"));
+			g_sprintf(fwhm_buffer, _("fwhm: selection is too large"));
 	} else {
-		buf = g_strdup_printf(_("fwhm: no selection"));
+		g_sprintf(fwhm_buffer, _("fwhm: no selection"));
 	}
-	gtk_label_set_text(GTK_LABEL(lookup_widget(label_name)), buf);
-	g_free(label_name);
-	g_free(buf);
+	gtk_label_set_text(GTK_LABEL(lookup_widget(label_fwhm[com.cvport])), fwhm_buffer);
 }
 
 /* displays the opened image file name in the layers window.
@@ -971,11 +943,6 @@ void activate_tab(int vport) {
 	// com.cvport is set in the event handler for changed page
 }
 
-void control_window_switch_to_tab(main_tabs tab) {
-	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
-	gtk_notebook_set_current_page(notebook, tab);
-}
-
 void update_spinCPU(int max) {
 	static GtkSpinButton *spin_cpu = NULL;
 
@@ -1118,43 +1085,6 @@ void set_GUI_misc() {
 	gtk_combo_box_set_active(combobox_type, com.pref.force_to_16bit ? 0 : 1);
 	GtkComboBox *fit_ext = GTK_COMBO_BOX(lookup_widget("combobox_ext"));
 	gtk_combo_box_set_active_id(fit_ext, com.pref.ext);
-}
-
-/* size is in Bytes */
-void set_GUI_MEM(guint64 used, const gchar *label) {
-	if (com.headless)
-		return;
-	gchar *str;
-	if (used > 0) {
-		gchar *mem = g_format_size_full(used, G_FORMAT_SIZE_IEC_UNITS);
-		str = g_strdup_printf(_("Mem: %s"), mem);
-		g_free(mem);
-	} else {
-		str = g_strdup(_("Mem: N/A"));
-	}
-	set_label_text_from_main_thread(label, str);
-	g_free(str);
-}
-
-void set_GUI_DiskSpace(gint64 space, const gchar *label) {
-	if (com.headless)
-		return;
-	gchar *str;
-	GtkStyleContext *context = gtk_widget_get_style_context(lookup_widget(label));
-	gtk_style_context_remove_class(context, "label-info");
-
-	if (space > 0) {
-		if (space < 1073741824) { // we want to warn user of space is less than 1GiB
-			gtk_style_context_add_class(context, "label-info");
-		}
-		gchar *mem = g_format_size_full(space, G_FORMAT_SIZE_IEC_UNITS);
-		str = g_strdup_printf(_("Disk Space: %s"), mem);
-		g_free(mem);
-	} else {
-		str = g_strdup(_("Disk Space: N/A"));
-	}
-	set_label_text_from_main_thread(label, str);
-	g_free(str);
 }
 
 static void initialize_preprocessing() {

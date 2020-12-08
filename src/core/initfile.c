@@ -27,7 +27,7 @@
 #include "algos/photometry.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 

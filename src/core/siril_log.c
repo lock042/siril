@@ -24,7 +24,7 @@
 #include "core/command.h" // for process_clear()
 #include "core/OS_utils.h"
 #include "core/pipe.h"
-#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 

@@ -29,6 +29,7 @@
 #include "core/OS_utils.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"

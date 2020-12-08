@@ -27,7 +27,7 @@
 #include "io/sequence.h"
 #include "algos/star_finder.h"
 #include "algos/siril_wcs.h"
-
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"

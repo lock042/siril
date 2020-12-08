@@ -42,7 +42,7 @@
 #include "io/conversion.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
 
@@ -1045,60 +1045,6 @@ gchar *siril_truncate_str(gchar *str, gint size) {
 		trunc_str = g_string_prepend(trunc_str, "...");
 	}
 	return g_string_free(trunc_str, FALSE);
-}
-
-/**
- * Create a popover with icon and text
- * @param widget is the parent widget where the popover arises from
- * @param text will be shown in the popover
- * @return the GtkWidget of popover
- */
-GtkWidget* popover_new(GtkWidget *widget, const gchar *text) {
-	return popover_new_with_image(widget, text, NULL);
-}
-
-/**
- * Create a popover with icon and text
- * @param widget is the parent widget where the popover arises from
- * @param text will be shown in the popover
- * @param pixbuf will be shown in the popover
- * @return the GtkWidget of popover
- */
-GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf) {
-	GtkWidget *popover, *box, *image, *label;
-
-	popover = gtk_popover_new(widget);
-	label = gtk_label_new(NULL);
-	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-
-	if (pixbuf) {
-		float ratio = 1.0 * gdk_pixbuf_get_height(pixbuf) / gdk_pixbuf_get_width(pixbuf);
-		int width = 128, height = 128 * ratio;
-		GdkPixbuf *new_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height,
-				GDK_INTERP_BILINEAR);
-		image = gtk_image_new_from_pixbuf(new_pixbuf);
-		g_object_unref(new_pixbuf);
-	} else {
-		image = gtk_image_new_from_icon_name("dialog-information-symbolic",
-					GTK_ICON_SIZE_DIALOG);
-	}
-
-	gtk_label_set_markup(GTK_LABEL(label), text);
-	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(label), 64);
-
-	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(popover), box);
-
-	/* make all sensitive in case where parent is not */
-	gtk_widget_set_sensitive(label, TRUE);
-	gtk_widget_set_sensitive(box, TRUE);
-	gtk_widget_set_sensitive(popover, TRUE);
-
-	gtk_widget_show_all(box);
-
-	return popover;
 }
 
 char **glist_to_array(GList *list, int *arg_count) {

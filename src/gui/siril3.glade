@@ -2640,7 +2640,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelfwhmred">
+                              <object class="GtkLabel" id="labelfwhm_red">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>
@@ -2849,7 +2849,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelfwhmgreen">
+                              <object class="GtkLabel" id="labelfwhm_green">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>
@@ -3061,7 +3061,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labelfwhmblue">
+                              <object class="GtkLabel" id="labelfwhm_blue">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="halign">start</property>

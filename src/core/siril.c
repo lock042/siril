@@ -28,6 +28,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/arithm.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"

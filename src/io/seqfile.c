@@ -37,7 +37,7 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "core/proto.h"
-#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"

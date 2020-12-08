@@ -56,6 +56,7 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_css.h"

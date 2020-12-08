@@ -23,11 +23,14 @@
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "algos/siril_wcs.h"
 #include "gui/image_display.h"
 
 #include "annotate.h"
+
+/* set a tolerance for "same object" test, in degree */
+#define TOLERANCE 20.0 / 3600.0;
 
 static const gchar *cat[] = {
 		"messier.txt",
@@ -65,16 +68,18 @@ gboolean is_inside(int circle_x, int circle_y, int rad, int x, int y) {
 
 static gboolean already_exist(GSList *list, double ra, double dec) {
 	for (GSList *l = list; l; l = l->next) {
-		/* set a tolerance for "same object" test */
-		gdouble tolerance = 20.0 / 3600.0;
 
-		gdouble cur_dec = ((CatalogObjects *)l->data)->dec;
+		gdouble cur_dec = ((CatalogObjects*) l->data)->dec;
+		gdouble cur_ra = ((CatalogObjects*) l->data)->ra;
 
-        double minDec = cur_dec - tolerance;
-        double maxDec = cur_dec + tolerance;
+		double minDec = cur_dec - TOLERANCE;
+		double maxDec = cur_dec + TOLERANCE;
 
-		/* compare (only on DEC, is it enough?) */
-		if (dec > minDec && dec < maxDec) {
+		double minRa = cur_ra - TOLERANCE;
+		double maxRa = cur_ra + TOLERANCE;
+
+		/* compare */
+		if (dec > minDec && dec < maxDec && ra > minRa && ra < maxRa) {
 			return TRUE;
 		}
 	}
@@ -144,11 +149,19 @@ static GSList *find_objects(fits *fit) {
 	x1 = crval[0];
 	y1 = crval[1];
 
-
 	/* get radius of the fov */
 	x2 = x1 + fit->rx * resolution;
 	y2 = y1 + fit->ry * resolution;
 
+	/* TODO: hat's a very inefficient way to search:
+	 * opening the files every time we want to look
+	 * for something and checking all entries. The
+	 * files could be sorted by RA or DEC which would
+	 * filter out most candidates and then a check of
+	 * all the remaining would be better. If someday bigger
+	 * catalogues are added, other approaches like space
+	 * partitioning with trees would prove more adequate.
+	 */
 	for (int i = 0; i < G_N_ELEMENTS(cat); i++) {
 		GSList *list = load_catalog(cat[i]);
 

@@ -51,7 +51,7 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "algos/geometry.h"
-#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "single_image.h"
 #include "image_format_fits.h"

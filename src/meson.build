@@ -146,6 +146,7 @@ src_files = [
   'gui/siril_intro.c',
   'gui/siril_preview.c',
   'gui/statistics_list.c',
+  'gui/utils.c',
   
   'registration/comet.c',
   'registration/global.c',

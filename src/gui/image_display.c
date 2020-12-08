@@ -30,7 +30,8 @@
 #include "algos/annotate.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
-#include "callbacks.h"
+#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "histogram.h"
 #include "git-version.h"
 
@@ -513,13 +514,11 @@ static void draw_empty_image(const draw_data_t* dd) {
 }
 
 static void update_zoom_label() {
+	static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb"};
+	static gchar zoom_buffer[256];
 	if (com.cvport < RGB_VPORT) {
-		const char *suffix = untranslated_vport_number_to_name(com.cvport);
-		gchar *label_zoom = g_strdup_printf("labelzoom_%s", suffix);
-		gchar *zoom_buffer = g_strdup_printf("%d%%", (int) (get_zoom_val() * 100.0));
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom)), zoom_buffer);
-		g_free(zoom_buffer);
-		g_free(label_zoom);
+		g_sprintf(zoom_buffer, "%d%%", (int) (get_zoom_val() * 100.0));
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom[com.cvport])), zoom_buffer);
 	}
 }
 

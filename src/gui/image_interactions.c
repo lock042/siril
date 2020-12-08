@@ -31,7 +31,8 @@
 #include "gui/open_dialog.h"
 #include "image_interactions.h"
 #include "image_display.h"
-#include "callbacks.h"
+#include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "progress_and_log.h"
 #include "message_dialog.h"
 
@@ -657,18 +658,17 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
-	const char *suffix = untranslated_vport_number_to_name(com.cvport);
-	gchar *label = g_strdup_printf("labeldensity_%s", suffix);
-	gchar *label_wcs = g_strdup_printf("labelwcs_%s", suffix);
+	static const gchar *label_density[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb"};
+	static const gchar *label_wcs[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb" };
 
 	if (com.cvport < RGB_VPORT) {
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label)), "");
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), "");
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), "");
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), "");
 
 		if (inside) {
-			char *buffer = NULL;
-			char *wcs_buffer = NULL;
-			char *format = NULL;
+			static gchar buffer[256] = { 0 };
+			static gchar wcs_buffer[256] = { 0 };
+			static gchar format[256] = { 0 };
 			int coords_width = 3;
 
 			if (gfit.rx >= 1000 || gfit.ry >= 1000)
@@ -680,16 +680,16 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					val_width = 4;
 				if (gfit.hi >= 10000)
 					val_width = 5;
-				format = g_strdup_printf(format_base_ushort,
+				g_sprintf(format, format_base_ushort,
 						coords_width, coords_width, val_width);
-				buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
+				g_sprintf(buffer, format, zoomed.x, zoomed.y,
 						gfit.pdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
 											   + zoomed.x]);
 			} else if (gfit.type == DATA_FLOAT  && gfit.fpdata[com.cvport] != NULL) {
 				char *format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
-				format = g_strdup_printf(format_base_float,
+				g_sprintf(format, format_base_float,
 						coords_width, coords_width);
-				buffer = g_strdup_printf(format, zoomed.x, zoomed.y,
+				g_sprintf(buffer, format, zoomed.x, zoomed.y,
 						gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
 			}
 			if (has_wcs()) {
@@ -698,27 +698,20 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
 					gchar *ra = conv_ra_2_str(world_x);
 					gchar *dec = conv_dec_2_str(world_y);
-					wcs_buffer = g_strdup_printf("α:%s δ: %s", ra, dec); /* the format with no space before %s of α is on purpose
+					g_sprintf(wcs_buffer, "α:%s δ: %s", ra, dec); /* the format with no space before %s of α is on purpose
 					 	 	 	 	 	 	 	 	 	 	 	 	 	 	 the space is inside the %s */
-					gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs)), wcs_buffer);
+					gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), wcs_buffer);
 
 					g_free(ra);
 					g_free(dec);
-					g_free(wcs_buffer);
 				}
 			}
 
-			if (buffer) {
-				gtk_label_set_text(GTK_LABEL(lookup_widget(label)), buffer);
-
-				g_free(buffer);
-				g_free(format);
+			if (buffer[0] != '\0') {
+				gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), buffer);
 			}
 		}
 	}
-
-	g_free(label);
-	g_free(label_wcs);
 
 	if (com.translating) {
 		update_zoom_fit_button();

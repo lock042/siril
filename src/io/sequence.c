@@ -42,6 +42,7 @@
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/undo.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/plot.h"
 #include "ser.h"
