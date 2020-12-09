@@ -757,6 +757,7 @@ void on_header_snapshot_button_clicked() {
 					g_warning("%s\n", error->message);
 					g_clear_error(&error);
 				}
+				g_object_unref(pixbuf);
 				g_object_unref(file);
 				return;
 			}
