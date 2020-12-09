@@ -359,7 +359,7 @@ double background(fits* fit, int reqlayer, rectangle *selection, gboolean multit
 
 void show_FITS_header(fits *fit) {
 	if (fit->header)
-		show_data_dialog(fit->header, "FITS Header");
+		show_data_dialog(fit->header, "FITS Header", NULL);
 }
 
 void compute_grey_flat(fits *fit) {

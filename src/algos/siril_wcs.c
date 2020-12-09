@@ -247,6 +247,7 @@ void wcs2pix(double r, double d, double *x, double *y) {
 #endif
 }
 
+/* get resolution in arcsec/pixel */
 double get_wcs_image_resolution() {
 	double resolution = -1.0;
 #ifdef HAVE_WCSLIB
@@ -258,7 +259,7 @@ double get_wcs_image_resolution() {
 #endif
 	if (resolution <= 0.0) {
 		if (gfit.focal_length >= 0.0 && gfit.pixel_size_x >= 0.0 && gfit.pixel_size_y == gfit.pixel_size_x)
-			resolution = RADCONV / gfit.focal_length * gfit.pixel_size_x;
+			resolution = (RADCONV / gfit.focal_length * gfit.pixel_size_x) / 3600;
 	}
 	return resolution;
 }

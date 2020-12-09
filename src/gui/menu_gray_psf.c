@@ -34,8 +34,28 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 
+static gchar *build_wcs_url(gchar *ra, gchar *dec) {
+	if (!has_wcs()) return NULL;
+
+	double resolution = get_wcs_image_resolution();
+
+	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 20);
+
+	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
+	url = g_string_append(url, ra);
+	url = g_string_append(url, dec);
+	url = g_string_append(url, "&Radius=");
+	url = g_string_append(url, tol);
+	url = g_string_append(url, "&Radius.unit=arcsec");
+	url = g_string_append(url, "#lab_basic");
+
+	g_free(tol);
+
+	return g_string_free(url, FALSE);
+}
+
 void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	gchar *msg, *coordinates;
+	gchar *msg, *coordinates, *url = NULL;
 	fitted_PSF *result = NULL;
 	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
 	char *str;
@@ -66,6 +86,8 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		pix2wcs(x, (double) gfit.ry - y, &world_x, &world_y);
 		gchar *ra = conv_ra_2_str(world_x);
 		gchar *dec = conv_dec_2_str(world_y);
+
+		url = build_wcs_url(ra, dec);
 		coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
 
 		g_free(ra);
@@ -83,9 +105,10 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 				"RMSE:\n\t\tRMSE=%.3e"), coordinates, result->fwhmx,
 			result->units, result->fwhmy, result->units, result->angle, result->B,
 			result->A, str, result->mag + com.magOffset, result->s_mag, result->rmse);
-	show_data_dialog(msg, "PSF Results");
+	show_data_dialog(msg, "PSF Results", url);
 	g_free(coordinates);
 	g_free(msg);
+	g_free(url);
 	free(result);
 }
 
