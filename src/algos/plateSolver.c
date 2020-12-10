@@ -1270,34 +1270,6 @@ gpointer match_catalog(gpointer p) {
 	return GINT_TO_POINTER(args->ret);
 }
 
-static gchar* url_cleanup(const gchar *uri_string) {
-	GString *copy;
-	const gchar *end;
-
-	/* Skip leading whitespace */
-	while (g_ascii_isspace(*uri_string))
-		uri_string++;
-
-	/* Ignore trailing whitespace */
-	end = uri_string + strlen(uri_string);
-	while (end > uri_string && g_ascii_isspace(*(end - 1)))
-		end--;
-
-	/* Copy the rest, encoding unencoded spaces and stripping other whitespace */
-	copy = g_string_sized_new(end - uri_string);
-	while (uri_string < end) {
-		if (*uri_string == ' ')
-			g_string_append(copy, "%20");
-		else if (g_ascii_isspace(*uri_string))
-			; // @suppress("Suspicious semicolon")
-		else
-			g_string_append_c(copy, *uri_string);
-		uri_string++;
-	}
-
-	return g_string_free(copy, FALSE);
-}
-
 static void search_object_in_catalogs(const gchar *object) {
 	GString *string_url;
 	gchar *url, *result, *name;

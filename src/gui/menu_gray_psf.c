@@ -40,7 +40,7 @@ static gchar *build_wcs_url(gchar *ra, gchar *dec) {
 
 	double resolution = get_wcs_image_resolution();
 
-	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 20);
+	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
 
 	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
 	url = g_string_append(url, ra);
@@ -50,9 +50,13 @@ static gchar *build_wcs_url(gchar *ra, gchar *dec) {
 	url = g_string_append(url, "&Radius.unit=arcsec");
 	url = g_string_append(url, "#lab_basic");
 
-	g_free(tol);
+	gchar *simbad_url = g_string_free(url, FALSE);
+	gchar *cleaned_url = url_cleanup(simbad_url);
 
-	return g_string_free(url, FALSE);
+	g_free(tol);
+	g_free(simbad_url);
+
+	return cleaned_url;
 }
 
 void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
@@ -89,10 +93,17 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		pix2wcs(x, (double) gfit.ry - y, &world_x, &world_y);
 		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
 
-		gchar *ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
-		gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		gchar *ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
+		gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
 
 		url = build_wcs_url(ra, dec);
+
+		g_free(ra);
+		g_free(dec);
+
+		ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+		dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+
 		coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
 
 		g_free(ra);

@@ -826,7 +826,7 @@ void show_data_dialog(char *text, char *title, gchar *url) {
 	gtk_widget_show(lookup_widget("data_dialog"));
 	gtk_widget_set_visible(lookup_widget("data_extra_button"), url != NULL);
 	if (url) {
-		gtk_link_button_set_uri ((GtkLinkButton *)lookup_widget("data_extra_button"), url);
+		gtk_link_button_set_uri((GtkLinkButton *)lookup_widget("data_extra_button"), url);
 	}
 }
 

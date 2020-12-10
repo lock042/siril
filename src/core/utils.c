@@ -1029,6 +1029,12 @@ gchar *siril_truncate_str(gchar *str, gint size) {
 	return g_string_free(trunc_str, FALSE);
 }
 
+/**
+ *
+ * @param list
+ * @param arg_count
+ * @return
+ */
 char **glist_to_array(GList *list, int *arg_count) {
 	int count;
 	if (arg_count && *arg_count > 0)
@@ -1048,4 +1054,37 @@ char **glist_to_array(GList *list, int *arg_count) {
 		array[i] = g_strdup(list->data);
 	g_list_free_full(orig_list, g_free);
 	return array;
+}
+
+/**
+ *
+ * @param uri_string
+ * @return a new allocated string
+ */
+gchar* url_cleanup(const gchar *uri_string) {
+	GString *copy;
+	const gchar *end;
+
+	/* Skip leading whitespace */
+	while (g_ascii_isspace(*uri_string))
+		uri_string++;
+
+	/* Ignore trailing whitespace */
+	end = uri_string + strlen(uri_string);
+	while (end > uri_string && g_ascii_isspace(*(end - 1)))
+		end--;
+
+	/* Copy the rest, encoding unencoded spaces and stripping other whitespace */
+	copy = g_string_sized_new(end - uri_string);
+	while (uri_string < end) {
+		if (*uri_string == ' ')
+			g_string_append(copy, "%20");
+		else if (g_ascii_isspace(*uri_string))
+			; // @suppress("Suspicious semicolon")
+		else
+			g_string_append_c(copy, *uri_string);
+		uri_string++;
+	}
+
+	return g_string_free(copy, FALSE);
 }
