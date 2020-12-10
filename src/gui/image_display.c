@@ -532,9 +532,9 @@ static void draw_vport(const draw_data_t* dd) {
  */
 static void draw_main_image(const draw_data_t* dd) {
 	if ((dd->vport == RGB_VPORT && com.rgbbuf) || com.graybuf[dd->vport]) {
+		update_zoom_label();
 		cairo_transform(dd->cr, &com.display_matrix);
 		draw_vport(dd);
-		update_zoom_label();
 	} else {
 		// For empty image, coordinates are untouched
 		draw_empty_image(dd);
