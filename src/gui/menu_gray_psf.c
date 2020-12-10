@@ -40,7 +40,7 @@ static gchar *build_wcs_url(gchar *ra, gchar *dec) {
 
 	double resolution = get_wcs_image_resolution();
 
-	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 10);
+	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 20);
 
 	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
 	url = g_string_append(url, ra);
