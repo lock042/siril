@@ -258,7 +258,7 @@ if enable_openmp
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
   else
-	openmp_dep = dependency('openmp', required : false)
+  openmp_dep = dependency('openmp', required : false)
   endif
 else
   message('OpenMP disabled')
@@ -283,7 +283,7 @@ if enable_libcurl
 endif
 criterion_dep = dependency('criterion', required : false)
 
-wcs_dep = dependency('wcslib', required : false)
+wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : false)
 
 ################################################################################
 # Configuration
@@ -392,7 +392,7 @@ else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
 endif
 
-if wcs_dep.found()
+if wcslib_dep.found()
   conf_data.set('HAVE_WCSLIB', true, description : 'Using wcslib.')
 else 
   conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
@@ -420,7 +420,7 @@ externals_dep = declare_dependency(
     opencv_dep,
     rtprocess_dep,
     exiv_dep,
-    wcs_dep,
+    wcslib_dep,
     libconfig_dep,
     fftw3f_dep,
     cfitsio_dep,
@@ -502,7 +502,7 @@ summary(
     'FFMS2'     : ffms2_dep.found(),
     'FFMPEG'    : ffmpeg_found,
     'libcurl'   : libcurl_dep.found(),
-    'wcslib'    : wcs_dep.found(),
+    'wcslib'    : wcslib_dep.found(),
     'criterion' : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
