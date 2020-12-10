@@ -513,15 +513,6 @@ static void draw_empty_image(const draw_data_t* dd) {
 #endif /* SIRIL_UNSTABLE */
 }
 
-static void update_zoom_label() {
-	static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb"};
-	static gchar zoom_buffer[256] = { 0 };
-	if (com.cvport < RGB_VPORT) {
-		g_sprintf(zoom_buffer, "%d%%", (int) (get_zoom_val() * 100.0));
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom[com.cvport])), zoom_buffer);
-	}
-}
-
 static void draw_vport(const draw_data_t* dd) {
 	cairo_set_source_surface(dd->cr, com.surface[dd->vport], 0, 0);
 	cairo_pattern_set_filter(cairo_get_source(dd->cr), dd->filter);
@@ -532,7 +523,6 @@ static void draw_vport(const draw_data_t* dd) {
  */
 static void draw_main_image(const draw_data_t* dd) {
 	if ((dd->vport == RGB_VPORT && com.rgbbuf) || com.graybuf[dd->vport]) {
-		update_zoom_label();
 		cairo_transform(dd->cr, &com.display_matrix);
 		draw_vport(dd);
 	} else {
@@ -882,6 +872,15 @@ void queue_redraw(int doremap) {
 	siril_add_idle(redraw_idle, GINT_TO_POINTER(doremap));
 }
 
+static void update_zoom_label() {
+	static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb"};
+	static gchar zoom_buffer[256] = { 0 };
+	if (com.cvport < RGB_VPORT) {
+		g_sprintf(zoom_buffer, "%d%%", (int) (get_zoom_val() * 100.0));
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom[com.cvport])), zoom_buffer);
+	}
+}
+
 /* callback for GtkDrawingArea, draw event
  * see http://developer.gnome.org/gtk3/3.2/GtkDrawingArea.html
  * http://developer.gnome.org/gdk-pixbuf/stable/gdk-pixbuf-Image-Data-in-Memory.html
@@ -925,6 +924,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* background removal gradient selection boxes */
 	draw_brg_boxes(&dd);
+
+	/* update zoom label */
+	update_zoom_label();
 
 	cairo_restore(cr);
 
