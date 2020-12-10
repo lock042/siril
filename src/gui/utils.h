@@ -32,6 +32,7 @@ typedef enum {
 
 
 GtkWidget* lookup_widget (const gchar *widget_name);
+void set_label_text_from_main_thread(const char *label_name, const char *text);
 void control_window_switch_to_tab(main_tabs tab);
 GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf);

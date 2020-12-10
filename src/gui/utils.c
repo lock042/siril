@@ -38,7 +38,7 @@ static gboolean set_label_text_idle(gpointer p) {
 	return FALSE;
 }
 
-static void set_label_text_from_main_thread(const char *label_name, const char *text) {
+void set_label_text_from_main_thread(const char *label_name, const char *text) {
 	struct _label_data *data = malloc(sizeof(struct _label_data));
 	data->label_name = label_name;
 	data->text = strdup(text);

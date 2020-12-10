@@ -877,7 +877,7 @@ static void update_zoom_label() {
 	static gchar zoom_buffer[256] = { 0 };
 	if (com.cvport < RGB_VPORT) {
 		g_sprintf(zoom_buffer, "%d%%", (int) (get_zoom_val() * 100.0));
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_zoom[com.cvport])), zoom_buffer);
+		set_label_text_from_main_thread (label_zoom[com.cvport], zoom_buffer);
 	}
 }
 
