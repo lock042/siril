@@ -2,6 +2,7 @@
 #define SRC_ALGOS_PLATESOLVER_H_
 
 #include "core/siril.h"
+#include "core/siril_world_cs.h"
 #include "registration/matching/degtorad.h"
 
 #define BRIGHTEST_STARS 2500
@@ -13,8 +14,6 @@
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
 
 typedef struct image_solved_struct image_solved;
-typedef struct _RA alpha;
-typedef struct _Dec delta;
 
 typedef enum {
 	TYCHO2,
@@ -45,10 +44,10 @@ gpointer match_catalog(gpointer p);
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void invalidate_WCS_keywords(fits *fit);
 
-point get_image_solved_px_cat_center(image_solved *image);
+SirilWorldCS *get_image_solved_px_cat_center(image_solved *image);
+SirilWorldCS *get_image_solved_image_center(image_solved *image);
 double get_image_solved_x(image_solved *image);
 double get_image_solved_y(image_solved *image);
-void set_image_solved_ra(image_solved *image, double ra);
-void set_image_solved_dec(image_solved *image, double dec);
+void update_image_center_coord(image_solved *image, gdouble alpha, gdouble delta);
 
 #endif /* SRC_ALGOS_PLATESOLVER_H_ */

@@ -110,6 +110,8 @@ siril_common_SOURCES = \
 	core/siril_log.c \
 	core/siril_update.c \
 	core/siril_update.h \
+	core/siril_world_cs.c \
+	core/siril_world_cs.h \
 	core/sleef.h \
 	core/undo.c \
 	core/undo.h \

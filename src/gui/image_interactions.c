@@ -24,6 +24,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/undo.h"
+#include "core/siril_world_cs.h"
 #include "algos/background_extraction.h"
 #include "algos/siril_wcs.h"
 #include "io/single_image.h"
@@ -696,14 +697,19 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				double world_x, world_y;
 				pix2wcs((double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
 				if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
-					gchar *ra = conv_ra_2_str(world_x);
-					gchar *dec = conv_dec_2_str(world_y);
-					g_sprintf(wcs_buffer, "α:%s δ: %s", ra, dec); /* the format with no space before %s of α is on purpose
-					 	 	 	 	 	 	 	 	 	 	 	 	 	 	 the space is inside the %s */
+					SirilWorldCS *world_cs;
+
+					world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+
+					gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+					gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+					g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
+
 					gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), wcs_buffer);
 
 					g_free(ra);
 					g_free(dec);
+					siril_world_cs_unref(world_cs);
 				}
 			}
 

@@ -24,6 +24,7 @@
 
 #include "algos/PSF.h"
 #include "core/command.h"
+#include "core/siril_world_cs.h"
 #include "io/sequence.h"
 #include "algos/star_finder.h"
 #include "algos/siril_wcs.h"
@@ -58,7 +59,7 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	gchar *msg, *coordinates, *url = NULL;
 	fitted_PSF *result = NULL;
 	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
-	char *str;
+	const char *str;
 
 	if (layer == -1)
 		return;
@@ -83,15 +84,20 @@ void on_menu_gray_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	double y = com.selection.y + com.selection.h - result->y0;
 	if (has_wcs()) {
 		double world_x, world_y;
+		SirilWorldCS *world_cs;
+
 		pix2wcs(x, (double) gfit.ry - y, &world_x, &world_y);
-		gchar *ra = conv_ra_2_str(world_x);
-		gchar *dec = conv_dec_2_str(world_y);
+		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+
+		gchar *ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+		gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 
 		url = build_wcs_url(ra, dec);
 		coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
 
 		g_free(ra);
 		g_free(dec);
+		siril_world_cs_unref(world_cs);
 	} else {
 		coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
 	}

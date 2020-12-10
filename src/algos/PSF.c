@@ -33,6 +33,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_world_cs.h"
 #include "algos/photometry.h"
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
@@ -703,11 +704,14 @@ void psf_display_result(fitted_PSF *result, rectangle *area) {
 
 	if (has_wcs()) {
 		double world_x, world_y;
+		SirilWorldCS *world_cs;
 		pix2wcs(x, (double) gfit.ry - y, &world_x, &world_y);
-		gchar *ra = conv_ra_2_str(world_x);
-		gchar *dec = conv_dec_2_str(world_y);
+		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+		gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+		gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 		coordinates = g_strdup_printf("x0=%0.2f px, y0=%0.2f px (%s , %s)", x, y, ra, dec);
 
+		siril_world_cs_unref(world_cs);
 		g_free(ra);
 		g_free(dec);
 	} else {

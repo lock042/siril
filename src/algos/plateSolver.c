@@ -37,6 +37,7 @@
 #include "core/sleef.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_world_cs.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -44,11 +45,9 @@
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
-
 #include "gui/PSF_list.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "algos/plateSolver.h"
 #include "algos/annotate.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
@@ -57,6 +56,8 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "registration/matching/project_coords.h"
+
+#include "plateSolver.h"
 
 enum {
 	COLUMN_RESOLVER,		// string
@@ -73,34 +74,21 @@ typedef enum {
 	RESOLVER_NUMBER
 } resolver;
 
-struct _RA {
-	int hour;
-	int min;
-	double sec;
-};
-
-struct _Dec {
-	int degree;
-	int min;
-	double sec;
-};
-
 struct object {
 	gchar *name;
 	double radius;
 	int maxRecords;
-	alpha alpha;
-	delta Dec;
+	SirilWorldCS *world_cs;
 	point imageCenter;
 	gboolean south;
 };
 
 struct image_solved_struct {
 	point px_size;
-	point px_cat_center;
+	SirilWorldCS *px_cat_center;
+	SirilWorldCS *image_center;
 	point fov;
 	double x, y;
-	double ra, dec;
 	double resolution, pixel_size, focal;
 	double crota;
 };
@@ -143,58 +131,6 @@ static void initialize_ips_dialog() {
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
 
-static alpha convert_ra(double var) {
-	alpha ra;
-	ra.hour = (int)(var / 15.0);
-	ra.min = (int)(((var / 15.0) - ra.hour) * 60.0);
-	ra.sec = ((((var / 15.0) - ra.hour) * 60.0) - ra.min) * 60.0;
-	return ra;
-}
-
-static double ra_to_x(alpha ra) {
-	return ra.hour * 15.0 + ra.min * 15.0 / 60.0 + ra.sec * 15.0 / 3600.0;
-}
-
-static delta convert_dec(double var) {
-	delta dec;
-	dec.degree = (int) var;
-	dec.min = abs((int) ((var - dec.degree) * 60.0));
-	dec.sec = (fabs((var - dec.degree) * 60.0) - dec.min) * 60.0;
-	return dec;
-}
-
-static double dec_to_y(delta dec) {
-	if (dec.degree > 0) {
-		return ((dec.sec / 3600.0) + (dec.min / 60.0) + dec.degree);
-	} else {
-		return (-(dec.sec / 3600.0) - (dec.min / 60.0) + dec.degree);
-	}
-}
-
-static void deg_to_HMS(double var, gchar *type, gchar *HMS) {
-	if (!strncasecmp(type, "ra", 2)) {
-		int raH, raM;
-		double raS;
-
-		var = fabs(var);
-		raH = (int)(var / 15.0);
-		raM = (int)(((var / 15.0) - raH) * 60.0);
-		raS = ((((var / 15.0) - raH) * 60.0) - raM) * 60.0;
-		g_snprintf(HMS, 256, "%02d %02d %.3lf", raH, raM, raS);
-	} else if (!strncasecmp(type, "dec", 2)) {
-		char ds = ' ';
-		int deg, decM;
-		double decS;
-
-		if (var < 0) ds = '-';
-		var = fabs(var);
-		deg = (int) var;
-		decM = abs((int) ((var - deg) * 60));
-		decS = (fabs((var - deg) * 60) - decM) * 60;
-		g_snprintf(HMS, 256, "%c%02d %02d %.3lf", ds, deg, decM, decS);
-	}
-}
-
 static void fov_in_DHMS(double var, gchar *fov) {
 	int deg, decM;
 	double decS;
@@ -234,11 +170,7 @@ static int parse_content_buffer(char *buffer, struct object *obj) {
 			sscanf(fields[1], "%lf", &center.x);
 			sscanf(fields[2], "%lf", &center.y);
 			if (resolver != -1) {
-				/* alpha coordinates */
-				platedObject[resolver].alpha = convert_ra(center.x);
-
-				/* Dec coordinates */
-				platedObject[resolver].Dec = convert_dec(center.y);
+				platedObject[resolver].world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
 
 				/* others */
 				platedObject[resolver].imageCenter = center;
@@ -271,6 +203,7 @@ static int parse_content_buffer(char *buffer, struct object *obj) {
 static void free_Platedobject() {
 	for (int i = 0; i < RESOLVER_NUMBER; i++) {
 		if (platedObject[i].name) {
+			siril_world_cs_unref(platedObject[i].world_cs);
 			free(platedObject[i].name);
 			platedObject[i].name = NULL;
 		}
@@ -319,23 +252,20 @@ static double get_mag_limit(double fov) {
 	}
 }
 
-static point get_center_of_catalog() {
+static SirilWorldCS *get_center_of_catalog() {
 	GtkSpinButton *GtkSpinIPS_RA_h, *GtkSpinIPS_RA_m;
 	GtkSpinButton *GtkSpinIPS_Dec_deg, *GtkSpinIPS_Dec_m;
 	GtkEntry *GtkEntryIPS_RA_s, *GtkEntryIPS_Dec_s;
 	GtkToggleButton *GtkCheckButtonIPS_S;
-	alpha ra;
-	delta dec;
-	point result;
 
 	/* get alpha center */
 	GtkSpinIPS_RA_h = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_h"));
 	GtkSpinIPS_RA_m = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_m"));
 	GtkEntryIPS_RA_s = GTK_ENTRY(lookup_widget("GtkEntryIPS_RA_s"));
 
-	ra.hour = gtk_spin_button_get_value_as_int(GtkSpinIPS_RA_h);
-	ra.min = gtk_spin_button_get_value_as_int(GtkSpinIPS_RA_m);
-	ra.sec = g_ascii_strtod(gtk_entry_get_text(GtkEntryIPS_RA_s), NULL);
+	gdouble hour = gtk_spin_button_get_value_as_int(GtkSpinIPS_RA_h);
+	gdouble min = gtk_spin_button_get_value_as_int(GtkSpinIPS_RA_m);
+	gdouble sec = g_ascii_strtod(gtk_entry_get_text(GtkEntryIPS_RA_s), NULL);
 
 	/* get Dec center */
 	GtkSpinIPS_Dec_deg = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Dec_deg"));
@@ -343,18 +273,14 @@ static point get_center_of_catalog() {
 	GtkEntryIPS_Dec_s = GTK_ENTRY(lookup_widget("GtkEntryIPS_Dec_s"));
 	GtkCheckButtonIPS_S = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButtonIPS_S"));
 
-	dec.degree = gtk_spin_button_get_value_as_int(GtkSpinIPS_Dec_deg);
-	dec.min = gtk_spin_button_get_value_as_int(GtkSpinIPS_Dec_m);
-	dec.sec = g_ascii_strtod(gtk_entry_get_text(GtkEntryIPS_Dec_s), NULL);
+	gdouble deg = gtk_spin_button_get_value_as_int(GtkSpinIPS_Dec_deg);
+	gdouble m = gtk_spin_button_get_value_as_int(GtkSpinIPS_Dec_m);
+	gdouble s = g_ascii_strtod(gtk_entry_get_text(GtkEntryIPS_Dec_s), NULL);
 	if (gtk_toggle_button_get_active(GtkCheckButtonIPS_S)) {
-		dec.degree = -dec.degree;
+		deg = -deg;
 	}
 
-	/* convert */
-	result.x = ra_to_x(ra);
-	result.y = dec_to_y(dec);
-
-	return result;
+	return siril_world_cs_new_from_ra_dec(hour, min, sec, deg, m, s);;
 }
 
 static gboolean is_detection_manual() {
@@ -371,13 +297,13 @@ static gboolean flip_image_after_ps() {
 	return gtk_toggle_button_get_active(button);
 }
 
-static gchar *get_catalog_url(point center, double mag_limit, double dfov, int type) {
+static gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type) {
 	GString *url;
 	gchar *coordinates;
 	gchar *mag;
 	gchar *fov;
 
-	coordinates = g_strdup_printf("%f+%f", center.x, center.y);
+	coordinates = g_strdup_printf("%f+%f", siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center));
 	mag = g_strdup_printf("%2.2lf", mag_limit);
 	fov = g_strdup_printf("%2.1lf", dfov / 2);
 
@@ -598,7 +524,7 @@ static online_catalog get_online_catalog(double fov, double m) {
 	}
 }
 
-static gchar *download_catalog(online_catalog onlineCatalog, point catalog_center, double fov, double m) {
+static gchar *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double m) {
 	gchar *url;
 	gchar *buffer = NULL;
 	GError *error = NULL;
@@ -658,7 +584,7 @@ static gchar *download_catalog(online_catalog onlineCatalog, point catalog_cente
 
 		/* -------------------------------------------------------------------------------- */
 
-		is_result.px_cat_center = catalog_center;
+		is_result.px_cat_center = siril_world_cs_ref(catalog_center);
 	}
 	return foutput;
 }
@@ -708,20 +634,26 @@ static void unselect_all_items() {
 	gtk_tree_selection_unselect_all(selection);
 }
 
-static void update_coordinates(alpha ra, delta Dec, gboolean south) {
+static void update_coordinates(SirilWorldCS *world_cs) {
 	gchar *RA_sec, *Dec_sec;
+	gint ra_h, ra_m;
+	gint dec_deg, dec_m;
+	gdouble ra_s, dec_s;
 
-	RA_sec = g_strdup_printf("%6.4lf", ra.sec);
-	Dec_sec = g_strdup_printf("%6.4lf", Dec.sec);
+	siril_world_cs_get_ra_hour_min_sec(world_cs, &ra_h, &ra_m, &ra_s);
+	siril_world_cs_get_dec_deg_min_sec(world_cs, &dec_deg, &dec_m, &dec_s);
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButtonIPS_S")), south);
+	RA_sec = g_strdup_printf("%6.4lf", ra_s);
+	Dec_sec = g_strdup_printf("%6.4lf", dec_s);
 
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_h")), ra.hour);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_m")), ra.min);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButtonIPS_S")), dec_deg < 0);
+
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_h")), ra_h);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_m")), ra_m);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("GtkEntryIPS_RA_s")), RA_sec);
 
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Dec_deg")), abs(Dec.degree));
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Dec_m")), Dec.min);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Dec_deg")), abs(dec_deg));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Dec_m")), dec_m);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("GtkEntryIPS_Dec_s")), Dec_sec);
 
 	g_free(RA_sec);
@@ -737,28 +669,23 @@ static gboolean has_any_keywords() {
 }
 
 static void update_coords() {
-	alpha k_ra;
-	delta k_dec;
-	gboolean south;
+	SirilWorldCS *world_cs = NULL;
 
 	if (gfit.wcs.crval[0] != 0.0 && gfit.wcs.crval[1] != 0.0) {
 		// first transform coords to alpha and delta
-		k_ra = convert_ra(gfit.wcs.crval[0]);
-		k_dec = convert_dec(gfit.wcs.crval[1]);
-		south = k_dec.degree < 0.0;
+		world_cs = siril_world_cs_new_from_a_d(gfit.wcs.crval[0], gfit.wcs.crval[1]);
 
-		k_dec.degree = abs(k_dec.degree);
-		update_coordinates(k_ra, k_dec, south);
+		update_coordinates(world_cs);
 		unselect_all_items();
 	} else if (gfit.wcs.objctra[0] != '\0' && gfit.wcs.objctdec[0] != '\0') {
-		sscanf(gfit.wcs.objctra, "%d %d %lf", &k_ra.hour, &k_ra.min, &k_ra.sec);
-		sscanf(gfit.wcs.objctdec, "%d %d %lf", &k_dec.degree, &k_dec.min, &k_dec.sec);
-		south = gfit.wcs.objctdec[0] == '-';
 
-		k_dec.degree = abs(k_dec.degree);
-		update_coordinates(k_ra, k_dec, south);
+		world_cs = siril_world_cs_new_from_objct_ra_dec(gfit.wcs.objctra, gfit.wcs.objctdec);
+
+		update_coordinates(world_cs);
 		unselect_all_items();
 	}
+	if (world_cs)
+		siril_world_cs_unref(world_cs);
 }
 
 static void update_pixel_size() {
@@ -827,15 +754,22 @@ static void update_gfit(image_solved image) {
 	gfit.pixel_size_x = gfit.pixel_size_y = image.pixel_size;
 	gfit.wcs.crpix[0] = image.x;
 	gfit.wcs.crpix[1] = image.y;
-	gfit.wcs.crval[0] = image.ra;
-	gfit.wcs.crval[1] = image.dec;
+	gfit.wcs.crval[0] = siril_world_cs_get_alpha(image.image_center);
+	gfit.wcs.crval[1] = siril_world_cs_get_delta(image.image_center);
 	gfit.wcs.equinox = 2000.0;
-	deg_to_HMS(image.ra, "ra", gfit.wcs.objctra);
-	deg_to_HMS(image.dec, "dec", gfit.wcs.objctdec);
 	gfit.wcs.cdelt[0] = image.resolution / 3600.0;
 	gfit.wcs.cdelt[1] = -gfit.wcs.cdelt[0];
 	gfit.wcs.crota[0] = gfit.wcs.crota[1] = -image.crota;
 	cd_x(&gfit.wcs);
+
+	gchar *ra = siril_world_cs_alpha_format(image.image_center, "%02d %02d %.3lf");
+	gchar *dec = siril_world_cs_delta_format(image.image_center, "%c%02d %02d %.3lf");
+
+	g_sprintf(gfit.wcs.objctra, ra);
+	g_sprintf(gfit.wcs.objctdec, dec);
+
+	g_free(ra);
+	g_free(dec);
 }
 
 static void flip_astrometry_data(fits *fit) {
@@ -898,8 +832,9 @@ static void print_platesolving_results(Homography H, image_solved image, gboolea
 	fov_in_DHMS(image.fov.x / 60.0, field_x);
 	fov_in_DHMS(image.fov.y / 60.0, field_y);
 	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
-	alpha = conv_ra_2_str(image.ra);
-	delta = conv_dec_2_str(image.dec);
+
+	alpha = siril_world_cs_alpha_format(image.image_center, " %02dh%02dm%02ds");
+	delta = siril_world_cs_delta_format(image.image_center, "%c%02d°%02d\'%02d\"");
 	siril_log_message(_("Image center: alpha: %s, delta: %s\n"), alpha, delta);
 
 	*flip_image = *flip_image && det < 0;
@@ -1212,14 +1147,12 @@ static gboolean end_plate_solver(gpointer p) {
 		}
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 	} else {
-		alpha ra;
-		delta Dec;
 
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
-		ra = convert_ra(is_result.ra);
-		Dec = convert_dec(is_result.dec);
-		update_coordinates(ra, Dec, is_result.dec < 0.0);
+		update_coordinates(is_result.image_center);
+		siril_world_cs_unref(is_result.px_cat_center);
+		siril_world_cs_unref(is_result.image_center);
 
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		if (args->for_photometry_cc) {
@@ -1386,11 +1319,11 @@ static void search_object_in_catalogs(const gchar *object) {
 
 	result = fetch_url(cleaned_url);
 	if (result) {
+		free_Platedobject();
 		parse_content_buffer(result, &obj);
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		add_object_to_list();
 		g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
-		free_Platedobject();
 	}
 	set_cursor_waiting(FALSE);
 	g_free(cleaned_url);
@@ -1476,8 +1409,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 		}
 
 		if (selected_item >= 0) {
-			update_coordinates(platedObject[selected_item].alpha,
-					platedObject[selected_item].Dec, platedObject[selected_item].south);
+			update_coordinates(platedObject[selected_item].world_cs);
 		}
 
 		g_value_unset(&value);
@@ -1531,7 +1463,7 @@ void on_GtkCheckButton_OnlineCat_toggled(GtkToggleButton *button,
 
 int fill_plate_solver_structure(struct plate_solver_data *args) {
 	double fov, px_size, scale, m;
-	point catalog_center;
+	SirilWorldCS *catalog_center;
 
 	px_size = get_pixel();
 	scale = get_resolution(get_focal(), px_size);
@@ -1539,7 +1471,7 @@ int fill_plate_solver_structure(struct plate_solver_data *args) {
 	m = get_mag_limit(fov);
 	catalog_center = get_center_of_catalog();
 
-	if (catalog_center.x == 0.0 && catalog_center.y == 0.0) {
+	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center)) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), _("Please enter object coordinates."));
 		return 1;
 	}
@@ -1548,6 +1480,7 @@ int fill_plate_solver_structure(struct plate_solver_data *args) {
 	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_online_catalog(fov, m);
 	args->catalogStars = download_catalog(args->onlineCatalog, catalog_center, fov, m);
 	if (!args->catalogStars) {
+		siril_world_cs_unref(catalog_center);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
 		return 1;
 	}
@@ -1556,6 +1489,7 @@ int fill_plate_solver_structure(struct plate_solver_data *args) {
 	args->manual = is_detection_manual();
 	args->flip_image = flip_image_after_ps();
 	args->fit = &gfit;
+
 	return 0;
 }
 
@@ -1583,8 +1517,16 @@ void invalidate_WCS_keywords(fits *fit) {
 
 /** some getters and setters */
 
-point get_image_solved_px_cat_center(image_solved *image) {
+SirilWorldCS *get_image_solved_px_cat_center(image_solved *image) {
 	return image->px_cat_center;
+}
+
+SirilWorldCS *get_image_solved_image_center(image_solved *image) {
+	return image->image_center;
+}
+
+void update_image_center_coord(image_solved *image, gdouble alpha, gdouble delta) {
+	image->image_center = siril_world_cs_new_from_a_d(alpha, delta);
 }
 
 double get_image_solved_x(image_solved *image) {
@@ -1593,12 +1535,4 @@ double get_image_solved_x(image_solved *image) {
 
 double get_image_solved_y(image_solved *image) {
 	return image->y;
-}
-
-void set_image_solved_ra(image_solved *image, double ra) {
-	image->ra = ra;
-}
-
-void set_image_solved_dec(image_solved *image, double dec) {
-	image->dec = dec;
 }

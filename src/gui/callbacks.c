@@ -812,11 +812,7 @@ void set_layers_for_registration() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(cbbt_layers), reminder);
 }
 
-static void extra_button_clicked(GtkButton *button, gpointer user_data) {
-
-}
-
-void show_data_dialog(char *text, char *title, gchar *extra_button) {
+void show_data_dialog(char *text, char *title, gchar *url) {
 	GtkTextView *tv = GTK_TEXT_VIEW(lookup_widget("data_txt"));
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(tv);
 	GtkTextIter itDebut;
@@ -828,10 +824,9 @@ void show_data_dialog(char *text, char *title, gchar *extra_button) {
 	gtk_window_set_title(GTK_WINDOW(lookup_widget("data_dialog")), title);
 
 	gtk_widget_show(lookup_widget("data_dialog"));
-	gtk_widget_set_visible(lookup_widget("data_extra_button"), extra_button != NULL);
-	if (extra_button) {
-		gtk_link_button_set_uri ((GtkLinkButton *)lookup_widget("data_extra_button"), extra_button);
-//		g_signal_connect(GTK_BUTTON(lookup_widget("data_extra_button")), "clicked", G_CALLBACK(extra_button_clicked), (gpointer) extra_button);
+	gtk_widget_set_visible(lookup_widget("data_extra_button"), url != NULL);
+	if (url) {
+		gtk_link_button_set_uri ((GtkLinkButton *)lookup_widget("data_extra_button"), url);
 	}
 }
 
