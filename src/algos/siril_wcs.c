@@ -23,13 +23,14 @@
 #endif
 
 #include <math.h>
+
+#include "core/siril.h"
+#include "io/image_format_fits.h"
+
 #ifdef HAVE_WCSLIB
 #include <wcslib.h>
 #include <wcsfix.h>
 #endif
-
-#include "core/siril.h"
-#include "io/image_format_fits.h"
 
 #include "siril_wcs.h"
 
