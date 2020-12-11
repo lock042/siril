@@ -27,7 +27,7 @@
 static gchar* g_date_time_format_timestamp(GDateTime *datetime) {
 	GString *outstr = NULL;
 	gchar *main_date = NULL;
-	gchar *format = "%Y-%m-%dT%H:%M:%S";
+	gchar *format = "%Y-%m-%dT%H.%M.%S";
 
 	/* Main date and time. */
 	main_date = g_date_time_format(datetime, format);

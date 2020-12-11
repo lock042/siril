@@ -93,7 +93,6 @@ static void save_log_dialog() {
 	gchar *filename;
 
 	filename = build_timestamp_filename();
-	replace_not_valid_char(filename, ':', '.');
 	filename = str_append(&filename, ".log");
 
 	widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);

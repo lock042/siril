@@ -2432,7 +2432,7 @@ enter a visible wavelength in nm</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Take a snaphot of your displayed image.</property>
+                <property name="tooltip_text" translatable="yes">Take a snapshot of your displayed image.</property>
                 <property name="action_name">app.snapshot</property>
                 <property name="use_underline">True</property>
                 <child>
