@@ -732,25 +732,24 @@ void on_header_snapshot_button_clicked() {
 	GFile *file;
 	GOutputStream *stream;
 	GtkWidget *widget;
-	GtkAllocation allocation_w = { 0 };
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 
 	widget = lookup_widget(area[com.cvport]);
 	filename = build_timestamp_filename();
 	string = g_string_new(filename);
-	string = g_string_prepend(string, _("Snapshot-"));
 	string = g_string_append(string, ".png");
 	g_free(filename);
 	filename = g_string_free(string, FALSE);
 
-    gtk_widget_get_allocation(widget, &allocation_w);
-	GdkWindow *window = gtk_widget_get_parent_window(widget);
+	gint w = gtk_widget_get_allocated_width(widget);
+	gint h = gtk_widget_get_allocated_height(widget);
+	GdkWindow *window = gtk_widget_get_window(widget);
 	if (window) {
-		pixbuf = gdk_pixbuf_get_from_window(window, allocation_w.x, allocation_w.y, allocation_w.width, allocation_w.height);
-		file = g_file_new_build_filename(com.wd, filename, NULL);
-		g_free(filename);
-
+		pixbuf = gdk_pixbuf_get_from_window(window, 0, 0, w, h);
 		if (pixbuf) {
+			file = g_file_new_build_filename(com.wd, filename, NULL);
+			g_free(filename);
+
 			stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
 			if (stream == NULL) {
 				if (error != NULL) {

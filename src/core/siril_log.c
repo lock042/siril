@@ -29,16 +29,6 @@
 #include "gui/progress_and_log.h"
 
 
-static void replace_not_valid_char(gchar *str, gchar c, gchar n) {
-	gchar *s = str;
-	while (*s) {
-		if (*s == c) {
-			*s = n;
-		}
-		s++;
-	}
-}
-
 static void save_log_file(gchar *filename) {
 	GtkTextBuffer *log;
 	GtkTextView *tv;
