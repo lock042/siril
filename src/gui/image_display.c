@@ -943,3 +943,18 @@ point get_center_of_vport() {
 
 	return center;
 }
+
+void add_label_to_cairo(GtkWidget *widget, cairo_t *cr) {
+	draw_data_t dd;
+
+	dd.cr = cr;
+	dd.window_width = gtk_widget_get_allocated_width(widget);
+	dd.window_height = gtk_widget_get_allocated_height(widget);
+	dd.zoom = get_zoom_val();
+	dd.image_width = gfit.rx;
+	dd.image_height = gfit.ry;
+	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
+
+	/* detected objects */
+	draw_annotates(&dd);
+}

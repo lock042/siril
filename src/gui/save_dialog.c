@@ -32,6 +32,7 @@
 #include "gui/message_dialog.h"
 #include "gui/dialog_preview.h"
 #include "gui/utils.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
@@ -724,11 +725,13 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 	}
 }
 
+#define NEW_SIZE 1024
+
 void on_header_snapshot_button_clicked() {
 	GError *error = NULL;
 	GString *string;
 	gchar * filename;
-	GdkPixbuf *pixbuf;
+	GdkPixbuf *pixbuf, *new_pixbuf;
 	GFile *file;
 	GOutputStream *stream;
 	GtkWidget *widget;
@@ -741,34 +744,51 @@ void on_header_snapshot_button_clicked() {
 	g_free(filename);
 	filename = g_string_free(string, FALSE);
 
-	gint w = gtk_widget_get_allocated_width(widget);
-	gint h = gtk_widget_get_allocated_height(widget);
-//	GdkWindow *window = gtk_widget_get_window(widget);
-//	if (window) {
-		pixbuf = gdk_pixbuf_get_from_surface(com.surface[com.cvport], 0, 0, w, h);
-		if (pixbuf) {
-			file = g_file_new_build_filename(com.wd, filename, NULL);
-			g_free(filename);
+	cairo_surface_t *surface = com.surface[com.cvport];
+	cairo_t *cr = cairo_create(surface);
 
-			stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
-			if (stream == NULL) {
-				if (error != NULL) {
-					g_warning("%s\n", error->message);
-					g_clear_error(&error);
-				}
-				g_object_unref(pixbuf);
-				g_object_unref(file);
-				return;
-			}
-			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
-					snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
+	add_label_to_cairo(widget, cr);
 
-			g_object_unref(stream);
+	cairo_destroy (cr);
+
+	pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, gfit.rx, gfit.ry);
+	if (pixbuf) {
+		/* reduce size of pixbuf */
+		int w = gdk_pixbuf_get_width(pixbuf);
+		int h = gdk_pixbuf_get_height(pixbuf);
+
+		if (w > NEW_SIZE) {
+			float ratio = 1.0 * h / w;
+			int width = NEW_SIZE, height = NEW_SIZE * ratio;
+			new_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height,
+					GDK_INTERP_BILINEAR);
 			g_object_unref(pixbuf);
-			g_object_unref(file);
+		} else {
+			new_pixbuf = pixbuf;
 		}
-	//}
+		file = g_file_new_build_filename(com.wd, filename, NULL);
+		g_free(filename);
+
+		stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
+		if (stream == NULL) {
+			if (error != NULL) {
+				g_warning("%s\n", error->message);
+				g_clear_error(&error);
+			}
+			g_object_unref(new_pixbuf);
+			g_object_unref(file);
+			return;
+		}
+		gdk_pixbuf_save_to_stream_async(new_pixbuf, stream, "png", NULL,
+				snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
+
+		g_object_unref(stream);
+		g_object_unref(new_pixbuf);
+		g_object_unref(file);
+	}
 }
+
+#undef NEW_SIZE
 
 void on_header_save_button_clicked() {
 	if (single_image_is_loaded() && com.uniq->fileexist) {
