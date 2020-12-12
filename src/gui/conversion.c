@@ -371,7 +371,7 @@ void on_treeview_convert_drag_data_received(GtkWidget *widget,
 			fprintf(stderr, "Could not convert uri to local path: %s",
 					error->message);
 			bad_files++;
-			g_clear_error(error);
+			g_clear_error(&error);
 		}
 	}
 	list = g_slist_sort(list, (GCompareFunc) strcompare);

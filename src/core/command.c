@@ -2799,7 +2799,7 @@ int process_convertraw(int nb) {
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
-		g_clear_error(error);
+		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
@@ -2897,7 +2897,7 @@ int process_link(int nb) {
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Link: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Link: %s\n", error->message);
-		g_clear_error(error);
+		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
@@ -3006,7 +3006,7 @@ int process_convert(int nb) {
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Convert: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Convert: %s\n", error->message);
-		g_clear_error(error);
+		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
@@ -3393,7 +3393,7 @@ static gpointer stackall_worker(gpointer garg) {
 		siril_log_message(_("Error while searching sequences or opening the directory.\n"));
 		if (error) {
 			fprintf(stderr, "stackall: %s\n", error->message);
-			g_clear_error(error);
+			g_clear_error(&error);
 		}
 		siril_add_idle(end_generic, NULL);
 		return NULL;

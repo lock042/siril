@@ -143,7 +143,7 @@ void load_glade_file() {
 	if (!gtk_builder_add_from_file(builder, gladefile, &err)) {
 		g_error(_("%s was not found or contains errors, "
 					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
-		g_clear_error(err);
+		g_clear_error(&err);
 		exit(EXIT_FAILURE);
 	}
 	g_printf(_("Successfully loaded '%s'\n"), gladefile);

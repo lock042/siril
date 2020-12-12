@@ -743,9 +743,9 @@ void on_header_snapshot_button_clicked() {
 
 	gint w = gtk_widget_get_allocated_width(widget);
 	gint h = gtk_widget_get_allocated_height(widget);
-	GdkWindow *window = gtk_widget_get_window(widget);
-	if (window) {
-		pixbuf = gdk_pixbuf_get_from_window(window, 0, 0, w, h);
+//	GdkWindow *window = gtk_widget_get_window(widget);
+//	if (window) {
+		pixbuf = gdk_pixbuf_get_from_surface(com.surface[com.cvport], 0, 0, w, h);
 		if (pixbuf) {
 			file = g_file_new_build_filename(com.wd, filename, NULL);
 			g_free(filename);
@@ -767,7 +767,7 @@ void on_header_snapshot_button_clicked() {
 			g_object_unref(pixbuf);
 			g_object_unref(file);
 		}
-	}
+	//}
 }
 
 void on_header_save_button_clicked() {
