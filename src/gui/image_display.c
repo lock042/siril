@@ -944,18 +944,12 @@ point get_center_of_vport() {
 	return center;
 }
 
-void add_image_and_label_to_cairo(cairo_t *cr) {
+void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	draw_data_t dd;
 
 	GtkWidget *widget = lookup_widget("drawingarear");
 
-	// we need to identify which vport is being redrawn
-	dd.vport = match_drawing_area_widget(widget, TRUE);
-	if (dd.vport == -1) {
-		fprintf(stderr, "Could not find the vport for the draw callback\n");
-		return;
-	}
-
+	dd.vport = vport;
 	dd.cr = cr;
 	dd.window_width = gtk_widget_get_allocated_width(widget);
 	dd.window_height = gtk_widget_get_allocated_height(widget);
