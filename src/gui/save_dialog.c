@@ -725,12 +725,10 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 	}
 }
 
-#define MAX_PIXBUF_SIZE 1024
-
 void on_header_snapshot_button_clicked() {
 	GError *error = NULL;
 	gchar *timestamp, *filename;
-	GdkPixbuf *pixbuf, *scaled_pixbuf;
+	GdkPixbuf *pixbuf;
 	GFile *file;
 	GOutputStream *stream;
 	GtkWidget *widget;
@@ -755,16 +753,6 @@ void on_header_snapshot_button_clicked() {
 
 	pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, w, h);
 	if (pixbuf) {
-		/* reduce size of pixbuf */
-		if (w > MAX_PIXBUF_SIZE) {
-			float ratio = 1.0 * h / w;
-			int width = MAX_PIXBUF_SIZE, height = MAX_PIXBUF_SIZE * ratio;
-			scaled_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height,
-					GDK_INTERP_BILINEAR);
-			g_object_unref(pixbuf);
-		} else {
-			scaled_pixbuf = pixbuf;
-		}
 		file = g_file_new_build_filename(com.wd, filename, NULL);
 
 		stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
@@ -774,15 +762,15 @@ void on_header_snapshot_button_clicked() {
 				g_clear_error(&error);
 			}
 			g_free(filename);
-			g_object_unref(scaled_pixbuf);
+			g_object_unref(pixbuf);
 			g_object_unref(file);
 			return;
 		}
-		gdk_pixbuf_save_to_stream_async(scaled_pixbuf, stream, "png", NULL,
+		gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
 				snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
 
 		g_object_unref(stream);
-		g_object_unref(scaled_pixbuf);
+		g_object_unref(pixbuf);
 		g_object_unref(file);
 	}
 	cairo_surface_destroy(surface);
