@@ -740,7 +740,7 @@ void on_header_snapshot_button_clicked() {
 
 	g_free(timestamp);
 	/* create cr from the surface */
-	cairo_surface_t *surface = cairo_surface_create_similar(com.surface[RGB_VPORT], CAIRO_CONTENT_COLOR_ALPHA, gfit.rx, gfit.ry);
+	cairo_surface_t *surface = cairo_surface_create_similar(com.surface[com.cvport], CAIRO_CONTENT_COLOR_ALPHA, gfit.rx, gfit.ry);
 	cairo_t *cr = cairo_create(surface);
 
 	/* add image and all annotations if available */
