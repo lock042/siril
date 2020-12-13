@@ -63,8 +63,8 @@ void siril_world_cs_unref(SirilWorldCS *world_cs) {
 SirilWorldCS* siril_world_cs_new_from_a_d(gdouble alpha, gdouble delta) {
 	SirilWorldCS *world_cs;
 
-  if ((alpha >= 360) || (alpha < 0))
-    return NULL;
+	if ((alpha >= 360.0) || (alpha < 0.0) || (delta < -90.0) || (delta > 90.0))
+		return NULL;
 
 	world_cs = siril_world_cs_alloc();
 	world_cs->alpha = alpha;
@@ -136,7 +136,7 @@ gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) 
 	if (ptr) { // floating point for second
 		return g_strdup_printf(format, sig, degree, min, sec);
 	}
-	return g_strdup_printf(format, sig, degree, min, (int)sec);
+	return g_strdup_printf(format, sig, degree, min, (int) round(sec));
 }
 
 gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) {
@@ -156,7 +156,7 @@ gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) 
 	if (ptr) { // floating point for second
 		return g_strdup_printf(format, hour, min, sec);
 	}
-	return g_strdup_printf(format, hour, min, (int)sec);
+	return g_strdup_printf(format, hour, min, (int) round(sec));
 }
 
 void siril_world_cs_get_ra_hour_min_sec(SirilWorldCS *world_cs, int *hour, int *min, double *sec) {
@@ -166,6 +166,7 @@ void siril_world_cs_get_ra_hour_min_sec(SirilWorldCS *world_cs, int *hour, int *
 	h = (int)(world_cs->alpha / 15.0);
 	m = (int)(((world_cs->alpha / 15.0) - h) * 60.0);
 	s = ((((world_cs->alpha / 15.0) - h) * 60.0) - m) * 60.0;
+
 	if (hour)
 		*hour = h;
 	if (min)
