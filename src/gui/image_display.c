@@ -944,8 +944,17 @@ point get_center_of_vport() {
 	return center;
 }
 
-void add_label_to_cairo(GtkWidget *widget, cairo_t *cr) {
+void add_image_and_label_to_cairo(cairo_t *cr) {
 	draw_data_t dd;
+
+	GtkWidget *widget = lookup_widget("drawingarear");
+
+	// we need to identify which vport is being redrawn
+	dd.vport = match_drawing_area_widget(widget, TRUE);
+	if (dd.vport == -1) {
+		fprintf(stderr, "Could not find the vport for the draw callback\n");
+		return;
+	}
 
 	dd.cr = cr;
 	dd.window_width = gtk_widget_get_allocated_width(widget);
@@ -955,6 +964,8 @@ void add_label_to_cairo(GtkWidget *widget, cairo_t *cr) {
 	dd.image_height = gfit.ry;
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 
+	/* RGB or gray images */
+	draw_main_image(&dd);
 	/* detected objects */
 	draw_annotates(&dd);
 }

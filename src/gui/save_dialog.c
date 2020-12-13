@@ -729,8 +729,7 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 
 void on_header_snapshot_button_clicked() {
 	GError *error = NULL;
-	GString *string;
-	gchar * filename;
+	gchar *timestamp, *filename;
 	GdkPixbuf *pixbuf, *scaled_pixbuf;
 	GFile *file;
 	GOutputStream *stream;
@@ -738,27 +737,25 @@ void on_header_snapshot_button_clicked() {
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 
 	widget = lookup_widget(area[com.cvport]);
-	filename = build_timestamp_filename();
-	string = g_string_new(filename);
-	string = g_string_append(string, ".png");
-	g_free(filename);
-	filename = g_string_free(string, FALSE);
+	timestamp = build_timestamp_filename();
+	filename = g_strdup_printf("%s.png", timestamp);
 
+	g_free(timestamp);
 	/* create cr from the surface */
-	cairo_surface_t *surface = com.surface[com.cvport];
+	cairo_surface_t *surface = cairo_surface_create_similar(com.surface[com.cvport], CAIRO_CONTENT_COLOR_ALPHA, gfit.rx, gfit.ry);
 	cairo_t *cr = cairo_create(surface);
 
-	/* add all annotation if available */
-	add_label_to_cairo(widget, cr);
+	/* add image and all annotations if available */
+	add_image_and_label_to_cairo(cr);
 
-	cairo_destroy (cr);
+	cairo_destroy(cr);
 
-	pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, gfit.rx, gfit.ry);
+	guint w = gtk_widget_get_allocated_width(widget);
+	guint h = gtk_widget_get_allocated_height(widget);
+
+	pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, w, h);
 	if (pixbuf) {
 		/* reduce size of pixbuf */
-		int w = gdk_pixbuf_get_width(pixbuf);
-		int h = gdk_pixbuf_get_height(pixbuf);
-
 		if (w > MAX_PIXBUF_SIZE) {
 			float ratio = 1.0 * h / w;
 			int width = MAX_PIXBUF_SIZE, height = MAX_PIXBUF_SIZE * ratio;
@@ -769,7 +766,6 @@ void on_header_snapshot_button_clicked() {
 			scaled_pixbuf = pixbuf;
 		}
 		file = g_file_new_build_filename(com.wd, filename, NULL);
-		g_free(filename);
 
 		stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
 		if (stream == NULL) {
@@ -777,6 +773,7 @@ void on_header_snapshot_button_clicked() {
 				g_warning("%s\n", error->message);
 				g_clear_error(&error);
 			}
+			g_free(filename);
 			g_object_unref(scaled_pixbuf);
 			g_object_unref(file);
 			return;
@@ -788,6 +785,8 @@ void on_header_snapshot_button_clicked() {
 		g_object_unref(scaled_pixbuf);
 		g_object_unref(file);
 	}
+	cairo_surface_destroy(surface);
+	g_free(filename);
 }
 
 #undef NEW_SIZE
