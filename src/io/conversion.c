@@ -527,8 +527,10 @@ typedef struct {
 
 	int number_of_threads;	// size of threads, size of pool
 	void **threads; // for fitseq read
-	int failed_images;
-	gboolean fatal_error;
+
+	/* counters, atomic access */
+	gint failed_images, converted_images;
+	gint fatal_error;	// used as boolean
 } convert_status;
 
 static void pool_worker(gpointer data, gpointer user_data);
@@ -657,7 +659,6 @@ gpointer convert_thread_worker(gpointer p) {
 	}
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
-
 }
 
 static struct reader_seq_counter *get_new_read_counter() {
@@ -682,9 +683,12 @@ static void count_reader(struct reader_seq_counter *counter, gboolean close_afte
 static void count_writer(struct writer_seq_counter *counter, gboolean close_after_write) {
 	g_atomic_int_inc(&counter->count);
 	counter->close_sequence_after_write = close_after_write;
+	// TODO: do we need the close_after_write? we should always close at the end
+	// TODO: make sure the counter is only set once per sequence (read and write)
 }
 
 static void finish_read_seq(struct reader_data *reader) {
+	if (!reader->seq_count) return;
 	gboolean last = g_atomic_int_dec_and_test(&reader->seq_count->count);
 	if (last && reader->seq_count->close_sequence_after_read) {
 		if (reader->ser) {
@@ -702,6 +706,26 @@ static void finish_read_seq(struct reader_data *reader) {
 		}
 #endif
 		free(reader->seq_count);
+	}
+}
+
+static void finish_write_seq(struct writer_data *writer, gboolean success) {
+	if (!writer->seq_count) return;
+	gboolean last = g_atomic_int_dec_and_test(&writer->seq_count->count);
+	if (last && writer->seq_count->close_sequence_after_write) {
+		if (writer->ser) {
+			siril_debug_print("closing write SER sequence%s\n", success ? "" : " and deleting the file");
+			if (success)
+				ser_write_and_close(writer->ser);
+			else ser_close_and_delete_file(writer->ser);
+		}
+		else if (writer->fitseq) {
+			siril_debug_print("closing write FITS sequence%s\n", success ? "" : " and deleting the file");
+			if (success)
+				fitseq_close_file(writer->fitseq);
+			else fitseq_close_and_delete_file(writer->fitseq);
+		}
+		free(writer->seq_count);
 	}
 }
 
@@ -867,12 +891,25 @@ static int make_link(struct readwrite_data *rwdata) {
 	return 1;
 }
 
+static void handle_error(struct readwrite_data *rwdata) {
+	finish_read_seq(rwdata->reader);
+	finish_write_seq(rwdata->writer, FALSE);
+	free(rwdata->reader);
+	free(rwdata->writer);
+	free(rwdata);
+}
+
 static void pool_worker(gpointer data, gpointer user_data) {
 	struct readwrite_data *rwdata = (struct readwrite_data *)data;
 	convert_status *conv = (convert_status *)user_data;
 	seqread_status read_status;
 	if (rwdata->writer->have_seqwriter)
 		seqwriter_wait_for_memory();
+
+	if (!com.run_thread || g_atomic_int_get(&conv->fatal_error)) {
+		handle_error(rwdata);
+		return;
+	}
 
 	fits *fit = read_fit(rwdata->reader, &read_status);
 	if (read_status == CAN_BE_LINKED) {
@@ -890,8 +927,10 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	// clearfits is managed in write_image or sequence writer
 	free(rwdata);	// reader and writer are freed in their function
 	if (write_status == WRITE_FAILED) {
-		conv->fatal_error = 1;
+		g_atomic_int_inc(&conv->failed_images);
+		g_atomic_int_set(&conv->fatal_error, 1);
 	}
+	else g_atomic_int_inc(&conv->converted_images);
 }
 
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
@@ -1086,26 +1125,14 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 			siril_log_message(_("Error while converting to SER (no space left?)\n"));
 		}
 		else retval = WRITE_OK;
-		gboolean last = g_atomic_int_dec_and_test(&writer->seq_count->count);
-		if (last && writer->seq_count->close_sequence_after_write) {
-			siril_debug_print("closing write SER sequence\n");
-			if (retval == WRITE_OK)
-				ser_write_and_close(writer->ser);
-			else ser_close_and_delete_file(writer->ser);
-		}
+		finish_write_seq(writer, retval == WRITE_OK);
 	}
 	else if (writer->fitseq) {
 		if (fitseq_write_image(writer->fitseq, fit, writer->index)) {
 			siril_log_message(_("Error while converting to FITSEQ (no space left?)\n"));
 		}
 		else retval = WRITE_OK;
-		gboolean last = g_atomic_int_dec_and_test(&writer->seq_count->count);
-		if (last && writer->seq_count->close_sequence_after_write) {
-			siril_debug_print("closing write FITS sequence\n");
-			if (retval == WRITE_OK)
-				fitseq_close_file(writer->fitseq);
-			else fitseq_close_and_delete_file(writer->fitseq);
-		}
+		finish_write_seq(writer, retval == WRITE_OK);
 	}
 	else if (writer->filename) {
 		if (savefits(writer->filename, fit)) {
