@@ -909,7 +909,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			if (!conv->output_ser) {
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
-				char *dest = ends_with(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
+				char *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
@@ -925,7 +925,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (!conv->output_fitseq) {
 				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
-				char *dest = ends_with(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
+				char *dest = g_str_has_suffix(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
 				if (fitseq_create_file(dest, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
