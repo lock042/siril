@@ -24,6 +24,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "core/OS_utils.h" // for siril_real_path()
 #endif
 
 #include <stdio.h>
@@ -264,6 +265,9 @@ gchar *initialize_converters() {
  * The conversion takes as input a list of files and some conversion options. *
  * The process is based on a reader, that opens and reads frames from input   *
  * files, and a writer, that writes the frames to the output file format.     *
+ * All reads and write are programmed in the main thread in                   *
+ * convert_thread_worker(), then they are executed by a thread pool in        *
+ * pool_worker().                                                             *
  *****************************************************************************/
 
 static int check_for_raw_extensions(const char *extension) {
@@ -313,48 +317,6 @@ image_type get_type_for_extension(const char *extension) {
 	return TYPEUNDEF; // not recognized or not supported
 }
 
-#ifdef _WIN32
-static char* siril_real_path(const char *source) {
-	HANDLE hFile;
-	DWORD maxchar = 2048;
-
-	wchar_t *wsource = g_utf8_to_utf16(source, -1, NULL, NULL, NULL);
-	if ( wsource == NULL ) {
-		return NULL ;
-	}
-
-	if (!(GetFileAttributesW(wsource) & FILE_ATTRIBUTE_REPARSE_POINT)) { /* Ce n'est pas un lien symbolique , je sors */
-		g_free(wsource);
-		return NULL;
-	}
-
-	wchar_t *wFilePath = g_new(wchar_t, maxchar + 1);
-	if (!wFilePath) {
-		PRINT_ALLOC_ERR;
-		g_free(wsource);
-		return NULL;
-	}
-	wFilePath[0] = 0;
-
-	hFile = CreateFileW(wsource, GENERIC_READ, FILE_SHARE_READ, NULL,
-			OPEN_EXISTING, 0, NULL);
-	if (hFile == INVALID_HANDLE_VALUE) {
-		g_free(wFilePath);
-		g_free(wsource);
-		return NULL;
-	}
-
-	GetFinalPathNameByHandleW(hFile, wFilePath, maxchar, 0);
-
-	gchar *gFilePath = g_utf16_to_utf8(wFilePath + 4, -1, NULL, NULL, NULL); // +4 = enleve les 4 caracteres du prefixe "//?/"
-	g_free(wsource);
-	g_free(wFilePath);
-	CloseHandle(hFile);
-	return gFilePath;
-}
-#endif
-
-
 /* open the file with path source from any image type and load it into the given FITS object */
 int any_to_fits(image_type imagetype, const char *source, fits *dest,
 		gboolean interactive, gboolean force_float, gboolean debayer) {
@@ -397,9 +359,9 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 #ifdef HAVE_LIBRAW
 		case TYPERAW:
 			{
-				const char *src = source ;
+				const char *src = source;
 #ifdef _WIN32
-				char *rsrc = siril_real_path(source) ;
+				char *rsrc = siril_real_path(source);
 				if (rsrc != NULL) {
 					src  = rsrc;
 				}
@@ -458,12 +420,12 @@ typedef enum {
 
 struct reader_seq_counter {
 	gint count;
-	gboolean close_sequence_after_read;
+	gint close_sequence_after_read; // used as boolean
 };
 
 struct writer_seq_counter {
 	gint count;
-	gboolean close_sequence_after_write;
+	gint close_sequence_after_write; // used as boolean
 };
 
 /* single image reading information */
@@ -497,6 +459,8 @@ struct writer_data {
 
 	/* or write to a FITS files sequence */
 	char *filename;
+
+	gint *converted_files; // points to convert_status->converted_files
 };
 
 struct readwrite_data {
@@ -529,7 +493,7 @@ typedef struct {
 	void **threads; // for fitseq read
 
 	/* counters, atomic access */
-	gint failed_images, converted_images;
+	gint failed_images, converted_images, converted_files;
 	gint fatal_error;	// used as boolean
 } convert_status;
 
@@ -637,8 +601,8 @@ gpointer convert_thread_worker(gpointer p) {
 		if (rstatus == GOT_OK_LAST_IN_SEQ) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
-			// change write sequence in case of multiple and wait for pool
-			// TODO wait for writer: the only problem now is memory taken by several writers
+			// TODO wait for writer? with no wait we open several writers, but their limits are static
+			// seqwriter_set_max_active_blocks() is called here, but with 0 as arg on sequence close too
 		}
 
 	} while (com.run_thread);
@@ -650,12 +614,13 @@ gpointer convert_thread_worker(gpointer p) {
 	for (int i = 0; i < args->total; i++)
 		g_free(args->list[i]);
 	free(args->list);
+	args->nb_converted_files = convert.converted_files;
 	if (convert.fatal_error)
 		siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
 	else {
 		if (args->nb_converted_files == args->total)
-			siril_log_message(_("Conversion succeeded, %d/%d input files converted\n"), args->nb_converted_files, args->total);
-		else siril_log_message(_("Conversion aborted, %d/%d input files converted\n"), args->nb_converted_files, args->total);
+			siril_log_message(_("Conversion succeeded, %d/%d input files converted (%d images converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+		else siril_log_message(_("Conversion aborted, %d/%d input files converted (%d images converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 	}
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
@@ -664,33 +629,31 @@ gpointer convert_thread_worker(gpointer p) {
 static struct reader_seq_counter *get_new_read_counter() {
 	struct reader_seq_counter *counter = malloc(sizeof(struct reader_seq_counter));
 	counter->count = 0;
-	counter->close_sequence_after_read = FALSE;
+	counter->close_sequence_after_read = 0;
 	return counter;
 }
 
 static struct writer_seq_counter *get_new_write_counter() {
 	struct writer_seq_counter *counter = malloc(sizeof(struct writer_seq_counter));
 	counter->count = 0;
-	counter->close_sequence_after_write = FALSE;
+	counter->close_sequence_after_write = 0;
 	return counter;
 }
 
 static void count_reader(struct reader_seq_counter *counter, gboolean close_after_read) {
 	g_atomic_int_inc(&counter->count);
-	counter->close_sequence_after_read = close_after_read;
+	g_atomic_int_set(&counter->close_sequence_after_read, (int)close_after_read);
 }
 
 static void count_writer(struct writer_seq_counter *counter, gboolean close_after_write) {
 	g_atomic_int_inc(&counter->count);
-	counter->close_sequence_after_write = close_after_write;
-	// TODO: do we need the close_after_write? we should always close at the end
-	// TODO: make sure the counter is only set once per sequence (read and write)
+	g_atomic_int_set(&counter->close_sequence_after_write, (int)close_after_write);
 }
 
 static void finish_read_seq(struct reader_data *reader) {
 	if (!reader->seq_count) return;
 	gboolean last = g_atomic_int_dec_and_test(&reader->seq_count->count);
-	if (last && reader->seq_count->close_sequence_after_read) {
+	if (last && g_atomic_int_get(&reader->seq_count->close_sequence_after_read)) {
 		if (reader->ser) {
 			siril_debug_print("Closing input SER sequence %s\n", reader->ser->filename);
 			ser_close_file(reader->ser);
@@ -712,17 +675,21 @@ static void finish_read_seq(struct reader_data *reader) {
 static void finish_write_seq(struct writer_data *writer, gboolean success) {
 	if (!writer->seq_count) return;
 	gboolean last = g_atomic_int_dec_and_test(&writer->seq_count->count);
-	if (last && writer->seq_count->close_sequence_after_write) {
+	if (last && g_atomic_int_get(&writer->seq_count->close_sequence_after_write)) {
 		if (writer->ser) {
 			siril_debug_print("closing write SER sequence%s\n", success ? "" : " and deleting the file");
-			if (success)
+			if (success) {
 				ser_write_and_close(writer->ser);
+				g_atomic_int_inc(writer->converted_files);
+			}
 			else ser_close_and_delete_file(writer->ser);
 		}
 		else if (writer->fitseq) {
 			siril_debug_print("closing write FITS sequence%s\n", success ? "" : " and deleting the file");
-			if (success)
+			if (success) {
 				fitseq_close_file(writer->fitseq);
+				g_atomic_int_inc(writer->converted_files);
+			}
 			else fitseq_close_and_delete_file(writer->fitseq);
 		}
 		free(writer->seq_count);
@@ -870,7 +837,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		image_type imagetype = get_type_for_extension(src_ext);
 		if (imagetype == TYPEFITS && reader->allow_link) {
 			*retval = CAN_BE_LINKED;
-			return NULL;	// do not free(reader)
+			return NULL;	// do not free reader, we need it for links
 		} else {
 			fit = any_to_new_fits(imagetype, reader->filename, reader->debayer);
 			*retval = fit ? READ_OK : READ_FAILED;
@@ -1137,14 +1104,17 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	else if (writer->filename) {
 		if (savefits(writer->filename, fit)) {
 			siril_log_message(_("Error while converting to FITS (no space left?)\n"));
-			retval = WRITE_FAILED;
+		}
+		else {
+			retval = WRITE_OK;
+			g_atomic_int_inc(writer->converted_files);
 		}
 		clearfits(fit);
 		free(fit);
 		free(writer->filename);
 	}
 	else {
-		siril_log_message(_("Error while converting, unknown sequence\n"));
+		siril_log_message(_("Error while converting, unknown output\n"));
 	}
 
 	free(writer);
