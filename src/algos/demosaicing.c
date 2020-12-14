@@ -1062,6 +1062,10 @@ void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 	assert(debayer_area->w > 2);
 }
 
+static void clear_Bayer_information(fits *fit) {
+	memset(fit->bayer_pattern, 0, FLEN_VALUE);
+}
+
 static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
 	size_t i, j, npixels = fit->naxes[0] * fit->naxes[1];
 	int width = fit->rx;
@@ -1120,7 +1124,8 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 			fits_flip_top_to_bottom(fit);
 		}
 	}
-
+	/* we remove Bayer header because not needed now */
+	clear_Bayer_information(fit);
 	return 0;
 }
 
@@ -1154,6 +1159,8 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	if (interpolation == XTRANS && !top_down) {
 		fits_flip_top_to_bottom(fit);
 	}
+	/* we remove Bayer header because not needed now */
+	clear_Bayer_information(fit);
 	return 0;
 }
 
@@ -1830,8 +1837,6 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
-	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = split_cfa_image_hook;
 	args->description = _("Split CFA");
 	args->new_seq_prefix = split_cfa_args->seqEntry;

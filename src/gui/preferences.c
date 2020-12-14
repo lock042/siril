@@ -86,7 +86,7 @@ static preferences pref_init = {
 		.ext = NULL,
 		.swap_dir = NULL,
 		.script_path = NULL,
-		{
+		{ // raw_set
 				.mul[0] = 1.0,
 				.mul[1] = 1.0,
 				.mul[2] = 1.0,
@@ -99,7 +99,7 @@ static preferences pref_init = {
 				.gamm[0] = 1.0,
 				.gamm[1] = 1.0,
 		},
-		{
+		{ // debayer_config
 				.open_debayer = FALSE,
 				.use_bayer_header = TRUE,
 				.bayer_pattern = BAYER_FILTER_RGGB,
@@ -108,14 +108,14 @@ static preferences pref_init = {
 				.xbayeroff = 0,
 				.ybayeroff = 0,
 		},
-		{
+		{ // phot_config
 				.gain = 2.3,
 				.inner = 20.0,
 				.outer = 30.0,
 				.minval = 0,
 				.maxval = 60000,
 		},
-		{
+		{ // stack_config
 				.method = 0,
 				.normalisation_method = ADDITIVE_SCALING,
 				.rej_method = WINSORIZED,
@@ -126,7 +126,7 @@ static preferences pref_init = {
 				.memory_ratio = 0.9,
 				.memory_amount = 10,
 		},
-		{
+		{ // comp_config
 				.fits_enabled = FALSE,
 				.fits_method = 0,
 				.fits_quantization = 16.0,
@@ -238,8 +238,8 @@ static void update_user_interface_preferences() {
 	com.pref.combo_lang = get_interface_language();
 	int theme = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_theme")));
 	if (theme != com.pref.combo_theme) {
-		theme = com.pref.combo_theme;
-		siril_set_theme(com.pref.combo_theme);
+		com.pref.combo_theme = theme;
+		siril_set_theme(theme);
 	}
 	com.pref.font_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")));
 	com.pref.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
@@ -407,9 +407,13 @@ void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) 
 }
 
 void set_GUI_compression() {
+	GtkToggleButton *enabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_enabled_radio"));
+	GtkToggleButton *disabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disbled_radio"));
+
+	gtk_toggle_button_set_active(enabled, com.pref.comp.fits_enabled);
+	gtk_toggle_button_set_active(disabled, !com.pref.comp.fits_enabled);
+
 	if (com.pref.comp.fits_enabled) {
-		GtkToggleButton *enabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_enabled_radio"));
-		gtk_toggle_button_set_active(enabled, com.pref.comp.fits_enabled);
 		GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method"));
 		GtkSpinButton *quantiz = GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization"));
 		GtkSpinButton *hscale = GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale"));
@@ -421,8 +425,6 @@ void set_GUI_compression() {
 		}
 		siril_log_message(_("FITS compression enabled\n"), com.pref.ext);
 	} else {
-		GtkToggleButton *disabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio"));
-		gtk_toggle_button_set_active(disabled, !com.pref.comp.fits_enabled);
 		siril_log_message(_("FITS compression disabled\n"));
 	}
 }
@@ -626,6 +628,7 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->stack.memory_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")), pref->stack.memory_amount);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio")), !pref->comp.fits_enabled);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_enabled_radio")), pref->comp.fits_enabled);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method")), pref->comp.fits_method);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization")), pref->comp.fits_quantization);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")), pref->comp.fits_hcompress_scale);
