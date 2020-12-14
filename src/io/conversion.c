@@ -46,6 +46,8 @@
 #include "io/seqwriter.h"
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
+#include "gui/utils.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "conversion.h"
 

@@ -44,6 +44,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
@@ -77,6 +78,7 @@
 #include "algos/noise.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "algos/geometry.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
@@ -84,6 +86,7 @@
 #include "registration/registration.h"
 #include "registration/matching/match.h"
 #include "algos/fix_xtrans_af.h"
+#include "algos/annotate.h"
 
 #include "command.h"
 #include "command_def.h"
@@ -911,7 +914,7 @@ int process_merge(int nb) {
 			break;
 
 		case SEQ_SER:
-			if (ends_with(word[nb - 1], ".ser"))
+			if (g_str_has_suffix(word[nb - 1], ".ser"))
 				outseq_name = g_strdup(word[nb - 1]);
 			else outseq_name = g_strdup_printf("%s.ser", word[nb - 1]);
 			if (ser_create_file(outseq_name, &out_ser, TRUE, seqs[0]->ser_file)) {
@@ -949,7 +952,7 @@ int process_merge(int nb) {
 			break;
 
 		case SEQ_FITSEQ:
-			if (ends_with(word[nb - 1], com.pref.ext))
+			if (g_str_has_suffix(word[nb - 1], com.pref.ext))
 				outseq_name = g_strdup(word[nb - 1]);
 			else outseq_name = g_strdup_printf("%s%s", word[nb - 1], com.pref.ext);
 			if (fitseq_create_file(outseq_name, &out_fitseq, -1)) {
@@ -1326,7 +1329,6 @@ int process_seq_crop(int nb) {
 	rectangle area;
 
 	int startoptargs = 5;
-	int nb_command_max = 6;
 
 	if ((!com.selection.h) || (!com.selection.w)) {
 		if (nb >= startoptargs) {
@@ -1364,7 +1366,7 @@ int process_seq_crop(int nb) {
 	args->prefix = "cropped_";
 	
 	if (nb > startoptargs) {
-		for (int i = startoptargs; i < nb_command_max; i++) {
+		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
 				if (g_str_has_prefix(word[i], "-prefix=")) {
 					char *current = word[i], *value;
@@ -1782,7 +1784,7 @@ int process_cosme(int nb) {
 		return 1;
 	}
 
-	if (!ends_with(word[1], ".lst")) {
+	if (!g_str_has_suffix(word[1], ".lst")) {
 		filename = g_strdup_printf("%s.lst", word[1]);
 	} else {
 		filename = g_strdup(word[1]);
@@ -2141,9 +2143,8 @@ int process_subsky(int nb) {
 		args->degree = (poly_order) (degree - 1);
 
 		int startoptargs = 3;
-		int nb_command_max = 4;
 		if (nb > startoptargs) {
-			for (int i = startoptargs; i < nb_command_max; i++) {
+			for (int i = startoptargs; i < nb; i++) {
 				if (word[i]) {
 					if (g_str_has_prefix(word[i], "-prefix=")) {
 						char *current = word[i], *value;
@@ -2166,7 +2167,6 @@ int process_subsky(int nb) {
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
 
-		invalidate_stats_from_fit(&gfit);
 		adjust_cutoff_from_updated_gfit();
 		redraw(com.cvport, REMAP_ALL);
 	}
@@ -2551,9 +2551,8 @@ int process_seq_mtf(int nb) {
 	args->hi = g_ascii_strtod(word[4], NULL);
 
 	int startoptargs = 5;
-	int nb_command_max = 6;
 	if (nb > startoptargs) {
-		for (int i = startoptargs; i < nb_command_max; i++) {
+		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
 				if (g_str_has_prefix(word[i], "-prefix=")) {
 					char *current = word[i], *value;
@@ -2597,9 +2596,8 @@ int process_seq_split_cfa(int nb) {
 	args->seqEntry = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
 
 	int startoptargs = 2;
-	int nb_command_max = 3;
 	if (nb > startoptargs) {
-		for (int i = startoptargs; i < nb_command_max; i++) {
+		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
 				if (g_str_has_prefix(word[i], "-prefix=")) {
 					char *current = word[i], *value;
@@ -2642,9 +2640,8 @@ int process_seq_extractHa(int nb) {
 	args->seqEntry = "Ha_";
 
 	int startoptargs = 2;
-	int nb_command_max = 3;
 	if (nb > startoptargs) {
-		for (int i = startoptargs; i < nb_command_max; i++) {
+		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
 				if (g_str_has_prefix(word[i], "-prefix=")) {
 					char *current = word[i], *value;
@@ -2714,7 +2711,7 @@ int process_stat(int nb){
 
 		switch (layer) {
 			case 0:
-				if (gfit.naxes[2] == 1)
+				if (nplane == 1)
 					strcpy(layername, "B&W");
 				else
 					strcpy(layername, "Red");
@@ -2748,6 +2745,35 @@ int process_stat(int nb){
 	return 0;
 }
 
+int process_seq_stat(int nb) {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return 1;
+
+	struct stat_data *args = calloc(1, sizeof(struct stat_data));
+
+	args->seq = seq;
+	args->seqEntry = ""; // not used
+	args->csv_name = g_strdup(word[2]);
+
+	if (word[3] && !g_strcmp0(word[3], "extra")) {
+		args->option = STATS_EXTRA;
+	} else {
+		args->option = STATS_BASIC;
+	}
+
+	set_cursor_waiting(TRUE);
+
+	apply_stats_to_sequence(args);
+
+	return 0;
+}
+
 int process_convertraw(int nb) {
 	GDir *dir;
 	GError *error = NULL;
@@ -2763,14 +2789,14 @@ int process_convertraw(int nb) {
 		return 1;
 	}
 
-	for (int i = 2; i < 6; i++) {
+	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			char *current = word[i], *value;
 			if (!strcmp(current, "-debayer")) {
 				debayer = TRUE;
 			} else if (!strcmp(current, "-fitseq")) {
 				output = SEQ_FITSEQ;
-				if (!ends_with(destroot, com.pref.ext))
+				if (!g_str_has_suffix(destroot, com.pref.ext))
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
@@ -2797,7 +2823,7 @@ int process_convertraw(int nb) {
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
-		g_error_free(error);
+		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
@@ -2866,7 +2892,7 @@ int process_link(int nb) {
 		return 1;
 	}
 
-	for (int i = 2; i < 4; i++) {
+	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			char *current = word[i], *value;
 			if (g_str_has_prefix(current, "-start=")) {
@@ -2895,7 +2921,7 @@ int process_link(int nb) {
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Link: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Link: %s\n", error->message);
-		g_error_free(error);
+		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
@@ -2968,7 +2994,7 @@ int process_convert(int nb) {
 		return 1;
 	}
 
-	for (int i = 2; i < 6; i++) {
+	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			char *current = word[i], *value;
 			if (!strcmp(current, "-debayer")) {
@@ -2976,7 +3002,7 @@ int process_convert(int nb) {
 				make_link = FALSE;
 			} else if (!strcmp(current, "-fitseq")) {
 				output = SEQ_FITSEQ;
-				if (!ends_with(destroot, com.pref.ext))
+				if (!g_str_has_suffix(destroot, com.pref.ext))
 					str_append(&destroot, com.pref.ext);
 			} else if (g_str_has_prefix(current, "-start=")) {
 				value = current + 7;
@@ -3004,7 +3030,7 @@ int process_convert(int nb) {
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Convert: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Convert: %s\n", error->message);
-		g_error_free(error);
+		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
@@ -3104,7 +3130,7 @@ int process_register(int nb) {
 	reg_args->min_pairs = AT_MATCH_MINPAIRS;
 
 	/* check for options */
-	for (i = 2; i < 6; i++) {
+	for (i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (!strcmp(word[i], "-drizzle")) {
 				reg_args->x2upscale = TRUE;
@@ -3343,8 +3369,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 		if (!arg->result_file) {
 			char filename[256];
-			char *suffix = ends_with(seq->seqname, "_") ||
-				ends_with(com.seq.seqname, "-") ? "" : "_";
+			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
+				g_str_has_suffix(com.seq.seqname, "-") ? "" : "_";
 			snprintf(filename, 256, "%s%sstacked%s",
 					seq->seqname, suffix, com.pref.ext);
 			arg->result_file = strdup(filename);
@@ -3391,7 +3417,7 @@ static gpointer stackall_worker(gpointer garg) {
 		siril_log_message(_("Error while searching sequences or opening the directory.\n"));
 		if (error) {
 			fprintf(stderr, "stackall: %s\n", error->message);
-			g_error_free(error);
+			g_clear_error(&error);
 		}
 		siril_add_idle(end_generic, NULL);
 		return NULL;
@@ -3399,7 +3425,7 @@ static gpointer stackall_worker(gpointer garg) {
 
 	siril_log_message(_("Starting stacking of found sequences...\n"));
 	while ((file = g_dir_read_name(dir)) != NULL) {
-		if (ends_with(file, ".seq")) {
+		if (g_str_has_suffix(file, ".seq")) {
 			arg->seqfile = strdup(file);
 			stack_one_seq(arg);
 
@@ -3597,7 +3623,6 @@ failure:
 
 int process_preprocess(int nb) {
 	struct preprocessing_data *args;
-	int nb_command_max = 12;
 	int i, retvalue = 0;
 
 	if (word[1][0] == '\0') {
@@ -3612,7 +3637,7 @@ int process_preprocess(int nb) {
 	args->ppprefix = "pp_";
 	
 	/* checking for options */
-	for (i = 2; i < nb_command_max; i++) {
+	for (i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				args->bias = calloc(1, sizeof(fits));
