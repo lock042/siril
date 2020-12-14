@@ -22,6 +22,8 @@
 
 #include <glib.h>
 
+#include "core/siril.h"
+
 gboolean update_displayed_memory();
 int test_available_space(gint64 req_size);
 guint64 get_available_memory();
