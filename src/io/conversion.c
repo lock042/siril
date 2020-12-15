@@ -904,6 +904,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image) {
+	writer->converted_files = &conv->converted_files;
 	if (!args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (!conv->output_ser) {
@@ -1060,6 +1061,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			convert->current_fitseq = NULL;
 			return OPEN_ERROR;
 		}
+		fitseq_prepare_for_multiple_read(convert->current_fitseq);
 		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
 	}
