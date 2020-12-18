@@ -1,15 +1,16 @@
 #include <string.h>
 
-#include "algos/geometry.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_date.h"
 #include "sequence.h"
 #include "ser.h"
 #include "stacking/stacking.h"
 #include "registration/registration.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
-#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
+#include "io/image_format_fits.h"
+#ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
 #include "avi_pipp/avi_writer.h"
@@ -17,6 +18,8 @@
 #ifdef HAVE_FFMPEG
 #include "io/mp4_output.h"
 #endif
+#include "algos/geometry.h"
+
 
 struct exportseq_args {
 	sequence *seq;
@@ -34,34 +37,43 @@ struct exportseq_args {
 	double filtering_parameter;
 };
 
+enum {
+	EXPORT_FITS,
+	EXPORT_TIFF,
+	EXPORT_SER,
+	EXPORT_AVI,
+	EXPORT_MP4,
+	EXPORT_WEBM
+};
+
 /* Used for avi exporter */
 static uint8_t *fits_to_uint8(fits *fit) {
 	uint8_t *data;
 	int w, h, i, j, channel, step;
-	float pente;
 	WORD lo, hi;
 
 	w = fit->rx;
 	h = fit->ry;
 	channel = fit->naxes[2];
 	step = (channel == 3 ? 2 : 0);
-	pente = computePente(&lo, &hi);
+	float slope = compute_slope(&lo, &hi);
 
 	data = malloc(w * h * channel * sizeof(uint8_t));
 	for (i = 0, j = 0; i < w * h * channel; i += channel, j++) {
-		data[i + step] = (uint8_t) round_to_BYTE(((double) fit->pdata[RLAYER][j] * pente));
+		data[i + step] = (uint8_t) round_to_BYTE(((double) fit->pdata[RLAYER][j] * slope));
 		if (channel > 1) {
-			data[i + 1] = (uint8_t) round_to_BYTE(((double) fit->pdata[GLAYER][j] * pente));
-			data[i + 2 - step] = (uint8_t) round_to_BYTE(((double) fit->pdata[BLAYER][j] * pente));
+			data[i + 1] = (uint8_t) round_to_BYTE(((double) fit->pdata[GLAYER][j] * slope));
+			data[i + 2 - step] = (uint8_t) round_to_BYTE(((double) fit->pdata[BLAYER][j] * slope));
 		}
 	}
 	return data;
 }
 
 static gpointer export_sequence(gpointer ptr) {
-	int i, x, y, nx, ny, shiftx, shifty, layer, retval = 0, reglayer,
-	    nb_layers, skipped, nb_frames, cur_nb = 0;
-	unsigned int out_width, out_height, in_width, in_height, nbdata = 0;
+	int nb_layers = -1;
+	int retval = 0, cur_nb = 0;
+	unsigned int out_width, out_height, in_width, in_height;
+	size_t nbdata = 0;
 	uint8_t *data;
 	fits fit = { 0 };
 	fits destfit = { 0 };
@@ -69,14 +81,14 @@ static gpointer export_sequence(gpointer ptr) {
 	struct ser_struct *ser_file = NULL;
 	GSList *timestamp = NULL;
 	char *filter_descr;
-	gchar *strTime;
+	GDateTime *strTime;
 #ifdef HAVE_FFMPEG
 	struct mp4_struct *mp4_file = NULL;
 #endif
 	struct exportseq_args *args = (struct exportseq_args *)ptr;
 	norm_coeff coeff = { 0 };
 
-	reglayer = get_registration_layer(args->seq);
+	int reglayer = get_registration_layer(args->seq);
 	siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
 	if (args->crop) {
 		in_width  = args->crop_area.w;
@@ -171,7 +183,7 @@ static gpointer export_sequence(gpointer ptr) {
 			break;
 	}
 
-	nb_frames = compute_nb_filtered_images(args->seq,
+	int nb_frames = compute_nb_filtered_images(args->seq,
 			args->filtering_criterion, args->filtering_parameter);
 	filter_descr = describe_filter(args->seq, args->filtering_criterion,
 			args->filtering_parameter);
@@ -202,7 +214,7 @@ static gpointer export_sequence(gpointer ptr) {
 	}
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
-	for (i = 0, skipped = 0; i < args->seq->number; ++i) {
+	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
 			goto free_and_reset_progress_bar;
@@ -222,10 +234,17 @@ static gpointer export_sequence(gpointer ptr) {
 		set_progress_bar_data(tmpmsg, (double)cur_nb / (double)nb_frames);
 		free(tmpmsg);
 
-		if (seq_read_frame(args->seq, i, &fit)) {
+		if (seq_read_frame(args->seq, i, &fit, FALSE, -1)) {
 			siril_log_message(_("Export: could not read frame, aborting\n"));
 			retval = -3;
 			goto free_and_reset_progress_bar;
+		}
+
+		if (fit.type == DATA_USHORT && !com.pref.force_to_16bit) {
+			const long n = fit.naxes[0] * fit.naxes[1] * fit.naxes[2];
+			float *newbuf = ushort_buffer_to_float(fit.data, n);
+			if (!newbuf) { retval = 1; goto free_and_reset_progress_bar; }
+			fit_replace_buffer(&fit, newbuf, DATA_FLOAT);
 		}
 
 		if (!nbdata) {
@@ -236,22 +255,43 @@ static gpointer export_sequence(gpointer ptr) {
 			destfit.header = NULL;
 			destfit.fptr = NULL;
 			nbdata = fit.rx * fit.ry;
-			destfit.data = calloc(nbdata * fit.naxes[2], sizeof(WORD));
-			destfit.stats = NULL;
-			if (!destfit.data) {
-				fprintf(stderr, "Could not allocate memory for the export, aborting\n");
-				retval = -1;
-				goto free_and_reset_progress_bar;
-			}
-			destfit.pdata[0] = destfit.data;
-			if (fit.naxes[2] == 1) {
-				destfit.pdata[1] = destfit.data;
-				destfit.pdata[2] = destfit.data;
+			if ((args->convflags == TYPEFITS) && (fit.type == DATA_FLOAT)) {
+				destfit.fdata = calloc(nbdata * fit.naxes[2], sizeof(float));
+				destfit.type = DATA_FLOAT;
+				destfit.stats = NULL;
+				if (!destfit.fdata) {
+					PRINT_ALLOC_ERR;
+					retval = -1;
+					goto free_and_reset_progress_bar;
+				}
+				destfit.fpdata[0] = destfit.fdata;
+				if (fit.naxes[2] == 1) {
+					destfit.fpdata[1] = destfit.fdata;
+					destfit.fpdata[2] = destfit.fdata;
+				} else {
+					destfit.fpdata[1] = destfit.fdata + nbdata;
+					destfit.fpdata[2] = destfit.fdata + nbdata * 2;
+				}
+				nb_layers = fit.naxes[2];
 			} else {
-				destfit.pdata[1] = destfit.data + nbdata;
-				destfit.pdata[2] = destfit.data + nbdata * 2;
+				destfit.data = calloc(nbdata * fit.naxes[2], sizeof(WORD));
+				destfit.type = DATA_USHORT;
+				destfit.stats = NULL;
+				if (!destfit.data) {
+					PRINT_ALLOC_ERR;
+					retval = -1;
+					goto free_and_reset_progress_bar;
+				}
+				destfit.pdata[0] = destfit.data;
+				if (fit.naxes[2] == 1) {
+					destfit.pdata[1] = destfit.data;
+					destfit.pdata[2] = destfit.data;
+				} else {
+					destfit.pdata[1] = destfit.data + nbdata;
+					destfit.pdata[2] = destfit.data + nbdata * 2;
+				}
+				nb_layers = fit.naxes[2];
 			}
-			nb_layers = fit.naxes[2];
 		}
 		else if (fit.ry * fit.rx != nbdata || nb_layers != fit.naxes[2]) {
 			fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
@@ -262,18 +302,33 @@ static gpointer export_sequence(gpointer ptr) {
 			/* we want copy the header */
 			// TODO: why not use copyfits here?
 			copy_fits_metadata(&fit, &destfit);
-			memset(destfit.data, 0, nbdata * fit.naxes[2] * sizeof(WORD));
-			if (args->crop) {
-				/* reset destfit damaged by the crop function */
-				if (fit.naxes[2] == 3) {
-					destfit.pdata[1] = destfit.data + nbdata;
-					destfit.pdata[2] = destfit.data + nbdata * 2;
+			if ((fit.type == DATA_FLOAT) && (args->convflags == TYPEFITS)) {
+				memset(destfit.fdata, 0, nbdata * fit.naxes[2] * sizeof(float));
+				destfit.type = DATA_FLOAT;
+				if (args->crop) {
+					/* reset destfit damaged by the crop function */
+					if (fit.naxes[2] == 3) {
+						destfit.fpdata[1] = destfit.fdata + nbdata;
+						destfit.fpdata[2] = destfit.fdata + nbdata * 2;
+					}
+					destfit.rx = destfit.naxes[0] = fit.rx;
+					destfit.ry = destfit.naxes[1] = fit.ry;
 				}
-				destfit.rx = destfit.naxes[0] = fit.rx;
-				destfit.ry = destfit.naxes[1] = fit.ry;
+			} else {
+				destfit.type = DATA_USHORT;
+				memset(destfit.data, 0, nbdata * fit.naxes[2] * sizeof(WORD));
+				if (args->crop) {
+					/* reset destfit damaged by the crop function */
+					if (fit.naxes[2] == 3) {
+						destfit.pdata[1] = destfit.data + nbdata;
+						destfit.pdata[2] = destfit.data + nbdata * 2;
+					}
+					destfit.rx = destfit.naxes[0] = fit.rx;
+					destfit.ry = destfit.naxes[1] = fit.ry;
+				}
 			}
 		}
-
+		int shiftx, shifty;
 		/* load registration data for current image */
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
 			shiftx = roundf_to_int(args->seq->regparam[reglayer][i].shiftx);
@@ -284,19 +339,46 @@ static gpointer export_sequence(gpointer ptr) {
 		}
 
 		/* fill the image with shift data and normalization */
-		for (layer=0; layer<fit.naxes[2]; ++layer) {
-			for (y=0; y < fit.ry; ++y){
-				for (x=0; x < fit.rx; ++x){
-					nx = x + shiftx;
-					ny = y + shifty;
+		for (int layer = 0; layer < fit.naxes[2]; ++layer) {
+			for (int y = 0; y < fit.ry; ++y) {
+				for (int x = 0; x < fit.rx; ++x) {
+					int nx = x + shiftx;
+					int ny = y + shifty;
 					if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
-						if (args->normalize) {
-							double tmp = fit.pdata[layer][x + y * fit.rx];
-							tmp *= coeff.scale[i];
-							tmp -= coeff.offset[i];
-							destfit.pdata[layer][nx + ny * fit.rx] = round_to_WORD(tmp);
+						if (fit.type == DATA_USHORT) {
+							if (args->normalize) {
+								float tmp = fit.pdata[layer][x + y * fit.rx];
+								tmp *= (float) coeff.scale[i];
+								tmp -= (float) coeff.offset[i];
+								destfit.pdata[layer][nx + ny * fit.rx] = roundf_to_WORD(tmp);
+							} else {
+								destfit.pdata[layer][nx + ny * fit.rx] = fit.pdata[layer][x + y * fit.rx];
+							}
+						} else if (fit.type == DATA_FLOAT) {
+							destfit.bitpix = com.pref.force_to_16bit ? USHORT_IMG : FLOAT_IMG;
+							if (args->convflags == TYPEFITS) {
+								if (args->normalize) {
+									float tmp =	fit.fpdata[layer][x + y * fit.rx];
+									tmp *= (float) coeff.scale[i];
+									tmp -= (float) coeff.offset[i];
+									destfit.fpdata[layer][nx + ny * fit.rx] = tmp;
+								} else {
+									destfit.fpdata[layer][nx + ny * fit.rx] = fit.fpdata[layer][x + y * fit.rx];
+								}
+							} else {
+								if (args->normalize) {
+									float tmp =	fit.fpdata[layer][x + y * fit.rx];
+									tmp *= (float) coeff.scale[i];
+									tmp -= (float) coeff.offset[i];
+									destfit.pdata[layer][nx + ny * fit.rx] = roundf_to_WORD(tmp * USHRT_MAX_SINGLE);
+								} else {
+									float tmp = fit.fpdata[layer][x + y * fit.rx] * USHRT_MAX_SINGLE;
+									destfit.pdata[layer][nx + ny * fit.rx] = roundf_to_WORD(tmp);
+								}
+							}
 						} else {
-							destfit.pdata[layer][nx + ny * fit.rx] = fit.pdata[layer][x + y * fit.rx];
+							retval = -1;
+							goto free_and_reset_progress_bar;
 						}
 					}
 				}
@@ -309,14 +391,24 @@ static gpointer export_sequence(gpointer ptr) {
 
 		switch (args->convflags) {
 			case TYPEFITS:
-				snprintf(dest, 255, "%s%05d%s", args->basename, i, com.ext);
+				snprintf(dest, 255, "%s%05d%s", args->basename, i, com.pref.ext);
 				if (savefits(dest, &destfit)) {
 					retval = -1;
 					goto free_and_reset_progress_bar;
 				}
 				break;
+#ifdef HAVE_LIBTIFF
+			case TYPETIFF:
+				snprintf(dest, 255, "%s%05d", args->basename, i);
+				if (savetif(dest, &destfit, 16)) {
+					retval = -1;
+					goto free_and_reset_progress_bar;
+				}
+
+				break;
+#endif
 			case TYPESER:
-				strTime = strdup(destfit.date_obs);
+				strTime = g_date_time_ref(destfit.date_obs);
 				timestamp = g_slist_append (timestamp, strTime);
 				if (ser_write_frame_from_fit(ser_file, &destfit, i - skipped))
 					siril_log_message(
@@ -327,7 +419,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 				if (args->resize) {
 					uint8_t *newdata = malloc(out_width * out_height * destfit.naxes[2]);
-					cvResizeGaussian_data8(data, destfit.rx, destfit.ry, newdata,
+					cvResizeGaussian_uchar(data, destfit.rx, destfit.ry, newdata,
 							out_width, out_height, destfit.naxes[2], OPENCV_CUBIC);
 					avi_file_write_frame(0, newdata);
 					free(newdata);
@@ -349,7 +441,11 @@ static gpointer export_sequence(gpointer ptr) {
 
 free_and_reset_progress_bar:
 	clearfits(&fit);	// in case of goto
-	free(destfit.data);
+	if ((fit.type == DATA_FLOAT) && (args->convflags == TYPEFITS)) {
+		free(destfit.fdata);
+	} else {
+		free(destfit.data);
+	}
 	if (args->normalize) {
 		free(coeff.offset);
 		free(coeff.scale);
@@ -358,7 +454,7 @@ free_and_reset_progress_bar:
 		ser_convertTimeStamp(ser_file, timestamp);
 		ser_write_and_close(ser_file);
 		free(ser_file);
-		g_slist_free_full(timestamp, g_free);
+		g_slist_free_full(timestamp, (GDestroyNotify) g_date_time_unref);
 	}
 	else if (args->convflags == TYPEAVI) {
 		avi_file_close(0);
@@ -412,22 +508,26 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 
 	// format
 	switch (selected) {
-	case 0:
+	case EXPORT_FITS:
 		args->convflags = TYPEFITS;
-		args->basename = format_basename(args->basename);
+		args->basename = format_basename(args->basename, TRUE);
 		break;
-	case 1:
+	case EXPORT_TIFF:
+		args->convflags = TYPETIFF;
+		args->basename = format_basename(args->basename, TRUE);
+		break;
+	case EXPORT_SER:
 		args->convflags = TYPESER;
 		break;
-	case 2:
-	case 3:
-	case 4:
+	case EXPORT_AVI:
+	case EXPORT_MP4:
+	case EXPORT_WEBM:
 		fpsEntry = GTK_ENTRY(lookup_widget("entryAviFps"));
-		args->avi_fps = atoi(gtk_entry_get_text(fpsEntry));
+		args->avi_fps = g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL);
 		widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
-		args->dest_width = atof(gtk_entry_get_text(widthEntry));
+		args->dest_width = g_ascii_strtoll(gtk_entry_get_text(widthEntry), NULL, 10);
 		heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
-		args->dest_height = atof(gtk_entry_get_text(heightEntry));
+		args->dest_height = g_ascii_strtoll(gtk_entry_get_text(heightEntry), NULL, 10);
 		checkResize = GTK_TOGGLE_BUTTON(lookup_widget("checkAviResize"));
 		adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(builder,"adjustment3"));
 		args->quality = (int)gtk_adjustment_get_value(adjQual);
@@ -443,9 +543,9 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 			args->resize = gtk_toggle_button_get_active(checkResize);
 		}
 		args->convflags = TYPEAVI;
-		if (selected == 3)
+		if (selected == EXPORT_MP4)
 			args->convflags = TYPEMP4;
-		else if (selected == 4)
+		else if (selected == EXPORT_WEBM)
 			args->convflags = TYPEWEBM;
 		break;
 	default:
@@ -460,8 +560,8 @@ void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {
 	GtkWidget *avi_options = lookup_widget("boxAviOptions");
 	GtkWidget *checkAviResize = lookup_widget("checkAviResize");
 	GtkWidget *quality = lookup_widget("exportQualScale");
-	gtk_widget_set_visible(avi_options, gtk_combo_box_get_active(box) >= 2);
-	gtk_widget_set_visible(quality, gtk_combo_box_get_active(box) >= 3);
+	gtk_widget_set_visible(avi_options, gtk_combo_box_get_active(box) >= 3);
+	gtk_widget_set_visible(quality, gtk_combo_box_get_active(box) >= 4);
 	gtk_widget_set_sensitive(checkAviResize, TRUE);
 
 }
@@ -482,3 +582,51 @@ void update_export_crop_label() {
 	else gtk_label_set_text(label, _("Select area to crop"));
 }
 
+void on_entryExportSeq_changed(GtkEditable *editable, gpointer user_data){
+	gchar *name = (gchar *)gtk_entry_get_text(GTK_ENTRY(editable));
+	if (*name != 0) {
+		if (check_if_seq_exist(name, !ends_with(name, ".ser"))) {
+			set_icon_entry(GTK_ENTRY(editable), "gtk-dialog-warning");
+		} else {
+			set_icon_entry(GTK_ENTRY(editable), NULL);
+		}
+	} else {
+		set_icon_entry(GTK_ENTRY(editable), NULL);
+	}
+}
+
+void on_entryAviHeight_changed(GtkEditable *editable, gpointer user_data);
+
+void on_entryAviWidth_changed(GtkEditable *editable, gpointer user_data) {
+	double ratio, width, height;
+	gchar *c_height;
+	GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
+
+	if (com.selection.w && com.selection.h) return;
+	ratio = (double) com.seq.ry / (double) com.seq.rx;
+	width = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)),NULL);
+	height = ratio * width;
+	c_height = g_strdup_printf("%d", (int)(height));
+
+	g_signal_handlers_block_by_func(heightEntry, on_entryAviHeight_changed, NULL);
+	gtk_entry_set_text(heightEntry, c_height);
+	g_signal_handlers_unblock_by_func(heightEntry, on_entryAviHeight_changed, NULL);
+	g_free(c_height);
+}
+
+void on_entryAviHeight_changed(GtkEditable *editable, gpointer user_data) {
+	double ratio, width, height;
+	gchar *c_width;
+	GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
+
+	if (com.selection.w && com.selection.h) return;
+	ratio = (double) com.seq.rx / (double) com.seq.ry;
+	height = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
+	width = ratio * height;
+	c_width = g_strdup_printf("%d", (int)(width));
+
+	g_signal_handlers_block_by_func(widthEntry, on_entryAviWidth_changed, NULL);
+	gtk_entry_set_text(widthEntry, c_width);
+	g_signal_handlers_unblock_by_func(widthEntry, on_entryAviWidth_changed, NULL);
+	g_free(c_width);
+}

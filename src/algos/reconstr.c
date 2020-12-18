@@ -123,9 +123,6 @@ int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 	double ratio;
 	int i;
 
-	gfit.ry = Nl;
-	gfit.rx = Nc;
-
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:maximum)
 #endif
@@ -158,15 +155,30 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, WORD *data)
 	Nl = Wavelet.Nbr_Ligne;
 	Nc = Wavelet.Nbr_Col;
 	Imag = f_vector_alloc(Nl * Nc);
-	if (Imag == NULL)
+	if (Imag == NULL) {
+		PRINT_ALLOC_ERR;
 		return 1;
+	}
 	wavelet_reconstruct_data(&Wavelet, Imag, coef);
 
 	/* get and view result */
 	reget_rawdata(Imag, Nl, Nc, data);
 
 	wave_io_free(&Wavelet);
-	free((char *) Imag);
+	free(Imag);
+	return 0;
+}
+
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float *data) {
+	wave_transf_des Wavelet;
+
+	/* read the wavelet file */
+	if (wave_io_read(File_Name_Transform, &Wavelet))
+		return 1;
+
+	wavelet_reconstruct_data(&Wavelet, data, coef);
+
+	wave_io_free(&Wavelet);
 	return 0;
 }
 
@@ -186,7 +198,7 @@ int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef)
 		pave_2d_build(Pave, Imag, Nl, Nc, Nbr_Plan, coef);
 		break;
 	default:
-		siril_log_message("Unknown transform\n");
+		siril_log_message(_("Unknown transform\n"));
 		return 1;
 		break;
 	}

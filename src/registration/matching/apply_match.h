@@ -22,8 +22,6 @@
 #ifndef SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_
 #define SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_
 
-#ifdef HAVE_LIBCURL
-
 #include "misc.h"
 #include "algos/plateSolver.h"
 
@@ -31,4 +29,3 @@
 int apply_match(image_solved *solved, TRANS trans);
 
 #endif /* SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_ */
-#endif

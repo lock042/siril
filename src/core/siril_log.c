@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,15 +20,14 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/command.h"
+#include "core/siril_date.h"
+#include "core/command.h" // for process_clear()
+#include "core/OS_utils.h"
+#include "core/pipe.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
+#include "gui/progress_and_log.h"
 
-static gchar *build_timestamp() {
-	GTimeVal time;
-
-	g_get_current_time(&time);
-	return g_time_val_to_iso8601(&time);
-}
 
 static void replace_not_valid_char(gchar *str, gchar c, gchar n) {
 	gchar *s = str;
@@ -44,27 +43,38 @@ static void save_log_file(gchar *filename) {
 	GtkTextBuffer *log;
 	GtkTextView *tv;
 	GtkTextIter start, end;
-	gchar *str, **token;
-	guint nargs, i;
-	FILE *f;
+	gchar *str;
+	GError *error = NULL;
 
 	tv = GTK_TEXT_VIEW(lookup_widget("output"));
 	log = gtk_text_view_get_buffer(tv);
 	gtk_text_buffer_get_bounds(log, &start, &end);
 	str = gtk_text_buffer_get_text(log, &start, &end, FALSE);
 
-	token = g_strsplit(str, "\n", -1);
-	nargs = g_strv_length(token);
+	GFile *file = g_file_new_for_path(filename);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
+			G_FILE_CREATE_NONE, NULL, &error);
 
-	f = g_fopen(filename, "w");
-
-	for (i = 0; i < nargs; i++) {
-		fprintf(f, "%s%s", token[i], SIRIL_EOL);
+	if (output_stream == NULL) {
+		if (error != NULL) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			siril_log_message(_("Cannot create logfile [%s]\n"), filename);
+		}
+		g_object_unref(file);
+		return;
 	}
 
-	fclose(f);
+    gsize bytes_written = 0;
+	if (!g_output_stream_write_all(output_stream, str, strlen(str),
+			&bytes_written, NULL, &error)) {
+		g_warning("%s\n", error->message);
+		g_clear_error(&error);
+	}
+
+	g_object_unref(output_stream);
+	g_object_unref(file);
 	g_free(str);
-	g_strfreev(token);
 }
 
 static void set_filter(GtkFileChooser *dialog) {
@@ -82,7 +92,7 @@ static void save_log_dialog() {
 	gint res;
 	gchar *filename;
 
-	filename = build_timestamp();
+	filename = build_timestamp_filename();
 	replace_not_valid_char(filename, ':', '.');
 	filename = str_append(&filename, ".log");
 
@@ -105,10 +115,66 @@ static void save_log_dialog() {
 	g_free(filename);
 }
 
+/* This function writes a message on Siril's console/log. It is not thread safe.
+ * There is a limit in number of characters that it is able to write in one call: 1023.
+ * Return value is the string printed from arguments, or NULL if argument was empty or
+ * only newline. It is an allocated string and must not be freed. It can be
+ * reused until next call to this function.
+ */
+char* siril_log_internal(const char* format, const char* color, va_list arglist) {
+	static char *msg = NULL;
+
+	if (msg == NULL) {
+		msg = malloc(1024);
+		msg[1023] = '\0';
+	}
+
+	vsnprintf(msg, 1023, format, arglist);
+
+	if (msg == NULL || msg[0] == '\0')
+		return NULL;
+
+	if (msg[0] == '\n' && msg[1] == '\0') {
+		fputc('\n', stdout);
+		gui_log_message("\n", NULL);
+		return NULL;
+	}
+
+	fprintf(stdout, "log: %s", msg);
+	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
+	gui_log_message(msg, color);
+
+	return msg;
+}
+
+char* siril_log_message(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	g_mutex_lock(&com.mutex);
+	char *msg = siril_log_internal(format, NULL, args);
+	g_mutex_unlock(&com.mutex);
+	va_end(args);
+	return msg;
+}
+
+char* siril_log_color_message(const char* format, const char* color, ...) {
+	va_list args;
+	va_start(args, color);
+	g_mutex_lock(&com.mutex);
+	char *msg = siril_log_internal(format, color, args);
+	g_mutex_unlock(&com.mutex);
+	va_end(args);
+	return msg;
+}
+
 /************** Callbacks function ***********/
 
 void on_clear_log_button_clicked(GtkButton *button, gpointer user_data) {
-	process_clear(0);
+	gboolean ret = siril_confirm_dialog(_("Clear the log"),
+			_("Are you sure you want to clear the log? There is no possible undo."));
+	if (ret) {
+		process_clear(0);
+	}
 }
 
 void on_export_log_button_clicked(GtkButton *button, gpointer user_data) {

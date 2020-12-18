@@ -1,12 +1,9 @@
 #!/bin/sh
 # Run this to generate all the initial makefiles, etc.
+
 srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
-
-(test -f $srcdir/configure.ac) || {
-        echo "**Error**: Directory "\`$srcdir\'" does not look like the top-level project directory"
-        exit 1
-}
+cd $srcdir
 
 PKG_NAME=`autoconf --trace 'AC_INIT:$1' "$srcdir/configure.ac"`
 
@@ -17,6 +14,10 @@ if [ "$#" = 0 -a "x$NOCONFIGURE" = "x" ]; then
         echo "" >&2
 fi
 
+# Manage librtprocess automatically, for the first autogen.
+# To update librtprocess, manual intervention, like 'git submodule update' then cmake and make, is required.
+ls subprojects/librtprocess >/dev/null 2>&1 || ( echo 'Failed to get librtprocess, please download it and compile it yourself. Aborting.' && exit 1 )
+
 set -x
 aclocal --install || exit 1
 intltoolize --force --copy --automake || exit 1
@@ -25,7 +26,7 @@ autoreconf --verbose --force --install -Wno-portability || exit 1
 
 if [ "$NOCONFIGURE" = "" ]; then
         set -x
-        $srcdir/configure "$@" || exit 1
+        ./configure "$@" || exit 1
         { set +x; } 2>/dev/null
 
         if [ "$1" = "--help" ]; then exit 0 else

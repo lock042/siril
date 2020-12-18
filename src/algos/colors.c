@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,16 +25,135 @@
 #include <float.h>
 
 #include "core/siril.h"
-#include "core/processing.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/undo.h"
+#include "core/OS_utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
+#include "gui/image_display.h"
+#include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
 #include "gui/histogram.h"
+#include "gui/dialogs.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
+
+/*
+ * A Fast HSL-to-RGB Transform
+ * by Ken Fishkin
+ * from "Graphics Gems", Academic Press, 1990
+ * */
+/*
+ *  * given h,s,l on [0..1],
+ *   * return r,g,b on [0..1]
+ *    */
+void hsl_to_rgb_float_sat(float h, float sl, float l, float * r, float * g,
+		float * b) {
+	float v;
+
+	h = h >= 6.f ? h - 6.f : h;
+
+	v = (l <= 0.5f) ? (l * (1.f + sl)) : (l + sl - l * sl);
+	if (v <= 0.f) {
+		*r = *g = *b = 0.f;
+	} else {
+		float m;
+		float sv;
+		int sextant;
+		float fract, vsf, mid1, mid2;
+
+		m = l + l - v;
+		sv = (v - m) / v;
+		sextant = h;
+		fract = h - sextant;
+		vsf = v * sv * fract;
+		mid1 = m + vsf;
+		mid2 = v - vsf;
+		switch (sextant) {
+			case 0:
+				*r = v;
+				*g = mid1;
+				*b = m;
+				break;
+			case 1:
+				*r = mid2;
+				*g = v;
+				*b = m;
+				break;
+			case 2:
+				*r = m;
+				*g = v;
+				*b = mid1;
+				break;
+			case 3:
+				*r = m;
+				*g = mid2;
+				*b = v;
+				break;
+			case 4:
+				*r = mid1;
+				*g = m;
+				*b = v;
+				break;
+			case 5:
+				*r = v;
+				*g = m;
+				*b = mid2;
+				break;
+		}
+	}
+}
+/*
+ *  * RGB-HSL transforms.
+ *   * Ken Fishkin, Pixar Inc., January 1989.
+ *    */
+
+/*
+ *  * given r,g,b on [0 ... 1],
+ *   * return (h,s,l) on [0 ... 1]
+ *    */
+void rgb_to_hsl_float_sat(float r, float g, float b, float low, float *h, float *s, float *l) {
+	float v;
+	float m;
+	float vm;
+	float r2, g2, b2;
+
+	v = max(r, g);
+	v = max(v, b);
+	m = min(r, g);
+	m = min(m, b);
+
+	if (m + v < low + low) {
+		*l = 0.f;
+		return;
+	}
+	*l = (m + v) / 2.f;
+	*h = 0.f;
+	*s = 0.f;	// init values
+
+	if ((*s = vm = v - m) > 0.f) {
+		*s /= (*l <= 0.5f) ? (v + m) : (2.f - v - m);
+	} else
+		return;
+
+	if (r == v) {
+		g2 = (v - g) / vm;
+		b2 = (v - b) / vm;
+		*h = (g == m ? 5.f + b2 : 1.f - g2);
+	}else if (g == v) {
+		r2 = (v - r) / vm;
+		b2 = (v - b) / vm;
+		*h = (b == m ? 1.f + r2 : 3.f - b2);
+	} else {
+		r2 = (v - r) / vm;
+		g2 = (v - g) / vm;
+		*h = (r == m ? 3.f + g2 : 5.f - r2);
+	}
+
+}
 
 /*
  * A Fast HSL-to-RGB Transform
@@ -69,58 +188,56 @@ void hsl_to_rgb(double h, double sl, double l, double * r, double * g,
 		mid1 = m + vsf;
 		mid2 = v - vsf;
 		switch (sextant) {
-		case 0:
-			*r = v;
-			*g = mid1;
-			*b = m;
-			break;
-		case 1:
-			*r = mid2;
-			*g = v;
-			*b = m;
-			break;
-		case 2:
-			*r = m;
-			*g = v;
-			*b = mid1;
-			break;
-		case 3:
-			*r = m;
-			*g = mid2;
-			*b = v;
-			break;
-		case 4:
-			*r = mid1;
-			*g = m;
-			*b = v;
-			break;
-		case 5:
-			*r = v;
-			*g = m;
-			*b = mid2;
-			break;
+			case 0:
+				*r = v;
+				*g = mid1;
+				*b = m;
+				break;
+			case 1:
+				*r = mid2;
+				*g = v;
+				*b = m;
+				break;
+			case 2:
+				*r = m;
+				*g = v;
+				*b = mid1;
+				break;
+			case 3:
+				*r = m;
+				*g = mid2;
+				*b = v;
+				break;
+			case 4:
+				*r = mid1;
+				*g = m;
+				*b = v;
+				break;
+			case 5:
+				*r = v;
+				*g = m;
+				*b = mid2;
+				break;
 		}
 	}
 }
-/*
- *  * RGB-HSL transforms.
- *   * Ken Fishkin, Pixar Inc., January 1989.
- *    */
 
-/*
- *  * given r,g,b on [0 ... 1],
- *   * return (h,s,l) on [0 ... 1]
- *    */
+/* RGB-HSL transforms.
+ * Ken Fishkin, Pixar Inc., January 1989.
+ *
+ * given r,g,b on [0 ... 1],
+ * return (h,s,l) on [0 ... 1]
+ */
 void rgb_to_hsl(double r, double g, double b, double *h, double *s, double *l) {
 	double v;
 	double m;
 	double vm;
 	double r2, g2, b2;
 
-	v = MAX(r, g);
-	v = MAX(v, b);
-	m = MIN(r, g);
-	m = MIN(m, b);
+	v = max(r, g);
+	v = max(v, b);
+	m = min(r, g);
+	m = min(m, b);
 	*h = 0.0;
 	*s = 0.0;	// init values
 
@@ -189,37 +306,37 @@ void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
 	t = v * (1.0 - (s * (1.0 - f)));
 
 	switch (i) {
-	case 0:
-		*r = v;
-		*g = t;
-		*b = p;
-		break;
-	case 1:
-		*r = q;
-		*g = v;
-		*b = p;
-		break;
-	case 2:
-		*r = p;
-		*g = v;
-		*b = t;
-		break;
-	case 3:
-		*r = p;
-		*g = q;
-		*b = v;
-		break;
-	case 4:
-		*r = t;
-		*g = p;
-		*b = v;
-		break;
-	case 5:
-	default:
-		*r = v;
-		*g = p;
-		*b = q;
-		break;
+		case 0:
+			*r = v;
+			*g = t;
+			*b = p;
+			break;
+		case 1:
+			*r = q;
+			*g = v;
+			*b = p;
+			break;
+		case 2:
+			*r = p;
+			*g = v;
+			*b = t;
+			break;
+		case 3:
+			*r = p;
+			*g = q;
+			*b = v;
+			break;
+		case 4:
+			*r = t;
+			*g = p;
+			*b = v;
+			break;
+		case 5:
+		default:
+			*r = v;
+			*g = p;
+			*b = q;
+			break;
 	}
 }
 
@@ -301,52 +418,75 @@ double BV_to_T(double BV) {
 	return T;
 }
 
+int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, int config) {
+	unsigned int row, col;
+	float tmp1, tmp2;
+	if (fit->type == DATA_USHORT) {
+		WORD *data = fit->data;
+		for (row = 0; row < fit->ry - 1; row += 2) {
+			for (col = 0; col < fit->rx - 1; col += 2) {
+				if (config == 0) {
+					tmp1 = (float)data[1 + col + row * fit->rx] / coeff1;
+					data[1 + col + row * fit->rx] = round_to_WORD(tmp1);
 
-int equalize_cfa_fit_with_coeffs(fits *fit, double coeff1, double coeff2,
-		int config) {
-	int row, col;
-	double tmp1, tmp2;
-	WORD *data;
+					tmp2 = (float)data[col + (1 + row) * fit->rx] / coeff2;
+					data[col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
 
-	data = fit->data;
+				} else {
+					tmp1 = (float)data[col + row * fit->rx] / coeff1;
+					data[col + row * fit->rx] = round_to_WORD(tmp1);
 
-	for (row = 0; row < fit->ry - 1; row += 2) {
-		for (col = 0; col < fit->rx - 1; col += 2) {
-			if (config == 0) {
-				tmp1 = (double) data[1 + col + row * fit->rx] / coeff1;
-				data[1 + col + row * fit->rx] = round_to_WORD(tmp1);
+					tmp2 = (float)data[1 + col + (1 + row) * fit->rx] / coeff2;
+					data[1 + col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
 
-				tmp2 = (double) data[col + (1 + row) * fit->rx] / coeff2;
-				data[col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
-
-			} else {
-				tmp1 = (double) data[col + row * fit->rx] / coeff1;
-				data[col + row * fit->rx] = round_to_WORD(tmp1);
-
-				tmp2 = (double) data[1 + col + (1 + row) * fit->rx] / coeff2;
-				data[1 + col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
-
+				}
 			}
 		}
 	}
+	else if (fit->type == DATA_FLOAT) {
+		float *data = fit->fdata;
+		for (row = 0; row < fit->ry - 1; row += 2) {
+			for (col = 0; col < fit->rx - 1; col += 2) {
+				if (config == 0) {
+					tmp1 = data[1 + col + row * fit->rx] / coeff1;
+					data[1 + col + row * fit->rx] = tmp1;
+
+					tmp2 = data[col + (1 + row) * fit->rx] / coeff2;
+					data[col + (1 + row) * fit->rx] = tmp2;
+
+				} else {
+					tmp1 = data[col + row * fit->rx] / coeff1;
+					data[col + row * fit->rx] = tmp1;
+
+					tmp2 = data[1 + col + (1 + row) * fit->rx] / coeff2;
+					data[1 + col + (1 + row) * fit->rx] = tmp2;
+
+				}
+			}
+		}
+	}
+	else return 1;
 	return 0;
 }
 
 // idle function executed at the end of the extract_channels processing
-gboolean end_extract_channels(gpointer p) {
+static gboolean end_extract_channels(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *) p;
 	stop_processing_thread();
+	free(args->channel[0]);
+	free(args->channel[1]);
+	free(args->channel[2]);
 	free(args);
 	set_cursor_waiting(FALSE);
-	update_used_memory();
+
 	return FALSE;
 }
 
-gpointer extract_channels(gpointer p) {
+static gpointer extract_channels_ushort(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *) p;
 	WORD *buf[3] = { args->fit->pdata[RLAYER], args->fit->pdata[GLAYER],
-			args->fit->pdata[BLAYER] };
-	int i;
+		args->fit->pdata[BLAYER] };
+	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
 	args->process = TRUE;
 
@@ -359,26 +499,26 @@ gpointer extract_channels(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	siril_log_color_message(_("%s channel extraction: processing...\n"), "red",
+	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
 			args->str_type);
 	gettimeofday(&t_start, NULL);
 
 	switch (args->type) {
-	/* RGB space: nothing to do */
-	case 0:
-		break;
-		/* HSL space */
-	case 1:
+		/* RGB space: nothing to do */
+		case 0:
+			break;
+			/* HSL space */
+		case 1:
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (i = 0; i < args->fit->rx * args->fit->ry; i++) {
+		for (size_t i = 0; i < n; i++) {
 			double h, s, l;
 			double r = (double) buf[RLAYER][i] / USHRT_MAX_DOUBLE;
 			double g = (double) buf[GLAYER][i] / USHRT_MAX_DOUBLE;
 			double b = (double) buf[BLAYER][i] / USHRT_MAX_DOUBLE;
 			rgb_to_hsl(r, g, b, &h, &s, &l);
-			buf[RLAYER][i] = round_to_WORD(h * 360.0);
+			buf[RLAYER][i] = round_to_WORD(h * 360.0);	// TODO: what's that?
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(l * USHRT_MAX_DOUBLE);
 		}
@@ -386,9 +526,9 @@ gpointer extract_channels(gpointer p) {
 		/* HSV space */
 	case 2:
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (i = 0; i < args->fit->rx * args->fit->ry; i++) {
+		for (size_t i = 0; i < n; i++) {
 			double h, s, v;
 			double r = (double) buf[RLAYER][i] / USHRT_MAX_DOUBLE;
 			double g = (double) buf[GLAYER][i] / USHRT_MAX_DOUBLE;
@@ -402,9 +542,9 @@ gpointer extract_channels(gpointer p) {
 		/* CIE L*a*b */
 	case 3:
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (i = 0; i < args->fit->rx * args->fit->ry; i++) {
+		for (size_t i = 0; i < n; i++) {
 			double x, y, z, L, a, b;
 			double red = (double) buf[RLAYER][i] / USHRT_MAX_DOUBLE;
 			double green = (double) buf[GLAYER][i] / USHRT_MAX_DOUBLE;
@@ -419,7 +559,7 @@ gpointer extract_channels(gpointer p) {
 		}
 
 	}
-	for (i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++)
 		save1fits16(args->channel[i], args->fit, i);
 	clearfits(args->fit);
 	gettimeofday(&t_end, NULL);
@@ -429,173 +569,99 @@ gpointer extract_channels(gpointer p) {
 	return GINT_TO_POINTER(0);
 }
 
-// idle function executed at the end of the enhance_saturation processing
-gboolean end_enhance_saturation(gpointer p) {
-	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
-	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
-	redraw_previews();
-	update_gfit_histogram_if_needed();
-	free(args);
-	set_cursor_waiting(FALSE);
-	update_used_memory();
-
-	return FALSE;
-}
-
-gpointer enhance_saturation(gpointer p) {
-	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
+static gpointer extract_channels_float(gpointer p) {
+	struct extract_channels_data *args = (struct extract_channels_data *) p;
+	float *buf[3] = { args->fit->fpdata[RLAYER], args->fit->fpdata[GLAYER],
+		args->fit->fpdata[BLAYER] };
 	struct timeval t_start, t_end;
-	double bg = 0;
-	int i;
+	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
+	args->process = TRUE;
 
-	if (!isrgb(args->input) || !isrgb(args->output) ||
-			args->input->naxes[0] != args->output->naxes[0] ||
-			args->input->naxes[1] != args->output->naxes[1]) {
-		siril_add_idle(end_enhance_saturation, args);
-		return GINT_TO_POINTER(1);
-	}
-	if (args->coeff == 0.0) {
-		siril_add_idle(end_enhance_saturation, args);
+	if (args->fit->naxes[2] != 3) {
+		siril_log_message(
+				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
+		args->process = FALSE;
+		clearfits(args->fit);
+		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
-	WORD *in[3] = { args->input->pdata[RLAYER], args->input->pdata[GLAYER],
-			args->input->pdata[BLAYER] };
-	WORD *out[3] = { args->output->pdata[RLAYER], args->output->pdata[GLAYER],
-			args->output->pdata[BLAYER] };
-
-	siril_log_color_message(_("Saturation enhancement: processing...\n"), "red");
+	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
+			args->str_type);
 	gettimeofday(&t_start, NULL);
 
-	args->h_min /= 360.0;
-	args->h_max /= 360.0;
-	if (args->preserve) {
-		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC);
-		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			siril_add_idle(end_enhance_saturation, args);
-			return GINT_TO_POINTER(1);
-		}
-		bg = stat->median + stat->sigma;
-		bg /= stat->normValue;
-		free_stats(stat);
-	}
-
+	switch (args->type) {
+	/* RGB space: nothing to do */
+	case 0:
+		break;
+		/* HSL space */
+	case 1:
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (i = 0; i < args->input->rx * args->input->ry; i++) {
-		double h, s, l;
-		double r = (double) in[RLAYER][i] / USHRT_MAX_DOUBLE;
-		double g = (double) in[GLAYER][i] / USHRT_MAX_DOUBLE;
-		double b = (double) in[BLAYER][i] / USHRT_MAX_DOUBLE;
-		rgb_to_hsl(r, g, b, &h, &s, &l);
-		if (l > bg) {
-			if (args->h_min > args->h_max) {// Red case. TODO: find a nicer way to do it
-				if (h >= args->h_min || h <= args->h_max) {
-					s += (s * args->coeff);
-				}
-			} else {
-				if (h >= args->h_min && h <= args->h_max) {
-					s += (s * args->coeff);
-				}
-			}
-			if (s < 0.0)
-				s = 0.0;
-			else if (s > 1.0)
-				s = 1.0;
+		for (size_t i = 0; i < n; i++) {
+			double h, s, l;
+			double r = (double) buf[RLAYER][i];
+			double g = (double) buf[GLAYER][i];
+			double b = (double) buf[BLAYER][i];
+			rgb_to_hsl(r, g, b, &h, &s, &l);
+			buf[RLAYER][i] = (float) h;
+			buf[GLAYER][i] = (float) s;
+			buf[BLAYER][i] = (float) l;
 		}
-		hsl_to_rgb(h, s, l, &r, &g, &b);
-		out[RLAYER][i] = round_to_WORD(r * USHRT_MAX_DOUBLE);
-		out[GLAYER][i] = round_to_WORD(g * USHRT_MAX_DOUBLE);
-		out[BLAYER][i] = round_to_WORD(b * USHRT_MAX_DOUBLE);
-	}
-	invalidate_stats_from_fit(args->output);
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	siril_add_idle(end_enhance_saturation, args);
-
-	return GINT_TO_POINTER(0);
-}
-
-// idle function executed at the end of the scnr processing
-gboolean end_scnr(gpointer p) {
-	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
-	redraw_previews();
-	update_gfit_histogram_if_needed();
-	set_cursor_waiting(FALSE);
-	update_used_memory();
-
-	return FALSE;
-}
-
-/* Subtractive Chromatic Noise Reduction.
- * No unprotected GTK+ calls can go there. */
-gpointer scnr(gpointer p) {
-	struct scnr_data *args = (struct scnr_data *) p;
-	WORD *buf[3] = { args->fit->pdata[RLAYER], args->fit->pdata[GLAYER],
-			args->fit->pdata[BLAYER] };
-	double m;
-	int nbdata = args->fit->rx * args->fit->ry;
-	int i;
-	struct timeval t_start, t_end;
-
-	siril_log_color_message(_("SCNR: processing...\n"), "red");
-	gettimeofday(&t_start, NULL);
-
-	WORD norm = get_normalized_value(args->fit);
+		break;
+		/* HSV space */
+	case 2:
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (i = 0; i < nbdata; i++) {
-		double red = (double) buf[RLAYER][i] / norm;
-		double green = (double) buf[GLAYER][i] / norm;
-		double blue = (double) buf[BLAYER][i] / norm;
-		double x, y, z, L, a, b;
-
-		if (args->preserve) {
+		for (size_t i = 0; i < n; i++) {
+			double h, s, v;
+			double r = (double) buf[RLAYER][i];
+			double g = (double) buf[GLAYER][i];
+			double b = (double) buf[BLAYER][i];
+			rgb_to_hsv(r, g, b, &h, &s, &v);
+			buf[RLAYER][i] = (float) h;
+			buf[GLAYER][i] = (float) s;
+			buf[BLAYER][i] = (float) v;
+		}
+		break;
+		/* CIE L*a*b */
+	case 3:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0; i < n; i++) {
+			double x, y, z, L, a, b;
+			double red = (double) buf[RLAYER][i];
+			double green = (double) buf[GLAYER][i];
+			double blue = (double) buf[BLAYER][i];
 			rgb_to_xyz(red, green, blue, &x, &y, &z);
 			xyz_to_LAB(x, y, z, &L, &a, &b);
+			buf[RLAYER][i] = (float) (L / 100.);		// 0 < L < 100
+			buf[GLAYER][i] = (float) ((a + 128.) / 255.);	// -128 < a < 127
+			buf[BLAYER][i] = (float) ((b + 128.) / 255.);	// -128 < b < 127
 		}
-		switch (args->type) {
-		case 0:
-			m = 0.5 * (red + blue);
-			green = min(green, m);
-			break;
-		case 1:
-			m = max(red, blue);
-			green = min(green, m);
-			break;
-		case 2:
-			m = max(red, blue);
-			green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
-			break;
-		case 3:
-			m = min(1.0, red + blue);
-			green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
-		}
-		if (args->preserve) {
-			double tmp;
-			rgb_to_xyz(red, green, blue, &x, &y, &z);
-			xyz_to_LAB(x, y, z, &tmp, &a, &b);
-			LAB_to_xyz(L, a, b, &x, &y, &z);
-			xyz_to_rgb(x, y, z, &red, &green, &blue);
-		}
-		buf[RLAYER][i] = round_to_WORD(red * (double) norm);
-		buf[GLAYER][i] = round_to_WORD(green * (double) norm);
-		buf[BLAYER][i] = round_to_WORD(blue * (double) norm);
-	}
 
-	invalidate_stats_from_fit(args->fit);
-	free(args);
+	}
+	for (int i = 0; i < 3; i++)
+		save1fits32(args->channel[i], args->fit, i);
+	clearfits(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_scnr, NULL);
+	siril_add_idle(end_extract_channels, args);
+
 	return GINT_TO_POINTER(0);
+}
+
+gpointer extract_channels(gpointer p) {
+	struct extract_channels_data *args = (struct extract_channels_data *)p;
+	if (args->fit->type == DATA_USHORT)
+		return extract_channels_ushort(p);
+	if (args->fit->type == DATA_FLOAT)
+		return extract_channels_float(p);
+	siril_add_idle(end_extract_channels, args);
+	return GINT_TO_POINTER(1);
 }
 
 /****************** Color calibration ************************/
@@ -627,9 +693,9 @@ void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 
 void initialize_calibration_interface() {
 	static GtkAdjustment *selection_black_adjustment[4] = { NULL, NULL, NULL,
-			NULL };
+		NULL };
 	static GtkAdjustment *selection_white_adjustment[4] = { NULL, NULL, NULL,
-			NULL };
+		NULL };
 
 	if (!selection_black_adjustment[0]) {
 		selection_black_adjustment[0] = GTK_ADJUSTMENT(
@@ -672,33 +738,42 @@ void initialize_calibration_interface() {
 
 /* This function equalize the background by giving equal value for all layers */
 static void background_neutralize(fits* fit, rectangle black_selection) {
-	int chan, i;
+	int chan;
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	imstats* stats[3];
-	int ref = 0;
+	double ref = 0;
 
 	assert(fit->naxes[2] == 3);
 
 	for (chan = 0; chan < 3; chan++) {
-		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC);
+		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, TRUE);
 		if (!stats[chan]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->median;
 	}
-	ref /= 3;
+	ref /= 3.0;
 
-	for (chan = 0; chan < 3; chan++) {
-		int offset = stats[chan]->mean - ref;
-		WORD *buf = fit->pdata[chan];
-		for (i = 0; i < fit->rx * fit->ry; i++) {
-			if (buf[i] < offset)
-				buf[i] = 0;
-			else
-				buf[i] = (buf[i] - offset >= USHRT_MAX ? USHRT_MAX : buf[i] - offset);
-
+	if (fit->type == DATA_USHORT) {
+		for (chan = 0; chan < 3; chan++) {
+			double offset = stats[chan]->mean - ref;
+			WORD *buf = fit->pdata[chan];
+			for (i = 0; i < n; i++) {
+				buf[i] = round_to_WORD((double)buf[i] - offset);
+			}
+			free_stats(stats[chan]);
 		}
-		free_stats(stats[chan]);
+	}
+	else if (fit->type == DATA_FLOAT) {
+		for (chan = 0; chan < 3; chan++) {
+			float offset = stats[chan]->mean - ref;
+			float *buf = fit->fpdata[chan];
+			for (i = 0; i < n; i++) {
+				buf[i] = buf[i] - offset;
+			}
+			free_stats(stats[chan]);
+		}
 	}
 
 	invalidate_stats_from_fit(fit);
@@ -732,7 +807,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
 
-	undo_save_state(&gfit, "Processing: Background neutralization");
+	undo_save_state(&gfit, _("Background neutralization"));
 
 	set_cursor_waiting(TRUE);
 	background_neutralize(&gfit, black_selection);
@@ -774,36 +849,60 @@ static void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 		double kw[], double bg[], double norm, double low, double high) {
 	int chan, i, j, n;
 	double tmp[3] = { 0.0, 0.0, 0.0 };
-	WORD lo, hi;
 
 	assert(fit->naxes[2] == 3);
 
-	lo = round_to_WORD(low * (norm));
-	hi = round_to_WORD(high * (norm));
+	if (fit->type == DATA_USHORT) {
+		WORD lo = round_to_WORD(low * (norm));
+		WORD hi = round_to_WORD(high * (norm));
 
-	for (chan = 0; chan < 3; chan++) {
-		n = 0;
-		WORD *from = fit->pdata[chan] + (fit->ry - white.y - white.h) * fit->rx
+		for (chan = 0; chan < 3; chan++) {
+			n = 0;
+			WORD *from = fit->pdata[chan] + (fit->ry - white.y - white.h) * fit->rx
 				+ white.x;
-		int stridefrom = fit->rx - white.w;
+			int stridefrom = fit->rx - white.w;
 
-		for (i = 0; i < white.h; i++) {
-			for (j = 0; j < white.w; j++) {
-				if (*from > lo && *from < hi ) {
-					kw[chan] += (double) *from / norm;
-					n++;
+			for (i = 0; i < white.h; i++) {
+				for (j = 0; j < white.w; j++) {
+					if (*from > lo && *from < hi ) {
+						kw[chan] += (double)*from / norm;
+						n++;
+					}
+					from++;
 				}
-				from++;
+				from += stridefrom;
 			}
-			from += stridefrom;
+			if (n > 0)
+				kw[chan] /= (double)n;
 		}
-		if (n > 0)
-			kw[chan] /= (double) n;
 	}
+	else if (fit->type == DATA_FLOAT) {
+		for (chan = 0; chan < 3; chan++) {
+			n = 0;
+			float *from = fit->fpdata[chan] + (fit->ry - white.y - white.h) * fit->rx
+				+ white.x;
+			int stridefrom = fit->rx - white.w;
+
+			for (i = 0; i < white.h; i++) {
+				for (j = 0; j < white.w; j++) {
+					double f = (double)*from;
+					if (f > low && f < high) {
+						kw[chan] += f;
+						n++;
+					}
+					from++;
+				}
+				from += stridefrom;
+			}
+			if (n > 0)
+				kw[chan] /= (double)n;
+		}
+	}
+	else return;
 
 	siril_log_message(_("Background reference:\n"));
 	for (chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC);
+		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, TRUE);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;
@@ -821,7 +920,7 @@ static void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 	}
 
 	int rc = (kw[0] > kw[1]) ? ((kw[0] > kw[2]) ? 0 : 2) :
-					((kw[1] > kw[2]) ? 1 : 2);
+		((kw[1] > kw[2]) ? 1 : 2);
 	for (chan = 0; chan < 3; chan++) {
 		if (chan == rc)
 			tmp[chan] = 1.0;
@@ -837,16 +936,21 @@ static void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 }
 
 static int calibrate(fits *fit, int layer, double kw, double bg, double norm) {
-	WORD *buf;
-	WORD bgNorm;
-	int i;
-
-	bgNorm = bg * norm;
-
-	buf = fit->pdata[layer];
-	for (i = 0; i < fit->rx * fit->ry; ++i) {
-		buf[i] = round_to_WORD((buf[i] - bgNorm) * kw + bgNorm);
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
+	if (fit->type == DATA_USHORT) {
+		double bgNorm = bg * norm;
+		WORD *buf = fit->pdata[layer];
+		for (i = 0; i < n; ++i) {
+			buf[i] = round_to_WORD((buf[i] - bgNorm) * kw + bgNorm);
+		}
 	}
+	else if (fit->type == DATA_FLOAT) {
+		float *buf = fit->fpdata[layer];
+		for (i = 0; i < n; ++i) {
+			buf[i] = (float)(((double)buf[i] - bg) * kw + bg);
+		}
+	}
+	else return 1;
 	return 0;
 }
 
@@ -869,12 +973,13 @@ static void white_balance(fits *fit, gboolean is_manual, rectangle white_selecti
 	}
 
 	assert(fit->naxes[2] == 3);
-	norm = (double) get_normalized_value(fit);
+	norm = get_normalized_value(fit);
 
 	if (is_manual) {
 		kw[RLAYER] = gtk_range_get_value(scale_white_balance[RLAYER]);
 		kw[GLAYER] = gtk_range_get_value(scale_white_balance[GLAYER]);
 		kw[BLAYER] = gtk_range_get_value(scale_white_balance[BLAYER]);
+
 	} else {
 		low = gtk_range_get_value(scaleLimit[0]);
 		high = gtk_range_get_value(scaleLimit[1]);
@@ -897,33 +1002,24 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
 	struct timeval t_start, t_end;
 
-	siril_log_color_message(_("Color Calibration: processing...\n"), "red");
+	siril_log_color_message(_("Color Calibration: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
 
-	GtkToggleButton *manual = GTK_TOGGLE_BUTTON(
-			lookup_widget("checkbutton_manual_calibration"));
+	GtkToggleButton *manual = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_manual_calibration"));
 	gboolean is_manual = gtk_toggle_button_get_active(manual);
 
 	if (!selection_black_value[0]) {
-		selection_black_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_x"));
-		selection_black_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_y"));
-		selection_black_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_w"));
-		selection_black_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_h"));
+		selection_black_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_x"));
+		selection_black_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_y"));
+		selection_black_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_w"));
+		selection_black_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_h"));
 	}
 
 	if (!selection_white_value[0]) {
-		selection_white_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_x"));
-		selection_white_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_y"));
-		selection_white_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_w"));
-		selection_white_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_h"));
+		selection_white_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_white_x"));
+		selection_white_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_white_y"));
+		selection_white_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_white_w"));
+		selection_white_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_white_h"));
 	}
 
 	black_selection.x = gtk_spin_button_get_value(selection_black_value[0]);
@@ -931,7 +1027,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
 
-	if (!black_selection.w || !black_selection.h) {
+	if ((!black_selection.w || !black_selection.h) && !is_manual) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the background area"));
 		return;
@@ -949,7 +1045,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	}
 
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, "Processing: Color Calibration");
+	undo_save_state(&gfit, _("Color Calibration"));
 	white_balance(&gfit, is_manual, white_selection, black_selection);
 
 	gettimeofday(&t_end, NULL);
@@ -965,38 +1061,158 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 }
 
 void on_calibration_close_button_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide(lookup_widget("color_calibration"));
+	siril_close_dialog("color_calibration");
 }
 
 void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
-	GtkWidget *manual_components = lookup_widget("grid25");
-	gtk_widget_set_sensitive(manual_components,	gtk_toggle_button_get_active(togglebutton));
+	GtkWidget *cc_box_red = lookup_widget("cc_box_red");
+	GtkWidget *scale_r = lookup_widget("scale_r");
+	GtkWidget *cc_box_green = lookup_widget("cc_box_green");
+	GtkWidget *scale_g = lookup_widget("scale_g");
+	GtkWidget *cc_box_blue = lookup_widget("cc_box_blue");
+	GtkWidget *scale_b = lookup_widget("scale_b");
+	gtk_widget_set_sensitive(cc_box_red, gtk_toggle_button_get_active(togglebutton));
+	gtk_widget_set_sensitive(scale_r, gtk_toggle_button_get_active(togglebutton));
+	gtk_widget_set_sensitive(cc_box_green, gtk_toggle_button_get_active(togglebutton));
+	gtk_widget_set_sensitive(scale_g, gtk_toggle_button_get_active(togglebutton));
+	gtk_widget_set_sensitive(cc_box_blue, gtk_toggle_button_get_active(togglebutton));
+	gtk_widget_set_sensitive(scale_b, gtk_toggle_button_get_active(togglebutton));
 }
 
-static int pos_to_neg(fits *fit) {
-	WORD norm;
-	int chan, i;
-	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER],
-			fit->pdata[BLAYER] };
-
-	norm = get_normalized_value(fit);
-	for (chan = 0; chan < fit->naxes[2]; chan ++) {
-		for (i = 0; i < fit->rx * fit->ry; i++) {
-			buf[chan][i] = norm - buf[chan][i];
+int pos_to_neg(fits *fit) {
+	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	if (fit->type == DATA_USHORT) {
+		WORD norm = (WORD)get_normalized_value(fit);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread)
+#endif
+		for (i = 0; i < n; i++) {
+			fit->data[i] = norm - fit->data[i];
 		}
 	}
+	else if (fit->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread)
+#endif
+		for (i = 0; i < n; i++) {
+			fit->fdata[i] = 1.0f - fit->fdata[i];
+		}
+	}
+	else return 1;
 
 	return 0;
 }
 
 void on_menu_negative_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, "Processing: Negative Transformation");
+	undo_save_state(&gfit, _("Negative Transformation"));
 	pos_to_neg(&gfit);
-	update_gfit_histogram_if_needed();
 	invalidate_stats_from_fit(&gfit);
+	invalidate_gfit_histogram();
+	update_gfit_histogram_if_needed();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
+}
+
+/**********************************************************************/
+
+void on_menu_channel_separation_activate(GtkMenuItem *menuitem,
+		gpointer user_data) {
+	if (single_image_is_loaded() && isrgb(&gfit))
+		siril_open_dialog("extract_channel_dialog");
+}
+
+void on_menuitemcalibration_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	if (single_image_is_loaded() && isrgb(&gfit)) {
+		initialize_calibration_interface();
+		siril_open_dialog("color_calibration");
+	}
+}
+
+void on_extract_channel_button_close_clicked(GtkButton *button,
+		gpointer user_data) {
+	siril_close_dialog("extract_channel_dialog");
+}
+
+void on_combo_extract_colors_changed(GtkComboBox *box, gpointer user_data) {
+	switch(gtk_combo_box_get_active(box)) {
+		default:
+		case 0: // RGB
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), _("Red: "));
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), _("Green: "));
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), _("Blue: "));
+			break;
+		case 1: // HSL
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), _("Hue: "));
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), _("Saturation: "));
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), _("Lightness: "));
+			break;
+		case 2: // HSV
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), _("Hue: "));
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), _("Saturation: "));
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), _("Value: "));
+			break;
+		case 3: // CIE L*a*b*
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), "L*: ");
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), "a*: ");
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), "b*: ");
+	}
+}
+
+void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data) {
+	static GtkEntry *channel_extract_entry[3] = { NULL, NULL, NULL };
+	static GtkComboBox *combo_extract_channel = NULL;
+
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return;
+	}
+
+	struct extract_channels_data *args = malloc(sizeof(struct extract_channels_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	if (combo_extract_channel == NULL) {
+		combo_extract_channel = GTK_COMBO_BOX(
+				lookup_widget("combo_extract_colors"));
+		channel_extract_entry[0] = GTK_ENTRY(
+				lookup_widget("Ch1_extract_channel_entry"));
+		channel_extract_entry[1] = GTK_ENTRY(
+				lookup_widget("Ch2_extract_channel_entry"));
+		channel_extract_entry[2] = GTK_ENTRY(
+				lookup_widget("Ch3_extract_channel_entry"));
+	}
+
+	args->type = gtk_combo_box_get_active(combo_extract_channel);
+	args->str_type = gtk_combo_box_get_active_id(combo_extract_channel);
+
+	args->channel[0] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[0]), com.pref.ext);
+	args->channel[1] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[1]), com.pref.ext);
+	args->channel[2] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[2]), com.pref.ext);
+
+	if ((args->channel[0][0] != '\0') && (args->channel[1][0] != '\0')
+			&& (args->channel[2][0] != '\0')) {
+		args->fit = calloc(1, sizeof(fits));
+		set_cursor_waiting(TRUE);
+		if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+			siril_log_message(_("Could not copy the input image, aborting.\n"));
+			free(args->fit);
+			free(args->channel[0]);
+			free(args->channel[1]);
+			free(args->channel[2]);
+			free(args);
+		} else {
+			start_in_new_thread(extract_channels, args);
+		}
+	}
+	else {
+		free(args->channel[0]);
+		free(args->channel[1]);
+		free(args->channel[2]);
+		free(args);
+	}
 }

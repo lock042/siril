@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,20 +22,24 @@
 #include <string.h>
 #include <glib.h>
 
-#include "siril.h"
-#include "processing.h"
-#include "sequence_filtering.h"
-#include "proto.h"
+#include "core/siril.h"
+#include "core/proto.h"
+#include "core/processing.h"
+#include "core/sequence_filtering.h"
+#include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "io/sequence.h"
 #include "io/ser.h"
+#include "io/seqwriter.h"
+#include "io/fits_sequence.h"
+#include "io/image_format_fits.h"
 #include "algos/statistics.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
 gpointer generic_sequence_worker(gpointer p) {
-	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	struct generic_seq_args *args = (struct generic_seq_args *)p;
 	struct timeval t_start, t_end;
 	int frame;	// output frame index
 	int input_idx;	// index of the frame being processed in the sequence
@@ -43,8 +47,6 @@ gpointer generic_sequence_worker(gpointer p) {
 	int nb_frames, excluded_frames = 0, progress = 0;
 	float nb_framesf;
 	int abort = 0;	// variable for breaking out of loop
-	GString *desc;	// temporary string description for logs
-	fits fit = { 0 };
 
 	assert(args);
 	assert(args->seq);
@@ -72,6 +74,10 @@ gpointer generic_sequence_worker(gpointer p) {
 		goto the_end;
 	}
 
+	if (args->seq->type == SEQ_FITSEQ) {
+		fitseq_prepare_for_multiple_read(args->seq->fitseq_file);
+	}
+
 	/* We have a sequence in which images can be filtered out. In order to
 	 * distribute the workload fairly among all threads, the main iteration
 	 * should not be on the list of images of the sequence, but on the
@@ -82,6 +88,11 @@ gpointer generic_sequence_worker(gpointer p) {
 	 * This is mandatory for SER contiguous output. */
 	if (args->filtering_criterion) {
 		index_mapping = malloc(nb_frames * sizeof(int));
+		if (!index_mapping) {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+			goto the_end;
+		}
 		for (input_idx = 0, frame = 0; input_idx < args->seq->number; input_idx++) {
 			if (!args->filtering_criterion(args->seq, input_idx, args->filtering_parameter)) {
 				continue;
@@ -95,8 +106,11 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 	}
 
-	if (args->has_output && !args->partial_image) {	// TODO partial
-		int64_t size = seq_compute_size(args->seq, nb_frames);
+	if (args->has_output && !args->partial_image) {
+		gint64 size;
+		if (args->compute_size_hook)
+			size = args->compute_size_hook(args, nb_frames);
+		else size = seq_compute_size(args->seq, nb_frames, args->output_type);
 		if (test_available_space(size)) {
 			args->retval = 1;
 			goto the_end;
@@ -104,115 +118,155 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 
 	/* Output print of algorithm description */
-	desc = g_string_new(args->description);
-	if (desc) {
-		desc = g_string_append(desc, _(": processing...\n"));
-		siril_log_color_message(desc->str, "red");
-		g_string_free(desc, TRUE);
+	if (args->description) {
+		gchar *desc = g_strdup_printf(_("%s: processing...\n"), args->description);
+		siril_log_color_message(desc, "green");
+		g_free(desc);
 	}
 
+	gboolean have_seqwriter = args->has_output &&
+		((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) ||
+		 (args->force_ser_output || args->seq->type == SEQ_SER));
 #ifdef _OPENMP
 	omp_init_lock(&args->lock);
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) firstprivate(fit) private(input_idx) schedule(static) \
-	if(args->parallel && ((args->seq->type == SEQ_REGULAR && fits_is_reentrant()) || args->seq->type == SEQ_SER))
-#endif
+	if (have_seqwriter)
+		omp_set_schedule(omp_sched_dynamic, 1);
+	else omp_set_schedule(omp_sched_static, 0);
+	if (args->max_thread <= 0)
+		args->max_thread = com.max_thread;
+#ifdef HAVE_FFMS2
+	// we don't want to enable parallel processing for films, as ffms2 is not thread-safe
+#pragma omp parallel for num_threads(args->max_thread) private(input_idx) schedule(runtime) \
+	if(args->seq->type != SEQ_AVI && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
+#else
+#pragma omp parallel for num_threads(args->max_thread) private(input_idx) schedule(runtime) \
+	if(args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
+#endif // HAVE_FFMS2
+#endif // _OPENMP
 	for (frame = 0; frame < nb_frames; frame++) {
-		if (!abort) {
-			char filename[256], msg[256];
-			rectangle area = { .x = args->area.x, .y = args->area.y,
-				.w = args->area.w, .h = args->area.h };
+		if (abort) continue;
 
-			if (!get_thread_run()) {
+		fits *fit = calloc(1, sizeof(fits));
+		char filename[256];
+		rectangle area = { .x = args->area.x, .y = args->area.y,
+			.w = args->area.w, .h = args->area.h };
+
+		if (!get_thread_run()) {
+			abort = 1;
+			continue;
+		}
+		if (index_mapping)
+			input_idx = index_mapping[frame];
+		else input_idx = frame;
+
+		if (!seq_get_image_filename(args->seq, input_idx, filename)) {
+			abort = 1;
+			continue;
+		}
+
+		int thread_id = -1;
+#ifdef _OPENMP
+		thread_id = omp_get_thread_num();
+		if (have_seqwriter) {
+			seqwriter_wait_for_memory();
+		}
+#endif
+
+		if (args->partial_image) {
+			// if we run in parallel, it will not be the same for all
+			// and we don't want to overwrite the original anyway
+			if (args->regdata_for_partial) {
+				int shiftx = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shiftx);
+				int shifty = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shifty);
+				area.x -= shiftx;
+				area.y += shifty;
+			}
+
+			// args->area may be modified in hooks
+			enforce_area_in_image(&area, args->seq);
+			if (seq_read_frame_part(args->seq,
+						args->layer_for_partial,
+						input_idx, fit, &area,
+						args->get_photometry_data_for_partial, thread_id))
+			{
 				abort = 1;
+				clearfits(fit);
+				free(fit);
 				continue;
 			}
-			if (index_mapping)
-				input_idx = index_mapping[frame];
-			else input_idx = frame;
-
-			if (!seq_get_image_filename(args->seq, input_idx, filename)) {
+			/*char tmpfn[100];	// this is for debug purposes
+			  sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
+			  savefits(tmpfn, fit);*/
+		} else {
+			// image is obtained bottom to top here, while it's in natural order for partial images!
+			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
+				clearfits(fit);
+				free(fit);
 				continue;
 			}
+		}
 
-			if (args->partial_image) {
-				// if we run in parallel, it will not be the same for all
-				// and we don't want to overwrite the original anyway
-				if (args->regdata_for_partial) {
-					int shiftx = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shiftx);
-					int shifty = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shifty);
-					area.x -= shiftx;
-					area.y += shifty;
-				}
-
-				// args->area may be modified in hooks
-				enforce_area_in_image(&area, args->seq);
-				if (seq_read_frame_part(args->seq,
-							args->layer_for_partial,
-							input_idx, &fit, &area,
-							args->get_photometry_data_for_partial))
-				{
-					abort = 1;
-					clearfits(&fit);
-					continue;
-				}
-				/*char tmpfn[100];	// this is for debug purposes
-				sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
-				savefits(tmpfn, &fit);*/
-			} else {
-				// image is obtained bottom to top here, while it's in natural order for partial images!
-				if (seq_read_frame(args->seq, input_idx, &fit)) {
-					abort = 1;
-					clearfits(&fit);
-					continue;
-				}
-			}
-
-			if (args->image_hook(args, frame, input_idx, &fit, &area)) {
-				if (args->stop_on_error)
-					abort = 1;
-				else {
-					//args->seq->imgparam[frame].incl = FALSE;
+		if (args->image_hook(args, frame, input_idx, fit, &area)) {
+			if (args->stop_on_error)
+				abort = 1;
+			else {
+				//args->seq->imgparam[frame].incl = FALSE;
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-					{
-						//if (args->nb_filtered_images > 0)
-						//	args->nb_filtered_images--;
-						//args->seq->selnum--;
-						excluded_frames++;
-					}
+				{
+					//if (args->nb_filtered_images > 0)
+					//	args->nb_filtered_images--;
+					//args->seq->selnum--;
+					excluded_frames++;
 				}
-				clearfits(&fit);
-				continue;
 			}
-
-			if (args->has_output) {
+			clearfits(fit);
+			free(fit);
+			// for seqwriter, we need to notify the failed frame
+			if (have_seqwriter) {
 				int retval;
 				if (args->save_hook)
-					retval = args->save_hook(args, frame, input_idx, &fit);
-				else retval = generic_save(args, frame, input_idx, &fit);
-				if (retval) {
+					retval = args->save_hook(args, frame, input_idx, NULL);
+				else retval = generic_save(args, frame, input_idx, NULL);
+				if (retval)
 					abort = 1;
-					clearfits(&fit);
-					continue;
-				}
 			}
+			continue;
+		}
 
-			// save stats that may have been computed for the first time
-			save_stats_from_fit(&fit, args->seq, input_idx);
-			clearfits(&fit);
+		if (args->has_output) {
+			int retval;
+			if (args->save_hook)
+				retval = args->save_hook(args, frame, input_idx, fit);
+			else retval = generic_save(args, frame, input_idx, fit);
+			if (retval) {
+				abort = 1;
+				clearfits(fit);
+				free(fit);
+				continue;
+			}
+		} else {
+			/* save stats that may have been computed for the first
+			 * time, but if fit has been modified for the new
+			 * sequence, we shouldn't save it for the old one.
+			 */
+			save_stats_from_fit(fit, args->seq, input_idx);
+		}
+
+		if (!have_seqwriter) {
+			clearfits(fit);
+			free(fit);
+		}
 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-			progress++;
-			snprintf(msg, 256, _("%s. Processing image %d (%s)"), args->description, input_idx, filename);
-			set_progress_bar_data(msg, (float)progress / nb_framesf);
-		}
+		progress++;
+		gchar *msg = g_strdup_printf(_("%s. Processing image %d (%s)"), args->description, input_idx + 1, filename);
+		set_progress_bar_data(msg, (float)progress / nb_framesf);
+		g_free(msg);
 	}
 
 	if (abort) {
@@ -242,6 +296,12 @@ the_end:
 		args->retval = 1;
 	}
 
+	if (args->seq->type == SEQ_FITSEQ) {
+		int ret = fitseq_multiple_close(args->seq->fitseq_file);
+		if (!args->retval)
+			args->retval = ret;
+	}
+
 	if (args->already_in_a_thread) {
 		if (args->idle_function)
 			args->idle_function(args);
@@ -260,8 +320,7 @@ gboolean end_generic_sequence(gpointer p) {
 	if (args->has_output && args->load_new_sequence &&
 			args->new_seq_prefix && !args->retval) {
 		gchar *basename = g_path_get_basename(args->seq->seqname);
-		char *seqname = malloc(strlen(args->new_seq_prefix) + strlen(basename) + 5);
-		sprintf(seqname, "%s%s.seq", args->new_seq_prefix, basename);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
 		check_seq(0);
 		update_sequences_list(seqname);
 		free(seqname);
@@ -272,7 +331,9 @@ gboolean end_generic_sequence(gpointer p) {
 	return end_generic(NULL);
 }
 
-int ser_prepare_hook(struct generic_seq_args *args) {
+int seq_prepare_hook(struct generic_seq_args *args) {
+	int retval = 0;
+	g_assert(args->has_output); // don't call this hook otherwise
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
@@ -284,19 +345,66 @@ int ser_prepare_hook(struct generic_seq_args *args) {
 		if (ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file)) {
 			free(args->new_ser);
 			args->new_ser = NULL;
-			g_free(dest);
-			return 1;
+			retval = 1;
 		}
 		g_free(dest);
 	}
-	return 0;
+	else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
+		gchar *dest;
+		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
+		if (ptr)
+			dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, ptr + 1, com.pref.ext);
+		else dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, args->seq->seqname, com.pref.ext);
+
+		args->new_fitseq = malloc(sizeof(fitseq));
+		if (fitseq_create_file(dest, args->new_fitseq, args->nb_filtered_images)) {
+			free(args->new_fitseq);
+			args->new_fitseq = NULL;
+			retval = 1;
+		}
+		g_free(dest);
+	}
+	else return 0;
+
+	int limit = 0;
+#ifdef _OPENMP
+	limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float, NULL, NULL);
+	if (limit < 0)
+		limit = com.max_thread * 3; // we still don't want an impossible build-up of images to write
+	else if (limit == 0) {
+		siril_log_color_message(_("Configured memory limits do not seem to allow these images to be processed, aborting\n"), "red");
+		if (args->force_ser_output || args->seq->type == SEQ_SER) {
+			ser_close_file(args->new_ser);
+			free(args->new_ser);
+			args->new_ser = NULL;
+		}
+		else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
+			fitseq_close_file(args->new_fitseq);
+			free(args->new_fitseq);
+			args->new_fitseq = NULL;
+		}
+		return 1;
+	} else {
+		// there doesn't seem to be any interest in having a larger queue
+		int max_queue_size = com.max_thread * 3;
+		if (limit > max_queue_size)
+			limit = max_queue_size;
+	}
+#endif
+	seqwriter_set_max_active_blocks(limit);
+	return retval;
 }
 
-int ser_finalize_hook(struct generic_seq_args *args) {
+int seq_finalize_hook(struct generic_seq_args *args) {
 	int retval = 0;
+	g_assert(args->has_output); // don't call this hook otherwise
 	if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
 		retval = ser_write_and_close(args->new_ser);
 		free(args->new_ser);
+	}
+	else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
+		retval = fitseq_close_file(args->new_fitseq);
+		free(args->new_fitseq);
 	}
 	return retval;
 }
@@ -308,6 +416,8 @@ int ser_finalize_hook(struct generic_seq_args *args) {
 int generic_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		return ser_write_frame_from_fit(args->new_ser, fit, out_index);
+	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
+		return fitseq_write_image(args->new_fitseq, fit, out_index);
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
 				args->new_seq_prefix, in_index);
@@ -368,7 +478,7 @@ gpointer waiting_for_thread() {
 
 void stop_processing_thread() {
 	if (com.thread == NULL) {
-		fprintf(stderr, "The processing thread is not running.\n");
+		siril_debug_print("The processing thread is not running.\n");
 		return;
 	}
 
@@ -411,7 +521,7 @@ void unreserve_thread() {
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
-	update_used_memory();
+	
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -436,4 +546,15 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();
+}
+
+struct generic_seq_args *create_default_seqargs(sequence *seq) {
+	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
+	args->seq = seq;
+	args->filtering_criterion = seq_filter_all;
+	args->nb_filtered_images = seq->number;
+	args->stop_on_error = TRUE;
+	args->upscale_ratio = 1.0;
+	args->parallel = TRUE;
+	return args;
 }

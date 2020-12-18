@@ -17,7 +17,8 @@ typedef enum {
 	NOMAD,
 	GAIA,
 	PPMXL,
-	BRIGHT_STARS
+	BRIGHT_STARS,
+	APASS
 } online_catalog;
 
 typedef enum {
@@ -37,6 +38,7 @@ struct plate_solver_data {
 	int ret; // return value
 	double pixel_size; // pixel size in µm
 	gboolean manual; // Manual platesolving
+	gboolean flip_image;
 };
 
 struct RA_struct {
@@ -74,10 +76,8 @@ struct image_solved_struct {
 };
 typedef struct image_solved_struct image_solved;
 
-#ifdef HAVE_LIBCURL
-void fill_plate_solver_structure(struct plate_solver_data *args);
+int fill_plate_solver_structure(struct plate_solver_data *args);
 gpointer match_catalog(gpointer p);
-#endif
 
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void invalidate_WCS_keywords(fits *fit);

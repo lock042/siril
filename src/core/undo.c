@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,13 +26,14 @@
 
 #include "core/siril.h"
 #include "gui/callbacks.h"
+#include "gui/image_display.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
 #include "core/undo.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
-
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -43,9 +44,9 @@ static int undo_build_swapfile(fits *fit, char **filename) {
 	gchar *nameBuff;
 	char name[] = "siril_swp-XXXXXX";
 	gchar *tmpdir;
-	int fd, size;
+	int fd;
 
-	tmpdir = com.swap_dir;
+	tmpdir = com.pref.swap_dir;
 	nameBuff = g_build_filename(tmpdir, name, NULL);
 	fd = g_mkstemp(nameBuff);
 	if (fd < 1) {
@@ -55,16 +56,26 @@ static int undo_build_swapfile(fits *fit, char **filename) {
 		return 1;
 	}
 
-	size = fit->rx * fit->ry * fit->naxes[2];
+	size_t size = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
 	errno = 0;
 	// Write some data to the temporary file
-	if (-1 == write(fd, fit->data, size * sizeof(WORD))) {
-		siril_log_message(_("File I/O Error: Unable to write swap file in %s: [%s]\n"),
-				tmpdir, strerror(errno));
-		g_free(nameBuff);
-		g_close(fd, NULL);
-		return 1;
+	if (fit->type == DATA_USHORT) {
+		if (-1 == write(fd, fit->data, size * sizeof(WORD))) {
+			siril_log_message(_("File I/O Error: Unable to write swap file in %s: [%s]\n"),
+					tmpdir, strerror(errno));
+			g_free(nameBuff);
+			g_close(fd, NULL);
+			return 1;
+		}
+	} else if (fit->type == DATA_FLOAT) {
+		if (-1 == write(fd, fit->fdata, size * sizeof(float))) {
+			siril_log_message(_("File I/O Error: Unable to write swap file in %s: [%s]\n"),
+					tmpdir, strerror(errno));
+			g_free(nameBuff);
+			g_close(fd, NULL);
+			return 1;
+		}
 	}
 	*filename = nameBuff;
 	g_close(fd, NULL);
@@ -98,6 +109,7 @@ static void undo_add_item(fits *fit, char *filename, char *histo) {
 	com.history[com.hist_current].filename = filename;
 	com.history[com.hist_current].rx = fit->rx;
 	com.history[com.hist_current].ry = fit->ry;
+	com.history[com.hist_current].type = fit->type;
 	snprintf(com.history[com.hist_current].history, FLEN_VALUE, "%s", histo);
 
 	if (com.hist_current == com.hist_size - 1) {
@@ -115,10 +127,8 @@ static void undo_add_item(fits *fit, char *filename, char *histo) {
 	com.hist_display = com.hist_current;
 }
 
-static int undo_get_data(fits *fit, historic hist) {
+static int undo_get_data_ushort(fits *fit, historic hist) {
 	int fd;
-	unsigned int size;
-	WORD *buf;
 
 	if ((fd = g_open(hist.filename, O_RDONLY | O_BINARY, 0)) == -1) {
 		printf("Error opening swap file : %s\n", hist.filename);
@@ -126,36 +136,103 @@ static int undo_get_data(fits *fit, historic hist) {
 	}
 
 	errno = 0;
-	fit->rx = hist.rx;
-	fit->ry = hist.ry;
+	fit->rx = fit->naxes[0] = hist.rx;
+	fit->ry = fit->naxes[1] = hist.ry;
+	/* TODO: fit->naxes[0] = fit->rx ? what about naxes[2] ? */
 
-	size = fit->rx * fit->ry * fit->naxes[2];
-	buf = calloc(1, size * sizeof(WORD));
+	size_t n = fit->naxes[0] * fit->naxes[1];
+	size_t size = n * fit->naxes[2] * sizeof(WORD);
+	WORD *buf = calloc(1, size);
 	// read the data from temporary file
-	if ((read(fd, buf, size * sizeof(WORD)) < size * sizeof(WORD))) {
-		printf("Read of [%s], failed with error [%s]\n", hist.filename, strerror(errno));
+	if ((read(fd, buf, size)) < size) {
+		printf("Undo Read of [%s], failed with error [%s]\n", hist.filename, strerror(errno));
 		free(buf);
 		g_close(fd, NULL);
 		return 1;
 	}
-	WORD *newdata = (WORD*) realloc(fit->data, size * sizeof(WORD));
+	/* need to reallocate data as size may have changed */
+	WORD *newdata = (WORD*) realloc(fit->data, size);
 	if (!newdata) {
+		PRINT_ALLOC_ERR;
 		free(newdata);
 		free(buf);
 		g_close(fd, NULL);
 		return 1;
 	}
 	fit->data = newdata;
-	memcpy(fit->data, buf, size * sizeof(WORD));
+	memcpy(fit->data, buf, size);
 	fit->pdata[RLAYER] = fit->data;
 	if (fit->naxes[2] > 1) {
-		fit->pdata[GLAYER] = fit->data + fit->rx * fit->ry;
-		fit->pdata[BLAYER] = fit->data + fit->rx * fit->ry * 2;
+		fit->pdata[GLAYER] = fit->data + n;
+		fit->pdata[BLAYER] = fit->data + n * 2;
 	}
 	full_stats_invalidation_from_fit(fit);
 	free(buf);
 	g_close(fd, NULL);
 	return 0;
+}
+
+static int undo_get_data_float(fits *fit, historic hist) {
+	int fd;
+
+	if ((fd = g_open(hist.filename, O_RDONLY | O_BINARY, 0)) == -1) {
+		printf("Error opening swap file : %s\n", hist.filename);
+		return 1;
+	}
+
+	errno = 0;
+	fit->rx = fit->naxes[0] = hist.rx;
+	fit->ry = fit->naxes[1] = hist.ry;
+
+	size_t n = fit->naxes[0] * fit->naxes[1];
+	size_t size = n * fit->naxes[2] * sizeof(float);
+	float *buf = calloc(1, size);
+	// read the data from temporary file
+	if ((read(fd, buf, size) < size)) {
+		printf("Undo Read of [%s], failed with error [%s]\n", hist.filename, strerror(errno));
+		free(buf);
+		g_close(fd, NULL);
+		return 1;
+	}
+	/* need to reallocate data as size may have changed */
+	float *newdata = (float*) realloc(fit->data, size);
+	if (!newdata) {
+		PRINT_ALLOC_ERR;
+		free(newdata);
+		free(buf);
+		g_close(fd, NULL);
+		return 1;
+	}
+	fit->fdata = newdata;
+	memcpy(fit->fdata, buf, size);
+	fit->fpdata[RLAYER] = fit->fdata;
+	if (fit->naxes[2] > 1) {
+		fit->fpdata[GLAYER] = fit->fdata + n;
+		fit->fpdata[BLAYER] = fit->fdata + n * 2;
+	}
+	full_stats_invalidation_from_fit(fit);
+	free(buf);
+	g_close(fd, NULL);
+	return 0;
+}
+
+static int undo_get_data(fits *fit, historic hist) {
+	if (hist.type == DATA_USHORT) {
+		if (gfit.type != DATA_USHORT) {
+			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
+			set_precision_switch();
+		}
+		return undo_get_data_ushort(fit, hist);
+	} else if (hist.type == DATA_FLOAT) {
+		if (gfit.type != DATA_FLOAT) {
+			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
+			set_precision_switch();
+		}
+		return undo_get_data_float(fit, hist);
+	}
+	return 1;
 }
 
 gboolean is_undo_available() {
@@ -168,15 +245,14 @@ gboolean is_redo_available() {
 
 int undo_save_state(fits *fit, char *message, ...) {
 	gchar *filename;
-	char histo[FLEN_VALUE];
+	char histo[FLEN_VALUE] = { 0 };
 	va_list args;
 	va_start(args, message);
 
 	if (single_image_is_loaded()) {
-		if (message == NULL)
-			memset(histo, 0, FLEN_VALUE);
-		else
+		if (message != NULL) {
 			vsnprintf(histo, FLEN_VALUE, message, args);
+		}
 
 		if (undo_build_swapfile(fit, &filename)) {
 			va_end(args);
@@ -204,20 +280,24 @@ int undo_display_data(int dir) {
 				com.hist_display--;
 			}
 			com.hist_display--;
+			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
 			undo_get_data(&gfit, com.history[com.hist_display]);
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
+			update_MenuItem();
 			redraw(com.cvport, REMAP_ALL);
 		}
 		break;
 	case REDO:
 		if (is_redo_available()) {
+			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
 			com.hist_display++;
 			undo_get_data(&gfit, com.history[com.hist_display]);
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
+			update_MenuItem();
 			redraw(com.cvport, REMAP_ALL);
 		}
 		break;
@@ -229,12 +309,10 @@ int undo_display_data(int dir) {
 }
 
 int undo_flush() {
-	int i;
-
 	if (!com.history) {
 		return 1;
 	}
-	for (i = 0; i < com.hist_current; i++) {
+	for (int i = 0; i < com.hist_current; i++) {
 		undo_remove_item(com.history, i);
 	}
 	free(com.history);

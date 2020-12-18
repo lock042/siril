@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,20 +25,28 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "compositing/compositing.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/command.h" // process_close
+#include "core/OS_utils.h"
 #include "algos/colors.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
+#include "gui/image_display.h"
+#include "gui/image_interactions.h"
 #include "gui/PSF_list.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
+#include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
+#include "gui/sequence_list.h"
 #include "registration/registration.h"
-#include "compositing/filters.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
+
+#include "compositing.h"
+#include "filters.h"
 
 #undef DEBUG
 
@@ -87,8 +95,8 @@ static sequence *seq = NULL;		// the sequence of layers, for alignments and norm
 static norm_coeff *coeff = NULL;	// the normalization coefficients
 
 /* special case of the color associated to luminance */
-void set_luminance(GdkRGBA *rgba) { rgba->red = -42.0; }
-int is_luminance(GdkRGBA *rgba) { return (rgba->red == -42.0); }
+void set_luminance(GdkRGBA *rgba) { rgba->red = -42.0f; }
+int is_luminance(GdkRGBA *rgba) { return (rgba->red == -42.0f); }
 
 static GdkRGBA list_of_12_palette_colors[12];
 static const char *list_of_12_color_names[12] = {
@@ -117,9 +125,9 @@ void grid_add_row(int layer, int index, int first_time);
 void grid_remove_row(int layer, int free_the_row);
 int has_fit(int layer);
 void update_compositing_interface();
-WORD get_composition_pixel_value(int fits_index, int reg_layer, int x, int y);
-void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA *rgbpixel, WORD layer_pixel_value);
-void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRGBA *rgbpixel, WORD layer_pixel_value);
+float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y);
+void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA *rgbpixel, float vlayer_pixel_value);
+void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRGBA *rgbpixel, float layer_pixel_value);
 void colors_align_and_compose();		// the rgb procedure
 void luminance_and_colors_align_and_compose();	// the lrgb procedure
 void color_has_been_updated(int layer);
@@ -180,6 +188,7 @@ layer *create_layer(int index) {
 	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
 
 	ret->label = GTK_LABEL(gtk_label_new(_("not loaded")));
+	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
 	g_object_ref(G_OBJECT(ret->label));	// don't destroy it on removal from grid
 
 	ret->spinbutton_x = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-1000.0, 1000.0, 1.0));
@@ -385,7 +394,7 @@ void open_compositing_window() {
 	}
 
 	if (compositing_loaded == 1)
-		gtk_widget_show(lookup_widget("composition_dialog"));
+		siril_open_dialog("composition_dialog");
 }
 
 /* returns true if the layer number layer has a loaded FITS image */
@@ -436,6 +445,11 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	int layer, retval;
 	char buf[48], *filename;
 
+	if (!number_of_images_loaded()
+			&& (single_image_is_loaded() || (sequence_is_loaded()))) {
+		process_close(0);
+	}
+
 	for (layer = 0; layers[layer]; layer++)
 		if (layers[layer]->chooser == widget)
 			break;
@@ -447,40 +461,53 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	if (layers[layer]->the_fit.rx == 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
 	}
-	if ((retval = read_single_image(filename, &layers[layer]->the_fit, NULL))) {
-		gtk_label_set_text(layers[layer]->label, _("ERROR"));
+	if ((retval = read_single_image(filename, &layers[layer]->the_fit,
+					NULL, FALSE, NULL, FALSE, TRUE))) {
+		gtk_label_set_markup(layers[layer]->label, _("<span foreground=\"red\">ERROR</span>"));
+		gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Cannot load the file"));
 	} else {
+		/* first we want test that we load a single-channel image */
+		if (layers[layer]->the_fit.naxes[2] > 1) {
+			gtk_label_set_markup(layers[layer]->label, _("<span foreground=\"red\">ERROR</span>"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Only single channel images can be load"));
+			retval = 1;
+		} else {
 		/* Force first tab to be Red and not B&W if an image was already loaded */
-		GtkNotebook* Color_Layers = GTK_NOTEBOOK(gtk_builder_get_object(builder, "notebook1"));
-		GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, RED_VPORT);
-		gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red channel"));
+			GtkNotebook* Color_Layers = GTK_NOTEBOOK(gtk_builder_get_object(builder, "notebook1"));
+			GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, RED_VPORT);
+			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
+			close_tab();
 
-		if (number_of_images_loaded() > 1 &&
-				(gfit.rx != layers[layer]->the_fit.rx ||
-				 gfit.ry != layers[layer]->the_fit.ry)) {
-			/* TODO: handle the binning cases. Values should be stored
-			 * in, or even taken from fit->binning_x and binning_y */
-			//if (layers[layer]->the_fit.binning_x > 1 ||
-			//layers[layer]->the_fit.binning_y > 1)
-			if (gfit.rx < layers[layer]->the_fit.rx ||
-					gfit.ry < layers[layer]->the_fit.ry) {
-				siril_log_message(_("The first loaded image should have the greatest sizes for now\n"));
-				sprintf(buf, _("NOT OK %ux%u"), layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
-				gtk_label_set_text(layers[layer]->label, buf);
-				retval = 1;
-			} else {
-				siril_log_message(_("Resizing the loaded image from %dx%d to %dx%d\n"),
-						layers[layer]->the_fit.rx,
-						layers[layer]->the_fit.ry, gfit.rx, gfit.ry);
-				sprintf(buf, _("OK upscaled from %ux%u"),
-						layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
-				cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_LINEAR); // BILINEAR
-				gtk_label_set_text(layers[layer]->label, buf);
+			if (number_of_images_loaded() > 1 &&
+					(gfit.rx != layers[layer]->the_fit.rx ||
+							gfit.ry != layers[layer]->the_fit.ry)) {
+				/* TODO: handle the binning cases. Values should be stored
+				 * in, or even taken from fit->binning_x and binning_y */
+				//if (layers[layer]->the_fit.binning_x > 1 ||
+				//layers[layer]->the_fit.binning_y > 1)
+				if (gfit.rx < layers[layer]->the_fit.rx ||
+						gfit.ry < layers[layer]->the_fit.ry) {
+					siril_log_message(_("The first loaded image should have the greatest sizes for now\n"));
+					sprintf(buf, _("NOT OK %ux%u"), layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
+					gtk_label_set_text(layers[layer]->label, buf);
+					gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("The first loaded image should have the greatest sizes for now"));
+					retval = 1;
+				} else {
+					siril_log_message(_("Resizing the loaded image from %dx%d to %dx%d\n"),
+							layers[layer]->the_fit.rx,
+							layers[layer]->the_fit.ry, gfit.rx, gfit.ry);
+						sprintf(buf, _("OK upscaled from %ux%u"),
+								layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
+						cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_LINEAR); // BILINEAR
+						gtk_label_set_text(layers[layer]->label, buf);
+						gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Image loaded, and upscaled"));
+				}
 			}
-		}
-		else if (!retval) {
-			sprintf(buf, _("OK %ux%u"), layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
-			gtk_label_set_text(layers[layer]->label, buf);
+			else if (!retval) {
+				sprintf(buf, _("OK %ux%u"), layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
+				gtk_label_set_text(layers[layer]->label, buf);
+				gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Image loaded"));
+			}
 		}
 	}
 	g_free(filename);
@@ -501,7 +528,11 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	/* create the new result image if it's the first opened image */
 	if (number_of_images_loaded() == 1) {
 		close_single_image();
-		copyfits(&layers[layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1);
+		if (copyfits(&layers[layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1)) {
+			clearfits(&layers[layer]->the_fit);
+			siril_log_color_message(_("Could not display image, unloading it\n"), "red");
+			return;
+		}
 	}
 
 	update_result(0);
@@ -514,24 +545,28 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		com.uniq = calloc(1, sizeof(single));
 		com.uniq->comment = strdup(_("Compositing result image"));
 		com.uniq->filename = strdup(_("Unsaved compositing result"));
+		com.uniq->fileexist = FALSE;
 		com.uniq->nb_layers = gfit.naxes[2];
 		com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 		com.uniq->fit = &gfit;
+
+		initialize_display_mode();
 		display_filename();
+		set_precision_switch();
 		sliders_mode_set_state(com.sliders);
 
+		gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), FALSE);
 		init_layers_hi_and_lo_values(MIPSLOHI);
 		set_cutoff_sliders_max_values();
 		set_cutoff_sliders_values();
 		set_display_mode();
 		redraw(com.cvport, REMAP_ALL);
-		update_used_memory();
-		show_main_gray_window();
-		show_rgb_window();
+		
 		sequence_list_change_current();
 	}
 	else {
 		update_MenuItem();
+		gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), TRUE);
 		adjust_cutoff_from_updated_gfit();
 		redraw(com.cvport, REMAP_ALL);
 	}
@@ -627,28 +662,28 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	update_result(1);
 }
 
-WORD get_normalized_pixel_value(int fits_index, WORD layer_pixel_value) {
+float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
 	double tmp = (double)layer_pixel_value;
 	if (!has_fit(0))
 		fits_index--;
 	tmp *= coeff->scale[fits_index];
 	tmp -= coeff->offset[fits_index];
-	return round_to_WORD(tmp);
+	return tmp;
 }
 
 /* get the pixel value at coordinates x,y for image in layers[fits_index]->the_fit.
  * x and y are given in buffer coordinates, not image coordinates.
  * Handles (not yet - binning and) registration offset */
-WORD get_composition_pixel_value(int fits_index, int reg_layer, int x, int y) {
+float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y) {
 	int realX = x, realY = y;
 	if (seq && seq->regparam && reg_layer < seq->number && reg_layer >= 0) {
 		// all images have one layer, hence the 0 below
 		realX = x - roundf_to_int(seq->regparam[0][reg_layer].shiftx);
-		if (realX < 0 || realX >= gfit.rx) return (WORD)0;
+		if (realX < 0 || realX >= gfit.rx) return 0.0f;
 		realY = y - roundf_to_int(seq->regparam[0][reg_layer].shifty);
-		if (realY < 0 || realY >= gfit.ry) return (WORD)0;
+		if (realY < 0 || realY >= gfit.ry) return 0.0f;
 	}
-	WORD pixel_value = layers[fits_index]->the_fit.pdata[0][realX + realY * gfit.rx];
+	float pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * gfit.rx];
 	if (coeff) {
 		// normalization
 		pixel_value = get_normalized_pixel_value(fits_index, pixel_value);
@@ -658,20 +693,20 @@ WORD get_composition_pixel_value(int fits_index, int reg_layer, int x, int y) {
 
 /* increments the color values in rgbpixel from the pixel value for a particular
  * layer. GdkRGBA values are stored in the [0, 1] interval. */
-void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA *rgbpixel, WORD layer_pixel_value) {
+void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA *rgbpixel, float layer_pixel_value) {
 	GdkRGBA *layer_color = &layers[fits_index]->color;
-	rgbpixel->red += layer_color->red * layer_pixel_value / USHRT_MAX_DOUBLE;
-	rgbpixel->green += layer_color->green * layer_pixel_value / USHRT_MAX_DOUBLE;
-	rgbpixel->blue += layer_color->blue * layer_pixel_value / USHRT_MAX_DOUBLE;
+	rgbpixel->red += layer_color->red * layer_pixel_value;
+	rgbpixel->green += layer_color->green * layer_pixel_value;
+	rgbpixel->blue += layer_color->blue * layer_pixel_value;
 }
 
 /* increments the color values in rgbpixel from the saturated pixel value for a
  * particular layer. GdkRGBA values are stored in the [0, 1] interval. */
-void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRGBA *rgbpixel, WORD layer_pixel_value) {
+void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRGBA *rgbpixel, float layer_pixel_value) {
 	GdkRGBA *layer_color = &layers[fits_index]->saturated_color;
-	rgbpixel->red += layer_color->red * layer_pixel_value / USHRT_MAX_DOUBLE;
-	rgbpixel->green += layer_color->green * layer_pixel_value / USHRT_MAX_DOUBLE;
-	rgbpixel->blue += layer_color->blue * layer_pixel_value / USHRT_MAX_DOUBLE;
+	rgbpixel->red += layer_color->red * layer_pixel_value;
+	rgbpixel->green += layer_color->green * layer_pixel_value;
+	rgbpixel->blue += layer_color->blue * layer_pixel_value;
 }
 
 /* called when selection changed */
@@ -729,16 +764,16 @@ void colors_align_and_compose() {
 			for (layer = 1; layers[layer]; layer++) {
 				if (has_fit(layer)) {
 					int reg_layer = seq ? internal_sequence_find_index(seq, &layers[layer]->the_fit) : -1;
-					WORD layer_value = get_composition_pixel_value(layer, reg_layer, x, y);
-					if (layer_value != (WORD)0)
+					float layer_value = get_composition_pixel_value(layer, reg_layer, x, y);
+					if (layer_value > 0.0f)
 						increment_pixel_components_from_layer_value(layer, &pixel, layer_value);
 				}
 			}
 
 			rgb_pixel_limiter(&pixel);
-			gfit.pdata[RLAYER][i] = round_to_WORD(pixel.red * USHRT_MAX_DOUBLE);
-			gfit.pdata[GLAYER][i] = round_to_WORD(pixel.green * USHRT_MAX_DOUBLE);
-			gfit.pdata[BLAYER][i] = round_to_WORD(pixel.blue * USHRT_MAX_DOUBLE);
+			gfit.fpdata[RLAYER][i] = pixel.red;
+			gfit.fpdata[GLAYER][i] = pixel.green;
+			gfit.fpdata[BLAYER][i] = pixel.blue;
 			i++;
 		}
 	}
@@ -756,10 +791,10 @@ void luminance_and_colors_align_and_compose() {
 	if (no_color_available()) {
 		/* luminance only: we copy its data to all result layers */
 		int i;
-		unsigned int nbdata = gfit.rx * gfit.ry;
+		size_t nbdata = gfit.rx * gfit.ry;
 		fprintf(stdout, "luminance-only, no composition\n");
 		for (i=0; i<3; i++)
-			memcpy(gfit.pdata[i], layers[0]->the_fit.data, nbdata*sizeof(WORD));
+			memcpy(gfit.fpdata[i], layers[0]->the_fit.fdata, nbdata*sizeof(float));
 		return;
 	}
 	fprintf(stdout, "luminance-enabled composition\n");
@@ -781,8 +816,8 @@ void luminance_and_colors_align_and_compose() {
 			clear_pixel(&pixel);
 			for (layer = 1; layers[layer]; layer++) {
 				if (has_fit(layer)) {
-					WORD layer_value = get_composition_pixel_value(layer, layer, x, y);
-					if (layer_value != (WORD)0)
+					float layer_value = get_composition_pixel_value(layer, layer, x, y);
+					if (layer_value > 0.0f)
 						increment_pixel_components_from_layer_value(layer, &pixel, layer_value);
 				}
 			}
@@ -816,40 +851,46 @@ void luminance_and_colors_align_and_compose() {
 			rgb_pixel_limiter(&pixel);
 
 			/* and store in gfit */
-			int dst_index = y * gfit.rx + x;
-			gfit.pdata[RLAYER][dst_index] = round_to_WORD(pixel.red * USHRT_MAX_DOUBLE);
-			gfit.pdata[GLAYER][dst_index] = round_to_WORD(pixel.green * USHRT_MAX_DOUBLE);
-			gfit.pdata[BLAYER][dst_index] = round_to_WORD(pixel.blue * USHRT_MAX_DOUBLE);
+			size_t dst_index = y * gfit.rx + x;
+			gfit.fpdata[RLAYER][dst_index] = pixel.red;
+			gfit.fpdata[GLAYER][dst_index] = pixel.green;
+			gfit.fpdata[BLAYER][dst_index] = pixel.blue;
 		}
 	}
 }
 
 void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_hide(lookup_widget("composition_dialog"));
+	siril_close_dialog("composition_dialog");
+}
+
+void on_composition_dialog_hide(GtkWidget *widget, gpointer   user_data) {
+	if (gtk_widget_get_visible(lookup_widget("color_calibration"))) {
+		siril_close_dialog("color_calibration");
+	}
 }
 
 /* When summing all layers to get the RGB values for one pixel, it may overflow.
  * This procedure defines what happens in that case. */
 void rgb_pixel_limiter(GdkRGBA *pixel) {
 #ifdef DEBUG
-	if (pixel->red > 1.2 || pixel->green > 1.2 || pixel->blue > 1.2)
+	if (pixel->red > 1.2f || pixel->green > 1.2f || pixel->blue > 1.2f)
 		fprintf(stdout, "large overflow %g,%g,%g\n", pixel->red,
 				pixel->green, pixel->blue);
 #endif
-	if (pixel->red >= 1.0)
-		pixel->red = 1.0;
-	if (pixel->green >= 1.0)
-		pixel->green = 1.0;
-	if (pixel->blue >= 1.0)
-		pixel->blue = 1.0;
+	if (pixel->red >= 1.0f)
+		pixel->red = 1.0f;
+	if (pixel->green >= 1.0f)
+		pixel->green = 1.0f;
+	if (pixel->blue >= 1.0f)
+		pixel->blue = 1.0f;
 }
 
 /* initializes a GdkRGBA to black */
 void clear_pixel(GdkRGBA *pixel) {
-	pixel->red = 0.0;
-	pixel->green = 0.0;
-	pixel->blue = 0.0;
-	pixel->alpha = 1.0;
+	pixel->red = 0.0f;
+	pixel->green = 0.0f;
+	pixel->blue = 0.0f;
+	pixel->alpha = 1.0f;
 }
 
 /* recompute the layer composition and optionnally refresh the displayed result image */
@@ -942,7 +983,7 @@ gboolean on_color_button_press_event(GtkDrawingArea *widget, GdkEventButton *eve
 		if (layers[layer]->color_w == widget)
 			break;
 	if (!layers[layer]) return FALSE;
-	if (event->button == 3) {	// right click
+	if (event->button == GDK_BUTTON_SECONDARY) {	// right click
 		current_layer_color_choosing = layer;
 		color_quick_edit = 1;
 		memcpy(&qe_ref_color, &layers[layer]->color, sizeof(GdkRGBA));
@@ -959,13 +1000,13 @@ gboolean on_color_button_release_event(GtkDrawingArea *widget, GdkEventButton *e
 			break;
 	if (!layers[layer]) return FALSE;
 
-	if (event->button == 1) {	// left click
+	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		current_layer_color_choosing = layer;
 		gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &layers[layer]->color);
 		gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(box), -1);
 		gtk_widget_show(GTK_WIDGET(color_dialog));
-	} else if (event->button == 3) {	// right click
+	} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
 		if (has_fit(current_layer_color_choosing))
 			update_result(1);
 		current_layer_color_choosing = 0;
@@ -1000,13 +1041,12 @@ gboolean on_color_button_motion_event(GtkWidget *widget, GdkEventMotion *event, 
 
 /* fill the combo box containing filter names */
 void populate_filter_lists() {
-	GtkComboBoxText *box;
 	int i, nb_filters;
-	box = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "comboboxtext_filters"));
+	GtkComboBoxText *cbox = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "comboboxtext_filters"));
 	nb_filters = get_nb_narrow_filters();
-	gtk_combo_box_text_remove_all(box);
+	gtk_combo_box_text_remove_all(cbox);
 	for (i=0; i<nb_filters; i++)
-		gtk_combo_box_text_append_text(box, narrow_band_filters[i].name);
+		gtk_combo_box_text_append_text(cbox, narrow_band_filters[i].name);
 	//gtk_combo_box_set_active(GTK_COMBO_BOX(box), -1);
 }
 
@@ -1021,7 +1061,7 @@ void on_filter_changed(GtkComboBox *widget, gpointer user_data) {
 
 void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 	GdkRGBA color;
-	double wavelength = atof(gtk_entry_get_text(GTK_ENTRY(editable)));
+	double wavelength = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
 	if (wavelength < 380.0 || wavelength > 780.0) return;
 	wavelength_to_RGB(wavelength, &color);
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &color);
@@ -1029,20 +1069,13 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 
 void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
 	int i;
-	static GtkWidget *main_window = NULL;
-	static GtkWidget *rgb_window = NULL;
 
-	if (main_window == NULL) {
-		main_window = lookup_widget("main_window");
-		rgb_window = lookup_widget("rgb_window");
-	}
+	if (!single_image_is_loaded() && !sequence_is_loaded()) return;
+	process_close(0);
 
-	if (com.uniq) {
-		close_single_image();
-	}
 	if (has_fit(0))
 		clearfits(&layers[0]->the_fit);
-	for (i=1; layers[i]; i++) {
+	for (i = 1; layers[i]; i++) {
 		if (has_fit(i))
 			clearfits(&layers[i]->the_fit);
 		grid_remove_row(i, 1);
@@ -1062,7 +1095,7 @@ void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
 		seq = NULL;
 	}
 
-	for (i=1; i<4; i++) {
+	for (i = 1; i < 4; i++) {
 		/* Create the three default layers */
 		on_layer_add(NULL, NULL);
 	}
@@ -1075,18 +1108,10 @@ void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
 	GtkToggleButton *lum_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "composition_use_lum"));
 	gtk_toggle_button_set_active(lum_button, 0);
 	gtk_label_set_text(layers[0]->label, _("not loaded"));
-
+	gtk_widget_set_tooltip_text(GTK_WIDGET(layers[0]->label), _("not loaded"));
 
 	update_compositing_interface();
 	open_compositing_window();	// update the CWD just in case
-
-	/* Close all oppened windows */
-	if (gtk_widget_get_visible(main_window))
-		gtk_widget_hide(main_window);
-	if (gtk_widget_get_visible(rgb_window))
-		gtk_widget_hide(rgb_window);
-
-	update_used_memory();
 }
 
 /* Reduce brightness of colours associated to layers so that they never overflow on composition.
@@ -1106,19 +1131,19 @@ void autoadjust(int force_redraw) {
 	for (layer = 1; layers[layer]; layer++) {
 		if (has_fit(layer)) {
 			image_find_minmax(&layers[layer]->the_fit);
-			WORD max_value = layers[layer]->the_fit.maxi;
+			double max_value = layers[layer]->the_fit.maxi;
 			if (coeff)
 				max_value = get_normalized_pixel_value(layer, max_value);
 			increment_pixel_components_from_layer_saturated_value(
 					layer, &max_pixel, max_value);
 
-			if (layers[layer]->color.red > 0.0) nb_images_red++;
-			if (layers[layer]->color.green > 0.0) nb_images_green++;
-			if (layers[layer]->color.blue > 0.0) nb_images_blue++;
+			if (layers[layer]->color.red > 0.0f) nb_images_red++;
+			if (layers[layer]->color.green > 0.0f) nb_images_green++;
+			if (layers[layer]->color.blue > 0.0f) nb_images_blue++;
 		}
 	}
 
-	if (max_pixel.red <= 1.0 && max_pixel.green <= 1.0 && max_pixel.blue <= 1.0) {
+	if (max_pixel.red <= 1.0f && max_pixel.green <= 1.0f && max_pixel.blue <= 1.0f) {
 		if (force_redraw) {
 			siril_log_message(_("No overflow with the current colours, redrawing only\n"));
 			update_result(1);
@@ -1139,19 +1164,19 @@ void autoadjust(int force_redraw) {
 		if (has_fit(layer)) {
 			double to_redistribute = 0.0;	// for this layer
 
-			if (layers[layer]->color.red > 0.0 && to_redistribute_red > 0.0) {
+			if (layers[layer]->color.red > 0.0f && to_redistribute_red > 0.0f) {
 				to_redistribute = to_redistribute_red;
 			}
 			/* for each layer, we check if a channel requires the
 			 * current layer to be readjusted and we take the more
 			 * severe value of all requirements */
 
-			if (layers[layer]->color.green > 0.0 && to_redistribute_green > 0.0) {
+			if (layers[layer]->color.green > 0.0f && to_redistribute_green > 0.0) {
 				if (to_redistribute_green > to_redistribute)
 					to_redistribute = to_redistribute_green;
 			}
 
-			if (layers[layer]->color.blue > 0.0 && to_redistribute_blue > 0.0) {
+			if (layers[layer]->color.blue > 0.0f && to_redistribute_blue > 0.0) {
 				if (to_redistribute_blue > to_redistribute)
 					to_redistribute = to_redistribute_blue;
 			}
@@ -1189,8 +1214,11 @@ void coeff_clear() {
 }
 
 void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
+	GtkWidget *win = lookup_widget("color_calibration");
 	initialize_calibration_interface();
-	gtk_widget_show(lookup_widget("color_calibration"));
+	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
+	/* Here this is wanted that we do not use siril_open_dialog */
+	gtk_widget_show(win);
 }
 
 

@@ -1,0 +1,116 @@
+* {
+    font-size: %lfem; 
+}
+
+GtkBox {
+    border-width: 0;
+    border-style: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+}
+
+GtkGrid {
+    margin: 2px;
+    padding: 0;
+    border-width: 0;
+    border-style: none;
+    border-radius: 0;
+}
+
+GtkFrame {
+    border-width: 0;
+    border-color: #303030;
+    border-radius: 0;
+    border-style: solid;
+    padding: 4px;
+}
+
+toolbar {
+   background-color: transparent;
+}
+
+.small-spinbutton button,
+.small-spinbutton entry {
+   padding: 0px 3px;
+}
+
+.main-toolbar button {
+   padding: 6px;
+}
+
+.small-button {
+   padding: 0;
+   outline-width: 0;
+}
+
+.label-info {
+   color: #ff0000;
+   font-weight: bold;
+   padding: 0px 0px 8px 0px;
+   text-shadow: 1px 1px @theme_bg_color;
+}
+
+GtkProgressBar {
+    -GtkProgressBar-min-vertical-bar-width: 10;
+    -GtkProgressBar-min-horizontal-bar-height: 10;
+}
+
+GtkDrawingArea {
+    border-radius: 0;
+    background-color: #363636;
+    border: 1px solid #252525;
+}
+
+GtkDrawingArea:selected {
+    background-color: #565656;
+    border-radius: 10px;
+}
+
+GtkImage {
+    padding: 1px;
+}
+
+
+GtkScale.slider {
+    margin: 1px;
+}
+
+GtkLabel {
+    margin: 0 1px;
+}
+
+GtkButton {
+    padding: 0;
+    margin: 1px;
+}
+
+#siril-preferences box.title,
+#siril-preferences label.title {
+  background-color: @theme_selected_bg_color;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 2px 2px 3px gray;
+}
+
+#siril-preferences label.title {
+  color: white;
+  font-size: 14pt;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px black;
+}
+
+/* Siril Intro */
+
+@keyframes widget-highlight {
+  from { box-shadow: 0px 0px 10px @theme_selected_bg_color, inset 0px 0px 4px  @theme_selected_bg_color; }
+  to   { box-shadow: 0px 0px 4px  @theme_selected_bg_color, inset 0px 0px 10px @theme_selected_bg_color; }
+}
+
+button.siril-intro-highlight,
+buttonbox.siril-intro-highlight > button,
+entry.siril-intro-highlight,
+label.siril-intro-highlight,
+toolbar.siril-intro-highlight {
+  animation: widget-highlight 1s infinite alternate;
+}

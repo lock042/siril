@@ -21,9 +21,12 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "gui/callbacks.h"
+#include "git-version.h"
 
-static const gchar* copyright = ("Copyright © 2004-2011 François Meyer\n"
-		"Copyright © 2012-2019 team free-astro");
+#include "about_dialog.h"
+
+//static const gchar* copyright = ("Copyright © 2004-2011 François Meyer\n"
+//		"Copyright © 2012-2020 team free-astro");
 
 static gchar **authors = (gchar *[] ) { "Vincent Hourdin <vh@free-astro.vinvin.tf>",
 				"Cyril Richard <cyril@free-astro.org>", "François Meyer", NULL };
@@ -33,13 +36,19 @@ static gchar **documenters = (gchar *[] ) { "Laurent Rogé <l.roge@siril.org>", 
 static gchar **artists = (gchar *[] ) { "Maxime Oudoux <max.oudoux@gmail.com>",
 				"Cyril Richard <cyril@free-astro.org>", NULL };
 
-// translator names
-static gchar *translator = N_("Cyril Richard <cyril@free-astro.org>\n"
-		"Vincent Hourdin <vh@free-astro.vinvin.tf>");
-
-void on_about_activate(GtkMenuItem *menuitem, gpointer user_data) {
+void siril_show_about_dialog() {
 	GdkPixbuf *icon;
 	GtkWindow *parent;
+	gchar *copyright;
+	gchar *version;
+#ifdef SIRIL_UNSTABLE
+	version = g_strdup_printf(_("%s\nThis is an unstable development release\n"
+					"commit %s\n"), VERSION, SIRIL_GIT_VERSION_ABBREV);
+#else
+	version = g_strdup(VERSION);
+#endif
+	copyright = g_strdup_printf("Copyright © 2004-2011 François Meyer\n"
+			"Copyright © 2012-%s team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
 
 	parent = GTK_WINDOW(lookup_widget("control_window"));
 	icon = gtk_image_get_pixbuf(GTK_IMAGE(lookup_widget("pixmap1")));
@@ -47,15 +56,18 @@ void on_about_activate(GtkMenuItem *menuitem, gpointer user_data) {
 			"program-name", PACKAGE,
 			"title", _("About Siril"),
 			"logo", icon,
-			"version", VERSION,
+			"version", version,
 			"copyright", copyright,
 			"authors", authors,
 			"documenters", documenters,
 			"artists", artists,
 			"comments", _("Astronomical image (pre-)processing program"),
-			"translator-credits", _(translator),
-			"website", "https://siril.org",
+			"translator-credits", _("translator-credits"),
+			"website", PACKAGE_URL,
 			"website-label", _("Visit the Siril website"),
 			"license-type", GTK_LICENSE_GPL_3_0,
 			NULL);
+
+	g_free(copyright);
+	g_free(version);
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,13 +18,15 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "progress_and_log.h"
 #include <gtk/gtk.h>
 #include <unistd.h>
 #include <assert.h>
 #include <string.h>
 #include "callbacks.h"
 #include "core/pipe.h"
+#include "core/siril_log.h"
+
+#include "progress_and_log.h"
 
 /*
  * Progress bar static functions
@@ -145,7 +147,6 @@ static gboolean idle_messaging(gpointer p) {
 	GtkTextMark *insert_mark = gtk_text_buffer_get_insert(tbuf);
 	gtk_text_buffer_place_cursor(tbuf, &iter);
 	gtk_text_view_scroll_to_mark(text, insert_mark, 0.0, TRUE, 0.0, 1.0);
-	gtk_widget_queue_draw(GTK_WIDGET(text));
 
 	free(log->timestamp);
 	free(log->message);
@@ -153,54 +154,22 @@ static gboolean idle_messaging(gpointer p) {
 	return FALSE;
 }
 
-/* This function writes a message on Siril's console/log. It is not thread safe.
- * There is a limit in number of characters that it is able to write in one call: 1023.
- * Return value is the string printed from arguments, or NULL if argument was empty or
- * only newline. It is an allocated string and must not be freed. It can be
- * reused until next call to this function.
- */
-static char* siril_log_internal(const char* format, const char* color, va_list arglist) {
-	static char *msg = NULL;
-	struct tm *now;
-	time_t now_sec;
-	char timestamp[30];
-	struct log_message *new_msg;
-
-	if (msg == NULL) {
-		msg = malloc(1024);
-		msg[1023] = '\0';
-	}
-
-	vsnprintf(msg, 1023, format, arglist);
-
-	if (msg == NULL || msg[0] == '\0')
-		return NULL;
-
-	if (msg[0] == '\n' && msg[1] == '\0') {
-		fputc('\n', stdout);
-		new_msg = malloc(sizeof(struct log_message));
-		new_msg->timestamp = NULL;
-		new_msg->message = "\n";
-		new_msg->color = NULL;
-		gdk_threads_add_idle(idle_messaging, new_msg);
-		return NULL;
-	}
-
-	fprintf(stdout, "log: %s", msg);
-	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
-	now_sec = time(NULL);
-	now = localtime(&now_sec);
-	g_snprintf(timestamp, sizeof(timestamp), "%.2d:%.2d:%.2d: ", now->tm_hour,
+// Send a log message to the console in the UI
+void gui_log_message(const char* msg, const char* color)
+{
+	if (!com.headless) {	// avoid adding things in lost memory
+		time_t now_sec = time(NULL);
+		struct tm *now = localtime(&now_sec);
+		char timestamp[30];
+		g_snprintf(timestamp, sizeof(timestamp), "%.2d:%.2d:%.2d: ", now->tm_hour,
 			now->tm_min, now->tm_sec);
 
-	new_msg = malloc(sizeof(struct log_message));
-	new_msg->timestamp = strdup(timestamp);
-	new_msg->message = strdup(msg);
-	new_msg->color = color;
-	if (!com.headless)	// avoid adding things in lost memory
+		struct log_message *new_msg = malloc(sizeof(struct log_message));
+		new_msg->timestamp = strdup(timestamp);
+		new_msg->message = strdup(msg);
+		new_msg->color = color;
 		gdk_threads_add_idle(idle_messaging, new_msg);
-
-	return msg;
+	}
 }
 
 void initialize_log_tags() {
@@ -216,26 +185,6 @@ void initialize_log_tags() {
 	gtk_text_buffer_create_tag (tbuf, "green", "foreground", "#01b301", NULL);
 	gtk_text_buffer_create_tag (tbuf, "blue", "foreground", "#7a7af8", NULL);
 	gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
-}
-
-char* siril_log_message(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	g_mutex_lock(&com.mutex);
-	char *msg = siril_log_internal(format, NULL, args);
-	g_mutex_unlock(&com.mutex);
-	va_end(args);
-	return msg;
-}
-
-char* siril_log_color_message(const char* format, const char* color, ...) {
-	va_list args;
-	va_start(args, color);
-	g_mutex_lock(&com.mutex);
-	char *msg = siril_log_internal(format, color, args);
-	g_mutex_unlock(&com.mutex);
-	va_end(args);
-	return msg;
 }
 
 void show_time(struct timeval t_start, struct timeval t_end) {
@@ -318,6 +267,7 @@ static gboolean idle_set_cursor(gpointer garg) {
 }
 
 void set_cursor_waiting(gboolean waiting) {
+	if (com.headless) return;
 	struct _cursor_data *arg = malloc(sizeof (struct _cursor_data));
 
 	arg->change = waiting;

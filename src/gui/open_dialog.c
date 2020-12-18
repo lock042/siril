@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,16 +27,21 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "algos/sorting.h"
 #include "io/conversion.h"
 #include "io/films.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/fits_sequence.h"
+#include "gui/callbacks.h"
+#include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
+#include "gui/dialog_preview.h"
+#include "gui/conversion.h"
+
 #include "open_dialog.h"
-#include "callbacks.h"
-#include "progress_and_log.h"
-#include "message_dialog.h"
 
 static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 		const gchar *pattern, gboolean set_default) {
@@ -58,13 +63,13 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 
 static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	GString *all_filter = NULL;
-	gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS";
+	gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fits.fz";
 	gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 	gchar *pic_filter = "*.pic;*.PIC";
 	gchar *cpa_filter = "*.cpa;*.CPA";
 	gchar *ser_filter = "*.ser;*.SER";
-	if (whichdial != OD_CONVERT) {
-		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts)"),
+	if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
+		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fits.fz)"),
 				fits_filter, com.filter == TYPEFITS);
 	} else {
 		all_filter = g_string_new(fits_filter);
@@ -91,7 +96,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			g_free(upcase);
 		}
 		raw[strlen(raw) - 1] = '\0';
-		if (whichdial != OD_CONVERT) {
+		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, _("RAW DSLR Camera Files"), raw,
 				com.filter == TYPERAW);
 		} else {
@@ -113,6 +118,11 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		s_pattern = g_string_append(s_pattern, "*.jpg;*.JPG;*.jpeg;*.JPEG;");
 #endif
 
+#ifdef HAVE_LIBHEIF
+		s_supported_graph = g_string_append(s_supported_graph, ", *.heic, *.heif");
+		s_pattern = g_string_append(s_pattern, "*.heic;*.HEIC;*.heif;*.HEIF;");
+#endif
+
 #ifdef HAVE_LIBPNG
 		s_supported_graph = g_string_append(s_supported_graph, ", *.png");
 		s_pattern = g_string_append(s_pattern, "*.png;*.PNG;");
@@ -126,7 +136,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 
 		graphics_supported = g_string_free(s_supported_graph, FALSE);
 		graphics_filter = g_string_free(s_pattern, FALSE);
-		if (whichdial != OD_CONVERT) {
+		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, graphics_supported, graphics_filter,
 					com.filter == TYPEBMP || com.filter == TYPEJPG
 							|| com.filter == TYPEPNG || com.filter == TYPETIFF);
@@ -156,7 +166,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			all_filter = g_string_append(all_filter, ser_filter);
 		}
 
-#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
+#ifdef HAVE_FFMS2
 		/* FILM FILES */
 		int nb_film;
 		char *film_filter;
@@ -179,7 +189,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		}
 		film_filter[strlen(film_filter) - 1] = '\0';
 
-		if (whichdial != OD_CONVERT) {
+		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
 				com.filter == TYPEAVI);
 		} else {
@@ -191,7 +201,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		g_free(graphics_supported);
 		g_free(graphics_filter);
 
-		if (whichdial == OD_CONVERT) {
+		if (whichdial == OD_CONVERT || whichdial == OD_OPEN) {
 			gchar *filter = g_string_free(all_filter, FALSE);
 
 			gtk_filter_add(chooser, _("All supported files"), filter, TRUE);
@@ -200,11 +210,26 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	}
 }
 
+static void on_debayer_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	gtk_toggle_button_set_active((GtkToggleButton *)user_data, gtk_toggle_button_get_active(togglebutton));
+}
+
+static void siril_add_debayer_toggle_button(GtkFileChooser *dialog) {
+	GtkToggleButton *main_debayer_button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
+	GtkWidget *toggle_debayer = gtk_check_button_new_with_label(_("Debayer"));
+
+	gtk_widget_show(toggle_debayer);
+	gtk_file_chooser_set_extra_widget(dialog, toggle_debayer);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_debayer), gtk_toggle_button_get_active(main_debayer_button));
+	g_signal_connect(GTK_TOGGLE_BUTTON(toggle_debayer), "toggled", G_CALLBACK(on_debayer_toggled), (gpointer) main_debayer_button);
+}
+
 static void opendial(int whichdial) {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
 	GtkWindow *control_window = GTK_WINDOW(lookup_widget("control_window"));
 	gint res;
+	int retval;
 
 	if (!com.wd)
 		return;
@@ -221,6 +246,7 @@ static void opendial(int whichdial) {
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
+		siril_file_chooser_add_preview(dialog);
 		break;
 	case OD_CWD:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
@@ -234,6 +260,8 @@ static void opendial(int whichdial) {
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
+		siril_file_chooser_add_preview(dialog);
+		siril_add_debayer_toggle_button(dialog);
 		break;
 	case OD_CONVERT:
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
@@ -246,6 +274,7 @@ static void opendial(int whichdial) {
 	if (!dialog)
 		return;
 
+	wait:
 	res = siril_dialog_run(widgetdialog);
 
 	if (res == GTK_RESPONSE_ACCEPT) {
@@ -259,7 +288,14 @@ static void opendial(int whichdial) {
 
 		filename = gtk_file_chooser_get_filename(chooser);
 		if (!filename)
-			return;
+			goto wait;
+
+		if (fitseq_is_fitseq(filename, NULL)
+				&& ((whichdial == OD_FLAT) || (whichdial == OD_DARK) || (whichdial == OD_OFFSET))) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Format not supported."),
+					_("FITS sequences are not supported for master files. Please select a single FITS file."));
+			goto wait;
+		}
 
 		pbutton  = lookup_widget("prepro_button");
 		flat_entry = GTK_ENTRY(lookup_widget("flatname_entry"));
@@ -292,7 +328,7 @@ static void opendial(int whichdial) {
 			break;
 
 		case OD_CWD:
-			if (!changedir(filename, &err)) {
+			if (!siril_change_dir(filename, &err)) {
 				writeinitfile();
 				set_GUI_CWD();
 			} else {
@@ -302,8 +338,9 @@ static void opendial(int whichdial) {
 
 		case OD_OPEN:
 			set_cursor_waiting(TRUE);
-			open_single_image(filename);
+			retval = open_single_image(filename);
 			set_cursor_waiting(FALSE);
+			if (retval == OPEN_IMAGE_CANCEL) goto wait;
 			break;
 
 		case OD_CONVERT:
@@ -322,7 +359,7 @@ void on_darkfile_button_clicked(GtkButton *button, gpointer user_data) {
 	opendial(OD_DARK);
 }
 
-void on_cwd_btton_clicked(GtkButton *button, gpointer user_data) {
+void cwd_btton_clicked() {
 	opendial(OD_CWD);
 }
 
@@ -334,10 +371,36 @@ void on_flatfile_button_clicked(GtkButton *button, gpointer user_data) {
 	opendial(OD_FLAT);
 }
 
-void on_open1_activate(GtkMenuItem *menuitem, gpointer user_data) {
+void header_open_button_clicked() {
 	opendial(OD_OPEN);
 }
 
 void on_select_convert_button_clicked(GtkToolButton *button, gpointer user_data) {
 	opendial(OD_CONVERT);
+}
+
+/** callback function for recent document opened
+ *
+ * @param chooser
+ * @param user_data
+ */
+void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
+		gpointer user_data) {
+	gchar *uri, *path;
+	GError *error = NULL;
+
+	uri = gtk_recent_chooser_get_current_uri(chooser);
+
+	path = g_filename_from_uri(uri, NULL, &error);
+	if (error) {
+		g_warning("Could not convert uri \"%s\" to a local path: %s", uri,
+				error->message);
+		g_error_free(error);
+		return;
+	}
+
+	open_single_image(path);
+
+	g_free(uri);
+	g_free(path);
 }

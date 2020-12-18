@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,13 +24,17 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/callbacks.h"
+#include "gui/image_display.h"
+#include "gui/image_interactions.h"
+#include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/PSF_list.h"
 #include "gui/progress_and_log.h"
 #include "algos/PSF.h"
-#include "gui/PSF_list.h"
 #include "algos/star_finder.h"
 
 static GtkListStore *liststore_stars = NULL;
@@ -216,14 +220,15 @@ static void display_PSF(fitted_PSF **result) {
 			}
 			i++;
 		}
+		if (i <= 0) return;
 		/* compute average */
-		B = B / (double) i;
-		A = A / (double) i;
-		FWHMx = FWHMx / (double) i;
-		FWHMy = FWHMy / (double) i;
+		B = B / (double)i;
+		A = A / (double)i;
+		FWHMx = FWHMx / (double)i;
+		FWHMy = FWHMy / (double)i;
 		r = FWHMy / FWHMx;
-		angle = angle / (double) i;
-		rmse = rmse / (double) i;
+		angle = angle / (double)i;
+		rmse = rmse / (double)i;
 
 		msg = g_strdup_printf(_("Average Gaussian PSF\n\n"
 				"N:\t%d stars\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
@@ -258,7 +263,8 @@ static void display_status() {
 		i++;
 	if (com.selected_star == -1) {
 		if (i > 0) {
-			text = g_strdup_printf(_("%d stars"), i);
+			text = ngettext("%d star", "%d stars", i);
+			text = g_strdup_printf(text, i);
 		} else {
 			text = g_strdup(" ");
 		}
@@ -292,24 +298,47 @@ static void remove_all_stars(){
 	redraw(com.cvport, REMAP_NONE);
 }
 
-static int save_list(gchar *file) {
+static int save_list(gchar *filename) {
 	int i = 0;
 	if (!com.stars)
 		return 1;
-	FILE *f = g_fopen(file, "w");
+	GError *error = NULL;
 
-	if (f) {
-		while (com.stars[i]) {
-			fprintf(f,
-					"%d\t%d\t%10.6f %10.6f %10.2f %10.2f %10.2f %10.2f %3.2f %10.3e %10.2f%s",
-					i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
-					com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx,
-					com.stars[i]->fwhmy, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag, SIRIL_EOL);
-			i++;
+	GFile *file = g_file_new_for_path(filename);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
+			G_FILE_CREATE_NONE, NULL, &error);
+
+	if (output_stream == NULL) {
+		if (error != NULL) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			fprintf(stderr, "save_list: Cannot save star list\n");
 		}
-		fclose(f);
-		siril_log_message(_("The file stars.lst has been created.\n"));
+		g_object_unref(file);
+		return 1;
 	}
+
+	while (com.stars[i]) {
+		gchar *buffer = g_strdup_printf(
+				"%d\t%d\t%10.6f %10.6f %10.2f %10.2f %10.2f %10.2f %3.2f %10.3e %10.2f%s",
+				i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
+				com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx,
+				com.stars[i]->fwhmy, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag, SIRIL_EOL);
+
+		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
+			g_warning("%s\n", error->message);
+			g_free(buffer);
+			g_clear_error(&error);
+			g_object_unref(output_stream);
+			g_object_unref(file);
+			return 1;
+		}
+		i++;
+		g_free(buffer);
+	}
+	siril_log_message(_("The file %s has been created.\n"), filename);
+	g_object_unref(file);
+
 	return 0;
 }
 
@@ -375,6 +404,7 @@ void add_star_to_list(fitted_PSF *star) {
 			-1);
 
 	units = star->units;
+	display_status();
 }
 
 void fill_stars_list(fits *fit, fitted_PSF **stars) {
@@ -385,15 +415,14 @@ void fill_stars_list(fits *fit, fitted_PSF **stars) {
 
 	while (stars[i]) {
 		/* update units if needed */
-		fwhm_to_arcsec_if_needed(fit, &stars[i]);
+		fwhm_to_arcsec_if_needed(fit, stars[i]);
 		add_star_to_list(stars[i]);
 		i++;
 	}
 	com.selected_star = -1;
-	display_status();	//no stars selected
 }
 
-void refresh_stars_list(fitted_PSF **star){
+void refresh_star_list(fitted_PSF **star){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
 	fill_stars_list(&gfit, com.stars);
@@ -459,9 +488,6 @@ void on_Stars_stored_key_release_event(GtkWidget *widget, GdkEventKey *event,
 }
 
 void on_stars_list_window_hide(GtkWidget *object, gpointer user_data) {
-	GtkCheckMenuItem *PSFcheck = GTK_CHECK_MENU_ITEM(
-			gtk_builder_get_object(builder, "menuitemPSF"));
-	gtk_check_menu_item_set_active(PSFcheck, FALSE);
 	com.selected_star = -1;
 }
 
@@ -477,11 +503,8 @@ void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 	remove_all_stars();
 }
 
-void on_menuitemPSF_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(checkmenuitem))
-		gtk_widget_show_all(lookup_widget("stars_list_window"));
-	else
-		gtk_widget_hide(lookup_widget("stars_list_window"));
+void on_info_menu_dynamic_psf_clicked(GtkButton *button, gpointer user_data) {
+	siril_open_dialog("stars_list_window");
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
@@ -498,7 +521,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE);
 	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
 	if (com.stars)
-		refresh_stars_list(com.stars);
+		refresh_star_list(com.stars);
 	set_cursor_waiting(FALSE);
 }
 
@@ -512,6 +535,6 @@ void on_stars_list_window_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_button_stars_list_ok_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide(lookup_widget("stars_list_window"));
+	siril_close_dialog("stars_list_window");
 }
 

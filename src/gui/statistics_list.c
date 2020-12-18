@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@
 #include "algos/statistics.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
+#include "gui/dialogs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 
@@ -55,12 +56,12 @@ char *statName[] = {
 		N_("normalization")
 };
 
-void get_statlist_store() {
+static void get_statlist_store() {
 	if (list_store == NULL)
 		list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "liststoreStat"));
 }
 /* Add a statistic to the list. If imstats is NULL, the list is cleared. */
-void add_stats_to_list(imstats *stat[], int nblayer, gboolean normalized) {
+static void add_stats_to_list(imstats *stat[], int nblayer, data_type type, gboolean normalized) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
 	char format[6];
@@ -83,44 +84,17 @@ void add_stats_to_list(imstats *stat[], int nblayer, gboolean normalized) {
 		normValue[BLAYER] = stat[RLAYER]->normValue;
 		sprintf(format, "%%.5e");
 	}
-	else
+	else {
+		if (type == DATA_FLOAT) {
+			/* by default it is shown in ushort mode */
+			normValue[RLAYER] = 1.0 / USHRT_MAX_DOUBLE;
+			normValue[GLAYER] = 1.0 / USHRT_MAX_DOUBLE;
+			normValue[BLAYER] = 1.0 / USHRT_MAX_DOUBLE;
+		}
 		sprintf(format, "%%.1lf");
-
-	sprintf(rvalue, "%.4lf", ((double) stat[RLAYER]->ngoodpix / (double) stat[RLAYER]->total) * 100.0);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, "%.4lf", ((double) stat[GLAYER]->ngoodpix / (double) stat[GLAYER]->total) * 100.0);
-		sprintf(bvalue, "%.4lf", ((double) stat[BLAYER]->ngoodpix / (double) stat[BLAYER]->total) * 100.0);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
 	}
 
-	color = com.want_dark ? 1 : 0;
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[0]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, first_colour[color],
-			-1);
-
-	sprintf(rvalue, "%lu", stat[RLAYER]->total);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, "%lu", stat[GLAYER]->total);
-		sprintf(bvalue, "%lu", stat[BLAYER]->total);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[1]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, second_colour[color],
-			-1);
+	color = (com.pref.combo_theme == 0) ? 1 : 0;
 
 	/** Mean */
 	sprintf(rvalue, format, stat[RLAYER]->mean / normValue[RLAYER]);
@@ -269,7 +243,7 @@ void add_stats_to_list(imstats *stat[], int nblayer, gboolean normalized) {
 }
 
 void on_statButtonClose_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide(lookup_widget("StatWindow"));
+	siril_close_dialog("StatWindow");
 }
 
 void computeStat() {
@@ -277,7 +251,7 @@ void computeStat() {
 	GtkLabel *statNameLabel, *statSelecLabel;
 	gboolean normalized;
 	int channel;
-	char name[256], selection[256];
+	gchar *name, *selection;
 	imstats *stat[3] = { NULL, NULL, NULL };
 
 	checkButton = GTK_TOGGLE_BUTTON(lookup_widget("statCheckButton"));
@@ -286,32 +260,33 @@ void computeStat() {
 	normalized = gtk_toggle_button_get_active(checkButton);
 
 	if (single_image_is_loaded())
-		g_snprintf(name, sizeof(name), "%s", com.uniq->filename);
+		name = g_strdup_printf("%s", com.uniq->filename);
 	else if (sequence_is_loaded())
-		g_snprintf(name, sizeof(name), _("Image %d/%d from the sequence %s"),
+		name = g_strdup_printf(_("Image %d/%d from the sequence %s"),
 				com.seq.current, com.seq.number, com.seq.seqname);
 	else
-		g_snprintf(name, sizeof(name), _("unknown image"));
+		name = g_strdup_printf(_("unknown image"));
 
 	gtk_label_set_text(statNameLabel, name);
+	g_free(name);
 
 	if (com.selection.h && com.selection.w) {
-		g_snprintf(selection, sizeof(selection),
-				_("Size of selection in pixel: (%d,%d)"), com.selection.w,
-				com.selection.h);
+		selection = g_strdup_printf(_("Size of selection in pixel: (%d,%d)"),
+				com.selection.w, com.selection.h);
 	} else {
-		g_snprintf(selection, sizeof(selection), _("No selection"));
+		selection = g_strdup_printf(_("No selection"));
 	}
 
 	gtk_label_set_text(statSelecLabel, selection);
+	g_free(selection);
 
 	for (channel = 0; channel < gfit.naxes[2]; channel++) {
-		stat[channel] = statistics(NULL, -1, &gfit, channel, &com.selection, STATS_MAIN);
+		stat[channel] = statistics(NULL, -1, &gfit, channel, &com.selection, STATS_MAIN, TRUE);
 		if (!stat[channel]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 		}
 	}
-	add_stats_to_list(stat, gfit.naxes[2], normalized);
+	add_stats_to_list(stat, gfit.naxes[2], gfit.type, normalized);
 
 	for (channel = 0; channel < gfit.naxes[2]; channel++)
 		free_stats(stat[channel]);

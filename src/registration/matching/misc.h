@@ -22,9 +22,6 @@
 	/* a buffer used for parsing command-line arguments */
 #define CMDBUFLEN       500
 
-   /* max length of lines in input files */
-#define LINELEN         300
-
    /* ignore any lines in input files that start with this */
 #define COMMENT_CHAR   '#'
 
@@ -173,7 +170,7 @@ read_star_file(char *filename, int xcolumn, int ycolumn, int magcolumn,
     */
 
 int
-get_stars(fitted_PSF **s, int n, int *num_stars, struct s_star **list, point image_size);
+get_stars(fitted_PSF **s, int n, int *num_stars, struct s_star **list);
 
 void
 free_stars(struct s_star *head);

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,9 +25,21 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
+#include "core/command.h"
 #include "gui/callbacks.h"
+#include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
+#include "gui/dialogs.h"
+#include "io/sequence.h"
+#include "io/fits_sequence.h"
+#include "io/seqwriter.h"
+#include "io/image_format_fits.h"
+#include "io/conversion.h"
 #include "algos/demosaicing.h"
 #include "algos/statistics.h"
+
+#define USE_SIRIL_DEBAYER FALSE
 
 /** Calculate the bayer pattern color from the row and column **/
 static inline int FC(const size_t row, const size_t col, const uint32_t filters) {
@@ -35,55 +47,90 @@ static inline int FC(const size_t row, const size_t col, const uint32_t filters)
 }
 
 /* width and height are sizes of the original image */
-static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
+static void super_pixel_ushort(const WORD *buf, WORD *newbuf, int width, int height,
 		sensor_pattern pattern) {
-	int i, col, row;
-	double tmp;
-
-	i = 0;
-	for (row = 0; row < height - 1; row += 2) {
-		for (col = 0; col < width - 1; col += 2) {
+	long i = 0;
+	for (int row = 0; row < height - 1; row += 2) {
+		for (int col = 0; col < width - 1; col += 2) {
+			float tmp;
 			switch (pattern) {
 			default:
 			case BAYER_FILTER_RGGB:
 				newbuf[i + 0] = buf[col + row * width];
-				tmp = (double) buf[1 + col + row * width];
-				tmp += (double) buf[col + (1 + row) * width];
-				tmp *= 0.5;
-				newbuf[i + 1] = round_to_WORD(tmp);
+				tmp = buf[1 + col + row * width];
+				tmp += buf[col + (1 + row) * width];
+				newbuf[i + 1] = round_to_WORD(tmp * 0.5f);
 				newbuf[i + 2] = buf[1 + col + (1 + row) * width];
 				break;
 			case BAYER_FILTER_BGGR:
 				newbuf[i + 2] = buf[col + row * width];
-				tmp = (double) buf[1 + col + row * width];
-				tmp += (double) buf[(col + row * width) + width];
-				tmp *= 0.5;
-				newbuf[i + 1] = round_to_WORD(tmp);
+				tmp = buf[1 + col + row * width];
+				tmp += buf[(col + row * width) + width];
+				newbuf[i + 1] = round_to_WORD(tmp * 0.5f);
 				newbuf[i + 0] = buf[(1 + col + row * width) + width];
 				break;
 			case BAYER_FILTER_GBRG:
 				newbuf[i + 2] = buf[1 + col + row * width];
 				newbuf[i + 0] = buf[(col + row * width) + width];
-				tmp = (double) buf[col + row * width];
-				tmp += (double) buf[(1 + col + row * width) + width];
-				tmp *= 0.5;
-				newbuf[i + 1] = round_to_WORD(tmp);
+				tmp = buf[col + row * width];
+				tmp += buf[(1 + col + row * width) + width];
+				newbuf[i + 1] = round_to_WORD(tmp * 0.5f);
 				break;
 			case BAYER_FILTER_GRBG:
 				newbuf[i + 0] = buf[1 + col + row * width];
 				newbuf[i + 2] = buf[(col + row * width) + width];
-				tmp = (double) buf[col + row * width];
-				tmp += (double) buf[(1 + col + row * width) + width];
-				tmp *= 0.5;
-				newbuf[i + 1] = round_to_WORD(tmp);
+				tmp = buf[col + row * width];
+				tmp += buf[(1 + col + row * width) + width];
+				newbuf[i + 1] = round_to_WORD(tmp * 0.5f);
 				break;
 			}
 			i += 3;
 		}
 	}
-	return 0;
 }
 
+/* width and height are sizes of the original image */
+static void super_pixel_float(const float *buf, float *newbuf, int width, int height,
+		sensor_pattern pattern) {
+	long i = 0;
+	for (int row = 0; row < height - 1; row += 2) {
+		for (int col = 0; col < width - 1; col += 2) {
+			float tmp;
+			switch (pattern) {
+			default:
+			case BAYER_FILTER_RGGB:
+				newbuf[i + 0] = buf[col + row * width];
+				tmp = buf[1 + col + row * width];
+				tmp += buf[col + (1 + row) * width];
+				newbuf[i + 1] = tmp * 0.5f;
+				newbuf[i + 2] = buf[1 + col + (1 + row) * width];
+				break;
+			case BAYER_FILTER_BGGR:
+				newbuf[i + 2] = buf[col + row * width];
+				tmp = buf[1 + col + row * width];
+				tmp += buf[(col + row * width) + width];
+				newbuf[i + 1] = tmp * 0.5f;
+				newbuf[i + 0] = buf[(1 + col + row * width) + width];
+				break;
+			case BAYER_FILTER_GBRG:
+				newbuf[i + 2] = buf[1 + col + row * width];
+				newbuf[i + 0] = buf[(col + row * width) + width];
+				tmp = buf[col + row * width];
+				tmp += buf[(1 + col + row * width) + width];
+				newbuf[i + 1] = tmp * 0.5f;
+				break;
+			case BAYER_FILTER_GRBG:
+				newbuf[i + 0] = buf[1 + col + row * width];
+				newbuf[i + 2] = buf[(col + row * width) + width];
+				tmp = buf[col + row * width];
+				tmp += buf[(1 + col + row * width) + width];
+				newbuf[i + 1] = tmp * 0.5f;
+				break;
+			}
+			i += 3;
+		}
+	}
+}
 
 /***************************************************
  * 
@@ -92,7 +139,6 @@ static int super_pixel(const WORD *buf, WORD *newbuf, int width, int height,
  * https://code.google.com/p/gst-plugins-elphel/
  * 
  * *************************************************/
-
 
 static void ClearBorders(WORD *rgb, int sx, int sy, int w) {
 	int i, j;
@@ -128,7 +174,7 @@ static int bayer_Bilinear(const WORD *bayer, WORD *rgb, int sx, int sy,
 	int start_with_green = tile == BAYER_FILTER_GBRG
 			|| tile == BAYER_FILTER_GRBG;
 
-	if ((tile > BAYER_FILTER_MAX) || (tile < BAYER_FILTER_MIN))
+	if (tile > BAYER_FILTER_MAX || tile < BAYER_FILTER_MIN)
 		return -1;
 
 	ClearBorders(rgb, sx, sy, 1);
@@ -206,76 +252,6 @@ static int bayer_Bilinear(const WORD *bayer, WORD *rgb, int sx, int sy,
 	return 0;
 }
 
-/* insprired by OpenCV's Bayer decoding */
-static int bayer_NearestNeighbor(const WORD *bayer, WORD *rgb, int sx, int sy,
-		sensor_pattern tile) {
-	const int bayerStep = sx;
-	const int rgbStep = 3 * sx;
-	int width = sx;
-	int height = sy;
-	int blue = tile == BAYER_FILTER_BGGR || tile == BAYER_FILTER_GBRG ? -1 : 1;
-	int start_with_green = tile == BAYER_FILTER_GBRG
-			|| tile == BAYER_FILTER_GRBG;
-	int i, iinc, imax;
-	if ((tile > BAYER_FILTER_MAX) || (tile < BAYER_FILTER_MIN))
-		return 1;
-	/* add black border */
-	imax = sx * sy * 3;
-	for (i = sx * (sy - 1) * 3; i < imax; i++) {
-		rgb[i] = 0;
-	}
-	iinc = (sx - 1) * 3;
-	for (i = (sx - 1) * 3; i < imax; i += iinc) {
-		rgb[i++] = 0;
-		rgb[i++] = 0;
-		rgb[i++] = 0;
-	}
-	rgb += 1;
-	height -= 1;
-	width -= 1;
-	for (; height--; bayer += bayerStep, rgb += rgbStep) {
-		const WORD *bayerEnd = bayer + width;
-		if (start_with_green) {
-			rgb[-blue] = bayer[1];
-			rgb[0] = bayer[bayerStep + 1];
-			rgb[blue] = bayer[bayerStep];
-			bayer++;
-			rgb += 3;
-		}
-		if (blue > 0) {
-			for (; bayer <= bayerEnd - 2; bayer += 2, rgb += 6) {
-				rgb[-1] = bayer[0];
-				rgb[0] = bayer[1];
-				rgb[1] = bayer[bayerStep + 1];
-				rgb[2] = bayer[2];
-				rgb[3] = bayer[bayerStep + 2];
-				rgb[4] = bayer[bayerStep + 1];
-			}
-		} else {
-			for (; bayer <= bayerEnd - 2; bayer += 2, rgb += 6) {
-				rgb[1] = bayer[0];
-				rgb[0] = bayer[1];
-				rgb[-1] = bayer[bayerStep + 1];
-				rgb[4] = bayer[2];
-				rgb[3] = bayer[bayerStep + 2];
-				rgb[2] = bayer[bayerStep + 1];
-			}
-		}
-		if (bayer < bayerEnd) {
-			rgb[-blue] = bayer[0];
-			rgb[0] = bayer[1];
-			rgb[blue] = bayer[bayerStep + 1];
-			bayer++;
-			rgb += 3;
-		}
-		bayer -= width;
-		rgb -= width * 3;
-		blue = -blue;
-		start_with_green = !start_with_green;
-	}
-	return 0;
-}
-
 #define ABSOLU(x) (((int)(x) ^ ((int)(x) >> 31)) - ((int)(x) >> 31))
 
 static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
@@ -307,8 +283,7 @@ static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 			+1, 0, +1, -1, 0, -1 };
 	const int height = sy, width = sx;
 	const signed char *cp;
-	/* the following has the same type as the image */
-	uint16_t (*brow[5])[3], *pix; /* [FD] */
+	WORD (*brow[5])[3], *pix; /* [FD] */
 	int code[8][2][320], *ip, gval[8], gmin, gmax, sum[4];
 	int row, col, x, y, x1, x2, y1, y2, t, weight, grads, color, diag;
 	int g, diff, thold, num, c;
@@ -446,13 +421,14 @@ static gboolean ahd_inited = FALSE; /* WARNING: not multi-processor safe */
 
 #define LIM(x,min,max) MAX(min,MIN(x,max))
 #define ULIM(x,y,z) ((y) < (z) ? LIM(x,y,z) : LIM(x,z,y))
-#define CLIPOUT(x) LIM(x,0,255)
-#define CLIPOUT16(x,bits) LIM(x,0,((1<<bits)-1))
 
-static const double xyz_rgb[3][3] = { /* XYZ from RGB */
-{ 0.412453, 0.357580, 0.180423 }, { 0.212671, 0.715160, 0.072169 }, { 0.019334,
-		0.119193, 0.950227 } };
-static const float d65_white[3] = { 0.950456, 1, 1.088754 };
+static const float xyz_rgb[3][3] = { /* XYZ from RGB */
+	{ 0.412453f, 0.357580f, 0.180423f },
+	{ 0.212671f, 0.715160f, 0.072169f },
+	{ 0.019334f, 0.119193f, 0.950227f } };
+/* TODO: is it wise to use a D65 here? */
+static const float d65_white[3] = { 0.950456f, 1.0f, 1.088754f };
+/* TODO: store the precomputation of xyz_rgb * d65 instead of running a silly init */
 
 static void cam_to_cielab(uint16_t cam[3], float lab[3]) /* [SA] */
 {
@@ -691,7 +667,7 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 /* Code from RAWTherapee:
  * It is a simple algorithm. Certainly not the best (probably the worst) but it works yet. */
 static int fast_xtrans_interpolate(const WORD *bayer, WORD *dst, int sx, int sy,
-		sensor_pattern pattern, int xtrans[6][6]) {
+		unsigned int xtrans[6][6]) {
 	uint32_t filters = 9;
 	const int height = sy, width = sx;
 	int row;
@@ -764,181 +740,216 @@ static int fast_xtrans_interpolate(const WORD *bayer, WORD *dst, int sx, int sy,
 
 #undef fcol
 
+static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
+		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6], int bit_depth) {
+	WORD *newbuf;
+	size_t npixels;
+	int retval;
+	switch (interpolation) {
+		default:
+			npixels = (*width) * (*height);
+			break;
+		case BAYER_SUPER_PIXEL:
+			npixels = (*width / 2 + *width % 2) * (*height / 2 + *height % 2);
+			break;
+	}
+	newbuf = calloc(3, npixels * sizeof(WORD));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+
+	switch (interpolation) {
+	case BAYER_BILINEAR:
+		retval = bayer_Bilinear(buf, newbuf, *width, *height, pattern);
+		break;
+//	case BAYER_NEARESTNEIGHBOR:
+//		retval = bayer_NearestNeighbor(buf, newbuf, *width, *height, pattern);
+//		break;
+	default:
+	case BAYER_VNG:
+		retval = bayer_VNG(buf, newbuf, *width, *height, pattern);
+		break;
+	case BAYER_AHD:
+		retval = bayer_AHD(buf, newbuf, *width, *height, pattern);
+		break;
+	case BAYER_SUPER_PIXEL:
+		super_pixel_ushort(buf, newbuf, *width, *height, pattern);
+		*width = *width / 2 + *width % 2;
+		*height = *height / 2 + *height % 2;
+		retval = 0;
+		break;
+	case XTRANS:
+		if (!xtrans)
+			return NULL;
+		retval = fast_xtrans_interpolate(buf, newbuf, *width, *height, xtrans);
+		break;
+	}
+	if (retval) {
+		free(newbuf);
+		return NULL;
+	}
+	return newbuf;
+}
+
+int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
+	int xbayeroff = 0, ybayeroff = 0;
+	gboolean top_down = com.pref.debayer.top_down;
+
+	if (com.pref.debayer.use_bayer_header) {
+		if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+			top_down = TRUE;
+		} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+			top_down = FALSE;
+		}
+	}
+
+	siril_debug_print("Debayer will be done %s\n", top_down ? "top-down" : "bottom-up");
+
+	if (!com.pref.debayer.use_bayer_header) {
+		xbayeroff = com.pref.debayer.xbayeroff;
+		ybayeroff = com.pref.debayer.ybayeroff;
+	} else {
+		xbayeroff = fit->bayer_xoffset;
+		ybayeroff = fit->bayer_yoffset;
+	}
+
+	if (xbayeroff == 1) {
+		switch (*pattern) {
+		case BAYER_FILTER_RGGB:
+			*pattern = BAYER_FILTER_GRBG;
+			break;
+		case BAYER_FILTER_BGGR:
+			*pattern = BAYER_FILTER_GBRG;
+			break;
+		case BAYER_FILTER_GBRG:
+			*pattern = BAYER_FILTER_BGGR;
+			break;
+		case BAYER_FILTER_GRBG:
+			*pattern = BAYER_FILTER_RGGB;
+			break;
+		default:
+			return 1;
+		}
+	}
+
+	if (ybayeroff == 1) {
+		switch (*pattern) {
+		case BAYER_FILTER_RGGB:
+			*pattern = BAYER_FILTER_GBRG;
+			break;
+		case BAYER_FILTER_BGGR:
+			*pattern = BAYER_FILTER_GRBG;
+			break;
+		case BAYER_FILTER_GBRG:
+			*pattern = BAYER_FILTER_RGGB;
+			break;
+		case BAYER_FILTER_GRBG:
+			*pattern = BAYER_FILTER_BGGR;
+			break;
+		default:
+			return 1;
+		}
+	}
+
+	/* read bottom-up */
+	if (!top_down && !(fit->ry % 2)) {
+		switch (*pattern) {
+		case BAYER_FILTER_RGGB:
+			*pattern = BAYER_FILTER_GBRG;
+			break;
+		case BAYER_FILTER_BGGR:
+			*pattern = BAYER_FILTER_GRBG;
+			break;
+		case BAYER_FILTER_GBRG:
+			*pattern = BAYER_FILTER_RGGB;
+			break;
+		case BAYER_FILTER_GRBG:
+			*pattern = BAYER_FILTER_BGGR;
+			break;
+		default:
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* This function retrieve the xtrans matrix from the FITS header */
+static int retrieve_XTRANS_pattern(char *bayer, unsigned int xtrans[6][6]) {
+	int i = 0;
+
+	if (strlen(bayer) != 36) {
+		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done"), "red");
+		return 1;
+	}
+
+	for (int x = 0; x < 6; x++) {
+		for (int y = 0; y < 6; y++) {
+			switch (bayer[i]) {
+			case 'R':
+				xtrans[x][y] = 0;
+				break;
+			case 'G':
+				xtrans[x][y] = 1;
+				break;
+			case 'B':
+				xtrans[x][y] = 2;
+				break;
+			default:
+				return 1;
+			}
+			i++;
+		}
+	}
+	return 0;
+}
+
+WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, sensor_pattern pattern) {
+	int new_rx = *width / 2 + *width % 2;
+	int new_ry = *height / 2 + *height % 2;
+	size_t npixels = new_rx * new_ry;
+	WORD *newbuf = malloc(3 * npixels * sizeof(WORD));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	super_pixel_ushort(buf, newbuf, *width, *height, pattern);
+	*width = new_rx;
+	*height = new_ry;
+	return newbuf;
+}
+
 /**
  * debayer a buffer of a given size into a newly allocated and returned buffer,
- * using the given bayer pattern and interpolation
+ * using the given bayer pattern and interpolation (only used for SER demosaicing)
  *
  * @param buf original RAW data
  * @param width width of image
  * @param height height of image
  * @param interpolation type of interpolation used for demosaicing algorithm
  * @param pattern type of pattern used for demosaicing algorithm
- * @param xtrans this array is only used in case of FUJI XTRANS RAWs. Can be NULL.
  * @return a new buffer of demosaiced data
  */
 WORD *debayer_buffer(WORD *buf, int *width, int *height,
-		interpolation_method interpolation, sensor_pattern pattern, int xtrans[6][6]) {
-	WORD *newbuf;
-	int npixels;
+		interpolation_method interpolation, sensor_pattern pattern, int bit_depth) {
+	if (USE_SIRIL_DEBAYER)
+		return debayer_buffer_siril(buf, width, height, interpolation, pattern, NULL, bit_depth);
+	return debayer_buffer_new_ushort(buf, width, height, interpolation, pattern, NULL, bit_depth);
+}
 
-	switch (interpolation) {
-	case BAYER_BILINEAR:
-		npixels = (*width) * (*height);
-		newbuf = calloc(1, 3 * npixels * sizeof(WORD));
-		if (newbuf == NULL) {
-			printf("Not enough memory for debayering\n");
-			return NULL;
-		}
-		//siril_log_message("Bilinear interpolation...\n");
-		bayer_Bilinear(buf, newbuf, *width, *height, pattern);
-		break;
-	case BAYER_NEARESNEIGHBOR:
-		npixels = (*width) * (*height);
-		newbuf = calloc(1, 3 * npixels * sizeof(WORD));
-		if (newbuf == NULL) {
-			printf("Not enough memory for debayering\n");
-			return NULL;
-		}
-		//siril_log_message("Nearest Neighbor interpolation...\n");
-		bayer_NearestNeighbor(buf, newbuf, *width, *height, pattern);
-		break;
-	default:
-	case BAYER_VNG:
-		npixels = (*width) * (*height);
-		newbuf = calloc(1, 3 * npixels * sizeof(WORD));
-		if (newbuf == NULL) {
-			printf("Not enough memory for debayering\n");
-			return NULL;
-		}
-		//siril_log_message("VNG interpolation...\n");
-		bayer_VNG(buf, newbuf, *width, *height, pattern);
-		break;
-	case BAYER_AHD:
-		npixels = (*width) * (*height);
-		newbuf = calloc(1, 3 * npixels * sizeof(WORD));
-		if (newbuf == NULL) {
-			printf("Not enough memory for debayering\n");
-			return NULL;
-		}
-		//siril_log_message("AHD interpolation...\n");
-		bayer_AHD(buf, newbuf, *width, *height, pattern);
-		break;
-	case BAYER_SUPER_PIXEL:
-		npixels = (*width / 2 + *width % 2) * (*height / 2 + *height % 2);
-		newbuf = calloc(1, 3 * npixels * sizeof(WORD));
-		if (newbuf == NULL) {
-			printf("Not enough memory for debayering\n");
-			return NULL;
-		}
-		//siril_log_message("Super Pixel interpolation...\n");
-		super_pixel(buf, newbuf, *width, *height, pattern);
-		*width = *width / 2 + *width % 2;
-		*height = *height / 2 + *height % 2;
-		break;
-	case XTRANS:
-		if (xtrans == NULL)
-			return NULL;
-		npixels = (*width) * (*height);
-		newbuf = calloc(1, 3 * npixels * sizeof(WORD));
-		if (newbuf == NULL) {
-			printf("Not enough memory for debayering\n");
-			return NULL;
-		}
-		fast_xtrans_interpolate(buf, newbuf, *width, *height, pattern, xtrans);
-		break;
+float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sensor_pattern pattern) {
+	int new_rx = *width / 2 + *width % 2;
+	int new_ry = *height / 2 + *height % 2;
+	size_t npixels = new_rx * new_ry;
+	float *newbuf = malloc(3 * npixels * sizeof(float));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
 	}
+	super_pixel_float(buf, newbuf, *width, *height, pattern);
+	*width = new_rx;
+	*height = new_ry;
 	return newbuf;
-}
-
-/* This function retrieve the xtrans matrix from the FITS header
- */
-static int retrieveXTRANSPattern(char *bayer, int xtrans[6][6]) {
-	int x, y, i = 0;
-	int len;
-
-	len = strlen(bayer);
-
-	if (len == 36) {
-		for (x = 0; x < 6; x++) {
-			for (y = 0; y < 6; y++) {
-				switch (bayer[i]) {
-				default:
-				case 'R':
-					xtrans[x][y] = 0;
-					break;
-				case 'G':
-					xtrans[x][y] = 1;
-					break;
-				case 'B':
-					xtrans[x][y] = 2;
-					break;
-				}
-				i++;
-			}
-		}
-	}
-	return 0;
-}
-
-int debayer(fits* fit, interpolation_method interpolation, gboolean stretch_cfa) {
-	int i, j;
-	int width = fit->rx;
-	int height = fit->ry;
-	int npixels;
-	WORD *buf = fit->data;
-	WORD *newbuf;
-	int xtrans[6][6] = { 0 };
-
-	retrieveXTRANSPattern(fit->bayer_pattern, xtrans);
-	full_stats_invalidation_from_fit(fit);
-
-    if (fit->bayer_yoffset == 1) {
-		buf += width;
-		height--;
-	}
-
-	if (fit->bayer_xoffset == 1) {
-		buf++;
-	}
-
-	newbuf = debayer_buffer(buf, &width, &height, interpolation,
-			com.debayer.bayer_pattern, xtrans);
-	if (newbuf == NULL) {
-		return 1;
-	}
-	npixels = width * height;
-
-	// usual color RGBRGB format to fits RRGGBB format
-	fit->data = realloc(fit->data, 3 * npixels * sizeof(WORD));
-	fit->naxes[0] = width;
-	fit->naxes[1] = height;
-	fit->naxes[2] = 3;
-	fit->naxis = 3;
-	fit->rx = width;
-	fit->ry = height;
-	fit->pdata[RLAYER] = fit->data;
-	fit->pdata[GLAYER] = fit->data + npixels;
-	fit->pdata[BLAYER] = fit->data + npixels * 2;
-	fit->bitpix = fit->orig_bitpix;
-	for (i = 0, j = 0; j < npixels; i += 3, j++) {
-		double r = (double) newbuf[i + RLAYER];
-		double g = (double) newbuf[i + GLAYER];
-		double b = (double) newbuf[i + BLAYER];
-		if (stretch_cfa && fit->maximum_pixel_value) {
-			double norm = fit->bitpix == 8 ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
-			r = (r / (double) fit->maximum_pixel_value) * norm;
-			g = (g / (double) fit->maximum_pixel_value) * norm;
-			b = (b / (double) fit->maximum_pixel_value) * norm;
-		}
-		fit->pdata[RLAYER][j] =
-				(fit->bitpix == 8) ? round_to_BYTE(r) : round_to_WORD(r);
-		fit->pdata[GLAYER][j] =
-				(fit->bitpix == 8) ? round_to_BYTE(g) : round_to_WORD(g);
-		fit->pdata[BLAYER][j] =
-				(fit->bitpix == 8) ? round_to_BYTE(b) : round_to_WORD(b);
-	}
-	free(newbuf);
-	return 0;
 }
 
 /* From an area, get the area corresponding to the debayer data for all colors,
@@ -1013,4 +1024,783 @@ void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 	assert(debayer_area->y < image_area->h);
 	assert(debayer_area->h > 2);
 	assert(debayer_area->w > 2);
+}
+
+static void clear_Bayer_information(fits *fit) {
+	memset(fit->bayer_pattern, 0, FLEN_VALUE);
+}
+
+static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
+	size_t i, j, npixels = fit->naxes[0] * fit->naxes[1];
+	int width = fit->rx;
+	int height = fit->ry;
+	WORD *buf = fit->data;
+	gboolean top_down = com.pref.debayer.top_down;
+
+	unsigned int xtrans[6][6];
+	if (interpolation == XTRANS) {
+		if (com.pref.debayer.use_bayer_header) {
+			if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+				top_down = TRUE;
+			} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+				top_down = FALSE;
+			}
+		}
+		if (!top_down)
+			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
+	} else {
+		retrieve_Bayer_pattern(fit, &pattern);
+	}
+
+	if (USE_SIRIL_DEBAYER) {
+		WORD *newbuf = debayer_buffer_siril(buf, &width, &height, interpolation, pattern, xtrans, fit->bitpix);
+		if (!newbuf)
+			return 1;
+
+		fit_debayer_buffer(fit, newbuf);
+		// size might have changed, in case of superpixel
+		fit->naxes[0] = width;
+		fit->naxes[1] = height;
+		fit->rx = width;
+		fit->ry = height;
+		fit->bitpix = fit->orig_bitpix;
+		// color RGBRGB format to fits RRGGBB format
+		for (i = 0, j = 0; j < npixels; i += 3, j++) {
+			double r = (double) newbuf[i + RLAYER];
+			double g = (double) newbuf[i + GLAYER];
+			double b = (double) newbuf[i + BLAYER];
+			fit->pdata[RLAYER][j] =
+					(fit->bitpix == 8) ? round_to_BYTE(r) : round_to_WORD(r);
+			fit->pdata[GLAYER][j] =
+					(fit->bitpix == 8) ? round_to_BYTE(g) : round_to_WORD(g);
+			fit->pdata[BLAYER][j] =
+					(fit->bitpix == 8) ? round_to_BYTE(b) : round_to_WORD(b);
+		}
+	} else {
+		// use librtprocess debayer
+		WORD *newbuf = debayer_buffer_new_ushort(buf, &width, &height, interpolation, pattern, xtrans, fit->bitpix);
+		if (!newbuf)
+			return 1;
+
+		fit_debayer_buffer(fit, newbuf);
+		if (interpolation == XTRANS && !top_down) {
+			fits_flip_top_to_bottom(fit);
+		}
+	}
+	/* we remove Bayer header because not needed now */
+	clear_Bayer_information(fit);
+	return 0;
+}
+
+static int debayer_float(fits* fit, interpolation_method interpolation, sensor_pattern pattern) {
+	int width = fit->rx;
+	int height = fit->ry;
+	float *buf = fit->fdata;
+	gboolean top_down = com.pref.debayer.top_down;
+
+	unsigned int xtrans[6][6];
+	if (interpolation == XTRANS) {
+		if (com.pref.debayer.use_bayer_header) {
+			if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+				top_down = TRUE;
+			} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+				top_down = FALSE;
+			}
+		}
+		if (!top_down)
+			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
+	} else {
+		retrieve_Bayer_pattern(fit, &pattern);
+	}
+
+	float *newbuf = debayer_buffer_new_float(buf, &width, &height, interpolation, pattern, xtrans);
+	if (!newbuf)
+		return 1;
+
+	fit_debayer_buffer(fit, newbuf);
+	if (interpolation == XTRANS && !top_down) {
+		fits_flip_top_to_bottom(fit);
+	}
+	/* we remove Bayer header because not needed now */
+	clear_Bayer_information(fit);
+	return 0;
+}
+
+int debayer(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
+	if (fit->type == DATA_USHORT)
+		return debayer_ushort(fit, interpolation, pattern);
+	else if (fit->type == DATA_FLOAT)
+		return debayer_float(fit, interpolation, pattern);
+	else return -1;
+}
+
+int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
+	int width = in->rx;
+	int height = in->ry;
+
+	if (strlen(in->bayer_pattern) > 4) {
+		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+
+	width = width / 2 + width % 2;
+	height = height / 2 + height % 2;
+
+	if (new_fit_image(&Ha, width, height, 1, DATA_USHORT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			WORD c0 = in->data[col + row * in->rx];
+			WORD c1 = in->data[1 + col + row * in->rx];
+			WORD c2 = in->data[col + (1 + row) * in->rx];
+			WORD c3 = in->data[1 + col + (1 + row) * in->rx];
+
+			switch(pattern) {
+			case BAYER_FILTER_RGGB:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
+				break;
+			case BAYER_FILTER_BGGR:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+				break;
+			case BAYER_FILTER_GRBG:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
+				break;
+			case BAYER_FILTER_GBRG:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
+				break;
+			default:
+				printf("Should not happen.\n");
+			}
+			j++;
+		}
+	}
+
+	return 0;
+}
+
+int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
+	int width = in->rx;
+	int height = in->ry;
+
+	if (strlen(in->bayer_pattern) > 4) {
+		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+
+	width = width / 2 + width % 2;
+	height = height / 2 + height % 2;
+
+	if (new_fit_image(&Ha, width, height, 1, DATA_FLOAT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			float c0 = in->fdata[col + row * in->rx];
+			float c1 = in->fdata[1 + col + row * in->rx];
+			float c2 = in->fdata[col + (1 + row) * in->rx];
+			float c3 = in->fdata[1 + col + (1 + row) * in->rx];
+
+			switch(pattern) {
+			case BAYER_FILTER_RGGB:
+				Ha->fdata[j] = c0;
+				break;
+			case BAYER_FILTER_BGGR:
+				Ha->fdata[j] = c3;
+				break;
+			case BAYER_FILTER_GRBG:
+				Ha->fdata[j] = c1;
+				break;
+			case BAYER_FILTER_GBRG:
+				Ha->fdata[j] = c2;
+				break;
+			default:
+				printf("Should not happen.\n");
+			}
+			j++;
+		}
+	}
+
+	return 0;
+}
+
+int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+	int ret = 1;
+	fits f_Ha = { 0 };
+
+	/* Get Bayer informations from header if available */
+	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
+	if (com.pref.debayer.use_bayer_header) {
+		sensor_pattern bayer;
+		bayer = retrieveBayerPatternFromChar(fit->bayer_pattern);
+
+		if (bayer <= BAYER_FILTER_MAX) {
+			if (bayer != tmp_pattern) {
+				if (bayer == BAYER_FILTER_NONE) {
+					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "salmon");
+				}
+				else {
+					siril_log_color_message(_("Bayer pattern found in header (%s) is different"
+								" from Bayer pattern in settings (%s). Overriding settings.\n"),
+							"salmon", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
+					tmp_pattern = bayer;
+				}
+			}
+		} else {
+			siril_log_message(_("XTRANS pattern not handled for this feature.\n"));
+			return 1;
+		}
+	}
+	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
+		siril_log_message(_("Filter Pattern: %s\n"),
+				filter_pattern[tmp_pattern]);
+	}
+
+	retrieve_Bayer_pattern(fit, &tmp_pattern);
+	if (fit->type == DATA_USHORT) {
+		if (!(ret = extractHa_ushort(fit, &f_Ha, tmp_pattern))) {
+			clearfits(fit);
+			new_fit_image(&fit, f_Ha.rx, f_Ha.ry, 1, DATA_USHORT);
+			if (copyfits(&f_Ha, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+				siril_log_color_message(_("Could not copy the result\n"), "red");
+				ret = 1;
+			}
+		}
+	}
+	else if (fit->type == DATA_FLOAT) {
+		if (!(ret = extractHa_float(fit, &f_Ha, tmp_pattern))) {
+			clearfits(fit);
+			new_fit_image(&fit, f_Ha.rx, f_Ha.ry, 1, DATA_FLOAT);
+			if (copyfits(&f_Ha, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+				siril_log_color_message(_("Could not copy the result\n"), "red");
+				ret = 1;
+			}
+		}
+	} else {
+		return 1;
+	}
+	invalidate_stats_from_fit(fit);
+	clearfits(&f_Ha);
+	return ret;
+}
+
+void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args) {
+	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
+	args->seq = split_cfa_args->seq;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = seq_finalize_hook;
+	args->image_hook = extractHa_image_hook;
+	args->description = _("Extract Ha");
+	args->has_output = TRUE;
+	args->new_seq_prefix = split_cfa_args->seqEntry;
+	args->load_new_sequence = TRUE;
+	args->force_ser_output = FALSE;
+	args->user = split_cfa_args;
+
+	split_cfa_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
+int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) {
+	int width = in->rx;
+	int height = in->ry;
+
+	if (strlen(in->bayer_pattern) > 4) {
+		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+
+	width = width / 2 + width % 2;
+	height = height / 2 + height % 2;
+
+	if (new_fit_image(&Ha, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&OIII, width, height, 1, DATA_USHORT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			WORD c0 = in->data[col + row * in->rx];
+			WORD c1 = in->data[1 + col + row * in->rx];
+			WORD c2 = in->data[col + (1 + row) * in->rx];
+			WORD c3 = in->data[1 + col + (1 + row) * in->rx];
+
+			switch(pattern) {
+			case BAYER_FILTER_RGGB:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
+				OIII->data[j] = (c1 + c2 + c3) / 3;
+				break;
+			case BAYER_FILTER_BGGR:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+				OIII->data[j] = (c1 + c2 + c0) / 3;
+				break;
+			case BAYER_FILTER_GRBG:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
+				OIII->data[j] = (c0 + c2 + c3) / 3;
+				break;
+			case BAYER_FILTER_GBRG:
+				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
+				OIII->data[j] = (c1 + c0 + c3) / 3;
+				break;
+			default:
+				printf("Should not happen.\n");
+			}
+			j++;
+		}
+	}
+
+	return 0;
+}
+
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) {
+	int width = in->rx;
+	int height = in->ry;
+
+	if (strlen(in->bayer_pattern) > 4) {
+		siril_log_message(_("Extract_HaOIII does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+
+	width = width / 2 + width % 2;
+	height = height / 2 + height % 2;
+
+	if (new_fit_image(&Ha, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&OIII, width, height, 1, DATA_FLOAT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			float c0 = in->fdata[col + row * in->rx];
+			float c1 = in->fdata[1 + col + row * in->rx];
+			float c2 = in->fdata[col + (1 + row) * in->rx];
+			float c3 = in->fdata[1 + col + (1 + row) * in->rx];
+
+			switch(pattern) {
+			case BAYER_FILTER_RGGB:
+				Ha->fdata[j] = c0;
+				OIII->fdata[j] = (c1 + c2 + c3) / 3;
+				break;
+			case BAYER_FILTER_BGGR:
+				Ha->fdata[j] = c3;
+				OIII->fdata[j] = (c1 + c2 + c0) / 3;
+				break;
+			case BAYER_FILTER_GRBG:
+				Ha->fdata[j] = c1;
+				OIII->fdata[j] = (c0 + c2 + c3) / 3;
+				break;
+			case BAYER_FILTER_GBRG:
+				Ha->fdata[j] = c2;
+				OIII->fdata[j] = (c1 + c0 + c3) / 3;
+				break;
+			default:
+				printf("Should not happen.\n");
+			}
+			j++;
+		}
+	}
+
+	return 0;
+}
+
+struct _double_split {
+	int index;
+	fits *ha;
+	fits *oiii;
+};
+
+int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+	int ret = 1;
+	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
+
+	/* Get Bayer informations from header if available */
+	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
+	if (com.pref.debayer.use_bayer_header) {
+		sensor_pattern bayer;
+		bayer = retrieveBayerPatternFromChar(fit->bayer_pattern);
+
+		if (bayer <= BAYER_FILTER_MAX) {
+			if (bayer != tmp_pattern) {
+				if (bayer == BAYER_FILTER_NONE) {
+					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
+				}
+				else {
+					siril_log_color_message(_("Bayer pattern found in header (%s) is different"
+								" from Bayer pattern in settings (%s). Overriding settings.\n"),
+							"red", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
+					tmp_pattern = bayer;
+				}
+			}
+		} else {
+			siril_log_message(_("XTRANS pattern not handled for this feature.\n"));
+			return 1;
+		}
+	}
+	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
+		siril_log_message(_("Filter Pattern: %s\n"),
+				filter_pattern[tmp_pattern]);
+	}
+
+	retrieve_Bayer_pattern(fit, &tmp_pattern);
+
+	/* Demosaic and store images for write */
+	struct _double_split *double_data = malloc(sizeof(struct _double_split));
+	double_data->ha = calloc(1, sizeof(fits));
+	double_data->oiii = calloc(1, sizeof(fits));
+	double_data->index = o;
+
+	if (fit->type == DATA_USHORT) {
+		ret = extractHaOIII_ushort(fit, double_data->ha, double_data->oiii, tmp_pattern);
+	}
+	else if (fit->type == DATA_FLOAT) {
+		ret = extractHaOIII_float(fit, double_data->ha, double_data->oiii, tmp_pattern);
+	}
+
+	if (ret) {
+		clearfits(double_data->ha);
+		clearfits(double_data->oiii);
+		free(double_data);
+	} else {
+#ifdef _OPENMP
+		omp_set_lock(&args->lock);
+#endif
+		cfa_args->processed_images = g_list_append(cfa_args->processed_images, double_data);
+#ifdef _OPENMP
+		omp_unset_lock(&args->lock);
+#endif
+		siril_debug_print("Ha-OIII: processed images added to the save list (%d)\n", o);
+	}
+	return ret;
+}
+
+static int dual_prepare(struct generic_seq_args *args) {
+	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
+	// we call the generic prepare twice with different prefixes
+	args->new_seq_prefix = "Ha_";
+	if (seq_prepare_hook(args))
+		return 1;
+	// but we copy the result between each call
+	cfa_args->new_ser_ha = args->new_ser;
+	cfa_args->new_fitseq_ha = args->new_fitseq;
+
+	args->new_seq_prefix = "OIII_";
+	if (seq_prepare_hook(args))
+		return 1;
+	cfa_args->new_ser_oiii = args->new_ser;
+	cfa_args->new_fitseq_oiii = args->new_fitseq;
+
+	args->new_seq_prefix = NULL;
+	args->new_ser = NULL;
+	args->new_fitseq = NULL;
+
+	seqwriter_set_number_of_outputs(2);
+	return 0;
+}
+
+static int dual_finalize(struct generic_seq_args *args) {
+	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
+	args->new_ser = cfa_args->new_ser_ha;
+	args->new_fitseq = cfa_args->new_fitseq_ha;
+	int retval = seq_finalize_hook(args);
+	cfa_args->new_ser_ha = NULL;
+	cfa_args->new_fitseq_ha = NULL;
+
+	args->new_ser = cfa_args->new_ser_oiii;
+	args->new_fitseq = cfa_args->new_fitseq_oiii;
+	retval = seq_finalize_hook(args) || retval;
+	cfa_args->new_ser_oiii = NULL;
+	cfa_args->new_fitseq_oiii = NULL;
+	seqwriter_set_number_of_outputs(1);
+	return retval;
+}
+
+static int dual_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
+	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
+	struct _double_split *double_data = NULL;
+	// images are passed from the image_hook to the save in a list, because
+	// there are two, which is unsupported by the generic arguments
+#ifdef _OPENMP
+	omp_set_lock(&args->lock);
+#endif
+	GList *list = cfa_args->processed_images;
+	while (list) {
+		if (((struct _double_split *)list->data)->index == out_index) {
+			double_data = list->data;
+			break;
+		}
+		list = g_list_next(cfa_args->processed_images);
+	}
+	if (double_data)
+		cfa_args->processed_images = g_list_remove(cfa_args->processed_images, double_data);
+#ifdef _OPENMP
+	omp_unset_lock(&args->lock);
+#endif
+	if (!double_data) {
+		siril_log_color_message(_("Image %d not found for writing\n"), "red", in_index);
+		return 1;
+	}
+
+	siril_debug_print("Ha-OIII: images to be saved (%d)\n", out_index);
+	if (double_data->ha->naxes[0] == 0 || double_data->oiii->naxes[0] == 0) {
+		siril_debug_print("empty data\n");
+		return 1;
+	}
+
+	int retval1, retval2;
+	if (args->force_ser_output || args->seq->type == SEQ_SER) {
+		retval1 = ser_write_frame_from_fit(cfa_args->new_ser_ha, double_data->ha, out_index);
+		retval2 = ser_write_frame_from_fit(cfa_args->new_ser_oiii, double_data->oiii, out_index);
+		clearfits(double_data->ha);
+		clearfits(double_data->oiii);
+	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
+		retval1 = fitseq_write_image(cfa_args->new_fitseq_ha, double_data->ha, out_index);
+		retval2 = fitseq_write_image(cfa_args->new_fitseq_oiii, double_data->oiii, out_index);
+		// the two fits are freed by the writing thread
+		if (!retval1 && !retval2) {
+			/* special case because it's not done in the generic */
+			clearfits(fit);
+			free(fit);
+		}
+	} else {
+		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "Ha_", in_index);
+		if (fit->type == DATA_USHORT) {
+			retval1 = save1fits16(dest, double_data->ha, RLAYER);
+		} else {
+			retval1 = save1fits32(dest, double_data->ha, RLAYER);
+		}
+		free(dest);
+		dest = fit_sequence_get_image_filename_prefixed(args->seq, "OIII_", in_index);
+		if (fit->type == DATA_USHORT) {
+			retval2 = save1fits16(dest, double_data->oiii, RLAYER);
+		} else {
+			retval2 = save1fits32(dest, double_data->oiii, RLAYER);
+		}
+		free(dest);
+		clearfits(double_data->ha);
+		clearfits(double_data->oiii);
+	}
+	free(double_data);
+	return retval1 || retval2;
+}
+
+void apply_extractHaOIII_to_sequence(struct split_cfa_data *split_cfa_args) {
+	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
+	args->seq = split_cfa_args->seq;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->prepare_hook = dual_prepare;
+	args->finalize_hook = dual_finalize;
+	args->save_hook = dual_save;
+	args->image_hook = extractHaOIII_image_hook;
+	args->description = _("Extract Ha and OIII");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->upscale_ratio = 1.23;	// sqrt(1.5), for memory management
+	args->new_seq_prefix = NULL;
+	args->user = split_cfa_args;
+
+	split_cfa_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
+int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
+	int width = in->rx;
+	int height = in->ry;
+
+	if (strlen(in->bayer_pattern) > 4) {
+		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+
+	width = width / 2 + width % 2;
+	height = height / 2 + height % 2;
+
+	if (new_fit_image(&cfa0, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&cfa1, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&cfa2, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&cfa3, width, height, 1, DATA_USHORT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			/* not c0, c1, c2 and c3 because of the read orientation */
+			WORD c1 = in->data[col + row * in->rx];
+			WORD c3 = in->data[1 + col + row * in->rx];
+			WORD c0 = in->data[col + (1 + row) * in->rx];
+			WORD c2 = in->data[1 + col + (1 + row) * in->rx];
+
+			cfa0->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
+			cfa1->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
+			cfa2->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
+			cfa3->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+			j++;
+		}
+	}
+
+	return 0;
+}
+
+int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
+	int width = in->rx;
+	int height = in->ry;
+
+	if (strlen(in->bayer_pattern) > 4) {
+		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+
+	width = width / 2 + width % 2;
+	height = height / 2 + height % 2;
+
+	if (new_fit_image(&cfa0, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&cfa1, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&cfa2, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&cfa3, width, height, 1, DATA_FLOAT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			/* not c0, c1, c2 and c3 because of the read orientation */
+			float c1 = in->fdata[col + row * in->rx];
+			float c3 = in->fdata[1 + col + row * in->rx];
+			float c0 = in->fdata[col + (1 + row) * in->rx];
+			float c2 = in->fdata[1 + col + (1 + row) * in->rx];
+
+			cfa0->fdata[j] = c0;
+			cfa1->fdata[j] = c1;
+			cfa2->fdata[j] = c2;
+			cfa3->fdata[j] = c3;
+			j++;
+		}
+	}
+
+	return 0;
+}
+
+int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+	int ret = 1;
+	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
+
+	fits f_cfa0 = { 0 }, f_cfa1 = { 0 }, f_cfa2 = { 0 }, f_cfa3 = { 0 };
+
+	gchar *cfa0 = g_strdup_printf("%s0_%s%05d%s", cfa_args->seqEntry, cfa_args->seq->seqname, o, com.pref.ext);
+	gchar *cfa1 = g_strdup_printf("%s1_%s%05d%s", cfa_args->seqEntry, cfa_args->seq->seqname, o, com.pref.ext);
+	gchar *cfa2 = g_strdup_printf("%s2_%s%05d%s", cfa_args->seqEntry, cfa_args->seq->seqname, o, com.pref.ext);
+	gchar *cfa3 = g_strdup_printf("%s3_%s%05d%s", cfa_args->seqEntry, cfa_args->seq->seqname, o, com.pref.ext);
+
+	if (fit->type == DATA_USHORT) {
+		if (!(ret = split_cfa_ushort(fit, &f_cfa0, &f_cfa1, &f_cfa2, &f_cfa3))) {
+			ret = save1fits16(cfa0, &f_cfa0, RLAYER) ||
+				save1fits16(cfa1, &f_cfa1, RLAYER) ||
+				save1fits16(cfa2, &f_cfa2, RLAYER) ||
+				save1fits16(cfa3, &f_cfa3, RLAYER);
+		}
+	}
+	else if (fit->type == DATA_FLOAT) {
+		if (!(ret = split_cfa_float(fit, &f_cfa0, &f_cfa1, &f_cfa2, &f_cfa3))) {
+			ret = save1fits32(cfa0, &f_cfa0, RLAYER) ||
+				save1fits32(cfa1, &f_cfa1, RLAYER) ||
+				save1fits32(cfa2, &f_cfa2, RLAYER) ||
+				save1fits32(cfa3, &f_cfa3, RLAYER);
+		}
+	}
+
+	g_free(cfa0); g_free(cfa1);
+	g_free(cfa2); g_free(cfa3);
+	clearfits(&f_cfa0); clearfits(&f_cfa1);
+	clearfits(&f_cfa2); clearfits(&f_cfa3);
+	return ret;
+}
+
+void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
+	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->image_hook = split_cfa_image_hook;
+	args->description = _("Split CFA");
+	args->new_seq_prefix = split_cfa_args->seqEntry;
+	args->user = split_cfa_args;
+
+	split_cfa_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
+/******* SPLIT CFA ******************************/
+
+void on_menu_slpitcfa_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	siril_open_dialog("split_cfa_dialog");
+}
+
+void on_split_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("split_cfa_dialog");
+}
+
+void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *seq = GTK_TOGGLE_BUTTON(lookup_widget("checkSplitCFASeq"));
+	GtkEntry *entrySplitCFA = GTK_ENTRY(lookup_widget("entrySplitCFA"));
+	gint method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_split_cfa_method")));
+
+	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
+		struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
+
+		set_cursor_waiting(TRUE);
+		args->seq = &com.seq;
+		args->seqEntry = gtk_entry_get_text(entrySplitCFA);
+		if (method == 0) {
+			if (args->seqEntry && args->seqEntry[0] == '\0')
+				args->seqEntry = "CFA_";
+			apply_split_cfa_to_sequence(args);
+		} else if (method == 1) {
+			if (args->seqEntry && args->seqEntry[0] == '\0')
+				args->seqEntry = "Ha_";
+			apply_extractHa_to_sequence(args);
+		} else {
+			apply_extractHaOIII_to_sequence(args);
+		}
+	} else {
+		if (method == 0) {
+			process_split_cfa(0);
+		} else if (method == 1) {
+			process_extractHa(0);
+		} else {
+			process_extractHaOIII(0);
+		}
+	}
+}
+
+void on_combo_split_cfa_method_changed(GtkComboBox *box, gpointer user_data) {
+	GtkWidget *w = lookup_widget("label10");
+	GtkWidget *txt = lookup_widget("entrySplitCFA");
+	gint method = gtk_combo_box_get_active(box);
+
+	gtk_widget_set_sensitive(w, method != 2);
+	gtk_widget_set_sensitive(txt, method != 2);
+	if (method == 0) {
+		gtk_entry_set_text(GTK_ENTRY(txt), "CFA_");
+	} else if (method == 1) {
+		gtk_entry_set_text(GTK_ENTRY(txt), "Ha_");
+	}
 }

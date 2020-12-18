@@ -66,11 +66,11 @@ int single_image_is_loaded() {
 	return 0;
 }
 
-void set_GUI_MEM(unsigned long size) {
+void set_GUI_MEM(guint64 used, const gchar *label) {
         fprintf(stderr, "ERROR: calling undefined function set_GUI_MEM\n");
 }
 
-void set_GUI_DiskSpace(double mem) {
+void set_GUI_DiskSpace(gint64 space, const gchar *label) {
         fprintf(stderr, "ERROR: calling undefined function set_GUI_DiskSpace\n");
 }
 
@@ -85,5 +85,23 @@ void update_used_memory() {
 void *lookup_widget(char *w) {
         fprintf(stderr, "ERROR: calling undefined function lookup_widget\n");
 	return NULL;
+}
+
+void invalidate_stats_from_fit(fits *fit) {
+        fprintf(stderr, "ERROR: calling undefined function invalidate_stats_from_fit\n");
+}
+
+const gchar* siril_get_system_data_dir() {
+        fprintf(stderr, "ERROR: calling undefined function siril_get_system_data_dir\n");
+	return NULL;
+}
+
+int fitseq_is_fitseq(const char *filename, int *frames) {
+        fprintf(stderr, "ERROR: calling undefined function fitseq_is_fitseq\n");
+	return 0;
+}
+
+void full_stats_invalidation_from_fit(fits *fit) {
+        fprintf(stderr, "ERROR: calling undefined function full_stats_invalidation_from_fit\n");
 }
 

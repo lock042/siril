@@ -1,9 +1,12 @@
 #include <string.h>
+
 #include "core/siril.h"
+#include "core/proto.h"
+#include "core/OS_utils.h"
 #include "algos/statistics.h"
 #include "stacking.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "core/proto.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
 
@@ -12,7 +15,7 @@ static int compute_normalization(struct stacking_args *args);
 /* normalization: reading all images and making stats on their background level.
  * That's very long if not cached. */
 int do_normalization(struct stacking_args *args) {
-	if (args->normalize == NO_NORM) return 0;
+	if (args->normalize == NO_NORM) return ST_OK;
 
 	int nb_frames = args->nb_images_to_stack;
 
@@ -20,40 +23,41 @@ int do_normalization(struct stacking_args *args) {
 	args->coeff.mul = malloc(nb_frames * sizeof(double));
 	args->coeff.scale = malloc(nb_frames * sizeof(double));
 	if (!args->coeff.offset || !args->coeff.mul || !args->coeff.scale) {
-		printf("allocation issue in stacking normalization\n");
-		args->retval = -1;
-		return -1;
+		PRINT_ALLOC_ERR;
+		args->retval = ST_ALLOC_ERROR;
+		return args->retval;
 	}
 
 	if (compute_normalization(args)) {
-		args->retval = -1;
-		return -1;
+		args->retval = ST_GENERIC_ERROR;
+		return args->retval;
 	}
 
 	if (args->seq->needs_saving)	// if we had to compute new stats
 		writeseqfile(args->seq);
 
-	return 0;
+	return ST_OK;
 }
 
 /* scale0, mul0 and offset0 are output arguments when i = ref_image, input arguments otherwise */
 static int _compute_normalization_for_image(struct stacking_args *args, int i, int ref_image,
 		double *offset, double *mul, double *scale, normalization mode, double *scale0,
-		double *mul0, double *offset0) {
+		double *mul0, double *offset0, gboolean multithread, int thread_id) {
 	imstats *stat = NULL;
 	int reglayer;
 
 	reglayer = (args->reglayer == -1) ? 0 : args->reglayer;
 
 	// try with no fit passed: fails if data is needed because data is not cached
-	if (!(stat = statistics(args->seq, args->image_indices[i], NULL, reglayer, NULL, STATS_EXTRA))) {
+	if (!(stat = statistics(args->seq, args->image_indices[i], NULL, reglayer, NULL, STATS_EXTRA, multithread))) {
 		fits fit = { 0 };
-		if (seq_read_frame(args->seq, args->image_indices[i], &fit)) {
-			return 1;
+		// read frames as float, it's faster to compute stats
+		if (seq_read_frame(args->seq, args->image_indices[i], &fit, TRUE, thread_id)) {
+			return ST_SEQUENCE_ERROR;
 		}
 		// retry with the fit to compute it
-		if (!(stat = statistics(args->seq, args->image_indices[i], &fit, reglayer, NULL, STATS_EXTRA)))
-			return 1;
+		if (!(stat = statistics(args->seq, args->image_indices[i], &fit, reglayer, NULL, STATS_EXTRA, multithread)))
+			return ST_GENERIC_ERROR;
 		if (args->seq->type != SEQ_INTERNAL)
 			clearfits(&fit);
 	}
@@ -87,14 +91,30 @@ static int _compute_normalization_for_image(struct stacking_args *args, int i, i
 	}
 
 	free_stats(stat);
-	return 0;
+	return ST_OK;
 }
 
 static int normalization_get_max_number_of_threads(sequence *seq) {
-	int max_memory_MB = round_to_int(com.stack.memory_percent *
-			(double)get_available_memory_in_MB());
-	uint64_t memory_per_image = seq->rx * seq->ry * seq->nb_layers * (2 * sizeof(WORD) + 2 * sizeof(double));
+	int max_memory_MB = get_max_memory_in_MB();
+	/* Normalization uses IKSS computation in stats, which can be done only
+	 * on float data.
+	 * IKSS requires computing the MAD, which requires a copy of the float data.
+	 * for DATA_USHORT, we have: the image (2), (deactivated: possibly
+	 *   rewrite without zeros (2)), conversion to float for IKSS (4) and
+	 *   another float for MAD (4)
+	 * for DATA_FLOAT, we have: the image (4) used directly for IKSS and a
+	 * copy for MAD (4)
+	 */
+	guint64 memory_per_image = seq->rx * seq->ry * seq->nb_layers;
+	if (get_data_type(seq->bitpix) == DATA_FLOAT)
+		memory_per_image *= 2 * sizeof(float);
+	else memory_per_image *= sizeof(WORD) + 2 * sizeof(float);
 	unsigned int memory_per_image_MB = memory_per_image / BYTES_IN_A_MB;
+
+	if (max_memory_MB < 0) {
+		fprintf(stdout, "Memory per image: %u MB (unlimited memory use).\n", memory_per_image_MB);
+		return com.max_thread;
+	}
 
 	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_image_MB, max_memory_MB);
 
@@ -103,10 +123,10 @@ static int normalization_get_max_number_of_threads(sequence *seq) {
 		return 0;
 	}
 
-	int nb_threads = max_memory_MB / memory_per_image_MB;
+	int nb_threads = memory_per_image_MB ? max_memory_MB / memory_per_image_MB : 1;
 	if (nb_threads > com.max_thread)
 		nb_threads = com.max_thread;
-	siril_log_message(_("With the current memory (%.2f) and thread (%d) limits, up to %d thread(s) can be used for sequence normalization\n"), com.stack.memory_percent, com.max_thread, nb_threads);
+	siril_log_message(_("With the current memory and thread (%d) limits, up to %d thread(s) can be used for sequence normalization\n"), com.max_thread, nb_threads);
 	return nb_threads;
 }
 
@@ -135,14 +155,15 @@ static int compute_normalization(struct stacking_args *args) {
 	if (ref_image_filtred_idx == -1) {
 		siril_log_color_message(_("The reference image is not in the selected set of images. "
 				"Please choose another reference image.\n"), "red");
-		return 1;
+		return ST_GENERIC_ERROR;
 	}
 
 	// check memory first
+	const char *error_msg = (_("Normalization failed."));
 	int nb_threads = normalization_get_max_number_of_threads(args->seq);
 	if (nb_threads == 0) {
-		set_progress_bar_data(_("Normalization failed."), PROGRESS_NONE);
-		return 1;
+		set_progress_bar_data(error_msg, PROGRESS_NONE);
+		return ST_GENERIC_ERROR;
 	}
 
 	/* We empty the cache if needed (force to recompute) */
@@ -150,18 +171,19 @@ static int compute_normalization(struct stacking_args *args) {
 		clear_stats(args->seq, args->reglayer);
 
 	// compute for the first image to have scale0 mul0 and offset0
-	if (_compute_normalization_for_image(args,
-				ref_image_filtred_idx, ref_image_filtred_idx,
-				coeff->offset, coeff->mul, coeff->scale,
-				args->normalize, &scale0, &mul0, &offset0)) {
-		set_progress_bar_data(_("Normalization failed."), PROGRESS_NONE);
-		return 1;
+	if (_compute_normalization_for_image(args, ref_image_filtred_idx,
+			ref_image_filtred_idx, coeff->offset, coeff->mul, coeff->scale,
+			args->normalize, &scale0, &mul0, &offset0, TRUE, -1)) {
+		siril_log_color_message(_("%s Check image %d first.\n"), "red", error_msg,
+				ref_image_filtred_idx + 1);
+		set_progress_bar_data(error_msg, PROGRESS_NONE);
+		return ST_GENERIC_ERROR;
 	}
 
 	set_progress_bar_data(NULL, 1.0 / (double)args->nb_images_to_stack);
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(nb_threads) private(i) schedule(static) if (args->seq->type == SEQ_SER || fits_is_reentrant())
+#pragma omp parallel for num_threads(nb_threads) private(i) schedule(guided) if (args->seq->type == SEQ_SER || fits_is_reentrant())
 #endif
 	for (i = 0; i < args->nb_images_to_stack; ++i) {
 		if (!retval && i != ref_image_filtred_idx) {
@@ -169,9 +191,17 @@ static int compute_normalization(struct stacking_args *args) {
 				retval = 1;
 				continue;
 			}
+			int thread_id = -1;
+#ifdef _OPENMP
+			thread_id = omp_get_thread_num();
+#endif
 			if (_compute_normalization_for_image(args, i, ref_image_filtred_idx,
 						coeff->offset, coeff->mul, coeff->scale,
-						args->normalize, &scale0, &mul0, &offset0)) {
+						args->normalize, &scale0, &mul0, &offset0,
+						FALSE, thread_id)) {
+				siril_log_color_message(_("%s Check image %d first.\n"), "red",
+						error_msg, args->image_indices[i] + 1);
+				set_progress_bar_data(error_msg, PROGRESS_NONE);
 				retval = 1;
 				continue;
 			}

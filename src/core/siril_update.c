@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,8 +23,10 @@
 #endif
 
 #ifdef HAVE_LIBCURL
-#include <string.h>
 #include <curl/curl.h>
+#endif
+
+#include <string.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -39,40 +41,9 @@
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/"
 #define TITLE_TAG_STRING "<a class=\"item-title"
 
-static const gchar* gitlab_tags = GITLAB_URL"tags?sort=updated_desc";
+static const gchar* gitlab_tags = GITLAB_URL"-/tags?sort=updated_desc";
 static const gchar* gitlab_raw = GITLAB_URL"raw";
 static const gchar* download_url = DOMAIN_NAME"index.php?title=Siril:";
-static const int DEFAULT_FETCH_RETRIES = 5;
-static CURL *curl;
-
-struct ucontent {
-	gchar *data;
-	size_t len;
-};
-
-static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
-	size_t realsize = size * nmemb;
-	struct ucontent *mem = (struct ucontent *) userp;
-
-	mem->data = g_try_realloc(mem->data, mem->len + realsize + 1);
-
-	memcpy(&(mem->data[mem->len]), buffer, realsize);
-	mem->len += realsize;
-	mem->data[mem->len] = 0;
-
-	return realsize;
-}
-
-static void init() {
-	if (!curl) {
-		g_fprintf(stdout, "initializing CURL\n");
-		curl_global_init(CURL_GLOBAL_ALL);
-		curl = curl_easy_init();
-	}
-
-	if (!curl)
-		exit(EXIT_FAILURE);
-}
 
 /**
  * Check if the version is a patched version.
@@ -81,14 +52,14 @@ static void init() {
  * @param version version to be tested
  * @return 0 if the version is not patched. The version of the patch is returned otherwise.
  */
-static gint check_for_patch(gchar *version) {
-	gint i = 0;
+static guint check_for_patch(gchar *version) {
+	guint i = 0;
 
 	while (version[i]) {
 		if (g_ascii_isalpha(version[i])) return 0;
 		i++;
 	}
-	return (atoi(version));
+	return (g_ascii_strtoull(version, NULL, 10));
 }
 
 static version_number get_current_version_number() {
@@ -96,9 +67,9 @@ static version_number get_current_version_number() {
 	version_number version;
 
 	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
-	version.major_version = atoi(fullVersionNumber[0]);
-	version.minor_version = atoi(fullVersionNumber[1]);
-	version.micro_version = atoi(fullVersionNumber[2]);
+	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
+	version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
+	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
 	version.patched_version = (fullVersionNumber[3] == NULL) ? 0 : check_for_patch(fullVersionNumber[3]);
 
 	g_strfreev(fullVersionNumber);
@@ -110,7 +81,7 @@ static version_number get_last_version_number(gchar *buffer) {
 	gchar **token;
 	gchar **fullVersionNumber;
 	gchar *v = NULL;
-	gint i, nargs;
+	guint i, nargs;
 	version_number version = { 0 };
 
 	token = g_strsplit(buffer, "\n", -1);
@@ -131,10 +102,10 @@ static version_number get_last_version_number(gchar *buffer) {
 		g_fprintf(stdout, "last tagged version: %s\n", v);
 		fullVersionNumber = g_strsplit_set(v, ".-", -1);
 
-		version.major_version = atoi(fullVersionNumber[0]);
-		version.minor_version = atoi(fullVersionNumber[1]);
-		version.micro_version = atoi(fullVersionNumber[2]);
-		version.patched_version = (fullVersionNumber[3] == NULL) ? 0 : atoi(fullVersionNumber[3]);
+		version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
+		version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
+		version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
+		version.patched_version = (fullVersionNumber[3] == NULL) ? 0 : g_ascii_strtoull(fullVersionNumber[3], NULL, 10);
 
 		g_strfreev(fullVersionNumber);
 		g_strfreev(token);
@@ -177,7 +148,7 @@ static int compare_version(version_number v1, version_number v2) {
 static gchar *parse_changelog(gchar *changelog) {
 	gchar **token;
 	GString *strResult;
-	gint nargs, i;
+	guint nargs, i;
 
 	token = g_strsplit(changelog, "\n", -1);
 	nargs = g_strv_length(token);
@@ -195,62 +166,108 @@ static gchar *parse_changelog(gchar *changelog) {
 	return g_string_free(strResult, FALSE);
 }
 
+static gchar *get_changelog(gint x, gint y, gint z, gint p) {
+	GError *error = NULL;
+	gchar *result = NULL;
+	gchar *str;
+
+	if (p != 0) {
+		str = g_strdup_printf("/%d.%d.%d.%d/", x, y, z, p);
+	} else {
+		str = g_strdup_printf("/%d.%d.%d/", x, y, z);
+	}
+	GString *url = g_string_new(gitlab_raw);
+	url = g_string_append(url, str);
+	url = g_string_append(url, "ChangeLog");
+
+	gchar *changelog_url = g_string_free(url, FALSE);
+	GFile *file = g_file_new_for_uri(changelog_url);
+
+	if (!g_file_load_contents(file, NULL, &result, NULL, NULL, &error)) {
+		siril_log_message(_("Error loading url: %s: %s\n"), changelog_url, error->message);
+		g_clear_error(&error);
+	}
+
+	g_free(changelog_url);
+	g_free(str);
+	g_object_unref(file);
+
+	return result;
+}
+
+static gchar *check_version(struct _update_data *args, gchar **data) {
+	gchar *changelog = NULL;
+	gchar *msg = NULL;
+
+	version_number last_version_available = get_last_version_number(args->content);
+	version_number current_version = get_current_version_number();
+	guint x = last_version_available.major_version;
+	guint y = last_version_available.minor_version;
+	guint z = last_version_available.micro_version;
+	guint patch = last_version_available.patched_version;
+	if (compare_version(current_version, last_version_available) < 0) {
+		msg = siril_log_message(_("New version is available. You can download it at "
+						"<a href=\"%s%d.%d.%d\">%s%d.%d.%d</a>\n"),
+				download_url, x, y, z, download_url, x, y, z);
+		changelog = get_changelog(x, y, z, patch);
+		*data = parse_changelog(changelog);
+		/* force the verbose variable */
+		args->verbose = TRUE;
+	} else if (compare_version(current_version, last_version_available)	> 0) {
+		if (args->verbose)
+			msg = siril_log_message(_("No update check: this is a development version\n"));
+	} else {
+		if (args->verbose)
+			msg = siril_log_message(_("Siril is up to date\n"));
+	}
+	g_free(changelog);
+	return msg;
+}
+
+// TODO: For now, to fix this bug https://gitlab.com/free-astro/siril/-/issues/604() we need to use GIO for Windows
+#if defined HAVE_LIBCURL && !defined _WIN32
+static const int DEFAULT_FETCH_RETRIES = 5;
+static CURL *curl;
+
+struct ucontent {
+	gchar *data;
+	size_t len;
+};
+
+static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
+	size_t realsize = size * nmemb;
+	struct ucontent *mem = (struct ucontent *) userp;
+
+	mem->data = g_try_realloc(mem->data, mem->len + realsize + 1);
+
+	memcpy(&(mem->data[mem->len]), buffer, realsize);
+	mem->len += realsize;
+	mem->data[mem->len] = 0;
+
+	return realsize;
+}
+
+static void init() {
+	if (!curl) {
+		g_fprintf(stdout, "initializing CURL\n");
+		curl_global_init(CURL_GLOBAL_ALL);
+		curl = curl_easy_init();
+	}
+
+	if (!curl)
+		exit(EXIT_FAILURE);
+}
+
 static void http_cleanup() {
 	curl_easy_cleanup(curl);
 	curl_global_cleanup();
 	curl = NULL;
 }
 
-static gchar *get_changelog(gint x, gint y, gint z, gint p) {
-	struct ucontent *changelog;
-	gchar *result = NULL;
-	gchar str[20];
-	gchar *changelog_url;
-	long code;
-	GString *url = g_string_new(gitlab_raw);
-
-	changelog = g_try_malloc(sizeof(struct ucontent));
-	if (changelog == NULL) {
-		return NULL;
-	}
-
-	changelog->data = g_malloc(1);
-	changelog->data[0] = '\0';
-	changelog->len = 0;
-
-	if (p != 0) {
-		g_snprintf(str, sizeof(str), "/%d.%d.%d.%d/", x, y, z, p);
-	} else {
-		g_snprintf(str, sizeof(str), "/%d.%d.%d/", x, y, z);
-	}
-	url = g_string_append(url, str);
-	url = g_string_append(url, "ChangeLog");
-
-	changelog_url = g_string_free(url, FALSE);
-	curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
-
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
-	if (curl_easy_perform(curl) == CURLE_OK) {
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-		if (code == 200) {
-			result = g_strdup(changelog->data);
-		}
-	}
-	if (!result)
-		g_free(changelog->data);
-	g_free(changelog);
-	g_free(changelog_url);
-
-	return result;
-}
-
 static gboolean end_update_idle(gpointer p) {
-	gint ret;
-	char *msg;
-	gchar *changelog = NULL;
+	char *msg = NULL;
 	gchar *data = NULL;
-	version_number current_version, last_version_available;
-	static GtkMessageType type[] = { GTK_MESSAGE_INFO, GTK_MESSAGE_ERROR };
+	GtkMessageType message_type = GTK_MESSAGE_ERROR;
 	struct _update_data *args = (struct _update_data *) p;
 
 	if (args->content == NULL) {
@@ -263,35 +280,20 @@ static gboolean end_update_idle(gpointer p) {
 			msg = siril_log_message(_("Unable to check updates! Error: %ld\n"),
 					args->code);
 		}
-		ret = 1;
 	} else {
-		last_version_available = get_last_version_number(args->content);
-		current_version = get_current_version_number();
-		gint x = last_version_available.major_version;
-		gint y = last_version_available.minor_version;
-		gint z = last_version_available.micro_version;
-		gint p = last_version_available.patched_version;
-
-		if (compare_version(current_version, last_version_available) < 0) {
-			msg = siril_log_message(_("New version is available. You can download it at "
-							"<a href=\"%s%d.%d.%d\">%s%d.%d.%d</a>\n"),
-					download_url, x, y, z, download_url, x, y, z);
-			changelog = get_changelog(x, y, z, p);
-			data = parse_changelog(changelog);
-		} else if (compare_version(current_version, last_version_available) > 0) {
-			msg = siril_log_message(_("No update check: this is a development version\n"));
-		} else {
-			msg = siril_log_message(_("Siril is up to date\n"));
-		}
-		ret = 0;
+		msg = check_version(args, &data);
+		message_type = GTK_MESSAGE_INFO;
 	}
-	set_cursor_waiting(FALSE);
-	siril_data_dialog(type[ret], _("Software Update"), msg, data);
+	if (args->verbose) {
+		set_cursor_waiting(FALSE);
+		if (msg) {
+			siril_data_dialog(message_type, _("Software Update"), msg, data);
+		}
+	}
 
 	/* free data */
 	g_free(args->content);
 	g_free(data);
-	g_free(changelog);
 	free(args);
 	http_cleanup();
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -302,13 +304,14 @@ static gboolean end_update_idle(gpointer p) {
 static gpointer fetch_url(gpointer p) {
 	struct ucontent *content;
 	gchar *result;
-	long code;
+	long code = -1L;
 	int retries;
 	unsigned int s;
 	struct _update_data *args = (struct _update_data *) p;
 
 	content = g_try_malloc(sizeof(struct ucontent));
 	if (content == NULL) {
+		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 
@@ -330,8 +333,10 @@ static gpointer fetch_url(gpointer p) {
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-	if (curl_easy_perform(curl) == CURLE_OK) {
+	CURLcode retval = curl_easy_perform(curl);
+	if (retval == CURLE_OK) {
 		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.4);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
 		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.6);
@@ -367,7 +372,11 @@ static gpointer fetch_url(gpointer p) {
 			g_fprintf(stderr, "Fetch failed with code %ld for URL %s\n", code,
 					args->url);
 		}
+		g_fprintf(stderr, "Fetch succeeded with code %ld for URL %s\n", code,
+				args->url);
 		args->code = code;
+	} else {
+		siril_log_color_message(_("Cannot retrieve information from the update URL. Error: [%ld]\n"), "red", retval);
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 
@@ -381,17 +390,75 @@ static gpointer fetch_url(gpointer p) {
 	return NULL;
 }
 
-void on_help_update_activate(GtkMenuItem *menuitem, gpointer user_data) {
+void siril_check_updates(gboolean verbose) {
 	struct _update_data *args;
 
 	args = malloc(sizeof(struct _update_data));
 	args->url = (gchar *)gitlab_tags;
 	args->code = 0L;
 	args->content = NULL;
+	args->verbose = verbose;
 
 	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
-	set_cursor_waiting(TRUE);
+	if (args->verbose)
+		set_cursor_waiting(TRUE);
 	start_in_new_thread(fetch_url, args);
 }
+
+#else
+
+static void siril_check_updates_callback(GObject *source, GAsyncResult *result,
+		gpointer user_data) {
+	struct _update_data *args = (struct _update_data *) user_data;
+	gchar *msg = NULL;
+	GtkMessageType message_type = GTK_MESSAGE_ERROR;
+	gchar *data = NULL;
+	GError *error = NULL;
+
+	if (g_file_load_contents_finish(G_FILE(source), result, &args->content,
+			NULL, NULL, &error)) {
+		msg = check_version(args, &data);
+		message_type = GTK_MESSAGE_INFO;
+	} else {
+		gchar *uri = g_file_get_uri(G_FILE(source));
+		g_printerr("%s: loading of %s failed: %s\n", G_STRFUNC,
+				uri, error->message);
+		msg = siril_log_message(_("Siril cannot access to %s\n"), uri);
+		g_clear_error(&error);
+		g_free(uri);
+	}
+	if (args->verbose) {
+		set_cursor_waiting(FALSE);
+		if (msg) {
+			siril_data_dialog(message_type, _("Software Update"), msg, data);
+		}
+	}
+
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+
+	/* free data */
+	g_free(args->content);
+	g_free(data);
+	free(args);
+}
+
+void siril_check_updates(gboolean verbose) {
+	struct _update_data *args;
+
+	args = malloc(sizeof(struct _update_data));
+	args->url = (gchar *)gitlab_tags;
+	args->content = NULL;
+	args->verbose = verbose;
+
+	GFile *file = g_file_new_for_uri(args->url);
+	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
+	if (args->verbose)
+		set_cursor_waiting(TRUE);
+
+	g_file_load_contents_async(file, NULL, siril_check_updates_callback, args);
+
+	g_object_unref(file);
+}
+
 
 #endif

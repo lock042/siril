@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #define MAIN
 #ifdef HAVE_CONFIG_H
@@ -24,287 +24,131 @@
 #endif
 
 #include <gtk/gtk.h>
-#ifdef MAC_INTEGRATION
-#include <gtkosxapplication.h>
-#endif
-#ifdef _WIN32
-#include <windows.h>
-#include <tchar.h>
-#include <io.h>
-#include <fcntl.h>
-#endif
-#include <unistd.h>
-#include <signal.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <locale.h>
-#if (defined(__APPLE__) && defined(__MACH__))
-#include <stdlib.h>
-#include <libproc.h>
+#include <unistd.h>
+#ifdef OS_OSX
+#import <AppKit/AppKit.h>
+#if defined(ENABLE_RELOCATABLE_RESOURCES)
+#include <sys/param.h> /* PATH_MAX */
+#include <libgen.h> /* dirname */
+#include <sys/stat.h>
+#endif /* ENABLE_RELOCATABLE_RESOURCES */
+#elif _WIN32
+#include <windows.h>
 #endif
-#include <getopt.h>
 
+#include "git-version.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_actions.h"
 #include "core/initfile.h"
+#include "core/command_line_processor.h"
 #include "core/command.h"
 #include "core/pipe.h"
+#include "core/signals.h"
+#include "core/siril_app_dirs.h"
+#include "core/siril_language.h"
+#include "core/siril_update.h"
+#include "core/OS_utils.h"
+#include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
-#include "gui/callbacks.h"
-#include "gui/script_menu.h"
-#include "gui/progress_and_log.h"
-#include "registration/registration.h"
-#include "stacking/stacking.h"
-#include "core/undo.h"
 #include "io/single_image.h"
-#include "algos/star_finder.h"
-#include "algos/photometry.h"
-
-#define GLADE_FILE "siril3.glade"
+#include "gui/callbacks.h"
+#include "gui/progress_and_log.h"
+#include "gui/siril_css.h"
+#include "registration/registration.h"
 
 /* the global variables of the whole project */
 cominfo com;	// the main data struct
 fits gfit;	// currently loaded image
 GtkBuilder *builder = NULL;	// get widget references anywhere
+const gchar *startup_cwd = NULL;
+gboolean forcecwd = FALSE;
 
-#ifdef MAC_INTEGRATION
+static gchar *main_option_directory = NULL;
+static gchar *main_option_script = NULL;
+static gchar *main_option_initfile = NULL;
+static gboolean main_option_pipe = FALSE;
 
-static gboolean osx_open_file(GtkosxApplication *osx_app, gchar *path, gpointer data){
-	if (path != NULL) {
-		open_single_image(path);
-		return FALSE;
-	}
+static gboolean _print_version_and_exit(const gchar *option_name,
+		const gchar *value, gpointer data, GError **error) {
+#ifdef SIRIL_UNSTABLE
+	g_print("%s %s-%s\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV);
+#else
+	g_print("%s %s\n", PACKAGE, VERSION);
+#endif
+	exit(EXIT_SUCCESS);
 	return TRUE;
 }
 
-static void gui_add_osx_to_app_menu(GtkosxApplication *osx_app, const gchar *item_name, gint index) {
-	GtkWidget *item;
-
-	item = lookup_widget(item_name);
-	if (GTK_IS_MENU_ITEM(item))
-		gtkosx_application_insert_app_menu_item(osx_app, GTK_WIDGET(item), index);
+static gboolean _print_list_of_formats_and_exit(const gchar *option_name,
+		const gchar *value, gpointer data, GError **error) {
+	list_format_available();
+	exit(EXIT_SUCCESS);
+	return TRUE;
 }
 
-static void set_osx_integration(GtkosxApplication *osx_app, gchar *siril_path) {
-	GtkWidget *menubar = lookup_widget("menubar1");
-	GtkWidget *file_quit_menu_item = lookup_widget("exit");
-	GtkWidget *help_menu = lookup_widget("help1");
-	GtkWidget *window_menu = lookup_widget("menuitemWindows");
-	GtkWidget *sep;
-	GdkPixbuf *icon;
-	gchar *icon_path;
-	
-	g_signal_connect(osx_app, "NSApplicationOpenFile", G_CALLBACK(osx_open_file), NULL);
-
-	gtk_widget_hide(menubar);
-
-	gtkosx_application_set_menu_bar(osx_app, GTK_MENU_SHELL(menubar));
-	gtkosx_application_set_window_menu(osx_app, GTK_MENU_ITEM(window_menu));
-
-	gui_add_osx_to_app_menu(osx_app, "help_item1", 0);
-	gui_add_osx_to_app_menu(osx_app, "help_get_scripts", 1);
-	gui_add_osx_to_app_menu(osx_app, "help_update", 2);
-	sep = gtk_separator_menu_item_new();
-	gtkosx_application_insert_app_menu_item(osx_app, sep, 2);
-	gui_add_osx_to_app_menu(osx_app, "settings", 3);
-	sep = gtk_separator_menu_item_new();
-	gtkosx_application_insert_app_menu_item(osx_app, sep, 4);
-
-	gtk_widget_hide(file_quit_menu_item);
-	gtk_widget_hide(help_menu);
-	
-	icon_path = g_build_filename(siril_path, "pixmaps/siril.svg", NULL);
-	icon = gdk_pixbuf_new_from_file(icon_path, NULL);
-	gtkosx_application_set_dock_icon_pixbuf(osx_app, icon);
-		
-	gtkosx_application_ready(osx_app);
-	g_free(icon_path);
-}
-
-#endif
-#ifdef _WIN32
-/* origine du source: https://stackoverflow.com/questions/24171017/win32-console-application-that-can-open-windows */
-int ReconnectIO(int OpenNewConsole)
-{
-    int    hConHandle;
-    HANDLE lStdHandle;
-    FILE  *fp;
-    int    MadeConsole;
-
-    MadeConsole=0;
-    if(!AttachConsole(ATTACH_PARENT_PROCESS))
-    {
-        if(!OpenNewConsole)
-            return 0;
-
-        MadeConsole=1;
-        if(!AllocConsole())
-            return 0;  
-    }
-
-    // STDOUT to the console
-    lStdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
-    fp = _fdopen( hConHandle, "w" );
-    *stdout = *fp;
-    setvbuf( stdout, NULL, _IONBF, 0 );
-
-     // STDIN to the console
-    lStdHandle = GetStdHandle(STD_INPUT_HANDLE);
-    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
-    fp = _fdopen( hConHandle, "r" );
-    *stdin = *fp;
-    setvbuf( stdin, NULL, _IONBF, 0 );
-
-    // STDERR to the console
-    lStdHandle = GetStdHandle(STD_ERROR_HANDLE);
-    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
-    fp = _fdopen( hConHandle, "w" );
-    *stderr = *fp;
-    setvbuf( stderr, NULL, _IONBF, 0 );
-
-    return MadeConsole;
-}	
-#endif
-
-static char *siril_sources[] = {
-#ifdef _WIN32
-    "../share/siril",
-#elif (defined(__APPLE__) && defined(__MACH__))
-	"/tmp/siril/Contents/Resources/share/siril/",
-#endif
-	PACKAGE_DATA_DIR"/",
-	"/usr/share/siril/",
-	"/usr/local/share/siril/",
-	""
+static GOptionEntry main_option[] = {
+	{ "directory", 'd', 0, G_OPTION_ARG_FILENAME, &main_option_directory, N_("changing the current working directory as the argument"), NULL },
+	{ "script", 's', 0, G_OPTION_ARG_FILENAME, &main_option_script, N_("run the siril commands script in console mode. If argument is equal to \"-\", then siril will read stdin input"), NULL },
+	{ "initfile", 'i', 0, G_OPTION_ARG_FILENAME, &main_option_initfile, N_("load configuration from file name instead of the default configuration file"), NULL },
+	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
+	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
+	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
+	{ NULL },
 };
 
-static void usage(const char *command) {
-    printf("\nUsage:  %s [OPTIONS] [IMAGE_FILE_TO_OPEN]\n\n", command);
-    puts("    -d, --directory CWD        changing the current working directory as the argument");
-    puts("    -s, --script    SCRIPTFILE run the siril commands script in console mode");
-    puts("    -i              INITFILE   load configuration from file name instead of the default configuration file");
-    puts("    -p                         run in console mode with command and log stream through named pipes");
-    puts("    -f, --format               print all supported image file formats (depending on installed libraries)");
-    puts("    -v, --version              print program name and version and exit");
-    puts("    -h, --help                 show this message");
-}
+static GActionEntry app_entries[] = {
+	{ "quit", quit_action_activate },
+	{ "preferences", preferences_action_activate },
+	{ "open",  open_action_activate },
+	{ "save", save_action_activate },
+	{ "save_as", save_as_action_activate },
+	{ "close", close_action_activate },
+	{ "undo", undo_action_activate },
+	{ "redo", redo_action_activate },
+	{ "scripts", scripts_action_activate },
+	{ "updates", updates_action_activate },
+	{ "full_screen", full_screen_activated},
+	{ "shortcuts", keyboard_shortcuts_activated},
+	{ "about", about_action_activate },
+	{ "cwd", cwd_action_activate },
+	{ "conversion", tab_conversion_activate },
+	{ "sequence", tab_sequence_activate },
+	{ "registration", tab_registration_activate },
+	{ "prepro", tab_prepro_activate },
+	{ "plot", tab_plot_activate },
+	{ "stacking", tab_stacking_activate },
+	{ "logs", tab_logs_activate },
+	{ "zoom_out", zoom_out_activate },
+	{ "zoom_in", zoom_in_activate },
+	{ "zoom_fit", zoom_fit_activate, NULL, "true", change_zoom_fit_state },
+	{ "hide_show_toolbar", toolbar_activate }
+};
 
-static void signal_handled(int s) {
-	// printf("Caught signal %d\n", s);
-	gtk_main_quit();
-}
+void load_glade_file() {
+	GError *err = NULL;
+	gchar* gladefile;
 
-struct option long_opts[] = {
-		{"version", no_argument, 0, 'v'},
-		{"help", no_argument, 0, 'h'},
-		{"format", no_argument, 0, 'f'},
-		{"directory", required_argument, 0, 'd'},
-		{"script",    required_argument, 0, 's'},
-		{0, 0, 0, 0}
-	};
-
-static char *load_glade_file(char *start_cwd) {
-	int i = 0;
+	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
 
 	/* try to load the glade file, from the sources defined above */
 	builder = gtk_builder_new();
 
-	do {
-		GError *err = NULL;
-		gchar *gladefile;
-
-		gladefile = g_build_filename (siril_sources[i], GLADE_FILE, NULL);
-		if (gtk_builder_add_from_file (builder, gladefile, &err)) {
-			fprintf(stdout, _("Successfully loaded '%s'\n"), gladefile);
-			g_free(gladefile);
-			break;
-		}
-		fprintf (stderr, _("%s. Looking into another directory...\n"), err->message);
+	if (!gtk_builder_add_from_file(builder, gladefile, &err)) {
+		g_error(_("%s was not found or contains errors, "
+					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
 		g_error_free(err);
-		g_free(gladefile);
-		i++;
-	} while (i < G_N_ELEMENTS(siril_sources));
-	if (i == G_N_ELEMENTS(siril_sources)) {
-		fprintf(stderr, _("%s was not found or contains errors, cannot render GUI. Exiting.\n"), GLADE_FILE);
 		exit(EXIT_FAILURE);
 	}
-	/* get back to the saved working directory */
-	return siril_sources[i];
+	g_printf(_("Successfully loaded '%s'\n"), gladefile);
+	g_free(gladefile);
 }
 
-int main(int argc, char *argv[]) {
-	int i, c;
-	extern char *optarg;
-	extern int opterr;
-	gchar *siril_path = NULL;
-	gchar *current_cwd = NULL;
-	gboolean forcecwd = FALSE;
-	char *cwd_forced = NULL, *start_script = NULL;
-
-	g_setenv ("LC_NUMERIC", "C", TRUE); // avoid possible bugs using french separator ","
-
-	/* for translation */
-#ifdef _WIN32
-	setlocale(LC_ALL, "");
-
-	gchar *localedir = g_build_filename(_getcwd(0, 0), "\\..\\share\\locale", NULL);
-	gchar *localefilename = g_win32_locale_filename_from_utf8(localedir);
-	bindtextdomain(PACKAGE, localefilename);
-	bind_textdomain_codeset(PACKAGE, "UTF-8");
-	g_free(localefilename);
-	g_free(localedir);
-#else
-	bindtextdomain(PACKAGE, LOCALEDIR);
-#endif
-	textdomain(PACKAGE);
-
-	opterr = 0;
-	memset(&com, 0, sizeof(struct cominf));	// needed?
-	com.initfile = NULL;
-
-	/* Caught signals */
-	signal(SIGINT, signal_handled);
-
-	while ((c = getopt_long(argc, argv, "i:phfvd:s:", long_opts, NULL)) != -1) {
-		switch (c) {
-			case 'i':
-				com.initfile = g_strdup(optarg);
-				break;
-			case 'v':
-				fprintf(stdout, "%s %s\n", PACKAGE, VERSION);
-				exit(EXIT_SUCCESS);
-				break;
-			case 'f':
-				list_format_available();
-				exit(EXIT_SUCCESS);
-				break;
-			case 'd':
-				cwd_forced = optarg;
-				forcecwd = TRUE;
-				break;
-			case 's':
-			case 'p':
-				com.script = TRUE;
-				com.headless = TRUE;
-				/* need to force cwd to the current dir if no option -d */
-				if (!forcecwd) {
-					cwd_forced = g_get_current_dir();
-					forcecwd = TRUE;
-				}
-				if (c == 's')
-					start_script = optarg;
-				break;
-			default:
-				fprintf(stderr, _("unknown command line parameter '%c'\n"), argv[argc - 1][1]);
-				/* no break */
-			case 'h':
-				usage(argv[0]);
-				exit(EXIT_SUCCESS);
-		}
-	}
+static void global_initialization() {
 	com.cvport = RED_VPORT;
 	com.show_excluded = TRUE;
 	com.selected_star = -1;
@@ -312,128 +156,345 @@ int main(int argc, char *argv[]) {
 	com.stars = NULL;
 	com.uniq = NULL;
 	com.color = NORMAL_COLOR;
-	for (i = 0; i < MAXVPORT; i++)
+	for (int i = 0; i < MAXVPORT; i++)
 		com.buf_is_dirty[i] = TRUE;
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	/* initialize the com struct and zoom level */
 	com.sliders = MINMAX;
 	com.zoom_value = ZOOM_DEFAULT;
-	com.stack.memory_percent = 0.9;
+	com.ratio = 0.0;
+	com.siril_pix = NULL;
+}
 
-	if (!com.headless) {
-		gtk_init(&argc, &argv);
+static void init_num_procs() {
+	/* Get CPU number and set the number of threads */
+#ifdef _OPENMP
+	int num_proc = (int) g_get_num_processors();
+	int omp_num_proc = omp_get_num_procs();
+	if (num_proc != omp_num_proc) {
+		siril_log_message(_("Questionable parallel processing efficiency - openmp reports %d %s. "
+					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
+				ngettext("processor", "processors", omp_num_proc));
+	}
+	siril_log_message(
+			_("Parallel processing %s: Using %d logical %s.\n"),
+			_("enabled"), com.max_thread = num_proc,
+			ngettext("processor", "processors", num_proc));
+#else
+	siril_log_message(_("Parallel processing %s: Using %d logical processor.\n"), _("disabled"), com.max_thread = 1);
+#endif
+}
+
+static void siril_app_startup (GApplication *application) {
+	signals_init();
+
+	g_set_application_name(PACKAGE_NAME);
+	gtk_window_set_default_icon_name("siril");
+	g_application_set_resource_base_path(application, "/org/free_astro/siril/pixmaps/");
+
+	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
+			G_N_ELEMENTS(app_entries), application);
+
+}
+
+static void siril_app_activate(GApplication *application) {
+	gchar *cwd_forced = NULL;
+
+	memset(&com, 0, sizeof(struct cominf));	// needed? doesn't hurt
+	com.initfile = NULL;
+
+	/* the first thing we need to do is to know if we are headless or not */
+	if (main_option_script || main_option_pipe) {
+		com.script = TRUE;
+		com.headless = TRUE;
+		/* need to force cwd to the current dir if no option -d */
+		if (!forcecwd) {
+			cwd_forced = g_strdup(g_get_current_dir());
+			forcecwd = TRUE;
+		}
 	}
 
-	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+	global_initialization();
 
-	/***************
-	 *  initialization of some parameters that need to be done before
-	 * checkinitfile
-	 ***************/
-	/* initialize converters (utilities used for different image types importing) */
-	gchar *supported_files = initialize_converters();
-	/* initialize photometric variables */
-	initialize_photometric_param();
 	/* initialize peaker variables */
 	init_peaker_default();
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
-	/* set default CWD, and load init file
-	 * checkinitfile will load all saved parameters
-	 * */
-	com.wd = siril_get_startup_dir();
-	current_cwd = g_get_current_dir();
+	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+
+	/* initialize converters (utilities used for different image types importing) */
+	gchar *supported_files = initialize_converters();
+	startup_cwd = g_get_current_dir();
+
 	if (checkinitfile()) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
-	if (!com.headless) {
-		/* load prefered theme */
-		load_prefered_theme(com.combo_theme);
-		/* Load glade file */
-		siril_path = load_glade_file(current_cwd);
-		/* load the css sheet for general style */
-		load_css_style_sheet(siril_path);
+	siril_language_parser_init();
+	if (com.pref.combo_lang)
+		language_init(com.pref.combo_lang);
+
+	if (main_option_initfile) {
+		com.initfile = g_strdup(main_option_initfile);
 	}
 
-	changedir(com.wd, NULL);
-
-	if (!com.headless) {
-		gtk_builder_connect_signals (builder, NULL);
-		initialize_all_GUI(siril_path, supported_files);
-	}
-	g_free(supported_files);
-
-	/* Get CPU number and set the number of threads */
-	siril_log_message(_("Parallel processing %s: Using %d logical processor(s).\n"),
-#ifdef _OPENMP
-			_("enabled"), com.max_thread = omp_get_num_procs()
-#else
-			_("disabled"), com.max_thread = 1
-#endif
-			);
-	if (!com.headless) {
-		update_spinCPU(com.max_thread);
-	}
-
-	/* handling OS-X integration */
-#ifdef MAC_INTEGRATION
-	GtkosxApplication *osx_app = gtkosx_application_get();
-	if (!com.headless) {
-		set_osx_integration(osx_app, siril_path);
-	}
-#endif //MAC_INTEGRATION
-
-	/* start Siril */
-	if (argv[optind] != NULL) {
-		if (current_cwd) {
-			changedir(current_cwd, NULL);
-			g_free(current_cwd);
+	if (main_option_directory) {
+		if (!g_path_is_absolute(main_option_directory)) {
+			cwd_forced = g_build_filename(g_get_current_dir(), main_option_directory, NULL);
+		} else {
+			cwd_forced = g_strdup(main_option_directory);
 		}
-		open_single_image(argv[optind]);
-		if (!forcecwd) {
-			gchar *newpath = g_path_get_dirname(argv[optind]);
-			changedir(newpath, NULL);
-			g_free(newpath);
-		}
+		forcecwd = TRUE;
 	}
 
 	if (forcecwd && cwd_forced) {
-		changedir(cwd_forced, NULL);
+		siril_change_dir(cwd_forced, NULL);
+		g_free(cwd_forced);
 	}
 
-	if (!com.script) {
-		set_GUI_CWD();
-	}
+	init_num_procs();
 
 	if (com.headless) {
-		if (start_script) {
-			FILE* fp = g_fopen(start_script, "r");
-			if (fp == NULL) {
-				siril_log_message(_("File [%s] does not exist\n"), start_script);
-				exit(1);
+		if (main_option_script) {
+			GInputStream *input_stream;
+
+			if (g_strcmp0(main_option_script, "-") == 0) {
+				input_stream = (GInputStream *)stdin;
+			} else {
+				GError *error;
+				GFile *file = g_file_new_for_path(main_option_script);
+				input_stream = (GInputStream *)g_file_read(file, NULL, &error);
+
+				if (input_stream == NULL) {
+					if (error != NULL) {
+						g_clear_error(&error);
+						siril_log_message(_("File [%s] does not exist\n"), main_option_script);
+					}
+					g_object_unref(file);
+					exit(EXIT_FAILURE);
+				}
+				g_object_unref(file);
 			}
-#ifdef _WIN32			
+#ifdef _WIN32
 			ReconnectIO(1);
 #endif
-			execute_script(fp);
-		}
-		else {
+			if (execute_script(input_stream)) {
+				exit(EXIT_FAILURE);
+			}
+		} else {
 			pipe_start();
 			read_pipe(NULL);
 		}
 	}
-	else gtk_main();
+	if (!com.headless) {
+		/* Load preferred theme */
+		load_prefered_theme(com.pref.combo_theme);
+		/* Load the css sheet for general style */
+		load_css_style_sheet();
+		/* Load glade file */
+		load_glade_file();
+		/* Passing GApplication to the control center */
+		gtk_window_set_application(GTK_WINDOW(lookup_widget("control_window")),	GTK_APPLICATION(application));
+		/* Load state of the main windows (position and maximized) */
+		load_main_window_state();
+		/* Check for update */
+		if (com.pref.check_update)
+			siril_check_updates(FALSE);
+#if 0 //we need to think about it
+		/* see https://gitlab.gnome.org/GNOME/gtk/issues/2342 */
+		NSEvent *focusevent;
+		g_warning("workaround for the GTK3 #2342 bug");
+		focusevent = [NSEvent
+			otherEventWithType: NSEventTypeAppKitDefined
+			location: NSZeroPoint
+			modifierFlags: 0x40
+			timestamp: 0
+			windowNumber: 0
+			context: nil
+			subtype: NSEventSubtypeApplicationActivated
+			data1: 0
+			data2: 0];
 
-	/* quit Siril */
-	close_sequence(FALSE);	// closing a sequence if loaded
-	close_single_image();	// close the previous image and free resources
+		[NSApp postEvent:focusevent atStart:YES];
+#endif
+	}
+
+	if (siril_change_dir(com.wd, NULL))
+		com.wd = g_strdup(siril_get_startup_dir());
+
+	if (!com.headless) {
+		gtk_builder_connect_signals (builder, NULL);
+		initialize_all_GUI(supported_files);
+	}
+
+	g_free(supported_files);
+}
+
+static void siril_app_open(GApplication *application, GFile **files, gint n_files,
+		const gchar *hint) {
+
+	g_application_activate(application);
+
+	if (n_files > 0) {
+		gchar *path = g_file_get_path (files[0]);
+		const char *ext = get_filename_ext(path);
+		if (ext && !strncmp(ext, "seq", 4)) {
+			gchar *sequence_dir = g_path_get_dirname(path);
+			if (!siril_change_dir(sequence_dir, NULL)) {
+				if (check_seq(FALSE)) {
+					siril_log_message(_("No sequence `%s' found.\n"), path);
+				} else {
+					set_seq(path);
+					if (!com.script)
+						set_GUI_CWD();
+				}
+				g_free(sequence_dir);
+			}
+		} else {
+			image_type type = get_type_from_filename(path);
+			if (!forcecwd && type != TYPEAVI && type != TYPESER && type != TYPEUNDEF) {
+				gchar *image_dir = g_path_get_dirname(path);
+				siril_change_dir(image_dir, NULL);
+				g_free(image_dir);
+			} else if (startup_cwd) {
+				siril_change_dir(startup_cwd, NULL);
+			}
+			if (!com.script)
+				set_GUI_CWD();
+			open_single_image(path);
+		}
+		g_free(path);
+	}
+}
+
+#if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
+static void siril_macos_setenv(const char *progname) {
+	/* helper to set environment variables for Siril to be relocatable.
+	 * Due to the latest changes in Catalina it is not recommended
+	 * to set it in the shell wrapper anymore.
+	 */
+	gchar resolved_path[PATH_MAX];
+
+	if (realpath(progname, resolved_path)) {
+		gchar *path;
+		gchar tmp[PATH_MAX];
+		gchar *app_dir;
+		gchar lib_dir[PATH_MAX];
+		size_t path_len;
+		struct stat sb;
+		app_dir = g_path_get_dirname(resolved_path);
+
+		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", app_dir);
+		if (realpath(tmp, lib_dir) && !stat(lib_dir, &sb) && S_ISDIR(sb.st_mode))
+			g_print("SiriL is started as MacOS application\n");
+		else
+			return;
+
+		/* we define the relocated resources path */
+		g_setenv("SIRIL_RELOCATED_RES_DIR", tmp, TRUE);
+
+		path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
+			+ strlen(app_dir) + 2;
+		path = g_try_malloc(path_len);
+		if (path == NULL) {
+			g_warning("Failed to allocate memory");
+			exit(EXIT_FAILURE);
+		}
+		if (g_getenv("PATH"))
+			g_snprintf(path, path_len, "%s:%s", app_dir, g_getenv("PATH"));
+		else
+			g_snprintf(path, path_len, "%s", app_dir);
+		/* the relocated path is storred in this env. variable in order to be reused if needed */
+		g_free(app_dir);
+		g_setenv("PATH", path, TRUE);
+		g_free(path);
+		g_snprintf(tmp, sizeof(tmp), "%s/share", lib_dir);
+		g_setenv("XDG_DATA_DIRS", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/share/schemas", lib_dir);
+		g_setenv("GSETTINGS_SCHEMA_DIR", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/gtk-3.0/3.0.0", lib_dir);
+		g_setenv("GTK_PATH", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache", lib_dir);
+		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders", lib_dir);
+		g_setenv("GDK_PIXBUF_MODULE_DIR", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", lib_dir);
+		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
+		if (g_getenv("HOME") != NULL) {
+			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support", g_getenv("HOME"));
+			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
+			g_snprintf (tmp, sizeof(tmp), "%s/Library/Application Support/SiriL/1.00/cache",
+					g_getenv("HOME"));
+			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
+
+		}
+	}
+}
+#endif
+
+
+int main(int argc, char *argv[]) {
+	GtkApplication *app;
+	const gchar *dir;
+	gint status;
+
+#if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
+	// Remove macOS session identifier from command line arguments.
+	// Code adopted from GIMP's app/main.c
+
+	int new_argc = 0;
+	for (int i = 0; i < argc; i++) {
+		// Rewrite argv[] without "-psn_..." argument.
+		if (!g_str_has_prefix(argv[i], "-psn_")) {
+			argv[new_argc] = argv[i];
+			new_argc++;
+		}
+	}
+	if (argc > new_argc) {
+		argv[new_argc] = NULL; // glib expects null-terminated array
+		argc = new_argc;
+	}
+
+	siril_macos_setenv(argv[0]);
+#elif _WIN32
+	// suppression of annoying error boxes, hack from RawTherapee
+	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+#endif
+
+	initialize_siril_directories();
+
+	dir = siril_get_locale_dir();
+	setlocale(LC_ALL, "");
+	bindtextdomain(PACKAGE, dir);
+	bind_textdomain_codeset(PACKAGE, "UTF-8");
+	textdomain(PACKAGE);
+
+	g_setenv("LC_NUMERIC", "C", TRUE); // avoid possible bugs using french separator ","
+
+	app = gtk_application_new("org.free_astro.siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+
+	g_signal_connect(app, "startup", G_CALLBACK(siril_app_startup), NULL);
+	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
+	g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
+
+	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
+	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
+
+	status = g_application_run(G_APPLICATION(app), argc, argv);
+	if (status) {
+		gchar *help_msg;
+
+		help_msg = g_strdup_printf(_("Run “%s --help” to see a full "
+					"list of available command line "
+					"options."), argv[0]);
+		g_printerr("%s\n", help_msg);
+		g_free(help_msg);
+	}
+
 	pipe_stop();		// close the pipes and their threads
-#ifdef MAC_INTEGRATION
-	g_object_unref(osx_app);
-#endif //MAC_INTEGRATION
-	return 0;
+	g_object_unref(app);
+	return status;
 }

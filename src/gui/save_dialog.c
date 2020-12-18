@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,28 +24,29 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
-#include "gui/save_dialog.h"
 #include "gui/message_dialog.h"
+#include "gui/dialog_preview.h"
+#include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
 
+#include "save_dialog.h"
 
-static image_type whichminisave = TYPEUNDEF;
+static image_type type_of_image = TYPEUNDEF;
 static SirilWidget *saveDialog = NULL;
 
 static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 		const gchar *pattern, gboolean set_default) {
-	gchar **patterns;
-	gint i;
-
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, title);
 	/* get the patterns */
-	patterns = g_strsplit(pattern, ";", -1);
-	for (i = 0; patterns[i] != NULL; i++)
+	gchar **patterns = g_strsplit(pattern, ";", -1);
+	for (gint i = 0; patterns[i] != NULL; i++)
 		gtk_file_filter_add_pattern(f, patterns[i]);
 	/* free the patterns */
 	g_strfreev(patterns);
@@ -55,39 +56,60 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 }
 
 static void set_filters_save_dialog(GtkFileChooser *chooser) {
-	gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts)"),
-			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS", com.filter == TYPEFITS);
+	GString *all_filter = NULL;
+	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS";
+	const gchar *bmp_filter = "*.bmp;*.BMP";
+	const gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
+
+	all_filter = g_string_new(fits_filter);
+	all_filter = g_string_append(all_filter, ";");
+	all_filter = g_string_append(all_filter, netpbm_filter);
+	all_filter = g_string_append(all_filter, ";");
+	all_filter = g_string_append(all_filter, bmp_filter);
+
+	gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts)"), fits_filter, FALSE);
 
 	/* GRAPHICS FILES */
 	/* BMP FILES */
-	gtk_filter_add(chooser, _("BMP Files (*.bmp)"), "*.bmp;*.BMP",
-			com.filter == TYPEBMP);
+	gtk_filter_add(chooser, _("BMP Files (*.bmp)"), bmp_filter, FALSE);
 #ifdef HAVE_LIBJPEG
-	gtk_filter_add(chooser, _("JPEG Files (*.jpg, *.jpeg)"),
-			"*.jpg;*.JPG;*.jpeg;*.JPEG", com.filter == TYPEJPG);
+	const gchar *jpg_filter = "*.jpg;*.JPG;*.jpeg;*.JPEG";
+
+	gtk_filter_add(chooser, _("JPEG Files (*.jpg, *.jpeg)"), jpg_filter, FALSE);
+	all_filter = g_string_append(all_filter, ";");
+	all_filter = g_string_append(all_filter, jpg_filter);
 #endif
 
 #ifdef HAVE_LIBPNG
-	gtk_filter_add(chooser, _("PNG Files (*.png)"), "*.png;*.PNG",
-			com.filter == TYPEPNG);
+	const gchar *png_filter = "*.png;*.PNG";
+
+	gtk_filter_add(chooser, _("PNG Files (*.png)"), png_filter, FALSE);
+	all_filter = g_string_append(all_filter, ";");
+	all_filter = g_string_append(all_filter, png_filter);
 #endif
 
 #ifdef HAVE_LIBTIFF
-	gtk_filter_add(chooser, _("TIFF Files (*.tif, *.tiff)"),
-			"*.tif;*.TIF;*.tiff;*.TIFF", com.filter == TYPETIFF);
+	const gchar *tif_filter = "*.tif;*.TIF;*.tiff;*.TIFF";
+
+	gtk_filter_add(chooser, _("TIFF Files (*.tif, *.tiff)"), tif_filter, FALSE);
+	all_filter = g_string_append(all_filter, ";");
+	all_filter = g_string_append(all_filter, tif_filter);
 #endif
 
 	/* NETPBM FILES */
-	gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
-			"*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM", com.filter == TYPEPNM);
+	gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"), netpbm_filter, FALSE);
+
+	gchar *supported_file = g_string_free(all_filter, FALSE);
+	gtk_filter_add(chooser, _("Supported Image Files"), supported_file, TRUE);
+
+	g_free(supported_file);
 }
 
-static int get_filetype(const gchar *filter) {
-	gchar **string;
-	int type = TYPEUNDEF;
+static image_type get_filetype(const gchar *filter) {
+	image_type type = TYPEUNDEF;
 	int i = 0;
 
-	string = g_strsplit_set(filter, "*(),.", -1);
+	gchar **string = g_strsplit_set(filter, "*(),.", -1);
 
 	while (string[i]) {
 		if (!g_strcmp0(string[i], "fit")) {
@@ -116,7 +138,7 @@ static int get_filetype(const gchar *filter) {
 	return type;
 }
 
-static void set_programm_name_in_TIFF() {
+static void set_copyright_in_TIFF() {
 	static GtkTextView *TIFF_txt = NULL;
 	GtkTextBuffer *tbuf;
 	GtkTextIter itStart, itEnd;
@@ -127,8 +149,12 @@ static void set_programm_name_in_TIFF() {
 
 	tbuf = gtk_text_view_get_buffer(TIFF_txt);
 
-	copyright = g_strdup_printf("%s v%s", PACKAGE, VERSION);
-	copyright[0] = toupper(copyright[0]);			// convert siril to Siril
+	if (com.pref.copyright && (com.pref.copyright[0] != '\0')) {
+		copyright = g_strdup(com.pref.copyright);
+	} else {
+		copyright = g_strdup_printf("%s v%s", PACKAGE, VERSION);
+		copyright[0] = toupper(copyright[0]);			// convert siril to Siril
+	}
 
 	gtk_text_buffer_get_bounds(tbuf, &itStart, &itEnd);
 	gtk_text_buffer_delete(tbuf, &itStart, &itEnd);
@@ -139,14 +165,12 @@ static void set_programm_name_in_TIFF() {
 
 static void set_description_in_TIFF() {
 	static GtkTextView *TIFF_txt = NULL;
-	GtkTextBuffer *tbuf;
 	GtkTextIter itStart, itEnd;
-	int i;
 
 	if (TIFF_txt == NULL)
 		TIFF_txt = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
 
-	tbuf = gtk_text_view_get_buffer(TIFF_txt);
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(TIFF_txt);
 
 	gtk_text_buffer_get_bounds(tbuf, &itStart, &itEnd);
 	gtk_text_buffer_delete(tbuf, &itStart, &itEnd);
@@ -162,7 +186,7 @@ static void set_description_in_TIFF() {
 	}
 	/* New history */
 	if (com.history) {
-		for (i = 0; i < com.hist_display; i++) {
+		for (int i = 0; i < com.hist_display; i++) {
 			if (com.history[i].history[0] != '\0') {
 				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 				gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
@@ -173,11 +197,10 @@ static void set_description_in_TIFF() {
 	}
 }
 
-static void prepare_savepopup(int type) {
+static void prepare_savepopup() {
 	static GtkNotebook* notebookFormat = NULL;
 	static GtkWidget *savepopup = NULL;
 	static GtkWidget *savetxt = NULL;
-	GtkWindow *parent;
 	int tab;
 
 	if (notebookFormat == NULL) {
@@ -185,13 +208,13 @@ static void prepare_savepopup(int type) {
 		savepopup = lookup_widget("savepopup");
 		savetxt = lookup_widget("filenameframe");
 	}
-	parent = siril_get_active_window();
+	GtkWindow *parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(parent)) {
 		parent = GTK_WINDOW(lookup_widget("control_window"));
 	}
 	gtk_window_set_transient_for(GTK_WINDOW(savepopup),	parent);
 
-	switch (type) {
+	switch (type_of_image) {
 	case TYPEBMP:
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving BMP"));
 		tab = PAGE_MISC;
@@ -210,7 +233,7 @@ static void prepare_savepopup(int type) {
 		break;
 	case TYPETIFF:
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving TIFF"));
-		set_programm_name_in_TIFF();
+		set_copyright_in_TIFF();
 		set_description_in_TIFF();
 		tab = PAGE_TIFF;
 		break;
@@ -219,16 +242,14 @@ static void prepare_savepopup(int type) {
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
 		tab = PAGE_FITS;
 	}
-	whichminisave = type;
 
 	gtk_widget_set_visible(savetxt, FALSE);
 	gtk_notebook_set_current_page(notebookFormat, tab);
 }
 
 static void init_dialog() {
-	GtkWindow *parent;
 	if (saveDialog == NULL) {
-		parent = siril_get_active_window();
+		GtkWindow *parent = siril_get_active_window();
 		saveDialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
 	}
 }
@@ -240,7 +261,7 @@ static void close_dialog() {
 	}
 }
 
-static gchar *get_filename() {
+static gchar *get_filename_and_replace_ext() {
 	gchar *basename;
 
 	if (sequence_is_loaded() && com.seq.current != RESULT_IMAGE) {
@@ -252,38 +273,96 @@ static gchar *get_filename() {
 		basename = g_path_get_basename(com.uniq->filename);
 	}
 
-	return remove_ext_from_filename(basename);
+	gboolean is_format_valid = get_type_from_filename(basename)
+			& (TYPEFITS | TYPEBMP | TYPETIFF | TYPEPNG | TYPEJPG | TYPEPNM);
+	if (!is_format_valid) {
+		char *file_no_ext = remove_ext_from_filename(basename);
+		g_free(basename);
+		basename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+	}
+
+	return basename;
+}
+
+static image_type get_image_type_from_filter(GtkFileFilter *filter) {
+	return get_filetype(gtk_file_filter_get_name(filter));
+}
+
+static void filter_changed(gpointer user_data) {
+	GtkFileChooser *chooser = GTK_FILE_CHOOSER(user_data);
+	GtkFileFilter *filter = gtk_file_chooser_get_filter(chooser);
+	gchar *filename = gtk_file_chooser_get_filename(chooser);
+	char *file_no_ext = remove_ext_from_filename(filename);
+	image_type format = get_image_type_from_filter(filter);
+	gchar *new_filename = NULL;
+
+	switch (format) {
+	default:
+	case TYPEFITS:
+		new_filename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+		break;
+	case TYPEBMP:
+		new_filename = g_strdup_printf("%s.bmp", file_no_ext);
+		break;
+	case TYPEPNM:
+		if (gfit.naxes[2] == 1) {
+			new_filename = g_strdup_printf("%s.pgm", file_no_ext);
+		} else {
+			new_filename = g_strdup_printf("%s.ppm", file_no_ext);
+		}
+		break;
+#ifdef HAVE_LIBTIFF
+	case TYPETIFF:
+		new_filename = g_strdup_printf("%s.tif", file_no_ext);
+		break;
+#endif
+#ifdef HAVE_LIBJPEG
+	case TYPEJPG:
+		new_filename = g_strdup_printf("%s.jpg", file_no_ext);
+		break;
+#endif
+#ifdef HAVE_LIBPNG
+	case TYPEPNG:
+		new_filename = g_strdup_printf("%s.png", file_no_ext);
+		break;
+#endif
+	}
+	if (new_filename) {
+		gchar *bname = g_path_get_basename(new_filename);
+		gtk_file_chooser_set_current_name(chooser, bname);
+
+		g_free(bname);
+		g_free(new_filename);
+	}
+
+	g_free(filename);
 }
 
 static int save_dialog() {
-	GtkFileChooser *chooser;
-	GtkFileFilter *filter;
-	GtkEntry *savetext;
-	gint res;
-	gchar *fname;
-
 	init_dialog();
 
-	chooser = GTK_FILE_CHOOSER(saveDialog);
-	fname = get_filename();
+	GtkFileChooser *chooser = GTK_FILE_CHOOSER(saveDialog);
+	gchar *fname = get_filename_and_replace_ext();
 
 	gtk_file_chooser_set_current_name(chooser, fname);
 	gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
 	set_filters_save_dialog(chooser);
+	siril_file_chooser_add_preview(chooser);
+	gtk_file_chooser_unselect_all(chooser);
+	g_signal_connect(chooser, "notify::filter", G_CALLBACK(filter_changed), (gpointer) chooser);
 	g_free(fname);
 
-	res = siril_dialog_run(saveDialog);
+	gint res = siril_dialog_run(saveDialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
-
 		gchar *filename = gtk_file_chooser_get_filename(chooser);
-		savetext = GTK_ENTRY(lookup_widget("savetxt"));
-		gtk_entry_set_text(savetext, filename);
-		g_free(filename);
+		type_of_image = get_type_from_filename(filename);
 
-		/* we get the type of filter */
-		filter = gtk_file_chooser_get_filter(chooser);
-		const gchar *str = gtk_file_filter_get_name(filter);
-		prepare_savepopup(get_filetype(str));
+		GtkEntry *savetext = GTK_ENTRY(lookup_widget("savetxt"));
+		gtk_entry_set_text(savetext, filename);
+
+		prepare_savepopup();
+
+		g_free(filename);
 		return res;
 	}
 	close_dialog();
@@ -299,10 +378,13 @@ gboolean end_save(gpointer p) {
 
 	gtk_entry_set_text(args->entry, "");
 	gtk_widget_hide(lookup_widget("savepopup"));
+	display_filename(); // update filename display
+	set_precision_switch();
 	stop_processing_thread();
 	set_cursor_waiting(FALSE);
 	close_dialog();	// is this different from the hide above?
-	update_used_memory();
+	update_MenuItem();
+	
 	free(args);
 	return FALSE;
 }
@@ -312,14 +394,16 @@ static void initialize_data(gpointer p) {
 
 	GtkToggleButton *fits_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit8"));
 	GtkToggleButton *fits_16s = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16s"));
+	GtkToggleButton *fits_16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
 	GtkToggleButton *update_hilo = (GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_update_hilo")));
 #ifdef HAVE_LIBJPEG
 	GtkSpinButton *qlty_spin_button = GTK_SPIN_BUTTON(lookup_widget("quality_spinbutton"));
 	args->quality = gtk_spin_button_get_value_as_int(qlty_spin_button);
 #endif
 #ifdef HAVE_LIBTIFF
-	GtkToggleButton *BPS_Button = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
-	args->bitspersamples = gtk_toggle_button_get_active(BPS_Button) ? 8 : 16;
+	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
+	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
+	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
 #endif
 	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
 	args->filename = gtk_entry_get_text(args->entry);
@@ -328,19 +412,23 @@ static void initialize_data(gpointer p) {
 		args->bitpix = BYTE_IMG;
 	else if (gtk_toggle_button_get_active(fits_16s))
 		args->bitpix = SHORT_IMG;
-	else
+	else if (gtk_toggle_button_get_active(fits_16))
 		args->bitpix = USHORT_IMG;
+	else
+		args->bitpix = FLOAT_IMG;
 
 	args->update_hilo = gtk_toggle_button_get_active(update_hilo);
 }
 
-static gpointer minisavedial(gpointer p) {
+static gpointer mini_save_dialog(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
+#ifdef HAVE_LIBPNG
 	uint32_t bytes_per_sample;
+#endif
 	args->retval = 0;
 
 	if (args->filename[0] != '\0') {
-		switch (whichminisave) {
+		switch (type_of_image) {
 		case TYPEBMP:
 			args->retval = savebmp(args->filename, &gfit);
 			break;
@@ -360,6 +448,9 @@ static gpointer minisavedial(gpointer p) {
 			args->retval = savepng(args->filename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
 			break;
 #endif
+		default:
+			type_of_image = TYPEFITS;
+			/* no break */
 		case TYPEFITS:
 			gfit.bitpix = args->bitpix;
 			/* Check if MIPS-HI and MIPS-LO must be updated. If yes,
@@ -387,12 +478,13 @@ static gpointer minisavedial(gpointer p) {
 				}
 			}
 			args->retval = savefits(args->filename, &gfit);
+			if (!args->retval && single_image_is_loaded()) {
+				com.uniq->filename = strdup(args->filename);
+				com.uniq->fileexist = TRUE;
+			}
 			break;
 		case TYPEPNM:
 			args->retval = saveNetPBM(args->filename, &gfit);
-			break;
-		default:
-			siril_log_message(_("This type of file is not handled. Should not happen"));
 			break;
 		}
 	}
@@ -400,33 +492,35 @@ static gpointer minisavedial(gpointer p) {
 	return NULL;
 }
 
+void set_entry_filename() {
+	if (sequence_is_loaded() && !single_image_is_loaded()) {
+		char filename[256];
+		/* set the output file name default as the current image.jpg */
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("savetxt"));
+		seq_get_image_filename(&com.seq, com.seq.current, filename);
+		char *file_no_ext = remove_ext_from_filename(filename);
+		gtk_entry_set_text(entry, file_no_ext);
+		free(file_no_ext);
+	}
+}
+
 void on_menu_rgb_savefits_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	static GtkNotebook* notebookFormat = NULL;
 	static GtkWidget *savepopup = NULL;
 	GtkWidget *savetxt = lookup_widget("filenameframe");
-	GtkToggleButton *b8bit = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit8"));
-	GtkToggleButton *b16bitu = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
-	GtkToggleButton *b16bits = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16s"));
 
 	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebookFormat"));
+		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 	}
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		switch(gfit.bitpix) {
-		case BYTE_IMG:
-			gtk_toggle_button_set_active(b8bit, TRUE);
-			break;
-		case SHORT_IMG:
-			gtk_toggle_button_set_active(b16bits, TRUE);
-			break;
-		default:
-			gtk_toggle_button_set_active(b16bitu, TRUE);
-		}
-		whichminisave = TYPEFITS;
+		GtkToggleButton *b16bitu = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
+		GtkToggleButton *b32bits = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit32f"));
+		gtk_toggle_button_set_active(b32bits, gfit.type == DATA_FLOAT);
+		gtk_toggle_button_set_active(b16bitu, gfit.type == DATA_USHORT);
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
-		gtk_window_set_transient_for (GTK_WINDOW(savepopup), GTK_WINDOW(lookup_widget("rgb_window")));
+		set_entry_filename();
+		type_of_image = TYPEFITS;
 		gtk_notebook_set_current_page(notebookFormat, PAGE_FITS);
 		gtk_widget_set_visible(savetxt, TRUE);
 		gtk_widget_show(savepopup);
@@ -438,19 +532,21 @@ void on_menu_rgb_savetiff_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	static GtkWidget *savepopup = NULL;
 	GtkWidget *savetxt = lookup_widget("filenameframe");
 
-
 	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebookFormat"));
+		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 	}
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		whichminisave = TYPETIFF;
-		set_programm_name_in_TIFF(); //Write "Siril Version X.Y in Copyright_Txt
-		set_description_in_TIFF();
+		GtkToggleButton *b16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton16bits"));
+		GtkToggleButton *b32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
+		gtk_toggle_button_set_active(b32, gfit.type == DATA_FLOAT);
+		gtk_toggle_button_set_active(b16, gfit.type == DATA_USHORT);
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving TIFF"));
-		gtk_window_set_transient_for (GTK_WINDOW(savepopup), GTK_WINDOW(lookup_widget("rgb_window")));
+		set_entry_filename();
+		type_of_image = TYPETIFF;
+		set_copyright_in_TIFF(); //Write "Siril Version X.Y" (or user defined) in Copyright_txt
+		set_description_in_TIFF();
 		gtk_notebook_set_current_page(notebookFormat, PAGE_TIFF);
 		gtk_widget_set_visible(savetxt, TRUE);
 		gtk_widget_show(savepopup);
@@ -462,17 +558,15 @@ void on_menu_rgb_savepng_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	static GtkWidget *savepopup = NULL;
 	GtkWidget *savetxt = lookup_widget("filenameframe");
 
-
 	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebookFormat"));
+		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 	}
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		whichminisave = TYPEPNG;
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving PNG"));
-		gtk_window_set_transient_for (GTK_WINDOW(savepopup), GTK_WINDOW(lookup_widget("rgb_window")));
+		set_entry_filename();
+		type_of_image = TYPEPNG;
 		gtk_notebook_set_current_page(notebookFormat, PAGE_MISC);
 		gtk_widget_set_visible(savetxt, TRUE);
 		gtk_widget_show(savepopup);
@@ -485,15 +579,14 @@ void on_menu_rgb_save8ppm_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	GtkWidget *savetxt = lookup_widget("filenameframe");
 
 	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebookFormat"));
+		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 	}
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		whichminisave = TYPEPNM;
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving Netpbm"));
-		gtk_window_set_transient_for (GTK_WINDOW(savepopup), GTK_WINDOW(lookup_widget("rgb_window")));
+		set_entry_filename();
+		type_of_image = TYPEPNM;
 		gtk_notebook_set_current_page(notebookFormat, PAGE_MISC);
 		gtk_widget_set_visible(savetxt, TRUE);
 		gtk_widget_show(savepopup);
@@ -506,15 +599,14 @@ void on_menu_rgb_savebmp_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	GtkWidget *savetxt = lookup_widget("filenameframe");
 
 	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebookFormat"));
+		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 	}
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		whichminisave = TYPEBMP;
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving BMP"));
-		gtk_window_set_transient_for (GTK_WINDOW(savepopup), GTK_WINDOW(lookup_widget("rgb_window")));
+		set_entry_filename();
+		type_of_image = TYPEBMP;
 		gtk_notebook_set_current_page(notebookFormat, PAGE_MISC);
 		gtk_widget_set_visible(savetxt, TRUE);
 		gtk_widget_show(savepopup);
@@ -527,22 +619,14 @@ void on_menu_rgb_savejpg_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	GtkWidget *savetxt = lookup_widget("filenameframe");
 
 	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebookFormat"));
+		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 	}
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving JPG"));
-		gtk_window_set_transient_for (GTK_WINDOW(savepopup), GTK_WINDOW(lookup_widget("rgb_window")));
-		if (sequence_is_loaded() && !single_image_is_loaded()) {
-			char filename[256];
-			/* set the output file name default as the current image.jpg */
-			GtkEntry *entry = GTK_ENTRY(lookup_widget("savetxt"));
-			seq_get_image_filename(&com.seq, com.seq.current, filename);
-			gtk_entry_set_text(entry, filename);
-		}
-		whichminisave = TYPEJPG;
+		set_entry_filename();
+		type_of_image = TYPEJPG;
 		gtk_notebook_set_current_page(notebookFormat, PAGE_JPG);
 		gtk_widget_set_visible(savetxt, TRUE);
 		gtk_widget_show(savepopup);
@@ -562,7 +646,7 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
-	start_in_new_thread(minisavedial, args);
+	start_in_new_thread(mini_save_dialog, args);
 }
 
 void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
@@ -570,36 +654,42 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
-	start_in_new_thread(minisavedial, args);
+	start_in_new_thread(mini_save_dialog, args);
 }
 
 void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("savepopup"));
 }
 
-void on_save1_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	GtkWidget *savepopup = lookup_widget("savepopup");
+void on_header_save_as_button_clicked() {
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		GtkWidget *savepopup = lookup_widget("savepopup");
 
-	if (save_dialog() == GTK_RESPONSE_ACCEPT) {
-		/* now it is not needed for some formats */
-		if (whichminisave != TYPEBMP && whichminisave != TYPEPNG
-				&& whichminisave != TYPEPNM) {
-			close_dialog();
-			GtkWindow *parent = siril_get_active_window();
-			if (!GTK_IS_WINDOW(parent)) {
-				parent = GTK_WINDOW(lookup_widget("control_window"));
+		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
+			/* now it is not needed for some formats */
+			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
+				struct savedial_data *args = malloc(sizeof(struct savedial_data));
+
+				set_cursor_waiting(TRUE);
+				initialize_data(args);
+				start_in_new_thread(mini_save_dialog, args);
+			} else {
+				close_dialog();
+				GtkWindow *parent = siril_get_active_window();
+				if (!GTK_IS_WINDOW(parent)) {
+					parent = GTK_WINDOW(lookup_widget("control_window"));
+				}
+				gtk_window_set_transient_for(GTK_WINDOW(savepopup), parent);
+				gtk_widget_show(savepopup);
+				gtk_window_present_with_time(GTK_WINDOW(savepopup),	GDK_CURRENT_TIME);
 			}
-			gtk_window_set_transient_for(GTK_WINDOW(savepopup),	parent);
-			gtk_widget_show(savepopup);
-			gtk_window_present(GTK_WINDOW(savepopup));
 		}
-		else {
-			struct savedial_data *args = malloc(sizeof(struct savedial_data));
+	}
+}
 
-			set_cursor_waiting(TRUE);
-			initialize_data(args);
-			start_in_new_thread(minisavedial, args);
-		}
+void on_header_save_button_clicked() {
+	if (single_image_is_loaded() && com.uniq->fileexist) {
+		savefits(com.uniq->filename, &gfit);
 	}
 }
 
@@ -607,12 +697,25 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scrolledwindow3"));
 	gint height, width;
 
-	if (whichminisave == TYPETIFF) {
+	if (type_of_image & TYPETIFF) {
+		GtkToggleButton *b16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton16bits"));
+		GtkToggleButton *b32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
+		gtk_toggle_button_set_active(b32, gfit.type == DATA_FLOAT);
+		gtk_toggle_button_set_active(b16, gfit.type == DATA_USHORT);
 		width = 400;
 		height = 100;
 	} else {
 		width = 100;
 		height = 50;
+	}
+	/* we need to handle TYPEUNDEF in the case the extension
+	 * is not explicitly written. In this case the FITS format will be chosen
+	 */
+	if (type_of_image & (TYPEFITS | TYPEUNDEF)) {
+		GtkToggleButton *b16bitu = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
+		GtkToggleButton *b32bits = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit32f"));
+		gtk_toggle_button_set_active(b32bits, gfit.type == DATA_FLOAT);
+		gtk_toggle_button_set_active(b16bitu, gfit.type == DATA_USHORT);
 	}
 
 	gtk_scrolled_window_set_min_content_height(scrolled_window, height);

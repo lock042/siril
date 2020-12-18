@@ -20,20 +20,22 @@
 #ifndef SRC_CORE_SIRIL_UPDATE_H_
 #define SRC_CORE_SIRIL_UPDATE_H_
 
-#ifdef HAVE_LIBCURL
 
 typedef struct {
-	gint major_version;
-	gint minor_version;
-	gint micro_version;
-	gint patched_version;
+	guint major_version;
+	guint minor_version;
+	guint micro_version;
+	guint patched_version;
 } version_number;
 
 struct _update_data {
 	gchar *url;
 	long code;
 	gchar *content;
+	gboolean verbose;
 };
 
-#endif /* HAVE_LIBCURL */
+//void siril_check_updates(gboolean verbose);
+void siril_check_updates(gboolean verbose);
+
 #endif /* SRC_CORE_SIRIL_UPDATE_H_ */

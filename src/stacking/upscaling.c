@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,17 +18,22 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
-#include "stacking.h"
 #include "io/sequence.h"
 #include "io/ser.h"
+#include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
+#include "gui/image_interactions.h"
 #include "gui/callbacks.h" // for delete_selected_area()
 #include "opencv/opencv.h"
-#include <string.h>
+
+#include "stacking.h"
 
 #define TMP_UPSCALED_PREFIX "tmp_upscaled_"
 
@@ -70,34 +75,31 @@ void remove_tmp_drizzle_files(struct stacking_args *args) {
 		g_unlink(args->seq->ser_file->filename);
 		ser_close_file(args->seq->ser_file);
 		break;
+	case SEQ_FITSEQ:
+		siril_debug_print("Removing %s\n", args->seq->fitseq_file->filename);
+		g_unlink(args->seq->fitseq_file->filename);
+		fitseq_close_file(args->seq->fitseq_file);
+		break;
 	}
 }
 
 static int upscale_get_max_number_of_threads(sequence *seq) {
-	int max_memory_MB = round_to_int(com.stack.memory_percent *
-			(double)get_available_memory_in_MB());
-
 	if (seq->nb_layers < 0) {
 		fprintf(stderr, "SEQUENCE UNINITIALIZED\n");
 		return 0;
 	}
-	double factor = seq->upscale_at_stacking;
-	uint64_t newx = round_to_int((double)seq->rx * factor);
-	uint64_t newy = round_to_int((double)seq->ry * factor);
-	uint64_t memory_per_image = newx * newy * seq->nb_layers * sizeof(WORD) * 2;
-	unsigned int memory_per_image_MB = memory_per_image / BYTES_IN_A_MB;
-
-	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_image_MB, max_memory_MB);
-
-	if (memory_per_image_MB > max_memory_MB) {
-		siril_log_color_message(_("Your system does not have enough memory to up-scale the images for `drizzle' operation (%d MB free for %d MB required)\n"), "red", max_memory_MB, memory_per_image_MB);
+	int max_memory_MB;
+	unsigned int MB_per_image;
+	int nb_threads = compute_nb_images_fit_memory(seq, seq->upscale_at_stacking, FALSE, &MB_per_image, &max_memory_MB);
+	if (nb_threads < 0)
+		return com.max_thread;
+	if (nb_threads == 0) {
+		siril_log_color_message(_("Your system does not have enough memory to up-scale the images for `drizzle' operation (%d MB free for %d MB required)\n"), "red", max_memory_MB, MB_per_image);
 		return 0;
 	}
-
-	int nb_threads = max_memory_MB / memory_per_image_MB;
 	if (nb_threads > com.max_thread)
 		nb_threads = com.max_thread;
-	siril_log_message(_("With the current memory (%.2f) and thread (%d) limits, up to %d thread(s) can be used for sequence up-scaling\n"), com.stack.memory_percent, com.max_thread, nb_threads);
+	siril_log_message(_("With the current memory and thread (%d) limits, up to %d thread(s) can be used for sequence up-scaling\n"), com.max_thread, nb_threads);
 	return nb_threads;
 }
 
@@ -141,13 +143,11 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	int backup_max_thread = com.max_thread;
 	com.max_thread = nb_threads;
 
-	struct generic_seq_args *args = malloc(sizeof(struct generic_seq_args));
+	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
 	struct upscale_args *upargs = malloc(sizeof(struct upscale_args));
 
 	upargs->factor = stackargs->seq->upscale_at_stacking;
 
-	args->seq = stackargs->seq;
-	args->partial_image = FALSE;
 	if (com.cache_upscaled) {
 		// This won't work if stackargs->filtering_criterion is already a multiple filter
 		args->filtering_criterion = create_multiple_filter(
@@ -161,20 +161,16 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		args->filtering_parameter = stackargs->filtering_parameter;
 		args->nb_filtered_images = stackargs->nb_images_to_stack;
 	}
-	args->prepare_hook = ser_prepare_hook;
-	args->finalize_hook = ser_finalize_hook;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = upscale_image_hook;
-	args->save_hook = NULL;
-	args->idle_function = NULL;
-	args->stop_on_error = TRUE;
 	args->description = _("Up-scaling sequence for stacking");
 	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->upscale_ratio = upargs->factor;
 	args->new_seq_prefix = TMP_UPSCALED_PREFIX;
-	args->load_new_sequence = FALSE;
-	args->force_ser_output = FALSE;
 	args->user = upargs;
 	args->already_in_a_thread = TRUE;
-	args->parallel = TRUE;
 
 	remove_tmp_drizzle_files(stackargs);
 

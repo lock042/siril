@@ -1,3 +1,5 @@
+_build
+*~
 .svn*
 *.o
 *.gmo
@@ -6,6 +8,7 @@
 .autotools
 .cproject
 .settings/
+.vs/
 INSTALL
 *Makefile
 *Makefile.in
@@ -24,9 +27,9 @@ config.status
 config.guess
 configure
 depcomp
-deps/kplot/compat.h
-deps/kplot/libkplot.a
-deps/kplot/test-reallocarray
+subprojects/kplot/compat.h
+subprojects/kplot/libkplot.a
+subprojects/kplot/test-reallocarray
 install-sh
 m4/intltool.m4
 m4/nls.m4
@@ -36,7 +39,13 @@ po/POTFILES
 po/stamp-it
 po/siril.pot
 src/siril
+src/siril-cli
 stamp-h1
 src/tests/compare_fits
 src/tests/sorting
 src/gui/siril3.glade~
+src/gui/#siril3.glade#
+git-version.h
+GTAGS
+GRTAGS
+GPATH

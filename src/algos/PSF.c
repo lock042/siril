@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,11 +33,12 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/callbacks.h"
-#include "gui/progress_and_log.h"
-#include "algos/PSF.h"
 #include "algos/photometry.h"
 #include "algos/sorting.h"
+#include "filters/median.h"
+
+#include "PSF.h"
+
 
 #define MAX_ITER_NO_ANGLE  10		//Number of iteration in the minimization with no angle
 #define MAX_ITER_ANGLE     10		//Number of iteration in the minimization with angle
@@ -45,47 +46,20 @@
 
 const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 
-/* see also getMedian5x5 in algos/cosmetic_correction.c */
-static WORD getMedian3x3(gsl_matrix *in, const int xx, const int yy,
-		const int w, const int h) {
-	int step, radius, x, y;
-	double *value, median;
-
-	step = 1;
-	radius = 1;
-
-	int n = 0;
-	int start;
-	value = calloc(8, sizeof(double));
-
-	for (y = yy - radius; y <= yy + radius; y += step) {
-		for (x = xx - radius; x <= xx + radius; x += step) {
-			if (y >= 0 && y < h && x >= 0 && x < w) {
-				// ^ limit to image bounds ^
-				// v exclude centre pixel v
-				if (x != xx || y != yy) {
-					value[n++] = gsl_matrix_get(in, y, x);
-				}
-			}
-		}
-	}
-	start = 8 - n - 1;
-	quicksort_d(value, 8);
-	median = gsl_stats_median_from_sorted_data(value + start, 1, n);
-	free(value);
-	return median;
-}
-
 static gsl_matrix *removeHotPixels(gsl_matrix *in) {
-	int width = in->size2;
-	int height = in->size1;
-	int x, y;
+	size_t width = in->size2;
+	size_t height = in->size1;
+	size_t x, y;
 	gsl_matrix *out = gsl_matrix_alloc (in->size1, in->size2);
+	if (!out) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	gsl_matrix_memcpy (out, in);
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
-			double a = getMedian3x3(in, x, y, width, height);
+			double a = get_median_gsl(in, x, y, width, height, 1, FALSE, FALSE);
 			gsl_matrix_set(out, y, x, a);
 		}
 	}
@@ -103,6 +77,7 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg) {
 	/* find maximum */
 	/* first we remove hot pixels in the matrix */
 	gsl_matrix *m_tmp = removeHotPixels(z);
+	if (!m_tmp) return NULL;
 	max = gsl_matrix_max(m_tmp);
 	gsl_matrix_max_index(m_tmp, &i, &j);
 	gsl_matrix_free(m_tmp);
@@ -322,13 +297,19 @@ static fitted_PSF *psf_minimiz_no_angle(gsl_matrix* z, double background,
 	size_t NbCols = z->size2;
 	const size_t p = 6;			// Number of parameters fitted
 	const size_t n = NbRows * NbCols;
-	fitted_PSF *psf = malloc(sizeof(fitted_PSF));
 	gsl_vector *MaxV = psf_init_data(z, background);
+	if (!MaxV)
+		return NULL;
 	int status;
 	unsigned int iter = 0;
 	gsl_matrix *covar = gsl_matrix_alloc(p, p);
 	double *y = malloc(n * sizeof(double));
 	double *sigma = malloc(n * sizeof(double));
+	fitted_PSF *psf = malloc(sizeof(fitted_PSF));
+	if (!y || !sigma || !psf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	struct PSF_data d = { n, y, sigma, NbRows, NbCols, 0 };
 	gsl_multifit_function_fdf f;
 	const gsl_rng_type * type;
@@ -441,12 +422,16 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 	const size_t p = 7;			// Number of parameters fitted
 	const size_t n = NbRows * NbCols;
 	g_assert (n > 0);
-	fitted_PSF *psf_angle = malloc(sizeof(fitted_PSF));
 	int status;
 	unsigned int iter = 0;
+	fitted_PSF *psf_angle = malloc(sizeof(fitted_PSF));
 	gsl_matrix *covar = gsl_matrix_alloc(p, p);
 	double *y = malloc(n * sizeof(double));
 	double *sigma = malloc(n * sizeof(double));
+	if (!psf_angle || !covar || !y || !sigma) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	struct PSF_data d = { n, y, sigma, NbRows, NbCols, 0 };
 	gsl_multifit_function_fdf f_angle;
 	double x_init[7] = { psf->B, psf->A, psf->x0, psf->y0, psf->sx, psf->sy, 0 };
@@ -471,7 +456,7 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
 			y[NbCols * i + j] = gsl_matrix_get(z, i, j);
-			sigma[NbCols * i + j] = 1;
+			sigma[NbCols * i + j] = 1.0;
 		}
 	}
 
@@ -572,7 +557,7 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 /* Returns the largest FWHM.
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, double *roundness) {
-	fitted_PSF *result = psf_get_minimisation(fit, layer, &com.selection, FALSE, TRUE);
+	fitted_PSF *result = psf_get_minimisation(fit, layer, &com.selection, FALSE, TRUE, TRUE);
 	if (result == NULL) {
 		*roundness = 0.0;
 		return 0.0;
@@ -589,30 +574,49 @@ double psf_get_fwhm(fits *fit, int layer, double *roundness) {
  * Selection rectangle is passed as third argument.
  * Return value is a structure, type fitted_PSF, that has to be freed after use.
  */
-fitted_PSF *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean for_photometry, gboolean verbose) {
-	WORD *from;
+fitted_PSF *psf_get_minimisation(fits *fit, int layer, rectangle *area,
+		gboolean for_photometry, gboolean verbose, gboolean multithread_stat) {
 	int stridefrom, i, j;
 	fitted_PSF *result;
-	double bg = background(fit, layer, area);
+	double bg = background(fit, layer, area, multithread_stat);
 
-	//~ fprintf(stdout, "background: %g\n", bg);
-
-	// create the matrix with values from the selected rectangle
+	// fprintf(stdout, "background: %g\n", bg);
 	gsl_matrix *z = gsl_matrix_alloc(area->h, area->w);
-	from = fit->pdata[layer] + (fit->ry - area->y - area->h) * fit->rx
-			+ area->x;
 	stridefrom = fit->rx - area->w;
 
-	for (i = 0; i < area->h; i++) {
-		for (j = 0; j < area->w; j++) {
-			gsl_matrix_set(z, i, j, (double) *from);
-			from++;
+	// create the matrix with values from the selected rectangle
+	if (fit->type == DATA_USHORT) {
+		WORD *from = fit->pdata[layer] +
+			(fit->ry - area->y - area->h) * fit->rx + area->x;
+
+		for (i = 0; i < area->h; i++) {
+			for (j = 0; j < area->w; j++) {
+				gsl_matrix_set(z, i, j, (double)*from);
+				from++;
+			}
+			from += stridefrom;
 		}
-		from += stridefrom;
 	}
+	else if (fit->type == DATA_FLOAT) {
+		float *from = fit->fpdata[layer] +
+			(fit->ry - area->y - area->h) * fit->rx + area->x;
+
+		for (i = 0; i < area->h; i++) {
+			for (j = 0; j < area->w; j++) {
+				gsl_matrix_set(z, i, j, (double)*from);
+				from++;
+			}
+			from += stridefrom;
+		}
+	}
+	else {
+		gsl_matrix_free(z);
+		return NULL;
+	}
+
 	result = psf_global_minimisation(z, bg, layer, TRUE, for_photometry, verbose);
 	if (result)
-		fwhm_to_arcsec_if_needed(fit, &result);
+		fwhm_to_arcsec_if_needed(fit, result);
 	gsl_matrix_free(z);
 	return result;
 }
@@ -640,28 +644,26 @@ fitted_PSF *psf_global_minimisation(gsl_matrix* z, double bg, int layer,
 			 */
 			if ((fabs(psf->sx - psf->sy) < EPSILON)) {
 				// Photometry
-				if (for_photometry)
+				if (for_photometry) {
 					psf->phot = getPhotometryData(z, psf, verbose);
-				else {
+					if (psf->phot != NULL) {
+						psf->mag = psf->phot->mag;
+						psf->s_mag = psf->phot->s_mag;
+						psf->phot_is_valid = psf->phot->valid;
+					}
+				} else {
 					psf->phot = NULL;
 					psf->phot_is_valid = FALSE;
 				}
-				// get Magnitude
-				if (psf->phot != NULL) {
-					psf->mag = psf->phot->mag;
-					psf->s_mag = psf->phot->s_mag;
-					psf->phot_is_valid = psf->phot->valid;
-				}
 			} else {
 				fitted_PSF *tmp_psf;
-
 				if ((tmp_psf = psf_minimiz_angle(z, psf, for_photometry, verbose))
 						== NULL) {
 					free(psf);
 					return NULL;
 				}
-			free(psf);
-			psf = tmp_psf;
+				free(psf);
+				psf = tmp_psf;
 			}
 		}
 		// Solve symmetry problem in order to have Sx>Sy in any case !!!
@@ -674,12 +676,6 @@ fitted_PSF *psf_global_minimisation(gsl_matrix* z, double bg, int layer,
 				else psf->angle += 90.0;
 			}
 		}
-
-		/* We normalize B, A and the RMSE for the output */
-		WORD norm = get_normalized_value(&gfit);
-		psf->B = psf->B / (double) norm;
-		psf->A = psf->A / (double) norm;
-		psf->rmse = psf->rmse / (double) norm;
 
 		/* We quickly test the result. If it is bad we return NULL */
 		if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
@@ -714,27 +710,41 @@ void psf_display_result(fitted_PSF *result, rectangle *area) {
 
 	siril_log_message(buffer);
 }
+
+#define _2_SQRT_2_LOG2 1.55185049709
+
 /* If the pixel pitch and the focal length are known and filled in the 
  * setting box, we convert FWHM in pixel to arcsec by multiplying
  * the FWHM value with the sampling value */
-void fwhm_to_arcsec_if_needed(fits* fit, fitted_PSF **result) {
+void fwhm_to_arcsec_if_needed(fits* fit, fitted_PSF *result) {
 
-	if (result == NULL) return;
-	if (fit->focal_length <= 0.0 || fit->pixel_size_x <= 0.0
-			|| fit->pixel_size_y <= 0.0 || fit->binning_x <= 0
+	if (!result) return;
+	if (fit->focal_length <= 0.0 || fit->pixel_size_x <= 0.f
+			|| fit->pixel_size_y <= 0.f || fit->binning_x <= 0
 			|| fit->binning_y <= 0)
 		return;
 
 	double bin_X, bin_Y;
 	double fwhmx, fwhmy;
 
-	fwhmx = sqrt((*result)->sx / 2.0) * 2 * sqrt(log(2.0) * 2);
-	fwhmy = sqrt((*result)->sy / 2.0) * 2 * sqrt(log(2.0) * 2);
+	fwhmx = sqrt(result->sx * 0.5) * _2_SQRT_2_LOG2;
+	fwhmy = sqrt(result->sy * 0.5) * _2_SQRT_2_LOG2;
 
 	bin_X = fit->unbinned ? (double) fit->binning_x : 1.0;
 	bin_Y = fit->unbinned ? (double) fit->binning_y : 1.0;
 
-	(*result)->fwhmx = fwhmx * (radian_conversion * fit->pixel_size_x / fit->focal_length) * bin_X;
-	(*result)->fwhmy = fwhmy * (radian_conversion * fit->pixel_size_y / fit->focal_length) * bin_Y;
-	(*result)->units = "\"";
+	result->fwhmx = fwhmx * (radian_conversion * (double)fit->pixel_size_x / fit->focal_length) * bin_X;
+	result->fwhmy = fwhmy * (radian_conversion * (double)fit->pixel_size_y / fit->focal_length) * bin_Y;
+	result->units = "\"";
 }
+
+void fwhm_to_pixels(fitted_PSF *result) {
+	result->fwhmx = sqrt(result->sx * 0.5) * _2_SQRT_2_LOG2;
+	result->fwhmy = sqrt(result->sy * 0.5) * _2_SQRT_2_LOG2;
+	result->units = "px";
+}
+
+double convert_single_fwhm_to_pixels(double fwhm, double s) {
+	return sqrt(s * 0.5) * _2_SQRT_2_LOG2;
+}
+

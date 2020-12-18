@@ -2,6 +2,7 @@
 #define _PROCESSING_H_
 
 #include "sequence_filtering.h"
+#include "io/fits_sequence.h"
 
 /**
  *
@@ -14,6 +15,8 @@
 struct generic_seq_args {
 	/** sequence that will be processed */
 	sequence *seq;
+	/** read images as float data in all cases */
+	gboolean force_float;
 
 	/** process a partial image read from area instead of full-frame reading */
 	gboolean partial_image;
@@ -34,6 +37,8 @@ struct generic_seq_args {
 	 *  progress report. < 1 is unknown */
 	int nb_filtered_images;
 
+	/** function called to compute the required disk size if has_output */
+	gint64 (*compute_size_hook)(struct generic_seq_args *, int);
 	/** function called before iterating through the sequence */
 	int (*prepare_hook)(struct generic_seq_args *);
 	/** function called for each image with image index in sequence, number
@@ -63,6 +68,10 @@ struct generic_seq_args {
 
 	/** some processing may create a new image sequence */
 	gboolean has_output;
+	/** the type of the created sequence, for disk space checks only */
+	data_type output_type;
+	/** size ratio of output images for memory evaluation */
+	double upscale_ratio;
 	/** output files: prefix for the new sequence and automatic loading */
 	const char *new_seq_prefix;
 	/** flag to load or not a new sequence */
@@ -71,6 +80,10 @@ struct generic_seq_args {
 	gboolean force_ser_output;
 	/** new output SER if seq->type == SEQ_SER or force_ser_output (internal) */
 	struct ser_struct *new_ser;
+	/** flag to force output to be FITS sequence file */
+	gboolean force_fitseq_output;
+	/** new output SER if seq->type == SEQ_FITSEQ or force_fitseq_output (internal) */
+	fitseq *new_fitseq;
 
 	/** user data: pointer to operation-specific data */
 	void *user;
@@ -81,6 +94,8 @@ struct generic_seq_args {
 	gboolean already_in_a_thread;
 	/** activate parallel execution */
 	gboolean parallel;
+	/** number of threads to run in parallel - defaults to com.max_thread */
+	int max_thread;
 #ifdef _OPENMP
 	/** for in-hook synchronization (internal init, public use) */
 	omp_lock_t lock;
@@ -90,8 +105,8 @@ struct generic_seq_args {
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
 
-int ser_prepare_hook(struct generic_seq_args *args);
-int ser_finalize_hook(struct generic_seq_args *args);
+int seq_prepare_hook(struct generic_seq_args *args);
+int seq_finalize_hook(struct generic_seq_args *args);
 int generic_save(struct generic_seq_args *, int, int, fits *);
 
 void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
@@ -106,5 +121,7 @@ void unreserve_thread();
 
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
+
+struct generic_seq_args *create_default_seqargs();
 
 #endif

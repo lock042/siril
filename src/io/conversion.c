@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,43 +18,58 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gdk/gdkkeysyms.h>
-#include <gtk/gtk.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "core/processing.h"
-#include "io/conversion.h"
 #include "io/films.h"
+#include "io/fits_sequence.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/seqwriter.h"
 #include "io/ser.h"
+#include "io/FITS_symlink.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"
-#include "algos/sorting.h"
+#include "conversion.h"
 
-#define MAX_OF_EXTENSIONS 50	// actual size of supported_extensions
+#ifdef HAVE_LIBRAW
+#include <libraw/libraw_version.h>
+#endif
 
-static gchar *destroot = NULL;
-static unsigned int convflags = CONV1X3;	// default
 static unsigned int supported_filetypes = 0;	// initialized by initialize_converters()
 
 // NULL-terminated array, initialized by initialize_converters(), used only by stat_file
-char **supported_extensions;
+char *supported_extensions[MAX_EXTENSIONS];
 
 supported_raw_list supported_raw[] = {
 	{"dng",	"Adobe"},
 	{"mos",	"Aptus"},
 	{"cr2",	"Canon"},
 	{"crw",	"Canon"},
+#ifdef HAVE_LIBRAW
+#if LIBRAW_VERSION > LIBRAW_MAKE_VERSION(0, 19, 5)
+	{"cr3",	"Canon"},
+#endif
+#endif
 	{"bay",	"Casio"},		// Not tested
 	{"erf",	"Epson"},
 	{"raf",	"Fuji"},
@@ -80,29 +95,49 @@ char *filter_pattern[] = {
 	"BGGR",
 	"GBRG",
 	"GRBG",
-	"RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB", /* XTRANS */
-	"GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG",
-	"GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
+
+/* XTRANS */
+	"GGRGGB" // ----> XTRANS_1
+	"GGBGGR"
+	"BRGRBG"
+	"GGBGGR"
+	"GGRGGB"
+	"RBGBRG",
+
+	"RBGBRG" // ----> XTRANS_2
+	"GGRGGB"
+	"GGBGGR"
+	"BRGRBG"
+	"GGBGGR"
+	"GGRGGB",
+
+	"GRGGBG"
+	"BGBRGR"
+	"GRGGBG"
+	"GBGGRG"
+	"RGTBGB"
+	"GBGGRG",
+
+	"GBGGRG"
+	"RGRBGB"
+	"GBGGRG"
+	"GRGGBG"
+	"BGBRGR"
+	"GRGGBG"
 };
 
-enum {
-	COLUMN_CONV_FILENAME,		// gchar[]
-	COLUMN_CONV_DATE,			// gchar[]
-	N_COLUMNS
-};
-
-static gboolean end_convert_idle(gpointer p);
-
+static int film_conversion(const char *src_filename, int index, unsigned int *added_frames, struct ser_struct *ser_file, struct _convert_data *args);
+static int ser_conversion(const char *src_filename, int index, unsigned int *added_frames, struct ser_struct *ser_file, struct _convert_data *args);
 
 int get_nb_raw_supported() {
 	return G_N_ELEMENTS(supported_raw);
 }
 
-/* This function is used with command line only */ 
+/* This function is used with command line only */
 void list_format_available() {
-	puts("======================================================="); 
+	puts("=======================================================");
 	puts("[            Supported image file formats             ]");
-	puts("======================================================="); 
+	puts("=======================================================");
 	puts("FITS\t(*.fit, *.fits, *.fts)");
 	puts("BMP\t(*.bmp)");
 	puts("NetPBM\t(*.ppm, *.pgm, *.pnm)");
@@ -113,8 +148,9 @@ void list_format_available() {
 
 	nb_raw = get_nb_raw_supported();
 	for (i = 0; i < nb_raw; i++) {
-		printf("*.%s",supported_raw[i].extension);
-		if (i != nb_raw - 1) printf(", ");
+		printf("*.%s", supported_raw[i].extension);
+		if (i != nb_raw - 1)
+			printf(", ");
 	}
 	printf(")\n");
 #endif
@@ -128,32 +164,13 @@ void list_format_available() {
 #ifdef HAVE_LIBPNG
 	puts("PNG\t(*.png)");
 #endif
-}
-
-static gint sort_conv_tree(GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b,
-		gpointer user_data) {
-	gchar *name_a, *name_b;
-	gchar *collate_key1, *collate_key2;
-	gint ret;
-
-	gtk_tree_model_get(model, a, 0,	&name_a, -1);
-	gtk_tree_model_get(model, b, 0,	&name_b, -1);
-
-	collate_key1  = g_utf8_collate_key_for_filename(name_a, strlen(name_a));
-	collate_key2  = g_utf8_collate_key_for_filename(name_b, strlen(name_b));
-
-	ret = g_strcmp0(collate_key1, collate_key2);
-
-	g_free(collate_key1);
-	g_free(collate_key2);
-	g_free(name_a);
-	g_free(name_b);
-
-	return ret;
+#ifdef HAVE_LIBHEIF
+	puts("HEIF\t(*.heic, *.heif)");
+#endif
 }
 
 // input is destroot
-static char *create_sequence_filename(int counter, char *output, int outsize) {
+static char *create_sequence_filename(const char *destroot, int counter, char *output, int outsize) {
 	const char *ext = get_filename_ext(destroot);
 	if (ext) {
 		/* we need to insert a number before the extension */
@@ -165,7 +182,7 @@ static char *create_sequence_filename(int counter, char *output, int outsize) {
 			g_free(the_root);
 			return output;
 		}
-		the_root[ext-destroot-1] = '\0';
+		the_root[ext - destroot - 1] = '\0';
 		gchar last_char = the_root[strlen(the_root)-1];
 		if (last_char == '-' || last_char == '_')
 			g_snprintf(output, outsize, "%s%05d.%s", the_root, counter, the_ext);
@@ -187,41 +204,54 @@ static char *create_sequence_filename(int counter, char *output, int outsize) {
  * not been initialized with the default GUI values (= initialized to 0).
  */
 static void initialize_libraw_settings() {
-	com.raw_set.bright = 1.0;		// brightness
-	com.raw_set.mul[0] = 1.0;		// multipliers: red
-	com.raw_set.mul[1] = 1.0;		// multipliers: green, not used because always equal to 1
-	com.raw_set.mul[2] = 1.0;		// multipliers: blue
-	com.raw_set.auto_mul = 1;		// multipliers are Either read from file, or calculated on the basis of file data, or taken from hardcoded constants
-	com.raw_set.user_black = 0;		// black point correction
-	com.raw_set.use_camera_wb = 0;	// if possible, use the white balance from the camera.
-	com.raw_set.use_auto_wb = 0;		// use automatic white balance obtained after averaging over the entire image
-	com.raw_set.user_qual = 1;		// type of interpolation. AHD by default
-	com.raw_set.gamm[0] = 1.0;		// gamma curve: linear by default
-	com.raw_set.gamm[1] = 1.0;
+	com.pref.raw_set.bright = 1.0;		// brightness
+	com.pref.raw_set.mul[0] = 1.0;		// multipliers: red
+	com.pref.raw_set.mul[1] = 1.0;		// multipliers: green, not used because always equal to 1
+	com.pref.raw_set.mul[2] = 1.0;		// multipliers: blue
+	com.pref.raw_set.auto_mul = 1;		// multipliers are Either read from file, or calculated on the basis of file data, or taken from hardcoded constants
+	com.pref.raw_set.user_black = 0;		// black point correction
+	com.pref.raw_set.use_camera_wb = 0;	// if possible, use the white balance from the camera.
+	com.pref.raw_set.use_auto_wb = 0;		// use automatic white balance obtained after averaging over the entire image
+	com.pref.raw_set.user_qual = 2;		// type of interpolation. VNG by default
+	com.pref.raw_set.gamm[0] = 1.0;		// gamma curve: linear by default
+	com.pref.raw_set.gamm[1] = 1.0;
 }
 
 static void initialize_ser_debayer_settings() {
-	com.debayer.open_debayer = FALSE;
-	com.debayer.use_bayer_header = TRUE;
-	com.debayer.stretch = TRUE;
-	com.debayer.compatibility = FALSE;
-	com.debayer.bayer_pattern = BAYER_FILTER_RGGB;
-	com.debayer.bayer_inter = BAYER_VNG;
+	com.pref.debayer.open_debayer = FALSE;
+	com.pref.debayer.use_bayer_header = TRUE;
+	com.pref.debayer.top_down = TRUE;
+	com.pref.debayer.bayer_pattern = BAYER_FILTER_RGGB;
+	com.pref.debayer.bayer_inter = BAYER_RCD;
+	com.pref.debayer.xbayeroff = 0;
+	com.pref.debayer.ybayeroff = 0;
 }
 
 static gboolean end_convert_idle(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	struct timeval t_end;
 
-	if (get_thread_run() && args->nb_converted > 1) {
+	if (!args->retval && get_thread_run() && args->nb_converted_files > 1) {
 		// load the sequence
-		char *ppseqname = malloc(strlen(args->destroot) + 5);
-		sprintf(ppseqname, "%s.seq", args->destroot);
+		char *converted_seqname = NULL;
+		if (args->output_type != SEQ_REGULAR) {
+			int extidx = get_extension_index(args->destroot);
+			if (extidx) {
+				converted_seqname = malloc(extidx + 5);
+				strncpy(converted_seqname, args->destroot, extidx);
+				strcpy(converted_seqname+extidx, ".seq");
+			}
+		} else {
+			converted_seqname = malloc(strlen(args->destroot) + 5);
+			sprintf(converted_seqname, "%s.seq", args->destroot);
+		}
 		check_seq(0);
-		update_sequences_list(ppseqname);
-		free(ppseqname);
+		if (converted_seqname) {
+			update_sequences_list(converted_seqname);
+			free(converted_seqname);
+		}
 	}
-	update_used_memory();
+
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	gettimeofday(&t_end, NULL);
@@ -232,53 +262,15 @@ static gboolean end_convert_idle(gpointer p) {
 	return FALSE;
 }
 
-/* from a fits object, save to file or files, based on the channel policy from convflags */
-static int save_to_target_fits(fits *fit, const char *dest_filename) {
-	if (convflags & CONV3X1) {	// an RGB image to 3 fits, one for each channel
-		char filename[130];
-
-		if (fit->naxis != 3) {
-			siril_log_message(_("Saving to 3 FITS files cannot be done because the source image does not have three channels\n"));
-			return 1;
-		}
-		sprintf(filename, "r_%s", dest_filename);
-		if (save1fits16(filename, fit, RLAYER)) {
-			printf("tofits: save1fit8 error, CONV3X1\n");
-			return 1;
-		}
-		sprintf(filename, "g_%s", dest_filename);
-		if (save1fits16(filename, fit, GLAYER)) {
-			printf("tofits: save1fit8 error, CONV3X1\n");
-			return 1;
-		}
-		sprintf(filename, "b_%s", dest_filename);
-		if (save1fits16(filename, fit, BLAYER)) {
-			printf("tofits: save1fit8 error, CONV3X1\n");
-			return 1;
-		}
-	} else if (convflags & CONV1X1) { // a single FITS to convert from an RGB grey image
-		if (save1fits16(dest_filename, fit, RLAYER)) {
-			printf("tofits: save1fit8 error, CONV1X1\n");
-			return 1;
-		}
-	} else {			// normal FITS save, any format
-		if (savefits(dest_filename, fit)) {
-			printf("tofits: savefit error, CONV1X3\n");
-			return 1;
-		}
-	}
-	return 0;
-}
-
 /* open the file with path source from any image type and load it into a new FITS object */
-static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean compatibility, gboolean stretch_cfa) {
+static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
 
-	retval = any_to_fits(imagetype, source, tmpfit);
+	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
 
 	if (!retval)
-		retval = debayer_if_needed(imagetype, tmpfit, compatibility, FALSE, stretch_cfa);
+		retval = debayer_if_needed(imagetype, tmpfit, debayer);
 
 	if (retval) {
 		clearfits(tmpfit);
@@ -289,44 +281,16 @@ static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean 
 	return tmpfit;
 }
 
-static int retrieveBayerPattern(char *bayer) {
-	int i;
+/**************************Public functions***********************************************************/
 
-	for (i = 0; i < (sizeof(filter_pattern) / sizeof(char *)); i++) {
+int retrieveBayerPatternFromChar(char *bayer) {
+	for (int i = 0; i < G_N_ELEMENTS(filter_pattern); i++) {
 		if (g_ascii_strcasecmp(bayer, filter_pattern[i]) == 0) {
 			return i;
 		}
 	}
 	return BAYER_FILTER_NONE;
 }
-
-static void check_for_conversion_form_completeness() {
-	static GtkTreeView *tree_convert = NULL;
-	GtkTreeIter iter;
-	GtkTreeModel *model = NULL;
-	gboolean valid;
-	GtkWidget *go_button = lookup_widget("convert_button");
-
-	if (tree_convert == NULL)
-		tree_convert = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
-
-	model = gtk_tree_view_get_model(tree_convert);
-	valid = gtk_tree_model_get_iter_first(model, &iter);
-	gtk_widget_set_sensitive (go_button, destroot && destroot[0] != '\0' && valid);
-
-	/* we override the sort function in order to provide natural sort order */
-	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model),
-			COLUMN_CONV_FILENAME, (GtkTreeIterCompareFunc) sort_conv_tree, NULL,
-			NULL);
-
-	update_statusbar_convert();
-}
-
-static void unset_debayer_in_convflags() {
-	convflags &= ~CONVDEBAYER;
-}
-
-/**************************Public functions***********************************************************/
 
 /* initialize converters (utilities used for different image types importing) *
  * updates the label listing the supported input file formats, and modifies the
@@ -338,20 +302,14 @@ gchar *initialize_converters() {
 
 	/* internal converters */
 	supported_filetypes |= TYPEBMP;
-	string = g_string_new("BMP images, ");
+	string = g_string_new(_("BMP images, "));
 	supported_filetypes |= TYPEPIC;
 	string = g_string_append(string, _("PIC images (IRIS), "));
 	supported_filetypes |= TYPECPA;
 	string = g_string_append(string, _("CPA images (PRISM), "));
 	supported_filetypes |= TYPEPNM;
 	string = g_string_append(string, _("PGM and PPM binary images"));
-		
-	supported_extensions = malloc(MAX_OF_EXTENSIONS * sizeof(char*));
-	/* internal extensions */
-	if (supported_extensions == NULL) {
-		fprintf(stderr, "initialize_converters: error allocating data\n");
-		return NULL;
-	}
+
 	supported_extensions[count_ext++] = ".fit";
 	supported_extensions[count_ext++] = ".fits";
 	supported_extensions[count_ext++] = ".fts";
@@ -360,29 +318,30 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".pgm";
 	supported_extensions[count_ext++] = ".pnm";
 	supported_extensions[count_ext++] = ".pic";
-	
+
 	initialize_ser_debayer_settings();	// below in the file
 
 #ifdef HAVE_LIBRAW
 	int i, nb_raw;
-	
+
 	supported_filetypes |= TYPERAW;
 	string = g_string_append(string, ", ");
 	string = g_string_append(string, _("RAW images"));
 	initialize_libraw_settings();	// below in the file
-	
+
 	nb_raw = get_nb_raw_supported();
 	for (i = 0; i < nb_raw; i++) {
-		supported_extensions[count_ext+i] = malloc(strlen(supported_raw[i].extension) + 2 * sizeof (char));
-		strcpy(supported_extensions[count_ext+i], ".");
-		strcat(supported_extensions[count_ext+i], supported_raw[i].extension);
+		// add the '.' to the extension
+		char *ext = malloc(strlen(supported_raw[i].extension) + 2 * sizeof(char));
+		sprintf(ext, ".%s", supported_raw[i].extension);
+		supported_extensions[count_ext+i] = ext;
 	}
 	count_ext += nb_raw;
 #endif
 	string = g_string_append(string, ", ");
 	string = g_string_append(string, _("FITS-CFA images"));
 
-#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
+#ifdef HAVE_FFMS2
 	supported_filetypes |= TYPEAVI;
 	string = g_string_append(string, ", ");
 	string = g_string_append(string, _("Films"));
@@ -415,6 +374,14 @@ gchar *initialize_converters() {
 	string = g_string_append(string, _("PNG images"));
 	supported_extensions[count_ext++] = ".png";
 #endif
+
+#ifdef HAVE_LIBHEIF
+	supported_filetypes |= TYPEHEIF;
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("HEIF images"));
+	supported_extensions[count_ext++] = ".heic";
+	supported_extensions[count_ext++] = ".heif";
+#endif
 	supported_extensions[count_ext++] = NULL;		// NULL-terminated array
 
 	string = g_string_append(string, ".");
@@ -442,6 +409,9 @@ image_type get_type_for_extension(const char *extension) {
 	} else if ((supported_filetypes & TYPEJPG) &&
 			(!g_ascii_strcasecmp(extension, "jpg") || !g_ascii_strcasecmp(extension, "jpeg"))) {
 		return TYPEJPG;
+	} else if ((supported_filetypes & TYPEHEIF) &&
+			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif"))) {
+		return TYPEHEIF;
 	} else if ((supported_filetypes & TYPETIFF) &&
 			(!g_ascii_strcasecmp(extension, "tif") || !g_ascii_strcasecmp(extension, "tiff"))) {
 		return TYPETIFF;
@@ -457,7 +427,7 @@ image_type get_type_for_extension(const char *extension) {
 			return TYPECPA;
 	} else if ((supported_filetypes & TYPERAW) && !check_for_raw_extensions(extension)) {
 		return TYPERAW;
-#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
+#ifdef HAVE_FFMS2
 		// check_for_film_extensions is undefined without FFMS2
 	} else if ((supported_filetypes & TYPEAVI) && !check_for_film_extensions(extension)) {
 		return TYPEAVI;
@@ -465,473 +435,416 @@ image_type get_type_for_extension(const char *extension) {
 	} else if ((supported_filetypes & TYPESER) && !g_ascii_strcasecmp(extension, "ser")) {
 		return TYPESER;
 	} else if (!g_ascii_strcasecmp(extension, "fit") || !g_ascii_strcasecmp(extension, "fits") ||
-			!g_ascii_strcasecmp(extension, "fts")) {
+			!g_ascii_strcasecmp(extension, "fts") || !g_ascii_strcasecmp(extension, "fz")) {
 		return TYPEFITS;
 	}
 	return TYPEUNDEF; // not recognized or not supported
 }
 
-int count_converted_files() {
-	static GtkTreeView *tree_convert = NULL;
-	GtkTreeModel *model = NULL;
-	GtkTreeIter iter;
-	gboolean valid;
-	int count = 0;
-	
-	if (tree_convert == NULL)
-		tree_convert = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview_convert"));
-
-	model = gtk_tree_view_get_model(tree_convert);
-	valid = gtk_tree_model_get_iter_first(model, &iter);
-	
-	while (valid) {
-		gchar *file_name, *file_date;
-		gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &file_name,
-				COLUMN_DATE, &file_date, -1);
-		valid = gtk_tree_model_iter_next (model, &iter);
-		count ++;
-		g_free(file_name);
-		g_free(file_date);
-	}
-	return count;
-}
-
-int count_selected_files() {
-	GtkTreeView *tree_view = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
-	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-
-	return gtk_tree_selection_count_selected_rows(selection);
-}
-
-static void initialize_convert() {
-	GDir *dir;
-	GError *error = NULL;
-	gchar *file_data, *file_date;
-	const gchar *indice;
-	static GtkTreeView *tree_convert = NULL;
-	static GtkEntry *startEntry = NULL;
-	GtkTreeModel *model = NULL;
-	GtkTreeIter iter;
-	gboolean valid, several_type_of_files = FALSE;
-	image_type imagetype = TYPEUNDEF;
-	GList *list = NULL;
-	int count = 0;
-	
-	if (tree_convert == NULL) {
-		tree_convert = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
-		startEntry = GTK_ENTRY(lookup_widget("startIndiceEntry"));
-	}
-
-	struct timeval t_start;
-	
-	if (get_thread_run()) {
-		siril_log_message(_("Another task is already in progress, ignoring new request.\n"));
-		return;
-	}
-
-	/* test if forbidden chars exist */
-	char *forbid_char = strchr(destroot, '/');
-	if (forbid_char == NULL) {
-		forbid_char = strchr(destroot, '\\');
-	}
-	if (forbid_char != NULL) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Invalid char"), _("Please remove invalid char in the sequence name "
-				"before trying to convert images into a new sequence again."));
-		return;
-	}
-
-	if (g_file_test(destroot, G_FILE_TEST_EXISTS)) {
-		char *title = siril_log_message(_("A file named %s already exists. "
-				"Do you want to replace it?\n"), destroot);
-		gboolean replace = siril_confirm_dialog(title, _("The file already exists. "
-				"Replacing it will overwrite its contents."), FALSE);
-		if (!replace) return;
-	}
-
-	model = gtk_tree_view_get_model(tree_convert);
-	valid = gtk_tree_model_get_iter_first(model, &iter);
-	if (valid == FALSE) return;	//The tree is empty
-	
-	while (valid) {
-		gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &file_data,
-				COLUMN_DATE, &file_date, -1);
-		list = g_list_prepend(list, file_data);
-
-		const char *src_ext = get_filename_ext(file_data);
-		if (count != 0) {
-			if (imagetype != get_type_for_extension(src_ext)) {
-				several_type_of_files = TRUE;
-			}
-		}
-		imagetype = get_type_for_extension(src_ext);
-		valid = gtk_tree_model_iter_next(model, &iter);
-		count++;
-	}
-
-	if ((convflags & CONVDEBAYER) && (imagetype == TYPESER) && (several_type_of_files == FALSE)) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
-				_("The Debayer option is not allowed in SER conversion, please uncheck the option."));
-		g_list_free_full(list, g_free);
-		set_cursor_waiting(FALSE);
-		return;
-	} else if ((convflags & CONVMULTIPLE) && (imagetype == TYPESER) && (several_type_of_files == FALSE)) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
-				_("The Multiple SER option is not allowed in SER conversion, please uncheck the option."));
-		g_list_free_full(list, g_free);
-		set_cursor_waiting(FALSE);
-		return;
-	}
-
-	indice = gtk_entry_get_text(startEntry);
-
-	siril_log_color_message(_("Conversion: processing...\n"), "red");
-	gettimeofday(&t_start, NULL);
-	
-	set_cursor_waiting(TRUE);
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	
-	/* then, convert files to Siril's FITS format */
-	struct _convert_data *args;
-	set_cursor_waiting(TRUE);
-	char *tmpmsg;
-	if (!com.wd) {
-		tmpmsg = siril_log_message(_("Conversion: no working directory set.\n"));
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), tmpmsg);
-		g_list_free_full(list, g_free);
-		set_cursor_waiting(FALSE);
-		return;
-	}
-	if((dir = g_dir_open(com.wd, 0, &error)) == NULL){
-		tmpmsg = siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), tmpmsg);
-		fprintf (stderr, "Conversion: %s\n", error->message);
-		g_error_free(error);
-		g_list_free_full(list, g_free);
-		set_cursor_waiting(FALSE);
-		return ;
-	}
-
-	/* g_list_append() has to traverse the entire list to find the end,
-	 * which is inefficient when adding multiple elements. A common idiom
-	 * to avoid the inefficiency is to use g_list_prepend() and reverse the
-	 * list with g_list_reverse() when all elements have been added. */
-	list = g_list_reverse(list);
-
-	args = malloc(sizeof(struct _convert_data));
-	args->start = (atof(indice) == 0 || atof(indice) > USHRT_MAX) ? 1 : atof(indice);
-	args->dir = dir;
-	args->list = list;
-	args->total = count;
-	args->nb_converted = 0;
-	args->t_start.tv_sec = t_start.tv_sec;
-	args->t_start.tv_usec = t_start.tv_usec;
-	args->compatibility = com.debayer.compatibility;
-	args->stretch_cfa = com.debayer.stretch;
-	args->command_line = FALSE;
-	args->several_type_of_files = several_type_of_files;
-	args->destroot = g_strdup(destroot);
-	start_in_new_thread(convert_thread_worker, args);
-	return;
-}
-
-void on_entry2_activate(GtkEntry *entry, gpointer user_data) {
-	initialize_convert();
-}
-
-
-void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
-	initialize_convert();
-}
-
+/* the list of files must be checked for unsupported file types before calling this
+ * destroot must contain the file name with extension in case of SER or FITS sequence output. */
 gpointer convert_thread_worker(gpointer p) {
-	char dest_filename[128], msg_bar[256];
-	int indice;
-	int ser_frames = 0;
 	double progress = 0.0;
-	struct ser_struct *ser_file = NULL;
+	struct ser_struct ser_file;
+	fitseq fitseq_file;
 	struct _convert_data *args = (struct _convert_data *) p;
-	GList *list;
-	
-	indice = args->start;
+	unsigned int frame_index = 0;
 
-	if (convflags & CONVDSTSER) {
-		if (convflags & CONV3X1) {
-			siril_log_color_message(_("SER output will take precedence over the one-channel per image creation option.\n"), "salmon");
-			convflags &= ~CONV3X1;
-		} else {
-			ser_file = malloc(sizeof(struct ser_struct));
-			if (!(convflags & CONVMULTIPLE)) {
-				if (ser_create_file(args->destroot, ser_file, TRUE, NULL)) {
-					siril_log_message(_("Creating the SER file failed, aborting.\n"));
-					goto clean_exit;
-				}
+	args->nb_converted_files = 0;
+	args->retval = 0;
+
+	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok();
+
+	if (args->output_type == SEQ_SER) {
+		if (!args->multiple_output) {
+			ser_init_struct(&ser_file);
+			if (ser_create_file(args->destroot, &ser_file, TRUE, NULL)) {
+				siril_log_message(_("Creating the SER file failed, aborting.\n"));
+				goto clean_exit;
 			}
 		}
 	}
-
-	for (list = args->list; list; list = list->next) {
-		gchar *src_filename = (gchar *)list->data;
-		const char *src_ext = get_filename_ext(src_filename);
-		image_type imagetype;
-
-		if (!get_thread_run()) {
-			break;
+	else if (args->output_type == SEQ_FITSEQ) {
+		if (fitseq_create_file(args->destroot, &fitseq_file,
+					args->input_has_a_seq ? -1 : args->total)) {
+			siril_log_message(_("Creating the FITS sequence file failed, aborting.\n"));
+			args->retval = 1;
+			goto clean_exit;
 		}
-		gchar *name = g_utf8_strrchr(src_filename, strlen(src_filename), G_DIR_SEPARATOR);
-		if (name)
-			g_snprintf(msg_bar, 256, _("Converting %s..."), name + 1);
-		else g_snprintf(msg_bar, 256, _("Converting %s..."), src_filename);
 
-		imagetype = get_type_for_extension(src_ext);
+		int limit = 0;
+#ifdef _OPENMP
+		/* we don't know the image size here, max * 2 + 1 may be ok for most users */
+		limit = com.max_thread * 2 + 1;
+#endif
+		seqwriter_set_max_active_blocks(limit);
+	}
+	else g_assert(args->output_type == SEQ_REGULAR);
+
+	if (args->multiple_output && args->output_type != SEQ_SER)
+		args->multiple_output = FALSE;
+
+	gboolean have_seqwriter = args->output_type == SEQ_FITSEQ || args->output_type == SEQ_SER;
+#ifdef _OPENMP
+	if (have_seqwriter)
+		omp_set_schedule(omp_sched_dynamic, 1);
+	else omp_set_schedule(omp_sched_static, 0);
+#pragma omp parallel for num_threads(com.max_thread) schedule(runtime) \
+	if(!args->input_has_a_seq && (have_seqwriter || fits_is_reentrant()))
+	// we should run in parallel only when images are converted, not sequences
+#endif
+	for (int i = 0; i < args->total; i++) {
+		if (args->retval || !get_thread_run()) {
+			continue;
+		}
+
+		gchar *src_filename = args->list[i];
+		const char *src_ext = get_filename_ext(src_filename);
+		int index = args->input_has_a_seq ? frame_index : args->start + i;
+
+		gchar *name = g_utf8_strrchr(src_filename, strlen(src_filename), G_DIR_SEPARATOR);
+		gchar *msg_bar;
+		if (name)
+			msg_bar = g_strdup_printf(_("Converting %s..."), name + 1);
+		else msg_bar = g_strdup_printf(_("Converting %s..."), src_filename);
+
+		image_type imagetype = get_type_for_extension(src_ext);
 		com.filter = (int) imagetype;
 		if (imagetype == TYPEUNDEF) {
-			char msg[512];
-			char *title = siril_log_message(_("Filetype is not supported, cannot convert: %s\n"), src_ext);
-			g_snprintf(msg, 512, _("File extension '%s' is not supported.\n"
-				"Verify that you typed the extension correctly.\n"
-				"If so, you may need to install third-party software to enable "
-				"this file type conversion, look at the README file.\n"
-				"If the file type you are trying to load is listed in supported "
-				"formats, you may notify the developpers that the extension you are "
-				"trying to use should be recognized for this type."), src_ext);
-			siril_message_dialog(GTK_MESSAGE_ERROR, title, msg);
-			break;	// avoid 100 error popups
+			args->retval = 1;
+			g_free(msg_bar);
+			continue;
 		}
 
 		if (imagetype == TYPEAVI) {
-			// we need to do a semi-recursive thing here,
-			// thankfully it's only one level deep
-#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
-			int frame;
-			fits *fit = calloc(1, sizeof(fits));
-			struct film_struct film_file;
-			if (film_open_file(src_filename, &film_file) != FILM_SUCCESS) {
-				siril_log_message(_("Error while opening film %s, aborting.\n"), src_filename);
-				clearfits(fit);
-				free(fit);
-				break;
-			}
-			if (convflags & CONVMULTIPLE) {
-				if (ser_create_file(create_sequence_filename(indice++, dest_filename, 128),
-							ser_file, TRUE, NULL)) {
-					siril_log_message(_("Creating the SER file failed, aborting.\n"));
-					clearfits(fit);
-					free(fit);
-					goto clean_exit;
-				}
-			}
-			for (frame = 0; frame < film_file.frame_count; frame++) {
-				if (!get_thread_run()) {
-					break;
-				}
-				// read frame from the film
-				if (film_read_frame(&film_file, frame, fit) != FILM_SUCCESS) {
-					siril_log_message(_("Error while reading frame %d from %s, aborting.\n"),
-							frame, src_filename);
-					clearfits(fit);
-					free(fit);
-					goto clean_exit;
-				}
-
-				// save to the destination file
-				if (convflags & CONVDSTSER) {
-					if (convflags & CONV1X1)
-						keep_first_channel_from_fits(fit);
-					if (ser_write_frame_from_fit(ser_file, fit, frame)) {
-						siril_log_message(_("Error while converting to SER (no space left?)\n"));
-						clearfits(fit);
-						free(fit);
-						goto clean_exit;
-					}
-				} else {
-					g_snprintf(dest_filename, 128, "%s%05d", args->destroot, indice++);
-					if (save_to_target_fits(fit, dest_filename)) {
-						siril_log_message(_("Error while converting to FITS (no space left?)\n"));
-						clearfits(fit);
-						free(fit);
-						goto clean_exit;
-					}
-				}
-				clearfits(fit);
-			}
-			if (convflags & CONVMULTIPLE) {
-				ser_write_and_close(ser_file);
-			}
-			free(fit);
-#endif
+			unsigned int added_frames;
+			if (film_conversion(src_filename, index, &added_frames, &ser_file, args))
+				args->retval = 1;
+			frame_index += added_frames;
 		}
 		else if (imagetype == TYPESER) {
-			if (args->several_type_of_files) {
-				siril_log_message(_("Joining SER files is only possible with a list "
-						"only containing SER files. Please, remove non SER files.\n"));
-				break;
-			}
-			int frame;
-			fits *fit = calloc(1, sizeof(fits));
-			struct ser_struct tmp_ser;
-			ser_init_struct(&tmp_ser);
-			if (ser_open_file(src_filename, &tmp_ser)) {
-				siril_log_message(_("Error while opening ser file %s, aborting.\n"), src_filename);
-				clearfits(fit);
-				free(fit);
-				break;
-			}
-			if (args->nb_converted > 0 && (convflags & CONVDSTSER)) {
-				if (tmp_ser.image_height != ser_file->image_height
-						|| tmp_ser.image_width != ser_file->image_width) {
-					siril_log_color_message(_("Input SER files must have the same size to be joined.\n"), "red");
-					clearfits(fit);
-					free(fit);
-					break;
-				}
-			}
-			set_progress_bar_data(msg_bar, PROGRESS_PULSATE);
-			for (frame = 0; frame < tmp_ser.frame_count; frame++) {
-				if (!get_thread_run()) {
-					break;
-				}
-				// read frame from the film
-				if (ser_read_frame(&tmp_ser, frame, fit)) {
-					siril_log_message(_("Error while reading frame %d from %s, aborting.\n"),
-							frame, src_filename);
-					clearfits(fit);
-					free(fit);
-					goto clean_exit;
-				}
-
-				// save to the destination file
-				if (convflags & CONVDSTSER) {
-					if (convflags & CONV1X1)
-						keep_first_channel_from_fits(fit);
-					if (ser_write_frame_from_fit(ser_file, fit, frame + ser_frames)) {
-						siril_log_message(_("Error while converting to SER (no space left?)\n"));
-						clearfits(fit);
-						free(fit);
-						goto clean_exit;
-					}
-				} else {
-					g_snprintf(dest_filename, 128, "%s%05d", args->destroot, indice++);
-					if (save_to_target_fits(fit, dest_filename)) {
-						siril_log_message(_("Error while converting to FITS (no space left?)\n"));
-						clearfits(fit);
-						free(fit);
-						goto clean_exit;
-					}
-				}
-				clearfits(fit);
-			}
-			ser_frames += frame;
-			ser_close_file(&tmp_ser);
-			free(fit);
+			unsigned int added_frames;
+			if (ser_conversion(src_filename, index, &added_frames, &ser_file, args))
+				args->retval = 1;
+			frame_index += added_frames;
 		}
 		else {	// single image
-			fits *fit = any_to_new_fits(imagetype, src_filename, args->compatibility, args->stretch_cfa);
-			if (fit) {
-				if (convflags & CONVDSTSER) {
-					if (convflags & CONV1X1)
-						keep_first_channel_from_fits(fit);
-					if (ser_write_frame_from_fit(ser_file, fit, args->nb_converted)) {
+			if (imagetype == TYPEFITS && args->make_link && allow_symlink) {
+				gchar *dest_filename = g_strdup_printf("%s%05d%s", args->destroot, index,
+						com.pref.ext);
+				symlink_uniq_file(src_filename, dest_filename, allow_symlink);
+				g_free(dest_filename);
+			} else {
+				if (have_seqwriter) {
+					seqwriter_wait_for_memory();
+				}
+
+				fits *fit = any_to_new_fits(imagetype, src_filename, args->debayer);
+				if (args->output_type == SEQ_SER) {
+					if (ser_write_frame_from_fit(&ser_file, fit, i)) {
 						siril_log_message(_("Error while converting to SER (no space left?)\n"));
-						break;
+						args->retval = 1;
+					}
+				} else if (args->output_type == SEQ_FITSEQ) {
+					if (fitseq_write_image(&fitseq_file, fit, i)) {
+						siril_log_message(_("Error while converting to SER (no space left?)\n"));
+						args->retval = 1;
 					}
 				} else {
-					g_snprintf(dest_filename, 128, "%s%05d", args->destroot, indice++);
-					if (save_to_target_fits(fit, dest_filename)) {
-						siril_log_message(_("Error while converting to FITS (no space left?)\n"));
-						break;
+					if (fit) {
+						gchar *dest_filename = g_strdup_printf("%s%05d", args->destroot, index);
+						if (savefits(dest_filename, fit)) {
+							siril_log_message(_("Error while converting to FITS (no space left?)\n"));
+							args->retval = 1;
+						}
+						clearfits(fit);
+						free(fit);
+						g_free(dest_filename);
 					}
 				}
-				clearfits(fit);
-				free(fit);
 			}
+			frame_index++;
 		}
 
-		set_progress_bar_data(msg_bar, progress/((double)args->total));
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
 		progress += 1.0;
-		args->nb_converted++;
+		set_progress_bar_data(msg_bar, progress / ((double) args->total));
+		g_free(msg_bar);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+		args->nb_converted_files++;
 	}
 
 clean_exit:
-	if (convflags & CONVDSTSER) {
-		if (!(convflags & CONVMULTIPLE))
-			ser_write_and_close(ser_file);
-		free(ser_file);
+	if (args->output_type == SEQ_SER) {
+		if (!args->multiple_output) {
+			if (args->retval)
+				ser_close_and_delete_file(&ser_file);
+			else ser_write_and_close(&ser_file);
+		}
 	}
-	if (args->command_line) {
-		unset_debayer_in_convflags();
+	else if (args->output_type == SEQ_FITSEQ) {
+		if (args->retval)
+			fitseq_close_and_delete_file(&fitseq_file);
+		else fitseq_close_file(&fitseq_file);
 	}
-	g_list_free_full(args->list, g_free);
-	g_dir_close(args->dir);
+	for (int i = 0; i < args->total; i++)
+		g_free(args->list[i]);
+	free(args->list);
+	if (args->retval)
+		siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
+	else {
+		if (args->nb_converted_files == args->total)
+			siril_log_message(_("Conversion succeeded, %d/%d input files converted\n"), args->nb_converted_files, args->total);
+		else siril_log_message(_("Conversion aborted, %d/%d input files converted\n"), args->nb_converted_files, args->total);
+	}
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
 }
 
-int debayer_if_needed(image_type imagetype, fits *fit, gboolean compatibility, gboolean force_debayer, gboolean stretch_cfa) {
-	int retval = 0;
-	sensor_pattern tmp;
-	/* What the hell?
-	 * Siril's FITS are stored bottom to top, debayering will throw 
-	 * wrong results. So before demosacaing we need to transforme the image
-	 * with fits_flip_top_to_bottom() function */
-	if (imagetype == TYPEFITS && (((convflags & CONVDEBAYER) && !force_debayer) || force_debayer)) {
-		tmp = com.debayer.bayer_pattern;
-		if (fit->naxes[2] != 1) {
-			siril_log_message(_("Cannot perform debayering on image with more than one channel\n"));
-			return retval;
-		}
-		if (!compatibility)
-			fits_flip_top_to_bottom(fit);
-		/* Get Bayer informations from header if available */
-		if (com.debayer.use_bayer_header) {
-			sensor_pattern bayer;
-			bayer = retrieveBayerPattern(fit->bayer_pattern);
+// debayers the image if it's a FITS image and if debayer is activated globally
+// or if the force argument is passed
+int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
+	if (imagetype != TYPEFITS || (!com.pref.debayer.open_debayer && !force_debayer))
+		return 0;
 
-			if (bayer <= BAYER_FILTER_MAX) {
-				if (bayer != com.debayer.bayer_pattern) {
-					if (bayer == BAYER_FILTER_NONE) {
-						siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
-					}
-					else {
-						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
-								" from Bayer pattern in settings (%s). Overriding settings.\n"),
-								"red", filter_pattern[bayer], filter_pattern[com.debayer.bayer_pattern]);
-						com.debayer.bayer_pattern = bayer;
-					}
+	/* Siril's FITS are stored bottom-up, debayering will give wrong results.
+	 * So before demosacaing we need to flip the image with fits_flip_top_to_bottom().
+	 * But sometimes FITS are created by acquisition software top-down, in that case
+	 * the user can indicate it ('compatibility') and we don't flip for debayer.
+	 */
+	if (fit->naxes[2] != 1) {
+		siril_log_message(_("Cannot perform debayering on image with more than one channel\n"));
+		return 0;
+	}
+
+	/* Get Bayer informations from header if available */
+	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
+	interpolation_method tmp_algo = com.pref.debayer.bayer_inter;
+	if (com.pref.debayer.use_bayer_header) {
+		sensor_pattern bayer;
+		bayer = retrieveBayerPatternFromChar(fit->bayer_pattern);
+
+		if (bayer <= BAYER_FILTER_MAX) {
+			if (bayer != tmp_pattern) {
+				if (bayer == BAYER_FILTER_NONE) {
+					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
 				}
-			} else { /* FIXME: XTRANS CASE. TESTED FOR ONE FILE */
-				com.debayer.bayer_pattern = XTRANS_FILTER;
-				com.debayer.bayer_inter = XTRANS;
-				siril_log_color_message(_("XTRANS Sensor detected. Using special algorithm.\n"), "red");
+				else {
+					siril_log_color_message(_("Bayer pattern found in header (%s) is different"
+								" from Bayer pattern in settings (%s). Overriding settings.\n"),
+							"red", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
+					tmp_pattern = bayer;
+				}
 			}
-		}
-		if (com.debayer.bayer_pattern >= BAYER_FILTER_MIN
-				&& com.debayer.bayer_pattern <= BAYER_FILTER_MAX) {
-			siril_log_message(_("Filter Pattern: %s\n"), filter_pattern[com.debayer.bayer_pattern]);
-		}
-
-		if (stretch_cfa && fit->maximum_pixel_value) {
-			siril_log_message(_("The FITS file is being normalized to 16-bit\n"));
-		}
-
-		if (debayer(fit, com.debayer.bayer_inter, stretch_cfa)) {
-			siril_log_message(_("Cannot perform debayering\n"));
-			retval = -1;
 		} else {
-			if (!compatibility)
-				fits_flip_top_to_bottom(fit);
+			tmp_pattern = bayer;
+			tmp_algo = XTRANS;
+			siril_log_color_message(_("XTRANS Sensor detected. Using special algorithm.\n"), "green");
 		}
-		com.debayer.bayer_pattern = tmp;
+	}
+	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
+		siril_log_message(_("Filter Pattern: %s\n"),
+				filter_pattern[tmp_pattern]);
+	}
+
+	int retval = 0;
+	if (debayer(fit, tmp_algo, tmp_pattern)) {
+		siril_log_message(_("Cannot perform debayering\n"));
+		retval = -1;
 	}
 	return retval;
 }
 
+static int film_conversion(const char *src_filename, int index,
+		unsigned int *added_frames, struct ser_struct *ser_file,
+		struct _convert_data *args) {
+	// we need to do a semi-recursive thing here,
+	// thankfully it's only one level deep
+	*added_frames = 0;
+#ifdef HAVE_FFMS2
+	int frame, ser_frames = index;
+	int retval = 0;
+	struct film_struct film_file;
+	if (film_open_file(src_filename, &film_file) != FILM_SUCCESS) {
+		siril_log_message(_("Error while opening film %s, aborting.\n"), src_filename);
+		return 1;
+	}
+	if (args->multiple_output) {
+		char dest_filename[128];
+		ser_init_struct(ser_file);
+		if (ser_create_file(create_sequence_filename(args->destroot, index, dest_filename, 128),
+					ser_file, TRUE, NULL)) {
+			siril_log_message(_("Creating the SER file failed, aborting.\n"));
+			return 1;
+		}
+		ser_frames = 0;
+	}
+	for (frame = 0; frame < film_file.frame_count; frame++) {
+		if (!get_thread_run() || retval) {
+			break;
+		}
+		// read frame from the film
+		fits fit = { 0 };
+		if (film_read_frame(&film_file, frame, &fit) != FILM_SUCCESS) {
+			siril_log_message(_("Error while reading frame %d from %s, aborting.\n"),
+					frame, src_filename);
+			retval = 1;
+			break;	// no need to call clearfits
+		}
+
+		// save to the destination file
+		if (args->output_type == SEQ_SER) {
+			if (ser_write_frame_from_fit(ser_file, &fit, frame + ser_frames)) {
+				siril_log_message(_("Error while converting to SER (no space left?)\n"));
+				retval = 1;
+			}
+		} else {
+			// TODO: handle FITS sequence
+			char dest_filename[128];
+			g_snprintf(dest_filename, 128, "%s%05d", args->destroot, index++);
+			if (savefits(dest_filename, &fit)) {
+				siril_log_message(_("Error while converting to FITS (no space left?)\n"));
+				retval = 1;
+			}
+		}
+		clearfits(&fit);
+	}
+	if (args->multiple_output) {
+		if (retval)
+			ser_close_and_delete_file(ser_file);
+		else ser_write_and_close(ser_file);
+	}
+	*added_frames = frame;
+	return retval;
+#else
+	return 1;
+#endif
+}
+
+static int ser_conversion(const char *src_filename, int index,
+		unsigned int *added_frames, struct ser_struct *ser_file,
+		struct _convert_data *args) {
+	int frame, ser_frames = index;
+	int retval = 0;
+	*added_frames = 0;
+
+	struct ser_struct tmp_ser;
+	ser_init_struct(&tmp_ser);
+	siril_log_message(_("Reading %s\n"), src_filename);
+	if (ser_open_file(src_filename, &tmp_ser)) {
+		siril_log_message(_("Error while opening ser file %s, aborting.\n"), src_filename);
+		return 1;
+	}
+	if (args->nb_converted_files > 0 && args->output_type == SEQ_SER) {
+		if (tmp_ser.image_height != ser_file->image_height
+				|| tmp_ser.image_width != ser_file->image_width) {
+			siril_log_color_message(_("Input SER files must have the same size to be joined.\n"), "red");
+			return 1;
+		}
+	}
+	/* We want to copy header informations from the first SER file */
+	if (ser_file && ser_frames == 0) {
+		/* TODO: this code should be in io/ser.c, common with ser_create_file() */
+		ser_file->lu_id = tmp_ser.lu_id;
+		ser_file->date = tmp_ser.date;
+		ser_file->date_utc = tmp_ser.date_utc;
+		ser_file->file_id = strdup(tmp_ser.file_id);
+		memcpy(ser_file->observer, tmp_ser.observer, 40);
+		memcpy(ser_file->instrument, tmp_ser.instrument, 40);
+		memcpy(ser_file->telescope, tmp_ser.telescope, 40);
+		ser_file->byte_pixel_depth = tmp_ser.byte_pixel_depth;
+		ser_file->color_id = tmp_ser.color_id;
+	}
+	set_progress_bar_data(NULL, PROGRESS_PULSATE);
+	for (frame = 0; frame < tmp_ser.frame_count; frame++) {
+		if (!get_thread_run() || retval) {
+			break;
+		}
+		// read frame from the sequence
+		fits fit = { 0 };
+		if (ser_read_frame(&tmp_ser, frame, &fit)) {
+			siril_log_message(_("Error while reading frame %d from %s, aborting.\n"),
+					frame, src_filename);
+			retval = 1;
+			break;	// no need to call clearfits
+		}
+
+		// save to the destination file
+		if (args->output_type == SEQ_SER) {
+			if (ser_write_frame_from_fit(ser_file, &fit, frame + ser_frames)) {
+				siril_log_message(_("Error while converting to SER (no space left?)\n"));
+				retval = 1;
+			}
+		} else {
+			// TODO: handle FITS sequence
+			char dest_filename[128];
+			g_snprintf(dest_filename, 128, "%s%05d", args->destroot, index++);
+			if (savefits(dest_filename, &fit)) {
+				siril_log_message(_("Error while converting to FITS (no space left?)\n"));
+				retval = 1;
+			}
+		}
+		clearfits(&fit);
+	}
+	*added_frames = frame;
+	ser_close_file(&tmp_ser);
+	return retval;
+}
+
+
+#ifdef _WIN32
+char* g_real_path(const char *source) {
+	HANDLE hFile;
+	DWORD maxchar = 2048;
+
+	wchar_t *wsource = g_utf8_to_utf16(source, -1, NULL, NULL, NULL);
+	if ( wsource == NULL ) {
+		return NULL ;
+	}
+
+	if (!(GetFileAttributesW(wsource) & FILE_ATTRIBUTE_REPARSE_POINT)) { /* Ce n'est pas un lien symbolique , je sors */
+		g_free(wsource);
+		return NULL;
+	}
+
+	wchar_t *wFilePath = g_new(wchar_t, maxchar + 1);
+	if (!wFilePath) {
+		PRINT_ALLOC_ERR;
+		g_free(wsource);
+		return NULL;
+	}
+	wFilePath[0] = 0;
+
+	hFile = CreateFileW(wsource, GENERIC_READ, FILE_SHARE_READ, NULL,
+			OPEN_EXISTING, 0, NULL);
+	if (hFile == INVALID_HANDLE_VALUE) {
+		g_free(wFilePath);
+		g_free(wsource);
+		return NULL;
+	}
+
+	GetFinalPathNameByHandleW(hFile, wFilePath, maxchar, 0);
+
+	gchar *gFilePath = g_utf16_to_utf8(wFilePath + 4, -1, NULL, NULL, NULL); // +4 = enleve les 4 caracteres du prefixe "//?/"
+	g_free(wsource);
+	g_free(wFilePath);
+	CloseHandle(hFile);
+	return gFilePath;
+}
+#endif
+
 /* open the file with path source from any image type and load it into the given FITS object */
-int any_to_fits(image_type imagetype, const char *source, fits *dest) {
+int any_to_fits(image_type imagetype, const char *source, fits *dest,
+		gboolean interactive, gboolean force_float, gboolean debayer) {
 	int retval = 0;
 
 	switch (imagetype) {
 		case TYPEFITS:
-			retval = (readfits(source, dest, NULL) != 0);
+			retval = (readfits(source, dest, NULL, force_float) != 0);
 			break;
 		case TYPEBMP:
 			retval = (readbmp(source, dest) < 0);
@@ -944,7 +857,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest) {
 			break;
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			retval = (readtif(source, dest) < 0);
+			retval = (readtif(source, dest, force_float) < 0);
 			break;
 #endif
 		case TYPEPNM:
@@ -955,6 +868,12 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest) {
 			retval = (readjpg(source, dest) < 0);
 			break;		
 #endif
+#ifdef HAVE_LIBHEIF
+		case TYPEHEIF:
+			/* need to retrieve all return values */
+			retval = readheif(source, dest, interactive);
+			break;
+#endif
 #ifdef HAVE_LIBPNG
 		case TYPEPNG:
 			retval = (readpng(source, dest) < 0);
@@ -962,7 +881,21 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest) {
 #endif
 #ifdef HAVE_LIBRAW
 		case TYPERAW:
-			retval = (open_raw_files(source, dest, !(convflags & CONVDEBAYER)) < 0);
+			{
+				const char *src = source ;
+#ifdef _WIN32
+				char *rsrc = g_real_path(source) ;
+				if (rsrc != NULL) {
+					src  = rsrc;					
+				}
+#endif
+				retval = (open_raw_files(src , dest, debayer) < 0);
+#ifdef _WIN32
+				if (rsrc != NULL) {
+					g_free(rsrc);
+				}
+#endif
+			}
 			break;
 #endif
 		case TYPESER:
@@ -979,264 +912,3 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest) {
 	return retval;
 }
 
-void set_debayer_in_convflags() {
-	convflags |= CONVDEBAYER;
-}
-
-/**************** Conversion tree managment ***********************************/
-/*
- * Main conversion list static functions
- */
-
-static GtkListStore *liststore_convert = NULL;
-
-static void add_convert_to_list(char *filename, GStatBuf st) {
-	GtkTreeIter iter;
-	char *date;
-
-	date = ctime(&st.st_mtime);
-	date[strlen(date) - 1] = 0;	// removing '\n' at the end of the string
-
-	gtk_list_store_append(liststore_convert, &iter);
-	gtk_list_store_set(liststore_convert, &iter, COLUMN_FILENAME, filename,	// copied in the store
-			COLUMN_DATE, date, -1);
-}
-static void get_convert_list_store() {
-	if (liststore_convert == NULL)
-		liststore_convert = GTK_LIST_STORE(
-				gtk_builder_get_object(builder, "liststore_convert"));
-}
-
-static GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
-		GtkTreeModel *model) {
-	GList *ref = NULL;
-	GList *sel, *s;
-
-	sel = gtk_tree_selection_get_selected_rows(selection, &model);
-
-	for (s = sel; s; s = s->next) {
-		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
-		ref = g_list_prepend(ref, rowref);
-	}
-	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
-	return ref;
-}
-
-static void remove_selected_files_from_list() {
-	GtkTreeSelection *selection;
-	GtkTreeModel *model;
-	GList *references, *list;
-	GtkTreeView *tree_view;
-
-	tree_view = GTK_TREE_VIEW(lookup_widget("treeview_convert"));
-	model = gtk_tree_view_get_model(tree_view);
-	selection = gtk_tree_view_get_selection(tree_view);
-	references = get_row_references_of_selected_rows(selection, model);
-	for (list = references; list; list = list->next) {
-		GtkTreeIter iter;
-		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
-		if (path) {
-			if (gtk_tree_model_get_iter(model, &iter, path)) {
-				gtk_list_store_remove(liststore_convert, &iter);
-			}
-			gtk_tree_path_free(path);
-		}
-	}
-	g_list_free(references);
-	gtk_tree_selection_unselect_all(selection);
-}
-
-void fill_convert_list(GSList *list) {
-	GStatBuf st;
-	GSList *l;
-
-	get_convert_list_store();
-
-	for (l = list; l; l = l->next) {
-		char *filename;
-
-		filename = (char *) l->data;
-		if (g_stat(filename, &st) == 0) {
-			add_convert_to_list(filename, st);
-		}
-		g_free(filename);
-	}
-	check_for_conversion_form_completeness();
-}
-
-void on_clear_convert_button_clicked(GtkToolButton *button, gpointer user_data) {
-	get_convert_list_store();
-	gtk_list_store_clear(liststore_convert);
-	check_for_conversion_form_completeness();
-}
-
-void on_remove_convert_button_clicked(GtkToolButton *button, gpointer user_data) {
-	remove_selected_files_from_list();
-	check_for_conversion_form_completeness();
-}
-
-void on_treeview_convert_drag_data_received(GtkWidget *widget,
-		GdkDragContext *context, gint x, gint y,
-		GtkSelectionData *selection_data, guint info, guint time,
-		gpointer user_data) {
-
-	gchar **uris, **str;
-	const guchar *data;
-	GSList *list = NULL;
-	gint bad_files = 0;
-
-	if (info != 0)
-		return;
-
-	data = gtk_selection_data_get_data(selection_data);
-	uris = g_uri_list_extract_uris((gchar *) data);
-
-	for (str = uris; *str; str++) {
-		GError *error = NULL;
-		gchar *path = g_filename_from_uri(*str, NULL, &error);
-		if (path) {
-			const char *src_ext = get_filename_ext(path);
-			if (src_ext) {
-				if (get_type_for_extension(src_ext) == TYPEUNDEF) {
-					bad_files++;
-				} else {
-					list = g_slist_prepend(list, path);
-				}
-			} else bad_files++;
-		} else {
-			fprintf(stderr, "Could not convert uri to local path: %s",
-					error->message);
-			bad_files++;
-			g_error_free(error);
-		}
-	}
-	list = g_slist_sort(list, (GCompareFunc) strcompare);
-	fill_convert_list(list);
-	if (bad_files) {
-		char *msg = siril_log_message(_("%d file(s) were ignored while drag and drop\n"), bad_files);
-		siril_message_dialog(GTK_MESSAGE_INFO, msg,
-				_("Files with unknown extension cannot be dropped in this area. "
-						"Therefore they are ignored."));
-	}
-	g_strfreev(uris);
-	g_slist_free(list);
-}
-
-gboolean on_treeview_convert_key_release_event(GtkWidget *widget, GdkEventKey *event,
-		gpointer user_data) {
-	if (event->keyval == GDK_KEY_Delete || event->keyval == GDK_KEY_KP_Delete
-			|| event->keyval == GDK_KEY_BackSpace) {
-		remove_selected_files_from_list();
-		check_for_conversion_form_completeness();
-		return TRUE;
-	}
-	return FALSE;
-}
-
-
-/******************Callback functions*******************************************************************/
-
-static gchar forbidden_char[] = { '/', '\\' };
-
-static gboolean is_forbiden(gchar c) {
-	int i;
-
-	for (i = 0; i < G_N_ELEMENTS(forbidden_char); i++) {
-		if (c == forbidden_char[i]) {
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-
-void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
-		gint *position, gpointer data) {
-	GtkEditable *editable = GTK_EDITABLE(entry);
-	int i, count = 0;
-
-	gchar *result = g_strndup(text, length);
-
-	for (i = 0; i < length; i++) {
-		if (is_forbiden(text[i]))
-			continue;
-		result[count++] = text[i];
-	}
-
-	if (count > 0) {
-		g_signal_handlers_block_by_func(G_OBJECT (editable),
-				G_CALLBACK (insert_text_handler), data);
-		gtk_editable_insert_text(editable, result, count, position);
-		g_signal_handlers_unblock_by_func(G_OBJECT (editable),
-				G_CALLBACK (insert_text_handler), data);
-	}
-	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
-
-	g_free(result);
-}
-
-void on_treeview_selection5_changed(GtkTreeSelection *treeselection,
-		gpointer user_data) {
-	update_statusbar_convert();
-}
-
-// truncates destroot if it's more than 120 characters, append a '_' if it
-// doesn't end with one or a '-'. SER extensions are accepted and unmodified.
-void on_convtoroot_changed (GtkEditable *editable, gpointer user_data){
-	static GtkWidget *multiple_ser = NULL;
-	const gchar *name = gtk_entry_get_text(GTK_ENTRY(editable));
-
-	if (*name != 0) {
-		if (!multiple_ser)
-			multiple_ser = lookup_widget("multipleSER");
-		if (destroot)
-			g_free(destroot);
-
-		destroot = g_str_to_ascii(name, NULL); // we want to avoid special char
-
-		const char *ext = get_filename_ext(destroot);
-		if (ext && !g_ascii_strcasecmp(ext, "ser")) {
-			convflags |= CONVDSTSER;
-			gtk_widget_set_visible(multiple_ser, TRUE);
-		} else {
-			convflags &= ~CONVDSTSER;
-			gtk_widget_set_visible(multiple_ser, FALSE);
-			destroot = format_basename(destroot);
-		}
-		check_for_conversion_form_completeness();
-	}
-}
-
-void on_demosaicing_toggled (GtkToggleButton *togglebutton, gpointer user_data) {
-	static GtkToggleButton *but = NULL;
-	if (!but) but = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton1"));
-	if (gtk_toggle_button_get_active(togglebutton)) {
-		set_debayer_in_convflags();
-		gtk_toggle_button_set_active(but, TRUE);
-		com.debayer.open_debayer = TRUE;
-	}
-	else {
-		unset_debayer_in_convflags();	// used for conversion
-		com.debayer.open_debayer = FALSE;	// used for image opening
-	}
-}
-
-void on_multipleSER_toggled (GtkToggleButton *togglebutton, gpointer user_data) {
-	if (gtk_toggle_button_get_active(togglebutton))
-		convflags |= CONVMULTIPLE;
-	else convflags &= ~CONVMULTIPLE;
-}
-
-void on_conv3planefit_toggled (GtkToggleButton *togglebutton, gpointer user_data){
-	convflags |= CONV1X3;
-	convflags &= ~(CONV3X1|CONV1X1);
-}
-
-void on_conv3_1plane_toggled (GtkToggleButton *togglebutton, gpointer user_data) {
-	convflags |= CONV3X1;
-	convflags &= ~(CONV1X1|CONV1X3);
-}
-
-void on_conv1_1plane_toggled (GtkToggleButton *togglebutton, gpointer user_data) {
-	convflags |= CONV1X1;
-	convflags &= ~(CONV3X1|CONV1X3);
-}

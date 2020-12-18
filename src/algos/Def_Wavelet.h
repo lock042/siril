@@ -58,24 +58,24 @@ typedef struct 	{
 	int Size;
 	float Freq_Coup; /* Frequency cutt-off */
 	float *Data;
-	        } pyramid_cf_des;
+} pyramid_cf_des;
 
 /* Data  structure for an algorithm without reduction of sampling */
 typedef struct 	{
 	float *Data;
 	float Freq_Coup;  /* Frequency cutt-off */
-	        } pave_f_des;
+} pave_f_des;
 
 
 /* Data structure for Mallat's algorithm */
 struct mallat_plan_des	{
 	int Nl,Nc;
-        float *Coef_Horiz;
-        float *Coef_Diag;
-        float *Coef_Vert;
-        float *Low_Resol;
-        struct mallat_plan_des *Smooth_Imag;
-        } mallat_plan_des;
+	float *Coef_Horiz;
+	float *Coef_Diag;
+	float *Coef_Vert;
+	float *Low_Resol;
+	struct mallat_plan_des *Smooth_Imag;
+};
 
 /* Data structure for a wavelet transform */
 typedef struct 	{
@@ -91,29 +91,29 @@ typedef struct 	{
 	pyramid_f_des Pyramid;
 	pave_f_des Pave;
 	struct mallat_plan_des Mallat;
-	         } wave_transf_des;
+} wave_transf_des;
 
 /* Data structure for image information */
 typedef struct {
-        float Sigma;
-        float Mean;
-        float Min, Max;
-        float Energ, Entrop;
-        float Correl_Plan[MAX_PLAN_WAVELET];
-	         } plan_info_des;
+	float Sigma;
+	float Mean;
+	float Min, Max;
+	float Energ, Entrop;
+	float Correl_Plan[MAX_PLAN_WAVELET];
+} plan_info_des;
 
 /* Filtering */
 
-    /* Thresholding */
+/* Thresholding */
 #define FILTER_TRESHOLD 1     
 
-    /* Adaptative thresholding */
+/* Adaptative thresholding */
 #define FILTER_HIERARCHICAL_TRESHOLD 2
 
-    /* Hierarchical Wiener filtering */
+/* Hierarchical Wiener filtering */
 #define FILTER_HIERARCHICAL 3
 
-    /* Multiresolution Wiener filtering */
+/* Multiresolution Wiener filtering */
 #define FILTER_MULTI_RES_WIENER 4
 
 #define TO1_FRENCH 1
@@ -132,7 +132,9 @@ int wave_io_free (wave_transf_des *Wave_Trans);
 int wave_io_alloc (wave_transf_des *Wave_Trans, int Type_Transform, int Nbr_Plan, int Nl, int Nc);
 float *f_vector_alloc(int Nbr_Elem);
 int wavelet_transform_file (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data);
+int wavelet_transform_file_float (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan);
 int wavelet_transform(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data);
+int wavelet_transform_float(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
 int wavelet_transform_data (float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
 int pave_2d_linear_smooth (float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
 int pave_2d_tfo (float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan, int Type_To);
@@ -142,4 +144,5 @@ int pave_2d_bspline_smooth (float *Imag, float *Smooth, int Nl, int Nc, int Num_
 int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *data);
 int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef);
 int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, WORD *data);
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float *data);
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf);

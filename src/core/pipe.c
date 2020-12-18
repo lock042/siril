@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -49,8 +49,9 @@
 #endif
 
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "pipe.h"
-#include "command.h"
+#include "command_line_processor.h"
 //#include "processing.h"
 	void stop_processing_thread();	// avoid including everything
 	gpointer waiting_for_thread();
@@ -74,7 +75,9 @@ static GMutex write_mutex, read_mutex;
 static GList *command_list, *pending_writes;
 // ^ could use GQueue instead since it's used as a queue, avoids the cells memory leak
 
+#ifndef _WIN32
 static void sigpipe_handler(int signum) { }	// do nothing
+#endif
 
 int pipe_create() {
 #ifdef _WIN32
@@ -94,7 +97,7 @@ int pipe_create() {
 			NULL);                    // default security attribute
 	if (hPipe_w == INVALID_HANDLE_VALUE)
 	{
-		siril_log_message("Output pipe creation failed with error %d\n", GetLastError());
+		siril_log_message(_("Output pipe creation failed with error %d\n"), GetLastError());
 		return -1;
 	}
 
@@ -111,7 +114,7 @@ int pipe_create() {
 			NULL);                    // default security attribute
 	if (hPipe_r == INVALID_HANDLE_VALUE)
 	{
-		siril_log_message("Input pipe creation failed with error %d\n", GetLastError());
+		siril_log_message(_("Input pipe creation failed with error %d\n"), GetLastError());
 		return -1;
 	}
 #else
@@ -241,7 +244,7 @@ int enqueue_command(char *command) {
 	if (!strncmp(command, "cancel", 6))
 		return 1;
 	if ((command[0] >= 'a' && command[0] <= 'z') ||
-			(command[0] >= 'A' && command[0] <= '2')) {
+			(command[0] >= 'A' && command[0] <= 'Z')) {
 		g_mutex_lock(&read_mutex);
 		command_list = g_list_append(command_list, command);
 		g_cond_signal(&read_cond);
@@ -389,6 +392,7 @@ void *read_pipe(void *p) {
 
 								if (enqueue_command(command)) {
 									retval = -1;
+									free(command);
 									break;
 								}
 							}
@@ -435,13 +439,15 @@ void *process_commands(void *p) {
 		g_mutex_unlock(&read_mutex);
 
 		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command);
-		if (processcommand(command))
+		int retval = processcommand(command);
+		if (waiting_for_thread()) {
+			empty_command_queue();
+			retval = 1;
+		}
+		if (retval)
 			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command);
 		else pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, command);
-
 		free(command);
-		if (waiting_for_thread())
-			empty_command_queue();
 	}
 	return NULL;
 }

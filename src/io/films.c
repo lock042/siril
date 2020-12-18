@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2019 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,16 +22,17 @@
 #include <config.h>
 #endif
 
-#if defined(HAVE_FFMS2_1) || defined(HAVE_FFMS2_2)
+#ifdef HAVE_FFMS2
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "core/siril.h"
-#include "core/proto.h"
+#include "core/siril_log.h"
 #include "gui/progress_and_log.h"
 #include "io/films.h"
+#include "io/image_format_fits.h"
 
 static int pixfmt_gray, pixfmt_rgb, pixfmt_gray16, pixfmt_rgb48;
 
@@ -80,7 +81,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 	 * present on disk.
 	 * Index is saved using this pattern for the file name "film_filename.idx" */
 	FFMS_Index *index;
-#ifdef HAVE_FFMS2_2
+#if (FFMS_VERSION > ((2 << 24) | (20 << 16) | (0 << 8) | 0))
 	FFMS_Indexer *indexer;
 #endif
 	char *idxfilename;
@@ -88,7 +89,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 	sprintf(idxfilename, "%s.idx", sourcefile);
 	index = FFMS_ReadIndex(idxfilename, &film->errinfo);
 	if (index == NULL) {
-#ifdef HAVE_FFMS2_2
+#if (FFMS_VERSION > ((2 << 24) | (20 << 16) | (0 << 8) | 0))
 		/* we need to create the indexer */
 		indexer = FFMS_CreateIndexer(sourcefile, &film->errinfo);
 		if (indexer == NULL) {
@@ -103,7 +104,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 			free(idxfilename);
 			return FILM_ERROR;
 		}
-#ifdef HAVE_FFMS2_2
+#if (FFMS_VERSION > ((2 << 24) | (20 << 16) | (0 << 8) | 0))
 		/* we need to create the index */
 		index = FFMS_DoIndexing2(indexer, FFMS_IEH_ABORT, &film->errinfo);
 		if (index == NULL) {
@@ -220,13 +221,11 @@ static int randPixel(int nb_pixels) {
 static int *randomIndex(int n) {
 	srand(time(NULL));
 	int *index;
-	int i = 0;
-	int x = 0;
-	int tmp = 0;
+	int i, x, tmp;
 
 	index = calloc(n, sizeof (int));
 	if (index == NULL) {
-		printf("alloc error: randomIndex\n");
+		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 
@@ -248,12 +247,11 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 	/* now we're ready to actually retrieve the video frames */
 	int nb_pixels, convert_rgb_to_gray = 0;
 
-	if (film->videosource == 0x00) {
+	if (film->videosource == NULL) {
 		siril_log_message(_("FILM ERROR: incompatible format\n"));
 		return FILM_ERROR;
 	}
 	const FFMS_Frame *frame = FFMS_GetFrame(film->videosource, frame_no, &film->errinfo);
-	WORD *ptr;
 	if (frame == NULL) {
 		/* handle error */
 		fprintf(stderr, "FILM error: %s\n", film->errmsg);
@@ -303,10 +301,11 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 		film->nb_layers = 1;
 
 	/* do something with frame */
+	WORD *ptr;
 
 	if ((ptr = realloc(fit->data, nb_pixels * film->nb_layers * sizeof(WORD)))
 			== NULL) {
-		fprintf(stderr,"FILM: NULL realloc for FITS data\n");
+		PRINT_ALLOC_ERR;
 		free(fit->data);
 		return -1;
 	}
@@ -326,7 +325,7 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 		fit->pdata[GLAYER] = fit->data + nb_pixels;
 		fit->pdata[BLAYER] = fit->data + nb_pixels * 2;
 	}
-	fit->bitpix = BYTE_IMG;
+	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	//fit->mini = 0;
 	//fit->maxi = 255;
 	/* putting this above also requires the max[*] to be = 255. Besides, this overrides the

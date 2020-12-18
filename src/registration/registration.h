@@ -22,6 +22,7 @@ struct registration_args {
 	rectangle selection;		// the selection rectangle
 	gboolean x2upscale;		// apply an x2 upscale for pseudo drizzle
 	gboolean cumul;			// cumul reg data with previous one
+	int min_pairs;			// Minimum number of star pairs for success
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean translation_only;	// don't rotate images => no new sequence
@@ -71,6 +72,7 @@ int register_shift_fwhm(struct registration_args *args);
 int register_star_alignment(struct registration_args *args);
 int register_ecc(struct registration_args *args);
 int register_comet(struct registration_args *regargs);
+pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
 void get_the_registration_area(struct registration_args *reg_args,
@@ -80,16 +82,5 @@ gpointer register_thread_func(gpointer p);
 
 /** getter */
 int get_registration_layer(sequence *seq);
-
-/* mouse behaviour */
-typedef enum {
-	MOUSE_ACTION_NONE,
-	MOUSE_ACTION_SELECT_REG_AREA,
-	MOUSE_ACTION_SELECT_PREVIEW1,
-	MOUSE_ACTION_SELECT_PREVIEW2,
-	MOUSE_ACTION_DRAW_SAMPLES,
-} mouse_status_enum;
-
-extern mouse_status_enum mouse_status;	// defined in registration_preview.c
 
 #endif

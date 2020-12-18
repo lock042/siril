@@ -111,6 +111,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "algos/Def_Math.h"
@@ -139,7 +140,7 @@ float *f_vector_alloc(Nbr_Elem)
 
 	Vector = (float*) calloc((unsigned) Nbr_Elem * sizeof(float), 1);
 	if (Vector == NULL) {
-		printf("wavelet: memory error\n");
+		PRINT_ALLOC_ERR;
 	}
 	return (Vector);
 }
@@ -153,6 +154,28 @@ int wavelet_transform_file(float *Imag, int Nl, int Nc,
 
 	/* read the input image */
 	prepare_rawdata(Imag, Nl, Nc, data);
+	snprintf(Wavelet.Name_Imag, MAX_SIZE_NAME_IMAG - 1, "%s",
+			File_Name_Transform);
+	Wavelet.Name_Imag[MAX_SIZE_NAME_IMAG - 1] = '\0';
+
+	if (wavelet_transform_data(Imag, Nl, Nc, &Wavelet, Type_Transform,
+			Nbr_Plan)) {
+		return 1;
+	}
+	if (wave_io_write(File_Name_Transform, &Wavelet)) {
+		return 1;
+	}
+
+	wave_io_free(&Wavelet);
+	return 0;
+}
+
+int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
+		char *File_Name_Transform, int Type_Transform, int Nbr_Plan) {
+	wave_transf_des Wavelet;
+	memset(&Wavelet, 0, sizeof(wave_transf_des));
+
+	/* read the input image */
 	snprintf(Wavelet.Name_Imag, MAX_SIZE_NAME_IMAG - 1, "%s",
 			File_Name_Transform);
 	Wavelet.Name_Imag[MAX_SIZE_NAME_IMAG - 1] = '\0';
@@ -190,6 +213,18 @@ int wavelet_transform(float *Imag, int Nl, int Nc,
 	return 0;
 }
 
+int wavelet_transform_float(float *Imag, int Nl, int Nc,
+		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan) {
+
+	memset(Wavelet, 0, sizeof(wave_transf_des));
+
+	if (wavelet_transform_data(Imag, Nl, Nc, Wavelet, Type_Transform,
+				Nbr_Plan)) {
+		wave_io_free(Wavelet);
+		return 1;
+	}
+	return 0;
+}
 /*****************************************************************************/
 
 
@@ -219,6 +254,7 @@ int wavelet_transform_data(float *Imag, int Nl, int Nc,
 		Size = Nl * Nc * Nbr_Plan;
 		Wavelet->Pave.Data = f_vector_alloc(Size);
 		if (Wavelet->Pave.Data == NULL) {
+			PRINT_ALLOC_ERR;
 			return 1;
 		}
 		Pave = Wavelet->Pave.Data;
