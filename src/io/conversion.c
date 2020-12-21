@@ -495,6 +495,7 @@ typedef struct {
 	void **threads; // for fitseq read
 
 	/* counters, atomic access */
+	gint nb_input_images;	// for reporting
 	gint failed_images, converted_images, converted_files;
 	gint fatal_error;	// used as boolean
 } convert_status;
@@ -515,7 +516,7 @@ static gboolean end_convert_idle(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	struct timeval t_end;
 
-	if (!args->retval && get_thread_run() && args->nb_converted_files > 1) {
+	if (!args->retval && get_thread_run() && args->nb_converted_files > 0) {
 		// load the sequence
 		char *converted_seqname = NULL;
 		if (args->output_type != SEQ_REGULAR) {
@@ -560,6 +561,7 @@ gpointer convert_thread_worker(gpointer p) {
 		int limit = com.max_thread * 2 + 1;
 		seqwriter_set_max_active_blocks(limit);
 	}
+	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
 
 	convert_status convert = { 0 };
 	convert.args = args;
@@ -579,6 +581,7 @@ gpointer convert_thread_worker(gpointer p) {
 			break;
 		}
 		print_reader(reader);
+		g_atomic_int_inc(&convert.nb_input_images);
 
 		struct writer_data *writer = calloc(1, sizeof(struct writer_data));
 		seqwrite_status wstatus = get_next_write_details(args, &convert, writer,
@@ -603,8 +606,6 @@ gpointer convert_thread_worker(gpointer p) {
 		if (rstatus == GOT_OK_LAST_IN_SEQ) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
-			// TODO wait for writer? with no wait we open several writers, but their limits are static
-			// seqwriter_set_max_active_blocks() is called here, but with 0 as arg on sequence close too
 		}
 
 	} while (com.run_thread);
@@ -620,9 +621,9 @@ gpointer convert_thread_worker(gpointer p) {
 	if (convert.fatal_error)
 		siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
 	else {
-		if (args->nb_converted_files == args->total)
-			siril_log_message(_("Conversion succeeded, %d/%d input files converted (%d images converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
-		else siril_log_message(_("Conversion aborted, %d/%d input files converted (%d images converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+		if (convert.nb_input_images == convert.converted_images)
+			siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 	}
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
@@ -875,7 +876,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (rwdata->writer->have_seqwriter)
 		seqwriter_wait_for_memory();
 
-	if (!com.run_thread || g_atomic_int_get(&conv->fatal_error)) {
+	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
 		handle_error(rwdata);
 		return;
 	}
@@ -900,6 +901,10 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		g_atomic_int_set(&conv->fatal_error, 1);
 	}
 	else g_atomic_int_inc(&conv->converted_images);
+
+	double percent = (double)g_atomic_int_get(&conv->converted_images) /
+		(double)g_atomic_int_get(&conv->nb_input_images);
+	set_progress_bar_data(NULL, percent);
 }
 
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
@@ -915,6 +920,8 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
 				}
+				conv->next_image_in_output = 0;
+				conv->writeseq_count = get_new_write_counter();
 			}
 			writer->ser = conv->output_ser;
 			writer->index = conv->next_image_in_output++;
@@ -932,6 +939,8 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
 				}
+				conv->next_image_in_output = 0;
+				conv->writeseq_count = get_new_write_counter();
 			}
 			writer->fitseq = conv->output_fitseq;
 			writer->index = conv->next_image_in_output++;

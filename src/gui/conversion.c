@@ -108,7 +108,7 @@ static void initialize_convert() {
 
 	//image_type first_type = TYPEUNDEF;
 	gboolean /*several_type_of_files = FALSE, */no_sequence_to_convert = TRUE;
-	gboolean there_is_an_image = FALSE, there_is_a_ser = FALSE;
+	gboolean there_is_an_image = FALSE; //, there_is_a_ser = FALSE;
 	int count = 0;
 	while (valid) {
 		gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &file_data,
@@ -117,8 +117,8 @@ static void initialize_convert() {
 
 		const char *src_ext = get_filename_ext(file_data);
 		image_type type = get_type_for_extension(src_ext);
-		if (type == TYPESER)
-			there_is_a_ser = TRUE;
+		//if (type == TYPESER)
+		//	there_is_a_ser = TRUE;
 		if (type == TYPEAVI || type == TYPESER)
 			no_sequence_to_convert = FALSE;
 		else if (type == TYPEUNDEF) {
@@ -165,21 +165,19 @@ static void initialize_convert() {
 	/* handle impossible cases */
 	/* why is it forbidden?
 	 * apparently SER cannot be converted to SER, wouldn't it be nice to debayer them? */
-	if (debayer && there_is_a_ser) {
+	/*if (debayer && there_is_a_ser) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
 				_("The Debayer option is not allowed in SER conversion, please uncheck the option."));
 		g_list_free_full(list, g_free);
 		return;
-	}
+	}*/
 	if (output_type == SEQ_REGULAR && debayer && symbolic_link) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
-				_("The symbolic link option is not allowed with the debayer one, please uncheck one option."));
-		g_list_free_full(list, g_free);
-		return;
+		siril_log_message(_("Symbolic links cannot be used when demosaicing the images, new images will be created\n"));
+		symbolic_link = FALSE;
 	}
 	if (multiple && there_is_an_image) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
-				_("Creating multiple SER can only be done with only films as input."));
+				_("Creating multiple sequences can only be done with only sequences as input."));
 		g_list_free_full(list, g_free);
 		return;
 	}

@@ -169,6 +169,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		thread_id = omp_get_thread_num();
 		if (have_seqwriter) {
 			seqwriter_wait_for_memory();
+			if (abort) continue;
 		}
 #endif
 

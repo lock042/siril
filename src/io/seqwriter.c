@@ -169,7 +169,6 @@ int stop_writer(struct seqwriter_data *writer) {
 		g_async_queue_unref(writer->writes_queue);
 		retval = GPOINTER_TO_INT(ret);
 		siril_debug_print("writer thread joined (retval: %d)\n", retval);
-		seqwriter_set_max_active_blocks(0); // wake-up the callers
 	}
 	return retval;
 }
