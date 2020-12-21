@@ -169,6 +169,10 @@ int stop_writer(struct seqwriter_data *writer) {
 		g_async_queue_unref(writer->writes_queue);
 		retval = GPOINTER_TO_INT(ret);
 		siril_debug_print("writer thread joined (retval: %d)\n", retval);
+		// TODO: we should loop over the active threads of the writer,
+		// but we don't have that since it's static and shared
+		// notify_data_freed(writer, -1);
+		seqwriter_set_max_active_blocks(0); // wake-up the callers
 	}
 	return retval;
 }
