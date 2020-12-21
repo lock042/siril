@@ -748,10 +748,15 @@ void on_header_snapshot_button_clicked() {
 
 	cairo_destroy(cr);
 
-	guint w = gtk_widget_get_allocated_width(widget);
-	guint h = gtk_widget_get_allocated_height(widget);
+	double z = get_zoom_val();
 
-	pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, w, h);
+	gint x1 = max(0, (int) com.display_offset.x);
+	gint y1 = max(0, (int) com.display_offset.y);
+
+	gint x2 = min(gfit.rx * z + (int) com.display_offset.x, gtk_widget_get_allocated_width(widget));
+	gint y2 = min(gfit.ry * z + (int) com.display_offset.y, gtk_widget_get_allocated_height(widget));
+
+	pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
 	if (pixbuf) {
 		file = g_file_new_build_filename(com.wd, filename, NULL);
 
@@ -761,6 +766,7 @@ void on_header_snapshot_button_clicked() {
 				g_warning("%s\n", error->message);
 				g_clear_error(&error);
 			}
+			cairo_surface_destroy(surface);
 			g_free(filename);
 			g_object_unref(pixbuf);
 			g_object_unref(file);

@@ -663,57 +663,57 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 
 		if (fit->type == DATA_USHORT) {
 			if (s_args->option == STATS_BASIC) {
-				s_args->list[new_index + layer] = g_strdup_printf("%d: %d\t%e\t%e\t%e\t%e\t%e\t%e\n",
+				s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 						i + 1,
-						layer, stat->mean / USHRT_MAX_DOUBLE,
+						layer,
+						stat->mean / USHRT_MAX_DOUBLE,
 						stat->median / USHRT_MAX_DOUBLE,
 						stat->sigma / USHRT_MAX_DOUBLE,
-						stat->avgDev / USHRT_MAX_DOUBLE,
-						stat->min / USHRT_MAX_DOUBLE,
-						stat->max / USHRT_MAX_DOUBLE
-						);
-			} else {
-				s_args->list[new_index + layer] = g_strdup_printf("%d: %d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
-						i + 1,
-						layer, stat->mean / USHRT_MAX_DOUBLE,
-						stat->median / USHRT_MAX_DOUBLE,
-						stat->sigma / USHRT_MAX_DOUBLE,
-						stat->avgDev / USHRT_MAX_DOUBLE,
 						stat->min / USHRT_MAX_DOUBLE,
 						stat->max / USHRT_MAX_DOUBLE,
-						stat->mad / USHRT_MAX_DOUBLE,
-						stat->sqrtbwmv / USHRT_MAX_DOUBLE,
-						stat->location / USHRT_MAX_DOUBLE,
-						stat->scale / USHRT_MAX_DOUBLE,
 						stat->bgnoise / USHRT_MAX_DOUBLE
-						);
+				);
+			} else {
+				s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
+						i + 1,
+						layer,
+						stat->mean / USHRT_MAX_DOUBLE,
+						stat->median / USHRT_MAX_DOUBLE,
+						stat->sigma / USHRT_MAX_DOUBLE,
+						stat->min / USHRT_MAX_DOUBLE,
+						stat->max / USHRT_MAX_DOUBLE,
+						stat->bgnoise / USHRT_MAX_DOUBLE,
+						stat->avgDev / USHRT_MAX_DOUBLE,
+						stat->mad / USHRT_MAX_DOUBLE,
+						stat->sqrtbwmv / USHRT_MAX_DOUBLE
+				);
 			}
 		} else {
 			if (s_args->option == STATS_BASIC) {
-				s_args->list[new_index + layer] = g_strdup_printf("%d: %d\t%e\t%e\t%e\t%e\t%e\t%e\n",
+				s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 						i + 1,
-						layer, stat->mean,
+						layer,
+						stat->mean,
 						stat->median,
 						stat->sigma,
-						stat->avgDev,
-						stat->min,
-						stat->max
-						);
-			} else {
-				s_args->list[new_index + layer] = g_strdup_printf("%d: %d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
-						i + 1,
-						layer, stat->mean,
-						stat->median,
-						stat->sigma,
-						stat->avgDev,
 						stat->min,
 						stat->max,
-						stat->mad,
-						stat->sqrtbwmv,
-						stat->location,
-						stat->scale,
 						stat->bgnoise
-						);
+				);
+			} else {
+				s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
+						i + 1,
+						layer,
+						stat->mean,
+						stat->median,
+						stat->sigma,
+						stat->min,
+						stat->max,
+						stat->bgnoise,
+						stat->avgDev,
+						stat->mad,
+						stat->sqrtbwmv
+				);
 			}
 		}
 
@@ -739,13 +739,14 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 		}
 		g_object_unref(file);
 		free_stat_list(s_args->list, size);
+		free(s_args);
 		return 1;
 	}
 	const gchar *header;
 	if (s_args->option == STATS_BASIC) {
-		header = "image: chan\tmean\tmedian\tsigma\tavgDev\tmin\tmax\n";
+		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\n";
 	} else {
-		header = "image: chan\tmean\tmedian\tsigma\tavgDev\tmin\tmax\tmad\tsqrtbwmv\tlocation\tscale\tbgnoise\n";
+		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\n";
 	}
 	if (!g_output_stream_write_all(output_stream, header, strlen(header), NULL, NULL, &error)) {
 		g_warning("%s\n", error->message);
@@ -753,6 +754,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 		g_object_unref(output_stream);
 		g_object_unref(file);
 		free_stat_list(s_args->list, size);
+		free(s_args);
 		return 1;
 	}
 
@@ -764,13 +766,16 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 			g_object_unref(output_stream);
 			g_object_unref(file);
 			free_stat_list(s_args->list, size);
+			free(s_args);
 			return 1;
 		}
 	}
 
+	siril_log_message(_("Statistic file %s was successfully created.\n"), g_file_peek_path(file));
 	g_object_unref(output_stream);
 	g_object_unref(file);
 	free_stat_list(s_args->list, size);
+	free(s_args);
 
 	return 0;
 }
@@ -786,7 +791,6 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 	args->description = _("Statistics");
 	args->has_output = FALSE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = 1.23;	// sqrt(1.5), for memory management
 	args->new_seq_prefix = NULL;
 	args->user = stat_args;
 
