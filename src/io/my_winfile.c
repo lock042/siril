@@ -36,11 +36,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
   - Windows CRT equvalients (my_get_osfhandle, open_osfhandle)
 
   Worth to note:
-  - File descriptors used here are located in a range that is not compatible
+  - int descriptors used here are located in a range that is not compatible
   with CRT on purpose. Attempt to use a file descriptor from Windows CRT library
-  range in my_win_* function will be punished with DBUG_ASSERT()
+  range in my_win_* function will be punished with //DBUG_ASSERT()
 
-  - File streams (FILE *) are actually from the C runtime. The routines provided
+  - int streams (FILE *) are actually from the C runtime. The routines provided
   here are useful only in scernarios that use low-level IO with my_win_fileno()
 */
 
@@ -51,11 +51,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 #include <sys/stat.h>
 
 /* Associates a file descriptor with an existing operating-system file handle.*/
-File my_open_osfhandle(HANDLE handle, int oflag)
+int my_open_osfhandle(HANDLE handle, int oflag)
 {
   int offset= -1;
   uint i;
-  DBUG_ENTER("my_open_osfhandle");
+  //DBUG_ENTER("my_open_osfhandle");
 
   g_mutex_lock(&THR_LOCK_open);
   for(i= MY_FILE_MIN; i < my_file_limit;i++)
@@ -73,33 +73,33 @@ File my_open_osfhandle(HANDLE handle, int oflag)
   g_mutex_unlock(&THR_LOCK_open);
   if(offset == -1)
     errno= EMFILE; /* to many file handles open */
-  DBUG_RETURN(offset);
+  return (offset);
 }
 
 
-static void invalidate_fd(File fd)
+static void invalidate_fd(int fd)
 {
-  DBUG_ENTER("invalidate_fd");
-  DBUG_ASSERT(fd >= MY_FILE_MIN && fd < (int)my_file_limit);
+  //DBUG_ENTER("invalidate_fd");
+  //DBUG_ASSERT(fd >= MY_FILE_MIN && fd < (int)my_file_limit);
   my_file_info[fd].fhandle= 0;
-  DBUG_VOID_RETURN;
+  //DBUG_VOID_RETURN;
 }
 
 
 /* Get Windows handle for a file descriptor */
-HANDLE my_get_osfhandle(File fd)
+HANDLE my_get_osfhandle(int fd)
 {
-  DBUG_ENTER("my_get_osfhandle");
-  DBUG_ASSERT(fd >= MY_FILE_MIN && fd < (int)my_file_limit);
-  DBUG_RETURN(my_file_info[fd].fhandle);
+  //DBUG_ENTER("my_get_osfhandle");
+  //DBUG_ASSERT(fd >= MY_FILE_MIN && fd < (int)my_file_limit);
+  return (my_file_info[fd].fhandle);
 }
 
 
-static int my_get_open_flags(File fd)
+static int my_get_open_flags(int fd)
 {
-  DBUG_ENTER("my_get_open_flags");
-  DBUG_ASSERT(fd >= MY_FILE_MIN && fd < (int)my_file_limit);
-  DBUG_RETURN(my_file_info[fd].oflag);
+  //DBUG_ENTER("my_get_open_flags");
+  //DBUG_ASSERT(fd >= MY_FILE_MIN && fd < (int)my_file_limit);
+  return (my_file_info[fd].oflag);
 }
 
 
@@ -115,11 +115,11 @@ static int my_get_open_flags(File fd)
   pmode   permission flags
 
   RETURN VALUE
-  File descriptor of opened file if success
+  int descriptor of opened file if success
   -1 and sets errno if fails.
 */
 
-File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
+int my_win_sopen(const char *path, int oflag, int shflag, int pmode)
 {
   int  fh;                                /* handle of opened file */
   int mask;
@@ -130,12 +130,12 @@ File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
   DWORD fileattrib;                       /* OS file attribute flags */
   SECURITY_ATTRIBUTES SecurityAttributes;
 
-  DBUG_ENTER("my_win_sopen");
+  //DBUG_ENTER("my_win_sopen");
 
   if (check_if_legal_filename(path))
   {
     errno= EACCES;
-    DBUG_RETURN(-1);
+    return (-1);
   }
   SecurityAttributes.nLength= sizeof(SecurityAttributes);
   SecurityAttributes.lpSecurityDescriptor= NULL;
@@ -154,7 +154,7 @@ File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
       break;
     default:                /* error, bad oflag */
       errno= EINVAL;
-      DBUG_RETURN(-1);
+      return (-1);
   }
 
   /* decode sharing flags */
@@ -185,7 +185,7 @@ File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
       break;
     default:                /* error, bad shflag */
       errno= EINVAL;
-      DBUG_RETURN(-1);
+      return (-1);
   }
 
   /* decode open/create method flags  */
@@ -216,7 +216,7 @@ File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
     default:
       /* this can't happen ... all cases are covered */
       errno= EINVAL;
-      DBUG_RETURN(-1);
+      return (-1);
   }
 
   /* decode file attribute flags if _O_CREAT was specified */
@@ -247,7 +247,7 @@ File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
     fileattrib|= FILE_FLAG_RANDOM_ACCESS;
 
   /* try to open/create the file  */
-  if ((osfh= CreateFile(path, fileaccess, fileshare, &SecurityAttributes,
+  if ((osfh= Createint(path, fileaccess, fileshare, &SecurityAttributes,
     filecreate, fileattrib, NULL)) == INVALID_HANDLE_VALUE)
   {
     /*
@@ -256,7 +256,7 @@ File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
        call _free_osfhnd (it hasn't been used yet).
     */
     my_osmaperr(GetLastError());     /* map error */
-    DBUG_RETURN(-1);                 /* return error to caller */
+    return (-1);                 /* return error to caller */
   }
 
   if ((fh= my_open_osfhandle(osfh,
@@ -265,171 +265,171 @@ File my_win_sopen(const char *path, int oflag, int shflag, int pmode)
     CloseHandle(osfh);
   }
 
-  DBUG_RETURN(fh);                   /* return handle */
+  return (fh);                   /* return handle */
 }
 
 
-File my_win_open(const char *path, int flags)
+int my_win_open(const char *path, int flags)
 {
-  DBUG_ENTER("my_win_open");
-  DBUG_RETURN(my_win_sopen((char *) path, flags | _O_BINARY, _SH_DENYNO,
+  //DBUG_ENTER("my_win_open");
+  return (my_win_sopen((char *) path, flags | _O_BINARY, _SH_DENYNO,
     _S_IREAD | S_IWRITE));
 }
 
 
-int my_win_close(File fd)
+int my_win_close(int fd)
 {
-  DBUG_ENTER("my_win_close");
+  //DBUG_ENTER("my_win_close");
   if(CloseHandle(my_get_osfhandle(fd)))
   {
     invalidate_fd(fd);
-    DBUG_RETURN(0);
+    return (0);
   }
   my_osmaperr(GetLastError());
-  DBUG_RETURN(-1);
+  return (-1);
 }
 
 
-size_t my_win_pread(File Filedes, uchar *Buffer, size_t Count, my_off_t offset)
+size_t my_win_pread(int intdes, uchar *Buffer, size_t Count, my_off_t offset)
 {
   DWORD         nBytesRead;
-  HANDLE        hFile;
+  HANDLE        hint;
   OVERLAPPED    ov= {0};
   LARGE_INTEGER li;
 
-  DBUG_ENTER("my_win_pread");
+  //DBUG_ENTER("my_win_pread");
 
   if(!Count)
-    DBUG_RETURN(0);
+    return (0);
 #ifdef _WIN64
   if(Count > UINT_MAX)
     Count= UINT_MAX;
 #endif
 
-  hFile=         (HANDLE)my_get_osfhandle(Filedes);
+  hint=         (HANDLE)my_get_osfhandle(intdes);
   li.QuadPart=   offset;
   ov.Offset=     li.LowPart;
   ov.OffsetHigh= li.HighPart;
 
-  if(!ReadFile(hFile, Buffer, (DWORD)Count, &nBytesRead, &ov))
+  if(!Readint(hint, Buffer, (DWORD)Count, &nBytesRead, &ov))
   {
     DWORD lastError= GetLastError();
     /*
       ERROR_BROKEN_PIPE is returned when no more data coming
-      through e.g. a command pipe in windows : see MSDN on ReadFile.
+      through e.g. a command pipe in windows : see MSDN on Readint.
     */
     if(lastError == ERROR_HANDLE_EOF || lastError == ERROR_BROKEN_PIPE)
-      DBUG_RETURN(0); /*return 0 at EOF*/
+      return (0); /*return 0 at EOF*/
     my_osmaperr(lastError);
-    DBUG_RETURN((size_t)-1);
+    return ((size_t)-1);
   }
-  DBUG_RETURN(nBytesRead);
+  return (nBytesRead);
 }
 
 
-size_t my_win_read(File Filedes, uchar *Buffer, size_t Count)
+size_t my_win_read(int intdes, uchar *Buffer, size_t Count)
 {
   DWORD         nBytesRead;
-  HANDLE        hFile;
+  HANDLE        hint;
 
-  DBUG_ENTER("my_win_read");
+  //DBUG_ENTER("my_win_read");
   if(!Count)
-    DBUG_RETURN(0);
+    return (0);
 #ifdef _WIN64
   if(Count > UINT_MAX)
     Count= UINT_MAX;
 #endif
 
-  hFile= (HANDLE)my_get_osfhandle(Filedes);
+  hint= (HANDLE)my_get_osfhandle(intdes);
 
-  if(!ReadFile(hFile, Buffer, (DWORD)Count, &nBytesRead, NULL))
+  if(!Readint(hint, Buffer, (DWORD)Count, &nBytesRead, NULL))
   {
     DWORD lastError= GetLastError();
     /*
       ERROR_BROKEN_PIPE is returned when no more data coming
-      through e.g. a command pipe in windows : see MSDN on ReadFile.
+      through e.g. a command pipe in windows : see MSDN on Readint.
     */
     if(lastError == ERROR_HANDLE_EOF || lastError == ERROR_BROKEN_PIPE)
-      DBUG_RETURN(0); /*return 0 at EOF*/
+      return (0); /*return 0 at EOF*/
     my_osmaperr(lastError);
-    DBUG_RETURN((size_t)-1);
+    return ((size_t)-1);
   }
-  DBUG_RETURN(nBytesRead);
+  return (nBytesRead);
 }
 
 
-size_t my_win_pwrite(File Filedes, const uchar *Buffer, size_t Count,
+size_t my_win_pwrite(int intdes, const uchar *Buffer, size_t Count,
                      my_off_t offset)
 {
   DWORD         nBytesWritten;
-  HANDLE        hFile;
+  HANDLE        hint;
   OVERLAPPED    ov= {0};
   LARGE_INTEGER li;
 
-  DBUG_ENTER("my_win_pwrite");
-  DBUG_PRINT("my",("Filedes: %d, Buffer: %p, Count: %llu, offset: %llu",
-    Filedes, Buffer, (ulonglong)Count, (ulonglong)offset));
+  //DBUG_ENTER("my_win_pwrite");
+  //DBUG_PRINT("my",("intdes: %d, Buffer: %p, Count: %llu, offset: %llu",
+    intdes, Buffer, (ulonglong)Count, (ulonglong)offset));
 
   if(!Count)
-    DBUG_RETURN(0);
+    return (0);
 
 #ifdef _WIN64
   if(Count > UINT_MAX)
     Count= UINT_MAX;
 #endif
 
-  hFile=         (HANDLE)my_get_osfhandle(Filedes);
+  hint=         (HANDLE)my_get_osfhandle(intdes);
   li.QuadPart=   offset;
   ov.Offset=     li.LowPart;
   ov.OffsetHigh= li.HighPart;
 
-  if(!WriteFile(hFile, Buffer, (DWORD)Count, &nBytesWritten, &ov))
+  if(!Writeint(hint, Buffer, (DWORD)Count, &nBytesWritten, &ov))
   {
     my_osmaperr(GetLastError());
-    DBUG_RETURN((size_t)-1);
+    return ((size_t)-1);
   }
   else
-    DBUG_RETURN(nBytesWritten);
+    return (nBytesWritten);
 }
 
 
-my_off_t my_win_lseek(File fd, my_off_t pos, int whence)
+my_off_t my_win_lseek(int fd, my_off_t pos, int whence)
 {
   LARGE_INTEGER offset;
   LARGE_INTEGER newpos;
 
-  DBUG_ENTER("my_win_lseek");
+  //DBUG_ENTER("my_win_lseek");
 
   /* Check compatibility of Windows and Posix seek constants */
   compile_time_assert(FILE_BEGIN == SEEK_SET && FILE_CURRENT == SEEK_CUR
     && FILE_END == SEEK_END);
 
   offset.QuadPart= pos;
-  if(!SetFilePointerEx(my_get_osfhandle(fd), offset, &newpos, whence))
+  if(!SetintPointerEx(my_get_osfhandle(fd), offset, &newpos, whence))
   {
     my_osmaperr(GetLastError());
     newpos.QuadPart= -1;
   }
-  DBUG_RETURN(newpos.QuadPart);
+  return (newpos.QuadPart);
 }
 
 
 #ifndef FILE_WRITE_TO_END_OF_FILE
 #define FILE_WRITE_TO_END_OF_FILE       0xffffffff
 #endif
-size_t my_win_write(File fd, const uchar *Buffer, size_t Count)
+size_t my_win_write(int fd, const uchar *Buffer, size_t Count)
 {
   DWORD nWritten;
   OVERLAPPED ov;
   OVERLAPPED *pov= NULL;
-  HANDLE hFile;
+  HANDLE hint;
 
-  DBUG_ENTER("my_win_write");
-  DBUG_PRINT("my",("Filedes: %d, Buffer: %p, Count %llu", fd, Buffer,
+  //DBUG_ENTER("my_win_write");
+  //DBUG_PRINT("my",("intdes: %d, Buffer: %p, Count %llu", fd, Buffer,
       (ulonglong)Count));
 
   if(!Count)
-    DBUG_RETURN(0);
+    return (0);
 
 #ifdef _WIN64
   if(Count > UINT_MAX)
@@ -440,7 +440,7 @@ size_t my_win_write(File fd, const uchar *Buffer, size_t Count)
   {
     /*
        Atomic append to the end of file is is done by special initialization of
-       the OVERLAPPED structure. See MSDN WriteFile documentation for more info.
+       the OVERLAPPED structure. See MSDN Writeint documentation for more info.
     */
     memset(&ov, 0, sizeof(ov));
     ov.Offset= FILE_WRITE_TO_END_OF_FILE;
@@ -448,42 +448,42 @@ size_t my_win_write(File fd, const uchar *Buffer, size_t Count)
     pov= &ov;
   }
 
-  hFile= my_get_osfhandle(fd);
-  if(!WriteFile(hFile, Buffer, (DWORD)Count, &nWritten, pov))
+  hint= my_get_osfhandle(fd);
+  if(!Writeint(hint, Buffer, (DWORD)Count, &nWritten, pov))
   {
     my_osmaperr(GetLastError());
-    DBUG_RETURN((size_t)-1);
+    return ((size_t)-1);
   }
-  DBUG_RETURN(nWritten);
+  return (nWritten);
 }
 
 
-int my_win_chsize(File fd,  my_off_t newlength)
+int my_win_chsize(int fd,  my_off_t newlength)
 {
-  HANDLE hFile;
+  HANDLE hint;
   LARGE_INTEGER length;
-  DBUG_ENTER("my_win_chsize");
+  //DBUG_ENTER("my_win_chsize");
 
-  hFile= (HANDLE) my_get_osfhandle(fd);
+  hint= (HANDLE) my_get_osfhandle(fd);
   length.QuadPart= newlength;
-  if (!SetFilePointerEx(hFile, length , NULL , FILE_BEGIN))
+  if (!SetintPointerEx(hint, length , NULL , FILE_BEGIN))
     goto err;
-  if (!SetEndOfFile(hFile))
+  if (!SetEndOfint(hint))
     goto err;
-  DBUG_RETURN(0);
+  return (0);
 err:
   my_osmaperr(GetLastError());
   my_errno= errno;
-  DBUG_RETURN(-1);
+  return (-1);
 }
 
 
 /* Get the file descriptor for stdin,stdout or stderr */
-static File my_get_stdfile_descriptor(FILE *stream)
+static int my_get_stdfile_descriptor(FILE *stream)
 {
-  HANDLE hFile;
+  HANDLE hint;
   DWORD nStdHandle;
-  DBUG_ENTER("my_get_stdfile_descriptor");
+  //DBUG_ENTER("my_get_stdfile_descriptor");
 
   if(stream == stdin)
     nStdHandle= STD_INPUT_HANDLE;
@@ -492,26 +492,26 @@ static File my_get_stdfile_descriptor(FILE *stream)
   else if(stream == stderr)
     nStdHandle= STD_ERROR_HANDLE;
   else
-    DBUG_RETURN(-1);
+    return (-1);
 
-  hFile= GetStdHandle(nStdHandle);
-  if(hFile != INVALID_HANDLE_VALUE)
-    DBUG_RETURN(my_open_osfhandle(hFile, 0));
-  DBUG_RETURN(-1);
+  hint= GetStdHandle(nStdHandle);
+  if(hint != INVALID_HANDLE_VALUE)
+    return (my_open_osfhandle(hint, 0));
+  return (-1);
 }
 
 
-File my_win_fileno(FILE *file)
+int my_win_fileno(FILE *file)
 {
-  HANDLE hFile= (HANDLE)_get_osfhandle(fileno(file));
+  HANDLE hint= (HANDLE)_get_osfhandle(fileno(file));
   int retval= -1;
   uint i;
 
-  DBUG_ENTER("my_win_fileno");
+  //DBUG_ENTER("my_win_fileno");
 
   for(i= MY_FILE_MIN; i < my_file_limit; i++)
   {
-    if(my_file_info[i].fhandle == hFile)
+    if(my_file_info[i].fhandle == hint)
     {
       retval= i;
       break;
@@ -519,8 +519,8 @@ File my_win_fileno(FILE *file)
   }
   if(retval == -1)
     /* try std stream */
-    DBUG_RETURN(my_get_stdfile_descriptor(file));
-  DBUG_RETURN(retval);
+    return (my_get_stdfile_descriptor(file));
+  return (retval);
 }
 
 
@@ -528,7 +528,7 @@ FILE *my_win_fopen(const char *filename, const char *type)
 {
   FILE *file;
   int flags= 0;
-  DBUG_ENTER("my_win_open");
+  //DBUG_ENTER("my_win_open");
 
   /*
     If we are not creating, then we need to use my_access to make sure
@@ -538,12 +538,12 @@ FILE *my_win_fopen(const char *filename, const char *type)
   if (check_if_legal_filename(filename))
   {
     errno= EACCES;
-    DBUG_RETURN(NULL);
+    return (NULL);
   }
 
   file= fopen(filename, type);
   if(!file)
-    DBUG_RETURN(NULL);
+    return (NULL);
 
   if(strchr(type,'a') != NULL)
     flags= O_APPEND;
@@ -555,19 +555,19 @@ FILE *my_win_fopen(const char *filename, const char *type)
   if(my_open_osfhandle((HANDLE)_get_osfhandle(fileno(file)), flags) < 0)
   {
     fclose(file);
-    DBUG_RETURN(NULL);
+    return (NULL);
   }
-  DBUG_RETURN(file);
+  return (file);
 }
 
 
-FILE * my_win_fdopen(File fd, const char *type)
+FILE * my_win_fdopen(int fd, const char *type)
 {
   FILE *file;
   int crt_fd;
   int flags= 0;
 
-  DBUG_ENTER("my_win_fdopen");
+  //DBUG_ENTER("my_win_fdopen");
 
   if(strchr(type,'a') != NULL)
     flags= O_APPEND;
@@ -577,22 +577,22 @@ FILE * my_win_fdopen(File fd, const char *type)
     file= NULL;
   else
     file= fdopen(crt_fd, type);
-  DBUG_RETURN(file);
+  return (file);
 }
 
 
 int my_win_fclose(FILE *file)
 {
-  File fd;
+  int fd;
 
-  DBUG_ENTER("my_win_close");
+  //DBUG_ENTER("my_win_close");
   fd= my_fileno(file);
   if(fd < 0)
-    DBUG_RETURN(-1);
+    return (-1);
   if(fclose(file) < 0)
-    DBUG_RETURN(-1);
+    return (-1);
   invalidate_fd(fd);
-  DBUG_RETURN(0);
+  return (0);
 }
 
 
@@ -603,79 +603,79 @@ int my_win_fclose(FILE *file)
   Patch file size, because size that fstat returns is not
   reliable (may be outdated)
 */
-int my_win_fstat(File fd, struct _stati64 *buf)
+int my_win_fstat(int fd, struct _stati64 *buf)
 {
   int crt_fd;
   int retval;
-  HANDLE hFile, hDup;
+  HANDLE hint, hDup;
 
-  DBUG_ENTER("my_win_fstat");
+  //DBUG_ENTER("my_win_fstat");
 
-  hFile= my_get_osfhandle(fd);
-  if(!DuplicateHandle( GetCurrentProcess(), hFile, GetCurrentProcess(),
+  hint= my_get_osfhandle(fd);
+  if(!DuplicateHandle( GetCurrentProcess(), hint, GetCurrentProcess(),
     &hDup ,0,FALSE,DUPLICATE_SAME_ACCESS))
   {
     my_osmaperr(GetLastError());
-    DBUG_RETURN(-1);
+    return (-1);
   }
   if ((crt_fd= _open_osfhandle((intptr_t)hDup,0)) < 0)
-    DBUG_RETURN(-1);
+    return (-1);
 
   retval= _fstati64(crt_fd, buf);
   if(retval == 0)
   {
-    /* File size returned by stat is not accurate (may be outdated), fix it*/
-    GetFileSizeEx(hDup, (PLARGE_INTEGER) (&(buf->st_size)));
+    /* int size returned by stat is not accurate (may be outdated), fix it*/
+    GetintSizeEx(hDup, (PLARGE_INTEGER) (&(buf->st_size)));
   }
   _close(crt_fd);
-  DBUG_RETURN(retval);
+  return (retval);
 }
 
 
 
 int my_win_stat( const char *path, struct _stati64 *buf)
 {
-  DBUG_ENTER("my_win_stat");
+  //DBUG_ENTER("my_win_stat");
   if(_stati64( path, buf) == 0)
   {
-    /* File size returned by stat is not accurate (may be outdated), fix it*/
+    /* int size returned by stat is not accurate (may be outdated), fix it*/
     WIN32_FILE_ATTRIBUTE_DATA data;
-    if (GetFileAttributesEx(path, GetFileExInfoStandard, &data))
+    if (GetintAttributesEx(path, GetintExInfoStandard, &data))
     {
       LARGE_INTEGER li;
-      li.LowPart=    data.nFileSizeLow;
-      li.HighPart=   data.nFileSizeHigh;
+      li.LowPart=    data.nintSizeLow;
+      li.HighPart=   data.nintSizeHigh;
       buf->st_size= li.QuadPart;
     }
-    DBUG_RETURN(0);
+    return (0);
   }
-  DBUG_RETURN(-1);
+  return (-1);
 }
 
 
 
-int my_win_fsync(File fd)
+int my_win_fsync(int fd)
 {
-  DBUG_ENTER("my_win_fsync");
-  if(FlushFileBuffers(my_get_osfhandle(fd)))
-    DBUG_RETURN(0);
+  //DBUG_ENTER("my_win_fsync");
+  if(FlushintBuffers(my_get_osfhandle(fd)))
+    return (0);
   my_osmaperr(GetLastError());
-  DBUG_RETURN(-1);
+  return (-1);
 }
 
 
 
-int my_win_dup(File fd)
+int my_win_dup(int fd)
 {
   HANDLE hDup;
-  DBUG_ENTER("my_win_dup");
+  //DBUG_ENTER("my_win_dup");
   if (DuplicateHandle(GetCurrentProcess(), my_get_osfhandle(fd),
        GetCurrentProcess(), &hDup, 0, FALSE, DUPLICATE_SAME_ACCESS))
   {
-     DBUG_RETURN(my_open_osfhandle(hDup, my_get_open_flags(fd)));
+     return (my_open_osfhandle(hDup, my_get_open_flags(fd)));
   }
   my_osmaperr(GetLastError());
-  DBUG_RETURN(-1);
+  return (-1);
 }
 
 #endif /*_WIN32*/
