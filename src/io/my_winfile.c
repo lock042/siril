@@ -426,7 +426,7 @@ size_t my_win_write(int fd, const uchar *Buffer, size_t Count)
 
   //DBUG_ENTER("my_win_write");
   //DBUG_PRINT("my",("intdes: %d, Buffer: %p, Count %llu", fd, Buffer,
-      (ulonglong)Count));
+  //    (ulonglong)Count));
 
   if(!Count)
     return (0);
