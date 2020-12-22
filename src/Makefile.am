@@ -205,6 +205,8 @@ siril_common_SOURCES = \
 	io/image_formats_libraries.c \
 	io/mp4_output.c \
 	io/mp4_output.h \
+	io/my_winfile.c \
+	io/my_winfile.h \
 	io/seqfile.c \
 	io/sequence.c \
 	io/sequence.h \
