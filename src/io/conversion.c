@@ -445,6 +445,7 @@ struct reader_data {
 
 	/* or read from a file to open */
 	char *filename;
+	// allow_link means that the input and ouputs are a FITS file, no transformation needed
 	gboolean allow_link;
 
 	gboolean debayer;
@@ -852,13 +853,14 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 }
 
 static int make_link(struct readwrite_data *rwdata) {
+	int retval = 1;
 	siril_debug_print("making link: %s -> %s\n", rwdata->reader->filename, rwdata->writer->filename);
 	if (rwdata->writer->filename) {
-		symlink_uniq_file(rwdata->reader->filename, rwdata->writer->filename, TRUE);
+		if (!symlink_uniq_file(rwdata->reader->filename, rwdata->writer->filename, TRUE))
+			retval = 0;
 		free(rwdata->reader);
-		return 0;
 	}
-	return 1;
+	return retval;
 }
 
 static void handle_error(struct readwrite_data *rwdata) {
@@ -884,7 +886,14 @@ static void pool_worker(gpointer data, gpointer user_data) {
 
 	fits *fit = read_fit(rwdata->reader, &read_status);
 	if (read_status == CAN_BE_LINKED) {
-		make_link(rwdata);
+		if (make_link(rwdata)) {
+			g_atomic_int_inc(&conv->failed_images);
+			g_atomic_int_set(&conv->fatal_error, 1);
+		}
+		else {
+			g_atomic_int_inc(&conv->converted_images);
+			g_atomic_int_inc(&conv->converted_files);
+		}
 		free(rwdata);	// reader and writer are freed in their function
 		return;
 	}
