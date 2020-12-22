@@ -106,9 +106,8 @@ static void initialize_convert() {
 	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
 	if (!valid) return;	//The tree is empty
 
-	//image_type first_type = TYPEUNDEF;
-	gboolean /*several_type_of_files = FALSE, */no_sequence_to_convert = TRUE;
-	gboolean there_is_an_image = FALSE; //, there_is_a_ser = FALSE;
+	gboolean no_sequence_to_convert = TRUE;
+	gboolean there_is_an_image = FALSE;
 	int count = 0;
 	while (valid) {
 		gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &file_data,
@@ -117,8 +116,6 @@ static void initialize_convert() {
 
 		const char *src_ext = get_filename_ext(file_data);
 		image_type type = get_type_for_extension(src_ext);
-		//if (type == TYPESER)
-		//	there_is_a_ser = TRUE;
 		if (type == TYPEAVI || type == TYPESER)
 			no_sequence_to_convert = FALSE;
 		else if (type == TYPEUNDEF) {
@@ -134,12 +131,9 @@ static void initialize_convert() {
 			return;
 
 		}
-		else there_is_an_image = TRUE;
-		//if (count == 0)
-		//	first_type = type;
-		//if (type != first_type)
-		//	several_type_of_files = TRUE;
-
+		// because of fitseq, we can't use this check for FITS
+		else if (type != TYPEFITS)
+			there_is_an_image = TRUE;
 		valid = gtk_tree_model_iter_next(model, &iter);
 		count++;
 	}
@@ -162,15 +156,6 @@ static void initialize_convert() {
 	toggle = GTK_TOGGLE_BUTTON(lookup_widget("convert_symlink"));
 	symbolic_link = gtk_toggle_button_get_active(toggle);
 
-	/* handle impossible cases */
-	/* why is it forbidden?
-	 * apparently SER cannot be converted to SER, wouldn't it be nice to debayer them? */
-	/*if (debayer && there_is_a_ser) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
-				_("The Debayer option is not allowed in SER conversion, please uncheck the option."));
-		g_list_free_full(list, g_free);
-		return;
-	}*/
 	if (output_type == SEQ_REGULAR && debayer && symbolic_link) {
 		siril_log_message(_("Symbolic links cannot be used when demosaicing the images, new images will be created\n"));
 		symbolic_link = FALSE;
@@ -538,15 +523,20 @@ void on_demosaicing_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 
 void on_prepro_output_type_combo1_changed(GtkComboBox *combo, gpointer user_data) {
-	static GtkWidget *multiple_seq = NULL, *convert_symlink = NULL;
+	static GtkWidget *multiple_seq = NULL, *convert_symlink = NULL, *start = NULL;
 	if (!multiple_seq) {
 		multiple_seq = lookup_widget("multiple_seq");
 		convert_symlink = lookup_widget("convert_symlink");
+		start = lookup_widget("startIndiceEntry");
 	}
 
 	sequence_type output = gtk_combo_box_get_active(combo);
-	gtk_widget_set_visible(multiple_seq, output == SEQ_SER || output == SEQ_FITSEQ);
-	gtk_widget_set_visible(convert_symlink, output == SEQ_REGULAR);
+	gboolean seqfile_output = output == SEQ_SER || output == SEQ_FITSEQ;
+	gtk_widget_set_visible(multiple_seq, seqfile_output);
+	gtk_widget_set_visible(start, !seqfile_output);
+	if (!seqfile_output)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(multiple_seq), FALSE);
+	gtk_widget_set_visible(convert_symlink, !seqfile_output);
 	process_destroot(output);
 	check_for_conversion_form_completeness();
 }

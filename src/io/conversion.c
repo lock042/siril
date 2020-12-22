@@ -566,7 +566,7 @@ gpointer convert_thread_worker(gpointer p) {
 
 	convert_status convert = { 0 };
 	convert.args = args;
-	convert.output_file_number = args->start + 1;
+	convert.output_file_number = args->start ? args->start : args->start + 1;
 	convert.number_of_threads = com.max_thread;
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
@@ -756,6 +756,10 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 			// it should not be a sequence here
 			next_status = open_next_input_sequence(filename, conv, TRUE);
 			if (next_status == OPEN_NOT_A_SEQ) {
+				if (conv->args->multiple_output) {
+					siril_log_message(_("Ignoring an image file '%s' in the inputs as multiple outputs is enabled\n"), filename);
+					retval = OPEN_ERROR;
+				}
 				reader->filename = filename;
 				reader->allow_link = conv->allow_link;
 				if (conv->next_file == conv->args->total)
