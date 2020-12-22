@@ -862,6 +862,7 @@ static int make_link(struct readwrite_data *rwdata) {
 }
 
 static void handle_error(struct readwrite_data *rwdata) {
+	seqwriter_release_memory();
 	finish_read_seq(rwdata->reader);
 	finish_write_seq(rwdata->writer, FALSE);
 	free(rwdata->reader);

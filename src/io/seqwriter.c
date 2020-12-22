@@ -159,6 +159,11 @@ void start_writer(struct seqwriter_data *writer, int frame_count) {
 	writer->write_thread = g_thread_new("writer", write_worker, writer);
 }
 
+/* Stopping the writer does not unblock the threads waiting for a memory slot.
+ * It's the responsability of the caller to release its slot, which will
+ * unblock a thread, which must check for a cancel condition before processing,
+ * and itself release the slot if not processing.
+ */
 int stop_writer(struct seqwriter_data *writer) {
 	int retval = 0;
 	if (writer->write_thread) {
@@ -169,10 +174,6 @@ int stop_writer(struct seqwriter_data *writer) {
 		g_async_queue_unref(writer->writes_queue);
 		retval = GPOINTER_TO_INT(ret);
 		siril_debug_print("writer thread joined (retval: %d)\n", retval);
-		// TODO: we should loop over the active threads of the writer,
-		// but we don't have that since it's static and shared
-		// notify_data_freed(writer, -1);
-		seqwriter_set_max_active_blocks(0); // wake-up the callers
 	}
 	return retval;
 }
@@ -254,6 +255,15 @@ static gboolean all_outputs_to_index(int index) {
 	return TRUE;
 }
 
+// in case of error, release the slot
+void seqwriter_release_memory() {
+	g_mutex_lock(&pool_mutex);
+	nb_blocks_active--;
+	g_cond_signal(&pool_cond);
+	g_mutex_unlock(&pool_mutex);
+}
+
+// same as seqwriter_release_memory() but handles the multiple output
 static void notify_data_freed(struct seqwriter_data *writer, int index) {
 	g_mutex_lock(&pool_mutex);
 	if (nb_outputs > 1) {

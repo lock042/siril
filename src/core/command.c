@@ -932,6 +932,7 @@ int process_merge(int nb) {
 					if (ser_read_frame(seqs[i]->ser_file, frame, fit)) {
 						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);
 						retval = 1;
+						seqwriter_release_memory();
 						ser_close_and_delete_file(&out_ser);
 						goto merge_clean_up;
 					}
@@ -939,6 +940,7 @@ int process_merge(int nb) {
 					if (ser_write_frame_from_fit(&out_ser, fit, written_frames)) {
 						siril_log_message(_("Failed to write frame %d in merged sequence\n"), written_frames);
 						retval = 1;
+						seqwriter_release_memory();
 						ser_close_and_delete_file(&out_ser);
 						goto merge_clean_up;
 					}
@@ -970,6 +972,7 @@ int process_merge(int nb) {
 					if (fitseq_read_frame(seqs[i]->fitseq_file, frame, fit, FALSE, -1)) {
 						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);
 						retval = 1;
+						seqwriter_release_memory();
 						fitseq_close_and_delete_file(&out_fitseq);
 						goto merge_clean_up;
 					}
@@ -977,6 +980,7 @@ int process_merge(int nb) {
 					if (fitseq_write_image(&out_fitseq, fit, written_frames)) {
 						siril_log_message(_("Failed to write frame %d in merged sequence\n"), written_frames);
 						retval = 1;
+						seqwriter_release_memory();
 						fitseq_close_and_delete_file(&out_fitseq);
 						goto merge_clean_up;
 					}
