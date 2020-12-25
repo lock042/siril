@@ -247,6 +247,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
 			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
 		}
+
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
 			stars = peaker(fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE);
 		}
@@ -440,18 +441,39 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->already_in_a_thread = TRUE;
 	unsigned int MB_per_image; int MB_avail;
 	int nb_images = compute_nb_images_fit_memory(regargs->seq, args->upscale_ratio, FALSE, &MB_per_image, &MB_avail);
-	// cvTransformImage is O(n) in mem for monochrome and O(2n) for color, so we need to account for in + out images
-	if (args->has_output) {
-		if (regargs->seq->nb_layers == -1) {
-			fprintf(stderr, "init sequence first\n");
-			return -1;
+	if (nb_images > 0) {
+		/* The star finder, peaker() function, computes a threshold for star
+		 * pixel value, which uses statistics:
+		 *	ushort data: O(n), data is duplicated for median computation
+		 *	float data: O(1)
+		 * THEN, still in peaker(), image is filtered using wavelets, duplicating
+		 * the image in memory O(n) or converting it to float O(2n) if it's
+		 * ushort, and wavelet_transform then allocated 3 times the size of the
+		 * channel in float, because we request 3 plans of wavelets.
+		 * THEN, in the image is written by the generic function if rotation is enabled:
+		 * cvTransformImage is O(n) in mem for monochrome and O(2n) for color
+		 * Since these three operations are in sequence, we need room only for the
+		 * biggest, in all cases it's the wavelets.
+		 */
+		unsigned int MB_per_channel = regargs->seq->nb_layers == 1 ? MB_per_image : MB_per_image / 3;
+		unsigned int float_multiplier = get_data_type(regargs->seq->bitpix) == DATA_FLOAT ? 1 : 2;
+
+		/*if (args->has_output) {
+			if (regargs->seq->nb_layers == -1) {
+				fprintf(stderr, "init sequence first\n");
+				return -1;
+			}
+			if (regargs->seq->nb_layers == 3)
+				args->max_thread = nb_images / 3;
+			else args->max_thread = nb_images / 2;
 		}
-		if (regargs->seq->nb_layers == 3)
-			args->max_thread = nb_images / 3;
-		else args->max_thread = nb_images / 2;
+		else args->max_thread = nb_images;*/
+		unsigned int required = MB_per_image + float_multiplier * (MB_per_image + 3 * MB_per_channel);
+		args->max_thread = MB_avail / required;
+		siril_debug_print("Memory required per thread: %u MB, limiting to %d threads\n", required, args->max_thread);
 	}
-	else args->max_thread = nb_images;
-	if (args->max_thread > com.max_thread)
+
+	if (args->max_thread > com.max_thread || args->max_thread < 0)
 		args->max_thread = com.max_thread;
 	if (args->max_thread == 0) {
 		siril_log_color_message(_("Not enough memory to do this operation (%u required per image, %d considered available)\n"), "red", MB_per_image, MB_avail);

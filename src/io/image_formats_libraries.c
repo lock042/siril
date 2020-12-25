@@ -445,6 +445,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort8_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 		}
+		// TODO: no mirrorx?
 		break;
 	case 16:
 		fit->bitpix = USHORT_IMG;

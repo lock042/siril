@@ -2303,6 +2303,28 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	}
 }
 
+/* convert a DATA_USHORT FITS (with BYTE or USHORT data) to a new DATA_FLOAT FITS */
+fits *convert_ushort_image_to_float(fits *fit, fits *newfit) {
+	if (fit->type != DATA_USHORT)
+		return NULL;
+	if (!newfit || copyfits(fit, newfit, CP_FORMAT, -1)) {
+		siril_log_color_message(_("Unable to convert a FITS image to float\n"), "red");
+		free(newfit);
+		return NULL;
+	}
+
+	float *floatbuf;
+	size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	if (fit->bitpix == BYTE_IMG)
+		floatbuf = ushort8_buffer_to_float(fit->data, ndata);
+	else if (fit->bitpix == USHORT_IMG)
+		floatbuf = ushort_buffer_to_float(fit->data, ndata);
+	else return NULL;
+
+	fit_replace_buffer(newfit, floatbuf, DATA_FLOAT);
+	return newfit;
+}
+
 void fit_debayer_buffer(fits *fit, void *newbuf) {
 	size_t nbdata = fit->naxes[0] * fit->naxes[1];
 
@@ -2510,3 +2532,4 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	*descr = description;
 	return pixbuf;
 }
+

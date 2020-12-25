@@ -39,29 +39,9 @@
 #include "algos/statistics.h"
 #include "filters/wavelets.h"
 #include "io/image_format_fits.h"
+#include "core/OS_utils.h"
 
 #define WAVELET_SCALE 3
-
-static WORD Compute_threshold_ushort(fits *fit, double ksigma, int layer, WORD *norm, double *bg) {
-	WORD threshold;
-	imstats *stat;
-
-	assert(layer <= 3);
-
-	stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC, FALSE);
-	if (!stat) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
-		*norm = 0;
-		*bg = 0.0;
-		return 0;
-	}
-	threshold = round_to_WORD(stat->median + ksigma * stat->sigma);
-	*norm = (WORD)stat->normValue;
-	*bg = stat->median;
-	free_stats(stat);
-
-	return threshold;
-}
 
 static float Compute_threshold_float(fits *fit, double ksigma, int layer, float *norm, double *bg) {
 	float threshold;
@@ -165,155 +145,7 @@ void update_peaker_GUI() {
  Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
  */
 
-/* returns a NULL-ended array of FWHM info */
-static fitted_PSF **peaker_ushort(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime) {
-	int nx = fit->rx;
-	int ny = fit->ry;
-	int areaX0 = 0;
-	int areaY0 = 0;
-	int areaX1 = nx;
-	int areaY1 = ny;
-	int y, k, nbstars = 0;
-	double bg;
-	WORD threshold, norm;
-	WORD **wave_image, **real_image;
-	fits wave_fit = { 0 };
-	fitted_PSF **results;
-	struct timeval t_start, t_end;
-
-	assert(nx > 0 && ny > 0);
-
-	results = malloc((MAX_STARS + 1) * sizeof(fitted_PSF *));
-	if (!results) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-
-	siril_log_color_message(_("Findstar: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
-
-	results[0] = NULL;
-	threshold = Compute_threshold_ushort(fit, sf->sigma, layer, &norm, &bg);
-	if (norm == 0) {
-		free(results);
-		return NULL;
-	}
-	siril_debug_print("Threshold: %d\n", threshold);
-
-	if (copyfits(fit, &wave_fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
-		siril_log_message(_("Failed to copy the image for processing\n"));
-		free(results);
-		return NULL;
-	}
-	get_wavelet_layers(&wave_fit, WAVELET_SCALE, 2, TO_PAVE_BSPLINE, layer);
-
-	/* FILL wavelet image upside-down */
-	wave_image = malloc(ny * sizeof(WORD *));
-	if (wave_image == NULL) {
-		free(results);
-		clearfits(&wave_fit);
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-	for (k = 0; k < ny; k++)
-		wave_image[ny - k - 1] = wave_fit.pdata[layer] + k * nx;
-
-	/* FILL real image upside-down */
-	real_image = malloc(ny * sizeof(WORD *));
-	if (real_image == NULL) {
-		free(results);
-		free(wave_image);
-		clearfits(&wave_fit);
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-	for (k = 0; k < ny; k++)
-		real_image[ny - k - 1] = fit->pdata[layer] + k * nx;
-
-	if (area) {
-		areaX0 = area->x;
-		areaY0 = area->y;
-		areaX1 = area->w + areaX0;
-		areaY1 = area->h + areaY0;
-	}
-
-	for (y = sf->radius + areaY0; y < areaY1 - sf->radius; y++) {
-		int x;
-		for (x = sf->radius + areaX0; x < areaX1 - sf->radius; x++) {
-			WORD pixel = wave_image[y][x];
-			if (pixel > threshold && pixel < norm) {
-				int yy, xx;
-				gboolean bingo = TRUE;
-				WORD neighbor;
-				for (yy = y - 1; yy <= y + 1; yy++) {
-					for (xx = x - 1; xx <= x + 1; xx++) {
-						if (xx == x && yy == y)
-							continue;
-						neighbor = wave_image[yy][xx];
-						if (neighbor > pixel) {
-							bingo = FALSE;
-							break;
-						} else if (neighbor == pixel) {
-							if ((xx <= x && yy <= y) || (xx > x && yy < y)) {
-								bingo = FALSE;
-								break;
-							}
-						}
-					}
-				}
-				if (bingo && nbstars < MAX_STARS) {
-					int ii, jj, i, j;
-					//~ fprintf(stdout, "Found a probable star at position (%d, %d) with a value of %hu\n", x, y, pixel);
-					gsl_matrix *z = gsl_matrix_alloc(sf->radius * 2, sf->radius * 2);
-					/* FILL z */
-					for (jj = 0, j = y - sf->radius; j < y + sf->radius;
-							j++, jj++) {
-						for (ii = 0, i = x - sf->radius; i < x + sf->radius;
-								i++, ii++) {
-							gsl_matrix_set(z, ii, jj, (double)real_image[j][i]);
-						}
-					}
-					/* ****** */
-					/* In this case the angle is not fitted because it
-					 *  slows down the algorithm too much 
-					 * To fit the angle, set the 4th parameter to TRUE */
-					fitted_PSF *cur_star = psf_global_minimisation(z, bg, layer,
-							FALSE, FALSE, FALSE);
-					if (cur_star) {
-						fwhm_to_arcsec_if_needed(fit, cur_star);
-						if (is_star(cur_star, sf)) {
-							cur_star->xpos = x + cur_star->x0 - sf->radius - 1.0;
-							cur_star->ypos = y + cur_star->y0 - sf->radius - 1.0;
-							results[nbstars] = cur_star;
-							results[nbstars + 1] = NULL;
-							//printf("%f\t\t%f\t\t%f\n", cur_star->xpos, cur_star->ypos, cur_star->mag);
-							nbstars++;
-						}
-					}
-					gsl_matrix_free(z);
-				}
-			}
-		}
-	}
-
-	if (nbstars == 0) {
-		free(results);
-		results = NULL;
-	}
-	sort_stars(results, nbstars);
-	free(wave_image);
-	free(real_image);
-	clearfits(&wave_fit);
-
-	gettimeofday(&t_end, NULL);
-	if (showtime)
-		show_time(t_start, t_end);
-	if (nb_stars)
-		*nb_stars = nbstars;
-	return results;
-}
-
-static fitted_PSF **peaker_float(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime) {
+fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	int areaX0 = 0;
@@ -339,19 +171,24 @@ static fitted_PSF **peaker_float(fits *fit, int layer, star_finder_params *sf, i
 	siril_log_color_message(_("Findstar: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
 
+	gboolean failed = TRUE;
+	if (fit->type == DATA_USHORT)
+		failed = !convert_ushort_image_to_float(fit, &wave_fit);
+	else if (fit->type == DATA_FLOAT)
+		failed = copyfits(fit, &wave_fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1);
+	if (failed) {
+		siril_log_message(_("Failed to copy the image for processing\n"));
+		free(results);
+		return NULL;
+	}
+
 	results[0] = NULL;
-	threshold = Compute_threshold_float(fit, sf->sigma, layer, &norm, &bg);
+	threshold = Compute_threshold_float(&wave_fit, sf->sigma, layer, &norm, &bg);
 	if (norm == 0) {
 		free(results);
 		return NULL;
 	}
 	siril_debug_print("Threshold: %f\n", threshold);
-
-	if (copyfits(fit, &wave_fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
-		siril_log_message(_("Failed to copy the image for processing\n"));
-		free(results);
-		return NULL;
-	}
 	get_wavelet_layers(&wave_fit, WAVELET_SCALE, 2, TO_PAVE_BSPLINE, layer);
 
 	/* FILL wavelet image upside-down */
@@ -375,7 +212,7 @@ static fitted_PSF **peaker_float(fits *fit, int layer, star_finder_params *sf, i
 		return NULL;
 	}
 	for (k = 0; k < ny; k++)
-		real_image[ny - k - 1] = fit->fpdata[layer] + k * nx;
+		real_image[ny - k - 1] = wave_fit.fpdata[layer] + k * nx;
 
 	if (area) {
 		areaX0 = area->x;
@@ -458,14 +295,6 @@ static fitted_PSF **peaker_float(fits *fit, int layer, star_finder_params *sf, i
 	if (nb_stars)
 		*nb_stars = nbstars;
 	return results;
-}
-
-fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime) {
-	if (fit->type == DATA_FLOAT)
-		return peaker_float(fit, layer, sf, nb_stars, area, showtime);
-	if (fit->type == DATA_USHORT)
-		return peaker_ushort(fit, layer, sf, nb_stars, area, showtime);
-	return NULL;
 }
 
 /* Function to add star one by one, from the selection rectangle, the
