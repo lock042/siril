@@ -263,7 +263,6 @@ int wavelet_transform_data(float *Imag, int Nl, int Nc,
 	default:
 		printf("wavelet_transform_data: wrong transform type\n");
 		return 1;
-		break;
 	}
 	return 0;
 }

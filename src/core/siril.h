@@ -151,9 +151,8 @@ typedef enum {
 #define CP_INIT		0x01	// initialize data array with 0s
 #define CP_ALLOC	0x02	// reallocs data array
 #define CP_COPYA	0x04	// copy data array content
-#define CP_FORMAT	0x08	// copy size and bitpix info
-#define CP_EXTRACT	0x10	// extract a 16bit plane from a 48 bit fit
-#define CP_EXPAND	0x20	// expands a 16bit fits to a 48bit one.
+#define CP_FORMAT	0x08	// copy metadata
+#define CP_EXPAND	0x20	// expands a one-channel to a three channels
 
 #define PREVIEW_NB 2
 
@@ -166,7 +165,7 @@ typedef enum {
 #define SCALED_IMAGE -3		// the single image has a different size than
 				// the loaded sequence
 
-#define MAX_STARS 200000		// maximum length of com.stars
+#define MAX_STARS 20000		// maximum length of com.stars
 
 #define INDEX_MAX 100000		// maximum index for images
 

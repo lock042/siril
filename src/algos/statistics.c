@@ -225,7 +225,6 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 
 	/* Calculation of min and max */
 	if ((option & (STATS_MINMAX | STATS_BASIC)) && (stat->min < 0. || stat->max < 0.)) {
-		// TODO 1.0: change to double
 		WORD min = 0, max = 0, norm = 0;
 		if (!data) {
 			if (stat_is_local) free(stat);

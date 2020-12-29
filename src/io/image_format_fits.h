@@ -39,7 +39,8 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 		const rectangle *area);
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type);
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype);
-fits *convert_ushort_image_to_float(fits *fit, fits *newfit);
+//fits *convert_ushort_image_to_float(fits *fit, fits *newfit);
+int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
 void keep_first_channel_from_fits(fits *fit);
