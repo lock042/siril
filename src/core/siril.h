@@ -165,7 +165,7 @@ typedef enum {
 #define SCALED_IMAGE -3		// the single image has a different size than
 				// the loaded sequence
 
-#define MAX_STARS 20000		// maximum length of com.stars
+#define MAX_STARS 200000		// maximum length of com.stars
 
 #define INDEX_MAX 100000		// maximum index for images
 
