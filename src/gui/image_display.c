@@ -694,15 +694,24 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	GSList *list;
 	for (list = com.grad_samples; list; list = list->next) {
 		background_sample *sample = (background_sample *)list->data;
-		if (sample->valid) {
-			int radius = (int) (sample->size / 2);
+		if (background_sample_is_valid(sample)) {
+			int radius = (int) (background_sample_get_size(sample) / 2);
+			point position = background_sample_get_position(sample);
 			cairo_set_line_width(dd->cr, 1.5 / dd->zoom);
 			cairo_set_source_rgba(dd->cr, 0.2, 1.0, 0.3, 1.0);
-			cairo_rectangle(dd->cr, sample->position.x - radius, sample->position.y - radius,
-							sample->size, sample->size);
+			cairo_rectangle(dd->cr, position.x - radius - 1, position.y - radius,
+					radius * 2, radius * 2);
 			cairo_stroke(dd->cr);
 		}
 	}
+}
+
+static gdouble x_circle(gdouble x, gdouble radius) {
+	return x + radius * cos(315 * M_PI / 180);
+}
+
+static gdouble y_circle(gdouble y, gdouble radius) {
+	return y + radius * sin(315 * M_PI / 180);
 }
 
 static void draw_annotates(const draw_data_t* dd) {
@@ -720,7 +729,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		gchar *code = get_catalogue_object_code(object);
 		gdouble resolution = get_wcs_image_resolution();
 		gdouble x, y;
-		gdouble size = 16;
+		gdouble size = 18 * (com.pref.font_scale / 100.0);
 
 		if (resolution <= 0) return;
 
@@ -730,11 +739,18 @@ static void draw_annotates(const draw_data_t* dd) {
 		y = gfit.ry - y;
 
 		if (x > 0 && x < gfit.rx && y > 0 && y < gfit.ry) {
-			if (radius > 5) {
+			point offset = {10, -10};
+			if (radius < 0) {
+				// objects we don't have an accurate location (LdN, Sh2)
+			} else if (radius > 5) {
 				cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
 				cairo_stroke(cr);
+				cairo_move_to(cr, x_circle(x, radius), y_circle(y, radius));
+				offset.x = x_circle(x, radius * 1.3) - x;
+				offset.y = y_circle(y, radius * 1.3) - y;
+				cairo_line_to(cr, offset.x + x, offset.y + y);
 			} else {
-				/* it is ponctual */
+				/* it is punctual */
 				cairo_move_to(cr, x, y - 20);
 				cairo_line_to(cr, x, y - 10);
 				cairo_stroke(cr);
@@ -749,9 +765,8 @@ static void draw_annotates(const draw_data_t* dd) {
 				cairo_stroke(cr);
 			}
 			if (code) {
-				gdouble offset = radius > 5 ? radius * 0.8 : 10;
 				cairo_set_font_size(cr, size / dd->zoom);
-				cairo_move_to(cr, x + offset, y - offset);
+				cairo_move_to(cr, x + offset.x, y + offset.y);
 				cairo_show_text(cr, code);
 				cairo_stroke(cr);
 			}

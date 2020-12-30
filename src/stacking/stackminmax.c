@@ -49,7 +49,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	double exposure = 0.0;
 	gboolean is_float = TRUE; // init only for warning
 	size_t nbdata = 0;
-	char *tmpmsg, filename[256];
+	char filename[256];
 	int retval = ST_OK, nb_frames, cur_nb = 0;
 	fits fit = { 0 };
 
@@ -80,10 +80,9 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_reset_progress_bar;
 		}
-		tmpmsg = strdup(_("Processing image "));
-		tmpmsg = str_append(&tmpmsg, filename);
+		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
 		set_progress_bar_data(tmpmsg, (double) cur_nb / ((double) nb_frames + 1.));
-		free(tmpmsg);
+		g_free(tmpmsg);
 
 		cur_nb++;	// only used for progress bar
 
@@ -200,8 +199,13 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 	clearfits(&gfit);
 	fits *result = &gfit;
-	if (new_fit_image(&result, args->seq->rx, args->seq->ry, args->seq->nb_layers, is_float ? DATA_FLOAT : DATA_USHORT))
-		return ST_GENERIC_ERROR;
+	if (is_float) {
+		if (new_fit_image_with_data(&result, args->seq->rx, args->seq->ry, args->seq->nb_layers, DATA_FLOAT, ffinal_pixel[0]))
+			return ST_GENERIC_ERROR;
+	} else {
+		if (new_fit_image_with_data(&result, args->seq->rx, args->seq->ry, args->seq->nb_layers, DATA_USHORT, final_pixel[0]))
+			return ST_GENERIC_ERROR;
+	}
 
 	/* We copy metadata from reference to the final fit */
 	if (args->seq->type == SEQ_REGULAR) {
@@ -209,27 +213,6 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		if (!seq_open_image(args->seq, ref)) {
 			import_metadata_from_fitsfile(args->seq->fptr[ref], &gfit);
 			seq_close_image(args->seq, ref);
-		}
-	}
-	if (is_float) {
-		gfit.fdata = ffinal_pixel[0];
-		gfit.fpdata[RLAYER] = gfit.fdata;
-		if (fit.naxes[2] == 3) {
-			gfit.fpdata[GLAYER] = gfit.fdata + nbdata;
-			gfit.fpdata[BLAYER] = gfit.fdata + 2 * nbdata;
-		} else {
-			gfit.fpdata[GLAYER] = gfit.fdata;
-			gfit.fpdata[BLAYER] = gfit.fdata;
-		}
-	} else {
-		gfit.data = final_pixel[0];
-		gfit.pdata[RLAYER] = gfit.data;
-		if (fit.naxes[2] == 3) {
-			gfit.pdata[GLAYER] = gfit.data + nbdata;
-			gfit.pdata[BLAYER] = gfit.data + 2 * nbdata;
-		} else {
-			gfit.pdata[GLAYER] = gfit.data;
-			gfit.pdata[BLAYER] = gfit.data;
 		}
 	}
 
