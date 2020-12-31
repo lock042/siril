@@ -41,7 +41,7 @@
 
 #define USE_SIRIL_DEBAYER FALSE
 
-char *filter_pattern[] = {
+const char *filter_pattern[] = {
 	"RGGB",
 	"BGGR",
 	"GBRG",
