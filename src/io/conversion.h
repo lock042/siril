@@ -34,7 +34,6 @@ extern supported_raw_list supported_raw[];	//supported raw extensions
 extern char *supported_extensions[MAX_EXTENSIONS];
 
 int get_nb_raw_supported();
-
 void list_format_available();
 image_type get_type_for_extension(const char *extension);
 gchar *initialize_converters();

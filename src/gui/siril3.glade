@@ -2164,11 +2164,27 @@ enter a visible wavelength in nm</property>
                           </packing>
                         </child>
                         <child>
+                          <object class="GtkLabel" id="labelwcs_red">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">end</property>
+                            <property name="ellipsize">start</property>
+                            <style>
+                              <class name="label-data"/>
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkBox" id="hboxr">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="valign">center</property>
-                            <property name="spacing">2</property>
+                            <property name="spacing">10</property>
                             <child>
                               <object class="GtkLabel" id="labelzoom_red">
                                 <property name="visible">True</property>
@@ -2187,17 +2203,6 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="labelfwhm_red">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -2210,26 +2215,14 @@ enter a visible wavelength in nm</property>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">6</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorr3">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">3</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkLabel" id="labelselection_red">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">end</property>
+                                <property name="halign">start</property>
                                 <property name="ellipsize">start</property>
                                 <style>
                                   <class name="label-data"/>
@@ -2243,23 +2236,10 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="vseparatorr2">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">5</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="labeldensity_red">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="width-chars">30</property>
+                                <property name="halign">end</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -2268,43 +2248,15 @@ enter a visible wavelength in nm</property>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="padding">12</property>
+                                <property name="pack-type">end</property>
                                 <property name="position">6</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorr4">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">7</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelwcs_red">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">end</property>
-                                <property name="ellipsize">start</property>
-                                <property name="width-chars">30</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </object>
@@ -2373,11 +2325,42 @@ enter a visible wavelength in nm</property>
                           </packing>
                         </child>
                         <child>
+                          <object class="GtkLabel" id="labelwcs_green">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">end</property>
+                            <style>
+                              <class name="label-data"/>
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkBox" id="hboxg">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="valign">center</property>
-                            <property name="spacing">2</property>
+                            <property name="spacing">10</property>
+                            <child type="center">
+                              <object class="GtkLabel" id="labelfwhm_green">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">8</property>
+                                <property name="position">3</property>
+                              </packing>
+                            </child>
                             <child>
                               <object class="GtkLabel" id="labelzoom_green">
                                 <property name="visible">True</property>
@@ -2396,49 +2379,10 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelfwhm_green">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">8</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorg3">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">3</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="labelselection_green">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">end</property>
+                                <property name="halign">start</property>
                                 <property name="ellipsize">start</property>
                                 <style>
                                   <class name="label-data"/>
@@ -2452,23 +2396,10 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="vseparatorg2">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">5</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="labeldensity_green">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="width-chars">30</property>
+                                <property name="halign">end</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -2477,42 +2408,15 @@ enter a visible wavelength in nm</property>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="padding">4</property>
+                                <property name="pack-type">end</property>
                                 <property name="position">6</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorg4">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">6</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelwcs_green">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="width-chars">30</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </object>
@@ -2585,11 +2489,26 @@ enter a visible wavelength in nm</property>
                           </packing>
                         </child>
                         <child>
+                          <object class="GtkLabel" id="labelwcs_blue">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">end</property>
+                            <style>
+                              <class name="label-data"/>
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkBox" id="hboxb">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="valign">center</property>
-                            <property name="spacing">2</property>
+                            <property name="spacing">10</property>
                             <child>
                               <object class="GtkLabel" id="labelzoom_blue">
                                 <property name="visible">True</property>
@@ -2608,17 +2527,6 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="labelfwhm_blue">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -2631,26 +2539,14 @@ enter a visible wavelength in nm</property>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">8</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorb2">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">3</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkLabel" id="labelselection_blue">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">end</property>
+                                <property name="halign">start</property>
                                 <property name="ellipsize">start</property>
                                 <style>
                                   <class name="label-data"/>
@@ -2664,23 +2560,10 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparator" id="vseparatorb3">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">5</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="labeldensity_blue">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="width-chars">30</property>
+                                <property name="halign">end</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -2689,42 +2572,15 @@ enter a visible wavelength in nm</property>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="padding">4</property>
+                                <property name="pack-type">end</property>
                                 <property name="position">6</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator" id="vseparatorb4">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">7</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="labelwcs_blue">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="width-chars">30</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">8</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </object>
@@ -2801,11 +2657,10 @@ enter a visible wavelength in nm</property>
                             <property name="can-focus">False</property>
                             <property name="spacing">2</property>
                             <child>
-                              <object class="GtkLabel" id="labeldensityrgb">
+                              <object class="GtkLabel" id="labeldensityrgb1">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="tooltip-text" translatable="yes">The RGB channel is only used for visualisation. Please work on the Red, Green or Blue channel.</property>
-                                <property name="label" translatable="yes">ONLY FOR VISUALISATION</property>
                                 <property name="width-chars">20</property>
                                 <attributes>
                                   <attribute name="weight" value="bold"/>
@@ -2816,7 +2671,7 @@ enter a visible wavelength in nm</property>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">4</property>
-                                <property name="position">2</property>
+                                <property name="position">0</property>
                               </packing>
                             </child>
                           </object>
@@ -2824,6 +2679,25 @@ enter a visible wavelength in nm</property>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
                             <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="labeldensityrgb">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">The RGB channel is only used for visualisation. Please work on the Red, Green or Blue channel.</property>
+                            <property name="label" translatable="yes">ONLY FOR VISUALISATION</property>
+                            <property name="width-chars">20</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                              <attribute name="foreground" value="#efef29292929"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="padding">4</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </object>
@@ -7489,7 +7363,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
               <object class="GtkImage">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="icon-name">go-home-symbolic</property>
+                <property name="icon-name">go-home</property>
               </object>
             </child>
             <style>
@@ -7538,7 +7412,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="icon-name">edit-undo-symbolic</property>
+                    <property name="icon-name">edit-undo</property>
                   </object>
                 </child>
               </object>
@@ -7560,7 +7434,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="icon-name">edit-redo-symbolic</property>
+                    <property name="icon-name">edit-redo</property>
                   </object>
                 </child>
               </object>
@@ -7655,7 +7529,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="icon-name">document-save-as-symbolic</property>
+                    <property name="icon-name">document-save-as</property>
                   </object>
                 </child>
               </object>
@@ -7677,7 +7551,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="icon-name">camera-photo-symbolic</property>
+                    <property name="icon-name">camera-photo</property>
                   </object>
                 </child>
               </object>
@@ -15902,7 +15776,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkSpinButton" id="spinstarfinder_radius">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Size in pixels of the search box.</property>
+                        <property name="tooltip-text" translatable="yes">Half-size in pixels of the search box. Only the brightest pixel will be used in this box to fit a star.</property>
                         <property name="width-chars">5</property>
                         <property name="input-purpose">number</property>
                         <property name="adjustment">adjstarfinder_radius</property>
