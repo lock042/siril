@@ -43,7 +43,7 @@
 
 #define WAVELET_SCALE 3
 
-static float Compute_threshold_float(fits *fit, double ksigma, int layer, float *norm, double *bg) {
+static float compute_threshold(fits *fit, double ksigma, int layer, float *norm, double *bg) {
 	float threshold;
 	imstats *stat;
 
@@ -168,13 +168,11 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 	gettimeofday(&t_start, NULL);
 
 	/* running statistics on the input image is best as it caches them */
-	threshold = Compute_threshold_float(fit, sf->sigma, layer, &norm, &bg);
+	threshold = compute_threshold(fit, sf->sigma, layer, &norm, &bg);
 	if (norm == 0.0f)
 		return NULL;
 
 	siril_debug_print("Threshold: %f (background: %f, norm: %f)\n", threshold, bg, norm);
-	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, "computing stats ended at");
 
 	/* if fit is ushort, we need to get it in float [0, 65535] to run
 	 * statistics only once: stats give the threshold used in the
@@ -185,12 +183,8 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 		siril_log_message(_("Failed to copy the image for processing\n"));
 		return NULL;
 	}
-	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, "extracting/converting input image ended at");
 
 	get_wavelet_layers(&wave_fit, WAVELET_SCALE, 2, TO_PAVE_BSPLINE, 0);
-	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, "wavelets ended at");
 
 	/* Build 2D representation of wavelet image upside-down */
 	wave_image = malloc(ny * sizeof(float *));
@@ -251,8 +245,6 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 	}
 	clearfits(&wave_fit);
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
-	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, "finding candidates ended at");
 
 	/* Check if candidates are stars by minimizing a PSF on each */
 	fitted_PSF **results;
