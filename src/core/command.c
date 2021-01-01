@@ -2801,6 +2801,10 @@ int process_convertraw(int nb) {
 			output = SEQ_FITSEQ;
 			if (!g_str_has_suffix(destroot, com.pref.ext))
 				str_append(&destroot, com.pref.ext);
+		} else if (!strcmp(current, "-ser")) {
+			output = SEQ_SER;
+			if (!g_str_has_suffix(destroot, ".ser"))
+				str_append(&destroot, ".ser");
 		} else if (g_str_has_prefix(current, "-start=")) {
 			value = current + 7;
 			idx = (g_ascii_strtoull(value, NULL, 10) <= 0 || g_ascii_strtoull(value, NULL, 10) >= INDEX_MAX) ? 1 : g_ascii_strtoull(value, NULL, 10);
@@ -3004,6 +3008,10 @@ int process_convert(int nb) {
 			output = SEQ_FITSEQ;
 			if (!g_str_has_suffix(destroot, com.pref.ext))
 				str_append(&destroot, com.pref.ext);
+		} else if (!strcmp(current, "-ser")) {
+			output = SEQ_SER;
+			if (!g_str_has_suffix(destroot, ".ser"))
+				str_append(&destroot, ".ser");
 		} else if (g_str_has_prefix(current, "-start=")) {
 			value = current + 7;
 			idx = (g_ascii_strtoull(value, NULL, 10) <= 0 || g_ascii_strtoull(value, NULL, 10) >= INDEX_MAX) ?

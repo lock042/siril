@@ -376,7 +376,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 		ser_file->byte_pixel_depth = SER_PIXEL_DEPTH_16;
 		ser_file->bit_pixel_depth = 16;
 	} else {
-		siril_log_message(_("Writing to SER files from larger than 16-bit FITS images is not yet implemented\n"));
+		siril_log_message(_("Writing a 32-bit image to SER files is not supported.\n"));
 		return 1;
 	}
 	if (fit->instrume[0] != 0) {
