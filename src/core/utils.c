@@ -495,25 +495,24 @@ gboolean isrgb(fits *fit) {
 
 /**
  *  Searches for an extension '.something' in filename from the end
- *  @param filename input filename
+ *  @param filename input filename or path
  *  @return the index of the first '.' found
  */
 int get_extension_index(const char *filename) {
-	int i;
 	if (filename == NULL || filename[0] == '\0')
 		return -1;
-	i = strlen(filename) - 1;
-	do {
+	for (int i = strlen(filename) - 1; i > 0; i--) {
+		if (filename[i] == '\\' || filename[i] == '/')
+			break;
 		if (filename[i] == '.')
 			return i;
-		i--;
-	} while (i > 0);
+	}
 	return -1;
 }
 
 /**
  * Get the extension of a file, without the dot.
- * @param filename input filename
+ * @param filename input filename or path
  * @return extension pointed from the filename itself or NULL
  */
 const char *get_filename_ext(const char *filename) {
@@ -543,6 +542,41 @@ image_type get_type_from_filename(const gchar *filename) {
 	if (!ext)
 		return TYPEUNDEF;
 	return get_type_for_extension(ext);
+}
+
+/**
+ * Removes extension of the filename or path
+ * @param filename file path with extension
+ * @return newly allocated filename without extension
+ */
+char *remove_ext_from_filename(const char *filename) {
+	char *file = NULL;
+	int ext_index = -1;
+
+	for (int i = strlen(filename) - 1; i > 0; i--) {
+		if (filename[i] == '\\' || filename[i] == '/')
+			break;
+		if (filename[i] == '.') {
+			ext_index = i;
+			break;
+		}
+	}
+	if (ext_index == -1)
+		return strdup(filename);
+
+	file = malloc(ext_index + 1);
+	strncpy(file, filename, ext_index);
+	file[ext_index] = '\0';
+	return file;
+}
+
+gboolean string_is_a_path(const char *file) {
+	int len = strlen(file);
+	for (int i = 0; i < len; i++) {
+		if (file[i] == '\\' || file[i] == '/')
+			return TRUE;
+	}
+	return FALSE;
 }
 
 /**
@@ -894,34 +928,6 @@ double get_normalized_value(fits *fit) {
 		return 1.0;
 	}
 	return -1.0;
-}
-
-/**
- * Removes extension of the filename
- * @param filename file path with extension
- * @return newly allocated filename without extension
- */
-char *remove_ext_from_filename(const char *filename) {
-	size_t filelen;
-	const char *p;
-	char *file = NULL;
-
-	p = strrchr(filename, '.');
-
-	if (p == NULL) {
-		return strdup(filename);
-		// shouldnt it be a strdup instead?
-		/*file = malloc(1);
-		file[0] = '\0';
-		return file;*/
-	}
-
-	filelen = p - filename;
-	file = malloc(filelen + 1);
-	strncpy(file, filename, filelen);
-	file[filelen] = '\0';
-
-	return file;
 }
 
 /**

@@ -518,18 +518,20 @@ static gboolean end_convert_idle(gpointer p) {
 	struct timeval t_end;
 
 	if (!args->retval && get_thread_run() && args->nb_converted_files > 0) {
-		// load the sequence
+		// load the sequence unless it's in another directory
 		char *converted_seqname = NULL;
-		if (args->output_type != SEQ_REGULAR) {
-			int extidx = get_extension_index(args->destroot);
-			if (extidx) {
-				converted_seqname = malloc(extidx + 5);
-				strncpy(converted_seqname, args->destroot, extidx);
-				strcpy(converted_seqname+extidx, ".seq");
+		if (!string_is_a_path(args->destroot)) {
+			if (args->output_type != SEQ_REGULAR) {
+				int extidx = get_extension_index(args->destroot);
+				if (extidx > 0) {
+					converted_seqname = malloc(extidx + 5);
+					strncpy(converted_seqname, args->destroot, extidx);
+					strcpy(converted_seqname+extidx, ".seq");
+				}
+			} else {
+				converted_seqname = malloc(strlen(args->destroot) + 5);
+				sprintf(converted_seqname, "%s.seq", args->destroot);
 			}
-		} else {
-			converted_seqname = malloc(strlen(args->destroot) + 5);
-			sprintf(converted_seqname, "%s.seq", args->destroot);
 		}
 		check_seq(0);
 		if (converted_seqname) {
