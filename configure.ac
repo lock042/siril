@@ -118,6 +118,14 @@ AC_CHECK_LIB(m, log, LIBS="$LIBS -lm")
 
 dnl check GLIB version
 PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.56.0)
+case "$host_os" in
+  *-*-mingw*)
+    PKG_CHECK_MODULES([GIO],[gio-2.0 >= 2.56.0 gio-windows-2.0 >= 2.56.0])
+    ;;
+  *)
+    PKG_CHECK_MODULES([GIO],[gio-2.0 >= 2.56.0 gio-unix-2.0 >= 2.56.0])
+    ;;
+esac
 
 dnl check libexiv2
 PKG_CHECK_MODULES(EXIV2, exiv2 >= 0.25)
@@ -198,6 +206,7 @@ fi
 AM_CONDITIONAL(HAVE_LIBRTPROCESS, test "x$have_rtprocess" = "xyes")
 
 dnl ================ OPTIONAL DEPENDECIES ================
+
 dnl check raw lib
 PKG_CHECK_MODULES(LIBRAW, [libraw >= 0.17],
 		[AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],

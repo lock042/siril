@@ -25,6 +25,7 @@
 #  include <config.h>
 #endif
 
+#include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,8 +39,10 @@
 #include <tchar.h>
 #include <io.h>
 #include <fcntl.h>
+#include <gio/gwin32inputstream.h>
 #else
 #include <sys/resource.h>
+#include <gio/gunixinputstream.h>
 #endif
 #if defined(__unix__) || defined(OS_OSX)
 #include <sys/param.h>		// define or not BSD macro
@@ -533,6 +536,24 @@ gint siril_dialog_run(SirilWidget *widgetdialog) {
 
 void siril_widget_destroy(SirilWidget *widgetdialog) {
 	gtk_widget_destroy(widgetdialog);
+}
+
+GInputStream *siril_input_stream_from_stdin() {
+	GInputStream *input_stream = NULL;
+#ifdef _WIN32
+	HANDLE handle = GetStdHandle(STD_INPUT_HANDLE);
+
+	if (handle == INVALID_HANDLE_VALUE) {
+		gchar *emsg = g_win32_error_message(GetLastError());
+		g_printerr(_("Unable to acquire HANDLE for STDIN: %s\n"), emsg);
+		g_free(emsg);
+		return NULL;
+	}
+	input_stream = g_win32_input_stream_new(handle, FALSE);
+#else
+	input_stream = g_unix_input_stream_new(fileno(stdin), FALSE);
+#endif
+	return input_stream;
 }
 
 #ifdef _WIN32

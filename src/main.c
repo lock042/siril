@@ -264,7 +264,7 @@ static void siril_app_activate(GApplication *application) {
 			GInputStream *input_stream;
 
 			if (g_strcmp0(main_option_script, "-") == 0) {
-				input_stream = (GInputStream *)stdin;
+				input_stream = siril_input_stream_from_stdin();
 			} else {
 				GError *error;
 				GFile *file = g_file_new_for_path(main_option_script);
@@ -324,8 +324,10 @@ static void siril_app_activate(GApplication *application) {
 #endif
 	}
 
-	if (siril_change_dir(com.wd, NULL))
+	if (siril_change_dir(com.wd, NULL)) {
 		com.wd = g_strdup(siril_get_startup_dir());
+		siril_change_dir(com.wd, NULL);
+	}
 
 	if (!com.headless) {
 		gtk_builder_connect_signals (builder, NULL);
