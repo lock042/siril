@@ -447,6 +447,7 @@ struct reader_data {
 	char *filename;
 	// allow_link means that the input and ouputs are a FITS file, no transformation needed
 	gboolean allow_link;
+	gboolean allow_32bits;
 
 	gboolean debayer;
 };
@@ -491,6 +492,7 @@ typedef struct {
 	int next_image_in_output;
 	struct writer_seq_counter *writeseq_count;
 	gboolean allow_link;
+	gboolean allow_32bits;
 
 	int number_of_threads;	// size of threads, size of pool
 	void **threads; // for fitseq read
@@ -572,6 +574,7 @@ gpointer convert_thread_worker(gpointer p) {
 	convert.number_of_threads = com.max_thread;
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
+	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_to_16bit;
 	GThreadPool *pool = g_thread_pool_new(pool_worker, &convert, com.max_thread, FALSE, NULL);
 	open_next_input_seq(&convert);
 	open_next_output_seq(args, &convert);
@@ -761,9 +764,11 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 				if (conv->args->multiple_output) {
 					siril_log_message(_("Ignoring an image file '%s' in the inputs as multiple outputs is enabled\n"), filename);
 					retval = OPEN_ERROR;
+					break;
 				}
 				reader->filename = filename;
 				reader->allow_link = conv->allow_link;
+				reader->allow_32bits = conv->allow_32bits;
 				if (conv->next_file == conv->args->total)
 					retval = GOT_OK_LAST_FILE;
 				else retval = GOT_OK_FILE;
@@ -789,13 +794,18 @@ static void open_next_input_seq(convert_status *conv) {
 }
 
 /* open the file with path source from any image type and load it into a new FITS object */
-static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer) {
+static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer, gboolean allow_32bits) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
 	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
 
-	if (!retval)
-		retval = debayer_if_needed(imagetype, tmpfit, debayer);
+	if (!retval) {
+		if (!allow_32bits && tmpfit->type == DATA_FLOAT) {
+			siril_log_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), source);
+			retval = 1;
+		}
+		else retval = debayer_if_needed(imagetype, tmpfit, debayer);
+	}
 
 	if (retval) {
 		clearfits(tmpfit);
@@ -849,7 +859,8 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 			*retval = CAN_BE_LINKED;
 			return NULL;	// do not free reader, we need it for links
 		} else {
-			fit = any_to_new_fits(imagetype, reader->filename, reader->debayer);
+			fit = any_to_new_fits(imagetype, reader->filename,
+					reader->debayer, reader->allow_32bits);
 			*retval = fit ? READ_OK : READ_FAILED;
 		}
 	}
@@ -906,6 +917,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
+		finish_write_seq(rwdata->writer, FALSE);
 		return;
 	}
 
@@ -1081,7 +1093,14 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		fitseq_init_struct(convert->current_fitseq);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (fitseq_open(name, convert->current_fitseq)) {
-			siril_log_message(_("Error while opening ser file %s, aborting.\n"), src_filename);
+			siril_log_message(_("Error while opening ser file %s, ignoring file.\n"), src_filename);
+			free(convert->current_fitseq);
+			convert->current_fitseq = NULL;
+			return OPEN_ERROR;
+		}
+		if (!convert->allow_32bits && get_data_type(convert->current_fitseq->bitpix) == DATA_FLOAT) {
+			siril_log_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), src_filename);
+			fitseq_close_file(convert->current_fitseq);
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
 			return OPEN_ERROR;
