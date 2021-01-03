@@ -370,6 +370,12 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 	}
 	else return 0;
 
+	if (!retval)
+		retval = seq_prepare_writer(args);
+	return retval;
+}
+
+int seq_prepare_writer(struct generic_seq_args *args) {
 	int limit = 0;
 #ifdef _OPENMP
 	limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float, NULL, NULL);
@@ -396,7 +402,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 	}
 #endif
 	seqwriter_set_max_active_blocks(limit);
-	return retval;
+	return 0;
 }
 
 int seq_finalize_hook(struct generic_seq_args *args) {
