@@ -23,6 +23,7 @@
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/ser.h"
 #include "registration/registration.h"
 
 #include "stacking/stacking.h"
@@ -214,6 +215,10 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 			import_metadata_from_fitsfile(args->seq->fptr[ref], &gfit);
 			seq_close_image(args->seq, ref);
 		}
+	} else if (args->seq->type == SEQ_FITSEQ) {
+		import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, &gfit);
+	} else if (args->seq->type == SEQ_SER) {
+		import_metadata_from_serfile(args->seq->ser_file, &gfit);
 	}
 
 free_and_reset_progress_bar:
