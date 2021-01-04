@@ -570,6 +570,25 @@ char *remove_ext_from_filename(const char *filename) {
 	return file;
 }
 
+/**
+ * Replaces the extension of a file name or path
+ * @param path the original path
+ * @param new_ext the next extension to put
+ * @return a new string with the new extension
+ */
+gchar *replace_ext(const char *path, const char *new_ext) {
+	int idx = get_extension_index(path);
+	gchar *retval = g_strdup(path);
+	if (idx != -1)
+		retval[idx] = '\0';
+	return str_append(&retval, new_ext);
+}
+
+/**
+ * Check is a string contains directory separators and thus represent a path
+ * @param file the string to test
+ * @return true if it contains a separator
+ */
 gboolean string_is_a_path(const char *file) {
 	int len = strlen(file);
 	for (int i = 0; i < len; i++) {

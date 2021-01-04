@@ -568,6 +568,11 @@ gpointer convert_thread_worker(gpointer p) {
 	}
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
 
+	/* remove the target .seq to avoid errors */
+	gchar *seqname = replace_ext(args->destroot, ".seq");
+	g_unlink(seqname);
+	g_free(seqname);
+
 	convert_status convert = { 0 };
 	convert.args = args;
 	convert.output_file_number = args->start ? args->start : args->start + 1;
