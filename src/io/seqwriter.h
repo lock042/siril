@@ -17,7 +17,7 @@ struct seqwriter_data {
 };
 
 void start_writer(struct seqwriter_data *writer, int frame_count);
-int stop_writer(struct seqwriter_data *writer);
+int stop_writer(struct seqwriter_data *writer, gboolean aborting);
 int seqwriter_append_write(struct seqwriter_data *writer, fits *image, int index);
 
 void seqwriter_set_max_active_blocks(int max);

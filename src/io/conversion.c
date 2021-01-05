@@ -38,6 +38,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/OS_utils.h"
 #include "algos/demosaicing.h"
 #include "io/films.h"
 #include "io/fits_sequence.h"
@@ -495,12 +496,15 @@ typedef struct {
 	gboolean allow_32bits;
 
 	int number_of_threads;	// size of threads, size of pool
+	int number_of_images_in_mem; // size of writer queue
 	void **threads; // for fitseq read
 
 	/* counters, atomic access */
 	gint nb_input_images;	// for reporting
 	gint failed_images, converted_images, converted_files;
 	gint fatal_error;	// used as boolean
+
+	gint first;		// to count the reads for memory concerns
 } convert_status;
 
 static void pool_worker(gpointer data, gpointer user_data);
@@ -512,6 +516,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
 static void create_sequence_filename(sequence_type output_type, const char *destroot, int index, char *output, int outsize);
 static seqwrite_status write_image(fits *fit, struct writer_data *writer);
+static int compute_nb_images_fit_mem(fits *fit);
 static void print_reader(struct reader_data *reader);
 static void print_writer(struct writer_data *writer);
 
@@ -562,9 +567,10 @@ gpointer convert_thread_worker(gpointer p) {
 		siril_log_message(_("disabling incompatible multiple output option in conversion\n"));
 		args->multiple_output = FALSE;
 	}
+	int initial_thread_limit = max(1, com.max_thread / 2);
+	siril_debug_print("Starting conversion with %d threads and writer queue length\n", initial_thread_limit);
 	if (args->output_type == SEQ_SER || args->output_type == SEQ_FITSEQ) {
-		int limit = com.max_thread * 2 + 1;
-		seqwriter_set_max_active_blocks(limit);
+		seqwriter_set_max_active_blocks(initial_thread_limit);
 	}
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
 
@@ -885,11 +891,28 @@ static int make_link(struct readwrite_data *rwdata) {
 	return retval;
 }
 
+static void readjust_memory_limits(convert_status *conv, fits *fit) {
+	if (g_atomic_int_add(&conv->first, 1))
+		return;
+	int nb_images = compute_nb_images_fit_mem(fit);
+	if (nb_images < 0) {
+		nb_images = com.max_thread * 2 + 1;
+	} else {
+		if (nb_images == 0)
+			nb_images = 1;	// too late, still try...
+		nb_images = min(nb_images, com.max_thread * 2 + 1);
+	}
+	seqwriter_set_max_active_blocks(nb_images);
+}
+
 static void handle_error(struct readwrite_data *rwdata) {
+	siril_debug_print("conversion aborted or failed, cancelling this thread");
 	seqwriter_release_memory();
-	finish_read_seq(rwdata->reader);
+	if (rwdata->reader) {
+		finish_read_seq(rwdata->reader);
+		free(rwdata->reader);
+	}
 	finish_write_seq(rwdata->writer, FALSE);
-	free(rwdata->reader);
 	free(rwdata->writer);
 	free(rwdata);
 }
@@ -923,6 +946,14 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
+		return;
+	}
+	readjust_memory_limits(conv, fit);
+
+	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
+		rwdata->reader = NULL;
+		clearfits(fit);
+		handle_error(rwdata);
 		return;
 	}
 
@@ -1172,6 +1203,26 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 
 	free(writer);
 	return retval;
+}
+
+// similar to compute_nb_images_fit_memory from sequence.c, but uses a FITS as input, not a sequence */
+static int compute_nb_images_fit_mem(fits *fit) {
+	int max_memory_MB = get_max_memory_in_MB();
+	if (max_memory_MB < 0) {
+		// unlimited
+		return -1;
+	}
+	uint64_t memory_per_image = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	if (fit->type == DATA_FLOAT)
+		memory_per_image *= sizeof(float);
+	else memory_per_image *= sizeof(WORD);
+	unsigned int memory_per_image_MB = memory_per_image / BYTES_IN_A_MB;
+	if (memory_per_image_MB == 0)
+		memory_per_image_MB = 1;
+	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_image_MB, max_memory_MB);
+	int current_limit = max(1, com.max_thread / 2);
+	return current_limit + max_memory_MB / memory_per_image_MB;
+	// we add that ^ because we already have that many images loaded at this point
 }
 
 static void print_reader(struct reader_data *reader) {

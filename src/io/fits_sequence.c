@@ -351,10 +351,10 @@ int fitseq_write_image(fitseq *fitseq, fits *image, int index) {
 	return seqwriter_append_write(fitseq->writer, image, index);
 }
 
-static int fitseq_destroy(fitseq *fitseq) {
+static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 	int retval = 0;
 	if (fitseq->writer) {
-		retval = stop_writer(fitseq->writer);
+		retval = stop_writer(fitseq->writer, abort);
 		free(fitseq->writer);
 		fitseq->writer = NULL;
 	}
@@ -368,13 +368,13 @@ static int fitseq_destroy(fitseq *fitseq) {
 void fitseq_close_and_delete_file(fitseq *fitseq) {
 	char *filename = fitseq->filename;
 	fitseq->filename = NULL;
-	fitseq_destroy(fitseq);
+	fitseq_destroy(fitseq, TRUE);
 	siril_log_message(_("Removing failed FITS sequence file: %s\n"), filename);
 	g_unlink(filename);
 }
 
 int fitseq_close_file(fitseq *fitseq) {
-	return fitseq_destroy(fitseq);
+	return fitseq_destroy(fitseq, FALSE);
 }
 
 // to call after open to read with several threads in the file
