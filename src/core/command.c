@@ -905,6 +905,7 @@ int process_merge(int nb) {
 			args->list = glist_to_array(list, &args->total);
 			args->destroot = format_basename(word[nb - 1], FALSE);
 			args->input_has_a_seq = FALSE;
+			args->input_has_a_film = FALSE;
 			args->debayer = FALSE;
 			args->multiple_output = FALSE;
 			args->output_type = SEQ_REGULAR;
@@ -2786,6 +2787,11 @@ int process_convertraw(int nb) {
 		return 1;
 	}
 
+	if (!com.wd) {
+		siril_log_message(_("Conversion: no working directory set.\n"));
+		return 1;
+	}
+
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
 		if (!strcmp(current, "-debayer")) {
@@ -2823,7 +2829,6 @@ int process_convertraw(int nb) {
 		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
 		g_clear_error(&error);
-		set_cursor_waiting(FALSE);
 		return 1;
 	}
 
@@ -2834,6 +2839,11 @@ int process_convertraw(int nb) {
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPERAW) {
+			if (output == SEQ_SER && !g_ascii_strcasecmp(ext, "raf") && !debayer) {
+				siril_log_message(_("FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. You may use FITS sequences instead."));
+				g_list_free_full(list, g_free);
+				return 1;
+			}
 			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
 			count++;
 		}
@@ -2841,6 +2851,7 @@ int process_convertraw(int nb) {
 	g_dir_close(dir);
 	if (!count) {
 		siril_log_message(_("No RAW files were found for conversion\n"));
+		g_list_free_full(list, g_free);
 		return 1;
 	}
 	/* sort list */
@@ -2854,12 +2865,6 @@ int process_convertraw(int nb) {
 	if (!com.script)
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-	if (!com.wd) {
-		siril_log_message(_("Conversion: no working directory set.\n"));
-		set_cursor_waiting(FALSE);
-		return 1;
-	}
-
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
 	args->list = files_to_convert;
@@ -2869,6 +2874,7 @@ int process_convertraw(int nb) {
 	else
 		args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
+	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
 	args->output_type = output;
 	args->multiple_output = FALSE;
@@ -2966,6 +2972,7 @@ int process_link(int nb) {
 	args->total = count;
 	args->destroot = format_basename(destroot, TRUE);
 	args->input_has_a_seq = FALSE;
+	args->input_has_a_film = FALSE;
 	args->debayer = FALSE;
 	args->multiple_output = FALSE;
 	args->output_type = SEQ_REGULAR; // fallback if symlink does not work
@@ -3041,8 +3048,7 @@ int process_convert(int nb) {
 		if (!ext)
 			continue;
 		image_type type = get_type_for_extension(ext);
-		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPEMP4
-				&& type != TYPEWEBM && type != TYPESER) {
+		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPESER) {
 			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
 			count++;
 		}
@@ -3081,6 +3087,7 @@ int process_convert(int nb) {
 	else
 		args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
+	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
 	args->multiple_output = FALSE;
 	args->output_type = output;

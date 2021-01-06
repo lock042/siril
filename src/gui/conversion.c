@@ -108,6 +108,8 @@ static void initialize_convert() {
 
 	gboolean no_sequence_to_convert = TRUE;
 	gboolean there_is_an_image = FALSE;
+	gboolean there_is_an_xtrans = FALSE;
+	gboolean there_is_a_film = FALSE;
 	int count = 0;
 	while (valid) {
 		gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &file_data,
@@ -116,8 +118,11 @@ static void initialize_convert() {
 
 		const char *src_ext = get_filename_ext(file_data);
 		image_type type = get_type_for_extension(src_ext);
-		if (type == TYPEAVI || type == TYPESER)
+		if (type == TYPEAVI || type == TYPESER) {
 			no_sequence_to_convert = FALSE;
+			if (type == TYPEAVI)
+				there_is_a_film = TRUE;
+		}
 		else if (type == TYPEUNDEF) {
 			char *title = siril_log_message(_("Filetype is not supported, cannot convert: %s\n"), src_ext);
 			gchar *msg = g_strdup_printf(_("File extension '%s' is not supported.\n"
@@ -130,6 +135,10 @@ static void initialize_convert() {
 			siril_message_dialog(GTK_MESSAGE_ERROR, title, msg);
 			return;
 
+		}
+		else if (type == TYPERAW && !g_ascii_strcasecmp(src_ext, "raf")) {
+			there_is_an_xtrans = TRUE;
+			there_is_an_image = TRUE;
 		}
 		// because of fitseq, we can't use this check for FITS
 		else if (type != TYPEFITS)
@@ -148,13 +157,12 @@ static void initialize_convert() {
 		if (!confirm) return;
 	}
 
-	gboolean multiple, debayer, symbolic_link;
 	GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("multiple_seq"));
-	multiple = gtk_toggle_button_get_active(toggle);
+	gboolean multiple = gtk_toggle_button_get_active(toggle);
 	toggle = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-	debayer = gtk_toggle_button_get_active(toggle);
+	gboolean debayer = gtk_toggle_button_get_active(toggle);
 	toggle = GTK_TOGGLE_BUTTON(lookup_widget("convert_symlink"));
-	symbolic_link = gtk_toggle_button_get_active(toggle);
+	gboolean symbolic_link = gtk_toggle_button_get_active(toggle);
 
 	if (output_type == SEQ_REGULAR && debayer && symbolic_link) {
 		siril_log_message(_("Symbolic links cannot be used when demosaicing the images, new images will be created\n"));
@@ -163,6 +171,12 @@ static void initialize_convert() {
 	if (multiple && there_is_an_image) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
 				_("Creating multiple sequences can only be done with only sequences as input."));
+		g_list_free_full(list, g_free);
+		return;
+	}
+	if (output_type == SEQ_SER && there_is_an_xtrans && !debayer) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("A conflict has been detected."),
+				_("FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. You may use FITS sequences instead."));
 		g_list_free_full(list, g_free);
 		return;
 	}
@@ -196,6 +210,7 @@ static void initialize_convert() {
 	args->total = count;
 	args->nb_converted_files = 0;
 	args->input_has_a_seq = !no_sequence_to_convert;
+	args->input_has_a_film = there_is_a_film;
 	args->destroot = g_strdup(destroot);
 	args->debayer = debayer;
 	args->make_link = symbolic_link;

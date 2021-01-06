@@ -567,10 +567,10 @@ gpointer convert_thread_worker(gpointer p) {
 		siril_log_message(_("disabling incompatible multiple output option in conversion\n"));
 		args->multiple_output = FALSE;
 	}
-	int initial_thread_limit = max(1, com.max_thread / 2);
-	siril_debug_print("Starting conversion with %d threads and writer queue length\n", initial_thread_limit);
+	int initial_wqueue_limit = args->input_has_a_film ? 3 : max(1, com.max_thread / 2);
+	siril_debug_print("Starting conversion with %d writer queue length\n", initial_wqueue_limit);
 	if (args->output_type == SEQ_SER || args->output_type == SEQ_FITSEQ) {
-		seqwriter_set_max_active_blocks(initial_thread_limit);
+		seqwriter_set_max_active_blocks(initial_wqueue_limit);
 	}
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
 
@@ -586,7 +586,7 @@ gpointer convert_thread_worker(gpointer p) {
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
 	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_to_16bit;
-	GThreadPool *pool = g_thread_pool_new(pool_worker, &convert, com.max_thread, FALSE, NULL);
+	GThreadPool *pool = g_thread_pool_new(pool_worker, &convert, args->input_has_a_film ? 1 : com.max_thread, FALSE, NULL);
 	open_next_input_seq(&convert);
 	open_next_output_seq(args, &convert);
 	do {
@@ -892,7 +892,7 @@ static int make_link(struct readwrite_data *rwdata) {
 }
 
 static void readjust_memory_limits(convert_status *conv, fits *fit) {
-	if (g_atomic_int_add(&conv->first, 1))
+	if (g_atomic_int_add(&conv->first, 1) || conv->args->input_has_a_film)
 		return;
 	int nb_images = compute_nb_images_fit_mem(fit);
 	if (nb_images < 0) {

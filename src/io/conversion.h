@@ -18,6 +18,7 @@ struct _convert_data {
 	int total;	// length of list
 	int start;	// offset in output number
 	gboolean input_has_a_seq;
+	gboolean input_has_a_film;
 	gboolean make_link;
 	gchar *destroot;
 	gboolean debayer;
