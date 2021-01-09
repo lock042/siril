@@ -430,11 +430,15 @@ int set_seq(const char *name){
 	if (seq->type == SEQ_AVI) {
 		convert = siril_confirm_dialog(_("Deprecated sequence"),
 				_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
-						" We strongly encourage you to convert this sequence to a SER file."
+						" We strongly encourage you to convert this sequence into a SER file."
+						" SER file format is a simple image sequence format, similar to uncompressed films.\n"
 						" Do you want to proceed?"));
 	}
 
-	if (!convert) {
+	if (convert) {
+		close_sequence(FALSE);
+		convert_single_film_to_ser(seq);
+	} else {
 		int retval = seq_check_basic_data(seq, TRUE);
 		if (retval == -1) {
 			free(seq);
@@ -494,10 +498,6 @@ int set_seq(const char *name){
 		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
 		redraw(com.cvport, REMAP_ALL);
 		drawPlot();
-	} else {
-		close_sequence(FALSE);
-
-		convert_single_film_to_ser(seq);
 	}
 
 	return 0;
