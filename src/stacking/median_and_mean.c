@@ -65,6 +65,8 @@ static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
 // in this case, N is the number of frames, so int is fine
 static float siril_stats_ushort_sd(const WORD data[], int N) {
 	double accumulator = 0.0; // accumulating in double precision is important for accuracy
+	// TODO: what the hell is that function? It's bad (and that ^ wrong)
+	// and must be removed, optimized functions must be used instead
 	for (int i = 0; i < N; ++i) {
 		accumulator += data[i];
 	}
@@ -195,6 +197,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		import_metadata_from_serfile(args->seq->ser_file, fit);
 		for (unsigned int frame = 0; frame < args->seq->number; frame++) {
 			fits fit = { 0 };
+			// WHAT??
 			if (ser_read_frame(args->seq->ser_file, frame, &fit)) {
 				siril_log_message(_("Could not load frame %d from SER sequence %s\n"), frame, args->seq->seqname);
 				continue;
@@ -219,6 +222,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 
 		for (unsigned int frame = 0; frame < args->seq->number; frame++) {
 			fits fit = { 0 };
+			// WHAT??
 			if (fitseq_read_frame(args->seq->fitseq_file, frame, &fit, FALSE, -1)) {
 				siril_log_message(_("Could not load frame %d from FITS sequence %s\n"), frame, args->seq->seqname);
 				continue;
@@ -241,18 +245,28 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	return ST_OK;
 }
 
-int stack_compute_parallel_blocks(struct _image_block **blocksptr, int max_number_of_rows,
-		int nb_channels, long *naxes, size_t *largest_block_height,
-		int *nb_blocks, int nb_threads) {
-	int size_of_stacks = max_number_of_rows;
-	if (size_of_stacks == 0)
-		size_of_stacks = 1;
+/* median or mean stacking require that the value of each pixel from all images
+ * is available. We cannot load all images in memory and it's too slow to read
+ * one pixel at a time in all images, so we prepare blocks.
+ * Blocks are a part of a channel that will be read from all images, and the
+ * stacking will be done on each pixel of the block before going to the next.
+ * Parallelization of work is done by assigning some blocks to a thread, which
+ * it will process sequentially.
+ * To improve load distribution, blocks should be small enough to allow all
+ * threads to work but as big as possible for the available memory.
+ */
+int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
+		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
+	int height_of_blocks = max_number_of_rows / nb_threads;
+	if (height_of_blocks == 0)
+		height_of_blocks = 1;
 	/* Note: this size of stacks based on the max memory configured doesn't take into
 	 * account memory for demosaicing if it applies.
 	 * Now we compute the total number of "stacks" which are the independent areas where
 	 * the stacking will occur. This will then be used to create the image areas. */
 	int remainder;
-	if (naxes[1] / size_of_stacks < nb_threads) {
+	if (naxes[1] < height_of_blocks) {
+		/* ----------------------- BELOW THIS LINE: TO REWRITE ------------------------ */
 		/* We have enough RAM to process each channel with nb_threads threads.
 		 * We should cut images at least in nb_threads on one channel to use enough threads,
 		 * and if only one is available, it will use much less RAM for a small time overhead.
@@ -260,33 +274,33 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, int max_numbe
 		 * it feels more responsive this way.
 		 */
 		int mult = 1;
-		// calculate mult so nb_blocks will be a multiple of nb_channels * nb_threads
-		while ((mult * nb_channels) % nb_threads) {
+		// calculate mult so nb_blocks will be a multiple of naxes[2] * nb_threads
+		while ((mult * naxes[2]) % nb_threads) {
 			++mult;
 		}
-		if (nb_channels == 1) {
+		if (naxes[2] == 1) {
 			mult *= 2;
 		}
 
-		*nb_blocks = mult * nb_channels;
-		size_of_stacks = naxes[1] / mult;
+		*nb_blocks = mult * naxes[2];
+		height_of_blocks = naxes[1] / mult;
 		remainder = naxes[1] % mult;
 	} else {
 		/* We don't have enough RAM to process a channel with all available threads */
-		*nb_blocks = naxes[1] * nb_channels / size_of_stacks;
-		if (*nb_blocks % nb_channels != 0
-				|| (naxes[1] * nb_channels) % size_of_stacks != 0) {
+		*nb_blocks = naxes[1] * naxes[2] / height_of_blocks;
+		if (*nb_blocks % naxes[2] != 0
+				|| (naxes[1] * naxes[2]) % height_of_blocks != 0) {
 			/* we need to take into account the fact that the stacks are computed for
 			 * each channel, not for the total number of pixels. So it needs to be
 			 * a factor of the number of channels.
 			 */
-			*nb_blocks += nb_channels - (*nb_blocks % nb_channels);
-			size_of_stacks = naxes[1] * nb_channels / *nb_blocks;
+			*nb_blocks += naxes[2] - (*nb_blocks % naxes[2]);
+			height_of_blocks = naxes[1] * naxes[2] / *nb_blocks;
 		}
-		remainder = naxes[1] - (*nb_blocks / nb_channels * size_of_stacks);
+		remainder = naxes[1] - (*nb_blocks / naxes[2] * height_of_blocks);
 	}
 	siril_log_message(_("We have %d parallel blocks of size %d (+%d) for stacking.\n"),
-			*nb_blocks, size_of_stacks, remainder);
+			*nb_blocks, height_of_blocks, remainder);
 
 	*largest_block_height = 0;
 	long channel = 0, row = 0, end, j = 0;
@@ -305,7 +319,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, int max_numbe
 
 		blocks[j].channel = channel;
 		blocks[j].start_row = row;
-		end = row + size_of_stacks - 1; 
+		end = row + height_of_blocks - 1; 
 		if (remainder > 0) {
 			// just add one pixel from the remainder to the first blocks to
 			// avoid having all of them in the last block
@@ -313,11 +327,11 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, int max_numbe
 			remainder--;
 		}
 		if (end >= naxes[1] - 1 ||	// end of the line
-				(naxes[1] - end < size_of_stacks / 10)) { // not far from it
+				(naxes[1] - end < height_of_blocks / 10)) { // not far from it
 			end = naxes[1] - 1;
 			row = 0;
 			channel++;
-			remainder = naxes[1] - (*nb_blocks / nb_channels * size_of_stacks);
+			remainder = naxes[1] - (*nb_blocks / naxes[2] * height_of_blocks);
 		} else {
 			row = end + 1;
 		}
@@ -331,7 +345,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, int max_numbe
 				blocks[j].end_row, blocks[j].height);
 		j++;
 
-	} while (channel < nb_channels) ;
+	} while (channel < naxes[2]) ;
 
 	return ST_OK;
 }
@@ -720,22 +734,39 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 	}
 }
 
+/* how many rows fit in memory, based on image size, number and available memory */
+static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack) {
+	int max_memory = get_max_memory_in_MB();
+	long total_nb_rows = naxes[1] * naxes[2];
+	if (max_memory > 0) {
+		siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
+		int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
+			((guint64)naxes[0] * nb_images_to_stack * elem_size);
+		// this is how many rows we can load in parallel from all images of the
+		// sequence and be under the limit defined in config in megabytes.
+		if (total_nb_rows < number_of_rows)
+			return total_nb_rows;
+		return (long)number_of_rows;
+	} else {
+		siril_log_message(_("Not using limits on maximum memory for stacking\n"));
+		return naxes[1] * naxes[2];
+	}
+}
+
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
-	int nb_frames;		/* number of frames actually used */
 	int bitpix, i, naxis, cur_nb = 0, retval = ST_OK, pool_size = 1;
 	long naxes[3];
-	GList *list_date = NULL;
 	struct _data_block *data_pool = NULL;
 	struct _image_block *blocks = NULL;
-	data_type itype;	// input data type
-	fits fit = { 0 }, *fptr; // output result
+	fits fit = { 0 }; // output result
 	fits ref = { 0 }; // reference image, used to get metadata back
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
 	gboolean use_regdata = is_mean;
 
-	nb_frames = args->nb_images_to_stack;
+	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
 
 	if (nb_frames < 2) {
@@ -746,7 +777,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 	if (use_regdata) {
 		if (args->reglayer < 0) {
-			fprintf(stderr, "No registration layer passed, ignoring regdata!\n");
+			siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
 			use_regdata = FALSE;
 		}
 		else layerparam = args->seq->regparam[args->reglayer];
@@ -755,22 +786,30 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
 	/* first loop: open all fits files and check they are of same size */
+	GList *list_date = NULL;
 	if ((retval = stack_open_all_files(args, &bitpix, &naxis, naxes, &list_date, &ref))) {
 		goto free_and_close;
 	}
 
-	itype = get_data_type(bitpix);
-
 	if (naxes[0] == 0) {
 		// no image has been loaded
-		siril_log_message(_("Rejection stack error: uninitialized sequence\n"));
+		siril_log_color_message(_("Rejection stack error: uninitialized sequence\n"), "red");
 		retval = ST_SEQUENCE_ERROR;
 		goto free_and_close;
+	}
+	if (naxes[0] != args->seq->rx || naxes[1] != args->seq->ry) {
+		siril_log_color_message(_("Rejection stack error: sequence has wrong image size (%dx%d for sequence, %ldx%ld for images)\n"), "red", args->seq->rx, args->seq->ry, naxes[0], naxes[1]);
+		retval = ST_SEQUENCE_ERROR;
+		goto free_and_close;
+	}
+	if (sequence_is_rgb(args->seq) && naxes[2] != 3) {
+		siril_log_message(_("Processing the sequence as RGB\n"));
+		naxes[2] = 3;
 	}
 	fprintf(stdout, "image size: %ldx%ld, %ld layers\n", naxes[0], naxes[1], naxes[2]);
 
 	/* initialize result image */
-	fptr = &fit;
+	fits *fptr = &fit;
 	if ((retval = new_fit_image(&fptr, naxes[0], naxes[1], naxes[2],
 					args->use_32bit_output ? DATA_FLOAT : DATA_USHORT))) {
 		goto free_and_close;
@@ -783,9 +822,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			fit.orig_bitpix = USHORT_IMG;
 	}
 
-	/* Define some useful constants */
-	double total = (double)(naxes[2] * naxes[1] + 2);	// only used for progress bar
-
+	/* manage threads */
 	int nb_threads;
 #ifdef _OPENMP
 	nb_threads = com.max_thread;
@@ -800,21 +837,22 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			siril_log_message(_("Your version of cfitsio does not support multi-threading\n"));
 		}
 	}
+	if (args->seq->type == SEQ_AVI) {
+		siril_log_color_message(_("Stacking a film will work only on one core and will be slower than if you convert it to SER\n"), "salmon");
+		nb_threads = 1;
+	}
 #else
 	nb_threads = 1;
 #endif
 
-	int nb_channels = naxes[2];
-	if (sequence_is_rgb(args->seq) && nb_channels != 3) {
-		siril_log_message(_("Processing the sequence as RGB\n"));
-		nb_channels = 3;
-	}
-
-	size_t largest_block_height;
+	/* manage memory */
+	long largest_block_height;
 	int nb_blocks;
+	data_type itype = get_data_type(bitpix);
+	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
-	if ((retval = stack_compute_parallel_blocks(&blocks, args->max_number_of_rows, nb_channels,
-					naxes, &largest_block_height, &nb_blocks, nb_threads))) {
+	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
+					&largest_block_height, &nb_blocks))) {
 		goto free_and_close;
 	}
 
@@ -893,6 +931,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	if (is_mean)
 		set_progress_bar_data(_("Rejection stacking in progress..."), PROGRESS_RESET);
 	else	set_progress_bar_data(_("Median stacking in progress..."), PROGRESS_RESET);
+	double total = (double)(naxes[2] * naxes[1] + 2); // for progress bar
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(nb_threads) private(i) schedule(dynamic) if (nb_threads > 1 && (args->seq->type == SEQ_SER || fits_is_reentrant()))

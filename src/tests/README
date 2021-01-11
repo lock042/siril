@@ -1,3 +1,14 @@
+mkdir _build
+meson --buildtype release _build
+cd _build
+ninja
+ninja install
+
+meson test (ou meson test -C _build si tu build tout dans le dossier _build
+et que tu es dans src)
+meson test -v
+criterion https://criterion.readthedocs.io/en/master/intro.html
+
 There are different kinds of files in this directory:
 - compare_fits is a program that can be used to compare FITS files, to verify
   that an algorithm always computes the same thing for example
