@@ -257,48 +257,28 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
  */
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
 		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
-	int height_of_blocks = max_number_of_rows / nb_threads;
-	if (height_of_blocks == 0)
-		height_of_blocks = 1;
-	/* Note: this size of stacks based on the max memory configured doesn't take into
-	 * account memory for demosaicing if it applies.
-	 * Now we compute the total number of "stacks" which are the independent areas where
-	 * the stacking will occur. This will then be used to create the image areas. */
 	int remainder;
-	if (naxes[1] < height_of_blocks) {
-		/* ----------------------- BELOW THIS LINE: TO REWRITE ------------------------ */
-		/* We have enough RAM to process each channel with nb_threads threads.
-		 * We should cut images at least in nb_threads on one channel to use enough threads,
-		 * and if only one is available, it will use much less RAM for a small time overhead.
-		 * Also, for slow data access like rotating drives or on-the-fly debayer,
-		 * it feels more responsive this way.
-		 */
-		int mult = 1;
-		// calculate mult so nb_blocks will be a multiple of naxes[2] * nb_threads
-		while ((mult * naxes[2]) % nb_threads) {
-			++mult;
-		}
-		if (naxes[2] == 1) {
-			mult *= 2;
-		}
 
-		*nb_blocks = mult * naxes[2];
-		height_of_blocks = naxes[1] / mult;
-		remainder = naxes[1] % mult;
-	} else {
-		/* We don't have enough RAM to process a channel with all available threads */
-		*nb_blocks = naxes[1] * naxes[2] / height_of_blocks;
-		if (*nb_blocks % naxes[2] != 0
-				|| (naxes[1] * naxes[2]) % height_of_blocks != 0) {
-			/* we need to take into account the fact that the stacks are computed for
-			 * each channel, not for the total number of pixels. So it needs to be
-			 * a factor of the number of channels.
-			 */
-			*nb_blocks += naxes[2] - (*nb_blocks % naxes[2]);
-			height_of_blocks = naxes[1] * naxes[2] / *nb_blocks;
-		}
-		remainder = naxes[1] - (*nb_blocks / naxes[2] * height_of_blocks);
-	}
+
+	int candidate = nb_threads;	// candidate number of blocks
+	while ((max_number_of_rows * candidate) / nb_threads < naxes[1] * naxes[2])
+		candidate++;
+	// we need at least candidate blocks, but this number must be divisible by the
+	// number of channels or they won't be nearly the same size. It must also be
+	// divisible by the number of threads, or possibly by the number of threads - 1
+	// when there are many
+	int factor_of = 1;
+	if (naxes[2] == 3L)
+	       factor_of *= 3;
+	/* make it factor of the number of threads */
+	if (factor_of != 1 && nb_threads % factor_of == 0)
+		factor_of = nb_threads;
+	else factor_of *= nb_threads;
+	candidate = round_to_ceiling_multiple(candidate, factor_of);
+
+	*nb_blocks = candidate;
+	long height_of_blocks = naxes[1] * naxes[2] / candidate;
+	remainder = naxes[1] % (candidate / naxes[2]);
 	siril_log_message(_("We have %d parallel blocks of size %d (+%d) for stacking.\n"),
 			*nb_blocks, height_of_blocks, remainder);
 
@@ -734,7 +714,8 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 	}
 }
 
-/* how many rows fit in memory, based on image size, number and available memory */
+/* How many rows fit in memory, based on image size, number and available memory.
+ * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
 static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];

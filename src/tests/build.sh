@@ -20,7 +20,7 @@ set -x
 # compile the stacking tests
 $CC $CFLAGS -c -o stacking_blocks_test.o stacking_blocks_test.c &&
 $CC $CFLAGS -DDUMMY_LOG -c -o dummy.o dummy.c &&
-$LD $LDFLAGS -o stacking_blocks_test stacking_blocks_test.o ../stacking/median_and_mean.o dummy.o
+$LD $LDFLAGS -o stacking_blocks_test stacking_blocks_test.o ../stacking/median_and_mean.o ../core/utils.o dummy.o
 
 # in mpp, a libsiril.a was created to not require the endless dummy list of functions:
 # https://gitlab.com/free-astro/siril/-/blob/mpp/src/Makefile.am
