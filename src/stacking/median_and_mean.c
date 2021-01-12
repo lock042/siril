@@ -992,11 +992,11 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			if (!(cur_nb % 16))	// every 16 iterations
 				set_progress_bar_data(NULL, (double)cur_nb/total);
 
-			for (x = 0; x < naxes[0]; ++x){
-				int frame;
+			for (x = 0; x < naxes[0]; ++x) {
+				int stack_size = nb_frames;
 				/* copy all images pixel values in the same row array `stack'
 				 * to optimize caching and improve readability */
-				for (frame = 0; frame < nb_frames; ++frame) {
+				for (int frame = 0; frame < nb_frames; ++frame) {
 					int pix_idx = line_idx + x;
 					if (use_regdata) {
 						int shiftx = 0;
@@ -1012,6 +1012,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							if (itype == DATA_FLOAT)
 								((float*)data->stack)[frame] = 0.0f;
 							else	((WORD *)data->stack)[frame] = 0;
+							stack_size--;
 							continue;
 						}
 
@@ -1065,23 +1066,23 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				if (is_mean) {
 					double mean;
 					if (itype == DATA_USHORT) {
-						int kept_pixels = apply_rejection_ushort(data, nb_frames, args, crej);
+						int kept_pixels = apply_rejection_ushort(data, stack_size, args, crej);
 						if (kept_pixels == 0)
-							mean = quickmedian(data->stack, nb_frames);
+							mean = quickmedian(data->stack, stack_size);
 						else {
 							gint64 sum = 0L;
-							for (frame = 0; frame < kept_pixels; ++frame) {
+							for (int frame = 0; frame < kept_pixels; ++frame) {
 								sum += ((WORD *)data->stack)[frame];
 							}
 							mean = sum / (double)kept_pixels;
 						}
 					} else {
-						int kept_pixels = apply_rejection_float(data, nb_frames, args, crej);
+						int kept_pixels = apply_rejection_float(data, stack_size, args, crej);
 						if (kept_pixels == 0)
-							mean = quickmedian_float(data->stack, nb_frames);
+							mean = quickmedian_float(data->stack, stack_size);
 						else {
 							double sum = 0.0;
-							for (frame = 0; frame < kept_pixels; ++frame) {
+							for (int frame = 0; frame < kept_pixels; ++frame) {
 								sum += ((float*)data->stack)[frame];
 							}
 							mean = sum / (double)kept_pixels;
@@ -1090,8 +1091,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					result = mean;
 				} else {
 					if (itype == DATA_USHORT)
-						result = quickmedian(data->stack, nb_frames);
-					else 	result = quickmedian_float(data->stack, nb_frames);
+						result = quickmedian(data->stack, stack_size);
+					else 	result = quickmedian_float(data->stack, stack_size);
 				}
 
 				if (args->use_32bit_output) {
