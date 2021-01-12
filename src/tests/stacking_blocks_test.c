@@ -10,6 +10,11 @@ cominfo com;	// the main data struct
  * for siril median or mean stacking.
  */
 
+/* inputs : image 3D dimensions, number of images, channel depth, configured
+ *	memory limits, actual memory available, configured thread limit
+ * outputs : number of blocks and their size
+ */
+
 #define CHECK(cond, ...) \
 	if (cond) { \
 		fprintf(stderr, __VA_ARGS__); \
@@ -302,8 +307,3 @@ int main() {
 	return retval;
 }
 
-
-/* inputs : image 3D dimensions, number of images, channel depth, configured
- *	memory limits, actual memory available, configured thread limit
- * outputs : number of blocks and their size
- */

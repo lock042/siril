@@ -245,6 +245,36 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	return ST_OK;
 }
 
+/* The number of blocks must be divisible by the number of channels or they won't be
+ * nearly the same size. It must also be divisible by the number of threads, or possibly
+ * be close to being when there are many. This favors memory over threads, but since they
+ * all start reading at the same time their execution will likely shift, so it may be
+ * better to use all available memory.
+ */
+static int refine_blocks_candidate(int nb_threads, int nb_channels, int minimum_blocks) {
+	// we assume that minimum_blocks, the candidate, is at least equal to the number
+	// of threads
+	int factor_of = nb_channels;
+	if (nb_threads < 4) {
+		// only allow factors of nb_threads
+		if (factor_of != 1 && nb_threads % factor_of == 0)
+			factor_of = nb_threads;
+		else factor_of *= nb_threads;
+		return round_to_ceiling_multiple(minimum_blocks, factor_of);
+	}
+	// allow 1 minus the factor for 4 - 7 threads
+	// allow 3 minus the factor for 8 and more threads
+	int minus_factor_allowed = nb_threads < 8 ? 1 : 3;
+	int candidate = round_to_ceiling_multiple(minimum_blocks, factor_of);
+	do {
+		int rem = candidate % nb_threads;
+		if (rem == 0 || rem >= (nb_threads - minus_factor_allowed))
+			return candidate;
+		candidate += factor_of;
+	} while (1);
+	return candidate;
+}
+
 /* median or mean stacking require that the value of each pixel from all images
  * is available. We cannot load all images in memory and it's too slow to read
  * one pixel at a time in all images, so we prepare blocks.
@@ -257,28 +287,14 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
  */
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
 		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
-	int remainder;
-
-
 	int candidate = nb_threads;	// candidate number of blocks
 	while ((max_number_of_rows * candidate) / nb_threads < naxes[1] * naxes[2])
 		candidate++;
-	// we need at least candidate blocks, but this number must be divisible by the
-	// number of channels or they won't be nearly the same size. It must also be
-	// divisible by the number of threads, or possibly by the number of threads - 1
-	// when there are many
-	int factor_of = 1;
-	if (naxes[2] == 3L)
-	       factor_of *= 3;
-	/* make it factor of the number of threads */
-	if (factor_of != 1 && nb_threads % factor_of == 0)
-		factor_of = nb_threads;
-	else factor_of *= nb_threads;
-	candidate = round_to_ceiling_multiple(candidate, factor_of);
+	candidate = refine_blocks_candidate(nb_threads, (naxes[2] == 3L) ? 3 : 1, candidate);
 
 	*nb_blocks = candidate;
 	long height_of_blocks = naxes[1] * naxes[2] / candidate;
-	remainder = naxes[1] % (candidate / naxes[2]);
+	int remainder = naxes[1] % (candidate / naxes[2]);
 	siril_log_message(_("We have %d parallel blocks of size %d (+%d) for stacking.\n"),
 			*nb_blocks, height_of_blocks, remainder);
 

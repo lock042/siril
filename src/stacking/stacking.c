@@ -46,7 +46,7 @@
 #include "stacking.h"
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
-	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1, 0,
+	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
 	{ 0, 0 }, NO_REJEC, NO_NORM, { NULL, NULL, NULL}, FALSE, -1
 };
 
