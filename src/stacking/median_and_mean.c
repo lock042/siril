@@ -100,11 +100,11 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
 
 int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes, GList **list_date, fits *fit) {
 	char msg[256], filename[256];
-	int i, status, oldbitpix = 0, oldnaxis = -1, nb_frames = args->nb_images_to_stack;
+	int status, oldbitpix = 0, oldnaxis = -1, nb_frames = args->nb_images_to_stack;
 	long oldnaxes[3] = { 0 };
 
 	if (args->seq->type == SEQ_REGULAR) {
-		for (i = 0; i < nb_frames; ++i) {
+		for (int i = 0; i < nb_frames; ++i) {
 			int image_index = args->image_indices[i];	// image index in sequence
 			if (!get_thread_run()) {
 				return ST_GENERIC_ERROR;
@@ -166,9 +166,8 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			GDateTime *dt = NULL;
 
 			get_date_data_from_fitsfile(args->seq->fptr[image_index], &dt, &current_exp);
-			if (dt) {
+			if (dt)
 				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
-			}
 
 			/* We copy metadata from reference to the final fit */
 			if (image_index == args->ref_image)
@@ -194,23 +193,12 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			siril_log_message(_("Super-pixel is not handled yet for on the fly SER stacking\n"));
 			return ST_GENERIC_ERROR;
 		}
-		import_metadata_from_serfile(args->seq->ser_file, fit);
-		for (unsigned int frame = 0; frame < args->seq->number; frame++) {
-			fits fit = { 0 };
-			// WHAT??
-			if (ser_read_frame(args->seq->ser_file, frame, &fit)) {
-				siril_log_message(_("Could not load frame %d from SER sequence %s\n"), frame, args->seq->seqname);
-				continue;
-			}
-			gdouble current_exp;
-			GDateTime *dt = NULL;
 
-			current_exp = fit.exposure;
-			dt = g_date_time_ref(fit.date_obs);
-			if (dt) {
-				*list_date = g_list_prepend(*list_date,	new_item(dt, current_exp));
-			}
-			clearfits(&fit);
+		import_metadata_from_serfile(args->seq->ser_file, fit);
+		for (int frame = 0; frame < args->seq->number; frame++) {
+			GDateTime *dt = ser_read_frame_date(args->seq->ser_file, frame);
+			if (dt)
+				*list_date = g_list_prepend(*list_date,	new_item(dt, 0.0));
 		}
 	}
 	else if (args->seq->type == SEQ_FITSEQ) {
@@ -218,24 +206,22 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		memcpy(naxes, args->seq->fitseq_file->naxes, sizeof args->seq->fitseq_file->naxes);
 		*naxis = naxes[2] == 3 ? 3 : 2;
 		*bitpix = args->seq->fitseq_file->bitpix;
-		import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, fit);
 
-		for (unsigned int frame = 0; frame < args->seq->number; frame++) {
-			fits fit = { 0 };
-			// WHAT??
-			if (fitseq_read_frame(args->seq->fitseq_file, frame, &fit, FALSE, -1)) {
-				siril_log_message(_("Could not load frame %d from FITS sequence %s\n"), frame, args->seq->seqname);
-				continue;
+		for (int frame = 0; frame < args->seq->number; frame++) {
+			if (fitseq_set_current_frame(args->seq->fitseq_file, frame)) {
+				siril_log_color_message(_("There was an error opening frame %d for stacking\n"), "red", frame);
+				return ST_SEQUENCE_ERROR;
 			}
 			gdouble current_exp;
 			GDateTime *dt = NULL;
 
-			current_exp = fit.exposure;
-			dt = g_date_time_ref(fit.date_obs);
-			if (dt) {
-				*list_date = g_list_prepend(*list_date,	new_item(dt, current_exp));
-			}
-			clearfits(&fit);
+			get_date_data_from_fitsfile(args->seq->fitseq_file->fptr, &dt, &current_exp);
+			if (dt)
+				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
+
+			/* We copy metadata from reference to the final fit */
+			if (frame == args->ref_image)
+				import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, fit);
 		}
 	} else {
 		siril_log_message(_("Rejection stacking is only supported for FITS images/sequences and SER sequences.\nUse \"Sum Stacking\" instead.\n"));
@@ -350,9 +336,9 @@ static void stack_read_block_data(struct stacking_args *args, int use_regdata,
 		struct _image_block *my_block, struct _data_block *data,
 		long *naxes, data_type itype, int thread_id) {
 
-	int frame, ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	/* Read the block from all images, store them in pix[image] */
-	for (frame = 0; frame < args->nb_images_to_stack; ++frame){
+	for (int frame = 0; frame < args->nb_images_to_stack; ++frame){
 		gboolean clear = FALSE, readdata = TRUE;
 		long offset = 0;
 		/* area in C coordinates, starting with 0, not cfitsio coordinates. */

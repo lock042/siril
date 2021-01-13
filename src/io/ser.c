@@ -1346,3 +1346,10 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	*descr = description;
 	return pixbuf;
 }
+
+GDateTime *ser_read_frame_date(struct ser_struct *ser_file, int frame_no) {
+	if (ser_file->ts)
+		return ser_timestamp_to_date_time(ser_file->ts[frame_no]);
+	return NULL;
+}
+
