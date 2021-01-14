@@ -450,7 +450,8 @@ static void norm_to_0_1_range(fits *fit) {
  * after and similar to median but takes into account the registration data and
  * does a different operation to keep the final pixel values.
  *********************************************************************************/
-static int percentile_clipping(WORD pixel, float sig[], float median, guint64 rej[]) {
+
+static int percentile_clipping(WORD pixel, float sig[], float median, gint rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
 
@@ -468,7 +469,7 @@ static int percentile_clipping(WORD pixel, float sig[], float median, guint64 re
 /* Rejection of pixels, following sigma_(high/low) * sigma.
  * The function returns 0 if no rejections are required, 1 if it's a high
  * rejection and -1 for a low-rejection */
-static int sigma_clipping(WORD pixel, float sig[], float sigma, float median, guint64 rej[]) {
+static int sigma_clipping(WORD pixel, float sig[], float sigma, float median, gint rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -490,7 +491,7 @@ static void Winsorize(WORD *pixel, WORD m0, WORD m1, int N) {
 	}
 }
 
-static int line_clipping(WORD pixel, float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
+static int line_clipping(WORD pixel, float sig[], float sigma, int i, float a, float b, gint rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -504,7 +505,7 @@ static int line_clipping(WORD pixel, float sig[], float sigma, int i, float a, f
 	return 0;
 }
 
-static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struct stacking_args *args, guint64 crej[2]) {
+static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struct stacking_args *args, gint crej[2]) {
 	int N = nb_frames;	// N is the number of pixels kept from the current stack
 	float median = 0.f;
 	int pixel, output, changed, n, r = 0;
@@ -667,6 +668,35 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			;		// Nothing to do, no rejection
 	}
 	return N;
+}
+
+static double mean_and_reject(struct stacking_args *args, struct _data_block *data,
+		int stack_size, data_type itype, gint crej[2]) {
+	double mean;
+	if (itype == DATA_USHORT) {
+		int kept_pixels = apply_rejection_ushort(data, stack_size, args, crej);
+		if (kept_pixels == 0)
+			mean = quickmedian(data->stack, stack_size);
+		else {
+			gint64 sum = 0L;
+			for (int frame = 0; frame < kept_pixels; ++frame) {
+				sum += ((WORD *)data->stack)[frame];
+			}
+			mean = sum / (double)kept_pixels;
+		}
+	} else {
+		int kept_pixels = apply_rejection_float(data, stack_size, args, crej);
+		if (kept_pixels == 0)
+			mean = quickmedian_float(data->stack, stack_size);
+		else {
+			double sum = 0.0;
+			for (int frame = 0; frame < kept_pixels; ++frame) {
+				sum += ((float*)data->stack)[frame];
+			}
+			mean = sum / (double)kept_pixels;
+		}
+	}
+	return mean;
 }
 
 int stack_mean_with_rejection(struct stacking_args *args) {
@@ -962,7 +992,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			size_t pdata_idx = (naxes[1] - (my_block->start_row + y) - 1) * naxes[0];
 			/* index of the line in the read data, data->pix[frame] */
 			size_t line_idx = y * naxes[0];
-			guint64 crej[2] = {0, 0};
+			gint crej[2] = {0, 0};
 			if (retval) break;
 
 			// update progress bar
@@ -979,7 +1009,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				set_progress_bar_data(NULL, (double)cur_nb/total);
 
 			for (x = 0; x < naxes[0]; ++x) {
-				int stack_size = nb_frames;
+				int stack_size = 0;
 				/* copy all images pixel values in the same row array `stack'
 				 * to optimize caching and improve readability */
 				for (int frame = 0; frame < nb_frames; ++frame) {
@@ -993,12 +1023,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 						}
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {
-							/* outside bounds, images are black. We could
-							 * also set the background value instead, if available */
-							if (itype == DATA_FLOAT)
-								((float*)data->stack)[frame] = 0.0f;
-							else	((WORD *)data->stack)[frame] = 0;
-							stack_size--;
+							/* outside bounds, ignoring the pixel */
 							continue;
 						}
 
@@ -1007,17 +1032,17 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 					WORD pixel = 0; float fpixel = 0.f;
 					if (itype == DATA_FLOAT)
-						fpixel = ((float*) data->pix[frame])[pix_idx];
+						fpixel = ((float*) data->pix[stack_size])[pix_idx];
 					else
-						pixel = ((WORD*) data->pix[frame])[pix_idx];
+						pixel = ((WORD*) data->pix[stack_size])[pix_idx];
 					double tmp;
 					switch (args->normalize) {
 						default:
 						case NO_NORM:
 							// no normalization (scale[frame] = 1, offset[frame] = 0, mul[frame] = 1)
 							if (itype == DATA_FLOAT)
-								((float*)data->stack)[frame] = fpixel;
-							else	((WORD *)data->stack)[frame] = pixel;
+								((float*)data->stack)[stack_size] = fpixel;
+							else	((WORD *)data->stack)[stack_size] = pixel;
 							/* it's faster if we don't convert it to double
 							 * to make identity operations */
 							break;
@@ -1027,10 +1052,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							// additive + scale (mul[frame] = 1)
 							if (itype == DATA_FLOAT) {
 								tmp = fpixel * args->coeff.scale[frame];
-								((float*)data->stack)[frame] = (float)(tmp - args->coeff.offset[frame]);
+								((float*)data->stack)[stack_size] = (float)(tmp - args->coeff.offset[frame]);
 							} else {
 								tmp = (double)pixel * args->coeff.scale[frame];
-								((WORD *)data->stack)[frame] = round_to_WORD(tmp - args->coeff.offset[frame]);
+								((WORD *)data->stack)[stack_size] = round_to_WORD(tmp - args->coeff.offset[frame]);
 							}
 							break;
 						case MULTIPLICATIVE:
@@ -1039,46 +1064,29 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							// multiplicative + scale (offset[frame] = 0)
 							if (itype == DATA_FLOAT) {
 								tmp = fpixel * args->coeff.scale[frame];
-								((float*)data->stack)[frame] = (float)(tmp * args->coeff.mul[frame]);
+								((float*)data->stack)[stack_size] = (float)(tmp * args->coeff.mul[frame]);
 							} else {
 								tmp = (double)pixel * args->coeff.scale[frame];
-								((WORD *)data->stack)[frame] = round_to_WORD(tmp * args->coeff.mul[frame]);
+								((WORD *)data->stack)[stack_size] = round_to_WORD(tmp * args->coeff.mul[frame]);
 							}
 							break;
 					}
+					stack_size++;
 				}
 
 				double result; // resulting pixel value, either mean or median
-				if (is_mean) {
-					double mean;
-					if (itype == DATA_USHORT) {
-						int kept_pixels = apply_rejection_ushort(data, stack_size, args, crej);
-						if (kept_pixels == 0)
-							mean = quickmedian(data->stack, stack_size);
-						else {
-							gint64 sum = 0L;
-							for (int frame = 0; frame < kept_pixels; ++frame) {
-								sum += ((WORD *)data->stack)[frame];
-							}
-							mean = sum / (double)kept_pixels;
-						}
+				if (stack_size == 0)
+					result = 0.0;
+				else if (stack_size == 1)
+					result = (double)(itype == DATA_USHORT ? ((WORD *)data->stack)[0] : ((float*)data->stack)[0]);
+				else {
+					if (is_mean) {
+						result = mean_and_reject(args, data, stack_size, itype, crej);
 					} else {
-						int kept_pixels = apply_rejection_float(data, stack_size, args, crej);
-						if (kept_pixels == 0)
-							mean = quickmedian_float(data->stack, stack_size);
-						else {
-							double sum = 0.0;
-							for (int frame = 0; frame < kept_pixels; ++frame) {
-								sum += ((float*)data->stack)[frame];
-							}
-							mean = sum / (double)kept_pixels;
-						}
+						if (itype == DATA_USHORT)
+							result = quickmedian(data->stack, stack_size);
+						else 	result = quickmedian_float(data->stack, stack_size);
 					}
-					result = mean;
-				} else {
-					if (itype == DATA_USHORT)
-						result = quickmedian(data->stack, stack_size);
-					else 	result = quickmedian_float(data->stack, stack_size);
 				}
 
 				if (args->use_32bit_output) {
@@ -1097,12 +1105,13 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 			if (is_mean && args->type_of_rejection != NO_REJEC) {
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-				{
-					irej[my_block->channel][0] += crej[0];
-					irej[my_block->channel][1] += crej[1];
-				}
+				irej[my_block->channel][0] += crej[0];
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				irej[my_block->channel][1] += crej[1];
 			}
 
 		} // end of for y
