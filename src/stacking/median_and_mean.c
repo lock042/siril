@@ -1009,7 +1009,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				set_progress_bar_data(NULL, (double)cur_nb/total);
 
 			for (x = 0; x < naxes[0]; ++x) {
-				int stack_size = 0;
 				/* copy all images pixel values in the same row array `stack'
 				 * to optimize caching and improve readability */
 				for (int frame = 0; frame < nb_frames; ++frame) {
@@ -1023,7 +1022,11 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 						}
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {
-							/* outside bounds, ignoring the pixel */
+							/* outside bounds, images are black. We could
+							 * also set the background value instead, if available */
+							if (itype == DATA_FLOAT)
+								((float*)data->stack)[frame] = 0.0f;
+							else ((WORD *)data->stack)[frame] = 0;
 							continue;
 						}
 
@@ -1041,8 +1044,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 						case NO_NORM:
 							// no normalization (scale[frame] = 1, offset[frame] = 0, mul[frame] = 1)
 							if (itype == DATA_FLOAT)
-								((float*)data->stack)[stack_size] = fpixel;
-							else	((WORD *)data->stack)[stack_size] = pixel;
+								((float*)data->stack)[frame] = fpixel;
+							else	((WORD *)data->stack)[frame] = pixel;
 							/* it's faster if we don't convert it to double
 							 * to make identity operations */
 							break;
@@ -1052,10 +1055,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							// additive + scale (mul[frame] = 1)
 							if (itype == DATA_FLOAT) {
 								tmp = fpixel * args->coeff.scale[frame];
-								((float*)data->stack)[stack_size] = (float)(tmp - args->coeff.offset[frame]);
+								((float*)data->stack)[frame] = (float)(tmp - args->coeff.offset[frame]);
 							} else {
 								tmp = (double)pixel * args->coeff.scale[frame];
-								((WORD *)data->stack)[stack_size] = round_to_WORD(tmp - args->coeff.offset[frame]);
+								((WORD *)data->stack)[frame] = round_to_WORD(tmp - args->coeff.offset[frame]);
 							}
 							break;
 						case MULTIPLICATIVE:
@@ -1064,29 +1067,22 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							// multiplicative + scale (offset[frame] = 0)
 							if (itype == DATA_FLOAT) {
 								tmp = fpixel * args->coeff.scale[frame];
-								((float*)data->stack)[stack_size] = (float)(tmp * args->coeff.mul[frame]);
+								((float*)data->stack)[frame] = (float)(tmp * args->coeff.mul[frame]);
 							} else {
 								tmp = (double)pixel * args->coeff.scale[frame];
-								((WORD *)data->stack)[stack_size] = round_to_WORD(tmp * args->coeff.mul[frame]);
+								((WORD *)data->stack)[frame] = round_to_WORD(tmp * args->coeff.mul[frame]);
 							}
 							break;
 					}
-					stack_size++;
 				}
 
 				double result; // resulting pixel value, either mean or median
-				if (stack_size == 0)
-					result = 0.0;
-				else if (stack_size == 1)
-					result = (double)(itype == DATA_USHORT ? ((WORD *)data->stack)[0] : ((float*)data->stack)[0]);
-				else {
-					if (is_mean) {
-						result = mean_and_reject(args, data, stack_size, itype, crej);
-					} else {
-						if (itype == DATA_USHORT)
-							result = quickmedian(data->stack, stack_size);
-						else 	result = quickmedian_float(data->stack, stack_size);
-					}
+				if (is_mean) {
+					result = mean_and_reject(args, data, nb_frames, itype, crej);
+				} else {
+					if (itype == DATA_USHORT)
+						result = quickmedian(data->stack, nb_frames);
+					else 	result = quickmedian_float(data->stack, nb_frames);
 				}
 
 				if (args->use_32bit_output) {
