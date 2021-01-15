@@ -48,6 +48,7 @@ int check_that_blocks_cover_the_image(long naxes[3], struct _image_block *blocks
  *   9     3      not enough for 3      8
  *  10     3      not enough for 2      8
  *  11     3      not enough for 1      8
+ *  12     3      not enough for 2     12
  *
  */
 
@@ -287,6 +288,32 @@ int test11() {
 	return 0;
 }
 
+int test12() {
+	// intputs
+	long naxes[] = { 6024L, 4024L, 3L };
+	int nb_threads = 12;
+	int nb_images = 209;
+	long max_rows = 27295481856 / (nb_images * naxes[0] * 4); // 27295481856 is available mem
+
+	// outputs
+	struct _image_block *blocks = NULL;
+	int retval, nb_blocks = -1;
+	long largest_block = -1;
+
+	/* case 12: real data that triggered the bug: 209 big images, 32 GB of
+	 * memory, 12 threads, that's enough memory to process a bit more than one
+	 * channel at time, similar to test 10.
+	 * Typical solution: 33 parallel blocks of size 365 (+9)
+	 */
+	retval = stack_compute_parallel_blocks(&blocks, max_rows, naxes, nb_threads, &largest_block, &nb_blocks);
+	CHECK(retval, "retval indicates function failed\n");
+	CHECK(nb_blocks < 33, "number of blocks returned is %d (expected at least 33)\n", nb_blocks);
+	CHECK(!blocks, "blocks is null\n");
+	CHECK(!check_that_blocks_cover_the_image(naxes, blocks, nb_blocks), "blocks don't cover the whole image\n");
+	CHECK(largest_block * nb_threads > max_rows, "this is solution is going out of memory\n");
+	fprintf(stdout, "* test 12 passed *\n");
+	return 0;
+}
 
 int main() {
 	int retval = 0;
@@ -301,6 +328,7 @@ int main() {
 	retval |= test9();
 	retval |= test10();
 	retval |= test11();
+	retval |= test12();
 	if (retval)
 		fprintf(stderr, "TESTS FAILED\n");
 	else fprintf(stderr, "ALL TESTS PASSED\n");

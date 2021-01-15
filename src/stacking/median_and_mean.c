@@ -1032,9 +1032,9 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 					WORD pixel = 0; float fpixel = 0.f;
 					if (itype == DATA_FLOAT)
-						fpixel = ((float*) data->pix[stack_size])[pix_idx];
+						fpixel = ((float*) data->pix[frame])[pix_idx];
 					else
-						pixel = ((WORD*) data->pix[stack_size])[pix_idx];
+						pixel = ((WORD*) data->pix[frame])[pix_idx];
 					double tmp;
 					switch (args->normalize) {
 						default:
