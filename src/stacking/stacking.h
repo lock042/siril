@@ -153,6 +153,6 @@ void remove_tmp_drizzle_files(struct stacking_args *args);
 
 	/* rejection_float.c */
 
-int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, gint crej[2]);
+int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, guint64 crej[2]);
 
 #endif
