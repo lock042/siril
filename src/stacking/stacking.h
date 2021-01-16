@@ -82,6 +82,8 @@ struct stacking_args {
 	gboolean output_norm;		/* normalize final image to the [0, 1] range */
 	gboolean use_32bit_output;	/* output to 32 bit float */
 	int reglayer;		/* layer used for registration data */
+
+	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
 };
 
 /* configuration from the command line */

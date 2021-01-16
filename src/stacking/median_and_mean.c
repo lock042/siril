@@ -30,6 +30,7 @@
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
 
@@ -60,22 +61,6 @@ static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
 	const DateEvent *dt2 = (const DateEvent *) b;
 
 	return g_date_time_compare(dt1->date_obs, dt2->date_obs);
-}
-
-// in this case, N is the number of frames, so int is fine
-static float siril_stats_ushort_sd(const WORD data[], int N) {
-	double accumulator = 0.0; // accumulating in double precision is important for accuracy
-	// TODO: what the hell is that function? It's bad (and that ^ wrong)
-	// and must be removed, optimized functions must be used instead
-	for (int i = 0; i < N; ++i) {
-		accumulator += data[i];
-	}
-	float mean = (float) (accumulator / N);
-	accumulator = 0.0;
-	for (int i = 0; i < N; ++i)
-		accumulator += (data[i] - mean) * (data[i] - mean);
-
-	return sqrtf((float) (accumulator / (N - 1)));
 }
 
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
@@ -547,7 +532,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			break;
 		case SIGMA:
 			do {
-				const float sigma = (float) siril_stats_ushort_sd(stack, N);
+				const float sigma = args->sd_calculator(stack, N);
 				if (!firstloop) {
 					median = quickmedian(stack, N);
 				} else {
@@ -578,7 +563,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			break;
 		case SIGMEDIAN:
 			do {
-				const float sigma = siril_stats_ushort_sd(stack, N);
+				const float sigma = args->sd_calculator(stack, N);
 				if (!firstloop) {
 					median = quickmedian (stack, N);
 				} else {
@@ -595,23 +580,23 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			break;
 		case WINSORIZED:
 			do {
-				double sigma0;
-				float sigma = (float) siril_stats_ushort_sd(stack, N);
+				float sigma0;
+				float sigma = args->sd_calculator(stack, N);
 				if (!firstloop)
 					median = quickmedian (stack, N);
 				else firstloop = 0;
 				memcpy(w_stack, stack, N * sizeof(WORD));
 				do {
-					Winsorize(w_stack, roundf_to_WORD(median - 1.5 * sigma), roundf_to_WORD(median + 1.5 * sigma), N);
+					Winsorize(w_stack, roundf_to_WORD(median - 1.5f * sigma), roundf_to_WORD(median + 1.5f * sigma), N);
 					sigma0 = sigma;
-					sigma = 1.134 * siril_stats_ushort_sd(w_stack, N);
-				} while (fabs(sigma - sigma0) > sigma0 * 0.0005);
+					sigma = 1.134f * args->sd_calculator(w_stack, N);
+				} while (fabs(sigma - sigma0) > sigma0 * 0.0005f);
 				for (int frame = 0; frame < N; frame++) {
 					if (N - r <= 4) {
 						// no more rejections
 						rejected[frame] = 0;
 					} else {
-						rejected[frame] = sigma_clipping(stack[frame], args->sig, sigma, (float) median, crej);
+						rejected[frame] = sigma_clipping(stack[frame], args->sig, sigma, median, crej);
 						if (rejected[frame] != 0)
 							r++;
 					}
@@ -939,6 +924,9 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			else 	data_pool[i].pix[j] = ((WORD *)data_pool[i].tmp) + j * npixels_in_block;
 		}
 	}
+
+	if (itype == DATA_USHORT)
+		args->sd_calculator = nb_frames < 65536 ? siril_stats_ushort_sd_32 : siril_stats_ushort_sd_64;
 
 	siril_log_message(_("Starting stacking...\n"));
 	if (is_mean)

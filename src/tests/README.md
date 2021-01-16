@@ -19,9 +19,9 @@
 ------
 ###What are inside test directory?
 There are different kinds of files in this directory:
-- compare_fits is a program that can be used to compare FITS files, to verify
+- `compare_fits` is a program that can be used to compare FITS files, to verify
   that an algorithm always computes the same thing for example
-- sorting is a unit test on the three sorting implementations that provide the
+- `sorting` is a unit test on the three sorting implementations that provide the
   median. It also contains a performance evaluation between them.
 
 Other files are used for the build of these executables. Since they depend on
