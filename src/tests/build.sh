@@ -18,7 +18,7 @@ set -x
 # $LD $LDFLAGS -o sorting sorting.o ../algos/sorting.o ../rt/rt_algo.o
 
 # compile the stacking tests
-$CC $CFLAGS -c -o stacking_blocks_test.o stacking_blocks_test.c &&
+$CC $CFLAGS -DWITH_MAIN -c -o stacking_blocks_test.o stacking_blocks_test.c &&
 $CC $CFLAGS -DDUMMY_LOG -c -o dummy.o dummy.c &&
 $LD $LDFLAGS -o stacking_blocks_test stacking_blocks_test.o ../stacking/median_and_mean.o ../core/utils.o dummy.o
 

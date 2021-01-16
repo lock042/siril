@@ -1,4 +1,7 @@
-//#include <criterion/criterion.h>
+//#define WITH_MAIN
+#ifndef WITH_MAIN
+#include <criterion/criterion.h>
+#endif
 
 #include "../core/siril.h"
 #include "stacking/stacking.h"
@@ -15,11 +18,15 @@ cominfo com;	// the main data struct
  * outputs : number of blocks and their size
  */
 
+#ifdef WITH_MAIN
 #define CHECK(cond, ...) \
 	if (cond) { \
 		fprintf(stderr, __VA_ARGS__); \
 		return 1; \
 	}
+#else
+#define CHECK cr_expect
+#endif
 
 int check_that_blocks_cover_the_image(long naxes[3], struct _image_block *blocks, int nb_blocks) {
 	// assuming that blocks are adjacent 
@@ -315,6 +322,7 @@ int test12() {
 	return 0;
 }
 
+#ifdef WITH_MAIN
 int main() {
 	int retval = 0;
 	retval |= test1();
@@ -334,4 +342,19 @@ int main() {
 	else fprintf(stderr, "ALL TESTS PASSED\n");
 	return retval;
 }
+#else //with criterion
 
+Test(stacking_blocks, test1) { cr_assert(test1()); }
+Test(stacking_blocks, test2) { cr_assert(test2()); }
+Test(stacking_blocks, test3) { cr_assert(test3()); }
+Test(stacking_blocks, test4) { cr_assert(test4()); }
+Test(stacking_blocks, test5) { cr_assert(test5()); }
+Test(stacking_blocks, test6) { cr_assert(test6()); }
+Test(stacking_blocks, test7) { cr_assert(test7()); }
+Test(stacking_blocks, test8) { cr_assert(test8()); }
+Test(stacking_blocks, test9) { cr_assert(test9()); }
+Test(stacking_blocks, test10) { cr_assert(test10()); }
+Test(stacking_blocks, test11) { cr_assert(test11()); }
+Test(stacking_blocks, test12) { cr_assert(test12()); }
+
+#endif
