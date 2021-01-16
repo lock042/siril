@@ -1246,7 +1246,7 @@ void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix) {
 
 // return 0 on success, fills realname if not NULL with the opened file's name
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float) {
-	int status, retval;
+	int status, retval = 1;
 	char *name = NULL;
 	gchar *basename;
 	image_type imagetype;
