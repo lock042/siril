@@ -391,7 +391,8 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		}
 
 		/* initialize sequence-related runtime data */
-		seq->rx = fit->rx; seq->ry = fit->ry;
+		seq->rx = fit->rx;
+		seq->ry = fit->ry;
 		seq->bitpix = fit->orig_bitpix;	// for partial read
 		seq->data_max = fit->data_max; // for partial read
 		fprintf(stdout, "bitpix for the sequence is set as %d\n", seq->bitpix);
@@ -799,6 +800,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 }
 
 // not thread-safe
+// gets image naxes and bitpix
 static int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 	assert(index < seq->number);
 	char filename[256];
@@ -813,8 +815,7 @@ static int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 			break;
 		case SEQ_SER:
 			assert(seq->ser_file);
-			// TODO: do a metadata-only read in SER
-			if (ser_read_frame(seq->ser_file, index, dest)) {
+			if (ser_metadata_as_fits(seq->ser_file, dest)) {
 				siril_log_message(_("Could not load frame %d from SER sequence %s\n"),
 						index, seq->seqname);
 				return 1;
