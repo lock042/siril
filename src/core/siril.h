@@ -126,8 +126,6 @@ typedef enum {
 	TYPERAW = (1 << 10),
 	TYPEAVI = (1 << 20),
 	TYPESER = (1 << 21),
-	TYPEMP4 = (1 << 22),
-	TYPEWEBM = (1 << 23)
 } image_type;
 
 /* indices of the image data layers */
