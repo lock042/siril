@@ -42,8 +42,10 @@
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/undo.h"
+#include "io/conversion.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/plot.h"
 #include "ser.h"
 #include "fits_sequence.h"
@@ -109,6 +111,7 @@ static void fillSeqAviExport() {
 }
 
 static sequence *check_seq_one_file(const char* name);
+static int seq_read_frame_metadata(sequence *seq, int index, fits *dest);
 
 /* when opening a file outside the main sequence loading system and that file
  * is a sequence (SER/AVI), this function is called to load this sequence. */
@@ -375,14 +378,21 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 			memset(fit, 0, sizeof(fits));
 		}
 
-		/* TODO: we could only read the header if !load_ref_into_gfit */
-		if (seq_read_frame(seq, image_to_load, fit, FALSE, -1)) {
-			fprintf(stderr, "could not load first image from sequence\n");
-			return -1;
+		if (load_ref_into_gfit) {
+			if (seq_read_frame(seq, image_to_load, fit, FALSE, -1)) {
+				fprintf(stderr, "could not load first image from sequence\n");
+				return -1;
+			}
+		} else {
+			if (seq_read_frame_metadata(seq, image_to_load, fit)) {
+				fprintf(stderr, "could not load first image from sequence\n");
+				return -1;
+			}
 		}
 
 		/* initialize sequence-related runtime data */
-		seq->rx = fit->rx; seq->ry = fit->ry;
+		seq->rx = fit->rx;
+		seq->ry = fit->ry;
 		seq->bitpix = fit->orig_bitpix;	// for partial read
 		seq->data_max = fit->data_max; // for partial read
 		fprintf(stdout, "bitpix for the sequence is set as %d\n", seq->bitpix);
@@ -417,6 +427,7 @@ static void free_cbbt_layers() {
 int set_seq(const char *name){
 	sequence *seq = NULL;
 	char *basename;
+	int convert = 0;
 
 	if ((seq = readseqfile(name)) == NULL) {
 		fprintf(stderr, "could not load sequence %s\n", name);
@@ -424,65 +435,78 @@ int set_seq(const char *name){
 	}
 	free_image_data();
 
-	int retval = seq_check_basic_data(seq, TRUE);
-	if (retval == -1) {
-		free(seq);
-		return 1;
+	if (seq->type == SEQ_AVI) {
+		convert = siril_confirm_dialog(_("Deprecated sequence"),
+				_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
+						" We strongly encourage you to convert this sequence into a SER file."
+						" SER file format is a simple image sequence format, similar to uncompressed films.\n"
+						"Hit OK to convert the file, Cancel to continue."));
 	}
-	if (retval == 0) {
-		int image_to_load = sequence_find_refimage(seq);
-		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
-			fprintf(stderr, "could not load first image from sequence\n");
+
+	if (convert) {
+		close_sequence(FALSE);
+		convert_single_film_to_ser(seq);
+	} else {
+		int retval = seq_check_basic_data(seq, TRUE);
+		if (retval == -1) {
 			free(seq);
 			return 1;
 		}
-		seq->current = image_to_load;
+		if (retval == 0) {
+			int image_to_load = sequence_find_refimage(seq);
+			if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
+				fprintf(stderr, "could not load first image from sequence\n");
+				free(seq);
+				return 1;
+			}
+			seq->current = image_to_load;
+		}
+
+		basename = g_path_get_basename(seq->seqname);
+		siril_log_message(_("Sequence loaded: %s (%d->%d)\n"),
+				basename, seq->beg, seq->end);
+		g_free(basename);
+
+		/* Sequence is stored in com.seq for now */
+		close_sequence(TRUE);
+		memcpy(&com.seq, seq, sizeof(sequence));
+
+		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
+		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+		set_cutoff_sliders_values();	// update values for contrast sliders for this image
+		set_layers_for_assign();	// set default layers assign and populate combo box
+		set_layers_for_registration();	// set layers in the combo box for registration
+		update_seqlist();
+		fill_sequence_list(seq, RLAYER, FALSE);// display list of files in the sequence
+		set_output_filename_to_sequence_name();
+		sliders_mode_set_state(com.sliders);
+		initialize_display_mode();
+		reset_plot(); // reset all plots
+
+		/* initialize image-related runtime data */
+		set_display_mode();		// display the display mode in the combo box
+		display_filename();		// display filename in gray window
+		set_precision_switch(); // set precision on screen
+		adjust_refimage(seq->current);	// check or uncheck reference image checkbox
+		update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+		update_reg_interface(FALSE);	// change the registration prereq message
+	//	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
+		adjust_reginfo();		// change registration displayed/editable values
+		update_gfit_histogram_if_needed();
+		adjust_sellabel();
+		fillSeqAviExport();	// fill GtkEntry of export box
+
+		/* update menus */
+		update_MenuItem();
+		/* update parameters */
+		set_GUI_CAMERA();
+		set_GUI_photometry();
+
+		/* redraw and display image */
+		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
+		redraw(com.cvport, REMAP_ALL);
+		drawPlot();
 	}
-
-	basename = g_path_get_basename(seq->seqname);
-	siril_log_message(_("Sequence loaded: %s (%d->%d)\n"),
-			basename, seq->beg, seq->end);
-	g_free(basename);
-
-	/* Sequence is stored in com.seq for now */
-	close_sequence(TRUE);
-	memcpy(&com.seq, seq, sizeof(sequence));
-
-	init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-	set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-	set_cutoff_sliders_values();	// update values for contrast sliders for this image
-	set_layers_for_assign();	// set default layers assign and populate combo box
-	set_layers_for_registration();	// set layers in the combo box for registration
-	update_seqlist();
-	fill_sequence_list(seq, RLAYER, FALSE);// display list of files in the sequence
-	set_output_filename_to_sequence_name();
-	sliders_mode_set_state(com.sliders);
-	initialize_display_mode();
-	reset_plot(); // reset all plots
-
-	/* initialize image-related runtime data */
-	set_display_mode();		// display the display mode in the combo box
-	display_filename();		// display filename in gray window
-	set_precision_switch(); // set precision on screen
-	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
-	update_reg_interface(FALSE);	// change the registration prereq message
-//	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-	adjust_reginfo();		// change registration displayed/editable values
-	update_gfit_histogram_if_needed();
-	adjust_sellabel();
-	fillSeqAviExport();	// fill GtkEntry of export box
-
-	/* update menus */
-	update_MenuItem();
-	/* update parameters */
-	set_GUI_CAMERA();
-	set_GUI_photometry();
-
-	/* redraw and display image */
-	close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-	redraw(com.cvport, REMAP_ALL);
-	drawPlot();
 
 	return 0;
 }
@@ -772,6 +796,59 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 			break;
 	}
 
+	return 0;
+}
+
+// not thread-safe
+// gets image naxes and bitpix
+static int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
+	assert(index < seq->number);
+	char filename[256];
+	switch (seq->type) {
+		case SEQ_REGULAR:
+			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			if (read_fits_metadata_from_path(filename, dest)) {
+				siril_log_message(_("Could not load image %d from sequence %s\n"),
+						index, seq->seqname);
+				return 1;
+			}
+			break;
+		case SEQ_SER:
+			assert(seq->ser_file);
+			if (ser_metadata_as_fits(seq->ser_file, dest)) {
+				siril_log_message(_("Could not load frame %d from SER sequence %s\n"),
+						index, seq->seqname);
+				return 1;
+			}
+			break;
+		case SEQ_FITSEQ:
+			assert(seq->fitseq_file);
+			dest->fptr = seq->fitseq_file->fptr;
+			if (fitseq_set_current_frame(seq->fitseq_file, index) ||
+					read_fits_metadata(dest)) {
+				siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+						index, seq->seqname);
+				return 1;
+			}
+			break;
+
+#ifdef HAVE_FFMS2
+		case SEQ_AVI:
+			assert(seq->film_file);
+			// TODO: do a metadata-only read in films
+			if (film_read_frame(seq->film_file, index, dest)) {
+				siril_log_message(_("Could not load frame %d from AVI sequence %s\n"),
+						index, seq->seqname);
+				return 1;
+			}
+			// should dest->maxi be set to 255 here?
+			break;
+#endif
+		case SEQ_INTERNAL:
+			assert(seq->internal_fits);
+			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
+			break;
+	}
 	return 0;
 }
 
