@@ -299,7 +299,6 @@ struct sequ {
 	unsigned int rx;	// first image width
 	unsigned int ry;	// first image height
 	int bitpix;		// image pixel format, from fits
-	double data_max; // data_max used for cdata conversion
 	layer_info *layers;	// info about layers, may be null if nb_layers is unknown
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
