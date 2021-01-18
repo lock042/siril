@@ -134,9 +134,14 @@ static gpointer export_sequence(gpointer ptr) {
 	if (have_seqwriter)
 		seqwriter_set_max_active_blocks(3);
 
+	int output_bitpix;
+
 	/* possible output formats: FITS images, FITS cube, TIFF, SER, AVI, MP4, WEBM */
 	// create the sequence file for single-file sequence formats
 	switch (args->output) {
+		case EXPORT_FITS:
+			output_bitpix = args->seq->bitpix;
+			break;
 		case EXPORT_FITSEQ:
 			fitseq_file = malloc(sizeof(fitseq));
 			snprintf(dest, 256, "%s%s", args->basename, com.pref.ext);
@@ -146,6 +151,13 @@ static gpointer export_sequence(gpointer ptr) {
 				retval = -1;
 				goto free_and_reset_progress_bar;
 			}
+			output_bitpix = args->seq->bitpix;
+			break;
+		case EXPORT_TIFF:
+			output_bitpix = args->seq->bitpix;
+			// limit to 16 bits for TIFF
+			if (output_bitpix == FLOAT_IMG)
+				output_bitpix = USHORT_IMG;
 			break;
 
 		case EXPORT_SER:
@@ -158,6 +170,9 @@ static gpointer export_sequence(gpointer ptr) {
 				retval = -1;
 				goto free_and_reset_progress_bar;
 			}
+			output_bitpix = args->seq->bitpix;
+			if (output_bitpix == FLOAT_IMG)
+				output_bitpix = USHORT_IMG;
 			break;
 
 		case EXPORT_AVI:
@@ -172,6 +187,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 			avi_file_create(dest, out_width, out_height, avi_format,
 					AVI_WRITER_CODEC_DIB, args->film_fps);
+			output_bitpix = BYTE_IMG;
 			break;
 
 		case EXPORT_MP4:
@@ -222,11 +238,13 @@ static gpointer export_sequence(gpointer ptr) {
 				retval = -1;
 				goto free_and_reset_progress_bar;
 			}
+			output_bitpix = BYTE_IMG;
+			break;
 #endif
-			break;
-		default:
-			break;
 	}
+
+	if (output_bitpix == FLOAT_IMG)
+		output_bitpix = com.pref.force_to_16bit ? USHORT_IMG : FLOAT_IMG;
 
 	int nb_frames = compute_nb_filtered_images(args->seq,
 			args->filtering_criterion, args->filtering_parameter);
@@ -278,6 +296,7 @@ static gpointer export_sequence(gpointer ptr) {
 			seqwriter_wait_for_memory();
 
 		if (!seq_get_image_filename(args->seq, i, filename)) {
+			seqwriter_release_memory();
 			retval = -1;
 			goto free_and_reset_progress_bar;
 		}
@@ -288,6 +307,7 @@ static gpointer export_sequence(gpointer ptr) {
 		/* we read the full frame */
 		fits fit = { 0 };
 		if (seq_read_frame(args->seq, i, &fit, FALSE, -1)) {
+			seqwriter_release_memory();
 			siril_log_message(_("Export: could not read frame, aborting\n"));
 			retval = -3;
 			goto free_and_reset_progress_bar;
@@ -306,30 +326,34 @@ static gpointer export_sequence(gpointer ptr) {
 					fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
 					retval = -3;
 					clearfits(&fit);
+					seqwriter_release_memory();
 					goto free_and_reset_progress_bar;
 				}
 			}
+			data_type dest_type = output_bitpix == FLOAT_IMG ? DATA_FLOAT : DATA_USHORT;
 			destfit = NULL;	// otherwise it's overwritten
-			if (new_fit_image(&destfit, fit.rx, fit.ry, fit.naxes[2], fit.type)) {
+			if (new_fit_image(&destfit, fit.rx, fit.ry, fit.naxes[2], dest_type)) {
 				retval = -1;
 				clearfits(&fit);
+				seqwriter_release_memory();
 				goto free_and_reset_progress_bar;
 			}
+			destfit->bitpix = output_bitpix;
+			destfit->orig_bitpix = output_bitpix;
 		}
 		else if (memcmp(naxes, fit.naxes, sizeof naxes)) {
 			fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
 			retval = -3;
 			clearfits(&fit);
+			seqwriter_release_memory();
 			goto free_and_reset_progress_bar;
 		}
 		else {
 			/* we copy the header and clear the data */
 			copy_fits_metadata(&fit, destfit);
 
-			if ((args->output == EXPORT_FITS || args->output == EXPORT_FITSEQ) &&
-					fit.type == DATA_FLOAT) {
+			if (destfit->type == DATA_FLOAT) {
 				memset(destfit->fdata, 0, nbpix * fit.naxes[2] * sizeof(float));
-				destfit->type = DATA_FLOAT;
 				if (args->crop) {
 					/* reset destfit damaged by the crop function */
 					if (fit.naxes[2] == 3) {
@@ -341,8 +365,6 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			} else {
 				// for all other output formats, it's ushort
-				// TODO: is it true for TIFF?
-				destfit->type = DATA_USHORT;
 				memset(destfit->data, 0, nbpix * fit.naxes[2] * sizeof(WORD));
 				if (args->crop) {
 					/* reset destfit damaged by the crop function */
@@ -374,41 +396,33 @@ static gpointer export_sequence(gpointer ptr) {
 					int ny = y + shifty;
 					if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 						if (fit.type == DATA_USHORT) {
+							WORD pixel = fit.pdata[layer][x + y * fit.rx];
 							if (args->normalize) {
-								float tmp = fit.pdata[layer][x + y * fit.rx];
-								tmp *= (float) coeff.scale[i];
-								tmp -= (float) coeff.offset[i];
-								destfit->pdata[layer][nx + ny * fit.rx] = roundf_to_WORD(tmp);
-							} else {
-								destfit->pdata[layer][nx + ny * fit.rx] = fit.pdata[layer][x + y * fit.rx];
+								double tmp = (double) pixel;
+								tmp *= coeff.scale[i];
+								tmp -= coeff.offset[i];
+								pixel = round_to_WORD(tmp);
 							}
-						} else if (fit.type == DATA_FLOAT) {
-							destfit->bitpix = com.pref.force_to_16bit ? USHORT_IMG : FLOAT_IMG;
-							if (args->output == EXPORT_FITS) {
-								if (args->normalize) {
-									float tmp =	fit.fpdata[layer][x + y * fit.rx];
-									tmp *= (float) coeff.scale[i];
-									tmp -= (float) coeff.offset[i];
-									destfit->fpdata[layer][nx + ny * fit.rx] = tmp;
-								} else {
-									destfit->fpdata[layer][nx + ny * fit.rx] = fit.fpdata[layer][x + y * fit.rx];
-								}
+							destfit->pdata[layer][nx + ny * fit.rx] = pixel;
+						}
+						else if (fit.type == DATA_FLOAT) {
+							float pixel = fit.fpdata[layer][x + y * fit.rx];
+							if (args->normalize) {
+								pixel *= (float) coeff.scale[i];
+								pixel -= (float) coeff.offset[i];
+							}
+							if (destfit->type == DATA_FLOAT) {
+								destfit->fpdata[layer][nx + ny * fit.rx] = pixel;
 							} else {
-								if (args->normalize) {
-									float tmp =	fit.fpdata[layer][x + y * fit.rx];
-									tmp *= (float) coeff.scale[i];
-									tmp -= (float) coeff.offset[i];
-									destfit->pdata[layer][nx + ny * fit.rx] = roundf_to_WORD(tmp * USHRT_MAX_SINGLE);
-								} else {
-									float tmp = fit.fpdata[layer][x + y * fit.rx] * USHRT_MAX_SINGLE;
-									destfit->pdata[layer][nx + ny * fit.rx] = roundf_to_WORD(tmp);
-								}
+								destfit->pdata[layer][nx + ny * fit.rx] = roundf_to_WORD(pixel * USHRT_MAX_SINGLE);
 							}
 						} else {
 							retval = -1;
 							clearfits(&fit);
+							seqwriter_release_memory();
 							goto free_and_reset_progress_bar;
 						}
+						// for 8 bit output, destfit will be transformed later with a linear scale
 					}
 				}
 			}
@@ -422,22 +436,15 @@ static gpointer export_sequence(gpointer ptr) {
 		switch (args->output) {
 			case EXPORT_FITS:
 				snprintf(dest, 255, "%s%05d%s", args->basename, i, com.pref.ext);
-				if (savefits(dest, destfit)) {
-					retval = -1;
-					goto free_and_reset_progress_bar;
-				}
+				retval = savefits(dest, destfit);
 				break;
 			case EXPORT_FITSEQ:
-				fitseq_write_image(fitseq_file, destfit, i - skipped);
+				retval = fitseq_write_image(fitseq_file, destfit, i - skipped);
 				break;
 #ifdef HAVE_LIBTIFF
 			case EXPORT_TIFF:
 				snprintf(dest, 255, "%s%05d", args->basename, i);
-				if (savetif(dest, destfit, 16)) {
-					retval = -1;
-					goto free_and_reset_progress_bar;
-				}
-
+				retval = savetif(dest, destfit, 16);
 				break;
 #endif
 			case EXPORT_SER:
@@ -445,18 +452,23 @@ static gpointer export_sequence(gpointer ptr) {
 					strTime = g_date_time_ref(destfit->date_obs);
 					timestamp = g_slist_append (timestamp, strTime);
 				}
-				ser_write_frame_from_fit(ser_file, destfit, i - skipped);
+				retval = ser_write_frame_from_fit(ser_file, destfit, i - skipped);
 				break;
 			case EXPORT_AVI:
 				data = fits_to_uint8(destfit);
-				avi_file_write_frame(0, data);
+				retval = avi_file_write_frame(0, data);
 				break;
 #ifdef HAVE_FFMPEG
 			case EXPORT_MP4:
 			case EXPORT_WEBM:
-				mp4_add_frame(mp4_file, destfit);
+				// an equivalent to fits_to_uint8 is called in there (fill_rgb_image)...
+				retval = mp4_add_frame(mp4_file, destfit);
 				break;
 #endif
+		}
+		if (retval) {
+			seqwriter_release_memory();
+			goto free_and_reset_progress_bar;
 		}
 		cur_nb++;
 	}
