@@ -185,8 +185,13 @@ static gpointer export_sequence(gpointer ptr) {
 				avi_format = AVI_WRITER_INPUT_FORMAT_MONOCHROME;
 			else avi_format = AVI_WRITER_INPUT_FORMAT_COLOUR;
 
-			avi_file_create(dest, out_width, out_height, avi_format,
-					AVI_WRITER_CODEC_DIB, args->film_fps);
+			if (avi_file_create(dest, out_width, out_height, avi_format,
+					AVI_WRITER_CODEC_DIB, args->film_fps)) {
+				siril_log_message(_("AVI file `%s' could not be created\n"), "red", dest);
+				retval = -1;
+				goto free_and_reset_progress_bar;
+			}
+
 			output_bitpix = BYTE_IMG;
 			break;
 
@@ -543,14 +548,13 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	if (args->crop)
 		memcpy(&args->crop_area, &com.selection, sizeof(rectangle));
 
-	if (args->output == EXPORT_AVI) {
-		// AVI is for uncompressed raw data, resampling is useless
+	if (args->output == EXPORT_AVI || args->output == EXPORT_MP4 || args->output == EXPORT_WEBM) {
+		GtkEntry *fpsEntry = GTK_ENTRY(lookup_widget("entryAviFps"));
+		args->film_fps = g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL);
 	}
 	if (args->output == EXPORT_MP4 || args->output == EXPORT_WEBM) {
-		GtkEntry *fpsEntry = GTK_ENTRY(lookup_widget("entryAviFps"));
 		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(builder,"adjustment3"));
 		GtkToggleButton *checkResize = GTK_TOGGLE_BUTTON(lookup_widget("checkAviResize"));
-		args->film_fps = g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL);
 		args->film_quality = (int)gtk_adjustment_get_value(adjQual);
 		args->resample = gtk_toggle_button_get_active(checkResize);
 		if (args->resample) {
@@ -580,7 +584,7 @@ void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {
 	GtkWidget *avi_options = lookup_widget("boxAviOptions");
 	GtkWidget *checkAviResize = lookup_widget("checkAviResize");
 	GtkWidget *quality = lookup_widget("exportQualScale");
-	gtk_widget_set_visible(avi_options, gtk_combo_box_get_active(box) >= EXPORT_AVI);
+	gtk_widget_set_visible(avi_options, gtk_combo_box_get_active(box) >= EXPORT_MP4);
 	gtk_widget_set_visible(quality, gtk_combo_box_get_active(box) >= EXPORT_MP4);
 	gtk_widget_set_sensitive(checkAviResize, TRUE);
 }
