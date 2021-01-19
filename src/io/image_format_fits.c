@@ -262,7 +262,7 @@ void read_fits_header(fits *fit) {
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
 	}
 
-	/* check if file is createde by Siril. If so, and if the file is FLOAT_IMG
+	/* check if file is created by Siril. If so, and if the file is FLOAT_IMG
 	 * Then we are confident enough that the range is [0, 1]. So, no need to
 	 * compute fit_stats
 	 */

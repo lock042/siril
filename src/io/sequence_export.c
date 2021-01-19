@@ -134,7 +134,7 @@ static gpointer export_sequence(gpointer ptr) {
 	if (have_seqwriter)
 		seqwriter_set_max_active_blocks(3);
 
-	int output_bitpix;
+	int output_bitpix = USHORT_IMG;
 
 	/* possible output formats: FITS images, FITS cube, TIFF, SER, AVI, MP4, WEBM */
 	// create the sequence file for single-file sequence formats
