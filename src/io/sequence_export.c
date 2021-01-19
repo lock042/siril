@@ -60,7 +60,7 @@ struct exportseq_args {
 	export_format output;
 	gboolean normalize;
 
-	double film_fps;
+	int film_fps;		// has to be int for avi or ffmpeg
 	int film_quality;	// [1, 5], for mp4 and webm
 
 	gboolean resample;
@@ -98,6 +98,7 @@ static gpointer export_sequence(gpointer ptr) {
 	int retval = 0, cur_nb = 0;
 	unsigned int out_width, out_height, in_width, in_height;
 	uint8_t *data;
+	fits *destfit = NULL;	// must be declared before any goto!
 	char filename[256], dest[256];
 	struct ser_struct *ser_file = NULL;
 	fitseq *fitseq_file = NULL;
@@ -206,7 +207,6 @@ static gpointer export_sequence(gpointer ptr) {
 			 * needs to know the input image size after crop */
 			snprintf(dest, 256, "%s.%s", args->basename,
 					args->output == EXPORT_MP4 ? "mp4" : "webm");
-			if (args->film_fps <= 0) args->film_fps = 25;
 
 			if (in_width % 32 || out_height % 2 || out_width % 2) {
 				siril_log_message(_("Film output needs to have a width that is a multiple of 32 and an even height, resizing selection.\n"));
@@ -283,7 +283,6 @@ static gpointer export_sequence(gpointer ptr) {
 
 	long naxes[3];
 	size_t nbpix = 0;
-	fits *destfit = NULL;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
@@ -369,7 +368,6 @@ static gpointer export_sequence(gpointer ptr) {
 					destfit->ry = destfit->naxes[1] = fit.ry;
 				}
 			} else {
-				// for all other output formats, it's ushort
 				memset(destfit->data, 0, nbpix * fit.naxes[2] * sizeof(WORD));
 				if (args->crop) {
 					/* reset destfit damaged by the crop function */
@@ -488,14 +486,18 @@ free_and_reset_progress_bar:
 	// close the sequence file for single-file sequence formats
 	switch (args->output) {
 		case EXPORT_FITSEQ:
-			fitseq_close_file(fitseq_file);
-			free(fitseq_file);
+			if (fitseq_file) {
+				fitseq_close_file(fitseq_file);
+				free(fitseq_file);
+			}
 			break;
 		case EXPORT_SER:
-			if (timestamp)
-				ser_convertTimeStamp(ser_file, timestamp);
-			ser_write_and_close(ser_file);
-			free(ser_file);
+			if (ser_file) {
+				if (timestamp)
+					ser_convertTimeStamp(ser_file, timestamp);
+				ser_write_and_close(ser_file);
+				free(ser_file);
+			}
 			g_slist_free_full(timestamp, (GDestroyNotify) g_date_time_unref);
 			break;
 		case EXPORT_AVI:
@@ -504,8 +506,10 @@ free_and_reset_progress_bar:
 		case EXPORT_MP4:
 		case EXPORT_WEBM:
 #ifdef HAVE_FFMPEG
-			mp4_close(mp4_file);
-			free(mp4_file);
+			if (mp4_file) {
+				mp4_close(mp4_file);
+				free(mp4_file);
+			}
 #endif
 			break;
 		default:
@@ -550,7 +554,8 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 
 	if (args->output == EXPORT_AVI || args->output == EXPORT_MP4 || args->output == EXPORT_WEBM) {
 		GtkEntry *fpsEntry = GTK_ENTRY(lookup_widget("entryAviFps"));
-		args->film_fps = g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL);
+		args->film_fps = round_to_int(g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL));
+		if (args->film_fps <= 0) args->film_fps = 1;
 	}
 	if (args->output == EXPORT_MP4 || args->output == EXPORT_WEBM) {
 		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(builder,"adjustment3"));
@@ -584,9 +589,10 @@ void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {
 	GtkWidget *avi_options = lookup_widget("boxAviOptions");
 	GtkWidget *checkAviResize = lookup_widget("checkAviResize");
 	GtkWidget *quality = lookup_widget("exportQualScale");
-	gtk_widget_set_visible(avi_options, gtk_combo_box_get_active(box) >= EXPORT_MP4);
-	gtk_widget_set_visible(quality, gtk_combo_box_get_active(box) >= EXPORT_MP4);
-	gtk_widget_set_sensitive(checkAviResize, TRUE);
+	int output_type = gtk_combo_box_get_active(box);
+	gtk_widget_set_visible(avi_options, output_type >= EXPORT_AVI);
+	gtk_widget_set_visible(quality, output_type >= EXPORT_MP4);
+	gtk_widget_set_sensitive(checkAviResize, output_type >= EXPORT_MP4);
 }
 
 void on_checkAviResize_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
