@@ -187,7 +187,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 			if (avi_file_create(dest, out_width, out_height, avi_format,
 					AVI_WRITER_CODEC_DIB, args->film_fps)) {
-				siril_log_message(_("AVI file `%s' could not be created\n"), "red", dest);
+				siril_log_color_message(_("AVI file `%s' could not be created\n"), "red", dest);
 				retval = -1;
 				goto free_and_reset_progress_bar;
 			}
