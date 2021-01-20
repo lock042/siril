@@ -28,6 +28,7 @@
 #include "registration/registration.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #ifdef HAVE_FFMS2
@@ -581,6 +582,14 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		// add a trailing '_' for multiple-files sequences
 		args->basename = format_basename(args->basename, TRUE);
 	}
+	// Display a useful warning because I always forget to remove selection
+	if (args->crop) {
+		gboolean confirm = siril_confirm_dialog(_("Export cropped sequence?"),
+				_("An active selection was detected. The exported sequence will only contain data within the drawn selection. You can confirm the crop or cancel it. "
+						"If you choose to click on cancel, the exported sequence will contain all data."), _("Confirm Crop"));
+		args->crop = confirm;
+	}
+
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(export_sequence, args);
 }
