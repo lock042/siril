@@ -439,7 +439,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 		switch (args->output) {
 			case EXPORT_FITS:
-				snprintf(dest, 255, "%s%05d%s", args->basename, i, com.pref.ext);
+				snprintf(dest, 255, "%s%05d%s", args->basename, i + 1, com.pref.ext);
 				retval = savefits(dest, destfit);
 				break;
 			case EXPORT_FITSEQ:
@@ -447,7 +447,7 @@ static gpointer export_sequence(gpointer ptr) {
 				break;
 #ifdef HAVE_LIBTIFF
 			case EXPORT_TIFF:
-				snprintf(dest, 255, "%s%05d", args->basename, i);
+				snprintf(dest, 255, "%s%05d", args->basename, i + 1);
 				retval = savetif(dest, destfit, 16);
 				break;
 #endif
