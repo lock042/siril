@@ -1151,7 +1151,6 @@ static gboolean end_plate_solver(gpointer p) {
 		}
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 	} else {
-
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
 		update_coordinates(is_result.image_center);
@@ -1238,10 +1237,16 @@ gpointer match_catalog(gpointer p) {
 	n = n > BRIGHTEST_STARS ? BRIGHTEST_STARS : n;
 
 	args->ret = 1;
+	double scale_min = args->scale - 0.2;
+	double scale_max = args->scale + 0.2;
 	while (args->ret && attempt < NB_OF_MATCHING_TRY){
-		args->ret = new_star_match(com.stars, cstars, n, nobj,
-				args->scale - 0.2, args->scale + 0.2, &H, args->for_photometry_cc);
-		nobj += 50;
+		args->ret = new_star_match(com.stars, cstars, n, nobj, scale_min, scale_max, &H, args->for_photometry_cc);
+		if (attempt == NB_OF_MATCHING_TRY - 1) {
+			scale_min = -1;
+			scale_max = -1;
+		} else {
+			nobj += 50;
+		}
 		attempt++;
 	}
 	if (!args->ret) {
