@@ -18,7 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
 #include <gtk/gtk.h>
 #include "core/siril_actions.h"
 
@@ -39,8 +38,10 @@ static GActionEntry win_entries[] = {
 	{ "prepro", tab_prepro_activate },
 	{ "plot", tab_plot_activate },
 	{ "stacking", tab_stacking_activate },
-	{ "logs", tab_logs_activate },
+	{ "logs", tab_logs_activate }
+};
 
+static GActionEntry image_entries[] = {
 	{ "zoom_out", zoom_out_activate },
 	{ "zoom_in", zoom_in_activate },
 	{ "zoom_fit", zoom_fit_activate, NULL, "true", change_zoom_fit_state },
@@ -50,6 +51,6 @@ static GActionEntry win_entries[] = {
 };
 
 void siril_window_map_actions(GtkApplicationWindow *window) {
-	g_action_map_add_action_entries(G_ACTION_MAP(window), win_entries,
-			G_N_ELEMENTS(win_entries), window);
+	g_action_map_add_action_entries(G_ACTION_MAP(window), win_entries, G_N_ELEMENTS(win_entries), window);
+	g_action_map_add_action_entries(G_ACTION_MAP(window), image_entries, G_N_ELEMENTS(image_entries), window);
 }

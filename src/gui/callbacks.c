@@ -1293,6 +1293,7 @@ void initialize_all_GUI(gchar *supported_files) {
 		g_free(ver);
 	}
 
+	/* map all actions for main window */
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 
 	/* every 0.5sec update memory display */
