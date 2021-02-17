@@ -191,7 +191,7 @@ siril_common_SOURCES = \
 	gui/siril_intro.h \
 	gui/siril_preview.c \
 	gui/siril_preview.h \
-	gui/siril-window.h \
+	gui/siril-window.c \
 	gui/siril-window.h \
 	gui/statistics_list.c \
 	gui/utils.c \
