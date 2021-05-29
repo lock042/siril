@@ -8821,22 +8821,62 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
       <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
         <child>
-          <object class="GtkToolbar">
+          <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="icon_size">5</property>
             <child>
-              <object class="GtkToolButton" id="livestacking_stop">
+              <object class="GtkToolbar">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="use-underline">True</property>
-                <property name="icon-name">media-playback-stop</property>
-                <signal name="clicked" handler="on_livestacking_stop_clicked" object="livestacking_player" swapped="no"/>
+                <property name="icon_size">5</property>
+                <child>
+                  <object class="GtkToolButton" id="livestacking_stop">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">media-playback-stop</property>
+                    <signal name="clicked" handler="on_livestacking_stop_clicked" object="livestacking_player" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="livestacking_pause">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">media-playback-pause</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="homogeneous">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">live stacking...</property>
+                <style>
+                  <class name="livestacking-blinking"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>
@@ -8847,18 +8887,21 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           </packing>
         </child>
         <child>
-          <object class="GtkLabel">
+          <object class="GtkStatusbar">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">live stacking...</property>
-            <style>
-              <class name="livestacking-blinking"/>
-            </style>
+            <property name="margin-left">10</property>
+            <property name="margin-right">10</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">2</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="pack-type">end</property>
             <property name="position">1</property>
           </packing>
         </child>
