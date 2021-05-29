@@ -107,7 +107,7 @@ GtkButton {
   50% { opacity: 0; }
 }
 
-label.livestacking-blinking {
+#livestacking-blinking label.record {
   color: red;
   font-weight: bold;
   animation: blinker 1s linear infinite;

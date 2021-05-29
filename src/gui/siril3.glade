@@ -8819,6 +8819,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <signal name="hide" handler="on_livestacking_player_hide" swapped="no"/>
     <child>
       <object class="GtkBox">
+        <property name="name">livestacking-blinking</property>
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
@@ -8869,7 +8870,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="can-focus">False</property>
                 <property name="label" translatable="yes">live stacking...</property>
                 <style>
-                  <class name="livestacking-blinking"/>
+                  <class name="record"/>
                 </style>
               </object>
               <packing>
