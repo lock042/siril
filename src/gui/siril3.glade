@@ -8812,6 +8812,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="resizable">False</property>
     <property name="icon-name">Live Stacking</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_livestacking_player_hide" swapped="no"/>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -8822,11 +8823,12 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
             <property name="can-focus">False</property>
             <property name="icon_size">5</property>
             <child>
-              <object class="GtkToolButton">
+              <object class="GtkToolButton" id="livestacking_stop">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">gtk-stop</property>
+                <signal name="clicked" handler="on_livestacking_stop_clicked" object="livestacking_player" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -8844,7 +8846,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">recording...</property>
+            <property name="label" translatable="yes">live stacking...</property>
             <style>
               <class name="livestacking-blinking"/>
             </style>
