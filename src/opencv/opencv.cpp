@@ -657,4 +657,40 @@ int cvClahe(fits *image, double clip_limit, int size) {
 	return -1;
 }
 
+uint cvHoughLines(fits *image, int idx, int layer, uchar threshvalue, uint minlen) {
+	Mat src, gray, thresh;
+	std::vector<Vec2f> lines; // will hold the results of the detection
+
+	if (layer < 0) layer = (image->naxes[2] == 3) ? 1 : 0; // if no layer defined, select green layer if color, first layer if mono
+	if (image->type == DATA_USHORT) {
+		src = Mat(image->ry, image->rx, CV_16UC1, image->pdata[layer]);
+	} else {
+		src = Mat(image->ry, image->rx, CV_32FC1, image->fpdata[layer]);
+	}
+
+	src.convertTo(gray, CV_8UC1); //converting to UCHAR for thresholding
+	threshold(gray, thresh, threshvalue, 255, THRESH_BINARY);
+    HoughLines(thresh, lines, 1, CV_PI/180, minlen, 0, 0 );
+
+#ifdef SIRIL_OUTPUT_DEBUG
+    // Output the lines if any
+    for( size_t i = 0; i < lines.size(); i++ )
+    {
+        float rho = lines[i][0], theta = lines[i][1];
+        Point pt1, pt2;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        pt1.x = cvRound(x0 + 1000*(-b));
+        pt1.y = cvRound(y0 + 1000*(a));
+        pt2.x = cvRound(x0 - 1000*(-b));
+        pt2.y = cvRound(y0 - 1000*(a));
+		siril_debug_print(_("Line detected in frame# %d. (%d,%d)->(%d,%d)\n"), idx, pt1.x, pt1.y, pt2.x, pt2.y);
+    }
+#endif
+	src.release();
+	gray.release();
+	thresh.release();
+	return lines.size();
+}
+
 
