@@ -657,7 +657,7 @@ int cvClahe(fits *image, double clip_limit, int size) {
 	return -1;
 }
 
-uint cvHoughLines(fits *image, int idx, int layer, uchar threshvalue, uint minlen) {
+int cvHoughLines(fits *image, int idx, int layer, int threshvalue, int minlen) {
 	Mat src, gray, thresh;
 	std::vector<Vec2f> lines; // will hold the results of the detection
 
