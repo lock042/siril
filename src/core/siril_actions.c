@@ -57,6 +57,14 @@ void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 	cwd_btton_clicked();
 }
 
+void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkWidget *w = lookup_widget("livestacking_player");
+	full_screen_activated(action, parameter, user_data);
+
+	gtk_widget_show(w);
+	gtk_window_set_keep_above(GTK_WINDOW(w), TRUE);
+}
+
 void save_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	on_header_save_button_clicked();
 }
