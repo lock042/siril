@@ -8827,7 +8827,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="use-underline">True</property>
-                <property name="icon-name">gtk-stop</property>
+                <property name="icon-name">stop</property>
                 <signal name="clicked" handler="on_livestacking_stop_clicked" object="livestacking_player" swapped="no"/>
               </object>
               <packing>
@@ -16936,7 +16936,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
               <object class="GtkImage">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="icon-name">gtk-media-record</property>
+                <property name="icon-name">media-record</property>
               </object>
             </child>
           </object>
