@@ -31,6 +31,7 @@ static GActionEntry win_entries[] = {
 		{ "hide-show-toolbar", toolbar_activate },
 		{ "shortcuts", keyboard_shortcuts_activated},
 		{ "cwd", cwd_action_activate },
+		{ "livestacking", livestacking_action_activate },
 
 		{ "conversion", tab_conversion_activate },
 		{ "sequence", tab_sequence_activate },

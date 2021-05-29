@@ -27,6 +27,7 @@
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void save_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void save_as_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void snapshot_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
