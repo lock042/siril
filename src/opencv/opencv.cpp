@@ -670,11 +670,12 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 		src = Mat(image->ry, image->rx, CV_32FC1, image->fpdata[layer]);
 		scale = UCHAR_MAX_DOUBLE;
 	}
-	src.convertTo(gray, CV_8UC1, scale); //converting to UCHAR for thresholding
+
+	src.convertTo(gray, CV_8UC1, scale); //converting to UCHAR for HoughLines
 	threshvalue *= scale;
-	
+
 	threshold(gray, thresh, threshvalue, UCHAR_MAX_DOUBLE, THRESH_BINARY);
-    HoughLines(thresh, lines, 1, CV_PI/180, minlen);
+	HoughLines(thresh, lines, 1.0, CV_PI / 180.0, minlen);
 
 #ifdef SIRIL_OUTPUT_DEBUG
     // Output the lines if any
