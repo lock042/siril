@@ -657,7 +657,7 @@ int cvClahe(fits *image, double clip_limit, int size) {
 	return -1;
 }
 
-int cvHoughLines(fits *image, int idx, int layer, int threshvalue, int minlen) {
+int cvHoughLines(fits *image, int layer, int threshvalue, int minlen) {
 	Mat src, gray, thresh;
 	std::vector<Vec2f> lines; // will hold the results of the detection
 
@@ -684,7 +684,7 @@ int cvHoughLines(fits *image, int idx, int layer, int threshvalue, int minlen) {
         pt1.y = cvRound(y0 + 1000*(a));
         pt2.x = cvRound(x0 - 1000*(-b));
         pt2.y = cvRound(y0 - 1000*(a));
-		siril_debug_print(_("Line detected in frame# %d. (%d,%d)->(%d,%d)\n"), idx, pt1.x, pt1.y, pt2.x, pt2.y);
+		siril_debug_print(_("Line detected (%d,%d)->(%d,%d)\n"), pt1.x, pt1.y, pt2.x, pt2.y);
     }
 #endif
 	src.release();

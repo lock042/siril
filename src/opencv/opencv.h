@@ -30,7 +30,7 @@ int cvUnsharpFilter(fits*, double, double);
 
 int cvClahe(fits *image, double clip_limit, int size);
 
-int cvHoughLines(fits *image, int idx, int layer, int threshvalue, int minlen);
+int cvHoughLines(fits *image, int layer, int threshvalue, int minlen);
 
 #ifdef __cplusplus
 }
