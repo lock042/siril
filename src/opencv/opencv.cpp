@@ -667,7 +667,7 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 		src = Mat(image->ry, image->rx, CV_16UC1, image->pdata[layer]);
 		scale = (image->bitpix == BYTE_IMG) ? 1.0 : UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE;
 	} else {
-		src = Mat(image->ry, image->rx, CV_32FC1, image->fdata[layer]);
+		src = Mat(image->ry, image->rx, CV_32FC1, image->fpdata[layer]);
 		scale = UCHAR_MAX_DOUBLE;
 	}
 	src.convertTo(gray, CV_8UC1, scale); //converting to UCHAR for thresholding
