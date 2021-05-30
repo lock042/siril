@@ -22,7 +22,7 @@
 #define STR_CROP N_("It can be used with the GUI: if a selection has been made with the mouse, calling the CROP command without arguments crops it on this selection. Otherwise, or in scripts, arguments have to be given, with \"x\" and \"y\" being the coordinates of the top left corner, and \"width\" and \"height\" the size of the selection")
 
 #define STR_DDP N_("Performs a DDP (digital development processing) as described first by Kunihiko Okano. This implementation is the one described in IRIS. It combines a linear distribution on low levels (below \"level\") and a non-linear on high levels. It uses a Gaussian filter of sigma \"sigma\" and multiplies the resulting image by \"coef\". The typical values for \"sigma\" are included between 0.7 and 2")
-#define STR_DETECT_TRAIL N_("Performs a HoughLines detection on currently loaded image. \"ksigma\" specifies the threshold above median, defaults to 1. \"layer\" specifies the layer for detecting the lines and \"minlen\", the minimum length in pixels for a trail to be qualified as a line, defaults tp 20")
+#define STR_DETECT_TRAIL N_("Performs a HoughLines detection on currently loaded image. \"ksigma\" specifies the threshold above median, defaults to 1. \"layer\" specifies the layer for detecting the lines, defaults to green for color images. And \"minlen\", the minimum length in pixels for a trail to be qualified as a line, defaults to 100")
 
 #define STR_ENTROPY N_("Computes the entropy of the opened image on the displayed layer, only in the selected area if one has been selected or in the whole image. The entropy is one way of measuring the noise or the details in an image")
 #define STR_EXIT N_("Quits the application")
