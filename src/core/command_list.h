@@ -41,6 +41,7 @@ static command commands[] = {
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE},
+	{"detect_trail", 0, "detect_trail ksigma layer minlen", process_detect_trail, STR_DETECT_TRAIL, FALSE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE},

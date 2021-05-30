@@ -657,20 +657,24 @@ int cvClahe(fits *image, double clip_limit, int size) {
 	return -1;
 }
 
-int cvHoughLines(fits *image, int layer, int threshvalue, int minlen) {
+int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 	Mat src, gray, thresh;
 	std::vector<Vec2f> lines; // will hold the results of the detection
+	double scale;
 
 	if (layer < 0) layer = (image->naxes[2] == 3) ? 1 : 0; // if no layer defined, select green layer if color, first layer if mono
 	if (image->type == DATA_USHORT) {
 		src = Mat(image->ry, image->rx, CV_16UC1, image->pdata[layer]);
+		scale = (image->bitpix == BYTE_IMG) ? 1.0 : UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE;
 	} else {
-		src = Mat(image->ry, image->rx, CV_32FC1, image->fpdata[layer]);
+		src = Mat(image->ry, image->rx, CV_32FC1, image->fdata[layer]);
+		scale = UCHAR_MAX_DOUBLE;
 	}
-
-	src.convertTo(gray, CV_8UC1); //converting to UCHAR for thresholding
-	threshold(gray, thresh, threshvalue, 255, THRESH_BINARY);
-    HoughLines(thresh, lines, 1, CV_PI/180, minlen, 0, 0 );
+	src.convertTo(gray, CV_8UC1, scale); //converting to UCHAR for thresholding
+	threshvalue *= scale;
+	
+	threshold(gray, thresh, threshvalue, UCHAR_MAX_DOUBLE, THRESH_BINARY);
+    HoughLines(thresh, lines, 1, CV_PI/180, minlen);
 
 #ifdef SIRIL_OUTPUT_DEBUG
     // Output the lines if any

@@ -3995,3 +3995,61 @@ int process_requires(int nb) {
 		return 1;
 	}
 }
+
+int process_detect_trail(int nb) {
+	//detect_trail [sigma layer minlen]
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+	float ksigma = 1.f;
+	int layer = -1, minlen = 100, defminlen = 100; //default min length of 20px to be qualified as a trail
+	int nblines; 
+	imstats* stat;
+
+	for (int i = 1; i < nb; i++) {
+		if (i == 1) ksigma = g_ascii_strtod(word[i], NULL);
+		if (i == 2) layer = g_ascii_strtoull(word[i], NULL, 10);
+		if (i == 3) minlen = g_ascii_strtoull(word[i], NULL, 10);
+	}
+	if (layer > gfit.naxes[2]) {
+		siril_log_color_message(_("Layer %d. does not exist.\n"), "red", layer);
+		return 1;		
+	}
+	if (layer == -1) layer = (gfit.naxes[2] == 3) ? 1 : 0;
+	stat = statistics(NULL, -1, &gfit, layer, NULL, STATS_BASIC, TRUE);
+	if (!stat) {
+		siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
+		return 1;
+	}
+
+	float threshold = stat->median + 5.0 * ksigma * stat->bgnoise; // to be consistent with dynamic PSF
+	// sanity checks
+	if (threshold >= stat->max) {
+		siril_log_color_message(_("Detection threshold is larger than max value.\n"), "red");
+		free_stats(stat);
+		return 1;
+	}
+	if (threshold < stat->median) {
+		siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
+	}
+
+	if (minlen < defminlen) {
+		siril_log_color_message(_("Minimum length of %d pixels may detect many false positives\n"), "salmon");	
+	}
+	if (minlen < 0) {
+		siril_log_color_message(_("Minimum length cannot be negative, ignoring\n"), "salmon");	
+		minlen = defminlen;
+	}
+	
+	nblines = cvHoughLines(&gfit, layer, threshold, minlen);
+
+	if (nblines) {
+		siril_log_message(_("Found %d trails in current frame\n"), nblines);
+	} else {
+		siril_log_message(_("No trails found\n"));
+	}
+
+	free_stats(stat);
+	return 0;
+}
