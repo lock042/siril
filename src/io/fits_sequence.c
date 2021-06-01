@@ -227,6 +227,7 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	if (read_fits_with_convert(dest, fitseq->filename, force_float)) {
 		return -1;
 	}
+
 	return 0;
 }
 
