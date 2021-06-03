@@ -46,6 +46,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
+#include "livestacking/livestacking.h"
 
 #include "siril_actions.h"
 
@@ -63,6 +64,8 @@ void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gp
 
 	gtk_widget_show(w);
 	gtk_window_set_keep_above(GTK_WINDOW(w), TRUE);
+
+	on_livestacking_start();
 }
 
 void save_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
