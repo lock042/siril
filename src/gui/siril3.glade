@@ -8865,7 +8865,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
               </packing>
             </child>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkLabel" id="livest_label1">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="label" translatable="yes">live stacking...</property>
