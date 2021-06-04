@@ -4029,40 +4029,26 @@ int process_requires(int nb) {
 
 int process_detect_trail(int nb) {
 	//detect_trail [sigma layer minlen]
+	//seq_detect_trail seqname [sigma layer minlen]
+	gboolean is_sequence;
+	sequence *seq = NULL;
+
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
+
+	is_sequence = (word[0][2] == 'q');
+
 	float ksigma = 1.f;
 	int layer = -1, minlen = 100, defminlen = 100; //default min length of 20px to be qualified as a trail
 	int nblines; 
-	imstats* stat;
+	int startnb = (is_sequence) ? 1 : 0;
 
-	for (int i = 1; i < nb; i++) {
-		if (i == 1) ksigma = g_ascii_strtod(word[i], NULL);
-		if (i == 2) layer = g_ascii_strtoull(word[i], NULL, 10);
-		if (i == 3) minlen = g_ascii_strtoull(word[i], NULL, 10);
-	}
-	if (layer > gfit.naxes[2]) {
-		siril_log_color_message(_("Layer %d. does not exist.\n"), "red", layer);
-		return 1;		
-	}
-	if (layer == -1) layer = (gfit.naxes[2] == 3) ? 1 : 0;
-	stat = statistics(NULL, -1, &gfit, layer, NULL, STATS_BASIC, TRUE);
-	if (!stat) {
-		siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
-		return 1;
-	}
-
-	float threshold = stat->median + 5.0 * ksigma * stat->bgnoise; // to be consistent with dynamic PSF
-	// sanity checks
-	if (threshold >= stat->max) {
-		siril_log_color_message(_("Detection threshold is larger than max value.\n"), "red");
-		free_stats(stat);
-		return 1;
-	}
-	if (threshold < stat->median) {
-		siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
+	for (int i = 1; i < nb - startnb; i++) {
+		if (i == 1) ksigma = g_ascii_strtod(word[i + startnb], NULL);
+		if (i == 2) layer = g_ascii_strtoull(word[i + startnb], NULL, 10);
+		if (i == 3) minlen = g_ascii_strtoull(word[i + startnb], NULL, 10);
 	}
 
 	if (minlen < defminlen) {
@@ -4072,15 +4058,134 @@ int process_detect_trail(int nb) {
 		siril_log_color_message(_("Minimum length cannot be negative, ignoring\n"), "salmon");	
 		minlen = defminlen;
 	}
-	
-	nblines = cvHoughLines(&gfit, layer, threshold, minlen);
-
-	if (nblines) {
-		siril_log_message(_("Found %d trails in current frame\n"), nblines);
-	} else {
-		siril_log_message(_("No trails found\n"));
+	if (ksigma < 0) {
+		siril_log_color_message(_("ksigma cannot ne negative, ignoring\n"), "salmon");	
+		ksigma = 1.f;
 	}
 
-	free_stats(stat);
+	if (!is_sequence) {
+		if (layer > gfit.naxes[2]) {
+			siril_log_color_message(_("Layer %d. does not exist.\n"), "red", layer);
+			return 1;		
+		}
+		if (layer == -1) layer = (gfit.naxes[2] == 3) ? 1 : 0;
+		imstats* stat = statistics(NULL, -1, &gfit, layer, NULL, STATS_BASIC, TRUE);
+		if (!stat) {
+			siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
+			return 1;
+		}
+
+		float threshold = stat->median + 5.0 * ksigma * stat->bgnoise; // to be consistent with dynamic PSF
+		// sanity checks
+		if (threshold >= stat->max) {
+			siril_log_color_message(_("Detection threshold is larger than max value.\n"), "red");
+			free_stats(stat);
+			return 1;
+		}
+		if (threshold < stat->median) {
+			siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
+		}
+		
+		nblines = cvHoughLines(&gfit, layer, threshold, minlen);
+
+		if (nblines) {
+			siril_log_message(_("Found at least one trail in current frame\n"));
+		} else {
+			siril_log_message(_("No trails found\n"));
+		}
+
+		free_stats(stat);
+	} else {
+		seq = load_sequence(word[1], NULL);
+		if (!seq) return 1;
+		gboolean is_cfa = FALSE;
+		switch (seq->type) {
+			case SEQ_SER: 
+				is_cfa = ser_is_cfa(seq->ser_file);
+				break;
+			case SEQ_REGULAR:
+			case SEQ_FITSEQ:
+				break;
+			default:
+				return 1;
+		}
+
+
+
+
+	}
 	return 0;
 }
+
+// int process_subsky(int nb) {
+// 	gboolean is_sequence;
+// 	sequence *seq = NULL;
+// 	int degree = 0;
+
+// 	if (get_thread_run()) {
+// 		PRINT_ANOTHER_THREAD_RUNNING;
+// 		return 1;
+// 	}
+
+// 	is_sequence = (word[0][2] == 'q');
+
+// 	if (is_sequence) {
+// 		seq = load_sequence(word[1], NULL);
+// 		if (!seq)
+// 			return 1;
+// 		degree = g_ascii_strtoull(word[2], NULL, 10);
+// 	} else {
+// 		if (!single_image_is_loaded()) return 1;
+// 		degree = g_ascii_strtoull(word[1], NULL, 10);
+// 	}
+
+// 	if (degree < 1 || degree > 4) {
+// 		siril_log_message(_("Polynomial degree order must be within the [1, 4] range.\n"));
+// 		return 1;
+// 	}
+
+// 	set_cursor_waiting(TRUE);
+
+// 	if (is_sequence) {
+// 		struct background_data *args = malloc(sizeof(struct background_data));
+
+// 		args->seq = seq;
+// 		args->nb_of_samples = 20;
+// 		args->tolerance = 1.0;
+// 		args->correction = 0; //subtraction
+// 		args->seqEntry = "bkg_";
+// 		args->degree = (poly_order) (degree - 1);
+// 		args->dither = TRUE;
+
+// 		int startoptargs = 3;
+// 		if (nb > startoptargs) {
+// 			for (int i = startoptargs; i < nb; i++) {
+// 				if (word[i]) {
+// 					if (g_str_has_prefix(word[i], "-prefix=")) {
+// 						char *current = word[i], *value;
+// 						value = current + 8;
+// 						if (value[0] == '\0') {
+// 							siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+// 							return 1;
+// 						}
+// 						args->seqEntry = strdup(value);
+// 					}
+// 				}
+// 			}
+// 		}
+
+
+// 		apply_background_extraction_to_sequence(args);
+// 	} else {
+// 		generate_background_samples(20, 1.0);
+// 		remove_gradient_from_image(0, (poly_order) (degree - 1));
+// 		free_background_sample_list(com.grad_samples);
+// 		com.grad_samples = NULL;
+
+// 		adjust_cutoff_from_updated_gfit();
+// 		redraw(com.cvport, REMAP_ALL);
+// 	}
+// 	set_cursor_waiting(FALSE);
+
+// 	return 0;
+// }
