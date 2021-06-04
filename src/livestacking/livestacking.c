@@ -18,10 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <sys/time.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "gui/utils.h"
 #include "io/FITS_symlink.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "registration/registration.h"
+#include "stacking/stacking.h"
+#include "stacking/sum.h"
+#include "gui/image_display.h"
 
 #define EXIT_TOKEN ":EXIT:"
 
@@ -89,7 +99,8 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 			if (strncmp(filename, "live_stack", 10) &&
 					strncmp(filename, "r_live_stack", 12) &&
 					strncmp(filename, "result_live_stack", 17)) {
-				/* TODO: start stacking */
+				if (!single_image_is_loaded())
+					open_single_image(filename);
 				g_async_queue_push(new_files_queue, filename);
 			}
 		}
@@ -114,6 +125,7 @@ void on_livestacking_start() {
 	display(_("Live stacking waiting for files"));
 
 	do_links = test_if_symlink_is_ok();
+	reserve_thread();	// generic function fails otherwise
 
 	new_files_queue = g_async_queue_new();
 	live_stacker_thread = g_thread_new("live stacker", live_stacker, NULL);
@@ -123,6 +135,7 @@ void on_livestacking_start() {
 static gpointer live_stacker(gpointer arg) {
 	g_async_queue_ref(new_files_queue);
 	int index = 1;
+	gboolean first_loop = TRUE;	// only original images in the sequence
 	do {
 		gchar *filename = g_async_queue_pop(new_files_queue); // blocking
 		if (!strcmp(filename, EXIT_TOKEN)) {
@@ -136,15 +149,121 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		g_free(filename);
 
-		/* TODO: start processing */
 		/* Create the sequence */
+		siril_debug_print("Creating sequence %d\n", index);
+		sequence seq;
+		initialize_sequence(&seq, FALSE);
+
+		seq.seqname = strdup("live_stack_");
+		seq.beg = first_loop ? 1 : 0;
+		seq.end = index;
+		seq.fixed = 5;
+		seq.reference_image = 0;
+		if (first_loop) {
+			if (buildseqfile(&seq, 1) || seq.number == 1) {
+				index++;
+				continue;
+			}
+			first_loop = FALSE;
+		} else {
+			seq.number = 2;
+			seq.selnum = 2;
+			seq.imgparam = malloc(2 * sizeof(imgdata));
+			seq.imgparam[0].filenum = 0;
+			seq.imgparam[0].incl = TRUE;
+			seq.imgparam[0].date_obs = NULL;
+			seq.imgparam[1].filenum = index;
+			seq.imgparam[1].incl = TRUE;
+			seq.imgparam[1].date_obs = NULL;
+			writeseqfile(&seq);
+		}
+		/* TODO: cache this */
+		if (seq_check_basic_data(&seq, FALSE) < 0) {
+			break;
+		}
+
 		/* Register the sequence */
+		struct registration_args reg_args = { 0 };
+		reg_args.func = &register_star_alignment; // TODO: ability to choose a method
+		reg_args.seq = &seq;
+		reg_args.reference_image = 0;
+		reg_args.process_all_frames = TRUE;
+		reg_args.layer = (seq.nb_layers == 3) ? 1 : 0;
+		reg_args.run_in_thread = FALSE;
+		reg_args.follow_star = FALSE;
+		reg_args.matchSelection = FALSE;
+		//memcpy(&reg_args.selection, &com.selection, sizeof(rectangle));
+		reg_args.x2upscale = FALSE;
+		reg_args.cumul = FALSE;
+		reg_args.min_pairs = 10;
+		reg_args.translation_only = FALSE;
+		reg_args.prefix = "r_";
+		reg_args.load_new_sequence = FALSE;
+		reg_args.interpolation = OPENCV_CUBIC;
+		reg_args.func(&reg_args);
+		if (reg_args.retval)
+			break;
+
+		gchar *result_filename = g_strdup_printf("live_stack_00000%s", com.pref.ext);
+
+		free_sequence(&seq, FALSE);
+
 		/* Stack the sequence */
+		siril_debug_print("Stacking image %d\n", index);
+
+		sequence *r_seq = readseqfile("r_live_stack_.seq");
+		if (seq_check_basic_data(r_seq, FALSE) < 0) {
+			free(r_seq);
+			return FALSE;
+		}
+
+		struct stacking_args stackparam = { 0 };
+		stackparam.method = stack_summing_generic; //stack_mean_with_rejection;
+		stackparam.seq = r_seq;
+		stackparam.ref_image = 0;
+		// TODO Apply some filter on quality?
+		stackparam.filtering_criterion = seq_filter_all;
+		stackparam.filtering_parameter = 0.0;
+		stackparam.nb_images_to_stack = 2;
+		stack_fill_list_of_unfiltered_images(&stackparam);
+		stackparam.description = describe_filter(r_seq, stackparam.filtering_criterion, stackparam.filtering_parameter);
+		stackparam.output_filename = result_filename;
+		stackparam.output_overwrite = TRUE;
+		gettimeofday(&stackparam.t_start, NULL);
+
+		stackparam.force_norm = FALSE;
+		stackparam.output_norm = FALSE;
+		stackparam.use_32bit_output = TRUE;
+		stackparam.reglayer = (r_seq->nb_layers == 3) ? 1 : 0;
+
+		main_stack(&stackparam);
+
+		int retval = stackparam.retval;
+		clean_end_stacking(&stackparam);
+		free_sequence(r_seq, TRUE);
+		free(stackparam.image_indices);
+		free(stackparam.description);
+
+		if (retval)
+			break;
+
+		//struct noise_data noise_args = { .fit = &gfit, .verbose = FALSE, .use_idle = FALSE };
+		//noise(&noise_args);
+		if (savefits(result_filename, &gfit)) {
+			siril_log_color_message(_("Could not save the stacking result %s\n"),
+					"red", result_filename);
+			break;
+		}
+
 		/* Update display */
+		queue_redraw(REMAP_ALL);
 
 		index++;
 	} while (1);
 
+	siril_debug_print("===== exiting live stacking thread =====\n");
+
+	// TODO: clean exit
 	g_async_queue_unref(new_files_queue);
 	return NULL;
 }
