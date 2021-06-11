@@ -453,7 +453,7 @@ static gchar *check_update_version(struct _update_data *args) {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
 	}
 
-	if (verbose) {
+	if (args->verbose) {
 		set_cursor_waiting(FALSE);
 		if (msg) {
 			siril_data_dialog(message_type, _("Software Update"), msg, data);
