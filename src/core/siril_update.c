@@ -383,10 +383,7 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	gchar *changelog_url;
 	long code;
 
-
 	GString *url = g_string_new(GITLAB_URL);
-	url = g_string_append(url, str);
-	url = g_string_append(url, "ChangeLog");
 
 	changelog = g_try_malloc(sizeof(struct ucontent));
 	if (changelog == NULL) {
