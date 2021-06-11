@@ -456,13 +456,6 @@ static gchar *check_update_version(struct _update_data *args) {
 		message_type = GTK_MESSAGE_INFO;
 	}
 
-	if (args->verbose) {
-		set_cursor_waiting(FALSE);
-		if (msg) {
-			siril_data_dialog(message_type, _("Software Update"), msg, data);
-		}
-	}
-
 	g_clear_pointer(&last_version, g_free);
 	g_clear_pointer(&build_comment, g_free);
 	g_object_unref(parser);
@@ -489,6 +482,13 @@ static gboolean end_update_idle(gpointer p) {
 	} else {
 		msg = check_update_version(args);
 		message_type = GTK_MESSAGE_INFO;
+	}
+
+	if (args->verbose) {
+		set_cursor_waiting(FALSE);
+		if (msg) {
+			siril_data_dialog(message_type, _("Software Update"), msg, data);
+		}
 	}
 
 	/* free data */
