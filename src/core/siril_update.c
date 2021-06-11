@@ -420,9 +420,6 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	return result;
 }
 
-static gboolean end_update_idle(g
-
-
 static gchar *check_update_version(struct _update_data *args) {
 	JsonParser *parser;
 	gchar *last_version = NULL;
