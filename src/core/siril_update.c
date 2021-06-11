@@ -310,6 +310,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 							"<a href=\"%s\">%s</a>\n"),
 					SIRIL_DOWNLOAD, SIRIL_DOWNLOAD);
 			changelog = get_changelog(x, y, z, patch);
+			printf("changelog=%s\n", changelog);
 			if (changelog) {
 				*data = parse_changelog(changelog);
 				/* force the verbose variable */
@@ -404,7 +405,6 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	url = g_string_append(url, "ChangeLog");
 
 	changelog_url = g_string_free(url, FALSE);
-	siril_log_message("%s\n", changelog_url);
 	curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
