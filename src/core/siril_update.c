@@ -404,6 +404,7 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	url = g_string_append(url, "ChangeLog");
 
 	changelog_url = g_string_free(url, FALSE);
+	siril_log_message("%s\n", changelog_url);
 	curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
@@ -430,7 +431,6 @@ static gchar *check_update_version(struct _update_data *args) {
 	GError *error = NULL;
 	gchar *msg = NULL;
 	gchar *data = NULL;
-	GtkMessageType message_type = GTK_MESSAGE_ERROR;
 
 	parser = json_parser_new();
 	if (!json_parser_load_from_data(parser, args->content, -1, &error)) {
@@ -450,7 +450,6 @@ static gchar *check_update_version(struct _update_data *args) {
 		msg = check_version(last_version, &(args->verbose), &data);
 	} else {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
-		message_type = GTK_MESSAGE_INFO;
 	}
 
 	g_clear_pointer(&last_version, g_free);
