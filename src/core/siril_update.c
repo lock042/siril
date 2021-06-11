@@ -312,7 +312,6 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			changelog = get_changelog(x, y, z, patch);
 			if (changelog) {
 				*data = parse_changelog(changelog);
-				printf("test:\n%s\n", *data);
 				/* force the verbose variable */
 				*verbose = TRUE;
 			}
@@ -448,8 +447,16 @@ static gchar *check_update_version(struct _update_data *args) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
 		msg = check_version(last_version, &(args->verbose), &data);
+		message_type = GTK_MESSAGE_INFO;
 	} else {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
+	}
+
+	if (verbose) {
+		set_cursor_waiting(FALSE);
+		if (msg) {
+			siril_data_dialog(message_type, _("Software Update"), msg, data);
+		}
 	}
 
 	g_clear_pointer(&last_version, g_free);
@@ -478,13 +485,6 @@ static gboolean end_update_idle(gpointer p) {
 	} else {
 		msg = check_update_version(args);
 		message_type = GTK_MESSAGE_INFO;
-	}
-
-	if (args->verbose) {
-		set_cursor_waiting(FALSE);
-		if (msg) {
-			siril_data_dialog(message_type, _("Software Update"), msg, data);
-		}
 	}
 
 	/* free data */
