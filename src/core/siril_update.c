@@ -310,9 +310,9 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 							"<a href=\"%s\">%s</a>\n"),
 					SIRIL_DOWNLOAD, SIRIL_DOWNLOAD);
 			changelog = get_changelog(x, y, z, patch);
-			printf("changelog=%s\n", changelog);
 			if (changelog) {
 				*data = parse_changelog(changelog);
+				printf("test:\n%s\n", *data);
 				/* force the verbose variable */
 				*verbose = TRUE;
 			}
