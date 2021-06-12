@@ -71,10 +71,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkMenu">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-  </object>
   <object class="GtkImage" id="addfilter1">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -6834,7 +6830,9 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="activate-on-single-click">True</property>
                 <signal name="cursor-changed" handler="on_treeview1_cursor_changed" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection"/>
+                  <object class="GtkTreeSelection">
+                    <property name="mode">multiple</property>
+                  </object>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn16">
@@ -7176,7 +7174,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=5 n-rows=9 -->
+                  <!-- n-columns=5 n-rows=10 -->
                   <object class="GtkGrid" id="GtkGridIPS">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -7538,6 +7536,22 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">8</property>
+                        <property name="width">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="downsample_ips_button">
+                        <property name="label" translatable="yes">Downsample image</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Sometime, for oversampled images (like with Drizzle), it is complicated to resolve astrometry data. In consequence, downsampling data generally helps and make the algorithm running faster.</property>
+                        <property name="halign">start</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">9</property>
                         <property name="width">5</property>
                       </packing>
                     </child>
@@ -11296,7 +11310,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <item translatable="yes">Split CFA Channels</item>
                   <item translatable="yes">Extract Ha</item>
                   <item translatable="yes">Extract Ha/OIII</item>
-                  <item translatable="yes">Extract green</item>
+                  <item translatable="yes">Extract Green</item>
                 </items>
                 <signal name="changed" handler="on_combo_split_cfa_method_changed" swapped="no"/>
               </object>
@@ -18445,6 +18459,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">Aladin considers a 3D FITS cube as a RGB image (Red, Blue and Green components) if the FITS keyword CTYPE3 = 'RGB ' is specified in the header. In this case any BITPIX value are supported. Without the FITS keyword CTYPE3 = 'RGB ' set, only FITS cube with 3 frames sharing the same dimension and with a BITPIX=8 will be automatically detected as RGB FITS.</property>
+                                <property name="halign">start</property>
                                 <property name="draw-indicator">True</property>
                               </object>
                             </child>
@@ -18566,7 +18581,6 @@ The technique gives very good compression for astronomical images and is relativ
                                       <item id="rice">Rice</item>
                                       <item id="gzip1" translatable="yes">GZIP1</item>
                                       <item id="gzip2" translatable="yes">GZIP2</item>
-                                      <item id="hcompress" translatable="yes">Hcompress</item>
                                     </items>
                                     <signal name="changed" handler="on_combobox_comp_fits_method_changed" object="spinbutton_comp_fits_quantization" swapped="no"/>
                                   </object>
