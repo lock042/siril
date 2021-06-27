@@ -66,7 +66,7 @@ static void parse_line(char *myline, int len, int *nb) {
 }
 
 static void remove_trailing_cr(char *str) {
-	if (str == NULL)
+	if (str == NULL || str[0] == '\0')
 		return;
 	int length = strlen(str);
 	if (str[length - 1] == '\r')

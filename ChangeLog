@@ -1,3 +1,18 @@
+siril 0.99.12
+xx/xx/xx
+
+* Fixed memory leak in opencv
+* Fixed FWHM units and star center position in Dynamic PSF
+* New candidates star detection algorithm to improve speed and accuracy
+
+siril 0.99.10.1
+06/23/21
+
+* Fixed star detection with resolution < 1.0
+* Fixed interpolation issue in global registration
+* Fixed timestamp issue with glib < 2.66
+* New MAD clipping algorithm
+
 siril 0.99.10
 06/11/21
 

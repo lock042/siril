@@ -1063,7 +1063,7 @@ int process_resample(int nb) {
 	int toY = round_to_int(factor * gfit.ry);
 	
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_LINEAR);
+	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA);
 	
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
@@ -1119,7 +1119,7 @@ int process_rotate(int nb) {
 		crop = 0;
 	}
 
-	verbose_rotate_image(&gfit, degree, OPENCV_LINEAR, crop);	//INTER_LINEAR
+	verbose_rotate_image(&gfit, degree, OPENCV_AREA, crop);
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
@@ -1132,7 +1132,7 @@ int process_rotatepi(int nb){
 		return 1;
 	}
 
-	verbose_rotate_image(&gfit, 180.0, OPENCV_LINEAR, 1);
+	verbose_rotate_image(&gfit, 180.0, OPENCV_AREA, 1);
 
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
@@ -1709,7 +1709,7 @@ int process_findstar(int nb){
 	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
 
 	delete_selected_area();
-	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE);
+	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
 	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
 	if (com.stars)
 		refresh_star_list(com.stars);
@@ -1878,9 +1878,9 @@ int process_cosme(int nb) {
 			point center = {gfit.rx / 2.0, gfit.ry / 2.0};
 			dev.type = HOT_PIXEL; // we force it
 			dev.p.y = gfit.rx - dev.p.y - 1; /* FITS are stored bottom to top */
-			cvRotateImage(&gfit, center, 90.0, -1, OPENCV_LINEAR);
+			cvRotateImage(&gfit, center, 90.0, -1, OPENCV_AREA);
 			cosmeticCorrOneLine(&gfit, dev, is_cfa);
-			cvRotateImage(&gfit, center, -90.0, -1, OPENCV_LINEAR);
+			cvRotateImage(&gfit, center, -90.0, -1, OPENCV_AREA);
 
 			break;
 		default:
@@ -3246,7 +3246,7 @@ int process_register(int nb) {
 	 * of the selected line, and they are in the same order than layers so there should be
 	 * an exact matching between the two */
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
-	reg_args->interpolation = OPENCV_CUBIC;
+	reg_args->interpolation = OPENCV_AREA;
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
@@ -3458,7 +3458,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 			if (savefits(arg->result_file, &gfit))
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", arg->result_file);
-			clearfits(&gfit);
 			++arg->number_of_loaded_sequences;
 		}
 		else if (!get_thread_run()) return -1;
@@ -3543,6 +3542,8 @@ int process_stackall(int nb) {
 				arg->type_of_rejection = PERCENTILE;
 			} else if (!strcmp(word[3], "s") || !strcmp(word[3], "sigma")) {
 				arg->type_of_rejection = SIGMA;
+			} else if (!strcmp(word[3], "a") || !strcmp(word[3], "mad")) {
+				arg->type_of_rejection = MAD;
 			} else if (!strcmp(word[3], "m") || !strcmp(word[3], "median")) {
 				arg->type_of_rejection = SIGMEDIAN;
 			} else if (!strcmp(word[3], "l") || !strcmp(word[3], "linear")) {
@@ -3558,6 +3559,12 @@ int process_stackall(int nb) {
 			if (!word[2 + shift] || !word[3 + shift] || (arg->sig[0] = g_ascii_strtod(word[2 + shift], NULL)) < 0.0
 					|| (arg->sig[1] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0) {
 				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
+				goto failure;
+			}
+			if (((arg->type_of_rejection == GESDT)
+					|| (arg->type_of_rejection == PERCENTILE))
+					&& (arg->sig[0] > 1.0 || (arg->sig[1] > 1.0))) {
+				siril_log_color_message(_("Extra parameters of this rejection algorithm must be between 0 and 1.\n"), "red");
 				goto failure;
 			}
 			arg->method = stack_mean_with_rejection;
@@ -3650,6 +3657,8 @@ int process_stackone(int nb) {
 				arg->type_of_rejection = PERCENTILE;
 			} else if (!strcmp(word[3], "s") || !strcmp(word[3], "sigma")) {
 				arg->type_of_rejection = SIGMA;
+			} else if (!strcmp(word[3], "a") || !strcmp(word[3], "mad")) {
+				arg->type_of_rejection = MAD;
 			} else if (!strcmp(word[3], "m") || !strcmp(word[3], "median")) {
 				arg->type_of_rejection = SIGMEDIAN;
 			} else if (!strcmp(word[3], "l") || !strcmp(word[3], "linear")) {

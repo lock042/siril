@@ -8562,7 +8562,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=2 n-rows=3 -->
+                  <!-- n-columns=3 n-rows=3 -->
                   <object class="GtkGrid" id="grid35">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -8662,6 +8662,29 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="left-attach">1</property>
                         <property name="top-attach">2</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="toggle_radius_adjust">
+                        <property name="label" translatable="yes">Adjust value</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">By checking this button, the radius value will be adjusted according to the image resolution if it is provided. Therefore, it is not necessary to change the radius value and the default value of 10 should be kept.</property>
+                        <property name="halign">start</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_toggle_radius_adjust_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>
@@ -10985,12 +11008,12 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="halign">start</property>
                     <property name="valign">center</property>
                     <property name="hexpand">True</property>
-                    <property name="active">1</property>
+                    <property name="active">3</property>
                     <items>
                       <item translatable="yes">Nearest Neighbor</item>
                       <item translatable="yes">Bilinear (default)</item>
-                      <item translatable="yes">Pixel Area Relation</item>
                       <item translatable="yes">Bicubic</item>
+                      <item translatable="yes">Pixel Area Relation</item>
                       <item translatable="yes">Lanczos-4</item>
                     </items>
                   </object>
@@ -11235,12 +11258,12 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="halign">end</property>
                 <property name="valign">center</property>
                 <property name="hexpand">True</property>
-                <property name="active">1</property>
+                <property name="active">3</property>
                 <items>
                   <item translatable="yes">Nearest Neighbor</item>
                   <item translatable="yes">Bilinear (default)</item>
-                  <item translatable="yes">Pixel Area Relation</item>
                   <item translatable="yes">Bicubic</item>
+                  <item translatable="yes">Pixel Area Relation</item>
                   <item translatable="yes">Lanczos-4</item>
                 </items>
               </object>
@@ -12162,7 +12185,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                         <signal name="drag-motion" handler="on_treeview_convert_drag_motion" swapped="no"/>
                                         <signal name="key-release-event" handler="on_treeview_convert_key_release_event" swapped="no"/>
                                         <child internal-child="selection">
-                                          <object class="GtkTreeSelection"/>
+                                          <object class="GtkTreeSelection">
+                                            <property name="mode">multiple</property>
+                                            <signal name="changed" handler="on_treeview_selection_convert_changed" swapped="no"/>
+                                          </object>
                                         </child>
                                         <child>
                                           <object class="GtkTreeViewColumn" id="treeviewcolumn17">
@@ -13942,8 +13968,8 @@ When processing images, registration data is taken from the default layer if ava
                                             <items>
                                               <item translatable="yes">Nearest Neighbor</item>
                                               <item translatable="yes">Bilinear</item>
-                                              <item translatable="yes">Pixel Area Relation</item>
                                               <item translatable="yes">Bicubic</item>
+                                              <item translatable="yes">Pixel Area Relation</item>
                                               <item translatable="yes">Lanczos-4</item>
                                             </items>
                                           </object>
@@ -15239,6 +15265,8 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
 
 &lt;b&gt;Sigma Clipping&lt;/b&gt; is an iterative algorithm which will reject pixels whose distance from median will be farthest than two given values in sigma units.
 
+&lt;b&gt;MAD Clipping&lt;/b&gt; is an iterative algorithm working as Sigma Clipping except that the estimator used is the Median Absolute Deviation (MAD). This is generally used for noisy infrared image processing.
+
 &lt;b&gt;Median Sigma Clipping&lt;/b&gt; is the same algorithm except than the rejected pixels are replaced by the median value.
 
 &lt;b&gt;Winsorized Sigma Clipping&lt;/b&gt; is very similar to Sigma Clipping method but it uses an algorithm based on Huber's work [1] [2].
@@ -15257,6 +15285,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                       <item translatable="yes">No rejection</item>
                                                       <item translatable="yes">Percentile Clipping</item>
                                                       <item translatable="yes">Sigma Clipping</item>
+                                                      <item translatable="yes">MAD clipping</item>
                                                       <item translatable="yes">Median Sigma Clipping</item>
                                                       <item translatable="yes">Winsorized Sigma Clipping</item>
                                                       <item translatable="yes">Linear Fit Clipping</item>

@@ -243,7 +243,7 @@ static void display_PSF(fitted_PSF **result) {
 				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
 				i, B, A, FWHMx, result[0]->units, FWHMy,
 				result[0]->units, r, angle, rmse);
-		show_data_dialog(msg, _("Average Star Data"), NULL);
+		show_data_dialog(msg, _("Average Star Data"), "stars_list_window", NULL);
 		g_free(msg);
 	}
 }
@@ -311,6 +311,7 @@ static int save_list(gchar *filename) {
 	if (!com.stars)
 		return 1;
 	GError *error = NULL;
+	gboolean is_in_arcsec = FALSE;
 
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
@@ -326,12 +327,33 @@ static int save_list(gchar *filename) {
 		return 1;
 	}
 
+	gchar *buffer = g_strdup_printf("star#\tlayer\tB\tA\tX\tY\tFWHMx [%s]\tFWHMy [%s]\tangle\tRMSE\tmag%s", com.stars[0]->units,com.stars[0]->units,SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
+		g_warning("%s\n", error->message);
+		g_free(buffer);
+		g_clear_error(&error);
+		g_object_unref(output_stream);
+		g_object_unref(file);
+		return 1;
+	}
+	g_free(buffer);
+	if (com.stars[0]) {
+		is_in_arcsec = com.stars[0]->fwhmx_arcsec > 0;
+	}
 	while (com.stars[i]) {
-		gchar *buffer = g_strdup_printf(
-				"%d\t%d\t%10.6f %10.6f %10.2f %10.2f %10.2f %10.2f %3.2f %10.3e %10.2f%s",
-				i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
-				com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx,
-				com.stars[i]->fwhmy, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag, SIRIL_EOL);
+		if (is_in_arcsec) { 
+			buffer = g_strdup_printf(
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
+					i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
+					com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx_arcsec,
+					com.stars[i]->fwhmy_arcsec, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag, SIRIL_EOL);
+		} else {
+			buffer = g_strdup_printf(
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
+					i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
+					com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx,
+					com.stars[i]->fwhmy, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag, SIRIL_EOL);
+		}
 
 		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 			g_warning("%s\n", error->message);
@@ -396,6 +418,9 @@ void add_star_to_list(fitted_PSF *star) {
 		return;		// just clear the list
 	}
 
+	double fwhmx = star->fwhmx_arcsec < 0 ? star->fwhmx : star->fwhmx_arcsec;
+	double fwhmy = star->fwhmy_arcsec < 0 ? star->fwhmy : star->fwhmy_arcsec;
+
 	gtk_list_store_append (liststore_stars, &iter);
 	gtk_list_store_set (liststore_stars, &iter,
 			COLUMN_CHANNEL, star->layer,
@@ -403,10 +428,10 @@ void add_star_to_list(fitted_PSF *star) {
 			COLUMN_A, star->A,
 			COLUMN_X0, star->xpos,
 			COLUMN_Y0, star->ypos,
-			COLUMN_FWHMX, star->fwhmx,
-			COLUMN_FWHMY, star->fwhmy,
+			COLUMN_FWHMX, fwhmx,
+			COLUMN_FWHMY, fwhmy,
 			COLUMN_MAG, star->mag,
-			COLUMN_ROUNDNESS, star->fwhmy/star->fwhmx,
+			COLUMN_ROUNDNESS, fwhmy / fwhmx,
 			COLUMN_ANGLE, star->angle,
 			COLUMN_RMSE, star->rmse,
 			-1);
@@ -544,8 +569,9 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	}
 	set_cursor_waiting(TRUE);
 
+	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
 	delete_selected_area();
-	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE);
+	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
 	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
 	if (com.stars)
 		refresh_star_list(com.stars);

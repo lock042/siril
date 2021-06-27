@@ -165,6 +165,7 @@ typedef enum {
 				// the loaded sequence
 
 #define MAX_STARS 200000		// maximum length of com.stars
+#define MAX_STARS_FITTED 2000   // maximum number of stars fitted for registration
 
 #define INDEX_MAX 100000		// maximum index for images
 
@@ -515,8 +516,13 @@ struct historic_struct {
 
 struct star_finder_struct {
 	int radius;
+	int adj_radius;
+	gboolean adjust;
 	double sigma;
 	double roundness;
+
+	/** internal variable **/
+	gboolean no_guess; // TRUE means no guess about resolution
 };
 
 struct save_config_struct {
