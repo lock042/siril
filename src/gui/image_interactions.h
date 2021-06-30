@@ -3,6 +3,8 @@
 
 #include "core/siril.h"
 
+void init_image_interaction();
+
 typedef void (*selection_update_callback)();
 typedef void (*star_selection_callback)(pointi);
 gboolean update_zoom(gdouble x, gdouble y, double scale);

@@ -99,6 +99,39 @@ static gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 	return FALSE;
 }
 
+static void enforce_ratio_and_clamp() {
+	if (com.ratio > 0.0
+		&& !(com.freezeX && com.freezeY)) {
+		// Enforce a ratio for the selection
+		if (com.freezeY) {
+			com.selection.h = round_to_int(com.selection.w / com.ratio);
+		} else if (com.freezeX) {
+			com.selection.w = round_to_int(com.selection.h * com.ratio);
+		} else {
+			gint delta_w = round_to_int(com.selection.h * com.ratio) - com.selection.w;
+			com.selection.w += delta_w;
+
+			if (com.selection.x < com.start.x) { // Changing selection from the left
+				com.selection.x -= delta_w;
+			}
+		}
+
+		// clamp the selection dimensions
+		if (com.selection.w > gfit.rx) {
+			com.selection.w = gfit.rx;
+			com.selection.h = round_to_int(com.selection.w / com.ratio);
+		}
+		else if (com.selection.h > gfit.ry) {
+			com.selection.h = gfit.ry;
+			com.selection.w = round_to_int(com.selection.h * com.ratio);
+		}
+	}
+
+	// clamp the selection inside the image (needed when enforcing a ratio or moving)
+	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit.rx - com.selection.w);
+	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit.ry - com.selection.h);
+}
+
 /* Clamp given coordinates to image boundaries.
    Returns true if point was inside, false otherwise.
 */
@@ -122,6 +155,187 @@ static gboolean clamp2image(pointi* pt) {
 	}
 	return x_inside && y_inside;
 }
+
+static gboolean on_drawingarea_motion_notify_event(GtkEventControllerMotion *controller, double x, double y,
+		gpointer user_data) {
+
+	if (gfit.type == DATA_UNSUPPORTED) return FALSE;
+
+	GtkWidget *widget = (GtkWidget *)user_data;
+
+	double zoom = get_zoom_val();
+
+	// evpos.x/evpos.y = cursor position in image coordinate
+	point evpos = { x, y };
+	cairo_matrix_transform_point(&com.image_matrix, &evpos.x, &evpos.y);
+
+	// same as evpos but rounded to integer and clamped to image bounds
+	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
+	gboolean inside = clamp2image(&zoomed);
+
+	static const gchar *label_density[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb"};
+	static const gchar *label_wcs[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb" };
+
+	if (com.cvport < RGB_VPORT) {
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), "");
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), "");
+
+		if (inside) {
+			static gchar buffer[256] = { 0 };
+			static gchar wcs_buffer[256] = { 0 };
+			static gchar format[256] = { 0 };
+			int coords_width = 3;
+
+			if (gfit.rx >= 1000 || gfit.ry >= 1000)
+			coords_width = 4;
+			if (gfit.type == DATA_USHORT && gfit.pdata[com.cvport] != NULL) {
+				int val_width = 3;
+				char *format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
+				if (gfit.hi >= 1000)
+					val_width = 4;
+				if (gfit.hi >= 10000)
+					val_width = 5;
+				g_sprintf(format, format_base_ushort,
+						coords_width, coords_width, val_width);
+				g_sprintf(buffer, format, zoomed.x, zoomed.y,
+						gfit.pdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
+											   + zoomed.x]);
+			} else if (gfit.type == DATA_FLOAT  && gfit.fpdata[com.cvport] != NULL) {
+				char *format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
+				g_sprintf(format, format_base_float,
+						coords_width, coords_width);
+				g_sprintf(buffer, format, zoomed.x, zoomed.y,
+						gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
+			}
+			if (has_wcs(&gfit)) {
+				double world_x, world_y;
+				pix2wcs(&gfit, (double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
+				if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+					SirilWorldCS *world_cs;
+
+					world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+					if (world_cs) {
+						gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+						gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+						g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
+
+						gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), wcs_buffer);
+
+						g_free(ra);
+						g_free(dec);
+						siril_world_cs_unref(world_cs);
+					}
+				}
+			}
+
+			if (buffer[0] != '\0') {
+				gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), buffer);
+			}
+		}
+	}
+
+	if (com.translating) {
+		update_zoom_fit_button();
+
+		pointi ev = { (int)(x), (int)(y) };
+		point delta = { ev.x - com.start.x , ev.y - com.start.y };
+		com.start = ev;
+		com.display_offset.x += delta.x;
+		com.display_offset.y += delta.y;
+		adjust_vport_size_to_image();
+		gtk_widget_queue_draw(widget);
+	} else if (com.drawing) {	// with button 1 down
+		if (!com.freezeX) {
+			if (zoomed.x > com.start.x) {
+				com.selection.x = com.start.x;
+				com.selection.w = zoomed.x - com.selection.x;
+			} else {
+				com.selection.x = zoomed.x;
+				com.selection.w = com.start.x - zoomed.x;
+			}
+		}
+		if (!com.freezeY) {
+			if (zoomed.y > com.start.y) {
+				com.selection.y = com.start.y;
+				com.selection.h = zoomed.y - com.selection.y;
+			} else {
+				com.selection.y = zoomed.y;
+				com.selection.h = com.start.y - zoomed.y;
+			}
+		}
+
+		if (com.freezeX && com.freezeY) { // Move selection
+			com.selection.x = (zoomed.x - com.start.x) + com.origin.x;
+			com.selection.y = (zoomed.y - com.start.y) + com.origin.y;
+		}
+
+		// Enforce a ratio and clamp selection to the image
+		enforce_ratio_and_clamp();
+
+		// Display the dimensions of the selection while drawing it
+		update_display_selection();
+
+		gtk_widget_queue_draw(widget);
+	}
+
+	if (inside && com.cvport < RGB_VPORT) {
+		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
+			set_cursor("cell");
+		} else {
+			if (!com.drawing && !com.translating) {
+				// The order matters if the selection is so small that edge detection overlaps
+				// and need to be the same as in the on_drawingarea_button_press_event()
+				gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
+				gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
+				gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
+				gboolean top = is_over_the_top_of_sel(zoomed, zoom);
+				if (bottom && right) {
+					set_cursor("se-resize");
+				} else if (top && right) {
+					set_cursor("ne-resize");
+				} else if (right) {
+					set_cursor("e-resize");
+				} else if (bottom && left) {
+					set_cursor("sw-resize");
+				} else if (top && left) {
+					set_cursor("nw-resize");
+				} else if (left) {
+					set_cursor("w-resize");
+				} else if (bottom) {
+					set_cursor("s-resize");
+				} else if (top) {
+					set_cursor("n-resize");
+				} else if (is_inside_of_sel(zoomed, zoom)) {
+					set_cursor("all-scroll");
+				} else {
+					set_cursor("crosshair");
+				}
+			} else {
+//				if ((event->state & get_primary()) || is_inside_of_sel(zoomed, zoom)) {
+//					set_cursor("all-scroll");
+//				} else {
+//					set_cursor("crosshair");
+//				}
+			}
+		}
+	} else {
+		set_cursor("default");
+	}
+
+	return FALSE;
+}
+
+static void on_drawingarea_leave_notify_event(GtkEventControllerMotion *controller,
+		gpointer user_data) {
+
+	if (get_thread_run()) {
+		set_cursor_waiting(TRUE);
+	} else {
+		/* trick to get default cursor */
+		set_cursor_waiting(FALSE);
+	}
+}
+
 
 #define MAX_CALLBACKS_PER_EVENT 10
 /* selection zone event management */
@@ -182,6 +396,13 @@ void update_zoom_fit_button() {
 	if (gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, FALSE);
 	}
+}
+
+void init_image_interaction() {
+	GtkEventController *controller = gtk_event_controller_motion_new(lookup_widget("drawingarear"));
+
+	g_signal_connect(controller, "leave", G_CALLBACK(on_drawingarea_leave_notify_event), lookup_widget("drawingarear"));
+	g_signal_connect(controller, "motion", G_CALLBACK(on_drawingarea_motion_notify_event), lookup_widget("drawingarear"));
 }
 
 /*
@@ -279,38 +500,6 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 #endif
 }
 
-static void enforce_ratio_and_clamp() {
-	if (com.ratio > 0.0
-		&& !(com.freezeX && com.freezeY)) {
-		// Enforce a ratio for the selection
-		if (com.freezeY) {
-			com.selection.h = round_to_int(com.selection.w / com.ratio);
-		} else if (com.freezeX) {
-			com.selection.w = round_to_int(com.selection.h * com.ratio);
-		} else {
-			gint delta_w = round_to_int(com.selection.h * com.ratio) - com.selection.w;
-			com.selection.w += delta_w;
-
-			if (com.selection.x < com.start.x) { // Changing selection from the left
-				com.selection.x -= delta_w;
-			}
-		}
-
-		// clamp the selection dimensions
-		if (com.selection.w > gfit.rx) {
-			com.selection.w = gfit.rx;
-			com.selection.h = round_to_int(com.selection.w / com.ratio);
-		}
-		else if (com.selection.h > gfit.ry) {
-			com.selection.h = gfit.ry;
-			com.selection.w = round_to_int(com.selection.h * com.ratio);
-		}
-	}
-
-	// clamp the selection inside the image (needed when enforcing a ratio or moving)
-	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit.rx - com.selection.w);
-	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit.ry - com.selection.h);
-}
 
 static void set_selection_ratio(double ratio) {
 	com.ratio = ratio;
@@ -645,183 +834,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		}
 	}
 	return FALSE;
-}
-
-gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
-		GdkEventMotion *event, gpointer user_data) {
-	if (gfit.type == DATA_UNSUPPORTED) return FALSE;
-
-	double zoom = get_zoom_val();
-
-	// evpos.x/evpos.y = cursor position in image coordinate
-	point evpos = { event->x, event->y };
-	cairo_matrix_transform_point(&com.image_matrix, &evpos.x, &evpos.y);
-
-	// same as evpos but rounded to integer and clamped to image bounds
-	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
-	gboolean inside = clamp2image(&zoomed);
-
-	static const gchar *label_density[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb"};
-	static const gchar *label_wcs[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb" };
-
-	if (com.cvport < RGB_VPORT) {
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), "");
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), "");
-
-		if (inside) {
-			static gchar buffer[256] = { 0 };
-			static gchar wcs_buffer[256] = { 0 };
-			static gchar format[256] = { 0 };
-			int coords_width = 3;
-
-			if (gfit.rx >= 1000 || gfit.ry >= 1000)
-			coords_width = 4;
-			if (gfit.type == DATA_USHORT && gfit.pdata[com.cvport] != NULL) {
-				int val_width = 3;
-				char *format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
-				if (gfit.hi >= 1000)
-					val_width = 4;
-				if (gfit.hi >= 10000)
-					val_width = 5;
-				g_sprintf(format, format_base_ushort,
-						coords_width, coords_width, val_width);
-				g_sprintf(buffer, format, zoomed.x, zoomed.y,
-						gfit.pdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
-											   + zoomed.x]);
-			} else if (gfit.type == DATA_FLOAT  && gfit.fpdata[com.cvport] != NULL) {
-				char *format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
-				g_sprintf(format, format_base_float,
-						coords_width, coords_width);
-				g_sprintf(buffer, format, zoomed.x, zoomed.y,
-						gfit.fpdata[com.cvport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
-			}
-			if (has_wcs(&gfit)) {
-				double world_x, world_y;
-				pix2wcs(&gfit, (double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
-				if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
-					SirilWorldCS *world_cs;
-
-					world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
-					if (world_cs) {
-						gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
-						gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
-						g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
-
-						gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), wcs_buffer);
-
-						g_free(ra);
-						g_free(dec);
-						siril_world_cs_unref(world_cs);
-					}
-				}
-			}
-
-			if (buffer[0] != '\0') {
-				gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), buffer);
-			}
-		}
-	}
-
-	if (com.translating) {
-		update_zoom_fit_button();
-
-		pointi ev = { (int)(event->x), (int)(event->y) };
-		point delta = { ev.x - com.start.x , ev.y - com.start.y };
-		com.start = ev;
-		com.display_offset.x += delta.x;
-		com.display_offset.y += delta.y;
-		adjust_vport_size_to_image();
-		gtk_widget_queue_draw(widget);
-	} else if (com.drawing) {	// with button 1 down
-		if (!com.freezeX) {
-			if (zoomed.x > com.start.x) {
-				com.selection.x = com.start.x;
-				com.selection.w = zoomed.x - com.selection.x;
-			} else {
-				com.selection.x = zoomed.x;
-				com.selection.w = com.start.x - zoomed.x;
-			}
-		}
-		if (!com.freezeY) {
-			if (zoomed.y > com.start.y) {
-				com.selection.y = com.start.y;
-				com.selection.h = zoomed.y - com.selection.y;
-			} else {
-				com.selection.y = zoomed.y;
-				com.selection.h = com.start.y - zoomed.y;
-			}
-		}
-
-		if (com.freezeX && com.freezeY) { // Move selection
-			com.selection.x = (zoomed.x - com.start.x) + com.origin.x;
-			com.selection.y = (zoomed.y - com.start.y) + com.origin.y;
-		}
-
-		// Enforce a ratio and clamp selection to the image
-		enforce_ratio_and_clamp();
-
-		// Display the dimensions of the selection while drawing it
-		update_display_selection();
-
-		gtk_widget_queue_draw(widget);
-	}
-
-	if (inside && com.cvport < RGB_VPORT) {
-		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
-			set_cursor("cell");
-		} else {
-			if (!com.drawing && !com.translating) {
-				// The order matters if the selection is so small that edge detection overlaps
-				// and need to be the same as in the on_drawingarea_button_press_event()
-				gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
-				gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
-				gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
-				gboolean top = is_over_the_top_of_sel(zoomed, zoom);
-				if (bottom && right) {
-					set_cursor("se-resize");
-				} else if (top && right) {
-					set_cursor("ne-resize");
-				} else if (right) {
-					set_cursor("e-resize");
-				} else if (bottom && left) {
-					set_cursor("sw-resize");
-				} else if (top && left) {
-					set_cursor("nw-resize");
-				} else if (left) {
-					set_cursor("w-resize");
-				} else if (bottom) {
-					set_cursor("s-resize");
-				} else if (top) {
-					set_cursor("n-resize");
-				} else if (is_inside_of_sel(zoomed, zoom)) {
-					set_cursor("all-scroll");
-				} else {
-					set_cursor("crosshair");
-				}
-			} else {
-				if ((event->state & get_primary()) || is_inside_of_sel(zoomed, zoom)) {
-					set_cursor("all-scroll");
-				} else {
-					set_cursor("crosshair");
-				}
-			}
-		}
-	} else {
-		set_cursor("default");
-	}
-
-	return FALSE;
-}
-
-void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
-		gpointer user_data) {
-
-	if (get_thread_run()) {
-		set_cursor_waiting(TRUE);
-	} else {
-		/* trick to get default cursor */
-		set_cursor_waiting(FALSE);
-	}
 }
 
 gboolean update_zoom(gdouble x, gdouble y, double scale) {

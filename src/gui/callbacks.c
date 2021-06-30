@@ -1222,6 +1222,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	update_MenuItem();
 	initialize_script_menu();
 
+	/* initialize image interaction */
+	init_image_interaction();
+
 	/* initialize command processor */
 	init_command();
 

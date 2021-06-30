@@ -11347,8 +11347,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                     <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                     <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
                                 </child>
@@ -11515,8 +11513,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                     <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                     <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
                                 </child>
@@ -11686,8 +11682,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                     <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                     <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
                                 </child>
@@ -11856,7 +11850,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                     <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
                                     <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                     <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                     <signal name="popup-menu" handler="rgb_area_popup_menu_handler" swapped="no"/>
                                     <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                                   </object>
