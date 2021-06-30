@@ -399,10 +399,15 @@ void update_zoom_fit_button() {
 }
 
 void init_image_interaction() {
-	GtkEventController *controller = gtk_event_controller_motion_new(lookup_widget("drawingarear"));
+	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
+	GtkEventController *controller[4];
 
-	g_signal_connect(controller, "leave", G_CALLBACK(on_drawingarea_leave_notify_event), lookup_widget("drawingarear"));
-	g_signal_connect(controller, "motion", G_CALLBACK(on_drawingarea_motion_notify_event), lookup_widget("drawingarear"));
+	for (int i = 0; i < RGB_VPORT; i++) {
+		controller[i] = gtk_event_controller_motion_new(lookup_widget(area[i]));
+
+		g_signal_connect(controller[i], "leave", G_CALLBACK(on_drawingarea_leave_notify_event), lookup_widget(area[i]));
+		g_signal_connect(controller[i], "motion", G_CALLBACK(on_drawingarea_motion_notify_event), lookup_widget(area[i]));
+	}
 }
 
 /*
