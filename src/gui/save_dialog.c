@@ -725,11 +725,9 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPixbuf *pixbuf) {
 	gchar *text = g_strdup_printf("Snapshot <b>%s</b> was saved into the working directory.", filename);
 	GtkWidget *popover = popover_new_with_image(widget, text, pixbuf);
-#if GTK_CHECK_VERSION(3, 22, 0)
+
 	gtk_popover_popup(GTK_POPOVER(popover));
-#else
-	gtk_widget_show(popover);
-#endif
+
 	g_free(text);
 	return popover;
 }

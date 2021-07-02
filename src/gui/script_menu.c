@@ -318,14 +318,10 @@ void siril_get_on_script_pages() {
 	}
 	gchar *url = g_build_path("/", GET_SCRIPTS_URL, lang, NULL);
 
-#if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
 	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
 			gtk_get_current_event_time(), NULL);
-#else
-	ret = gtk_show_uri(gdk_screen_get_default(), url,
-			gtk_get_current_event_time(), NULL);
-#endif
+
 	if (!ret) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not show link"),
 				_("Please go to <a href=\""GET_SCRIPTS_URL"\">"GET_SCRIPTS_URL"</a> "

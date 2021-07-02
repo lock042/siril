@@ -307,11 +307,7 @@ static void show_command_help_popup(GtkEntry *entry) {
 	}
 
 	GtkWidget *popover = popover_new(lookup_widget("command"), helper);
-#if GTK_CHECK_VERSION(3, 22, 0)
-	gtk_popover_popup(GTK_POPOVER(popover));
-#else
 	gtk_widget_show(popover);
-#endif
 	g_free(helper);
 }
 

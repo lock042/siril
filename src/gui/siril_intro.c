@@ -57,11 +57,9 @@ const SirilTipIntro intro_tips[] = {
 static GtkWidget *intro_popover(GtkWidget *widget, const gchar *text) {
 	gchar *markup_txt = g_strdup_printf("<big><b>%s</b></big>", text);
 	GtkWidget *popover = popover_new(widget, markup_txt);
-#if GTK_CHECK_VERSION(3, 22, 0)
+
 	gtk_popover_popup(GTK_POPOVER(popover));
-#else
-	gtk_widget_show(popover);
-#endif
+
 	g_free(markup_txt);
 	return popover;
 }

@@ -967,22 +967,8 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 		menu_item = GTK_MENU_ITEM(lookup_widget("menu_plot_exclude"));
 	}
 
-#if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
-#else
-	int button, event_time;
 
-	if (event) {
-		button = event->button;
-		event_time = event->time;
-	} else {
-		button = 0;
-		event_time = gtk_get_current_event_time();
-	}
-
-	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
-			event_time);
-#endif
 	gchar *str = g_strdup_printf(_("Exclude Frame %d"), index + 1);
 	gtk_menu_item_set_label(menu_item, str);
 
