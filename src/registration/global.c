@@ -140,8 +140,7 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 	return 0;
 }
 
-
-static int star_align_prepare_hook(struct generic_seq_args *args) {
+int star_align_prepare_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	float FWHMx, FWHMy;
@@ -243,7 +242,7 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 /* reads the image, searches for stars in it, tries to match them with
  * reference stars, computes the homography matrix, applies it on the image,
  * possibly up-scales the image and stores registration data */
-static int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int nbpoints, nb_stars = 0;
@@ -298,11 +297,8 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		double scale_min = 0.9;
 		double scale_max = 1.1;
 		retvalue = 1;
-		s_star star_list_A, star_list_B;
-		while (retvalue && attempt < NB_OF_MATCHING_TRY){
-			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj,
-					scale_min, scale_max, &H, FALSE, regargs->type,
-					&star_list_A, &star_list_B);
+		while (retvalue && attempt < NB_OF_MATCHING_TRY) {
+			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj, scale_min, scale_max, &H, FALSE);
 			if (attempt == 1) {
 				scale_min = -1.0;
 				scale_max = -1.0;
@@ -311,15 +307,15 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 			}
 			attempt++;
 		}
+
 		if (retvalue) {
 			siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
 					"red", attempt, filenum);
-			free_fitted_stars(stars);
 			return 1;
 		}
 		if (H.Inliers < regargs->min_pairs) {
 			siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
-					"red", H.Inliers, filenum);
+					"red", H.pair_matched, filenum);
 			free_fitted_stars(stars);
 			return 1;
 		}
@@ -348,6 +344,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 
 
 		FWHM_average(stars, nbpoints, &FWHMx, &FWHMy, &units);
+		free_fitted_stars(stars);
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -360,13 +357,11 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 				/ (double) sadata->fitted_stars + FWHMx;
 
 		if (!regargs->translation_only) {
-			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+			if (cvTransformImage(fit, H, regargs->x2upscale, regargs->interpolation)) {
 				free_fitted_stars(stars);
 				return 1;
 			}
 		}
-
-		free_fitted_stars(stars);
 	}
 	else {
 		if (regargs->x2upscale && !regargs->translation_only) {
