@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/preprocess.h"
 #include "gui/utils.h"
 #include "io/FITS_symlink.h"
 #include "io/image_format_fits.h"
@@ -52,7 +53,9 @@ static GAsyncQueue *new_files_queue = NULL;
 //static sequence *registered_seq = NULL;
 static int seq_rx = -1, seq_ry = -1;
 static struct star_align_data *sadata = NULL;
+static struct preprocessing_data *prepro = NULL;
 
+static void init_preprocessing();
 static gpointer live_stacker(gpointer arg);
 int star_align_prepare_hook(struct generic_seq_args *args);
 
@@ -152,6 +155,8 @@ void on_livestacking_start() {
 		g_error_free(err);
 		return;
 	}
+
+	init_preprocessing();
 
 	g_signal_connect(G_OBJECT(dirmon), "changed", G_CALLBACK(file_changed), NULL);
 	display(_("Live stacking waiting for files"));
@@ -281,6 +286,74 @@ static int start_global_registration(sequence *seq) {
 	return GPOINTER_TO_INT(generic_sequence_worker(args));
 }
 
+static void init_preprocessing() {
+	prepro = calloc(1, sizeof(struct preprocessing_data));
+	GtkToggleButton *tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
+	if (gtk_toggle_button_get_active(tbutton)) {
+		const char *filename;
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("darkname_entry"));
+		filename = gtk_entry_get_text(entry);
+		if (filename[0] == '\0') {
+			gtk_toggle_button_set_active(tbutton, FALSE);
+		} else {
+			const char *error = NULL;
+			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
+			prepro->dark = calloc(1, sizeof(fits));
+			if (!readfits(filename, prepro->dark, NULL, !com.pref.force_to_16bit)) {
+				/*if (prepro->dark->naxes[2] != gfit.naxes[2]) {
+					error = _("NOT USING DARK: number of channels is different");
+				} else if (prepro->dark->naxes[0] != gfit.naxes[0] ||
+						prepro->dark->naxes[1] != gfit.naxes[1]) {
+					error = _("NOT USING DARK: image dimensions are different");
+				} else {*/
+					prepro->use_dark = TRUE;
+				//}
+
+			} else error = _("NOT USING DARK: cannot open the file");
+			if (error) {
+				display(error);
+				free(prepro->dark);
+				gtk_entry_set_text(entry, "");
+				prepro->use_dark = FALSE;
+			}
+		}
+
+		if (prepro->use_dark) {
+			// cosmetic correction
+			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
+			prepro->use_cosmetic_correction = gtk_toggle_button_get_active(tbutton);
+
+			if (prepro->use_cosmetic_correction) {
+				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
+				if (gtk_toggle_button_get_active(tbutton)) {
+					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
+					prepro->sigma[0] = gtk_spin_button_get_value(sigCold);
+				} else prepro->sigma[0] = -1.0;
+
+				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
+				if (gtk_toggle_button_get_active(tbutton)) {
+					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
+					prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
+				} else prepro->sigma[1] = -1.0;
+			}
+		}
+	}
+
+	if (prepro->use_dark) {
+		struct generic_seq_args generic = { .user = prepro };
+		prepro_prepare_hook(&generic);
+	} else {
+		free(prepro);
+		prepro = NULL;
+	}
+}
+
+
+static int preprocess_image(char *filename) {
+	return 0;
+}
+
+	
 
 static gpointer live_stacker(gpointer arg) {
 	g_async_queue_ref(new_files_queue);
@@ -299,6 +372,12 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		g_free(filename);
 
+		/* Preprocess image */
+		preprocess_image(filename);
+
+		/* Demosaic image */
+
+
 		/* Create the sequence */
 		siril_debug_print("Creating sequence %d\n", index);
 		sequence seq;
@@ -312,6 +391,7 @@ static gpointer live_stacker(gpointer arg) {
 		if (first_loop) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
+				display(_("Waiting for second image"));
 				continue;
 			}
 			first_loop = FALSE;
@@ -329,19 +409,29 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		
 		if (seq_check_basic_data(&seq, FALSE) < 0) {
+			display(_("Failed to read the sequence, aborting."));
 			break;
 		}
 		if (seq_rx <= 0) {
 			seq_rx = seq.rx;
 			seq_ry = seq.ry;
+			if (prepro && prepro->dark && (prepro->dark->rx != seq_rx || prepro->dark->ry != seq_ry)) {
+				char *msg = siril_log_color_message(_("Dark image is not the same size, not using (%dx%d)\n"), "salmon", prepro->dark->rx, prepro->dark->ry);
+				display(msg);
+				clearfits(prepro->dark);
+				free(prepro);
+				prepro = NULL;
+			}
 		} else {
 			if (seq_rx != seq.rx || seq_ry != seq.ry) {
-				siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+				char *msg = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+				display(msg);
 				break;
 			}
 		}
 
-		start_global_registration(&seq);
+		if (start_global_registration(&seq))
+			continue;
 
 		gchar *result_filename = g_strdup_printf("live_stack_00001%s", com.pref.ext);
 
@@ -360,7 +450,7 @@ static gpointer live_stacker(gpointer arg) {
 		create_seq_of_2(&r_seq, "r_live_stack_", index);
 		if (seq_check_basic_data(&r_seq, FALSE) < 0) {
 			//free(r_seq);
-			return FALSE;
+			continue;
 		}
 
 		struct stacking_args stackparam = { 0 };
@@ -390,19 +480,27 @@ static gpointer live_stacker(gpointer arg) {
 		free(stackparam.image_indices);
 		free(stackparam.description);
 
-		if (retval)
+		if (retval) {
+			gchar *str = g_strdup_printf(_("Stacking failed for image %d"), index);
+			display(str);
+			g_free(str);
 			break;
+		}
 
 		//struct noise_data noise_args = { .fit = &gfit, .verbose = FALSE, .use_idle = FALSE };
 		//noise(&noise_args);
 		if (savefits(result_filename, &gfit)) {
-			siril_log_color_message(_("Could not save the stacking result %s\n"),
+			char *msg = siril_log_color_message(_("Could not save the stacking result %s, aborting\n"),
 					"red", result_filename);
+			display(msg);
 			break;
 		}
 
 		/* Update display */
 		queue_redraw(REMAP_ALL);
+		gchar *str = g_strdup_printf(_("Stacked image %d"), index);
+		display(str);
+		g_free(str);
 
 		index++;
 	} while (1);
