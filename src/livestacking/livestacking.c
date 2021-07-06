@@ -109,11 +109,13 @@ void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
 	if (new_files_queue) {
 		g_async_queue_push(new_files_queue, EXIT_TOKEN);
 		g_async_queue_unref(new_files_queue);
-		new_files_queue = NULL;
 	}
 	if (live_stacker_thread) {
 		g_thread_join(live_stacker_thread);
 		live_stacker_thread = NULL;
+	}
+	if (prepro) {
+		clear_preprocessing_data(prepro);
 	}
 }
 
@@ -129,16 +131,18 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 			gchar *str = g_strdup_printf(_("File not supported for live stacking: %s"), filename);
 			display(str);
 			g_free(str);
+			g_free(filename);
 		} else {
 			if (strncmp(filename, "live_stack", 10) &&
 					strncmp(filename, "r_live_stack", 12) &&
 					strncmp(filename, "result_live_stack", 17)) {
+				usleep(250000);	// temporary
 				if (!single_image_is_loaded())
 					open_single_image(filename);
 				g_async_queue_push(new_files_queue, filename);
 			}
+			else g_free(filename);
 		}
-		//g_free(filename);
 	}
 }
 
@@ -287,6 +291,9 @@ static int start_global_registration(sequence *seq) {
 }
 
 static void init_preprocessing() {
+	/* copied from core/preprocess.c test_for_master_files() but modified to not check
+	 * for some options and not check for image properties against gfit, which is not
+	 * already loaded here. Error management is different too */
 	prepro = calloc(1, sizeof(struct preprocessing_data));
 	GtkToggleButton *tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
 	if (gtk_toggle_button_get_active(tbutton)) {
@@ -296,22 +303,12 @@ static void init_preprocessing() {
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
-			const char *error = NULL;
 			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
 			prepro->dark = calloc(1, sizeof(fits));
-			if (!readfits(filename, prepro->dark, NULL, !com.pref.force_to_16bit)) {
-				/*if (prepro->dark->naxes[2] != gfit.naxes[2]) {
-					error = _("NOT USING DARK: number of channels is different");
-				} else if (prepro->dark->naxes[0] != gfit.naxes[0] ||
-						prepro->dark->naxes[1] != gfit.naxes[1]) {
-					error = _("NOT USING DARK: image dimensions are different");
-				} else {*/
-					prepro->use_dark = TRUE;
-				//}
-
-			} else error = _("NOT USING DARK: cannot open the file");
-			if (error) {
-				display(error);
+			if (!readfits(filename, prepro->dark, NULL, FALSE)) {
+				prepro->use_dark = TRUE;
+			} else {
+				display(_("NOT USING DARK: cannot open the file"));
 				free(prepro->dark);
 				gtk_entry_set_text(entry, "");
 				prepro->use_dark = FALSE;
@@ -341,19 +338,43 @@ static void init_preprocessing() {
 
 	if (prepro->use_dark) {
 		struct generic_seq_args generic = { .user = prepro };
-		prepro_prepare_hook(&generic);
+		if (prepro_prepare_hook(&generic)) {
+			clear_preprocessing_data(prepro);
+			free(prepro);
+			prepro = NULL;
+		}
 	} else {
 		free(prepro);
 		prepro = NULL;
 	}
+	if (prepro) {
+		char *msg = siril_log_message(_("Preprocessing is ready\n"));
+		display(msg);
+	} else {
+		char *msg = siril_log_message(_("Preprocessing not used\n"));
+		display(msg);
+	}
 }
 
+static int preprocess_image(char *filename, char *target) {
+	if (!prepro || !prepro->use_dark) return 1;
 
-static int preprocess_image(char *filename) {
-	return 0;
+	int ret = 0;
+	fits fit = { 0 };
+	if (readfits(filename, &fit, NULL, FALSE)) {
+		return 1;
+	}
+	struct generic_seq_args generic = { .user = prepro };
+	ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+	if (!ret)
+		ret = savefits(target, &fit);
+	clearfits(&fit);
+	if (ret) {
+		char *msg = siril_log_message(_("preprocessing failed\n"));
+		display(msg);
+	}
+	return ret;
 }
-
-	
 
 static gpointer live_stacker(gpointer arg) {
 	g_async_queue_ref(new_files_queue);
@@ -367,16 +388,22 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		siril_debug_print("Adding file to input sequence\n");
 		gchar *target = g_strdup_printf("live_stack_%05d%s", index, com.pref.ext);
-		if (symlink_uniq_file(filename, target, do_links)) {
+		/* Preprocess image */
+		if (!preprocess_image(filename, target)) {
+			siril_log_message(_("Preprocessed image to %s\n"), target);
+			g_free(filename);
+			filename = target;
+			target = NULL;
+		}
+
+		/* TODO: Demosaic image */
+
+		if (target && symlink_uniq_file(filename, target, do_links)) {
+			display(_("Failed to rename or make a symbolic link to the input file"));
 			break;
 		}
 		g_free(filename);
-
-		/* Preprocess image */
-		preprocess_image(filename);
-
-		/* Demosaic image */
-
+		g_free(target);
 
 		/* Create the sequence */
 		siril_debug_print("Creating sequence %d\n", index);

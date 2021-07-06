@@ -268,7 +268,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-static int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
 	struct preprocessing_data *prepro = args->user;
 
 	/******/
@@ -315,7 +315,7 @@ static int prepro_image_hook(struct generic_seq_args *args, int out_index, int i
 	return 0;
 }
 
-static void clear_preprocessing_data(struct preprocessing_data *prepro) {
+void clear_preprocessing_data(struct preprocessing_data *prepro) {
 	if (prepro->use_bias && prepro->bias)
 		clearfits(prepro->bias);
 	if (prepro->use_dark && prepro->dark)
