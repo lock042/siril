@@ -193,7 +193,7 @@ static gint64 prepro_compute_size_hook(struct generic_seq_args *args, int nb_ima
 	return size;
 }
 
-static int prepro_prepare_hook(struct generic_seq_args *args) {
+int prepro_prepare_hook(struct generic_seq_args *args) {
 	struct preprocessing_data *prepro = args->user;
 
 	if (prepro->seq) {

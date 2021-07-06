@@ -3,6 +3,7 @@
 
 #include "siril.h"
 #include "filters/cosmetic_correction.h"
+#include "core/processing.h"
 
 /* preprocessing data from GUI */
 struct preprocessing_data {
@@ -31,5 +32,7 @@ struct preprocessing_data {
 int preprocess_single_image(struct preprocessing_data *args);
 int evaluateoffsetlevel(const char* expression);
 void start_sequence_preprocessing(struct preprocessing_data *prepro);
+
+int prepro_prepare_hook(struct generic_seq_args *args);
 
 #endif
