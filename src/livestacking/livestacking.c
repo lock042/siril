@@ -40,6 +40,8 @@
 #include "stacking/sum.h"
 #include "gui/image_display.h"
 
+#define WAIT_FILE_WRITTEN_US 60000	// check file size or readbility every 60 ms
+#define WAIT_FILE_WRITTEN_ITERS 11	// 60*11 = 660ms, after that it's a failure
 #define EXIT_TOKEN ":EXIT:"
 
 static GFileMonitor *dirmon = NULL;
@@ -119,6 +121,34 @@ void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
 	}
 }
 
+static int wait_for_file_to_be_written(const gchar *filename) {
+	int iter;
+	guint64 last_size = 0;
+	GFile *fd = g_file_new_for_path(filename);
+	for (iter = 1; iter < WAIT_FILE_WRITTEN_ITERS; iter++) {
+		usleep(WAIT_FILE_WRITTEN_US);
+#ifdef _WIN32
+		GFileInputStream *stream;
+		if ((stream = g_file_read(fd, NULL, NULL))) {
+			g_object_unref(stream);
+			break;
+		}
+#else
+		guint64 size;
+		if (!g_file_measure_disk_usage(fd, G_FILE_MEASURE_NONE, NULL, NULL, NULL, &size, NULL, NULL, NULL)) {
+			g_object_unref(fd);
+			return 1;
+		}
+		siril_debug_print("image size: %d MB\n", (int)(size/1000000));
+		if (last_size == 0 || size != last_size)
+			last_size = size;
+		else break;
+#endif
+	}
+	g_object_unref(fd);
+	return iter >= WAIT_FILE_WRITTEN_ITERS;
+}
+
 static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data) {
 	if (evtype == G_FILE_MONITOR_EVENT_CREATED) {
@@ -136,7 +166,12 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 			if (strncmp(filename, "live_stack", 10) &&
 					strncmp(filename, "r_live_stack", 12) &&
 					strncmp(filename, "result_live_stack", 17)) {
-				usleep(250000);	// temporary
+				if (wait_for_file_to_be_written(filename)) {
+					gchar *str = g_strdup_printf(_("Could not open file: %s"), filename);
+					display(str);
+					g_free(str);
+					return;
+				}
 				if (!single_image_is_loaded())
 					open_single_image(filename);
 				g_async_queue_push(new_files_queue, filename);
