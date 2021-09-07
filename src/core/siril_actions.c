@@ -29,7 +29,6 @@
 #include "algos/noise.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
-#include "algos/plateSolver.h"
 #include "compositing/compositing.h"
 #include "gui/about_dialog.h"
 #include "gui/utils.h"
@@ -49,6 +48,7 @@
 #include "livestacking/livestacking.h"
 
 #include "siril_actions.h"
+#include "algos/astrometry_solver.h"
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	header_open_button_clicked();
@@ -239,6 +239,22 @@ void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer
 	g_variant_unref(state);
 }
 
+void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	mouse_status = g_variant_get_boolean(state) ? MOUSE_ACTION_PHOTOMETRY : MOUSE_ACTION_SELECT_REG_AREA;
+	g_simple_action_set_state(action, state);
+	free(com.qphot);
+	com.qphot = NULL;
+	redraw(com.cvport, REMAP_NONE);
+}
+
+void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	redraw(com.cvport, REMAP_ALL);
@@ -267,6 +283,34 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	pick_a_star();
 }
 
+void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	psf_star *result = NULL;
+	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
+
+	if (layer == -1)
+		return;
+	if (!(com.selection.h && com.selection.w))
+		return;
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
+	if (!result)
+		return;
+
+	popup_psf_result(result, &com.selection);
+	free_psf(result);
+}
+
+void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	process_seq_psf(0);
+}
+
+void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_crop();
+}
+
+void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("crop_dialog");
+}
+
 void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (has_wcs(&gfit))
 		siril_open_dialog("search_objects");
@@ -285,7 +329,21 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 	redraw(com.cvport, REMAP_NONE);
 }
 
+void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	com.show_wcs_grid = g_variant_get_boolean(state);
+	g_simple_action_set_state(action, state);
+	redraw(com.cvport, REMAP_NONE);
+}
+
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GVariant *state;
 
 	state = g_action_get_state(G_ACTION(action));

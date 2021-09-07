@@ -3,7 +3,18 @@ xx/xx/xx
 
 * Fixed memory leak in opencv
 * Fixed FWHM units and star center position in Dynamic PSF
+* Fixed bug in ECC algorithm
+* Fixed registration with various image size
+* Save focal and wcs data in the swap file using undo/redo
 * New candidates star detection algorithm to improve speed and accuracy
+* New SNR estimator in photometry analysis
+* New button for quick photometry
+* New command (and UI button) for tilt estimation
+* New command boxselect to specify a selection average
+* New choices of degrees of freedom (shift, affine or homography) for global registration
+* Seqcrop command can now be used in scripts
+* Added autocropping of wide-field images, as well as using a selection for plate solving
+* WCS data is now updated after geometric transformations (mirror, rotate and crop)
 
 siril 0.99.10.1
 06/23/21

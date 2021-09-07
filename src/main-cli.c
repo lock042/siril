@@ -105,6 +105,8 @@ static void global_initialization() {
 	com.selected_star = -1;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
+	com.qphot = NULL;
+	com.tilt = NULL;
 	com.uniq = NULL;
 	com.color = NORMAL_COLOR;
 	for (int i = 0; i < MAXVPORT; i++)
@@ -143,6 +145,13 @@ static void init_num_procs() {
 static void siril_app_activate(GApplication *application) {
 	gchar *cwd_forced = NULL;
 
+	/*
+	 * Force C locale for numbers to avoid "," being used as decimal separator.
+	 * Called here and not in main() because setlocale(LC_ALL, "") is called as
+	 * part of g_application_run().
+	 */
+	setlocale(LC_NUMERIC, "C");
+
 	memset(&com, 0, sizeof(struct cominf));	// needed? doesn't hurt
 	com.initfile = NULL;
 
@@ -158,6 +167,8 @@ static void siril_app_activate(GApplication *application) {
 
 	/* initialize peaker variables */
 	init_peaker_default();
+	/* initialize photometry variables */
+	initialize_photometric_param();
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
@@ -367,8 +378,6 @@ int main(int argc, char *argv[]) {
 	bindtextdomain(PACKAGE, dir);
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
-
-	g_setenv("LC_NUMERIC", "C", TRUE); // avoid possible bugs using french separator ","
 
 	app = g_application_new("org.free_astro.siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 

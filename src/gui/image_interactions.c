@@ -30,6 +30,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/open_dialog.h"
+#include "gui/PSF_list.h"
 #include "image_interactions.h"
 #include "image_display.h"
 #include "gui/callbacks.h"
@@ -149,7 +150,7 @@ void unregister_selection_update_callback(selection_update_callback f) {
 }
 
 // send the events
-static void new_selection_zone() {
+void new_selection_zone() {
 	int i;
 	siril_debug_print("selection: %d,%d,\t%dx%d (%lf)\n", com.selection.x, com.selection.y,
 			com.selection.w, com.selection.h, com.ratio);
@@ -218,7 +219,6 @@ static void do_popup_rgbmenu(GtkWidget *my_widget, GdkEventButton *event) {
 
 static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	static GtkMenu *menu = NULL;
-	gboolean selected;
 
 	gboolean is_a_single_image_loaded = single_image_is_loaded() && (!sequence_is_loaded()
 			|| (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE
@@ -228,21 +228,6 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 		menu = GTK_MENU(gtk_builder_get_object(builder, "menugray"));
 		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
 	}
-
-	selected = com.selection.w && com.selection.h;
-	gtk_widget_set_sensitive(lookup_widget("undo_item1"), is_undo_available());
-	gtk_widget_set_sensitive(lookup_widget("redo_item1"), is_redo_available());
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_psf"), selected);
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_stat"), is_a_single_image_loaded || sequence_is_loaded());
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_seqpsf"), selected && sequence_is_loaded());
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_pick_star"), selected);
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_crop"), selected && is_a_single_image_loaded);
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_crop_seq"), selected && sequence_is_loaded());
-#ifdef HAVE_WCSLIB
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_search"), has_wcs(&gfit));
-#else
-	gtk_widget_set_sensitive(lookup_widget("menu_gray_search"), FALSE);
-#endif
 
 	// selection submenu
 	double original_ratio = (double)gfit.rx / (double)gfit.ry;
@@ -279,7 +264,18 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 #endif
 }
 
-static void enforce_ratio_and_clamp() {
+gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
+	do_popup_rgbmenu(widget, NULL);
+	return TRUE;
+}
+
+static GdkModifierType get_primary() {
+	return gdk_keymap_get_modifier_mask(
+			gdk_keymap_get_for_display(gdk_display_get_default()),
+			GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
+}
+
+void enforce_ratio_and_clamp() {
 	if (com.ratio > 0.0
 		&& !(com.freezeX && com.freezeY)) {
 		// Enforce a ratio for the selection
@@ -312,117 +308,6 @@ static void enforce_ratio_and_clamp() {
 	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit.ry - com.selection.h);
 }
 
-static void set_selection_ratio(double ratio) {
-	com.ratio = ratio;
-	enforce_ratio_and_clamp();
-	update_display_selection();
-	new_selection_zone();
-	gtk_widget_queue_draw(com.vport[com.cvport]);
-}
-
-void on_menuitem_selection_free_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.ratio = 0.0;
-	}
-}
-
-void on_menuitem_selection_preserve_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio((double)gfit.rx / (double)gfit.ry);
-	}
-}
-
-void on_menuitem_selection_16_9_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(16.0 / 9.0);
-	}
-}
-
-void on_menuitem_selection_3_2_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(3.0 / 2.0);
-	}
-}
-
-void on_menuitem_selection_4_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(4.0 / 3.0);
-	}
-}
-
-void on_menuitem_selection_1_1_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(1.0 / 1.0);
-	}
-}
-
-void on_menuitem_selection_3_4_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(3.0 / 4.0);
-	}
-}
-
-void on_menuitem_selection_2_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(2.0 / 3.0);
-	}
-}
-
-void on_menuitem_selection_9_16_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio(9.0 / 16.0);
-	}
-}
-
-void on_menuitem_selection_all_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	com.selection.x = 0;
-	com.selection.y = 0;
-	com.selection.w = gfit.rx;
-	com.selection.h = gfit.ry;
-	// "Select All" need to reset any enforced ratio that would not match the ratio of the image
-	// 1. it's nice to NOT enforce a ratio when the user just want to select the whole image
-	// 2. it's nice to keep the enforced ratio if it does match the image
-	if (com.ratio != ((double)gfit.rx / (double)gfit.ry)) {
-		set_selection_ratio(0.0);
-	} else {
-		set_selection_ratio((double)gfit.rx / (double)gfit.ry); // triggers the new_selection() callbacks etc.
-	}
-}
-
-void menuitem_selection_guides_0_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 0;
-	}
-}
-
-void menuitem_selection_guides_2_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 2;
-	}
-}
-
-void menuitem_selection_guides_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 3;
-	}
-}
-
-void menuitem_selection_guides_5_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 5;
-	}
-}
-
-gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
-	do_popup_rgbmenu(widget, NULL);
-	return TRUE;
-}
-
-static GdkModifierType get_primary() {
-	return gdk_keymap_get_modifier_mask(
-			gdk_keymap_get_for_display(gdk_display_get_default()),
-			GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
-}
 
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
@@ -536,6 +421,22 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					redraw(com.cvport, REMAP_NONE);
 					redraw_previews();
 				}
+			} else if (mouse_status == MOUSE_ACTION_PHOTOMETRY) {
+				int s = com.pref.phot_set.outer;
+				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
+				if (area.x - s > 0 && area.x + s < gfit.rx
+						&& area.y - s > 0 && area.y + s < gfit.ry) {
+					com.qphot = psf_get_minimisation(&gfit, com.cvport, &area, TRUE, TRUE, TRUE);
+					if (com.qphot) {
+						com.qphot->xpos = com.qphot->x0 + area.x;
+						if (gfit.top_down)
+							com.qphot->ypos = com.qphot->y0 + area.y;
+						else
+							com.qphot->ypos = area.y + area.h - com.qphot->y0;
+						redraw(com.cvport, REMAP_NONE);
+						popup_psf_result(com.qphot, &area);
+					}
+				}
 			}
 		} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
 			if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
@@ -644,6 +545,8 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			do_popup_graymenu(widget, NULL);
 		}
 	}
+	update_MenuItem();
+
 	return FALSE;
 }
 

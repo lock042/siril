@@ -38,9 +38,10 @@
 #include "algos/statistics.h"
 #include "algos/photometry.h"
 #include "algos/PSF.h"
-#include "algos/plateSolver.h"
+#include "algos/astrometry_solver.h"
 #include "algos/star_finder.h"
 #include "gui/image_display.h"
+#include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
@@ -54,7 +55,7 @@ enum {
 };
 
 static void start_photometric_cc() {
-	struct plate_solver_data *args = malloc(sizeof(struct plate_solver_data));
+	struct astrometry_data *args = malloc(sizeof(struct astrometry_data));
 
 	args->for_photometry_cc = TRUE;
 	if (!fill_plate_solver_structure(args)) {
@@ -63,7 +64,7 @@ static void start_photometric_cc() {
 	}
 }
 
-static void read_photometry_cc_file(GInputStream *stream, fitted_PSF **stars, int *nb_stars) {
+static void read_photometry_cc_file(GInputStream *stream, psf_star **stars, int *nb_stars) {
 	gchar *line;
 	int i = 0;
 
@@ -71,7 +72,7 @@ static void read_photometry_cc_file(GInputStream *stream, fitted_PSF **stars, in
 	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
 				NULL, NULL))) {
 		int tmp;
-		fitted_PSF *star = malloc(sizeof(fitted_PSF));
+		psf_star *star = new_psf_star();
 
 		sscanf(line, "%d %lf %lf %lf\n", &tmp, &(star->xpos), &(star->ypos), &(star->BV));
 
@@ -126,7 +127,7 @@ static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV 
 	}
 }
 
-static int make_selection_around_a_star(fitted_PSF *stars, rectangle *area, fits *fit) {
+static int make_selection_around_a_star(psf_star *stars, rectangle *area, fits *fit) {
 	/* make a selection around the star */
 	area->x = round_to_int(stars->xpos - com.pref.phot_set.outer);
 	area->y = round_to_int(stars->ypos - com.pref.phot_set.outer);
@@ -228,7 +229,7 @@ static float siril_stats_robust_mean(const float sorted_data[],
 	return mean;
 }
 
-static int get_white_balance_coeff(fitted_PSF **stars, int nb_stars, fits *fit, float kw[], int n_channel) {
+static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, float kw[], int n_channel) {
 	int i = 0, ngood = 0;
 	gboolean no_phot = FALSE;
 	int progress = 0;
@@ -249,7 +250,11 @@ static int get_white_balance_coeff(fitted_PSF **stars, int nb_stars, fits *fit, 
 		data[BLUE][k] = FLT_MAX;
 	}
 
-	siril_log_message(_("Applying aperture photometry to %d stars.\n"), nb_stars);
+	gchar *str = ngettext("Applying aperture photometry to %d star.\n", "Applying aperture photometry to %d stars.\n", nb_stars);
+	str = g_strdup_printf(str, nb_stars);
+	siril_log_message(str);
+	g_free(str);
+
 	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
 
 	while (stars[i]) {
@@ -266,13 +271,13 @@ static int get_white_balance_coeff(fitted_PSF **stars, int nb_stars, fits *fit, 
 		}
 
 		for (int chan = 0; chan < 3; chan ++) {
-			fitted_PSF *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, TRUE);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, TRUE);
 			if (!photometry || !photometry->phot_is_valid) {
 				no_phot = TRUE;
 				break;
 			}
 			flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
-			free(photometry);
+			free_psf(photometry);
 		}
 		if (no_phot) {
 			i++;
@@ -299,7 +304,7 @@ static int get_white_balance_coeff(fitted_PSF **stars, int nb_stars, fits *fit, 
 		ngood++;
 	}
 	int excl = nb_stars - ngood;
-	gchar *str = ngettext("%d star excluded from the calculation\n", "%d stars excluded from the calculation\n", excl);
+	str = ngettext("%d star excluded from the calculation\n", "%d stars excluded from the calculation\n", excl);
 	str = g_strdup_printf(str, excl);
 	siril_log_message(str);
 	g_free(str);
@@ -580,7 +585,7 @@ void initialize_photometric_cc_dialog() {
 }
 
 int apply_photometric_cc() {
-	fitted_PSF **stars;
+	psf_star **stars;
 	GtkComboBox *norm_box;
 	GtkToggleButton *auto_bkg;
 	GError *error = NULL;
@@ -588,7 +593,7 @@ int apply_photometric_cc() {
 	norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
 	auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 
-	undo_save_state(&gfit, _("Photometric CC"));
+
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 
@@ -606,7 +611,7 @@ int apply_photometric_cc() {
 		return 1;
 	}
 
-	stars = malloc((MAX_STARS + 1) * sizeof(fitted_PSF *));
+	stars = new_fitted_stars(MAX_STARS);
 	if (stars == NULL) {
 		PRINT_ALLOC_ERR;
 		set_cursor_waiting(FALSE);
@@ -687,4 +692,6 @@ void on_button_cc_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 	gtk_spin_button_set_value(selection_cc_bkg_value[1], com.selection.y);
 	gtk_spin_button_set_value(selection_cc_bkg_value[2], com.selection.w);
 	gtk_spin_button_set_value(selection_cc_bkg_value[3], com.selection.h);
+
+	delete_selected_area(); // needed because we don't want the selection being used for astrometry
 }

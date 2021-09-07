@@ -25,6 +25,7 @@
 
 #include "registration.h"
 #include "algos/PSF.h"
+#include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "core/processing.h"
@@ -38,7 +39,7 @@ static int awaiting_star = 0;
 static GtkWidget *three_buttons[3] = { 0 };
 
 struct _3psf {
-	fitted_PSF *stars[3];
+	psf_star *stars[3];
 };
 
 static struct _3psf *results;
@@ -117,7 +118,7 @@ static gboolean _3stars_seqpsf_end(gpointer p) {
 	}
 	update_icons(awaiting_star - 1, TRUE);
 
-	com.stars = realloc(com.stars, 4 * sizeof(fitted_PSF *)); // to be sure...
+	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
 	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
 
 psf_end:
@@ -184,12 +185,12 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 	else if (three_buttons[2] == widget)
 		awaiting_star = 3;
 	else {
-	       fprintf(stderr, "unknown button clicked\n");
-       	       return;
+		fprintf(stderr, "unknown button clicked\n");
+		return;
 	}
 
 	if (!com.stars)
-		com.stars = calloc(4, sizeof(fitted_PSF *));
+		com.stars = calloc(4, sizeof(psf_star *)); // don't use new_psf_star. It is a bit different
 
 	start_seqpsf();
 }
@@ -430,4 +431,3 @@ static int rotate_images(struct registration_args *regargs, regdata *current_reg
 	set_registration_ready(FALSE);
 	return args->retval;
 }
-

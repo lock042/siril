@@ -8,6 +8,7 @@
 
 #define STR_BG N_("Returns the background level of the image loaded in memory")
 #define STR_BGNOISE N_("Returns the background noise level")
+#define STR_BOXSELECT N_("Make a selection with the arguments <b>x</b>, <b>y</b>, <b>width</b> and <b>height</b>, with <b>x</b> and <b>y</b> being the coordinates of the top left corner, and <b>width</b> and <b>height</b>, the size of the selection. If no argument is passed and a selection is active, it writes <b>x</b>, <b>y</b>, <b>width</b> and <b>height</b> in the console")
 
 #define STR_CD N_("Set the new current working directory. The argument \"directory\" can contain the ~ token, expanded as the home directory, directories with spaces in the name can be protected using single or double quotes")
 #define STR_CDG N_("Returns the coordinates of the center of gravity of the image")
@@ -75,7 +76,7 @@
 #define STR_PREPROCESS N_("Preprocesses the sequence \"sequencename\" using bias, dark and flat given in argument. For bias, a uniform level can be specified instead of an image, by entering a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias=\"=64*$OFFSET\". It is possible to specify if images are CFA for cosmetic correction purposes with the option \"-cfa\" and also to demosaic images at the end of the process with \"-debayer\". The \"-fix_xtrans\" option is dedicated to X-Trans files by applying a correction on darks and biases to remove an ugly square pattern and the \"-equalize_cfa\" option equalizes the mean intensity of RGB layers of the CFA flat master. It is also possible to optimize the dark subtraction with \"-opt\". The output sequence name starts with the prefix \"pp_\" unless otherwise specified with option \"-prefix=\". If \"-fitseq\" is provided, the output sequence will be a FITS sequence (single file).\n\nNote that only hot pixels are corrected in cosmetic correction process")
 #define STR_PSF N_("Performs a PSF (Point Spread Function) on the selected star")
 
-#define STR_REGISTER N_("Performs geometric transforms on images of the sequence given in argument so that they may be superimposed on the reference image. The output sequence name starts with the prefix \"r_\" unless otherwise specified with \"-prefix=\" option. Using stars for registration, this algorithm only works with deepsky images. The registration is done on the green layer for RGB images. The option \"-drizzle\" activates the sub-pixel stacking, either by up-scaling by 2 the images created in the rotated sequence or by setting a flag that will proceed to the up-scaling during stacking if \"-norot\" is passed. The option \"-minpairs=\" will specify the minimum number of star pairs a frame must have with the reference frame, otherwise the frame will be dropped")
+#define STR_REGISTER N_("Performs geometric transforms on images of the sequence given in argument so that they may be superimposed on the reference image. Using stars for registration, this algorithm only works with deepsky images.\n\nThe output sequence name starts with the prefix <b>\"r_\"</b> unless otherwise specified with <b>-prefix=</b> option.\nThe option <b>-drizzle</b> activates the sub-pixel stacking, either by up-scaling by 2 the images created in the rotated sequence or by setting a flag that will proceed to the up-scaling during stacking if <b>-norot</b> is passed.\nThe option <b>-transf=</b> specifies the use of either <b>\"shift\"</b>, <b>\"affine\"</b> or <b>\"homography\"</b> transformations respectively, homography being the default unless <b>-norot</b> is passed, which uses shift as default.\nThe option <b>-minpairs=</b> will specify the minimum number of star pairs a frame must have with the reference frame, otherwise the frame will be dropped.\nThe registration is done on the green layer for RGB images unless specified by <b>-layer=</b> option (0, 1 or 2 for R, G and B respectively).\n")
 #define STR_RELOADSCRIPTS N_("Rescans the scripts folders and updates scripts menu")
 #define STR_REQUIRES N_("This function returns an error if the version of Siril is older than the one passed in argument")
 #define STR_RESAMPLE N_("Resamples image with a factor \"factor\"")
@@ -95,7 +96,7 @@
 #define STR_SAVETIF32 N_("Same command as SAVE_TIF but the output file is saved in 32-bit per channel: \"filename\".tif")
 #define STR_SAVETIF8 N_("Same command as SAVE_TIF but the output file is saved in 8-bit per channel: \"filename\".tif")
 #define STR_SELECT N_("This command allows easy mass selection of images in the loaded sequence (from \"from\" to \"to\" included)")
-#define STR_SEQCROP N_("Crops the loaded sequence. The output sequence name starts with the prefix \"cropped_\" unless otherwise specified with \"-prefix=\" option")
+#define STR_SEQCROP N_("Crops the sequence given in argument \"sequencename\". The output sequence name starts with the prefix \"cropped_\" unless otherwise specified with \"-prefix=\" option")
 #define STR_SEQEXTRACTHA N_("Same command as EXTRACT_HA but for the sequence \"sequencename\". The output sequence name starts with the prefix \"Ha_\" unless otherwise specified with option \"-prefix=\"")
 #define STR_SEQEXTRACTGREEN N_("Same command as EXTRACT_GREEN but for the sequence \"sequencename\". The output sequence name starts with the prefix \"Green_\" unless otherwise specified with option \"-prefix=\"")
 #define STR_SEQEXTRACTHAOIII N_("Same command as EXTRACT_HAOIII but for the sequence \"sequencename\". The output sequence name start with the prefix \"Ha_\" and \"OIII_\"")
@@ -126,6 +127,7 @@
 #define STR_THRESHLO N_("Replaces values below \"level\" with \"level\"")
 #define STR_THRESHHI N_("Replaces values above \"level\" with \"level\"")
 #define STR_THRESH N_("Replaces values below \"lo\" with \"lo\" and values above \"hi\" with \"hi\"")
+#define STR_TILT N_("Computes the Sensor tilt as the fwhm difference between the best and worst corner truncated mean values. The \"clear\" option allows to clear the drawing")
 
 #define STR_UNSELECT N_("Allows easy mass unselection of images in the loaded sequence (from \"from\" to \"to\" included). See SELECT")
 #define STR_UNSETMAG N_("Reset the magnitude calibration to 0. See SETMAG")

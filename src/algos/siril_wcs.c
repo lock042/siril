@@ -48,6 +48,13 @@ gboolean has_wcs(fits *fit) {
 	return FALSE;
 }
 
+// deal with cases where wcsdata is not NULL but members are set to 0
+gboolean has_wcsdata(fits *fit) {
+	if ((fit->wcsdata.crval[0] == 0.0 && fit->wcsdata.crval[1] == 0.0)) return FALSE;
+		return TRUE;
+}
+
+
 void free_wcs(fits *fit) {
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
@@ -67,14 +74,17 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 	wcsinit(1, NAXIS, fit->wcslib, 0, 0, 0);
 
-	const char CTYPE[2][9] = {"RA---TAN", "DEC--TAN"};
+	const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
+	const char CUNIT[2][9] = { "deg", "deg" };
 
-	double *cdij = fit->wcslib->cd;
+	for (int i = 0; i < NAXIS; i++) {
+		strcpy(fit->wcslib->cunit[i], &CUNIT[i][0]);
+	}
+
 	double *pcij = fit->wcslib->pc;
 	for (int i = 0; i < NAXIS; i++) {
 		for (int j = 0; j < NAXIS; j++) {
-			*(cdij++) = fit->wcsdata.cd[i][j];
-			*(pcij++) = fit->wcsdata.cd[i][j];
+			*(pcij++) = fit->wcsdata.pc[i][j];
 		}
 	}
 
@@ -83,15 +93,11 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		fit->wcslib->crota[i] = fit->wcsdata.crota[i];
-	}
-
-	for (int i = 0; i < NAXIS; i++) {
 		fit->wcslib->crpix[i] = fit->wcsdata.crpix[i];
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		fit->wcslib->cdelt[i] = 1;
+		fit->wcslib->cdelt[i] = fit->wcsdata.cdelt[i];
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
@@ -136,7 +142,9 @@ gboolean load_WCS_from_file(fits* fit) {
 		return FALSE;
 	}
 
-	/** It looks like wcspih is not really thread safe. We need to lock it */
+	/** There is a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
+	 * We need to lock it.
+	 * TODO: check wcslib version ?*/
 	g_mutex_lock(&wcs_mutex);
 	wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
 
@@ -223,6 +231,26 @@ void wcs2pix(fits *fit, double r, double d, double *x, double *y) {
 #endif
 }
 
+/* get image center celestial coordinates */
+void center2wcs(fits *fit, double *r, double *d) {
+	*r = -1.0;
+	*d = -1.0;
+#ifdef HAVE_WCSLIB
+	int status, stat[NWCSFIX];
+	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
+
+	pixcrd[0] = (double)(fit->rx + 1) / 2.;
+	pixcrd[1] = (double)(fit->ry + 1) / 2.;
+
+	status = wcsp2s(fit->wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
+	if (status != 0)
+		return;
+
+	*r = world[0];
+	*d = world[1];
+#endif
+}
+
 /* get resolution in arcsec/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
@@ -239,18 +267,3 @@ double get_wcs_image_resolution(fits *fit) {
 	}
 	return resolution;
 }
-
-double *get_wcs_crval(fits *fit) {
-#ifdef HAVE_WCSLIB
-	static double ret[NWCSFIX] = { 0 };
-	if (fit->wcslib) {
-		for (int i = 0; i < NAXIS; i++) {
-			ret[i] = fit->wcslib->crval[i];
-		}
-	}
-	return ret;
-#else
-	return NULL;
-#endif
-}
-

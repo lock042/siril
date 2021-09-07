@@ -29,17 +29,12 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/core/version.hpp"
-#if CV_MAJOR_VERSION == 2
-#include "opencv/findHomography/calib3d.hpp"
-#else
-#if CV_MAJOR_VERSION == 4
 #define CV_RANSAC FM_RANSAC
-#endif
 #include <opencv2/calib3d.hpp>
-#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "registration/registration.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
@@ -251,13 +246,18 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 	Rect frame;
 	Point2f pt(center.x, center.y);
 
-	gboolean is_fast = fmod(angle, 90.0) == 0.0 && fmod(angle, 180) != 0.0;
+	/*  the angle will be mapped to the range of [-360, 360] */
+	angle = (fmod((angle / 90), 4)) * 90;
+
+	gboolean is_fast = fmod(angle, 90.0) == 0.0;
 	if (interpolation == -1)
 		assert(is_fast);
 
 	if (is_fast && (interpolation == -1 || !cropped)) {
-		target_rx = image->ry;
-		target_ry = image->rx;
+		if (fmod(angle, 180.0) != 0.0) {
+			target_rx = image->ry;
+			target_ry = image->rx;
+		}
 	}
 	else if (!cropped) {
 		frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
@@ -270,15 +270,20 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 		return 1;
 
 	if (is_fast && (interpolation == -1 || !cropped)) {	// fast rotation
-		transpose(in, out);
 		/* flip third argument: how to flip the array; 0 means flipping around the
 		 * x-axis and positive value (for example, 1) means flipping around y-axis.
 		 * Negative value (for example, -1) means flipping around both axes. 
 		 */
-		if (angle == 90.0)
+		if (angle == 90 || angle == -270) {
+			transpose(in, out);
 			flip(out, out, 0);
-		else // 270, -90
+		} else if (angle == 180 || angle == -180) {
+			flip(in, out, -1);
+		}
+		else { // 270, -90
+			transpose(in, out);
 			flip(out, out, 1);
+		}
 	} else {
 		Mat r = getRotationMatrix2D(pt, angle, 1.0);
 		if (cropped == 1) {
@@ -294,6 +299,28 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
+
+void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped, point refpointin, point *refpointout) {
+	Point2f pt(center.x, center.y);
+	Point3d refptin(refpointin.x, refpointin.y, 1);
+	Mat refptout;
+	Rect frame;
+
+	if (!cropped) {
+		frame = RotatedRect(pt, Size(center.x *2, center.y *2), angle).boundingRect2f();
+	}
+
+	Mat r = getRotationMatrix2D(pt, angle, 1.0);
+	if (!cropped) {
+		// adjust transformation matrix
+		r.at<double>(0, 2) += frame.width / 2.0 - pt.x;
+		r.at<double>(1, 2) += frame.height / 2.0 - pt.y;
+	}
+	refptout = r * Mat(refptin);
+	refpointout->x = refptout.at<double>(0, 0);
+	refpointout->y = refptout.at<double>(0, 1);
+}
+
 
 int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points, gboolean upscale2x, int interpolation) {
 	// see https://docs.opencv.org/3.4/d4/d61/tutorial_warp_affine.html
@@ -357,30 +384,74 @@ static void convert_MatH_to_H(Mat from, Homography *to) {
 }
 
 unsigned char *cvCalculH(s_star *star_array_img,
-		struct s_star *star_array_ref, int n, Homography *Hom) {
+		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type) {
 
 	std::vector<Point2f> ref;
 	std::vector<Point2f> img;
-	Mat mask;
+	// needed for shift transform which uses estimateTranslation3D
+	std::vector<Point3f> ref3;
+	std::vector<Point3f> img3;
+
+	Mat H, a, mask, s;
 	unsigned char *ret = NULL;
-	int i;
 
 	/* build vectors with lists of stars. */
-	for (i = 0; i < n; i++) {
-		ref.push_back(Point2f(star_array_ref[i].x, star_array_ref[i].y));
-		img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
-	}
-
-	Mat H = findHomography(img, ref, CV_RANSAC, defaultRANSACReprojThreshold, mask);
-	if (countNonZero(H) < 1) {
+	switch (type) {
+	case AFFINE_TRANSFORMATION:
+	case HOMOGRAPHY_TRANSFORMATION:
+	case FULLAFFINE_TRANSFORMATION:	
+		for (int i = 0; i < n; i++) {
+			ref.push_back(Point2f(star_array_ref[i].x, star_array_ref[i].y));
+			img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
+		}
+	break;
+	case SHIFT_TRANSFORMATION:
+		for (int i = 0; i < n; i++) {
+			ref3.push_back(Point3f(star_array_ref[i].x, star_array_ref[i].y, 0.));
+			img3.push_back(Point3f(star_array_img[i].x, star_array_img[i].y, 0.));
+		}
+	break;
+	default:
 		return NULL;
 	}
+
+	//fitting the model
+	switch (type) {
+	case SHIFT_TRANSFORMATION:
+		estimateTranslation3D(img3, ref3, s, mask, CV_RANSAC, defaultRANSACReprojThreshold);
+		// if (float(countNonZero(mask))/n < 0.1) return NULL; //TBD trying to implement a way to detect the quality of the fit - rejecting if less than 10% are inliers
+		H = Mat::eye(3, 3, CV_64FC1);
+		H.at<double>(0,2) = s.at<double>(0);
+		H.at<double>(1,2) = s.at<double>(1);		
+	break;
+	case AFFINE_TRANSFORMATION:
+		a = estimateAffinePartial2D(img, ref, mask, CV_RANSAC, defaultRANSACReprojThreshold);
+		if (countNonZero(a) < 1) return NULL; //must count before filling H, otherwise zero elements cannot be caught
+		H = Mat::eye(3, 3, CV_64FC1);
+		a.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
+	break;
+	case HOMOGRAPHY_TRANSFORMATION:
+		H = findHomography(img, ref, CV_RANSAC, defaultRANSACReprojThreshold, mask);
+		if (countNonZero(H) < 1) return NULL;
+		break;
+	case FULLAFFINE_TRANSFORMATION:
+		a = estimateAffine2D(img, ref, mask, CV_RANSAC, defaultRANSACReprojThreshold);
+		if (countNonZero(a) < 1) return NULL; //must count before filling H, otherwise zero elements cannot be caught
+		H = Mat::eye(3, 3, CV_64FC1);
+		a.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
+		break;
+	default:
+		return NULL;
+	}
+
 	Hom->Inliers = countNonZero(mask);
 	if (n > 0) {
 		ret = (unsigned char *) malloc(n * sizeof(unsigned char));
-		for (i = 0; i < n; i++) {
+		for (int i = 0; i < n; i++) {
 			ret[i] = mask.at<uchar>(i);
 		}
+	} else {
+		return NULL;
 	}
 
 	convert_MatH_to_H(H, Hom);
@@ -390,38 +461,40 @@ unsigned char *cvCalculH(s_star *star_array_img,
 }
 
 // transform an image using the homography.
-int cvTransformImage(fits *image, Homography Hom, gboolean upscale2x, int interpolation) {
-	Mat in, out;
-	void *bgr = NULL;
-	int target_rx = image->rx, target_ry = image->ry;
-	if (upscale2x) {
-		target_rx *= 2;
-		target_ry *= 2;
-	}
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation) {
+    Mat in, out;
+    void *bgr = NULL;
+    int target_rx = width, target_ry = height;
+    int source_ry = image->ry;
 
-	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
-		return 1;
+    if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
+        return 1;
 
-	Mat H = Mat(3, 3, CV_64FC1);
-	convert_H_to_MatH(&Hom, H);
+    Mat H = Mat(3, 3, CV_64FC1);
+    convert_H_to_MatH(&Hom, H);
 
-	/* modify matrix for reverse Y axis */
-	Mat F = Mat::eye(3, 3, CV_64FC1);
-	F.at<double>(1,1) = -1.0;
-	F.at<double>(1,2) = image->ry - 1.0;
-	H = F * H * F.inv();
+    if (upscale2x) {
+        Mat S = Mat::eye(3, 3, CV_64FC1);
+        S.at<double>(0,0) = 2.0;
+        S.at<double>(1,1) = 2.0;
+        H = S * H;
+    }
 
-	if (upscale2x) {
-		Mat S = Mat::eye(3, 3, CV_64FC1);
-		S.at<double>(0,0) = 2.0;
-		S.at<double>(1,1) = 2.0;
-		H = S * H;
-	}
+    /* modify matrix for reverse Y axis */
+    Mat F1 = Mat::eye(3, 3, CV_64FC1);
+    F1.at<double>(1,1) = -1.0;
+    F1.at<double>(1,2) = source_ry - 1.0;
 
-	// OpenCV function
-	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
+    Mat F2 = Mat::eye(3, 3, CV_64FC1);
+    F2.at<double>(1,1) = -1.0;
+    F2.at<double>(1,2) = target_ry - 1.0;
 
-	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+    H = F2.inv() * H * F1;
+
+    // OpenCV function
+    warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
+
+    return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 
 int cvUnsharpFilter(fits* image, double sigma, double amount) {

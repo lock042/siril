@@ -216,7 +216,7 @@ static int compute_normalization(struct stacking_args *args) {
 	if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
 #endif
 
-	for (int i = 0; i < args->nb_images_to_stack; ++i) {
+	for (i = 0; i < args->nb_images_to_stack; ++i) {
 		if (!retval && i != ref_image_filtred_idx) {
 			if (!get_thread_run()) {
 				retval = 1;

@@ -77,13 +77,13 @@ static double guess_resolution(fits *fit) {
 	return res;
 }
 
-static float compute_threshold(fits *fit, double ksigma, int layer, float *norm, double *bg, double *bgnoise) {
+static float compute_threshold(fits *fit, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise) {
 	float threshold;
 	imstats *stat;
 
 	assert(layer <= 3);
 
-	stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC, FALSE);
+	stat = statistics(NULL, -1, fit, layer, area, STATS_BASIC, FALSE);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		*norm = 0;
@@ -99,7 +99,7 @@ static float compute_threshold(fits *fit, double ksigma, int layer, float *norm,
 	return threshold;
 }
 
-static gboolean is_star(fitted_PSF *result, star_finder_params *sf ) {
+static gboolean is_star(psf_star *result, star_finder_params *sf ) {
 	/* here this is a bit trick, bu if no resolution is computed
 	 * we take a greater factor for star size. This is less optimize
 	 * but at least it reproduces almost the old behavior
@@ -223,9 +223,9 @@ void confirm_peaker_GUI() {
  Original algorithm come from:
  Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
  */
-static int minimize_candidates(fits *image, star_finder_params *sf, double bg, starc *candidates, int nb_candidates, int layer, fitted_PSF ***retval, gboolean limit_nbstars);
+static int minimize_candidates(fits *image, star_finder_params *sf, double bg, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars);
 
-fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars) {
+psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	int areaX0 = 0;
@@ -247,7 +247,7 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 	gettimeofday(&t_start, NULL);
 
 	/* running statistics on the input image is best as it caches them */
-	threshold = compute_threshold(fit, sf->sigma * 5.0, layer, &norm, &bg, &bgnoise);
+	threshold = compute_threshold(fit, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise);
 	if (norm == 0.0f)
 		return NULL;
 
@@ -256,12 +256,12 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 	/* Removing wavelets and applying a Gaussian filter to select candidates
 	 */
 	if (extract_fits(fit, &smooth_fit, layer, TRUE)) {
-        siril_log_message(_("Failed to copy the image for processing\n"));
+		siril_log_color_message(_("Failed to copy the image for processing\n"), "red");
 		return NULL;
 	}
 
 	if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
-		siril_log_message(_("Could not apply Gaussian filter, aborting\n"));
+		siril_log_color_message(_("Could not apply Gaussian filter, aborting\n"), "red");
 		clearfits(&smooth_fit);
 		return NULL;
 	}
@@ -277,11 +277,16 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 		smooth_image[ny - k - 1] = smooth_fit.fdata + k * nx;
 	}
 
-	if (area) {
+	if (area && area->w != 0 && area->h != 0) {
 		areaX0 = area->x;
 		areaY0 = area->y;
 		areaX1 = area->w + areaX0;
 		areaY1 = area->h + areaY0;
+
+		if (areaX1 > nx || areaY1 > ny) {
+			siril_log_color_message(_("Selection is larger than image\n"), "red");
+			return NULL;
+		}
 	}
 
 	candidates = malloc(MAX_STARS * sizeof(starc));
@@ -386,7 +391,7 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
 
 	/* Check if candidates are stars by minimizing a PSF on each */
-	fitted_PSF **results;
+	psf_star **results;
 	nbstars = minimize_candidates(fit, sf, bg, candidates, nbstars, layer, &results, limit_nbstars);
 	if (nbstars == 0)
 		results = NULL;
@@ -403,7 +408,7 @@ fitted_PSF **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars,
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, double bg, starc *candidates, int nb_candidates, int layer, fitted_PSF ***retval, gboolean limit_nbstars) {
+static int minimize_candidates(fits *image, star_finder_params *sf, double bg, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars) {
 	int radius = sf->adj_radius;
 	int nx = image->rx;
 	int ny = image->ry;
@@ -424,7 +429,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, double bg, s
 	}
 	else return 0;
 
-	fitted_PSF **results = malloc((nb_candidates + 1) * sizeof(fitted_PSF *));
+	psf_star **results = new_fitted_stars(nb_candidates);
 	if (!results) {
 		PRINT_ALLOC_ERR;
 		return 0;
@@ -453,7 +458,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, double bg, s
 			}
 		}
 
-		fitted_PSF *cur_star = psf_global_minimisation(z, bg, FALSE, FALSE, FALSE);
+		psf_star *cur_star = psf_global_minimisation(z, bg, FALSE, FALSE, FALSE);
 		if (cur_star) {
 			if (is_star(cur_star, sf)) {
 				//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
@@ -465,7 +470,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, double bg, s
 				//fprintf(stdout, "%03d: %11f %11f %f\n",
 				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 			}
-			else free(cur_star);
+			else free_psf(cur_star);
 			if ((nbstars >= MAX_STARS_FITTED) && limit_nbstars) break;
 		}
 	}
@@ -488,29 +493,32 @@ static int minimize_candidates(fits *image, star_finder_params *sf, double bg, s
  * star failed to be detected in the selection, or any other error, the return
  * value is NULL and index is set to -1.
  */
-fitted_PSF *add_star(fits *fit, int layer, int *index) {
+psf_star *add_star(fits *fit, int layer, int *index) {
 	int i = 0;
 	gboolean already_found = FALSE;
 
 	*index = -1;
-	fitted_PSF * result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, TRUE, TRUE);
 	if (!result)
 		return NULL;
 	/* We do not check if it's matching with the "is_star()" criteria.
 	 * Indeed, in this case the user can add manually stars missed by star_finder */
 
-	if (com.stars) {
+	if (com.stars && !com.star_is_seqdata) {
 		// check if the star was already detected/peaked
 		while (com.stars[i]) {
 			if (fabs(result->x0 + com.selection.x - com.stars[i]->xpos) < 0.9
-					&& fabs(
-							com.selection.y + com.selection.h - result->y0
+					&& fabs(com.selection.y + com.selection.h - result->y0
 									- com.stars[i]->ypos) < 0.9)
 				already_found = TRUE;
 			i++;
 		}
 	} else {
-		com.stars = malloc((MAX_STARS + 1) * sizeof(fitted_PSF*));
+		if (com.star_is_seqdata) {
+			/* com.stars was allocated with a size of 2, we need to free it before reallocating */
+			clear_stars_list();
+		}
+		com.stars = new_fitted_stars(MAX_STARS);
 		if (!com.stars) {
 			PRINT_ALLOC_ERR;
 			return NULL;
@@ -519,7 +527,7 @@ fitted_PSF *add_star(fits *fit, int layer, int *index) {
 	}
 
 	if (already_found) {
-		free(result);
+		free_psf(result);
 		result = NULL;
 		char *msg = siril_log_message(_("This star has already been picked !\n"));
 		siril_message_dialog( GTK_MESSAGE_INFO, _("Peaker"), msg);
@@ -531,7 +539,7 @@ fitted_PSF *add_star(fits *fit, int layer, int *index) {
 			com.stars[i + 1] = NULL;
 			*index = i;
 		} else {
-			free(result);
+			free_psf(result);
 			result = NULL;
 		}
 	}
@@ -552,7 +560,7 @@ int remove_star(int index) {
 
 	int N = get_size_star_tab() + 1;
 
-	free(com.stars[index]);
+	free_psf(com.stars[index]);
 	memmove(&com.stars[index], &com.stars[index + 1],
 			(N - index - 1) * sizeof(*com.stars));
 	redraw(com.cvport, REMAP_NONE);
@@ -560,8 +568,8 @@ int remove_star(int index) {
 }
 
 int compare_stars(const void* star1, const void* star2) {
-	fitted_PSF *s1 = *(fitted_PSF**) star1;
-	fitted_PSF *s2 = *(fitted_PSF**) star2;
+	psf_star *s1 = *(psf_star**) star1;
+	psf_star *s2 = *(psf_star**) star2;
 
 	if (s1->mag < s2->mag)
 		return -1;
@@ -571,19 +579,27 @@ int compare_stars(const void* star1, const void* star2) {
 		return 0;
 }
 
-void sort_stars(fitted_PSF **stars, int total) {
+void sort_stars(psf_star **stars, int total) {
 	if (*(&stars))
-		qsort(*(&stars), total, sizeof(fitted_PSF*), compare_stars);
+		qsort(*(&stars), total, sizeof(psf_star*), compare_stars);
 }
 
-void free_fitted_stars(fitted_PSF **stars) {
+/* allocates a new psf_star structure with a size of n + 1. First element is initialized to NULL */
+psf_star **new_fitted_stars(size_t n) {
+	psf_star **stars = malloc((n + 1) * sizeof(psf_star *));
+	if (stars) stars[0] = NULL;
+
+	return stars;
+}
+
+void free_fitted_stars(psf_star **stars) {
 	int i = 0;
 	while (stars && stars[i])
-		free(stars[i++]);
+		free_psf(stars[i++]);
 	free(stars);
 }
 
-void FWHM_average(fitted_PSF **stars, int nb, float *FWHMx, float *FWHMy, char **units) {
+void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units) {
 	if (stars && stars[0]) {
 		int i = 0;
 

@@ -27,6 +27,7 @@ static command commands[] = {
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE},
 	{"bgnoise", 0, "bgnoise", process_bgnoise, STR_BGNOISE, TRUE},
+	{"boxselect", 0, "boxselect [x y width height]", process_boxselect, STR_BOXSELECT, FALSE},
 
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE},
 	{"cdg", 0, "cdg", process_cdg, STR_CDG, TRUE},
@@ -100,7 +101,7 @@ static command commands[] = {
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-flip] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess, STR_PREPROCESS, TRUE},
 	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
 
-	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=]", process_register, STR_REGISTER, TRUE},
+	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=]", process_register, STR_REGISTER, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},
 	{"requires", 1, "requires", process_requires, STR_REQUIRES, TRUE},
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE},
@@ -129,7 +130,7 @@ static command commands[] = {
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=]", process_seq_extractHa, STR_SEQEXTRACTHA, TRUE},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN, TRUE},
 	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII, TRUE},
-	{"seqcrop", 0, "seqcrop [x y width height] [-prefix=]", process_seq_crop, STR_SEQCROP, FALSE},
+	{"seqcrop", 5, "seqcrop sequencename x y width height [-prefix=]", process_seq_crop, STR_SEQCROP, TRUE},
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME, TRUE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE},
@@ -159,6 +160,7 @@ static command commands[] = {
 	{"threshlo", 1, "threshlo level", process_threshlo, STR_THRESHLO, TRUE},
 	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE},
 	{"thresh", 2, "thresh lo hi", process_thresh, STR_THRESH, TRUE}, /* threshes hi and lo */
+	{"tilt", 0, "tilt [clear]", process_tilt, STR_TILT, FALSE},
 
 	{"unselect", 2, "unselect from to", process_unselect, STR_UNSELECT, FALSE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE},

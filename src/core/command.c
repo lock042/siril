@@ -73,6 +73,7 @@
 #include "algos/Def_Math.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/background_extraction.h"
+#include "algos/ccd-inspector.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "algos/colors.h"
@@ -686,12 +687,6 @@ int process_clahe(int nb) {
 	double clip_limit;
 	int size;
 
-	if (CV_MAJOR_VERSION < 3) {
-		siril_log_message(_("Your version of opencv is "
-				"too old for this feature. Please upgrade your system."));
-		return 1;
-	}
-
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
@@ -1132,7 +1127,7 @@ int process_rotatepi(int nb){
 		return 1;
 	}
 
-	verbose_rotate_image(&gfit, 180.0, OPENCV_AREA, 1);
+	verbose_rotate_image(&gfit, 180.0, -1, 1);
 
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
@@ -1158,13 +1153,13 @@ int process_set_mag(int nb) {
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		fitted_PSF *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
+		psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
 		if (result) {
 			com.magOffset = mag - result->mag;
 			siril_log_message(_("Relative magnitude: %.3lf, "
 					"True reduced magnitude: %.3lf, "
 					"Offset: %.3lf\n"), result->mag, mag, com.magOffset);
-			free(result);
+			free_psf(result);
 		}
 	}
 	return 0;
@@ -1281,10 +1276,10 @@ int process_psf(int nb){
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		fitted_PSF *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
+		psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
 		if (result) {
 			psf_display_result(result, &com.selection);
-			free(result);
+			free_psf(result);
 		}
 	}
 	return 0;
@@ -1325,51 +1320,46 @@ int process_seq_psf(int nb) {
 }
 
 int process_seq_crop(int nb) {
-	if (!sequence_is_loaded()) {
-		PRINT_NOT_FOR_SINGLE;
-		return 1;
-	}
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return 1;
+
 	rectangle area;
 
-	int startoptargs = 5;
+	int startoptargs = 6;
 
-	if ((!com.selection.h) || (!com.selection.w)) {
-		if (nb >= startoptargs) {
-			if (g_ascii_strtoull(word[1], NULL, 10) < 0 || g_ascii_strtoull(word[2], NULL, 10) < 0) {
-				siril_log_message(_("Crop: x and y must be positive values.\n"));
-				return 1;
-			}
-			if (g_ascii_strtoull(word[3], NULL, 10) <= 0 || g_ascii_strtoull(word[4], NULL, 10) <= 0) {
-				siril_log_message(_("Crop: width and height must be greater than 0.\n"));
-				return 1;
-			}
-			area.x = g_ascii_strtoull(word[1], NULL, 10);
-			area.y = g_ascii_strtoull(word[2], NULL, 10);
-			area.w = g_ascii_strtoull(word[3], NULL, 10);
-			area.h = g_ascii_strtoull(word[4], NULL, 10);
-		} else {
-			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
+	if (nb >= startoptargs) {
+		if (g_ascii_strtoull(word[2], NULL, 10) < 0 || g_ascii_strtoull(word[3], NULL, 10) < 0) {
+			siril_log_message(_("Crop: x and y must be positive values.\n"));
 			return 1;
 		}
+		if (g_ascii_strtoull(word[4], NULL, 10) <= 0 || g_ascii_strtoull(word[5], NULL, 10) <= 0) {
+			siril_log_message(_("Crop: width and height must be greater than 0.\n"));
+			return 1;
+		}
+		area.x = g_ascii_strtoull(word[2], NULL, 10);
+		area.y = g_ascii_strtoull(word[3], NULL, 10);
+		area.w = g_ascii_strtoull(word[4], NULL, 10);
+		area.h = g_ascii_strtoull(word[5], NULL, 10);
 	} else {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
+		return 1;
 	}
 
-
-	if (g_ascii_strtoull(word[3], NULL, 10) > com.seq.rx || g_ascii_strtoull(word[4], NULL, 10) > com.seq.ry) {
+	if (g_ascii_strtoull(word[4], NULL, 10) > seq->rx || g_ascii_strtoull(word[5], NULL, 10) > seq->ry) {
 		siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"),
-				com.seq.rx, com.seq.ry);
+				seq->rx, seq->ry);
 		return 1;
 	}
 
 	struct crop_sequence_data *args = malloc(sizeof(struct crop_sequence_data));
 
-	args->seq = &com.seq;
+	args->seq = seq;
 	args->area = area;
 	args->prefix = "cropped_";
 	
@@ -1489,6 +1479,20 @@ int process_histo(int nb){
 	g_object_unref(output_stream);
 	g_object_unref(file);
 	gsl_histogram_free(histo);
+	return 0;
+}
+
+int process_tilt(int nb) {
+	if (word[1] && !g_ascii_strcasecmp(word[1], "clear")) {
+		clear_sensor_tilt();
+		siril_log_message(_("Clearing tilt information\n"));
+		redraw(com.cvport, REMAP_NONE);
+	} else {
+		set_cursor_waiting(TRUE);
+		draw_sensor_tilt(&gfit);
+		set_cursor_waiting(FALSE);
+	}
+
 	return 0;
 }
 
@@ -2816,6 +2820,7 @@ int process_seq_stat(int nb) {
 	} else {
 		args->option = STATS_BASIC;
 	}
+	memcpy(&com.selection, &args->selection, sizeof(rectangle));
 
 	set_cursor_waiting(TRUE);
 
@@ -3186,7 +3191,9 @@ int process_register(int nb) {
 	reg_args->translation_only = FALSE;
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
-	reg_args->min_pairs = AT_MATCH_MINPAIRS;
+	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
+	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
+	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
 
 	/* check for options */
 	for (i = 2; i < nb; i++) {
@@ -3195,6 +3202,44 @@ int process_register(int nb) {
 				reg_args->x2upscale = TRUE;
 			} else if (!strcmp(word[i], "-norot")) {
 				reg_args->translation_only = TRUE;
+				reg_args->type = SHIFT_TRANSFORMATION; //using most rigid model as default if -norot
+			} else if (g_str_has_prefix(word[i], "-transf=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) { 
+					reg_args->type = SHIFT_TRANSFORMATION;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"affine")) {
+					reg_args->type = AFFINE_TRANSFORMATION;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"homography")) {
+					reg_args->type = HOMOGRAPHY_TRANSFORMATION;
+					continue;
+				} 
+				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+				return 1;
+			} else if (g_str_has_prefix(word[i], "-layer=")) {
+				if (reg_args->seq->nb_layers == 1) {  // handling mono case
+					siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
+					continue;
+				}
+				char *current = word[i], *value;
+				value = current + 7;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) { 
+					siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
+					continue;
+				}
+				reg_args->layer = g_ascii_strtoull(value, NULL, 10);
 			} else if (g_str_has_prefix(word[i], "-prefix=")) {
 				char *current = word[i], *value;
 				value = current + 8;
@@ -3210,10 +3255,10 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if (g_ascii_strtoull(value, NULL, 10) < AT_MATCH_MINPAIRS) {
+				if (g_ascii_strtoull(value, NULL, 10) < 4) { // using absolute min_pairs required by homography
 					gchar *str = ngettext("%d smaller than minimum allowable star pairs: %d, aborting.\n", "%d smaller than minimum allowable star pairs: %d, aborting.\n",
 							g_ascii_strtoull(value, NULL, 10));
-					str = g_strdup_printf(str, g_ascii_strtoull(value, NULL, 10), AT_MATCH_MINPAIRS);
+					str = g_strdup_printf(str, g_ascii_strtoull(value, NULL, 10), reg_args->min_pairs);
 					siril_log_message(str);
 					g_free(str);
 
@@ -3242,10 +3287,7 @@ int process_register(int nb) {
 		}
 	}
 
-	/* getting the selected registration layer from the combo box. The value is the index
-	 * of the selected line, and they are in the same order than layers so there should be
-	 * an exact matching between the two */
-	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
+
 	reg_args->interpolation = OPENCV_AREA;
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
@@ -3791,10 +3833,6 @@ int process_preprocess(int nb) {
 				args->is_cfa = TRUE;
 			} else if (!strcmp(word[i], "-debayer")) {
 				args->debayer = TRUE;
-			} else if (!strcmp(word[i], "-stretch")) {
-				siril_log_message(_("-stretch option is now deprecated.\n")); // TODO. Should we keep it only for compatibility?
-			} else if (!strcmp(word[i], "-flip")) {
-				siril_log_message(_("-flip option is now deprecated.\n")); // TODO. Should we keep it only for compatibility?
 			} else if (!strcmp(word[i], "-equalize_cfa")) {
 				args->equalize_cfa = TRUE;
 			} else if (!strcmp(word[i], "-fitseq")) {
@@ -4035,4 +4073,53 @@ int process_requires(int nb) {
 		}
 		return 1;
 	}
+}
+
+int process_boxselect(int nb){
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		siril_log_message(_("Load an image or a sequence first, aborting\n"));
+		return 1;
+	}
+
+	rectangle area;
+	if ((!com.selection.h) || (!com.selection.w)) {
+		if (nb == 5) {
+			if (g_ascii_strtoull(word[1], NULL, 10) < 0 || g_ascii_strtoull(word[2], NULL, 10) < 0) {
+				siril_log_message(_("Selection: x and y must be positive values.\n"));
+				return 1;
+			}
+			if (g_ascii_strtoull(word[3], NULL, 10) <= 0 || g_ascii_strtoull(word[4], NULL, 10) <= 0) {
+				siril_log_message(_("Selection: width and height must be greater than 0.\n"));
+				return 1;
+			}
+			if (g_ascii_strtoull(word[1], NULL, 10) + g_ascii_strtoull(word[3], NULL, 10) > gfit.rx || g_ascii_strtoull(word[2], NULL, 10) + g_ascii_strtoull(word[4], NULL, 10) > gfit.ry) {
+				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit.rx,gfit.ry);
+				return 1;
+			}
+			area.x = g_ascii_strtoull(word[1], NULL, 10);
+			area.y = g_ascii_strtoull(word[2], NULL, 10);
+			area.w = g_ascii_strtoull(word[3], NULL, 10);
+			area.h = g_ascii_strtoull(word[4], NULL, 10);
+		}
+		else {
+			siril_log_message(_("Please specify x, y, w and h, aborting\n"));
+			return 1;
+		}
+		memcpy(&com.selection, &area, sizeof(rectangle));
+		redraw(com.cvport, REMAP_ALL);
+		redraw_previews();
+	} else {
+		if (nb > 1) {
+			siril_log_message(_("A selection is already made, aborting\n"));
+			return 1;
+		} else {
+			siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), com.selection.x, com.selection.y, com.selection.w, com.selection.h);
+		}
+	}
+	return 0;
 }

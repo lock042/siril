@@ -23,16 +23,20 @@
 #include "core/proto.h"
 #include "core/siril_app_dirs.h"
 #include "core/processing.h"
+#include "algos/astrometry_solver.h"
 #include "algos/colors.h"
+#include "algos/ccd-inspector.h"
 #include "algos/background_extraction.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/annotate.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "gui/image_interactions.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "histogram.h"
+#include "registration/matching/degtorad.h"
 #include "git-version.h"
 
 #include "image_display.h"
@@ -45,6 +49,11 @@ typedef struct draw_data {
 	guint image_width, image_height;
 	guint window_width, window_height;
 } draw_data_t;
+
+typedef struct plot_point_struct {
+	double x, y, ra, dec, angle;
+	gboolean isRA;
+} plot_point;
 
 /* remap index data, an index for each layer */
 static BYTE *remap_index[MAXGRAYVPORT];
@@ -619,6 +628,36 @@ static void draw_stars(const draw_data_t* dd) {
 		}
 	}
 
+	/* quick photometry */
+	if (!com.script && com.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
+		gboolean inverted = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(lookup_widget("neg_button")));
+		double size = com.qphot->fwhmx * 2.0;
+
+		cairo_set_dash(cr, NULL, 0, 0);
+		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
+		cairo_set_line_width(cr, 1.5 / dd->zoom);
+
+		/* fwhm * 2: first circle */
+		cairo_arc(cr, com.qphot->xpos, com.qphot->ypos, size, 0., 2. * M_PI);
+		cairo_stroke(cr);
+
+		/* sky annulus */
+		if (inverted) {
+			cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
+		} else {
+			cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
+		}
+
+		cairo_arc(cr, com.qphot->xpos, com.qphot->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);
+		cairo_stroke(cr);
+		cairo_arc(cr, com.qphot->xpos, com.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
+		cairo_stroke(cr);
+		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+		cairo_set_font_size(cr, 40);
+		cairo_move_to(cr, com.qphot->xpos + com.pref.phot_set.outer + 5, com.qphot->ypos);
+		cairo_stroke(cr);
+	}
+
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		/* draw seqpsf stars */
 		for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
@@ -627,7 +666,7 @@ static void draw_stars(const draw_data_t* dd) {
 								  com.seq.photometry_colors[i][1],
 								  com.seq.photometry_colors[i][2], 1.0);
 			cairo_set_line_width(cr, 2.0 / dd->zoom);
-			fitted_PSF *the_psf = com.seq.photometry[i][com.seq.current];
+			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
 				double size = the_psf->fwhmx * 2.0;
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
@@ -638,8 +677,7 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0.,
 						  2. * M_PI);
 				cairo_stroke(cr);
-				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL,
-									   CAIRO_FONT_WEIGHT_BOLD);
+				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40);
 				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);
 				if (i == 0) {
@@ -717,6 +755,226 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
+static void draw_compass(const draw_data_t* dd) {
+	fits *fit = &gfit;
+	cairo_t *cr = dd->cr;
+	cairo_set_line_width(cr, 3 / dd->zoom);
+	double x, y, x1, y1;
+	double ra0, dec0;
+
+	double xpos = -1 + (fit->rx + 1) / 2.0;
+	double ypos = -1 + (fit->ry + 1) / 2.0;
+	pix2wcs(fit, xpos, ypos, &ra0, &dec0);
+	if (ra0 == -1) return; // checks implicitely that wcslib member exists
+	int len = (int) fit->ry / (int) 20;
+	double resolution = get_wcs_image_resolution(fit);
+	if (resolution <= 0.0) return;
+	double len_at_res = (double)len * resolution;
+
+	/* draw north line */
+	cairo_set_source_rgba(cr, 1., 0., 0., 1.0);
+	cairo_move_to(cr, xpos, ypos);
+
+	wcs2pix(fit, ra0, dec0 + len_at_res, &x, &y);
+	x1 = x - 1;
+	y1 = fit->ry - y;
+	cairo_line_to(cr, x1, y1);
+	cairo_stroke(cr);
+
+	/* draw north arrow */
+	wcs2pix(fit, ra0 + len_at_res * 3. / 20., dec0 + len_at_res * 15. / 20., &x, &y);
+	x1 = x - 1;
+	y1 = fit->ry - y;
+	cairo_line_to(cr, x1, y1);
+
+	wcs2pix(fit, ra0 - len_at_res * 3. / 20., dec0 + len_at_res * 15. / 20., &x, &y);
+	x1 = x - 1;
+	y1 = fit->ry - y;
+	cairo_line_to(cr, x1, y1);
+
+	wcs2pix(fit, ra0, dec0 + len_at_res, &x, &y);
+	x1 = x - 1;
+	y1 = fit->ry - y;
+	cairo_line_to(cr, x1, y1);
+
+	cairo_fill(cr);
+
+	/* draw east line */
+	cairo_set_source_rgba(cr, 1., 1., 1., 1.0);
+	cairo_move_to(cr, xpos, ypos);
+	wcs2pix(fit, ra0 - len_at_res, dec0, &x, &y);
+	x1 = x - 1;
+	y1 = fit->ry - y;
+	cairo_line_to(cr, x1, y1);
+
+	cairo_stroke(cr);
+}
+
+static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3. / 4., 1.
+		/ 2., 1. / 4., 1. / 6., 1. / 8., 1. / 12., 1. / 16., 1. / 24., 1. / 40., 1. / 48. };
+
+
+static void draw_wcs_grid(const draw_data_t* dd) {
+	if (!com.show_wcs_grid) return;
+	fits *fit = &gfit;
+	cairo_t *cr = dd->cr;
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_set_line_width(cr, 1. / dd->zoom);
+	cairo_set_font_size(cr, 12.0 / dd->zoom);
+	double ra0, dec0;
+	int r = 0, c = 0;
+	GList *ptlist = NULL;
+
+	double width = (double) fit->rx;
+	double height = (double) fit->ry;
+	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
+	cairo_clip(cr);
+	/* get ra and dec of center of the image */
+	center2wcs(fit, &ra0, &dec0);
+	if (ra0 == -1.) return;
+	dec0 *= (M_PI / 180.0);
+	ra0  *= (M_PI / 180.0);
+	double range = fit->wcsdata.cdelt[1] * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
+	double step;
+
+	/* calculate DEC step size */
+	if (range > 16.0) {
+		step = 8.; //step DEC 08:00
+	} else if (range > 8.0) {
+		step = 4.; // step DEC 04:00
+	} else if (range > 4.0) { // image FOV about >2*4/sqrt(2) so >5 degrees
+		step = 2.; // step DEC 02:00
+	} else if (range > 2.0) {
+		step = 1.; // step DEC 01:00
+	} else if (range > 1.0) {
+		step = 0.5; // step DEC 00:30
+	} else if (range > 0.5) {
+		step = 0.25; // step DEC 00:15
+	} else if (range > 0.3) {
+		step = 1. / 6.; // 0.166666, step DEC 00:10
+	} else {
+		step = 1. / 12.; // step DEC 00:05
+	}
+
+	// calculate RA step size
+	double step2 = min(45, step / (cos(dec0) + 0.000001)); // exact value for stepRA, but not well rounded
+	int k = 0;
+	double stepRA;
+	do { // select nice rounded values for ra_step
+		stepRA = ra_values[k];
+		k++;
+	} while ((stepRA >= step2) && (k < G_N_ELEMENTS(ra_values))); // repeat until compatible value is found in ra_values
+
+	// round image centers
+	double centra = stepRA * round(ra0 * 180 / (M_PI * stepRA)); // rounded image centers
+	double centdec = step * round(dec0 * 180 / (M_PI * step));
+
+	// plot DEC grid
+	cairo_set_source_rgb(cr, 0.8, 0., 0.);
+	double i = centra - 6 * stepRA;
+	do { // dec lines
+		double j = max(centdec - 6 * step, -90);
+		do {
+			double x, y, x1, x2, y1, y2;
+
+			wcs2pix(fit, i, j, &x, &y);
+			x1 = round(x - 1);
+			y1 = round(height - y);
+
+			wcs2pix(fit, i, (j + step), &x, &y);
+			x2 = round(x - 1);
+			y2 = round(height - y);
+
+			if (((x1 >= 0) && (y1 >= 0) && (x1 < width) && (y1 < height))
+					|| ((x2 >= 0) && (y2 >= 0) && (x2 < width) && (y2 < height))) {
+				cairo_move_to(cr, x1, y1);
+				cairo_line_to(cr, x2, y2);
+				cairo_stroke(cr);
+				if (((r % 2 == 0) && (c % 2 == 0)) || ((r % 2 == 1) && (c % 2 == 1))) {
+					plot_point *pt = malloc(sizeof(plot_point)); // store this crossing for adding a label afterwards
+					pt->x = x1;
+					pt->y = y1;
+					pt->ra = i;
+					pt->dec = j;
+					pt->angle = atan2(y2 - y1, x2 - x1);
+					if (fabs(pt->angle) > M_PI_2) pt->angle += M_PI;
+					pt->isRA = TRUE;
+					ptlist = g_list_append(ptlist, pt);
+				}
+			}
+			j = j + step;
+			c += 1;
+		} while (j <= min(centdec + 6 * step, 90.));
+		i = i + stepRA;
+		r += 1;
+		c = 0;
+	} while (i <= (centra + 6. * stepRA) * 2);
+
+	// plot RA grid
+	r = 0; c = 0;
+	cairo_set_source_rgb(cr, 0., 0.5, 1.);
+	double j = max(centdec - step * 6, -90);
+	do { // ra lines
+		i = centra - stepRA * 6;
+		do {
+			double x, y, x1, x2, y1, y2;
+
+			wcs2pix(fit, i, j, &x, &y);
+			x1 = round(x - 1);
+			y1 = round(height - y);
+
+			wcs2pix(fit, (i + step), j, &x, &y);
+			x2 = round(x - 1);
+			y2 = round(height - y);
+
+			if (((x1 >= 0) && (y1 >= 0) && (x1 < width) && (y1 < height))
+					|| ((x2 >= 0) && (y2 >= 0) && (x2 < width) && (y2 < height))) {
+				cairo_move_to(cr, x1, y1);
+				cairo_line_to(cr, x2, y2);
+				cairo_stroke(cr);
+				if (((r % 2 == 0) && (c % 2 == 1)) || ((r % 2 == 1) && (c % 2 == 0))) {
+					plot_point *pt = malloc(sizeof(plot_point)); // store this crossing for adding a label afterwards
+					pt->x = x1;
+					pt->y = y1;
+					pt->ra = i;
+					pt->dec = j;
+					pt->angle = atan2(y2 - y1, x2 - x1);
+					if (fabs(pt->angle) > M_PI_2) pt->angle += M_PI;
+					pt->isRA = FALSE;
+					ptlist = g_list_append(ptlist, pt);
+				}
+			}
+			i = i + step;
+			c += 1;
+		} while (i <= (centra + 6 * stepRA) * 2.0);
+		j = j + step;
+		r += 1;
+		c = 0;
+	} while (j <= min(centdec + step * 6, 90));
+
+	// Add crossings labels
+	cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+	for (GList *l = ptlist; l != NULL; l = l->next) {
+		// getting the label
+		gchar *label = NULL;
+		SirilWorldCS *world_cs;
+		plot_point *pt = (plot_point*) l->data;
+		world_cs = siril_world_cs_new_from_a_d(pt->ra, pt->dec);
+		if (world_cs) {
+			label = (pt->isRA) ? siril_world_cs_alpha_format(world_cs, "%02dh%02dm") : siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'");
+			siril_world_cs_unref(world_cs);
+		}
+		cairo_move_to(cr, pt->x, pt->y);
+		cairo_rotate(cr, pt->angle);
+		cairo_show_text(cr, label);
+		cairo_rotate(cr, -pt->angle);
+		g_free(label);
+	}
+	g_list_free_full(ptlist, (GDestroyNotify) g_free);
+
+	draw_compass(dd);
+}
+
 static gdouble x_circle(gdouble x, gdouble radius) {
 	return x + radius * cos(315 * M_PI / 180);
 }
@@ -727,15 +985,21 @@ static gdouble y_circle(gdouble y, gdouble radius) {
 
 static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
-	gboolean inverted = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(lookup_widget("neg_button")));
+	fits *fit = &gfit;
+	double width = (double) fit->rx;
+	double height = (double) fit->ry;
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
+
+	gboolean inverted = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(lookup_widget("neg_button")));
 	if (inverted) {
 		cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
 	} else {
 		cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
 	}
-	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_line_width(cr, 1.0 / dd->zoom);
+	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
+	cairo_clip(cr);
 	GSList *list;
 	for (list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
@@ -752,9 +1016,9 @@ static void draw_annotates(const draw_data_t* dd) {
 		radius = radius / resolution / 60.0;
 
 		wcs2pix(&gfit, world_x, world_y, &x, &y);
-		y = gfit.ry - y;
+		y = height - y;
 
-		if (x > 0 && x < gfit.rx && y > 0 && y < gfit.ry) {
+		if (x > 0 && x < width && y > 0 && y < height) {
 			point offset = {10, -10};
 			if (radius < 0) {
 				// objects we don't have an accurate location (LdN, Sh2)
@@ -781,12 +1045,63 @@ static void draw_annotates(const draw_data_t* dd) {
 				cairo_stroke(cr);
 			}
 			if (code) {
+				cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 				cairo_set_font_size(cr, size / dd->zoom);
 				cairo_move_to(cr, x + offset.x, y + offset.y);
 				cairo_show_text(cr, code);
 				cairo_stroke(cr);
 			}
 		}
+	}
+}
+
+static void draw_analysis(const draw_data_t* dd) {
+	if (com.tilt) {
+		cairo_t *cr = dd->cr;
+		cairo_set_dash(cr, NULL, 0, 0);
+
+		cairo_set_source_rgb(cr, 1.0, 0.8, 0.7);
+		cairo_set_line_width(cr, 2.0 / dd->zoom);
+		cairo_move_to(cr, com.tilt->pt[0].x, com.tilt->pt[0].y);
+		cairo_line_to(cr, com.tilt->pt[1].x, com.tilt->pt[1].y);
+		cairo_line_to(cr, com.tilt->pt[2].x, com.tilt->pt[2].y);
+		cairo_line_to(cr, com.tilt->pt[3].x, com.tilt->pt[3].y);
+		cairo_line_to(cr, com.tilt->pt[1].x, com.tilt->pt[1].y);
+		cairo_move_to(cr, com.tilt->pt[3].x, com.tilt->pt[3].y);
+		cairo_line_to(cr, com.tilt->pt[0].x, com.tilt->pt[0].y);
+		cairo_line_to(cr, com.tilt->pt[2].x, com.tilt->pt[2].y);
+		cairo_stroke(cr);
+
+		/* draw text */
+		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+		int size = 20.0 / dd->zoom;
+		cairo_set_font_size(cr, size);
+
+		/* fwhm 1 */
+		gchar *str = g_strdup_printf("%.2f", com.tilt->fwhm[0]);
+		cairo_move_to(cr, com.tilt->pt[0].x, com.tilt->pt[0].y - size);
+		cairo_show_text(cr, str);
+		g_free(str);
+		/* fwhm 2 */
+		str = g_strdup_printf("%.2f", com.tilt->fwhm[1]);
+		cairo_move_to(cr, com.tilt->pt[1].x, com.tilt->pt[1].y - size);
+		cairo_show_text(cr, str);
+		g_free(str);
+		/* fwhm 3 */
+		str = g_strdup_printf("%.2f", com.tilt->fwhm[2]);
+		cairo_move_to(cr, com.tilt->pt[2].x, com.tilt->pt[2].y + size);
+		cairo_show_text(cr, str);
+		g_free(str);
+		/* fwhm 4 */
+		str = g_strdup_printf("%.2f", com.tilt->fwhm[3]);
+		cairo_move_to(cr, com.tilt->pt[3].x, com.tilt->pt[3].y + size);
+		cairo_show_text(cr, str);
+		g_free(str);
+		/* fwhm center */
+		str = g_strdup_printf("%.2f", com.tilt->fwhm_centre);
+		cairo_move_to(cr, gfit.rx / 2.0, (gfit.ry / 2.0) + size);
+		cairo_show_text(cr, str);
+		g_free(str);
 	}
 }
 
@@ -954,10 +1269,18 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	draw_selection(&dd);
 
 	/* detected stars and highlight the selected star */
+	g_mutex_lock(&com.mutex);
 	draw_stars(&dd);
+	g_mutex_unlock(&com.mutex);
+
+	/* celestial grid */
+	draw_wcs_grid(&dd);
 
 	/* detected objects */
 	draw_annotates(&dd);
+
+	/* analysis tool */
+	draw_analysis(&dd);
 
 	/* background removal gradient selection boxes */
 	draw_brg_boxes(&dd);
@@ -994,6 +1317,10 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 
 	/* RGB or gray images */
 	draw_main_image(&dd);
+	/* wcs_grid */
+	draw_wcs_grid(&dd);
 	/* detected objects */
 	draw_annotates(&dd);
+	/* analysis */
+	draw_analysis(&dd);
 }

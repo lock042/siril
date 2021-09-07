@@ -33,7 +33,6 @@
 #include "core/OS_utils.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
-#include "algos/plateSolver.h"
 #include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
@@ -47,6 +46,8 @@
 #include "image_interactions.h"
 #include "single_image.h"
 #include "callbacks.h"
+
+#include "algos/astrometry_solver.h"
 #include "utils.h"
 #include "plot.h"
 #include "message_dialog.h"
@@ -110,6 +111,8 @@ static void update_icons_to_theme(gboolean is_dark) {
 	siril_debug_print("Loading %s theme...\n", is_dark ? "dark" : "light");
 	if (is_dark) {
 		update_theme_button("annotate_button", "astrometry_dark.svg");
+		update_theme_button("wcs_grid_button", "wcs-grid_dark.svg");
+		update_theme_button("photometry_button", "photometry_dark.svg");
 
 		update_theme_button("rotate90_anticlock_button", "rotate-acw_dark.svg");
 		update_theme_button("rotate90_clock_button", "rotate-cw_dark.svg");
@@ -117,12 +120,15 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("mirrory_button", "mirrory_dark.svg");
 
 		update_theme_button("process_starfinder_button", "starfinder_dark.svg");
+		update_theme_button("tilt_button", "tilt_dark.svg");
 		update_theme_button("sum_button", "sum_dark.svg");
 		update_theme_button("export_button", "export_dark.svg");
 
 		update_theme_button("histoToolAutoStretch", "mtf_dark.svg");
 	} else {
 		update_theme_button("annotate_button", "astrometry.svg");
+		update_theme_button("wcs_grid_button", "wcs-grid.svg");
+		update_theme_button("photometry_button", "photometry.svg");
 
 		update_theme_button("rotate90_anticlock_button", "rotate-acw.svg");
 		update_theme_button("rotate90_clock_button", "rotate-cw.svg");
@@ -130,6 +136,7 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("mirrory_button", "mirrory.svg");
 
 		update_theme_button("process_starfinder_button", "starfinder.svg");
+		update_theme_button("tilt_button", "tilt.svg");
 		update_theme_button("sum_button", "sum.svg");
 		update_theme_button("export_button", "export.svg");
 
@@ -261,10 +268,9 @@ void on_menu_display_selection_done(GtkMenuShell *menushell, gpointer user_data)
 
 	gtk_label_set_text((GtkLabel *)user_data, text);
 
-	if (copy_rendering_settings_when_chained(TRUE))
-		redraw(com.cvport, REMAP_ALL);
-	else
-		redraw(com.cvport, REMAP_ONLY);
+	copy_rendering_settings();
+	redraw(com.cvport, REMAP_ALL);
+
 	redraw_previews();
 }
 
@@ -360,8 +366,25 @@ void update_MenuItem() {
 	/* some toolbar buttons */
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
 
+	gboolean enable_button = any_image_is_loaded && has_wcs(&gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_annotate), any_image_is_loaded && has_wcs(&gfit));
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_annotate), enable_button);
+	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_grid), enable_button);
+
+	/* untoggle if disabled */
+	if (!enable_button) {
+		GVariant *state = g_action_get_state(action_annotate);
+		if (g_variant_get_boolean(g_action_get_state(action_annotate))) {
+			g_action_change_state(action_annotate, g_variant_new_boolean(FALSE));
+		}
+		g_variant_unref(state);
+		state = g_action_get_state(action_grid);
+		if (g_variant_get_boolean(g_action_get_state(action_grid))) {
+			g_action_change_state(action_grid, g_variant_new_boolean(FALSE));
+		}
+		g_variant_unref(state);
+	}
 
 	/* undo and redo */
 	GAction *action_undo = g_action_map_lookup_action(G_ACTION_MAP(app_win), "undo");
@@ -377,9 +400,18 @@ void update_MenuItem() {
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_save), is_a_single_image_loaded && com.uniq->fileexist);
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_save_as), any_image_is_loaded);
 
+	/* popup menu */
+
 	/* fits header */
 	GAction *action_fits_header = g_action_map_lookup_action (G_ACTION_MAP(app_win), "fits-header");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_fits_header), any_image_is_loaded && gfit.header != NULL);
+	/* search object */
+	GAction *action_search_objectr = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-object");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_objectr), any_image_is_loaded && has_wcs(&gfit));
+	/* selection is needed */
+	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
+	/* selection and sequence is needed */
+	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && sequence_is_loaded());
 
 	/* Image processing Menu */
 
@@ -436,31 +468,24 @@ display_mode get_display_mode_from_menu() {
  * Synchronized data: hi and lo cursors, cut over box, rendering mode.
  * DOES NOT REMAP/REDRAW.
  *
- * from_GUI: TRUE if get values from the GUI, FALSE if get the values from structs.
- * Returns 1 if chained, 0 if not.
  */
-int copy_rendering_settings_when_chained(gboolean from_GUI) {
-	static GtkToggleButton *chainedbutton = NULL;
+int copy_rendering_settings() {
 	static GtkRange *range_lo = NULL, *range_hi = NULL;
 	static GtkToggleButton *cutmax = NULL;
 
-	gboolean is_chained;
 	display_mode mode;
 	WORD lo, hi;
 	gboolean cut_over;
 	int i, nb_layers;
 	layer_info *layers = NULL;
 
-	if (!chainedbutton) {	// init widgets
-		chainedbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_chain"));
+	if (!range_lo) {	// init widgets
 		range_lo = GTK_RANGE(gtk_builder_get_object(builder, "scalemin"));
 		range_hi = GTK_RANGE(gtk_builder_get_object(builder, "scalemax"));
 		cutmax = GTK_TOGGLE_BUTTON(
 				gtk_builder_get_object(builder, "checkcut_max"));
 	}
 
-	is_chained = gtk_toggle_button_get_active(chainedbutton);
-	if (com.cvport == RGB_VPORT && !is_chained) return 0;
 	int cvport = com.cvport == RGB_VPORT ? 0 : com.cvport;
 
 	if (single_image_is_loaded() &&
@@ -475,17 +500,14 @@ int copy_rendering_settings_when_chained(gboolean from_GUI) {
 	} else
 		return 0;
 
-	if (from_GUI) {
-		int raw_mode = get_display_mode_from_menu();
-		/* update values in the layer_info for cvport */
-		layers[cvport].rendering_mode =
-			raw_mode >= 0 ? raw_mode : LINEAR_DISPLAY;
-		layers[cvport].lo = round_to_WORD(gtk_range_get_value(range_lo));
-		layers[cvport].hi = round_to_WORD(gtk_range_get_value(range_hi));
-		layers[cvport].cut_over = gtk_toggle_button_get_active(cutmax);
-	}
-	if (!is_chained)
-		return 0;
+	int raw_mode = get_display_mode_from_menu();
+	/* update values in the layer_info for cvport */
+	layers[cvport].rendering_mode =
+		raw_mode >= 0 ? raw_mode : LINEAR_DISPLAY;
+	layers[cvport].lo = round_to_WORD(gtk_range_get_value(range_lo));
+	layers[cvport].hi = round_to_WORD(gtk_range_get_value(range_hi));
+	layers[cvport].cut_over = gtk_toggle_button_get_active(cutmax);
+
 	mode = layers[cvport].rendering_mode;
 	lo = layers[cvport].lo;
 	hi = layers[cvport].hi;
@@ -500,7 +522,7 @@ int copy_rendering_settings_when_chained(gboolean from_GUI) {
 		layers[i].cut_over = cut_over;
 	}
 
-	return 1;
+	return 0;
 }
 
 void update_prepro_interface(gboolean allow_debayer) {
@@ -983,10 +1005,12 @@ static void load_accels() {
 		"win.zoom-out",               "<Primary>minus", "<Primary>KP_Subtract", NULL,
 		"win.zoom-in",                "<Primary>plus", "<Primary>KP_Add", NULL,
 		"win.zoom-fit",               "<Primary>0", NULL,
+		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
-		"win.astrometry",             "<Primary>a", NULL,
+		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
+		"win.dyn-psf",                "<Primary>F6", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,
@@ -1010,7 +1034,6 @@ void set_accel_map(const gchar * const *accelmap) {
 
 /* Initialize the combobox when loading new single_image */
 void initialize_display_mode() {
-	static GtkToggleButton *chainedbutton = NULL;
 	display_mode mode;
 	int i;
 
@@ -1028,16 +1051,6 @@ void initialize_display_mode() {
 	} else if (sequence_is_loaded()) {
 		for (i = 0; i < com.seq.nb_layers; i++)
 			com.seq.layers[i].rendering_mode = mode;
-	}
-	/* In the case where the layer were unchained, we chaine it */
-	if (!chainedbutton)
-		chainedbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_chain"));
-	if (!gtk_toggle_button_get_active(chainedbutton)) {
-		g_signal_handlers_block_by_func(chainedbutton, on_checkchain_toggled,
-				NULL);
-		gtk_toggle_button_set_active(chainedbutton, TRUE);
-		g_signal_handlers_unblock_by_func(chainedbutton, on_checkchain_toggled,
-				NULL);
 	}
 }
 
@@ -1222,8 +1235,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	update_MenuItem();
 	initialize_script_menu();
 
-	/* initialize command completion */
-	init_completion_command();
+	/* initialize command processor */
+	init_command();
 
 	/* initialize preprocessing */
 	initialize_preprocessing();
@@ -1358,10 +1371,9 @@ gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		com.sliders = USER;
 		sliders_mode_set_state(com.sliders);
 	}
-	if (copy_rendering_settings_when_chained(TRUE))
-		redraw(com.cvport, REMAP_ALL);
-	else
-		redraw(com.cvport, REMAP_ONLY);
+	copy_rendering_settings();
+	redraw(com.cvport, REMAP_ALL);
+
 	redraw_previews();
 	return FALSE;
 }
@@ -1372,20 +1384,18 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		com.sliders = USER;
 		sliders_mode_set_state(com.sliders);
 	}
-	if (copy_rendering_settings_when_chained(TRUE))
-		redraw(com.cvport, REMAP_ALL);
-	else
-		redraw(com.cvport, REMAP_ONLY);
+	copy_rendering_settings();
+	redraw(com.cvport, REMAP_ALL);
+
 	redraw_previews();
 	return FALSE;
 }
 
 /* a checkcut checkbox was toggled. Update the layer_info and others if chained. */
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	if (copy_rendering_settings_when_chained(TRUE))
-		redraw(com.cvport, REMAP_ALL);
-	else
-		redraw(com.cvport, REMAP_ONLY);
+	copy_rendering_settings();
+	redraw(com.cvport, REMAP_ALL);
+
 	redraw_previews();
 }
 
@@ -1574,11 +1584,6 @@ void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 	}
 }
 
-void on_checkchain_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	if (copy_rendering_settings_when_chained(FALSE))
-		redraw(com.cvport, REMAP_ALL);
-}
-
 void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar *txt = gtk_entry_get_text(GTK_ENTRY(editable));
 	if (g_ascii_isalnum(txt[0])) {
@@ -1599,10 +1604,9 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 
 		set_cutoff_sliders_values();
 
-		if (copy_rendering_settings_when_chained(FALSE))
-			redraw(com.cvport, REMAP_ALL);
-		else
-			redraw(com.cvport, REMAP_ONLY);
+		copy_rendering_settings();
+		redraw(com.cvport, REMAP_ALL);
+
 		redraw_previews();
 	}
 }
@@ -1655,10 +1659,10 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 		else
 			return;
 		set_cutoff_sliders_values();
-		if (copy_rendering_settings_when_chained(FALSE))
-			redraw(com.cvport, REMAP_ALL);
-		else
-			redraw(com.cvport, REMAP_ONLY);
+
+		copy_rendering_settings();
+		redraw(com.cvport, REMAP_ALL);
+
 		redraw_previews();
 	}
 }

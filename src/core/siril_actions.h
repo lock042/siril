@@ -54,6 +54,8 @@ void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void zoom_fit_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data);
+void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -61,9 +63,15 @@ void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user
 void astrometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void dyn_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data);
+void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

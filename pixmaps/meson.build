@@ -9,7 +9,6 @@ siril_icons = [
   'astrometry.svg',
   'astrometry_dark.svg',
   'b.svg',
-  'chain.svg',
   'cm.svg',
   'curve.svg',
   'export_dark.svg',
@@ -27,6 +26,8 @@ siril_icons = [
   'mtf_dark.svg',
   'mtf.svg',
   'neg.svg',
+  'photometry.svg',
+  'photometry_dark.svg',
   'rotate-acw_dark.svg',
   'rotate-acw.svg',
   'rotate-cw_dark.svg',
@@ -37,6 +38,10 @@ siril_icons = [
   'sum_dark.svg',
   'sum.svg',
   'siril.svg',
+  'tilt.svg',
+  'tilt_dark.svg',
+  'wcs-grid.svg',
+  'wcs-grid_dark.svg',
 ]
 
 ################################################################################

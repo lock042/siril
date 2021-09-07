@@ -124,17 +124,15 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg) {
  * failed and for star detection when magnitude is not needed.
  */
 static double psf_get_mag(gsl_matrix* z, double B) {
-	double intensity = 0.0, magnitude;
+	double intensity = 1.0;
 	size_t NbRows = z->size1;
 	size_t NbCols = z->size2;
-	size_t i, j;
 
-	for (i = 0; i < NbRows; i++) {
-		for (j = 0; j < NbCols; j++)
+	for (size_t i = 0; i < NbRows; i++) {
+		for (size_t j = 0; j < NbCols; j++)
 			intensity += gsl_matrix_get(z, i, j) - B;
 	}
-	magnitude = -2.5 * log10(intensity);
-	return magnitude;
+	return -2.5 * log10(intensity);
 }
 
 /* No angle */
@@ -292,7 +290,7 @@ static int psf_Gaussian_fdf_an(const gsl_vector * x, void *PSF_data,
 /* The function returns the fitted parameters without angle. However it
  * returns NULL if the number of parameters is => to the pixel number.
  */
-static fitted_PSF *psf_minimiz_no_angle(gsl_matrix* z, double background) {
+static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background) {
 	size_t i, j;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
@@ -306,7 +304,7 @@ static fitted_PSF *psf_minimiz_no_angle(gsl_matrix* z, double background) {
 	gsl_matrix *covar = gsl_matrix_alloc(p, p);
 	double *y = malloc(n * sizeof(double));
 	double *sigma = malloc(n * sizeof(double));
-	fitted_PSF *psf = malloc(sizeof(fitted_PSF));
+	psf_star *psf = new_psf_star();
 	if (!y || !sigma || !psf) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -332,7 +330,7 @@ static fitted_PSF *psf_minimiz_no_angle(gsl_matrix* z, double background) {
 	f.fdf = &psf_Gaussian_fdf;
 	f.n = n;
 	if (n <= p) {
-		free(psf);
+		free_psf(psf);
 		free(y);
 		free(sigma);
 		return NULL;
@@ -389,6 +387,7 @@ static fitted_PSF *psf_minimiz_no_angle(gsl_matrix* z, double background) {
 	psf->units = "px";
 	// Magnitude
 	psf->mag = psf_get_mag(z, psf->B);
+	psf->phot = NULL;
 	psf->phot_is_valid = FALSE;
 	// RMSE
 	psf->rmse = d.rmse;
@@ -416,7 +415,7 @@ static fitted_PSF *psf_minimiz_no_angle(gsl_matrix* z, double background) {
  * NULL if the number of parameters is => to the pixel number.
  * This should not happen because this case is already treated by the
  * minimiz_no_angle function */
-static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean for_photometry, gboolean verbose) {
+static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_photometry, gboolean verbose) {
 	size_t i, j;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
@@ -425,7 +424,7 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 	g_assert (n > 0);
 	int status;
 	unsigned int iter = 0;
-	fitted_PSF *psf_angle = malloc(sizeof(fitted_PSF));
+	psf_star *psf_angle = new_psf_star();
 	gsl_matrix *covar = gsl_matrix_alloc(p, p);
 	double *y = malloc(n * sizeof(double));
 	double *sigma = malloc(n * sizeof(double));
@@ -523,11 +522,13 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 	if (psf_angle->phot != NULL) {
 		psf_angle->mag = psf_angle->phot->mag;
 		psf_angle->s_mag = psf_angle->phot->s_mag;
+		psf_angle->SNR = psf_angle->phot->SNR;
 		psf_angle->phot_is_valid = psf_angle->phot->valid;
 
 	} else {
 		psf_angle->mag = psf_get_mag(z, psf_angle->B);
 		psf_angle->s_mag = 9.999;
+		psf_angle->SNR = 0;
 		psf_angle->phot_is_valid = FALSE;
 	}
 	//RMSE
@@ -547,7 +548,6 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 	gsl_multifit_fdfsolver_free(s);
 	gsl_matrix_free(covar);
 	gsl_rng_free(r);
-	free(psf_angle->phot);
 	return psf_angle;
 }
 
@@ -556,7 +556,7 @@ static fitted_PSF *psf_minimiz_angle(gsl_matrix* z, fitted_PSF *psf, gboolean fo
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	fitted_PSF *result = psf_get_minimisation(fit, layer, selection, FALSE, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, TRUE, TRUE);
 	if (result == NULL) {
 		*roundness = 0.0;
 		return 0.0;
@@ -565,18 +565,18 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
 	retval = result->fwhmx;
 	if (roundness)
 		*roundness = result->fwhmy / result->fwhmx;
-	free(result);
+	free_psf(result);
 	return retval;
 }
 
 /* Computes the FWHM on data in the selection rectangle of image fit.
  * Selection rectangle is passed as third argument.
- * Return value is a structure, type fitted_PSF, that has to be freed after use.
+ * Return value is a structure, type psf_star, that has to be freed after use.
  */
-fitted_PSF *psf_get_minimisation(fits *fit, int layer, rectangle *area,
+psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		gboolean for_photometry, gboolean verbose, gboolean multithread_stat) {
 	int stridefrom, i, j;
-	fitted_PSF *result;
+	psf_star *result;
 	double bg = background(fit, layer, area, multithread_stat);
 
 	// fprintf(stdout, "background: %g\n", bg);
@@ -632,9 +632,9 @@ fitted_PSF *psf_get_minimisation(fits *fit, int layer, rectangle *area,
  * of the star_finder algorithm), no angle parameter is fitted.
  * The function returns NULL if values look bizarre.
  */
-fitted_PSF *psf_global_minimisation(gsl_matrix* z, double bg,
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 		gboolean fit_angle, gboolean for_photometry, gboolean verbose) {
-	fitted_PSF *psf;
+	psf_star *psf;
 
 	// To compute good starting values, we first compute with no angle
 	if ((psf = psf_minimiz_no_angle(z, bg)) != NULL) {
@@ -650,6 +650,7 @@ fitted_PSF *psf_global_minimisation(gsl_matrix* z, double bg,
 					if (psf->phot != NULL) {
 						psf->mag = psf->phot->mag;
 						psf->s_mag = psf->phot->s_mag;
+						psf->SNR = psf->phot->SNR;
 						psf->phot_is_valid = psf->phot->valid;
 					}
 				} else {
@@ -657,13 +658,13 @@ fitted_PSF *psf_global_minimisation(gsl_matrix* z, double bg,
 					psf->phot_is_valid = FALSE;
 				}
 			} else {
-				fitted_PSF *tmp_psf;
+				psf_star *tmp_psf;
 				if ((tmp_psf = psf_minimiz_angle(z, psf, for_photometry, verbose))
 						== NULL) {
-					free(psf);
+					free_psf(psf);
 					return NULL;
 				}
-				free(psf);
+				free_psf(psf);
 				psf = tmp_psf;
 			}
 		}
@@ -681,7 +682,7 @@ fitted_PSF *psf_global_minimisation(gsl_matrix* z, double bg,
 		/* We quickly test the result. If it is bad we return NULL */
 		if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
 				psf->fwhmx <= 0.0 || psf->fwhmy <= 0.0) {
-			free(psf);
+			free_psf(psf);
 			psf = NULL;
 		}
 	}
@@ -690,7 +691,7 @@ fitted_PSF *psf_global_minimisation(gsl_matrix* z, double bg,
 	return psf;
 }
 
-void psf_display_result(fitted_PSF *result, rectangle *area) {
+void psf_display_result(psf_star *result, rectangle *area) {
 	char *buffer, *coordinates;
 	char *str;
 	if (com.magOffset > 0.0)
@@ -728,9 +729,17 @@ void psf_display_result(fitted_PSF *result, rectangle *area) {
 			"Background value=%0.6f\n"
 			"Maximal intensity=%0.6f\n"
 			"Magnitude (%s)=%0.2f\n"
-			"RMSE=%.3e\n"), coordinates,
+			"SNR=%.1fdB\n"
+			"RMSE=%.3e\n"),
+			coordinates,
 			result->fwhmx, result->units, result->fwhmy, result->units,
-			result->angle, result->B, result->A, str, result->mag + com.magOffset, result->rmse);
+			result->angle,
+			result->B,
+			result->A,
+			str,
+			result->mag + com.magOffset,
+			result->SNR,
+			result->rmse);
 
 	siril_log_message(buffer);
 	g_free(buffer);
@@ -742,7 +751,7 @@ void psf_display_result(fitted_PSF *result, rectangle *area) {
 /* If the pixel pitch and the focal length are known and filled in the 
  * setting box, we convert FWHM in pixel to arcsec by multiplying
  * the FWHM value with the sampling value */
-void fwhm_to_arcsec_if_needed(fits* fit, fitted_PSF *result) {
+void fwhm_to_arcsec_if_needed(fits* fit, psf_star *result) {
 
 	if (!result) return;
 	if (fit->focal_length <= 0.0 || fit->pixel_size_x <= 0.f
@@ -767,14 +776,14 @@ void fwhm_to_arcsec_if_needed(fits* fit, fitted_PSF *result) {
 	result->units = "\"";
 }
 
-void fwhm_to_pixels(fitted_PSF *result) {
+void fwhm_to_pixels(psf_star *result) {
 	result->fwhmx = sqrt(result->sx * 0.5) * _2_SQRT_2_LOG2;
 	result->fwhmy = sqrt(result->sy * 0.5) * _2_SQRT_2_LOG2;
 	result->units = "px";
 }
 
 // returns boolean if it was possible (true if arcsec)
-gboolean get_fwhm_as_arcsec_if_possible(fitted_PSF *star, double *fwhmx, double *fwhmy, char **unit) {
+gboolean get_fwhm_as_arcsec_if_possible(psf_star *star, double *fwhmx, double *fwhmy, char **unit) {
 	if (!strcmp(star->units, "px")) {
 		*fwhmx = star->fwhmx;
 		*fwhmy = star->fwhmy;
@@ -796,15 +805,38 @@ double convert_single_fwhm_to_pixels(double fwhm, double s) {
 	return sqrt(s * 0.5) * _2_SQRT_2_LOG2;
 }
 
-fitted_PSF *duplicate_psf(fitted_PSF *psf) {
+gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, double px_size, double flenght, double *result) {
+	double arcsec = fwhm * (radian_conversion * px_size / flenght) * bin;
+	if (arcsec <= 0.0 || isnan(arcsec) || !isfinite(arcsec)) {
+		*result = 0;
+		return FALSE;
+	}
+	*result = arcsec;
+	return TRUE;
+}
+
+psf_star *new_psf_star() {
+	psf_star *star = malloc(sizeof(psf_star));
+	star->phot = NULL;
+
+	return star;
+}
+
+psf_star *duplicate_psf(psf_star *psf) {
 	if (!psf)
 		return NULL;
-	fitted_PSF *new_psf = malloc(sizeof(fitted_PSF));
-	memcpy(new_psf, psf, sizeof(fitted_PSF));
+	psf_star *new_psf = new_psf_star();
+	memcpy(new_psf, psf, sizeof(psf_star));
 	if (psf->phot) {
 		new_psf->phot = malloc(sizeof(photometry));
 		memcpy(new_psf->phot, psf->phot, sizeof(photometry));
+	} else {
+		new_psf->phot = NULL;
 	}
 	return new_psf;
 }
 
+void free_psf(psf_star *psf) {
+	if (psf->phot) free(psf->phot);
+	free(psf);
+}

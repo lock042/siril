@@ -10,6 +10,7 @@ int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
+int	process_boxselect(int nb);
 
 int	process_cd(int nb);
 int	process_cdg(int nb);
@@ -115,7 +116,7 @@ int	process_seq_crop(int nb);
 int	process_seq_mtf(int nb);
 int	process_seq_psf(int nb);
 int	process_seq_split_cfa(int nb);
-int process_seq_stat(int nb);
+int	process_seq_stat(int nb);
 int	process_subsky(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
@@ -126,6 +127,7 @@ int	process_stackone(int nb);
 int	process_thresh(int nb);
 int	process_threshlo(int nb);
 int	process_threshhi(int nb);
+int	process_tilt(int nb);
 
 int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);

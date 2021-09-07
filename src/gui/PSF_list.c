@@ -25,6 +25,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
+#include "core/siril_world_cs.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/utils.h"
@@ -35,8 +36,10 @@
 #include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
 #include "gui/progress_and_log.h"
+#include "algos/siril_wcs.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
+#include "algos/ccd-inspector.h"
 
 static GtkListStore *liststore_stars = NULL;
 
@@ -200,7 +203,7 @@ static void get_stars_list_store() {
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_rmse_cell_data_function, NULL, NULL);
 }
 
-static void display_PSF(fitted_PSF **result) {
+static void display_PSF(psf_star **result) {
 	if (result) {
 		gchar *msg;
 		int i = 0;
@@ -406,7 +409,7 @@ static void save_stars_dialog() {
 
 /********************* public ***********************/
 
-void add_star_to_list(fitted_PSF *star) {
+void add_star_to_list(psf_star *star) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
 
@@ -440,7 +443,7 @@ void add_star_to_list(fitted_PSF *star) {
 	display_status();
 }
 
-void fill_stars_list(fits *fit, fitted_PSF **stars) {
+void fill_stars_list(fits *fit, psf_star **stars) {
 	int i = 0;
 	if (stars == NULL)
 		return;
@@ -455,7 +458,7 @@ void fill_stars_list(fits *fit, fitted_PSF **stars) {
 	com.selected_star = -1;
 }
 
-void refresh_star_list(fitted_PSF **star){
+void refresh_star_list(psf_star **star){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
 	fill_stars_list(&gfit, com.stars);
@@ -468,6 +471,8 @@ void clear_stars_list() {
 			get_stars_list_store();
 			gtk_list_store_clear(liststore_stars);
 		}
+		g_mutex_lock(&com.mutex);
+
 		if (com.stars[0]) {
 			/* freeing found stars. It must not be done when the only star in
 			 * com.stars is the same as com.seq.imgparam[xxx].fwhm, as set in
@@ -475,11 +480,12 @@ void clear_stars_list() {
 			if (com.stars[1] || !com.star_is_seqdata) {
 				int i = 0;
 				while (i < MAX_STARS && com.stars[i])
-					free(com.stars[i++]);
+					free_psf(com.stars[i++]);
 			}
 		}
 		free(com.stars);
 		com.stars = NULL;
+		g_mutex_unlock(&com.mutex);
 	}
 	com.star_is_seqdata = FALSE;
 }
@@ -496,7 +502,7 @@ void pick_a_star() {
 					_("To determine the PSF, please make a selection around a star."));
 			return;
 		}
-		fitted_PSF *new_star = add_star(&gfit, layer, &new_index);
+		psf_star *new_star = add_star(&gfit, layer, &new_index);
 		if (new_star) {
 			add_star_to_list(new_star);
 			siril_open_dialog("stars_list_window");
@@ -504,6 +510,100 @@ void pick_a_star() {
 			return;
 	}
 	redraw(com.cvport, REMAP_NONE);
+}
+
+static gchar *build_wcs_url(gchar *ra, gchar *dec) {
+	if (!has_wcs(&gfit)) return NULL;
+
+	double resolution = get_wcs_image_resolution(&gfit);
+
+	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
+
+	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
+	url = g_string_append(url, ra);
+	url = g_string_append(url, dec);
+	url = g_string_append(url, "&Radius=");
+	url = g_string_append(url, tol);
+	url = g_string_append(url, "&Radius.unit=arcsec");
+	url = g_string_append(url, "#lab_basic");
+
+	gchar *simbad_url = g_string_free(url, FALSE);
+	gchar *cleaned_url = url_cleanup(simbad_url);
+
+	g_free(tol);
+	g_free(simbad_url);
+
+	return cleaned_url;
+}
+
+static const char *SNR_quality(double SNR) {
+	if (SNR > 40.0) return _("Excellent");
+	if (SNR > 25.0) return _("Good");
+	if (SNR > 15.0) return _("Fair");
+	if (SNR > 10.0) return _("Poor");
+	if (SNR > 0.0) return _("Bad");
+	else return _("N/A");
+}
+
+void popup_psf_result(psf_star *result, rectangle *area) {
+	gchar *msg, *coordinates, *url = NULL;
+	const char *str;
+	if (com.magOffset > 0.0)
+		str = "true reduced";
+	else
+		str = "relative";
+
+	double x = result->x0 + area->x;
+	double y = area->y + area->h - result->y0;
+	if (has_wcs(&gfit)) {
+		double world_x, world_y;
+		SirilWorldCS *world_cs;
+
+		pix2wcs(&gfit, x, (double) gfit.ry - y, &world_x, &world_y);
+		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+		if (world_cs) {
+			gchar *ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
+			gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
+
+			url = build_wcs_url(ra, dec);
+
+			g_free(ra);
+			g_free(dec);
+
+			ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+			dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+
+			coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
+
+			g_free(ra);
+			g_free(dec);
+			siril_world_cs_unref(world_cs);
+		} else {
+			coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
+		}
+	} else {
+		coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
+	}
+
+	double fwhmx, fwhmy;
+	char *units;
+	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &units);
+	msg = g_strdup_printf(_("Centroid Coordinates:\n\t\t%s\n\n"
+				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\n"
+				"Angle:\n\t\t%0.2fdeg\n\n"
+				"Background Value:\n\t\tB=%.6f\n\n"
+				"Maximal Intensity:\n\t\tA=%.6f\n\n"
+				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
+				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
+				"RMSE:\n\t\tRMSE=%.3e"),
+			coordinates, fwhmx, units, fwhmy, units,
+			result->angle, result->B, result->A, str,
+			result->mag + com.magOffset, result->s_mag, result->SNR,
+			SNR_quality(result->SNR), result->rmse);
+	show_data_dialog(msg, "PSF and quick photometry results", NULL, url);
+	g_free(coordinates);
+	g_free(msg);
+	g_free(url);
 }
 
 /***************** callbacks ****************/
@@ -558,6 +658,7 @@ void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 	remove_all_stars();
+	clear_sensor_tilt();
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {

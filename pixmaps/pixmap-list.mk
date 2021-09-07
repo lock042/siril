@@ -2,7 +2,6 @@ pixmaps = \
   astrometry.svg \
   astrometry_dark.svg \
 	b.svg \
-	chain.svg \
 	cm.svg \
 	curve.svg \
 	export.svg \
@@ -20,6 +19,8 @@ pixmaps = \
 	mtf.svg \
 	mtf_dark.svg \
 	neg.svg \
+	photometry.svg \
+	photometry_dark.svg \
 	r.svg \
 	rotate-acw_dark.svg \
 	rotate-acw.svg \
@@ -29,4 +30,8 @@ pixmaps = \
 	starfinder.svg \
 	starfinder_dark.svg \
 	sum.svg \
-	sum_dark.svg
+	sum_dark.svg \
+	tilt.svg \
+	tilt_dark.svg \
+	wcs-grid.svg \
+	wcs-grid_dark.svg

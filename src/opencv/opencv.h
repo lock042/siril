@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include "registration/registration.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "gui/progress_and_log.h"
@@ -22,14 +23,16 @@ int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, in
 		gboolean upscale2x, int interpolation);
 
 unsigned char *cvCalculH(s_star *star_array_img,
-		struct s_star *star_array_ref, int n, Homography *H);
+		struct s_star *star_array_ref, int n, Homography *H, transformation_type type);
 
 
-int cvTransformImage(fits *image, Homography Hom, gboolean upscale2x, int interpolation);
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation);
 
 int cvUnsharpFilter(fits*, double, double);
 
 int cvClahe(fits *image, double clip_limit, int size);
+
+void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped, point refpointin, point *refpointout);
 
 #ifdef __cplusplus
 }

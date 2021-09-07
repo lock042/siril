@@ -62,6 +62,7 @@
 #include "gui/sequence_list.h"
 #include "gui/preferences.h"
 #include "algos/PSF.h"
+#include "algos/star_finder.h"
 #include "algos/quality.h"
 #include "algos/statistics.h"
 #include "algos/geometry.h"
@@ -548,10 +549,9 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			set_cutoff_sliders_values();	// update values for contrast sliders for this image
 			set_display_mode();		// display the display mode in the combo box
 		}
-		if (copy_rendering_settings_when_chained(TRUE))
-			redraw(com.cvport, REMAP_ALL);
-		else
-			redraw(com.cvport, REMAP_ONLY);
+		copy_rendering_settings();
+		redraw(com.cvport, REMAP_ALL);
+
 		redraw_previews();		// redraw registration preview areas
 		display_filename();		// display filename in gray window
 		set_precision_switch(); // set precision on screen
@@ -972,7 +972,7 @@ static void set_fwhm_star_as_star_list_with_layer(sequence *seq, int layer) {
 	if (seq->regparam && layer >= 0 && layer < seq->nb_layers
 			&& seq->regparam[layer] && seq->current >= 0
 			&& seq->regparam[layer][seq->current].fwhm_data && !com.stars) {
-		com.stars = malloc(2 * sizeof(fitted_PSF *));
+		com.stars = new_fitted_stars(1);
 		com.stars[0] = seq->regparam[layer][seq->current].fwhm_data;
 		com.stars[1] = NULL;
 		// this is freed in PSF_list.c:clear_stars_list()
@@ -1155,7 +1155,7 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 					if (seq->regparam[layer][j].fwhm_data &&
 							(!seq->photometry[0] ||
 							 seq->regparam[layer][j].fwhm_data != seq->photometry[0][j])) // avoid double free
-						free(seq->regparam[layer][j].fwhm_data);
+						free_psf(seq->regparam[layer][j].fwhm_data);
 				}
 				free(seq->regparam[layer]);
 			}
@@ -1545,7 +1545,7 @@ gboolean end_seqpsf(gpointer p) {
 			free_photometry_set(seq, 0);
 		       	i = 0;
 		}
-		seq->photometry[i] = calloc(seq->number, sizeof(fitted_PSF *));
+		seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));
 		photometry_index = i;
 	}
 

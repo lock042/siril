@@ -112,7 +112,7 @@ static int get_reglayer() {
 }
 
 void on_button1_comet_clicked(GtkButton *button, gpointer p) {
-	fitted_PSF *result = NULL;
+	psf_star *result = NULL;
 	int layer = get_reglayer();
 
 	if (com.selection.h && com.selection.w) {
@@ -121,7 +121,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 		if (result) {
 			pos_of_image1.x = result->x0 + com.selection.x;
 			pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
-			free(result);
+			free_psf(result);
 			if (!gfit.date_obs) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("There is no timestamp stored in the file"),
@@ -144,7 +144,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 }
 
 void on_button2_comet_clicked(GtkButton *button, gpointer p) {
-	fitted_PSF *result = NULL;
+	psf_star *result = NULL;
 	int layer = get_reglayer();
 
 	if (com.selection.h && com.selection.w) {
@@ -153,7 +153,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 		if (result) {
 			pos_of_image2.x = result->x0 + com.selection.x;
 			pos_of_image2.y = com.selection.y + com.selection.h - result->y0;
-			free(result);
+			free_psf(result);
 			if (!gfit.date_obs) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("There is no timestamp stored in the file"),

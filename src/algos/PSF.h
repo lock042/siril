@@ -4,7 +4,7 @@
 #include <gsl/gsl_matrix.h>
 #include <algos/photometry.h>
 
-//in siril.h: typedef struct fwhm_struct fitted_PSF;
+//in siril.h: typedef struct fwhm_struct psf_star;
 
 struct fwhm_struct {
 	double B; /* average sky background value */
@@ -16,6 +16,7 @@ struct fwhm_struct {
 	double angle; /* angle of the axis x,y with respect to the image's */
 	double mag; /* magnitude of the star : this parameter is not fitted but calculated with the vector G and the parameter B */
 	double s_mag; /* error on the magnitude */
+	double SNR; /* SNR of the star */
 	photometry *phot; /* photometry data */
 	gboolean phot_is_valid; /* valid if computed by photometry and no saturated pixel detected */
 	double xpos, ypos; /* position of the star in the image, not set by Minimization */
@@ -42,14 +43,17 @@ struct PSF_data {
 };
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
-fitted_PSF *psf_get_minimisation(fits *, int, rectangle *, gboolean, gboolean, gboolean);
-fitted_PSF *psf_global_minimisation(gsl_matrix *, double, gboolean, gboolean, gboolean);
-void psf_display_result(fitted_PSF *, rectangle *);
-void fwhm_to_arcsec_if_needed(fits*, fitted_PSF*);
-void fwhm_to_pixels(fitted_PSF *result);
-gboolean get_fwhm_as_arcsec_if_possible(fitted_PSF *star, double *fwhmx, double *fwhmy, char **unit);
+psf_star *psf_get_minimisation(fits *, int, rectangle *, gboolean, gboolean, gboolean);
+psf_star *psf_global_minimisation(gsl_matrix *, double, gboolean, gboolean, gboolean);
+void psf_display_result(psf_star *, rectangle *);
+void fwhm_to_arcsec_if_needed(fits*, psf_star*);
+void fwhm_to_pixels(psf_star *result);
+gboolean get_fwhm_as_arcsec_if_possible(psf_star *star, double *fwhmx, double *fwhmy, char **unit);
 double convert_single_fwhm_to_pixels(double fwhm, double s);
+gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, double px_size, double flenght, double *result);
 
-fitted_PSF *duplicate_psf(fitted_PSF *);
+psf_star *new_psf_star();
+psf_star *duplicate_psf(psf_star *);
+void free_psf(psf_star *psf);
 
 #endif

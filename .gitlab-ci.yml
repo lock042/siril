@@ -42,18 +42,12 @@ build-image:
     - echo "FROM debian:testing" > Dockerfile
     - echo "RUN apt-get update" >> Dockerfile
     - echo "RUN apt-get install -y --no-install-recommends \\" >> Dockerfile
-    - echo "at-spi2-core build-essential desktop-file-utils cmake hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev libopencv-dev librsvg2-dev libraw-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev wcslib-dev python3 ninja-build meson libjson-glib-dev" >> Dockerfile
-    - echo "RUN git clone --recurse-submodules --depth=1 -b bleeding https://github.com/Snaipe/Criterion.git \\" >> Dockerfile
-    - echo " && cd Criterion \\" >> Dockerfile
-    - echo " && meson build --prefix /usr \\" >> Dockerfile
-    - echo " && ninja -C build install \\" >> Dockerfile
-    - echo " && cd .. \\" >> Dockerfile
-    - echo " && rm -rf Criterion" >> Dockerfile
-
+    - echo "at-spi2-core build-essential desktop-file-utils cmake hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev libopencv-dev librsvg2-dev libraw-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev wcslib-dev python3 python3-pip libjson-glib-dev gcovr" >> Dockerfile
+    - echo "RUN python3 -m pip install meson ninja" >> Dockerfile
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-debian-latest --cache=true --cache-ttl=120h
     
 # Image for GNU/Linux build
-build-image-stable:
+build-image-oldstable:
   except:
     - schedules
   stage: prepare
@@ -66,21 +60,50 @@ build-image-stable:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - echo "FROM debian:stable" > Dockerfile
+    - echo "FROM debian:oldstable" > Dockerfile
     - echo "RUN apt-get update" >> Dockerfile
     - echo "RUN apt-get install -y --no-install-recommends \\" >> Dockerfile
-    - echo "at-spi2-core build-essential desktop-file-utils cmake hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev libopencv-dev librsvg2-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev liblcms2-dev wget libtool libcurl4-gnutls-dev wcslib-dev python3 python3-pip libjson-glib-dev" >> Dockerfile
-    - echo "RUN wget https://www.libraw.org/data/LibRaw-0.20.0.tar.gz \\" >> Dockerfile
-    - echo " && tar xfv LibRaw-0.20.0.tar.gz \\" >> Dockerfile
-    - echo " && cd LibRaw-0.20.0 \\" >> Dockerfile
+    - echo "at-spi2-core build-essential desktop-file-utils cmake unzip hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev librsvg2-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev liblcms2-dev wget libtool libcurl4-gnutls-dev wcslib-dev python3 python3-pip libjson-glib-dev" >> Dockerfile
+    - echo "RUN git clone https://github.com/LibRaw/LibRaw.git \\" >> Dockerfile
+    - echo " && cd LibRaw \\" >> Dockerfile
     - echo " && autoreconf -fi \\" >> Dockerfile
-    - echo " && ./configure --prefix /usr \\" >> Dockerfile
+    - echo " && ./configure --disable-examples --disable-static --prefix /usr \\" >> Dockerfile
     - echo " && make install \\" >> Dockerfile
     - echo " && cd .. \\" >> Dockerfile
-    - echo " && rm -rf LibRaw-0.20.0 \\" >> Dockerfile
+    - echo " && rm -rf LibRaw \\" >> Dockerfile
+    - echo " && wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \\" >> Dockerfile
+    - echo " && unzip opencv.zip && cd opencv-4.5.3 \\" >> Dockerfile
+    - echo " && mkdir -p build && cd build \\" >> Dockerfile
+    - echo " && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr \\" >> Dockerfile
+    - echo " -DOPENCV_GENERATE_PKGCONFIG=ON \\" >> Dockerfile
+    - echo " -DBUILD_DOCS=OFF \\" >> Dockerfile
+    - echo " -DBUILD_EXAMPLES=OFF \\" >> Dockerfile
+    - echo " -DBUILD_opencv_apps=OFF \\" >> Dockerfile
+    - echo " -DBUILD_opencv_python2=OFF \\" >> Dockerfile
+    - echo " -DBUILD_opencv_python3=OFF \\" >> Dockerfile
+    - echo " -DBUILD_PERF_TESTS=OFF \\" >> Dockerfile
+    - echo " -DBUILD_SHARED_LIBS=ON \\" >> Dockerfile
+    - echo " -DBUILD_TESTS=OFF \\" >> Dockerfile
+    - echo " -DCMAKE_BUILD_TYPE=RELEASE \\" >> Dockerfile
+    - echo " -DENABLE_PRECOMPILED_HEADERS=OFF \\" >> Dockerfile
+    - echo " -DFORCE_VTK=OFF \\" >> Dockerfile
+    - echo " -DWITH_FFMPEG=OFF \\" >> Dockerfile
+    - echo " -DWITH_GDAL=OFF \\" >> Dockerfile
+    - echo " -DWITH_IPP=OFF \\" >> Dockerfile
+    - echo " -DWITH_OPENEXR=OFF \\" >> Dockerfile
+    - echo " -DWITH_OPENGL=OFF \\" >> Dockerfile
+    - echo " -DWITH_QT=OFF \\" >> Dockerfile
+    - echo " -DWITH_TBB=OFF \\" >> Dockerfile
+    - echo " -DWITH_XINE=OFF \\" >> Dockerfile
+    - echo " -DBUILD_JPEG=ON \\" >> Dockerfile
+    - echo " -DBUILD_TIFF=ON \\" >> Dockerfile
+    - echo " -DBUILD_PNG=ON ..\\" >> Dockerfile
+    - echo " && make install \\" >> Dockerfile
+    - echo " && cd ../.. \\" >> Dockerfile
+    - echo " && rm -rf opencv-4.5.3 opencv.zip \\" >> Dockerfile
     - echo " && python3 -m pip install meson \\" >> Dockerfile
     - echo " && python3 -m pip install ninja" >> Dockerfile
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-debian-stable --cache=true --cache-ttl=120h
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-debian-oldstable --cache=true --cache-ttl=120h
 
 # Image for Windows64 build
 build-image-win64:
@@ -99,33 +122,37 @@ build-image-win64:
     - echo "FROM debian:testing" > Dockerfile
     - echo "RUN apt-get update" >> Dockerfile
     - echo "RUN apt-get install -y --no-install-recommends \\" >> Dockerfile
-    - echo "build-essential cmake cpio g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 git intltool libglib2.0-bin meson pkg-config python3 python3-distutils python3-docutils python3-pip rpm xsltproc wget" >> Dockerfile
+    - echo "build-essential cmake cpio g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 git intltool libglib2.0-bin meson pkg-config python3 python3-distutils python3-docutils python3-pip rpm xsltproc wget libtool" >> Dockerfile
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-win64-latest --cache=true --cache-ttl=120h
 
 ################################################################################
 # GNU/Linux 64-bit CIs
 
 # Currently Siril does not need dependency compilation, so we can skip that.
-# deps-debian/testing:
-#   stage: dependencies
-#   image: $CI_REGISTRY_IMAGE:build-debian-latest
-#   cache:
-#     paths:
-#     - apt-cache
-#   artifacts:
-#     expire_in: 2 hours
-#     when: always
-#     paths:
-#     - "${INSTALL_DIR}"
-#   before_script:
-#     - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/pkgconfig"
-#     - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`/pkgconfig/:$PKG_CONFIG_PATH"
-#     - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}"
-#     - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`:$LD_LIBRARY_PATH"
-#     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
-#   script:
-#     - echo ""
-#   needs: ["build-image"]
+deps-debian:
+  stage: dependencies
+  image: $CI_REGISTRY_IMAGE:build-debian-latest
+  cache:
+    paths:
+    - apt-cache
+  artifacts:
+    expire_in: 2 hours
+    when: always
+    paths:
+    - "${INSTALL_DIR}"
+    - _Criterion/_build
+  before_script:
+    - git clone --recurse-submodules --depth=1 -b bleeding https://github.com/Snaipe/Criterion.git _Criterion
+    - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/pkgconfig"
+    - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`/pkgconfig/:$PKG_CONFIG_PATH"
+    - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}"
+    - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`:$LD_LIBRARY_PATH"
+    - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
+  script:
+    - cd _Criterion
+    - meson _build --prefix ${INSTALL_PREFIX}
+    - ninja -C _build install
+  needs: ["build-image"]
 
 .siril-debian/testing-base:
   except:
@@ -133,7 +160,7 @@ build-image-win64:
   stage: siril
   image: $CI_REGISTRY_IMAGE:build-debian-latest
   dependencies:
-    - build-image
+    - deps-debian
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
@@ -154,7 +181,7 @@ build-image-win64:
     - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`:$LD_LIBRARY_PATH"
     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
     - export PATH="${INSTALL_PREFIX}/bin:$PATH"
-  needs: ["build-image"]
+  needs: ["deps-debian"]
 
 siril-debian/testing-autotools:
   extends: .siril-debian/testing-base
@@ -167,14 +194,21 @@ siril-debian/testing-autotools:
 siril-debian/testing-meson:
   extends: .siril-debian/testing-base
   script:
-    - meson --prefix="${INSTALL_PREFIX}" ${BUILD_DIR}
+    - meson --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true
     - ninja -C ${BUILD_DIR} install
-    - meson test -C ${BUILD_DIR} -v --no-suite perfs --test-args="--xml=tests_results.xml"
+    - meson test -C ${BUILD_DIR} -v --no-suite perfs
+    - cd ${BUILD_DIR}
+    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories  src/tests  --root ../ -o coverage.xml --print-summary
+    - cd ..
   artifacts:
     paths:
-      - ${BUILD_DIR}/tests_results.xml
+      - ${BUILD_DIR}/meson-logs/testlog.junit.xml
+      - ${BUILD_DIR}/coverage.xml    
     reports:
-      junit: ${BUILD_DIR}/tests_results.xml
+      junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
+      cobertura: ${BUILD_DIR}/coverage.xml
+
+
 
 ################################################################################
 # WINDOWS 64-bit CI
@@ -349,7 +383,7 @@ appimage-nightly:
   except:
     - schedules
   stage: "packaging"
-  image: $CI_REGISTRY_IMAGE:build-debian-stable
+  image: $CI_REGISTRY_IMAGE:build-debian-oldstable
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
@@ -363,7 +397,7 @@ appimage-nightly:
     expire_in: 1 week
     paths:
       - build/appimage/Siril*.AppImage*
-  needs: ["build-image-stable"]
+  needs: ["build-image-oldstable"]
 
 ################################################################################
 # Analysis
@@ -377,7 +411,7 @@ cppcheck:
     - apt-get install -y cppcheck
   script:
     - cppcheck -q -j8 --enable=all --force --output-file=cppcheck.xml --xml --xml-version=2
-        -i _build -i _deps -i ${INSTALL_PREFIX} -i .local -i .cache .
+        -i _build -i _deps -i ${INSTALL_PREFIX} -i subprojects  -i src/rt -i src/io/avi_pipp -i .local -i .cache .
     - mkdir report
     - cppcheck-htmlreport --source-dir=. --title=siril --file=cppcheck.xml --report-dir=report
   artifacts:

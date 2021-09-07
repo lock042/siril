@@ -577,7 +577,7 @@ int register_ecc(struct registration_args *args) {
 	if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
 #endif
 	for (frame = 0; frame < args->seq->number; frame++) {
-		if (!abort) continue;
+		if (abort) continue;
 		if (args->run_in_thread && !get_thread_run()) {
 			abort = 1;
 			continue;
@@ -605,7 +605,7 @@ int register_ecc(struct registration_args *args) {
 			if (findTransform(&ref, &im, args->layer, &reg_param)) {
 				siril_log_message(
 						_("Cannot perform ECC alignment for frame %d\n"),
-						frame);
+						frame + 1);
 				/* We exclude this frame */
 				args->seq->imgparam[frame].incl = FALSE;
 				current_regdata[frame].quality = 0.0;
@@ -677,6 +677,25 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	com.reg_settings = index;
 	update_reg_interface(TRUE);
 	writeinitfile();
+}
+
+void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
+	GtkAdjustment *register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "register_minpairs"));
+	double val = gtk_adjustment_get_value(register_minpairs);
+
+	switch(gtk_combo_box_get_active(box)) {
+	case SHIFT_TRANSFORMATION:
+	case AFFINE_TRANSFORMATION:
+		gtk_adjustment_set_lower (register_minpairs, 3);
+		break;
+	case HOMOGRAPHY_TRANSFORMATION:
+		gtk_adjustment_set_lower (register_minpairs, 4);
+		if (val < 4)
+			gtk_adjustment_set_value(register_minpairs, 4);
+		break;
+	default:
+		printf("on_comboreg_transfo_changed: Value not handled.\n");
+	}
 }
 
 /* for now, the sequence argument is used only when executing a script */
@@ -880,7 +899,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *regall, *follow, *matchSel, *no_translate, *x2upscale,
 			*cumul;
 	GtkComboBox *cbbt_layers;
-	GtkComboBoxText *ComboBoxRegInter;
+	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo;
 	GtkSpinButton *minpairs;
 
 	if (!reserve_thread()) {	// reentrant from here
@@ -921,6 +940,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
 	cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
 	minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
+	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
@@ -933,6 +953,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
+	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
+
 
 	/* We check that available disk space is enough when:
 	 * - activating the subpixel alignment, which requires generating a new
@@ -973,6 +995,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE; // only TRUE for global registration. Will be updated in this case
+
+	clear_stars_list(); //to avoid problems with com.stars later on in the process
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);

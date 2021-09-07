@@ -18,7 +18,9 @@ configure_file(output : 'config.h',
 
 src_files = [ 
   'algos/annotate.c',
+  'algos/astrometry_solver.c',
   'algos/background_extraction.c',
+  'algos/ccd-inspector.c',
   'algos/colors.c',
   'algos/demosaicing.c',
   'algos/demosaicing_rtp.cpp',
@@ -30,7 +32,6 @@ src_files = [
   'algos/noise.c',
   'algos/pave.c',
   'algos/photometry.c',
-  'algos/plateSolver.c',
   'algos/PSF.c',
   'algos/quality.c',
   'algos/quality_float.c',
@@ -117,12 +118,7 @@ src_files = [
   'opencv/opencv.h',
   'opencv/ecc/ecc.cpp',
   'opencv/ecc/ecc.h',
-  'opencv/findHomography/fundam.cpp',
-  'opencv/findHomography/calibration.cpp',
-  'opencv/findHomography/modelest.cpp',
-  'opencv/findHomography/_modelest.h',
-  'opencv/findHomography/calib3d.hpp',
-  'opencv/findHomography/precomp.hpp',
+
   
   'gui/about_dialog.c',
   'gui/callbacks.c',
