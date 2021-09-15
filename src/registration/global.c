@@ -297,8 +297,11 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		double scale_min = 0.9;
 		double scale_max = 1.1;
 		retvalue = 1;
+		s_star star_list_A, star_list_B;
 		while (retvalue && attempt < NB_OF_MATCHING_TRY) {
-			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj, scale_min, scale_max, &H, FALSE);
+			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj,
+					scale_min, scale_max, &H, FALSE, regargs->type,
+					&star_list_A, &star_list_B);
 			if (attempt == 1) {
 				scale_min = -1.0;
 				scale_max = -1.0;
@@ -307,15 +310,15 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			}
 			attempt++;
 		}
-
 		if (retvalue) {
 			siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
 					"red", attempt, filenum);
+			free_fitted_stars(stars);
 			return 1;
 		}
 		if (H.Inliers < regargs->min_pairs) {
 			siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
-					"red", H.pair_matched, filenum);
+					"red", H.Inliers, filenum);
 			free_fitted_stars(stars);
 			return 1;
 		}
@@ -326,19 +329,17 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 					"red", MIN_RATIO_INLIERS, filenum);
 				free_fitted_stars(stars);
 				return 1;
-			break;
 			case AFFINE_TRANSFORMATION:
 				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
 					"red", MIN_RATIO_INLIERS, filenum);
 				free_fitted_stars(stars);
 				return 1;
-			break;
 			case HOMOGRAPHY_TRANSFORMATION:
 				siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
 					"salmon", MIN_RATIO_INLIERS, filenum);
-			break;
+				break;
 			default:
-			printf("Should not happen\n");
+				printf("Should not happen\n");
 			}
 		}
 
@@ -357,8 +358,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 				/ (double) sadata->fitted_stars + FWHMx;
 
 		if (!regargs->translation_only) {
-			if (cvTransformImage(fit, H, regargs->x2upscale, regargs->interpolation)) {
-				free_fitted_stars(stars);
+			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
 				return 1;
 			}
 		}
