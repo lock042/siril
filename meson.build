@@ -45,7 +45,7 @@ siril_version = meson.project_version()
 version_array = siril_version.split('.')
 siril_version_major = version_array[0].to_int()
 siril_version_minor = version_array[1].to_int()
-siril_version_micro = version_array[2].to_int()
+siril_version_micro = version_array[2]
 
 stable = (siril_version_minor % 2 == 0)
 
