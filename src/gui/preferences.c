@@ -24,6 +24,7 @@
 #include "core/siril_language.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
+#include "algos/annotate.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
@@ -796,6 +797,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 
 	initialize_FITS_name_entries(); // To update UI with new preferences
 	refresh_star_list(com.stars); // To update star list with new preferences
+	force_to_refresh_catalogue_list();
 	save_main_window_state();
 	siril_close_dialog("settings_window");
 	writeinitfile();

@@ -25,6 +25,7 @@
 #include "core/siril_world_cs.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "algos/siril_wcs.h"
 #include "gui/image_display.h"
@@ -161,6 +162,11 @@ static GSList *load_catalog(const gchar *filename, gint cat_index) {
 static void load_all_catalogues() {
 	int cat_size = G_N_ELEMENTS(cat);
 
+	if (siril_catalogue_list) {
+		g_slist_free_full(siril_catalogue_list, (GDestroyNotify)free_catalogue_object);
+		siril_catalogue_list = NULL;
+	}
+
 	for (int i = 0; i < cat_size; i++) {
 		gchar *filename = g_build_filename(siril_get_system_data_dir(), "catalogue", cat[i], NULL);
 		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, i));
@@ -169,7 +175,9 @@ static void load_all_catalogues() {
 	}
 	/* load user catalogue */
 	gchar *filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", USER_CATALOGUE, NULL);
-	siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, cat_size));
+	if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, cat_size));
+	}
 
 	g_free(filename);
 }
@@ -385,4 +393,24 @@ void force_to_refresh_catalogue_list() {
 
 static gboolean show_catalog(int catalog) {
 	return com.pref.catalog[catalog];
+}
+
+void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
+	int confirm = siril_confirm_dialog(_("Catalogue deletion"),
+			_("You are about to purge user catalogue. This means the file containing the manually added objects will be deleted. "
+					"This operation cannot be undone."), _("Purge Catalogue"));
+	if (!confirm) {
+		return;
+	}
+
+	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", USER_CATALOGUE, NULL);
+
+	g_autoptr(GError) local_error = NULL;
+	if (!g_file_delete(file, NULL, &local_error)) {
+		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
+	} else {
+		load_all_catalogues();
+	}
+
+	g_object_unref(file);
 }
