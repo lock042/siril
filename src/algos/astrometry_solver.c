@@ -947,7 +947,7 @@ static int read_TYCHO2_catalog(GInputStream *stream, psf_star **cstars) {
 	return i;
 }
 
-static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars) {
+static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars, const gchar *version) {
 	gchar *line;
 	psf_star *star;
 
@@ -985,7 +985,7 @@ static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars) {
 	}
 	g_object_unref(data_input);
 	sort_stars(cstars, i);
-	siril_log_message(_("Catalog Gaia DR2 size: %d objects\n"), i);
+	siril_log_message(_("Catalog Gaia %s size: %d objects\n"), version, i);
 	return i;
 }
 
@@ -1123,9 +1123,9 @@ static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 	case NOMAD:
 		return read_NOMAD_catalog(stream, cstars);
 	case GAIA:
-		return read_GAIA_catalog(stream, cstars);
+		return read_GAIA_catalog(stream, cstars, "DR2");
 	case GAIAEDR3:
-		return read_GAIA_catalog(stream, cstars);
+		return read_GAIA_catalog(stream, cstars, "EDR3");
 	case PPMXL:
 		return read_PPMXL_catalog(stream, cstars);
 	case BRIGHT_STARS:
