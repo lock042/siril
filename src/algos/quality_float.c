@@ -83,7 +83,7 @@ double QualityEstimate_float(fits *fit, int layer) {
 		}
 
 		// First row - ignore histo-stretch
-		y = y1;
+		int y = y1;
 		int n = 0;
 		ptr = buffer + (y * width + x1);
 		for (int x = 0; x < x_samples; ++x, ptr += x_inc) {
