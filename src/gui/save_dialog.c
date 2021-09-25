@@ -755,8 +755,6 @@ void on_header_snapshot_button_clicked() {
 	GError *error = NULL;
 	gchar *timestamp, *filename;
 	GdkPixbuf *pixbuf;
-	GFile *file;
-	GOutputStream *stream;
 	GtkWidget *widget;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 
@@ -786,9 +784,9 @@ void on_header_snapshot_button_clicked() {
 
 	pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
 	if (pixbuf) {
-		file = g_file_new_build_filename(com.wd, filename, NULL);
+		GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
 
-		stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
+		GOutputStream *stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
 		if (stream == NULL) {
 			if (error != NULL) {
 				g_warning("%s\n", error->message);

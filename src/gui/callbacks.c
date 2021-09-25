@@ -666,7 +666,6 @@ void update_display_fwhm() {
  * if a unique file is loaded, its details are used instead of any sequence data
  */
 void display_filename() {
-	GtkLabel *fn_label;
 	int nb_layers, vport;
 	char *filename;
 	if (com.uniq) {	// unique image
@@ -682,7 +681,7 @@ void display_filename() {
 	gchar *	base_name = g_path_get_basename(filename);
 	for (int channel = 0; channel < vport; channel++) {
 		gchar *c = g_strdup_printf("labelfilename_%s", untranslated_vport_number_to_name(channel));
-		fn_label = GTK_LABEL(lookup_widget(c));
+		GtkLabel *fn_label = GTK_LABEL(lookup_widget(c));
 		gtk_label_set_text(fn_label, base_name);
 		g_free(c);
 	}
@@ -1165,12 +1164,10 @@ void set_GUI_CAMERA() {
 }
 
 static void initialize_scrollbars() {
-	int i;
 	char *vport_names[] = { "r", "g", "b", "rgb" };
-	char *window_name;
 
-	for (i = 0; i < sizeof(vport_names) / sizeof(char *); i++) {
-		window_name = g_strdup_printf("scrolledwindow%s", vport_names[i]);
+	for (int i = 0; i < sizeof(vport_names) / sizeof(char *); i++) {
+		char *window_name = g_strdup_printf("scrolledwindow%s", vport_names[i]);
 		GtkScrolledWindow *win = GTK_SCROLLED_WINDOW(gtk_builder_get_object(builder, window_name));
 		com.hadj[i] = gtk_scrolled_window_get_hadjustment(win);
 		g_signal_connect(com.hadj[i], "value-changed",
@@ -1494,8 +1491,9 @@ static rectangle get_window_position(GtkWindow *window) {
 }
 
 void save_main_window_state() {
-	static GtkWidget *main_w = NULL;
 	if (!com.script && com.pref.remember_windows) {
+		static GtkWidget *main_w = NULL;
+
 		if (!main_w)
 			main_w = lookup_widget("control_window");
 		com.pref.main_w_pos = get_window_position(GTK_WINDOW(GTK_APPLICATION_WINDOW(main_w)));

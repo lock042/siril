@@ -562,7 +562,7 @@ static int compare(const void *a, const void *b) {
 }
 
 void drawPlot() {
-	int i, ref_image, layer = 0;
+	int ref_image;
 	sequence *seq;
 
 	if (drawingPlot == NULL) {
@@ -593,7 +593,7 @@ void drawPlot() {
 
 		plot = alloc_plot_data(seq->number);
 		plot_data = plot;
-		for (i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
+		for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
 			if (i > 0) {
 				plot->next = alloc_plot_data(seq->number);
 				plot = plot->next;
@@ -607,7 +607,9 @@ void drawPlot() {
 		if (!(seq->regparam))
 			return;
 
-		for (i = 0; i < seq->nb_layers; i++) {
+		int layer = 0;
+
+		for (int i = 0; i < seq->nb_layers; i++) {
 			if (com.seq.regparam[i]) {
 				layer = i;
 				break;
@@ -718,19 +720,16 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	guint width, height, i, j;
-	double mean, color;
-	int nb_graphs = 0;
-	struct kpair *avg;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
-	struct kdata *d1, *ref_d, *mean_d;
-	struct kplot *p;
 
 	if (plot_data) {
+		struct kdata *d1, *ref_d, *mean_d;
 		pldata *plot = plot_data;
+
 		d1 = ref_d = mean_d = NULL;
 
-		color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
+		double color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
 
 		kplotcfg_defaults(&cfgplot);
 		kdatacfg_defaults(&cfgdata);
@@ -749,9 +748,11 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
 		cfgdata.point.radius = 10;
 
-		p = kplot_alloc(&cfgplot);
+		struct kplot *p = kplot_alloc(&cfgplot);
 
 		// data plots
+		int nb_graphs = 0;
+
 		while (plot) {
 			d1 = kdata_array_alloc(plot->data, plot->nb);
 			kplot_attach_data(p, d1,
@@ -762,12 +763,14 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		}
 
 		/* mean and min/max */
-		mean = kdata_ymean(d1);
+		double mean = kdata_ymean(d1);
 		//sigma = kdata_ystddev(d1);
 		int min_data = kdata_xmin(d1, NULL);
 		int max_data = kdata_xmax(d1, NULL);
 
 		if (nb_graphs == 1) {
+			struct kpair *avg;
+
 			avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
 			j = min_data;
 			for (i = 0; i < (max_data - min_data) + 1; i++) {

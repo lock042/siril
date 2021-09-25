@@ -98,11 +98,10 @@ static void histo_startup() {
 }
 
 static void histo_close(gboolean revert) {
-	int i;
 	if (revert) {
 		set_cursor_waiting(TRUE);
 
-		for (i = 0; i < gfit.naxes[2]; i++) {
+		for (int i = 0; i < gfit.naxes[2]; i++) {
 			set_histogram(hist_backup[i], i);
 			hist_backup[i] = NULL;
 		}

@@ -218,9 +218,10 @@ void set_preview_area(int preview_area, int centerX, int centerY) {
 }
 
 void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
-	static GtkToggleButton *preview1 = NULL;
 
 	if (sequence_is_loaded()) {
+
+		static GtkToggleButton *preview1 = NULL;
 
 		if (preview1 == NULL)
 			preview1 = GTK_TOGGLE_BUTTON(lookup_widget("togglebutton2"));

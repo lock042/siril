@@ -1067,7 +1067,7 @@ void clear_Bayer_information(fits *fit) {
 }
 
 static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
-	size_t i, j, npixels = fit->naxes[0] * fit->naxes[1];
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
 	int width = fit->rx;
 	int height = fit->ry;
 	WORD *buf = fit->data;
@@ -1102,7 +1102,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		fit->ry = height;
 		fit->bitpix = fit->orig_bitpix;
 		// color RGBRGB format to fits RRGGBB format
-		for (i = 0, j = 0; j < npixels; i += 3, j++) {
+		for (size_t i = 0, j = 0; j < npixels; i += 3, j++) {
 			double r = (double) newbuf[i + RLAYER];
 			double g = (double) newbuf[i + GLAYER];
 			double b = (double) newbuf[i + BLAYER];

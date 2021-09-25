@@ -199,12 +199,11 @@ double quickmedian(WORD *a, size_t n) {
 
 	WORD pivot, tmp;
 	size_t k = n / 2;	// size to sort
-	size_t pindex;		// pivot index
 	size_t left = 0; 	// left index
 	size_t right = n - 1; 	// right index
 
 	while (left < right) { //we stop when our indicies have crossed
-		pindex = (left + right) / 2; // pivot selection, this can be whatever
+		size_t pindex = (left + right) / 2; // pivot selection, this can be whatever
 		pivot = a[pindex];
 		a[pindex] = a[right];
 		a[right] = pivot; // SWAP(pivot,right)
@@ -243,14 +242,13 @@ double quickmedian_float(float *a, size_t n) {
 	if (n < 9)
 		return sortnet_median_float(a, n);
 	size_t k = n / 2;	// size to sort
-	size_t pindex;		// pivot index
 	size_t left = 0; 	// left index
 	size_t right = n - 1; 	// right index
-	float pivot, tmp;
+	float tmp;
 
 	while (left < right) { //we stop when our indicies have crossed
-		pindex = (left + right) / 2; // pivot selection, this can be whatever
-		pivot = a[pindex];
+		size_t pindex = (left + right) / 2; // pivot selection, this can be whatever
+		float pivot = a[pindex];
 		a[pindex] = a[right];
 		a[right] = pivot; // SWAP(pivot,right)
 
@@ -287,14 +285,13 @@ double quickmedian_double(double *a, size_t n) {
 	if (n < 9)
 		return sortnet_median_double(a, n);
 	size_t k = n / 2;	// size to sort
-	size_t pindex;		// pivot index
 	size_t left = 0; 	// left index
 	size_t right = n - 1; 	// right index
-	double pivot, tmp;
+	double tmp;
 
 	while (left < right) { //we stop when our indicies have crossed
-		pindex = (left + right) / 2; // pivot selection, this can be whatever
-		pivot = a[pindex];
+		size_t pindex = (left + right) / 2; // pivot selection, this can be whatever
+		double pivot = a[pindex];
 		a[pindex] = a[right];
 		a[right] = pivot; // SWAP(pivot,right)
 
@@ -327,14 +324,13 @@ double quickmedian_double(double *a, size_t n) {
  */
 double quickmedian_int(int *a, size_t n) {
 	size_t k = n / 2;	// size to sort
-	size_t pindex;		// pivot index
 	size_t left = 0; 	// left index
 	size_t right = n - 1; 	// right index
-	int pivot, tmp;
+	int tmp;
 
 	while (left < right) { //we stop when our indicies have crossed
-		pindex = (left + right) / 2; // pivot selection, this can be whatever
-		pivot = a[pindex];
+		size_t pindex = (left + right) / 2; // pivot selection, this can be whatever
+		int pivot = a[pindex];
 		a[pindex] = a[right];
 		a[right] = pivot; // SWAP
 
