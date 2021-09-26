@@ -212,11 +212,10 @@ static void prepare_savepopup() {
 		savepopup = lookup_widget("savepopup");
 		savetxt = lookup_widget("filenameframe");
 	}
-	GtkWindow *parent = siril_get_active_window();
-	if (!GTK_IS_WINDOW(parent)) {
-		parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
-	}
-	gtk_window_set_transient_for(GTK_WINDOW(savepopup),	parent);
+
+	GtkWindow *parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+
+	gtk_window_set_transient_for(GTK_WINDOW(savepopup), parent);
 
 	switch (type_of_image) {
 	case TYPEBMP:
@@ -799,7 +798,7 @@ void on_header_snapshot_button_clicked() {
 		} else {
 			GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
 
-			GOutputStream *stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
+			GOutputStream *stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 			if (stream == NULL) {
 				if (error != NULL) {
 					g_warning("%s\n", error->message);
@@ -811,8 +810,7 @@ void on_header_snapshot_button_clicked() {
 				g_object_unref(file);
 				return;
 			}
-			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
-					snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
+			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL, snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
 
 			g_object_unref(stream);
 			g_object_unref(file);
