@@ -21357,6 +21357,50 @@ Configuring a memory amount larger than what is available on your system may res
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkFrame" id="frame33">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignment40">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <object class="GtkComboBoxText" id="combo_snapshot">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="active">0</property>
+                                <items>
+                                  <item translatable="yes">Save as an unique file</item>
+                                  <item translatable="yes">Copy to clipboard</item>
+                                </items>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="label110">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="label" translatable="yes">Snapshot</property>
+                            <property name="single-line-mode">True</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkFrame" id="frame16">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>

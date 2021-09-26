@@ -589,6 +589,7 @@ struct pref_struct {
 
 	gchar *swap_dir;		// swap directory
 	GSList *script_path;	// script path directories
+	gint snapshot;			// shapshot in file (0) or clipboard (1)
 
 	gdouble focal;			// focal length saved in config file
 	gdouble pitch;			// pixel pitch saved in config file
@@ -609,6 +610,7 @@ struct pref_struct {
 	gint selection_guides;	// number of elements of the grid guides (2 for a simple cross, 3 for the 3 thirds rule, etc.)
 
 	gchar *copyright;		// User copyright when saving image as TIFF
+
 };
 /**
  * End of preference structure. Read above.

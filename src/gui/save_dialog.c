@@ -723,7 +723,11 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 }
 
 static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPixbuf *pixbuf) {
-	gchar *text = g_strdup_printf("Snapshot <b>%s</b> was saved into the working directory.", filename);
+	gchar *text;
+	if (filename)
+		text = g_strdup_printf(_("Snapshot <b>%s</b> was saved into the working directory."), filename);
+	else
+		text = g_strdup((_("Snapshot was saved into the clipboard.")));
 	GtkWidget *popover = popover_new_with_image(widget, text, pixbuf);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_popover_popup(GTK_POPOVER(popover));
@@ -784,26 +788,36 @@ void on_header_snapshot_button_clicked() {
 
 	pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
 	if (pixbuf) {
-		GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
+		if (com.pref.snapshot == 1) {
+			GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+			gtk_clipboard_set_image(cb, pixbuf);
+			gtk_clipboard_store(cb);
 
-		GOutputStream *stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
-		if (stream == NULL) {
-			if (error != NULL) {
-				g_warning("%s\n", error->message);
-				g_clear_error(&error);
+			GtkWidget *widget = lookup_widget("header_snapshot_button");
+			GtkWidget *popover = snapshot_notification(widget, NULL, pixbuf);
+			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
+		} else {
+			GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
+
+			GOutputStream *stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
+			if (stream == NULL) {
+				if (error != NULL) {
+					g_warning("%s\n", error->message);
+					g_clear_error(&error);
+				}
+				cairo_surface_destroy(surface);
+				g_free(filename);
+				g_object_unref(pixbuf);
+				g_object_unref(file);
+				return;
 			}
-			cairo_surface_destroy(surface);
-			g_free(filename);
-			g_object_unref(pixbuf);
-			g_object_unref(file);
-			return;
-		}
-		gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
-				snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
+			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
+					snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
 
-		g_object_unref(stream);
+			g_object_unref(stream);
+			g_object_unref(file);
+		}
 		g_object_unref(pixbuf);
-		g_object_unref(file);
 	}
 	cairo_surface_destroy(surface);
 	g_free(filename);

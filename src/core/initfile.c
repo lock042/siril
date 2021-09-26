@@ -243,6 +243,7 @@ static int readinitfile() {
 		if (config_setting_lookup_float(misc_setting, "pitch", &com.pref.pitch) == CONFIG_FALSE) {
 			com.pref.pitch = 5.0;
 		}
+		config_setting_lookup_int(misc_setting, "snapshot", &com.pref.snapshot);
 		config_setting_lookup_int(misc_setting, "thumbnail_size", &com.pref.thumbnail_size);
 		config_setting_lookup_int(misc_setting, "theme", &com.pref.combo_theme);
 		config_setting_lookup_string(misc_setting, "lang", &lang);
@@ -584,6 +585,9 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 
 	misc_setting = config_setting_add(misc_group, "check_update_at_startup", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.check_update);
+
+	misc_setting = config_setting_add(misc_group, "snapshot", CONFIG_TYPE_INT);
+	config_setting_set_int(misc_setting, com.pref.snapshot);
 }
 
 static int siril_config_write_file(config_t *config, const char *filename) {

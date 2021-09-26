@@ -92,6 +92,7 @@ static preferences pref_init = {
 		.ext = NULL,
 		.swap_dir = NULL,
 		.script_path = NULL,
+		.snapshot = 0,
 		.focal = 1000,
 		.pitch = 5,
 		{ // raw_set
@@ -342,6 +343,8 @@ static void update_misc_preferences() {
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
+
+	com.pref.snapshot = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_snapshot")));
 }
 
 void on_checkbutton_cam_toggled(GtkToggleButton *cam_button, gpointer user_data) {
@@ -743,6 +746,7 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->save.quit);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_snapshot")), pref->snapshot);
 }
 
 static void dump_ui_to_global_var() {
@@ -797,7 +801,8 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 
 	initialize_FITS_name_entries(); // To update UI with new preferences
 	refresh_star_list(com.stars); // To update star list with new preferences
-	force_to_refresh_catalogue_list();
+	if (com.found_object)
+		force_to_refresh_catalogue_list();
 	save_main_window_state();
 	siril_close_dialog("settings_window");
 	writeinitfile();
