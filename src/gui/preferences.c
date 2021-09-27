@@ -92,7 +92,6 @@ static preferences pref_init = {
 		.ext = NULL,
 		.swap_dir = NULL,
 		.script_path = NULL,
-		.snapshot = 0,
 		.focal = 1000,
 		.pitch = 5,
 		{ // raw_set
@@ -343,8 +342,6 @@ static void update_misc_preferences() {
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
-
-	com.pref.snapshot = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_snapshot")));
 }
 
 void on_checkbutton_cam_toggled(GtkToggleButton *cam_button, gpointer user_data) {
@@ -746,7 +743,6 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->save.quit);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_snapshot")), pref->snapshot);
 }
 
 static void dump_ui_to_global_var() {

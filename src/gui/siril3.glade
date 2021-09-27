@@ -11174,6 +11174,28 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
       </object>
     </child>
   </object>
+  <object class="GtkMenu" id="shanpshot_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="snapshot_unique_file">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.snapshot</property>
+        <property name="label" translatable="yes">Save as unique file</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="snapshot_clipboard">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.clipboard</property>
+        <property name="label" translatable="yes">Copy to clipbloard</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+  </object>
   <object class="GtkDialog" id="split_cfa_dialog">
     <property name="width-request">400</property>
     <property name="height-request">200</property>
@@ -17167,18 +17189,43 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="header_snapshot_button">
+              <object class="GtkMenuButton" id="header_snapshot_button">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Take a snapshot of your displayed image.</property>
-                <property name="action-name">win.snapshot</property>
-                <property name="use-underline">True</property>
+                <property name="action-name">win.bit-depth</property>
+                <property name="popup">shanpshot_menu</property>
+                <property name="use-popover">False</property>
                 <child>
-                  <object class="GtkImage">
+                  <object class="GtkBox" id="precision_button_box1">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="icon-name">camera-photo</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="icon-name">camera-photo</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="snapshot_button_arrow">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="valign">baseline</property>
+                        <property name="icon-name">pan-down-symbolic</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -21354,50 +21401,6 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame" id="frame33">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkAlignment" id="alignment40">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
-                            <child>
-                              <object class="GtkComboBoxText" id="combo_snapshot">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="active">0</property>
-                                <items>
-                                  <item translatable="yes">Save as an unique file</item>
-                                  <item translatable="yes">Copy to clipboard</item>
-                                </items>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label110">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Snapshot</property>
-                            <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>

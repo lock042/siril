@@ -66,7 +66,11 @@ void save_as_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void snapshot_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	on_header_snapshot_button_clicked();
+	on_header_snapshot_button_clicked(FALSE);
+}
+
+void clipboard_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_header_snapshot_button_clicked(TRUE);
 }
 
 void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

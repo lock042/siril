@@ -754,7 +754,7 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 	}
 }
 
-void on_header_snapshot_button_clicked() {
+void on_header_snapshot_button_clicked(gboolean clipboard) {
 	GError *error = NULL;
 	gchar *timestamp, *filename;
 	GdkPixbuf *pixbuf;
@@ -787,7 +787,7 @@ void on_header_snapshot_button_clicked() {
 
 	pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
 	if (pixbuf) {
-		if (com.pref.snapshot == 1) {
+		if (clipboard) {
 			GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 			gtk_clipboard_set_image(cb, pixbuf);
 			gtk_clipboard_store(cb);

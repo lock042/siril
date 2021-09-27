@@ -1105,10 +1105,6 @@ void set_GUI_misc() {
 	gtk_combo_box_set_active(combobox_type, com.pref.force_to_16bit ? 0 : 1);
 	GtkComboBox *fit_ext = GTK_COMBO_BOX(lookup_widget("combobox_ext"));
 	gtk_combo_box_set_active_id(fit_ext, com.pref.ext);
-
-	/* initialization of snapshot choice */
-	combobox_type = GTK_COMBO_BOX(lookup_widget("combo_snapshot"));
-	gtk_combo_box_set_active(combobox_type, com.pref.snapshot);
 }
 
 static void initialize_preprocessing() {

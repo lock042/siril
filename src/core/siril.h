@@ -589,7 +589,6 @@ struct pref_struct {
 
 	gchar *swap_dir;		// swap directory
 	GSList *script_path;	// script path directories
-	gint snapshot;			// shapshot in file (0) or clipboard (1)
 
 	gdouble focal;			// focal length saved in config file
 	gdouble pitch;			// pixel pitch saved in config file
