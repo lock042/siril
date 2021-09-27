@@ -417,7 +417,6 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 			if (failed) {
 				// regargs->imgparam and regargs->regparam may have holes caused by images
 				// that failed to be registered - compact them
-				int j;
 				for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
 					while (!sadata->success[j] && j < args->nb_filtered_images) j++;
 					g_assert(sadata->success[j]);
