@@ -19,8 +19,8 @@ siril 1.0.0~RC1
 * Added UI button to plot WCS grid and compass
 * Added user catalogue for astrometry annotation
 * Added GAIA EDR3 catalogue for astrometry
+* Added choice between clipboard and file for snapshot
 * Allows to force debayer of SER files
-* Snapshot can now be saved in clipboard (setting in preferences)
 
 siril 0.99.10.1
 06/23/21
