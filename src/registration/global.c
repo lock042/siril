@@ -400,7 +400,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 int star_align_finalize_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
-	int i, failed = 0;
+	int failed = 0;
 
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(args->seq, FALSE);
@@ -408,7 +408,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	free_fitted_stars(sadata->refstars);
 
 	if (!args->retval) {
-		for (i = 0; i < args->nb_filtered_images; i++)
+		for (int i = 0; i < args->nb_filtered_images; i++)
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
@@ -418,7 +418,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 				// regargs->imgparam and regargs->regparam may have holes caused by images
 				// that failed to be registered - compact them
 				int j;
-				for (i = 0, j = 0; i < regargs->new_total; i++, j++) {
+				for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
 					while (!sadata->success[j] && j < args->nb_filtered_images) j++;
 					g_assert(sadata->success[j]);
 					if (i != j) {

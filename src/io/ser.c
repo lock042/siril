@@ -92,7 +92,6 @@ static char *convert_color_id_to_char(ser_color color_id) {
 
 /* reads timestamps from the trailer of the file and stores them in ser_file->ts */
 static int ser_read_timestamp(struct ser_struct *ser_file) {
-	int i;
 	gboolean timestamps_in_order = TRUE;
 	guint64 previous_ts = 0L;
 	gint64 frame_size;
@@ -118,7 +117,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 		ser_file->ts_alloc = ser_file->frame_count;
 
 		// Seek to start of timestamps
-		for (i = 0; i < ser_file->frame_count; i++) {
+		for (int i = 0; i < ser_file->frame_count; i++) {
 			if ((gint64) -1 == fseek64(ser_file->file, offset + (i * 8), SEEK_SET))
 				return -1;
 
@@ -133,7 +132,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 		guint64 min_ts = *ts_ptr;
 		guint64 max_ts = *ts_ptr;
 
-		for (i = 0; i < ser_file->frame_count; i++) {
+		for (int i = 0; i < ser_file->frame_count; i++) {
 			if (*ts_ptr < previous_ts) {
 				// Timestamps are not in order
 				timestamps_in_order = FALSE;
@@ -270,7 +269,6 @@ static int ser_read_header(struct ser_struct *ser_file) {
 }
 
 static int ser_write_timestamps(struct ser_struct *ser_file) {
-	int i;
 	gint64 frame_size;
 
 	if (!ser_file->frame_count || ser_file->image_width <= 0 ||
@@ -285,7 +283,7 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 		gint64 offset = SER_HEADER_LEN + frame_size *
 			(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;
 
-		for (i = 0; i < ser_file->frame_count; i++) {
+		for (int i = 0; i < ser_file->frame_count; i++) {
 			guint64 ts;
 
 			if (i >= ser_file->ts_alloc)
@@ -1281,8 +1279,8 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		return NULL;
 	}
 	float *pix = malloc(MAX_SIZE * sizeof(float));
-	float *ima_data = NULL, *ptr, byte, n, m, max, min, wd, avr;
-	guchar *pixbuf_data = NULL, *pptr;
+	float *ima_data = NULL, *ptr, byte, n, max, min, wd, avr;
+	guchar *pixbuf_data = NULL;
 
 	w = ser.image_width;
 	h = ser.image_height;
@@ -1326,7 +1324,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		//pptr = &pixbuf_data[i * Ws * 3];
 		for (j = 0; j < MAX_SIZE; j++)
 			pix[j] = 0;
-		m = 0.f; // amount of strings read in block
+		float m = 0.f; // amount of strings read in block
 		for (l = 0; l < pixScale; l++, m++) { // cycle through a block lines
 			ptr = &ima_data[M * w];
 			N = 0; // number of column
@@ -1368,7 +1366,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		wd /= avr;
 	ptr = ima_data;
 	for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
-		pptr = &pixbuf_data[Ws * i * 3];
+		guchar *pptr = &pixbuf_data[Ws * i * 3];
 		for (j = 0; j < Ws; j++) {
 			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);
 			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);

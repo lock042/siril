@@ -37,11 +37,10 @@ static pointf pos_of_image1 = { 0 };
 static pointf pos_of_image2 = { 0 };
 
 static pointf compute_velocity(GDateTime *t1, GDateTime *t2, pointf d1, pointf d2) {
-	float delta_t;
 	pointf delta_d, px_per_hour = { 0.f, 0.f };
 
 	if (t1 && t2) {
-		delta_t = g_date_time_difference(t2, t1);
+		float delta_t = g_date_time_difference(t2, t1);
 		delta_d.x = d2.x - d1.x;
 		delta_d.y = d2.y - d1.y;
 
@@ -53,10 +52,8 @@ static pointf compute_velocity(GDateTime *t1, GDateTime *t2, pointf d1, pointf d
 }
 
 static int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg) {
-	float delta_t;
-
 	if (img && ref) {
-		delta_t = (float) g_date_time_difference(img, ref);
+		float delta_t = (float) g_date_time_difference(img, ref);
 		delta_t /= 3600000000.f;
 		reg->x = delta_t * px_per_hour.x;
 		reg->y = delta_t * px_per_hour.y;

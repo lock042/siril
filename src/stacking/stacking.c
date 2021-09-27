@@ -247,7 +247,7 @@ static void start_stacking() {
 }
 
 static void _show_summary(struct stacking_args *args) {
-	const char *norm_str, *rej_str;
+	const char *norm_str;
 
 	siril_log_message(_("Integration of %d images:\n"), args->nb_images_to_stack);
 
@@ -299,6 +299,7 @@ static void _show_summary(struct stacking_args *args) {
 		siril_log_message(_("Rejection parameters ...... none\n"));
 	}
 	else {
+		const char *rej_str;
 
 		switch (args->type_of_rejection) {
 		default:
@@ -758,8 +759,6 @@ static void update_filter_label() {
 	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
 	static GtkLabel *filter_label[] = {NULL, NULL, NULL};
 	gchar *filter_str;
-	double param;
-	int filter, type;
 
 	if (!filter_combo[0]) {
 		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
@@ -770,13 +769,13 @@ static void update_filter_label() {
 		filter_label[2] = GTK_LABEL(lookup_widget("labelfilter3"));
 	}
 
-	for (filter = 0; filter < 3; filter++) {
+	for (int filter = 0; filter < 3; filter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[filter]))) {
 			break;
 		}
 
-		type = gtk_combo_box_get_active(filter_combo[filter]);
-		param = stackfilters[filter].param;
+		int type = gtk_combo_box_get_active(filter_combo[filter]);
+		double param = stackfilters[filter].param;
 		if (param == DBL_MIN || param == DBL_MAX || param == 0.0) {
 			if (type == ALL_IMAGES || type == SELECTED_IMAGES)
 				filter_str = g_strdup("");

@@ -508,7 +508,6 @@ struct s_star *post_list_A, /* I/O: stars in A, after they have */
 struct s_star *pre_list_A /* I: stars in A, with original coords */
 ) {
 	int post_index;
-	int found_it;
 	struct s_star *pre_star, *post_star;
 
 	/* if handed empty list, do nothing. */
@@ -526,7 +525,7 @@ struct s_star *pre_list_A /* I: stars in A, with original coords */
 
 		g_assert(post_star != NULL);
 
-		found_it = 0;
+		int found_it = 0;
 		pre_star = pre_list_A;
 		while (pre_star != NULL) {
 

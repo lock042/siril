@@ -86,12 +86,14 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
  * ****************************************************************************/
 
 int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes, GList **list_date, fits *fit) {
-	char msg[256], filename[256];
-	int status, oldbitpix = 0, oldnaxis = -1, nb_frames = args->nb_images_to_stack;
-	long oldnaxes[3] = { 0 };
+	int status, nb_frames = args->nb_images_to_stack;
 
 	if (args->seq->type == SEQ_REGULAR) {
 		for (int i = 0; i < nb_frames; ++i) {
+			long oldnaxes[3] = { 0 };
+			int oldbitpix = 0, oldnaxis = -1;
+			char msg[256], filename[256];
+
 			int image_index = args->image_indices[i];	// image index in sequence
 			if (!get_thread_run()) {
 				return ST_GENERIC_ERROR;
@@ -272,7 +274,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 			*nb_blocks, height_of_blocks, remainder);
 
 	*largest_block_height = 0;
-	long channel = 0, row = 0, end, j = 0;
+	long channel = 0, row = 0, j = 0;
 	*blocksptr = malloc(*nb_blocks * sizeof(struct _image_block));
 	if (!*blocksptr) {
 		PRINT_ALLOC_ERR;
@@ -288,7 +290,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 
 		blocks[j].channel = channel;
 		blocks[j].start_row = row;
-		end = row + height_of_blocks - 1;
+		long end = row + height_of_blocks - 1;
 		if (remainder > 0) {
 			// just add one pixel from the remainder to the first blocks to
 			// avoid having all of them in the last block
@@ -844,9 +846,9 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				}
 				double sum = 0.0;
 				double norm = 0.0;
-				float val;
+
 				for (int frame = 0; frame < stack_size; ++frame) {
-					val = ((float*)data->o_stack)[frame];
+					float val = ((float*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val != 0.f) {
 						sum += val * pweights[frame];
 						norm += pweights[frame];

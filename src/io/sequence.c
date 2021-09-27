@@ -89,7 +89,7 @@
  */
 
 static void fillSeqAviExport() {
-	char width[6], height[6], fps[7];
+	char width[6], height[6];
 	GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
 	GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
 
@@ -101,6 +101,8 @@ static void fillSeqAviExport() {
 		GtkEntry *entryAviFps = GTK_ENTRY(lookup_widget("entryAviFps"));
 
 		if (com.seq.ser_file != NULL) {
+			char fps[7];
+
 			if (com.seq.ser_file->fps <= 0.0) {
 				g_snprintf(fps, sizeof(fps), "25.000");
 			} else {
@@ -620,8 +622,10 @@ int64_t seq_compute_size(sequence *seq, int nb_frames, data_type depth) {
  * @return TRUE if the name already exists, FALSE otherwise
  */
 gboolean check_if_seq_exist(gchar *name, gboolean name_is_base) {
-	gchar *path, *path_;
+	gchar *path;
 	if (name_is_base) {
+		gchar *path_;
+
 		gchar *seq = g_strdup_printf("%s.seq", name);
 		gchar *seq_ = g_strdup_printf("%s_.seq", name);
 		path = g_build_filename(com.wd, seq, NULL);
