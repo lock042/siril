@@ -1073,24 +1073,31 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 					pt->angle -= M_PI;
 				if (pt->angle < -M_PI_2)
 					pt->angle += M_PI;
-				double dx = 0.;
+				double dx = 0., dy = 0.;
 				switch (pt->border) { // shift to get back in the image
-				case 0:
+				case 0: // bottom
 					if (pt->angle > 0.)
-						dx -= te1.width;
+						dx -= te1.x_advance;
 					break;
-				case 1:
-					dx -= te1.width;
+				case 1: // right
+					dx -= te1.x_advance;
+					if (pt->angle > 0.)
+						dy += te1.height;
 					break;
-				case 2:
+				case 2: // top
+					dy += te1.height;
 					if (pt->angle < 0.)
-						dx -= te1.width;
+						dx -= te1.x_advance;
+					break;
+				case 3: // left
+					if (pt->angle < 0.)
+						dy += te1.height;
 					break;
 				default:
 					break;
 				}
 				cairo_rotate(cr, pt->angle);
-				cairo_move_to(cr, dx, 0.);
+				cairo_move_to(cr, dx, dy);
 				cairo_text_extents(cr, tag, &te2);
 				cairo_show_text(cr, tag);
 				cairo_restore(cr); // restore the orginal transform
