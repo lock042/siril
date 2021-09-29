@@ -37,6 +37,8 @@ project('siril',
   ],
 )
 
+warnings = []
+
 enable_openmp = get_option('openmp')
 
 # General version
@@ -398,6 +400,13 @@ endif
 
 if wcslib_dep.found()
   conf_data.set('HAVE_WCSLIB', true, description : 'Using wcslib.')
+  if wcslib_dep.version() < '7.7'
+  wcslib_warning = '''
+        wcslib lower than version 7.7 is known to crash when
+        updating wcsdata in files. Please update
+  '''
+  warnings += wcslib_warning
+endif
 else 
   conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
   warning('wcslib not found. Not using WCS API.')
@@ -517,3 +526,10 @@ summary(
     'criterion' : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
+
+if warnings.length() > 0
+  warning('Warnings occurred during configuration')
+  foreach warning : warnings
+    warning(warning)
+  endforeach
+endif
