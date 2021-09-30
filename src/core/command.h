@@ -24,6 +24,7 @@ int	process_convertraw(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int process_denoise(int nb);
 
 int	process_entropy(int nb);
 int	process_exit(int nb);

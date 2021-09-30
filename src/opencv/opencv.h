@@ -30,6 +30,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 int cvUnsharpFilter(fits*, double, double);
 
+int cvDenoise(fits *image, double sigma);
+
 int cvClahe(fits *image, double clip_limit, int size);
 
 void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped, point refpointin, point *refpointout);

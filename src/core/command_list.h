@@ -42,6 +42,7 @@ static command commands[] = {
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE},
+	{"denoise", 0, "denoise", process_denoise, STR_DENOISE, TRUE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE},

@@ -31,6 +31,7 @@
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
+#include <opencv2/xphoto/dct_image_denoising.hpp>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -512,6 +513,19 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	if (fabs(amount) > 0.0) {
 		out = in * (1 + amount) + out * (-amount);
 	}
+
+	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+}
+
+int cvDenoise(fits *image, double sigma) {
+	Mat in, out;
+	void *bgr = NULL;
+	int target_rx = image->rx, target_ry = image->ry;
+
+	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
+		return 1;
+
+	xphoto::dctDenoising(in, out, sigma, 2);
 
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }

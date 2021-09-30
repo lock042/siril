@@ -1598,6 +1598,19 @@ int process_ddp(int nb) {
 	return 0;
 }
 
+int process_denoise(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
+	cvDenoise(&gfit, 1.0E-4);
+	adjust_cutoff_from_updated_gfit();
+	redraw(com.cvport, REMAP_ALL);
+	redraw_previews();
+	return 0;
+}
+
 int process_new(int nb){
 	int width, height, layers;
 	
