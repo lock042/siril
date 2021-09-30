@@ -113,11 +113,6 @@ int process_load(int nb){
 	}
 	expand_home_in_filename(filename, 256);
 
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		siril_log_color_message(_("File [%s] does not exist.\n"), "red", filename);
-		return 1;
-	}
-
 	int retval = open_single_image(filename);
 	return (retval < 0);
 }
