@@ -540,6 +540,7 @@ struct star_finder_struct {
 	gboolean adjust;
 	double sigma;
 	double roundness;
+	double focal_length, pixel_size_x;
 };
 
 struct save_config_struct {
