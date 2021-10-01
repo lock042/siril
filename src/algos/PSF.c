@@ -37,6 +37,7 @@
 #include "algos/photometry.h"
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
+#include "algos/star_finder.h"
 #include "filters/median.h"
 
 #include "PSF.h"
@@ -632,7 +633,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
  * of the star_finder algorithm), no angle parameter is fitted.
  * The function returns NULL if values look bizarre.
  */
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, 
 		gboolean fit_angle, gboolean for_photometry, gboolean verbose) {
 	psf_star *psf;
 

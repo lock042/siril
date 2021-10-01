@@ -14,6 +14,13 @@ void free_fitted_stars(psf_star **stars);
 int count_stars(psf_star **stars);
 void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units);
 
+struct star_candidate_struct {
+	int x, y;
+	float mag_est;
+	float bg;
+	float B, sx, sy;
+	int R;
+};
 typedef struct star_candidate_struct starc;
 
 #endif
