@@ -447,7 +447,6 @@ int processcommand(const char *line) {
 		}
 		free(myline);
 	}
-	set_cursor_waiting(FALSE);
 	return 0;
 }
 

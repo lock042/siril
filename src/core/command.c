@@ -137,7 +137,9 @@ int process_satu(int nb){
 	args->h_max = 360.0;
 	args->background_factor = 1.0;
 
+	set_cursor_waiting(TRUE);
 	enhance_saturation(args);
+	set_cursor_waiting(FALSE);
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
@@ -449,8 +451,6 @@ int process_rl(int nb) {
 	args->iterations = (size_t)iter;
 	args->auto_limit = TRUE;
 
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(RTdeconv, args);
 
 	return 0;
@@ -715,8 +715,6 @@ int process_clahe(int nb) {
 	args->fit = &gfit;
 	args->clip = clip_limit;
 	args->tileSize = size;
-
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(clahe, args);
 	adjust_cutoff_from_updated_gfit();
@@ -1085,7 +1083,6 @@ int process_rgradient(int nb) {
 		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
 				"Please change their values and retry.\n"));
 	} else {
-		set_cursor_waiting(TRUE);
 		start_in_new_thread(rgradient_filter, args);
 	}
 	return 0;
@@ -1372,8 +1369,6 @@ int process_seq_crop(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	crop_sequence(args);
 	return 0;
 }
@@ -1409,7 +1404,6 @@ int process_bgnoise(int nb){
 	args->verbose = TRUE;
 	args->use_idle = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(noise, args);
 	return 0;
@@ -1685,16 +1679,48 @@ int process_fill2(int nb){
 	return 0;
 }
 
-int process_findstar(int nb){
+struct starfinder_data {
+	fits *fit;
+	int layer;
+};
+
+static gboolean end_findstar(gpointer p) {
+	struct starfinder_data *args = (struct starfinder_data *) p;
+	stop_processing_thread();
+	if (com.stars)
+		refresh_star_list(com.stars);
+
+	set_cursor_waiting(FALSE);
+
+	free(args);
+	return FALSE;
+}
+
+static gpointer findstar(gpointer p) {
+	struct starfinder_data *args = (struct starfinder_data *)p;
+
 	int nbstars = 0;
 
+	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
+	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
+
+	siril_add_idle(end_findstar, args);
+
+	return GINT_TO_POINTER(0);
+}
+
+int process_findstar(int nb){
 	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
 
 	delete_selected_area();
-	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
-	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
-	if (com.stars)
-		refresh_star_list(com.stars);
+
+	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+
+	args->fit = &gfit;
+	args->layer = layer;
+
+	start_in_new_thread(findstar, args);
+
 	return 0;
 }
 
@@ -1892,8 +1918,6 @@ int process_fmedian(int nb){
 	}
 	args->fit = &gfit;
 
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(median_filter, args);
 	
 	return 0;
@@ -2020,8 +2044,6 @@ int process_scnr(int nb){
 	args->amount = 0.0;
 	args->preserve = TRUE;
 
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(scnr, args);
 
 	return 0;
@@ -2046,8 +2068,6 @@ int process_fft(int nb){
 	args->phase = strdup(word[2]);
 	args->type_order = 0;
 	
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(fourier_transform, args);
 	
 	return 0;
@@ -2070,8 +2090,6 @@ int process_fixbanding(int nb) {
 	args->sigma = g_ascii_strtod(word[2], NULL);
 	args->protect_highlights = TRUE;
 	args->fit = &gfit;
-
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(BandingEngineThreaded, args);
 	
@@ -2105,8 +2123,6 @@ int process_subsky(int nb) {
 		return 1;
 	}
 
-	set_cursor_waiting(TRUE);
-
 	if (is_sequence) {
 		struct background_data *args = malloc(sizeof(struct background_data));
 
@@ -2135,9 +2151,9 @@ int process_subsky(int nb) {
 			}
 		}
 
-
 		apply_background_extraction_to_sequence(args);
 	} else {
+		set_cursor_waiting(TRUE);
 		generate_background_samples(20, 1.0);
 		remove_gradient_from_image(0, (poly_order) (degree - 1));
 		free_background_sample_list(com.grad_samples);
@@ -2145,8 +2161,8 @@ int process_subsky(int nb) {
 
 		adjust_cutoff_from_updated_gfit();
 		redraw(com.cvport, REMAP_ALL);
+		set_cursor_waiting(FALSE);
 	}
-	set_cursor_waiting(FALSE);
 
 	return 0;
 }
@@ -2181,7 +2197,6 @@ int process_findcosme(int nb) {
 	args->amount = 1.0;
 	args->fit = &gfit;
 
-	set_cursor_waiting(TRUE);
 
 	if (is_sequence) {
 		args->seqEntry = "cc_";
@@ -2299,7 +2314,6 @@ int process_split(int nb){
 	args->channel[2] = g_strdup_printf("%s%s", word[3], com.pref.ext);
 
 	args->fit = calloc(1, sizeof(fits));
-	set_cursor_waiting(TRUE);
 	if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_log_message(_("Could not copy the input image, aborting.\n"));
 		free(args->fit);
@@ -2309,6 +2323,7 @@ int process_split(int nb){
 		free(args);
 		return 1;
 	}
+
 	copy_fits_metadata(&gfit, args->fit);
 	start_in_new_thread(extract_channels, args);
 	return 0;
@@ -2529,8 +2544,6 @@ int process_seq_mtf(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	apply_mtf_to_sequence(args);
 
 	return 0;
@@ -2574,8 +2587,6 @@ int process_seq_split_cfa(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	apply_split_cfa_to_sequence(args);
 
 	return 0;
@@ -2617,8 +2628,6 @@ int process_seq_extractHa(int nb) {
 			}
 		}
 	}
-
-	set_cursor_waiting(TRUE);
 
 	apply_extractHa_to_sequence(args);
 
@@ -2662,8 +2671,6 @@ int process_seq_extractGreen(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	apply_extractGreen_to_sequence(args);
 
 	return 0;
@@ -2688,8 +2695,6 @@ int process_seq_extractHaOIII(int nb) {
 
 	args->seq = seq;
 	args->seqEntry = ""; // not used
-
-	set_cursor_waiting(TRUE);
 
 	apply_extractHaOIII_to_sequence(args);
 
@@ -2768,8 +2773,6 @@ int process_seq_stat(int nb) {
 		args->option = STATS_BASIC;
 	}
 	memcpy(&com.selection, &args->selection, sizeof(rectangle));
-
-	set_cursor_waiting(TRUE);
 
 	apply_stats_to_sequence(args);
 
@@ -2865,8 +2868,6 @@ int process_convertraw(int nb) {
 
 	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "green", count);
 
-	set_cursor_waiting(TRUE);
-
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
 	args->list = files_to_convert;
@@ -2958,11 +2959,9 @@ int process_link(int nb) {
 	siril_log_color_message(str, "green");
 	g_free(str);
 
-	set_cursor_waiting(TRUE);
 
 	if (!com.wd) {
 		siril_log_message(_("Link: no working directory set.\n"));
-		set_cursor_waiting(FALSE);
 		return 1;
 	}
 
@@ -3069,11 +3068,9 @@ int process_convert(int nb) {
 	siril_log_color_message(str, "green");
 	g_free(str);
 
-	set_cursor_waiting(TRUE);
 
 	if (!com.wd) {
 		siril_log_message(_("Convert: no working directory set.\n"));
-		set_cursor_waiting(FALSE);
 		return 1;
 	}
 
@@ -3238,8 +3235,6 @@ int process_register(int nb) {
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
 	set_progress_bar_data(msg, PROGRESS_RESET);
-
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(register_thread_func, reg_args);
 	return 0;
@@ -3563,7 +3558,6 @@ int process_stackall(int nb) {
 		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, FALSE))
 			goto failure;
 	}
-	set_cursor_waiting(TRUE);
 
 	gettimeofday(&arg->t_start, NULL);
 
@@ -3681,7 +3675,7 @@ int process_stackone(int nb) {
 		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, TRUE))
 			goto failure;
 	}
-	set_cursor_waiting(TRUE);
+
 	gettimeofday(&arg->t_start, NULL);
 
 	start_in_new_thread(stackone_worker, arg);
@@ -3806,9 +3800,6 @@ int process_preprocess(int nb) {
 	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
 			|| args->output_seqtype == SEQ_FITSEQ) && !com.pref.force_to_16bit;
-
-	// start preprocessing
-	set_cursor_waiting(TRUE);
 
 	start_sequence_preprocessing(args);
 	return 0;

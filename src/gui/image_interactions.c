@@ -424,8 +424,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			} else if (mouse_status == MOUSE_ACTION_PHOTOMETRY) {
 				int s = com.pref.phot_set.outer;
 				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
-				if (area.x - s > 0 && area.x + s < gfit.rx
-						&& area.y - s > 0 && area.y + s < gfit.ry) {
+				if (area.x - area.w > 0 && area.x + area.w < gfit.rx
+						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
 					com.qphot = psf_get_minimisation(&gfit, com.cvport, &area, TRUE, TRUE, TRUE);
 					if (com.qphot) {
 						com.qphot->xpos = com.qphot->x0 + area.x;
@@ -688,6 +688,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 
 		gtk_widget_queue_draw(widget);
 	}
+
+	/* don't change cursor if thread is running */
+	if (com.run_thread) return FALSE;
 
 	if (inside && com.cvport < RGB_VPORT) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {

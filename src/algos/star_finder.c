@@ -43,27 +43,25 @@
 #include "opencv/opencv.h"
 
 #define WAVELET_SCALE 3
+#define _SQRT_EXP1 1.6487212707
 
-struct star_candidate_struct {
-	int x, y;
-	float mag_est;
-	float bg;
-};
 
 static double guess_resolution(fits *fit) {
 	double focal = fit->focal_length;
 	double size = fit->pixel_size_x;
 	double bin;
 
-	if ((focal <= 0.0) || (size <= 0.0)) {
-		focal = com.pref.focal;
-		size = com.pref.pitch;
-		/* if we have no way to guess, we return the
-		 * flag -1
-		 */
-		if ((focal <= 0.0) || (size <= 0.0))
-			return -1.0;
+	/* if we have no way to guess, we return the
+		* flag -1
+		*/
+	if ((focal <= 0.0) || (size <= 0.0)) {  // try to read values that were filled only if coming from astrometry solver
+		focal = com.starfinder_conf.focal_length;
+		size = com.starfinder_conf.pixel_size_x;
 	}
+
+	if ((focal <= 0.0) || (size <= 0.0))
+		return -1.0;
+
 	bin = ((fit->binning_x + fit->binning_y) / 2.0);
 	if (bin <= 0) bin = 1.0;
 
@@ -100,7 +98,7 @@ static float compute_threshold(fits *fit, double ksigma, int layer, rectangle *a
 	return threshold;
 }
 
-static gboolean is_star(psf_star *result, star_finder_params *sf ) {
+static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
 
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
 		return FALSE;
@@ -108,11 +106,13 @@ static gboolean is_star(psf_star *result, star_finder_params *sf ) {
 		return FALSE;
 	if (isnan(result->mag))
 		return FALSE;
-	if ((result->x0 <= 0.0) || (result->y0 <= 0.0))
+	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) // if star center off from original candidate detection by more than sigma radius
 		return FALSE;
-	if (result->fwhmx > 2 * sf->adj_radius || result->fwhmx > 2 * sf->adj_radius) // do not compare sx and sy which are 2*SQR(sigma) of the PSF
+	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503)
 		return FALSE;
 	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0)
+		return FALSE;
+	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0)
 		return FALSE;
 	if ((result->fwhmy / result->fwhmx) < sf->roundness)
 		return FALSE;
@@ -162,6 +162,8 @@ void init_peaker_default() {
 	com.starfinder_conf.adjust = TRUE;
 	com.starfinder_conf.sigma = 1.0;
 	com.starfinder_conf.roundness = 0.5;
+	com.starfinder_conf.focal_length = 0.;
+	com.starfinder_conf.pixel_size_x = 0.;
 }
 
 void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -300,7 +302,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	}
 
 	sf->adj_radius = sf->adjust ? sf->radius / res : sf->radius;
-	siril_log_message("Adjusted radius: %d\n", sf->adj_radius);
+	siril_debug_print("Adjusted radius: %d\n", sf->adj_radius);
 	int r = sf->adj_radius;
 	int boxsize = (2 * r + 1)*(2 * r + 1);
 	double locthreshold = sf->sigma * 5.0 * bgnoise;
@@ -360,7 +362,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 					bingo = FALSE;
 					continue;
 				}
-				mean = (mean - meanhigh) / (boxsize - 9); // (boxsize - 1) pix in mean and 8 pix in meanhigh
+				mean = (mean - meanhigh) / (boxsize - 8); // (boxsize - 1) pix in mean and 8 pix in meanhigh
 				/* trying to remove false positives in nebs
 				mean of 9 central pixels must be above mean of the whole search box excluding them
 				i.e, an approximation of the local background, by a significant amount
@@ -371,11 +373,114 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 					continue;
 				}
 
+				// first derivatives. r c is for row and column. l, r, u, d for left, right, up and down
+				int xx = x - r, yy = y;
+				// siril_debug_print("%d: %d - %d\n", nbstars, xx, yy);
+				float d1rl, d1rr, d1cu, d1cd, r0, c0;
+				d1rl = pixel - smooth_image[yy][xx - 1];
+				d1rr = smooth_image[yy][xx + 1] - pixel;
+				d1cu = pixel - smooth_image[yy - 1][xx];
+				d1cd = smooth_image[yy + 1][xx] - pixel;
+				// computing zero-crossing to guess correctly psf widths later on
+				r0 = -0.5 - d1rl/(d1rr - d1rl);
+				c0 = -0.5 - d1cu/(d1cd - d1cu);
+				// siril_debug_print("%.2f, %.2f\n\n", r0, c0);
+
+				float d2rr, d2rrr, d2rl, d2rll, d2cu, d2cuu, d2cd, d2cdd; // second dev
+				float srr, srl, scd, scu;
+				float Arr, Arl, Acd, Acu;
+				int i;
+				
+				// Computing zero-upcrossing of the 2nd deriv row-wise moving right
+				i = 0;
+				d2rr  = smooth_image[yy][xx + i + 1] + smooth_image[yy][xx + i - 1] - 2 * smooth_image[yy][xx + i    ];
+				d2rrr = smooth_image[yy][xx + i + 2] + smooth_image[yy][xx + i    ] - 2 * smooth_image[yy][xx + i + 1];
+				while ((d2rrr < 0) && ((xx + i + 2) <= areaX1 - 1)) {
+					i++;
+					d2rr = d2rrr;
+					d2rrr = smooth_image[yy][xx + i + 2] + smooth_image[yy][xx + i] - 2 * smooth_image[yy][xx + i + 1];
+				}
+				srr = i  -  d2rr / (d2rrr - d2rr) - r0; // right width estimate
+				d1rr = (smooth_image[yy][xx + i] - smooth_image[yy][xx + i - 1]); // first deriv at 2nd deriv upcrossing
+				Arr =  -d1rr * srr * _SQRT_EXP1; // right Amplitude estimate
+
+				// Computing zero-upcrossing of the 2nd deriv row-wise moving left
+				i = 0;
+				d2rl  = smooth_image[yy][xx - i - 1] + smooth_image[yy][xx - i + 1] - 2 * smooth_image[yy][xx + i    ];
+				d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i    ] - 2 * smooth_image[yy][xx - i - 1];
+				while ((d2rll < 0) && ((xx - i - 2) >= areaX0 + 1)) {
+					i++;
+					d2rl = d2rll;
+					d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i] - 2 * smooth_image[yy][xx - i - 1];
+				}
+				srl = -(i - d2rl / (d2rll - d2rl)) - r0; // left width estimate
+				d1rl = (smooth_image[yy][xx - i] - smooth_image[yy][xx - i + 1]); // first deriv at 2nd deriv upcrossing
+				Arl =  d1rl * srl * _SQRT_EXP1; // left Amplitude estimate
+
+				// Computing zero-upcrossing of the 2nd deriv column-wise moving down
+				i = 0;
+				d2cd  = smooth_image[yy + i + 1][xx] + smooth_image[yy + i - 1][xx] - 2 * smooth_image[yy + i    ][xx];
+				d2cdd = smooth_image[yy + i + 2][xx] + smooth_image[yy + i    ][xx] - 2 * smooth_image[yy + i + 1][xx];
+				while ((d2cdd < 0) && ((yy + i + 2) <= areaY1 - 1)) {
+					i++;
+					d2cd = d2cdd;
+					d2cdd = smooth_image[yy + i + 2][xx] + smooth_image[yy + i][xx] - 2 * smooth_image[yy + i + 1][xx];
+				}
+				scd = i  -  d2cd / (d2cdd - d2cd) - c0; // down width estimate
+				d1cd = (smooth_image[yy + i][xx] - smooth_image[yy + i - 1][xx]); // first deriv at 2nd deriv upcrossing
+				Acd =  -d1cd * scd * _SQRT_EXP1; // down Amplitude estimate
+
+				// Computing zero-upcrossing of the 2nd deriv column-wise moving up
+				i = 0;
+				d2cu =  smooth_image[yy - i - 1][xx] + smooth_image[yy - i + 1][xx] - 2 * smooth_image[yy + i    ][xx];
+				d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i    ][xx] - 2 * smooth_image[yy - i - 1][xx];
+				while ((d2cuu < 0) && ((yy - i - 2) >= areaY0 + 1)) {
+					i++;
+					d2cu = d2cuu;
+					d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i][xx] - 2 * smooth_image[yy - i - 1][xx];
+				}
+				scu = -(i - d2cu / (d2cuu - d2cu)) - c0; // up width estimate
+				d1cu = (smooth_image[yy - i][xx] - smooth_image[yy - i + 1][xx]); // first deriv at 2nd deriv upcrossing
+				Acu =  d1cu * scu * _SQRT_EXP1; // up Amplitude estimate
+
+				// computing smoothed psf estimators
+				float Sr, Ar, Br, Sc, Ac, Bc, B;
+				Sr = 0.5 * (-srl + srr);
+				Ar = 0.5 * (Arl + Arr);
+				Br = pixel - Ar;
+				Sc = 0.5 * (-scu + scd);
+				Ac = 0.5 * (Acu + Acd);
+				Bc = pixel - Ac;
+				B = 0.5 * (Br + Bc);
+
+				// restimate new box size to enclose enough background
+				int Rr = (int) ceil(2 * Sr);
+				int Rc = (int) ceil(2 * Sc);
+				if (Rr > r) { // avoid enlarging outside frame width
+					if (xx - Rr < 0) Rr = xx;
+					if (xx + Rr >= nx) Rr = nx - xx - 1;
+				}
+				if (Rc > r) { // avoid enlarging outside frame height
+					if (yy - Rc < 0) Rc = yy;
+					if (yy + Rc >= ny) Rc = ny - yy - 1;
+				}
+				int R = max(min(Rr, Rc), r);
+
+				// Quality checks
+				float dA = max(Ar,Ac)/min(Ar,Ac);
+				float dSr = max(-srl,srr)/min(-srl,srr);
+				float dSc = max(-scu,scd)/min(-scu,scd);
+				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.))  bingo = FALSE;
+
 				if (bingo && nbstars < MAX_STARS) {
-					candidates[nbstars].x = x - r; // x corrected by the anticipated shift
-					candidates[nbstars].y = y;
+					candidates[nbstars].x = xx;
+					candidates[nbstars].y = yy;
 					candidates[nbstars].mag_est = meanhigh;
 					candidates[nbstars].bg = mean; //using local background
+					candidates[nbstars].B = B;
+					candidates[nbstars].R = R; // revised box size
+					candidates[nbstars].sx = Sr;
+					candidates[nbstars].sy = Sc;
 					nbstars++;
 					if (nbstars == MAX_STARS) break;
 				}
@@ -405,10 +510,8 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 /* returns number of stars found, result is in parameters */
 static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars) {
-	int radius = sf->adj_radius;
 	int nx = image->rx;
 	int ny = image->ry;
-	gsl_matrix *z = gsl_matrix_alloc(radius * 2, radius * 2);
 	WORD **image_ushort = NULL;
 	float **image_float = NULL;
 	gint nbstars = 0;
@@ -436,32 +539,35 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 
 	for (int candidate = 0; candidate < nb_candidates; candidate++) {
 		int x = candidates[candidate].x, y = candidates[candidate].y;
-		int ii, jj, i, j;
+		int ii, jj, i, j, R;
+		R = candidates[candidate].R;
+		gsl_matrix *z = gsl_matrix_alloc(R * 2 + 1, R * 2 + 1);
 		/* FILL z */
 		if (image->type == DATA_USHORT) {
-			for (jj = 0, j = y - radius; j < y + radius; j++, jj++) {
-				for (ii = 0, i = x - radius; i < x + radius;
+			for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
+				for (ii = 0, i = x - R; i <= x + R;
 						i++, ii++) {
 					gsl_matrix_set(z, ii, jj, (double)image_ushort[j][i]);
 				}
 			}
 		} else {
-			for (jj = 0, j = y - radius; j < y + radius; j++, jj++) {
-				for (ii = 0, i = x - radius; i < x + radius;
+			for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
+				for (ii = 0, i = x - R; i <= x + R;
 						i++, ii++) {
 					gsl_matrix_set(z, ii, jj, (double)image_float[j][i]);
 				}
 			}
 		}
 
-		psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].bg, FALSE, FALSE, FALSE);
+		psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, FALSE);
+		gsl_matrix_free(z);
 		if (cur_star) {
-			if (is_star(cur_star, sf)) {
+			if (is_star(cur_star, sf, &candidates[candidate])) {
 				//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 				cur_star->layer = layer;
 				int result_index = g_atomic_int_add(&nbstars, 1);
-				cur_star->xpos = (x - radius) + cur_star->x0 - 1.0;
-				cur_star->ypos = (y - radius) + cur_star->y0 - 1.0;
+				cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
+				cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
 				results[result_index] = cur_star;
 				//fprintf(stdout, "%03d: %11f %11f %f\n",
 				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
@@ -470,11 +576,9 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			if ((nbstars >= MAX_STARS_FITTED) && limit_nbstars) break;
 		}
 	}
-
 	results[nbstars] = NULL;
 	if (retval)
 		*retval = results;
-	gsl_matrix_free(z);
 	if (image_ushort) free(image_ushort);
 	if (image_float) free(image_float);
 	return nbstars;
