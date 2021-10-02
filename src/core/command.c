@@ -137,7 +137,9 @@ int process_satu(int nb){
 	args->h_max = 360.0;
 	args->background_factor = 1.0;
 
+	set_cursor_waiting(TRUE);
 	enhance_saturation(args);
+	set_cursor_waiting(FALSE);
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
@@ -449,8 +451,6 @@ int process_rl(int nb) {
 	args->iterations = (size_t)iter;
 	args->auto_limit = TRUE;
 
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(RTdeconv, args);
 
 	return 0;
@@ -715,8 +715,6 @@ int process_clahe(int nb) {
 	args->fit = &gfit;
 	args->clip = clip_limit;
 	args->tileSize = size;
-
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(clahe, args);
 	adjust_cutoff_from_updated_gfit();
@@ -1085,7 +1083,6 @@ int process_rgradient(int nb) {
 		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
 				"Please change their values and retry.\n"));
 	} else {
-		set_cursor_waiting(TRUE);
 		start_in_new_thread(rgradient_filter, args);
 	}
 	return 0;
@@ -1372,8 +1369,6 @@ int process_seq_crop(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	crop_sequence(args);
 	return 0;
 }
@@ -1409,7 +1404,6 @@ int process_bgnoise(int nb){
 	args->verbose = TRUE;
 	args->use_idle = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(noise, args);
 	return 0;
@@ -1725,8 +1719,6 @@ int process_findstar(int nb){
 	args->fit = &gfit;
 	args->layer = layer;
 
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(findstar, args);
 
 	return 0;
@@ -1926,8 +1918,6 @@ int process_fmedian(int nb){
 	}
 	args->fit = &gfit;
 
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(median_filter, args);
 	
 	return 0;
@@ -2054,8 +2044,6 @@ int process_scnr(int nb){
 	args->amount = 0.0;
 	args->preserve = TRUE;
 
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(scnr, args);
 
 	return 0;
@@ -2080,8 +2068,6 @@ int process_fft(int nb){
 	args->phase = strdup(word[2]);
 	args->type_order = 0;
 	
-	set_cursor_waiting(TRUE);
-
 	start_in_new_thread(fourier_transform, args);
 	
 	return 0;
@@ -2104,8 +2090,6 @@ int process_fixbanding(int nb) {
 	args->sigma = g_ascii_strtod(word[2], NULL);
 	args->protect_highlights = TRUE;
 	args->fit = &gfit;
-
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(BandingEngineThreaded, args);
 	
@@ -2167,7 +2151,6 @@ int process_subsky(int nb) {
 			}
 		}
 
-		set_cursor_waiting(TRUE);
 		apply_background_extraction_to_sequence(args);
 	} else {
 		set_cursor_waiting(TRUE);
@@ -2236,10 +2219,8 @@ int process_findcosme(int nb) {
 				}
 			}
 		}
-		set_cursor_waiting(TRUE);
 		apply_cosmetic_to_sequence(args);
 	} else {
-		set_cursor_waiting(TRUE);
 		args->multithread = TRUE;
 		start_in_new_thread(autoDetectThreaded, args);
 	}
@@ -2342,7 +2323,7 @@ int process_split(int nb){
 		free(args);
 		return 1;
 	}
-	set_cursor_waiting(TRUE);
+
 	copy_fits_metadata(&gfit, args->fit);
 	start_in_new_thread(extract_channels, args);
 	return 0;
@@ -2563,8 +2544,6 @@ int process_seq_mtf(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	apply_mtf_to_sequence(args);
 
 	return 0;
@@ -2608,8 +2587,6 @@ int process_seq_split_cfa(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	apply_split_cfa_to_sequence(args);
 
 	return 0;
@@ -2651,8 +2628,6 @@ int process_seq_extractHa(int nb) {
 			}
 		}
 	}
-
-	set_cursor_waiting(TRUE);
 
 	apply_extractHa_to_sequence(args);
 
@@ -2696,8 +2671,6 @@ int process_seq_extractGreen(int nb) {
 		}
 	}
 
-	set_cursor_waiting(TRUE);
-
 	apply_extractGreen_to_sequence(args);
 
 	return 0;
@@ -2722,8 +2695,6 @@ int process_seq_extractHaOIII(int nb) {
 
 	args->seq = seq;
 	args->seqEntry = ""; // not used
-
-	set_cursor_waiting(TRUE);
 
 	apply_extractHaOIII_to_sequence(args);
 
@@ -2802,8 +2773,6 @@ int process_seq_stat(int nb) {
 		args->option = STATS_BASIC;
 	}
 	memcpy(&com.selection, &args->selection, sizeof(rectangle));
-
-	set_cursor_waiting(TRUE);
 
 	apply_stats_to_sequence(args);
 
@@ -2898,8 +2867,6 @@ int process_convertraw(int nb) {
 	char **files_to_convert = glist_to_array(list, &count);
 
 	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "green", count);
-
-	set_cursor_waiting(TRUE);
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
@@ -2998,7 +2965,6 @@ int process_link(int nb) {
 		return 1;
 	}
 
-	set_cursor_waiting(TRUE);
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
 	args->list = files_to_link;
@@ -3108,7 +3074,6 @@ int process_convert(int nb) {
 		return 1;
 	}
 
-	set_cursor_waiting(TRUE);
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
 	args->list = files_to_link;
@@ -3270,8 +3235,6 @@ int process_register(int nb) {
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
 	set_progress_bar_data(msg, PROGRESS_RESET);
-
-	set_cursor_waiting(TRUE);
 
 	start_in_new_thread(register_thread_func, reg_args);
 	return 0;
@@ -3595,7 +3558,6 @@ int process_stackall(int nb) {
 		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, FALSE))
 			goto failure;
 	}
-	set_cursor_waiting(TRUE);
 
 	gettimeofday(&arg->t_start, NULL);
 
@@ -3713,7 +3675,6 @@ int process_stackone(int nb) {
 		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, TRUE))
 			goto failure;
 	}
-	set_cursor_waiting(TRUE);
 
 	gettimeofday(&arg->t_start, NULL);
 
@@ -3839,9 +3800,6 @@ int process_preprocess(int nb) {
 	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
 			|| args->output_seqtype == SEQ_FITSEQ) && !com.pref.force_to_16bit;
-
-	// start preprocessing
-	set_cursor_waiting(TRUE);
 
 	start_sequence_preprocessing(args);
 	return 0;

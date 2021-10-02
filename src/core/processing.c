@@ -492,6 +492,7 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	com.run_thread = TRUE;
 	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(TRUE);
 	com.thread = g_thread_new("processing", f, p);
 }
 
@@ -506,6 +507,7 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	com.run_thread = TRUE;
 	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(TRUE);
 	com.thread = g_thread_new("processing", f, p);
 }
 

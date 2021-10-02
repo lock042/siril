@@ -1001,7 +1001,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
-	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_reserved_thread(register_thread_func, reg_args);
