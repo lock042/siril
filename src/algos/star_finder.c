@@ -106,7 +106,7 @@ static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
 		return FALSE;
 	if (isnan(result->mag))
 		return FALSE;
-	if ((result->x0 <= 0.0) || (result->y0 <= 0.0))
+	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) // if star center off from original candidate detection by more than sigma radius
 		return FALSE;
 	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503)
 		return FALSE;
