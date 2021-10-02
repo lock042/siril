@@ -19,11 +19,12 @@ struct mp4_struct {
 
 	AVFrame *frame;
 	AVFrame *tmp_frame;
+	AVPacket *pkt;
 
 	struct SwsContext *sws_ctx;
 	struct SwrContext *swr_ctx;
 
-	int64_t bitrate;
+	int quality;	// 1 to 5
 	int src_w, src_h;
 
 };
