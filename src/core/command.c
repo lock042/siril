@@ -96,7 +96,8 @@
 #include "command_list.h"
 #include "command_line_processor.h"
 
-#define PRINT_NOT_FOR_SEQUENCE siril_log_message(_("This command cannot be applied on a sequence.\n"))
+#define PRINT_LOAD_IMAGE_FIRST siril_log_message(_("Load an image or a sequence first.\n"))
+#define PRINT_NOT_FOR_SEQUENCE siril_log_message(_("Single image must be loaded, and this command cannot be applied on a sequence.\n"))
 #define PRINT_NOT_FOR_SINGLE siril_log_message(_("This command can only be used when a sequence is loaded.\n"))
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
@@ -1371,7 +1372,10 @@ int process_seq_crop(int nb) {
 }
 
 int process_bg(int nb){
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
 	WORD us_bg;
 
 	for (int layer = 0; layer < gfit.naxes[2]; layer++) {
@@ -1393,7 +1397,10 @@ int process_bgnoise(int nb){
 		return 1;
 	}
 
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
 
 	struct noise_data *args = malloc(sizeof(struct noise_data));
 
@@ -1463,7 +1470,10 @@ int process_histo(int nb){
 }
 
 int process_tilt(int nb) {
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
 
 	if (word[1] && !g_ascii_strcasecmp(word[1], "clear")) {
 		clear_sensor_tilt();
@@ -1787,7 +1797,10 @@ int process_findhot(int nb){
 }
 
 int process_fix_xtrans(int nb) {
-	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
 
 	fix_xtrans_ac(&gfit);
 	adjust_cutoff_from_updated_gfit();
@@ -4043,7 +4056,7 @@ int process_boxselect(int nb){
 	}
 
 	if (!(single_image_is_loaded() || sequence_is_loaded())) {
-		siril_log_message(_("Load an image or a sequence first, aborting\n"));
+		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
 
