@@ -43,6 +43,16 @@ Once done, you can either open the *.pot file for a new translation or the *.po 
 
 It is also possible to help translating the documentation. To do that, feel free to open a new ticket.
 
+### Formatting
+
+* Formatting code
+
+Code formatting follows [K&R style](https://en.wikipedia.org/wiki/Indentation_style#K&R_style).
+
+* Formatting commands help
+
+When adding commands, you will need to add a description of what it does and which arguments it takes, if any, in src/core/command_def.h. All arguments names must be put in bold and possible string values between quotes. The last sentence of the command help must not be ended by a period.
+
 ### Donate
 
 If you like the software, please help us by contributing with the [ Donate button ](https://www.siril.org/#support-us) of the website. Siril takes us a lot of time and we still have to pay for the servers. 

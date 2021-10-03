@@ -582,7 +582,6 @@ Uncheck if images come from a monochrome sensor.</property>
               <object class="GtkSpinButton" id="clahe_tiles_size_spin">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">Sets size of grid for histogram equalization. Input image will be divided into equally sized rectangular tiles. </property>
                 <property name="hexpand">False</property>
                 <property name="width-chars">3</property>
                 <property name="input-purpose">number</property>
@@ -609,6 +608,7 @@ Uncheck if images come from a monochrome sensor.</property>
           <object class="GtkScale">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Sets size of grid for histogram equalization. Input image will be divided into equally sized rectangular tiles. </property>
             <property name="adjustment">adj_clahe_size</property>
             <property name="round-digits">1</property>
             <property name="digits">0</property>

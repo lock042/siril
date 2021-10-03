@@ -657,16 +657,16 @@ int process_linear_match(int nb) {
 	double high = g_ascii_strtod(word[3], NULL);
 	if (readfits(word[1], &ref, NULL, gfit.type == DATA_FLOAT))
 		return 1;
-	set_cursor_waiting(TRUE);
 	if (!find_linear_coeff(&gfit, &ref, low, high, a, b, NULL)) {
+		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
 
 		adjust_cutoff_from_updated_gfit();
 		redraw(com.cvport, REMAP_ALL);
 		redraw_previews();
+		set_cursor_waiting(FALSE);
 	}
 	clearfits(&ref);
-	set_cursor_waiting(FALSE);
 	return 0;
 }
 
@@ -678,10 +678,12 @@ int process_asinh(int nb) {
 
 	double beta = g_ascii_strtod(word[1], NULL);
 
+	set_cursor_waiting(TRUE);
 	asinhlut(&gfit, beta, 0, FALSE);
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
+	set_cursor_waiting(FALSE);
 	return 0;
 }
 
@@ -717,9 +719,6 @@ int process_clahe(int nb) {
 	args->tileSize = size;
 
 	start_in_new_thread(clahe, args);
-	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
-	redraw_previews();
 
 	return 0;
 }
@@ -1464,6 +1463,8 @@ int process_histo(int nb){
 }
 
 int process_tilt(int nb) {
+	if (!(single_image_is_loaded() || sequence_is_loaded())) return 1;
+
 	if (word[1] && !g_ascii_strcasecmp(word[1], "clear")) {
 		clear_sensor_tilt();
 		siril_log_message(_("Clearing tilt information\n"));
@@ -2328,6 +2329,11 @@ int process_split(int nb){
 }
 
 int process_split_cfa(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
 	if (isrgb(&gfit)) {
 		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
 		return 1;
@@ -2379,6 +2385,11 @@ int process_split_cfa(int nb) {
 }
 
 int process_extractGreen(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
 	if (isrgb(&gfit)) {
 		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
 		return 1;
@@ -2421,6 +2432,11 @@ int process_extractGreen(int nb) {
 }
 
 int process_extractHa(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
 	if (isrgb(&gfit)) {
 		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
 		return 1;
@@ -2462,6 +2478,11 @@ int process_extractHa(int nb) {
 }
 
 int process_extractHaOIII(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
 	if (isrgb(&gfit)) {
 		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
 		return 1;
