@@ -765,9 +765,7 @@ int process_ls(int nb){
 		return 1;
 	}
 
-	int i, n;
-
-	n = scandir(path, &list, 0, alphasort);
+	int n = scandir(path, &list, 0, alphasort);
 	if (n < 0) {
 		perror("scandir");
 		siril_log_message(_("Siril cannot open the directory.\n"));
@@ -776,7 +774,7 @@ int process_ls(int nb){
 	}
 
 	/* List the entries */
-	for (i = 0; i < n; ++i) {
+	for (int i = 0; i < n; ++i) {
 		GStatBuf entrystat;
 		gchar *filename;
 		const char *ext;
@@ -815,7 +813,7 @@ int process_ls(int nb){
 		} else if (!strncmp(ext, "seq", 3))
 			siril_log_color_message(_("Sequence: %s\n"), "blue", list[i]->d_name);
 	}
-	for (i = 0; i < n; i++)
+	for (int i = 0; i < n; i++)
 		free(list[i]);
 	free(list);
 	siril_log_message(_("********* END OF THE LIST *********\n"));
