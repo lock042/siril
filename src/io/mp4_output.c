@@ -114,8 +114,9 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 		case AV_CODEC_ID_VP9:
 			c->bit_rate = 0;
 			/* for this codec, quality depends on image size (like bit rate) */
-			float size_factor = 10.0f * logf(w * h / (1920 * 1080));
-			crf = vp9_quality_to_crf[ost->quality-1] - round_to_int(size_factor);
+			float size_factor = 5.0f * logf(w * h / (1920 * 1080));
+			if (size_factor < -4.0f) size_factor = -4.0f;
+			crf = vp9_quality_to_crf[ost->quality-1] - roundf_to_int(size_factor);
 			siril_debug_print("VP9 constant quality value: %d\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
