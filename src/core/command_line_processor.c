@@ -277,7 +277,7 @@ static void show_command_help_popup(GtkEntry *entry) {
 
 				token = g_strsplit_set(current->usage, " ", -1);
 				GString *str = g_string_new(token[0]);
-				str = g_string_prepend(str, "<span foreground=\"red\"><b>");
+				str = g_string_prepend(str, "<span foreground=\"red\" size=\"larger\"><b>");
 				str = g_string_append(str, "</b>");
 				if (token[1] != NULL) {
 					str = g_string_append(str,

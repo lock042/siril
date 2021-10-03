@@ -76,6 +76,7 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 
 	popover = gtk_popover_new(widget);
 	label = gtk_label_new(NULL);
+	gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD_CHAR);
 	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 
 	if (pixbuf) {
@@ -92,10 +93,10 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 
 	gtk_label_set_markup(GTK_LABEL(label), text);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(label), 64);
+	gtk_label_set_max_width_chars(GTK_LABEL(label), 80);
 
-	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 10);
 	gtk_container_add(GTK_CONTAINER(popover), box);
 
 	/* make all sensitive in case where parent is not */
