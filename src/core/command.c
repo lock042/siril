@@ -31,6 +31,10 @@
 #include <opencv2/core/version.hpp>
 #include <glib.h>
 #include <libgen.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <tchar.h>
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -736,9 +740,7 @@ int process_clahe(int nb) {
 	return 0;
 }
 
-#ifndef _WIN32
 int process_ls(int nb){
-	struct dirent **list;
 	gchar *path = NULL;
 	
 	/* If a path is given in argument */
@@ -776,6 +778,9 @@ int process_ls(int nb){
 		siril_log_message(_("Siril cannot open the directory.\n"));
 		return 1;
 	}
+
+#ifndef _WIN32
+	struct dirent **list;
 
 	int n = scandir(path, &list, 0, alphasort);
 	if (n < 0) {
@@ -828,12 +833,63 @@ int process_ls(int nb){
 	for (int i = 0; i < n; i++)
 		free(list[i]);
 	free(list);
+#else
+	WIN32_FIND_DATAW fdFile;
+	HANDLE hFind = NULL;
+
+	gchar *all = g_build_filename(path, "*.*", NULL);
+
+	wchar_t *sPath = g_utf8_to_utf16(all, -1, NULL, NULL, NULL);
+	if (sPath == NULL) {
+		g_free(all);
+		return 1;
+	}
+	g_free(all);
+
+	if ((hFind = FindFirstFileW(sPath, &fdFile)) == INVALID_HANDLE_VALUE) {
+		siril_log_message(_("Siril cannot open the directory.\n"));
+		g_free(sPath);
+		return 1;
+	}
+
+	g_free(sPath);
+	do {
+		//Find first file will always return "."
+		//    and ".." as the first two directories.
+		if (wcscmp(fdFile.cFileName, L".") != 0
+				&& wcscmp(fdFile.cFileName, L"..") != 0) {
+
+			gchar *filename = g_utf16_to_utf8(fdFile.cFileName, -1, NULL, NULL, NULL);
+			//Is the entity a File or Folder?
+			if (fdFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				siril_log_color_message(_("Directory: %s\n"), "green", filename);
+			} else {
+				const char *ext = get_filename_ext(filename);
+				if (!ext)
+					continue;
+				image_type type = get_type_for_extension(ext);
+				if (type != TYPEUNDEF) {
+					if (type == TYPEAVI || type == TYPESER)
+						siril_log_color_message(_("Sequence: %s\n"), "salmon", filename);
+					else if (type == TYPEFITS)
+						siril_log_color_message(_("Image: %s\n"), "plum", filename);
+					else
+						siril_log_color_message(_("Image: %s\n"), "red", filename);
+				} else if (!strncmp(ext, "seq", 3))
+					siril_log_color_message(_("Sequence: %s\n"), "blue", filename);
+
+			}
+			g_free(filename);
+		}
+	} while(FindNextFileW(hFind, &fdFile)); //Find the next file.
+
+	FindClose(hFind); // Clean things up!
+#endif
 	siril_log_message(_("********* END OF THE LIST *********\n"));
 	g_free(path);
 
 	return 0;
 }
-#endif
 
 int process_merge(int nb) {
 	int retval = 0, nb_seq = nb-2;

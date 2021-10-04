@@ -56,9 +56,7 @@ int	process_link(int nb);
 int	process_linear_match(int nb);
 int	process_load(int nb);
 int	process_log(int nb);
-#ifndef _WIN32
 int	process_ls(int nb);
-#endif
 
 int	process_merge(int nb);
 int	process_mirrorx(int nb);
