@@ -99,6 +99,9 @@
 #define PRINT_LOAD_IMAGE_FIRST siril_log_message(_("Load an image or a sequence first.\n"))
 #define PRINT_NOT_FOR_SEQUENCE siril_log_message(_("Single image must be loaded, and this command cannot be applied on a sequence.\n"))
 #define PRINT_NOT_FOR_SINGLE siril_log_message(_("This command can only be used when a sequence is loaded.\n"))
+#define PRINT_NOT_FOR_MONO siril_log_message(_("This command cannot be applied on monochrome images.\n"))
+#define PRINT_NOT_FOR_RGB siril_log_message(_("This command cannot be applied on rgb images.\n"))
+#define PRINT_FOR_CFA_IMAGE PRINT_NOT_FOR_RGB; siril_log_message(_("Make sure your image is in CFA mode.\n"))
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
@@ -127,6 +130,10 @@ int process_satu(int nb){
 		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
 	}
+	if (!isrgb(&gfit)) {
+		PRINT_NOT_FOR_MONO;
+		return 1;
+	}
 
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	
@@ -140,11 +147,11 @@ int process_satu(int nb){
 
 	set_cursor_waiting(TRUE);
 	enhance_saturation(args);
-	set_cursor_waiting(FALSE);
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(com.cvport, REMAP_ALL);
 	redraw_previews();
+	set_cursor_waiting(FALSE);
 
 	return 0;
 }
@@ -394,6 +401,11 @@ int process_gauss(int nb){
 int process_grey_flat(int nb) {
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
+	if (isrgb(&gfit)) {
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
 
@@ -1688,36 +1700,6 @@ int process_fill2(int nb){
 	return 0;
 }
 
-struct starfinder_data {
-	fits *fit;
-	int layer;
-};
-
-static gboolean end_findstar(gpointer p) {
-	struct starfinder_data *args = (struct starfinder_data *) p;
-	stop_processing_thread();
-	if (com.stars)
-		refresh_star_list(com.stars);
-
-	set_cursor_waiting(FALSE);
-
-	free(args);
-	return FALSE;
-}
-
-static gpointer findstar(gpointer p) {
-	struct starfinder_data *args = (struct starfinder_data *)p;
-
-	int nbstars = 0;
-
-	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
-	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
-
-	siril_add_idle(end_findstar, args);
-
-	return GINT_TO_POINTER(0);
-}
-
 int process_findstar(int nb){
 	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
 
@@ -1799,6 +1781,11 @@ int process_findhot(int nb){
 int process_fix_xtrans(int nb) {
 	if (!(single_image_is_loaded() || sequence_is_loaded())) {
 		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
+
+	if (isrgb(&gfit)) {
+		PRINT_NOT_FOR_RGB;
 		return 1;
 	}
 
@@ -2047,7 +2034,11 @@ int process_scnr(int nb){
 		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
 	}
-	if (gfit.naxes[2] == 1) return 1;
+
+	if (!isrgb(&gfit)) {
+		PRINT_NOT_FOR_MONO;
+		return 1;
+	}
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
 	
@@ -2308,7 +2299,7 @@ int process_split(int nb){
 	}
 
 	if (!isrgb(&gfit)) {
-		siril_log_message(_("Siril cannot split layers. Make sure your image is in RGB mode.\n"));
+		PRINT_NOT_FOR_MONO;
 		return 1;
 	}
 
@@ -2348,9 +2339,10 @@ int process_split_cfa(int nb) {
 	}
 
 	if (isrgb(&gfit)) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
+
 	char *filename = NULL;
 	int ret = 1;
 
@@ -2404,9 +2396,10 @@ int process_extractGreen(int nb) {
 	}
 
 	if (isrgb(&gfit)) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
+
 	char *filename = NULL;
 	int ret = 1;
 
@@ -2451,9 +2444,10 @@ int process_extractHa(int nb) {
 	}
 
 	if (isrgb(&gfit)) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
+
 	char *filename = NULL;
 	int ret = 1;
 
@@ -2497,9 +2491,10 @@ int process_extractHaOIII(int nb) {
 	}
 
 	if (isrgb(&gfit)) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
+
 	char *filename = NULL;
 	int ret = 1;
 
@@ -2592,7 +2587,7 @@ int process_seq_split_cfa(int nb) {
 		return 1;
 
 	if (seq->nb_layers > 1) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
 
@@ -2635,7 +2630,7 @@ int process_seq_extractHa(int nb) {
 		return 1;
 
 	if (seq->nb_layers > 1) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
 
@@ -2677,7 +2672,7 @@ int process_seq_extractGreen(int nb) {
 		return 1;
 
 	if (seq->nb_layers > 1) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
 
@@ -2719,7 +2714,7 @@ int process_seq_extractHaOIII(int nb) {
 		return 1;
 
 	if (seq->nb_layers > 1) {
-		siril_log_message(_("Siril cannot split CFA channel. Make sure your image is in CFA mode.\n"));
+		PRINT_FOR_CFA_IMAGE;
 		return 1;
 	}
 

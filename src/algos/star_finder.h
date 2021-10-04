@@ -1,6 +1,20 @@
 #ifndef FINDER_H_
 #define FINDER_H_
 
+struct starfinder_data {
+	fits *fit;
+	int layer;
+};
+
+struct star_candidate_struct {
+	int x, y;
+	float mag_est;
+	float bg;
+	float B, sx, sy;
+	int R;
+};
+typedef struct star_candidate_struct starc;
+
 void init_peaker_GUI();
 void init_peaker_default();
 void update_peaker_GUI();
@@ -13,14 +27,6 @@ psf_star **new_fitted_stars(size_t n);
 void free_fitted_stars(psf_star **stars);
 int count_stars(psf_star **stars);
 void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units);
-
-struct star_candidate_struct {
-	int x, y;
-	float mag_est;
-	float bg;
-	float B, sx, sy;
-	int R;
-};
-typedef struct star_candidate_struct starc;
+gpointer findstar(gpointer p);
 
 #endif

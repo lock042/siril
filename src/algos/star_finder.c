@@ -34,11 +34,14 @@
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
+#include "gui/image_interactions.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "filters/wavelets.h"
+#include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "core/OS_utils.h"
 #include "opencv/opencv.h"
 
@@ -714,4 +717,46 @@ void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **u
 		*FWHMx = *FWHMx / (float)i;
 		*FWHMy = *FWHMy / (float)i;
 	}
+}
+
+static gboolean end_findstar(gpointer p) {
+	struct starfinder_data *args = (struct starfinder_data *) p;
+	stop_processing_thread();
+	if (com.stars)
+		refresh_star_list(com.stars);
+
+	set_cursor_waiting(FALSE);
+
+	free(args);
+	return FALSE;
+}
+
+gpointer findstar(gpointer p) {
+	struct starfinder_data *args = (struct starfinder_data *)p;
+
+	int nbstars = 0;
+
+	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
+	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
+
+	siril_add_idle(end_findstar, args);
+
+	return GINT_TO_POINTER(0);
+}
+
+void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
+	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
+	if (!single_image_is_loaded() && !sequence_is_loaded()) {
+		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
+		return;
+	}
+
+	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
+	delete_selected_area();
+	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+
+	args->fit = &gfit;
+	args->layer = layer;
+
+	start_in_new_thread(findstar, args);
 }

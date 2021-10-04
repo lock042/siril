@@ -26,12 +26,9 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_world_cs.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
@@ -659,24 +656,6 @@ void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
 void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 	remove_all_stars();
 	clear_sensor_tilt();
-}
-
-void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
-	int nbstars = 0;
-	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
-	if (!single_image_is_loaded() && !sequence_is_loaded()) {
-		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
-		return;
-	}
-	set_cursor_waiting(TRUE);
-
-	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
-	delete_selected_area();
-	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
-	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
-	if (com.stars)
-		refresh_star_list(com.stars);
-	set_cursor_waiting(FALSE);
 }
 
 void on_export_button_clicked(GtkButton *button, gpointer user_data) {
