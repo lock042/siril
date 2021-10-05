@@ -836,23 +836,22 @@ int process_ls(int nb){
 #else
 	WIN32_FIND_DATAW fdFile;
 	HANDLE hFind = NULL;
+	char sPath[2048];
 
-	gchar *all = g_build_filename(path, "*.*", NULL);
+	//Specify a file mask. *.seq = We want everything
+	sprintf(sPath, "%s\\*.*", path);
 
-	wchar_t *sPath = g_utf8_to_utf16(all, -1, NULL, NULL, NULL);
-	if (sPath == NULL) {
-		g_free(all);
+	wchar_t *wpath = g_utf8_to_utf16(sPath, -1, NULL, NULL, NULL);
+	if (wpath == NULL)
 		return 1;
-	}
-	g_free(all);
 
-	if ((hFind = FindFirstFileW(sPath, &fdFile)) == INVALID_HANDLE_VALUE) {
+	if ((hFind = FindFirstFileW(wpath, &fdFile)) == INVALID_HANDLE_VALUE) {
 		siril_log_message(_("Siril cannot open the directory.\n"));
-		g_free(sPath);
+		g_free(wpath);
 		return 1;
 	}
 
-	g_free(sPath);
+	g_free(wpath);
 	do {
 		//Find first file will always return "."
 		//    and ".." as the first two directories.
