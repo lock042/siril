@@ -401,13 +401,13 @@ appimage-nightly:
   
   
 macOS:
-  stage: build
+  stage: "packaging"
   tags:
     - mac
-  rules:
-    - *do_not_run_for_schedules
+#  rules:
+#    - *do_not_run_for_schedules
     # Mac runner is restricted to "siril" namespace; only generate pipelines for this
-    - if: '$CI_PROJECT_NAMESPACE == "siril"'
+#    - if: '$CI_PROJECT_NAMESPACE == "siril"'
   variables:
     SDKROOT: /opt/sdks/MacOSX10.13.sdk
   before_script:
@@ -417,9 +417,9 @@ macOS:
     - packaging/macos/install_toolset.sh
   script:
 #    - packaging/macos/build_siril.sh
-  after_script:
+#  after_script:
 #    - packaging/macos/uninstall_toolset.sh
-  artifacts:
+#  artifacts:
     expire_in: 1 week
     paths:
       - Siril.dmg
