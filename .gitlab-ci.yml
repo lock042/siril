@@ -401,6 +401,8 @@ appimage-nightly:
   
   
 macOS:
+  except:
+    - schedules
   stage: "packaging"
   tags:
     - mac
