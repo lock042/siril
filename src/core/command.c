@@ -838,7 +838,7 @@ int process_ls(int nb){
 	HANDLE hFind = NULL;
 	char sPath[2048];
 
-	//Specify a file mask. *.seq = We want everything
+	//Specify a file mask. *.* = We want everything
 	sprintf(sPath, "%s\\*.*", path);
 
 	wchar_t *wpath = g_utf8_to_utf16(sPath, -1, NULL, NULL, NULL);
