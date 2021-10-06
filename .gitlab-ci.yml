@@ -416,14 +416,13 @@ macOS:
     - packaging/macos/uninstall_toolset.sh
     - packaging/macos/install_toolset.sh
   script:
-#    - packaging/macos/build_siril.sh
+    - packaging/macos/build_siril.sh
 #  after_script:
 #    - packaging/macos/uninstall_toolset.sh
-#  artifacts:
+  artifacts:
     expire_in: 1 week
     paths:
       - Siril.dmg
-
 
 ################################################################################
 # Analysis
