@@ -400,7 +400,7 @@ appimage-nightly:
   needs: ["build-image-oldstable"]
   
   
-macOS:
+macOS-build:
   except:
     - schedules
   stage: "packaging"
@@ -415,12 +415,12 @@ macOS:
   before_script:
     # workaround: after_script doesn't run for cancelled/timed out jobs
     #             https://gitlab.com/gitlab-org/gitlab/-/issues/15603
-    - packaging/macos/uninstall_toolset.sh
-    - packaging/macos/install_toolset.sh
+    - build/macOS/uninstall_toolset.sh
+    - build/macOS/install_toolset.sh
   script:
-    - packaging/macos/build_siril.sh
+    - build/macOS/build_siril.sh
 #  after_script:
-#    - packaging/macos/uninstall_toolset.sh
+#    - build/macOS/uninstall_toolset.sh
   artifacts:
     expire_in: 1 week
     paths:
