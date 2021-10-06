@@ -56,6 +56,7 @@ static void print_alignment_results(Homography H, int filenum, float FWHMx, floa
 static int get_min_requires_stars(transformation_type type) {
 	switch(type) {
 	case SHIFT_TRANSFORMATION:
+	case SIMILARITY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		return 3;
 	default:
@@ -327,6 +328,12 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 			switch (regargs->type) {
 			case SHIFT_TRANSFORMATION:
 				siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
+					"red", MIN_RATIO_INLIERS, filenum);
+				free_fitted_stars(stars);
+				return 1;
+			break;
+			case SIMILARITY_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
 					"red", MIN_RATIO_INLIERS, filenum);
 				free_fitted_stars(stars);
 				return 1;

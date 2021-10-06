@@ -685,6 +685,7 @@ void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
 
 	switch(gtk_combo_box_get_active(box)) {
 	case SHIFT_TRANSFORMATION:
+	case SIMILARITY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		gtk_adjustment_set_lower (register_minpairs, 3);
 		break;

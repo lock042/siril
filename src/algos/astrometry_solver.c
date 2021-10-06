@@ -1631,7 +1631,7 @@ gpointer match_catalog(gpointer p) {
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
 		args->ret = new_star_match(com.stars, cstars, n, nobj, scale_min,
 				scale_max, &H, args->for_photometry_cc,
-				FULLAFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
+				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
 			scale_min = -1.0;
 			scale_max = -1.0;
@@ -1687,7 +1687,7 @@ gpointer match_catalog(gpointer p) {
 				solution->focal = RADCONV * solution->pixel_size / resolution;
 				siril_debug_print("Current focal: %0.2fmm\n", solution->focal);
 				
-				if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, FULLAFFINE_TRANSFORMATION)){
+				if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
 					siril_log_color_message(_("Updating homography failed.\n"), "red");
 					args->ret = 1;
 				}
