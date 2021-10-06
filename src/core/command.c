@@ -3232,6 +3232,10 @@ int process_register(int nb) {
 					reg_args->type = SHIFT_TRANSFORMATION;
 					continue;
 				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
+					reg_args->type = SIMILARITY_TRANSFORMATION;
+					continue;
+				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"affine")) {
 					reg_args->type = AFFINE_TRANSFORMATION;
 					continue;

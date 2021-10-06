@@ -13954,14 +13954,17 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                             <property name="can-focus">False</property>
                                             <property name="tooltip-markup" translatable="yes">&lt;b&gt;Shift&lt;/b&gt; is a 2 degree-of-freedom (x/y shifts) rigid mapping, well-suited for images with no distortion, no scaling and no field rotation. It needs at least 1 pair of stars to be matched to define the transformation.
 
-&lt;b&gt;Affine&lt;/b&gt; is a 4 degree-of-freedom (one scale, one rotation and x/y shifts) more rigid mapping than homography, well-suited for images with no distortion. It needs at least 2 pairs of stars to be matched to define the transformation.
+&lt;b&gt;Similarity&lt;/b&gt; is a 4 degree-of-freedom (one scale, one rotation and x/y shifts) more rigid mapping than homography, well-suited for images with no distortion. It needs at least 2 pairs of stars to be matched to define the transformation.
+
+&lt;b&gt;Affine&lt;/b&gt; is a 6 degree-of-freedom (two scales, one shear, one rotation and x/y shifts) more rigid mapping than homography, well-suited for images with little distortion. It needs at least 3 pairs of stars to be matched to define the transformation.
 
 &lt;b&gt;Homography&lt;/b&gt; is the default transformation which uses an 8-degree-of-freedom transform to warp the images onto the reference frame. This is well-suited for the general case and strongly recommended for wide-field images. It needs at least 4 pairs of stars to be matched to define the transformation.
 
-&lt;b&gt;WARNING&lt;/b&gt;: The initial star matching uses triangle similarity algorithm, in consequence the minimum of star pairs must be at least of 3 for &lt;b&gt;Shift&lt;/b&gt; and &lt;b&gt;Affine&lt;/b&gt; and of 4 for &lt;b&gt;Homography&lt;/b&gt;.</property>
-                                            <property name="active">2</property>
+&lt;b&gt;WARNING&lt;/b&gt;: The initial star matching uses triangle similarity algorithm, in consequence the minimum of star pairs must be at least of 3 for &lt;b&gt;Shift&lt;/b&gt;, &lt;b&gt;Similarity&lt;/b&gt; and &lt;b&gt;Affine&lt;/b&gt; and of 4 for &lt;b&gt;Homography&lt;/b&gt;.</property>
+                                            <property name="active">3</property>
                                             <items>
                                               <item translatable="yes">Shift</item>
+                                              <item translatable="yes">Similarity</item>
                                               <item translatable="yes">Affine</item>
                                               <item translatable="yes">Homography</item>
                                             </items>

@@ -33,9 +33,9 @@ typedef enum {
 
 typedef enum {
 	SHIFT_TRANSFORMATION,
+	SIMILARITY_TRANSFORMATION,
 	AFFINE_TRANSFORMATION,
-	HOMOGRAPHY_TRANSFORMATION,
-	FULLAFFINE_TRANSFORMATION,
+	HOMOGRAPHY_TRANSFORMATION
 } transformation_type;
 
 /* arguments passed to registration functions */
