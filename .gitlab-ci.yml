@@ -398,6 +398,32 @@ appimage-nightly:
     paths:
       - build/appimage/Siril*.AppImage*
   needs: ["build-image-oldstable"]
+  
+  
+macOS:
+  stage: build
+  tags:
+    - mac
+  rules:
+    - *do_not_run_for_schedules
+    # Mac runner is restricted to "siril" namespace; only generate pipelines for this
+    - if: '$CI_PROJECT_NAMESPACE == "siril"'
+  variables:
+    SDKROOT: /opt/sdks/MacOSX10.13.sdk
+  before_script:
+    # workaround: after_script doesn't run for cancelled/timed out jobs
+    #             https://gitlab.com/gitlab-org/gitlab/-/issues/15603
+    - packaging/macos/uninstall_toolset.sh
+    - packaging/macos/install_toolset.sh
+  script:
+#    - packaging/macos/build_siril.sh
+  after_script:
+#    - packaging/macos/uninstall_toolset.sh
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - Siril.dmg
+
 
 ################################################################################
 # Analysis
