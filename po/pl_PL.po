@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-07 09:11+0200\n"
+"POT-Creation-Date: 2021-10-08 10:19+0200\n"
 "PO-Revision-Date: 2018-12-21 14:06+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3134,8 +3134,9 @@ msgstr ""
 "OSTRZEŻENIE: Upewnij się, że zaznaczenie posiada wystarczającą liczbą gwiazd."
 
 #: src/gui/siril3.glade:13935
-msgid "Translation only"
-msgstr "Tylko transponowanie"
+#, fuzzy
+msgid "Save translation in seq file"
+msgstr "Wybór obrazu w sekwencji"
 
 #: src/gui/siril3.glade:13939
 #, fuzzy
@@ -11985,6 +11986,9 @@ msgstr "Skalowanie w górę dla stackowania"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 
+#~ msgid "Translation only"
+#~ msgstr "Tylko transponowanie"
+
 #~ msgid "Siril cannot split layers. Make sure your image is in RGB mode.\n"
 #~ msgstr ""
 #~ "Siril nie może podzielić warstw. Upewnij się, że obraz jest w trybie "
@@ -12484,9 +12488,6 @@ msgstr ""
 
 #~ msgid "_Help"
 #~ msgstr "_Pomoc"
-
-#~ msgid "Image selection in sequence"
-#~ msgstr "Wybór obrazu w sekwencji"
 
 #~ msgid ""
 #~ "Image index in the sequence. You can also use arrow keys to browse "

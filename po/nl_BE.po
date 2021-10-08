@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-07 09:11+0200\n"
+"POT-Creation-Date: 2021-10-08 10:19+0200\n"
 "PO-Revision-Date: 2020-05-29 15:05+0200\n"
 "Last-Translator: Antoine Hoeffelman <antoine.hoeffelman[-at-]gmail.com>\n"
 "Language-Team: Dutch <antoine.hoeffelman[-at-]gmail.com>\n"
@@ -3105,8 +3105,9 @@ msgstr ""
 "Opgelet: kies een regio met genoeg sterren."
 
 #: src/gui/siril3.glade:13935
-msgid "Translation only"
-msgstr "Enkel translatie"
+#, fuzzy
+msgid "Save translation in seq file"
+msgstr "Beeldselectie in sequentie"
 
 #: src/gui/siril3.glade:13939
 #, fuzzy
@@ -12346,6 +12347,9 @@ msgstr "Sequentie herschaling voor stacking"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Stacking wordt zonder heschaling toegepast (zonder 'drizzle')\n"
 
+#~ msgid "Translation only"
+#~ msgstr "Enkel translatie"
+
 #~ msgid "Siril cannot split layers. Make sure your image is in RGB mode.\n"
 #~ msgstr ""
 #~ "Siril kan de lagen niet splitsen. Wees zeker dat het beeld in RGB-modus "
@@ -13070,9 +13074,6 @@ msgstr "Stacking wordt zonder heschaling toegepast (zonder 'drizzle')\n"
 
 #~ msgid "_Help"
 #~ msgstr "_Help"
-
-#~ msgid "Image selection in sequence"
-#~ msgstr "Beeldselectie in sequentie"
 
 #~ msgid ""
 #~ "Image index in the sequence. You can also use arrow keys to browse "

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-07 09:11+0200\n"
+"POT-Creation-Date: 2021-10-08 10:19+0200\n"
 "PO-Revision-Date: 2021-06-05 17:35+0300\n"
 "Last-Translator: Konstantinos Stavropoulos <kookoo_gr@yahoo.com>\n"
 "Language-Team: \n"
@@ -3154,8 +3154,9 @@ msgstr ""
 "αστεριών."
 
 #: src/gui/siril3.glade:13935
-msgid "Translation only"
-msgstr "Μόνο μετατόπιση"
+#, fuzzy
+msgid "Save translation in seq file"
+msgstr "Επιλογή εικόνων στην αλληλουχία"
 
 #: src/gui/siril3.glade:13939
 #, fuzzy
@@ -12760,6 +12761,9 @@ msgstr ""
 "Η σώρεσυση θα γίνει χωρίς αύξηση της κλιμακας (απενεργοποίηση του "
 "'drizzle')\n"
 
+#~ msgid "Translation only"
+#~ msgstr "Μόνο μετατόπιση"
+
 #~ msgid "Siril cannot split layers. Make sure your image is in RGB mode.\n"
 #~ msgstr ""
 #~ "Το Siril δεν μπορεί να χωρίσει επίπεδα. Σιγουρευτείτε ότι η εικόνα σας "
@@ -13498,9 +13502,6 @@ msgstr ""
 
 #~ msgid "_Help"
 #~ msgstr "_Βοήθεια"
-
-#~ msgid "Image selection in sequence"
-#~ msgstr "Επιλογή εικόνων στην αλληλουχία"
 
 #~ msgid ""
 #~ "Image index in the sequence. You can also use arrow keys to browse "

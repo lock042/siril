@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-07 09:11+0200\n"
+"POT-Creation-Date: 2021-10-08 10:19+0200\n"
 "PO-Revision-Date: 2021-05-28 01:36+0300\n"
 "Last-Translator: Alexandre Prokoudine <alexandre.prokoudine@gmail.com>\n"
 "Language-Team: русский <gnome-cyr@lists.gnome.org>\n"
@@ -2792,8 +2792,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:13935
-msgid "Translation only"
-msgstr "Только перемещение"
+msgid "Save translation in seq file"
+msgstr ""
 
 #: src/gui/siril3.glade:13939
 msgid ""
@@ -11019,6 +11019,9 @@ msgstr ""
 #: src/stacking/upscaling.c:152
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
+
+#~ msgid "Translation only"
+#~ msgstr "Только перемещение"
 
 #, fuzzy
 #~ msgid "-stretch option is now deprecated.\n"

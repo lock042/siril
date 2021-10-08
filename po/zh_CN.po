@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.9.8\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-07 09:11+0200\n"
+"POT-Creation-Date: 2021-10-08 10:19+0200\n"
 "PO-Revision-Date: 2019-10-11 01:32+0800\n"
 "Last-Translator: yecloud@me.com\n"
 "Language-Team: astronomy.com.cn <yecloud@me.com>\n"
@@ -3017,8 +3017,9 @@ msgstr ""
 "警告：请确定所画的区域内有足够的星点。"
 
 #: src/gui/siril3.glade:13935
-msgid "Translation only"
-msgstr "只平移"
+#, fuzzy
+msgid "Save translation in seq file"
+msgstr "队列中的文件选择"
 
 #: src/gui/siril3.glade:13939
 #, fuzzy
@@ -11906,6 +11907,9 @@ msgstr "超采样叠加"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "叠加将不会使用超采样（ ‘drizzle’关闭）\n"
 
+#~ msgid "Translation only"
+#~ msgstr "只平移"
+
 #~ msgid "Siril cannot split layers. Make sure your image is in RGB mode.\n"
 #~ msgstr "Siril无法拆分彩色通道，请确保你的图像为RGB模式。\n"
 
@@ -12592,9 +12596,6 @@ msgstr "叠加将不会使用超采样（ ‘drizzle’关闭）\n"
 
 #~ msgid "_Help"
 #~ msgstr "_帮助"
-
-#~ msgid "Image selection in sequence"
-#~ msgstr "队列中的文件选择"
 
 #~ msgid ""
 #~ "Image index in the sequence. You can also use arrow keys to browse "

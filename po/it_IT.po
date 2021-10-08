@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-07 09:11+0200\n"
+"POT-Creation-Date: 2021-10-08 10:19+0200\n"
 "PO-Revision-Date: 2021-06-06 23:59+0200\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
 "Language-Team: Italian <sonia@zonia3000.net>\n"
@@ -3136,8 +3136,9 @@ msgstr ""
 "sufficienti."
 
 #: src/gui/siril3.glade:13935
-msgid "Translation only"
-msgstr "Solo traslazione"
+#, fuzzy
+msgid "Save translation in seq file"
+msgstr "Selezione dell'immagine nella sequenza"
 
 #: src/gui/siril3.glade:13939
 #, fuzzy
@@ -12648,6 +12649,9 @@ msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "Lo stacking verrà eseguito senza l'up-scaling ('drizzle' disabilitato)\n"
 
+#~ msgid "Translation only"
+#~ msgstr "Solo traslazione"
+
 #~ msgid "Siril cannot split layers. Make sure your image is in RGB mode.\n"
 #~ msgstr ""
 #~ "Siril non può dividere i livelli. Assicurati che la tua immagine sia in "
@@ -13381,9 +13385,6 @@ msgstr ""
 
 #~ msgid "_Help"
 #~ msgstr "_Aiuto"
-
-#~ msgid "Image selection in sequence"
-#~ msgstr "Selezione dell'immagine nella sequenza"
 
 #~ msgid ""
 #~ "Image index in the sequence. You can also use arrow keys to browse "

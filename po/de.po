@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-07 09:11+0200\n"
+"POT-Creation-Date: 2021-10-08 10:19+0200\n"
 "PO-Revision-Date: 2021-09-10 22:17+0200\n"
 "Last-Translator: Stefan Beck <astro@cometchaser.de>\n"
 "Language-Team: \n"
@@ -3120,8 +3120,9 @@ msgstr ""
 "<b>ACHTUNG</b>: wählen Sie einen Bereich aus, der genügend Sterne enthält."
 
 #: src/gui/siril3.glade:13935
-msgid "Translation only"
-msgstr "Nur Translation"
+#, fuzzy
+msgid "Save translation in seq file"
+msgstr "Bildauswahl in der Sequenz"
 
 #: src/gui/siril3.glade:13939
 msgid ""
@@ -12653,6 +12654,9 @@ msgstr "Skaliere Sequenz für's Stacken"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 
+#~ msgid "Translation only"
+#~ msgstr "Nur Translation"
+
 #~ msgid "Siril cannot split layers. Make sure your image is in RGB mode.\n"
 #~ msgstr ""
 #~ "SIRIL kann die Layer nicht trennen. Das Bild muß im RGB-Modus sein.\n"
@@ -13410,9 +13414,6 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 
 #~ msgid "_Help"
 #~ msgstr "_Hilfe"
-
-#~ msgid "Image selection in sequence"
-#~ msgstr "Bildauswahl in der Sequenz"
 
 #~ msgid ""
 #~ "Image index in the sequence. You can also use arrow keys to browse "
