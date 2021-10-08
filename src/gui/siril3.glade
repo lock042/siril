@@ -13932,7 +13932,7 @@ When processing images, registration data is taken from the default layer if ava
                                         </child>
                                         <child>
                                           <object class="GtkCheckButton" id="regTranslationOnly">
-                                            <property name="label" translatable="yes">Translation only</property>
+                                            <property name="label" translatable="yes">Save translation in seq file</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">False</property>
