@@ -24,6 +24,7 @@
 #include "core/exif.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
+#include "gui/progress_and_log.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 
@@ -80,6 +81,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	name_str = g_path_get_basename(args->filename);
 
 	if (!args->file_info) {
+		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
 	type = g_file_info_get_file_type(args->file_info);
@@ -134,6 +136,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 
 	free(args);
 	args = NULL;
+	set_cursor_waiting(FALSE);
 	return FALSE;
 }
 
