@@ -418,49 +418,39 @@ double BV_to_T(double BV) {
 	return T;
 }
 
-int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, int config) {
-	unsigned int row, col;
-	float tmp1, tmp2;
+int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string) {
+	unsigned int row, col, pat_cell;
+	/* compute width of the (square) CFA pattern */
+	/* added 0.1 in case the result of sqrt is something like 5.999999 and it gets casted to int as 5 */
+	unsigned int pat_width = (unsigned int) (sqrt(strlen(cfa_string)) + 0.1);
 	if (fit->type == DATA_USHORT) {
 		WORD *data = fit->data;
-		for (row = 0; row < fit->ry - 1; row += 2) {
-			for (col = 0; col < fit->rx - 1; col += 2) {
-				if (config == 0) {
-					tmp1 = (float)data[1 + col + row * fit->rx] / coeff1;
-					data[1 + col + row * fit->rx] = round_to_WORD(tmp1);
-
-					tmp2 = (float)data[col + (1 + row) * fit->rx] / coeff2;
-					data[col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
-
-				} else {
-					tmp1 = (float)data[col + row * fit->rx] / coeff1;
-					data[col + row * fit->rx] = round_to_WORD(tmp1);
-
-					tmp2 = (float)data[1 + col + (1 + row) * fit->rx] / coeff2;
-					data[1 + col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
-
+		for (row = 0; row < fit->ry; row ++) {
+			for (col = 0; col < fit->rx; col++) {
+				pat_cell = (row % pat_width) * pat_width + col % pat_width;
+				switch (cfa_string[pat_cell]) {
+					case 'R':
+						data[col + row * fit->rx] = round_to_WORD(data[col + row * fit->rx] / coeff1);
+						break;
+					case 'B':
+						data[col + row * fit->rx] = round_to_WORD(data[col + row * fit->rx] / coeff2);
+						break;
 				}
 			}
 		}
 	}
 	else if (fit->type == DATA_FLOAT) {
 		float *data = fit->fdata;
-		for (row = 0; row < fit->ry - 1; row += 2) {
-			for (col = 0; col < fit->rx - 1; col += 2) {
-				if (config == 0) {
-					tmp1 = data[1 + col + row * fit->rx] / coeff1;
-					data[1 + col + row * fit->rx] = tmp1;
-
-					tmp2 = data[col + (1 + row) * fit->rx] / coeff2;
-					data[col + (1 + row) * fit->rx] = tmp2;
-
-				} else {
-					tmp1 = data[col + row * fit->rx] / coeff1;
-					data[col + row * fit->rx] = tmp1;
-
-					tmp2 = data[1 + col + (1 + row) * fit->rx] / coeff2;
-					data[1 + col + (1 + row) * fit->rx] = tmp2;
-
+		for (row = 0; row < fit->ry; row ++) {
+			for (col = 0; col < fit->rx; col++) {
+				pat_cell = (row % pat_width) * pat_width + col % pat_width;
+				switch (cfa_string[pat_cell]) {
+					case 'R':
+						data[col + row * fit->rx] /= coeff1;
+						break;
+					case 'B':
+						data[col + row * fit->rx] /= coeff2;
+						break;
 				}
 			}
 		}
