@@ -66,7 +66,7 @@ const char *filter_pattern[] = {
 	"BGBRGR"
 	"GRGGBG"
 	"GBGGRG"
-	"RGTBGB"
+	"RGRBGB"
 	"GBGGRG",
 
 	"GBGGRG"
@@ -76,6 +76,7 @@ const char *filter_pattern[] = {
 	"BGBRGR"
 	"GRGGBG"
 };
+const size_t num_filter_patterns = G_N_ELEMENTS(filter_pattern);
 
 /** Calculate the bayer pattern color from the row and column **/
 static inline int FC(const size_t row, const size_t col, const uint32_t filters) {
@@ -169,11 +170,11 @@ static void super_pixel_float(const float *buf, float *newbuf, int width, int he
 }
 
 /***************************************************
- * 
+ *
  * Written by Damien Douxchamps and Frederic Devernay
  * The original VNG and AHD Bayer decoding are from Dave Coffin's DCRAW.
  * https://code.google.com/p/gst-plugins-elphel/
- * 
+ *
  * *************************************************/
 
 static void ClearBorders(WORD *rgb, int sx, int sy, int w) {
@@ -1188,7 +1189,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 		return 0;
 
 	/* Siril's FITS are stored bottom-up, debayering will give wrong results.
-	 * So before demosacaing we need to flip the image with fits_flip_top_to_bottom().
+	 * So before demosaicing we need to flip the image with fits_flip_top_to_bottom().
 	 * But sometimes FITS are created by acquisition software top-down, in that case
 	 * the user can indicate it ('compatibility') and we don't flip for debayer.
 	 */

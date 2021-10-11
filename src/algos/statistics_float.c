@@ -452,13 +452,12 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	return stat;
 }
 
-int compute_means_from_flat_cfa_float(fits *fit, float mean[4]) {
-	int row, col, c, i = 0;
+int compute_means_from_flat_cfa_float(fits *fit, double mean[36]) {
+	int row, col, c, i[36] = {0};
 	float *data;
 	unsigned int width, height;
 	unsigned int startx, starty;
 
-	mean[0] = mean[1] = mean[2] = mean[3] = 0.0;
 	data = fit->fdata;
 	width = fit->rx;
 	height = fit->ry;
@@ -469,26 +468,19 @@ int compute_means_from_flat_cfa_float(fits *fit, float mean[4]) {
 	startx = width / 3;
 	starty = height / 3;
 
-	/* make sure it does start at the beginning of CFA pattern */
-	startx = startx % 2 == 0 ? startx : startx + 1;
-	starty = starty % 2 == 0 ? starty : starty + 1;
-
 	siril_debug_print("Computing stat in (%d, %d, %d, %d)\n", startx, starty,
 			width - 1 - startx, height - 1 - starty);
 
-	/* Compute mean of each channel */
-	for (row = starty; row < height - 1 - starty; row += 2) {
-		for (col = startx; col < width - 1 - startx; col += 2) {
-			mean[0] += data[col + row * width];
-			mean[1] += data[1 + col + row * width];
-			mean[2] += data[col + (1 + row) * width];
-			mean[3] += data[1 + col + (1 + row) * width];
-			i++;
+	/* compute mean of each element in 6x6 blocks */
+	for (row = starty; row < height - starty; row++) {
+		for (col = startx; col < width - startx; col++) {
+			mean[(col % 6) + (row % 6) * 6] += data[col + row * width];
+			i[(col % 6) + (row % 6) * 6]++;
 		}
 	}
 
-	for (c = 0; c < 4; c++) {
-		mean[c] /= (float) i;
+	for (c = 0; c < 36; c++) {
+		mean[c] /= (double) i[c];
 	}
 	return 0;
 }
