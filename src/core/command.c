@@ -1196,25 +1196,37 @@ int process_set_mag(int nb) {
 	}
 
 	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
-	double mag = g_ascii_strtod(word[1], NULL);
+	double mag_reference = g_ascii_strtod(word[1], NULL);
 
 	if (layer != -1) {
-
-		if (com.selection.w > 300 || com.selection.h > 300){
-			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-			return 1;
+		gboolean found = FALSE;
+		double mag = 0.0;
+		if (com.qphot) {
+			mag = com.qphot->mag;
+			found = TRUE;
+		} else {
+			if (com.selection.w > 300 || com.selection.h > 300){
+				siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+				return 1;
+			}
+			if (com.selection.w <= 0 || com.selection.h <= 0){
+				siril_log_message(_("Select an area first\n"));
+				return 1;
+			}
+			psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
+			if (result) {
+				found = TRUE;
+				mag = result->mag;
+				free_psf(result);
+			}
 		}
-		if (com.selection.w <= 0 || com.selection.h <= 0){
-			siril_log_message(_("Select an area first\n"));
-			return 1;
-		}
-		psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
-		if (result) {
-			com.magOffset = mag - result->mag;
-			siril_log_message(_("Relative magnitude: %.3lf, "
+		if (found) {
+			com.magOffset = mag_reference - mag;
+			siril_log_message(_(
+					"Relative magnitude: %.3lf, "
 					"True reduced magnitude: %.3lf, "
-					"Offset: %.3lf\n"), result->mag, mag, com.magOffset);
-			free_psf(result);
+					"Offset: %.3lf\n"
+					), mag, mag_reference, com.magOffset);
 		}
 	}
 	return 0;
