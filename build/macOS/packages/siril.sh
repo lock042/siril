@@ -112,11 +112,11 @@ function siril_get_version
   local file=$SIRIL_DIR/meson.build
   
   local ver_major
-  ver_major=$(grep "version : " meson.build | head -n 1  | awk -F" |'" '{split($6,a,"."); print a[1]}')
+  ver_major=$(grep "version : " meson.build | head -n 1  | awk '{ print $3 }' | tr -d "'," | cut -d . -f 1)
   local ver_minor
-  ver_minor=$(grep "version : " meson.build | head -n 1  | awk -F" |'" '{split($6,a,"."); print a[2]}')
+  ver_minor=$(grep "version : " meson.build | head -n 1  | awk '{ print $3 }' | tr -d "'," | cut -d . -f 2)
   local ver_patch
-  ver_patch=$(grep "version : " meson.build | head -n 1  | awk -F" |'" '{split($6,a,"."); print a[3]}')
+  ver_patch=$(grep "version : " meson.build | head -n 1  | awk '{ print $3 }' | tr -d "'," | cut -d . -f 3)
 
   # shellcheck disable=SC2086 # they are integers
   echo $ver_major.$ver_minor.$ver_patch
