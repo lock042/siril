@@ -388,9 +388,9 @@ static gboolean end_stacking(gpointer p) {
 
 		/* save stacking result */
 		if (args->output_filename != NULL && args->output_filename[0] != '\0') {
-			GStatBuf st;
-			if (!g_stat(args->output_filename, &st)) {
-				int failed = !args->output_overwrite;
+			int failed = 0;
+			if (g_file_test(args->output_filename, G_FILE_TEST_EXISTS)) {
+				failed = !args->output_overwrite;
 				if (!failed) {
 					if (g_unlink(args->output_filename) == -1)
 						failed = 1;
@@ -401,19 +401,24 @@ static gboolean end_stacking(gpointer p) {
 						com.uniq->fileexist = TRUE;
 					}
 				}
-				if (failed) {
-					com.uniq->filename = strdup(_("Unsaved stacking result"));
-					com.uniq->fileexist = FALSE;
-				}
 			}
 			else {
+				gchar *dirname = g_path_get_dirname(args->output_filename);
+				if (g_mkdir_with_parents(dirname, 0755) < 0) {
+					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+					failed = 1;
+				}
+				g_free(dirname);
 				if (!savefits(args->output_filename, &gfit)) {
 					com.uniq->filename = strdup(args->output_filename);
 					com.uniq->fileexist = TRUE;
 				} else {
-					com.uniq->filename = strdup(_("Unsaved stacking result"));
-					com.uniq->fileexist = FALSE;
+					failed = 1;
 				}
+			}
+			if (failed) {
+				com.uniq->filename = strdup(_("Unsaved stacking result"));
+				com.uniq->fileexist = FALSE;
 			}
 			display_filename();
 			set_precision_switch(); // set precision on screen
