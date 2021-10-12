@@ -7,3 +7,5 @@ macos-build:
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   script:
     - echo "hello world"
+  artifacts:
+    expire_in: 1 week
