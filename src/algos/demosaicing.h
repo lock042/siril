@@ -2,6 +2,7 @@
 #define _DEMOSAICING_H
 
 extern const char *filter_pattern[];
+extern const size_t num_filter_patterns;
 int retrieveBayerPatternFromChar(const char *bayer);
 
 WORD *debayer_buffer(WORD *buf, int *width, int *height,

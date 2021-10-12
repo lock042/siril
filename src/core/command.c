@@ -3232,6 +3232,10 @@ int process_register(int nb) {
 					reg_args->type = SHIFT_TRANSFORMATION;
 					continue;
 				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
+					reg_args->type = SIMILARITY_TRANSFORMATION;
+					continue;
+				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"affine")) {
 					reg_args->type = AFFINE_TRANSFORMATION;
 					continue;
@@ -3428,7 +3432,19 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				arg->result_file = strdup(value);
+
+				/* Make sure path exists */
+				gchar *dirname = g_path_get_dirname(value);
+
+				if (g_mkdir_with_parents(dirname, 0755) < 0) {
+					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+					g_free(dirname);
+					return 1;
+				}
+
+				g_free(dirname);
+
+				arg->result_file = g_strdup(value);
 			}
 			else {
 				siril_log_message(_("Output filename option is not allowed in this context, ignoring.\n"));
@@ -3499,7 +3515,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				g_str_has_suffix(seq->seqname, "-") ? "" : "_";
 			snprintf(filename, 256, "%s%sstacked%s",
 					seq->seqname, suffix, com.pref.ext);
-			arg->result_file = strdup(filename);
+			arg->result_file = g_strdup(filename);
 		}
 
 		main_stack(&args);

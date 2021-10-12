@@ -552,7 +552,10 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
-	if (gfit.type == DATA_UNSUPPORTED) return FALSE;
+	if ((!single_image_is_loaded() && !sequence_is_loaded())
+			|| gfit.type == DATA_UNSUPPORTED) {
+		return FALSE;
+	}
 
 	double zoom = get_zoom_val();
 
@@ -741,12 +744,13 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 
 void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-
-	if (get_thread_run()) {
-		set_cursor_waiting(TRUE);
-	} else {
-		/* trick to get default cursor */
-		set_cursor_waiting(FALSE);
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		if (get_thread_run()) {
+			set_cursor_waiting(TRUE);
+		} else {
+			/* trick to get default cursor */
+			set_cursor_waiting(FALSE);
+		}
 	}
 }
 
