@@ -4,12 +4,7 @@
   stage: build
   tags:
     - shared-macos-amd64
-#  rules:
-#    - *do_not_run_for_schedules
-    # Mac runner is restricted to "siril" namespace; only generate pipelines for this
-#    - if: '$CI_PROJECT_NAMESPACE == "siril"'
-  variables:
-    SDKROOT: /opt/sdks/MacOSX10.13.sdk
+  image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   before_script:
     - build/macOS/uninstall_toolset.sh
     - build/macOS/install_toolset.sh
