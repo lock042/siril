@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-11 14:33+0200\n"
+"POT-Creation-Date: 2021-10-12 23:14+0200\n"
 "PO-Revision-Date: 2021-06-09 13:15+0100\n"
 "Last-Translator: David Vazquez Garcia <davidvazquezgijon@gmail.com>\n"
 "Language-Team: \n"
@@ -5647,7 +5647,7 @@ msgid "File [%s] does not exist\n"
 msgstr "El fichero [%s] no existe\n"
 
 #: src/algos/annotate.c:272 src/core/command.c:2907 src/core/command.c:3000
-#: src/core/command.c:3109 src/core/command.c:3439 src/stacking/stacking.c:408
+#: src/core/command.c:3109 src/core/command.c:3440 src/stacking/stacking.c:408
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr "No se puede abrir el directorio de salida: %s\n"
@@ -6238,6 +6238,15 @@ msgstr ""
 "Precaución: no hay suficientes píxeles en el anillo del cielo. Necesita "
 "realizar una selección mayor.\n"
 
+#: src/algos/PSF.c:699 src/gui/PSF_list.c:549
+msgid "true reduced"
+msgstr ""
+
+#: src/algos/PSF.c:701 src/gui/PSF_list.c:551
+#, fuzzy
+msgid "relative"
+msgstr "aditivo"
+
 #: src/algos/PSF.c:726
 #, fuzzy, c-format
 msgid ""
@@ -6515,7 +6524,7 @@ msgstr "Recortar: x e y deben ser valores positivos.\n"
 msgid "Crop: width and height must be greater than 0.\n"
 msgstr "Recortar: ancho y alto deben ser mayores que 0.\n"
 
-#: src/core/command.c:513 src/core/command.c:1410 src/core/command.c:4140
+#: src/core/command.c:513 src/core/command.c:1410 src/core/command.c:4141
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
 msgstr ""
@@ -6525,7 +6534,7 @@ msgstr ""
 msgid "Crop: select a region or provide x, y, width, height\n"
 msgstr "Recortar: seleccione una región o proporcione x, y, ancho y alto\n"
 
-#: src/core/command.c:616 src/core/command.c:4053 src/filters/wavelets.c:251
+#: src/core/command.c:616 src/core/command.c:4054 src/filters/wavelets.c:251
 #: src/filters/wavelets.c:321
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
@@ -6575,7 +6584,7 @@ msgstr "Secuencia: %s\n"
 msgid "Image: %s\n"
 msgstr "Imagen: %s\n"
 
-#: src/core/command.c:887 src/core/command.c:4030
+#: src/core/command.c:887 src/core/command.c:4031
 msgid "********* END OF THE LIST *********\n"
 msgstr "********* FIN DE LA LISTA **********\n"
 
@@ -6709,7 +6718,7 @@ msgstr "Ejecutando el PSF en la secuencia cargada, capa %d\n"
 #: src/core/command.c:2995 src/core/command.c:3104 src/core/command.c:3228
 #: src/core/command.c:3257 src/core/command.c:3269 src/core/command.c:3277
 #: src/core/command.c:3372 src/core/command.c:3388 src/core/command.c:3405
-#: src/core/command.c:3422 src/core/command.c:3432 src/core/command.c:3864
+#: src/core/command.c:3422 src/core/command.c:3432 src/core/command.c:3865
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr "Argumento faltante %s, abortando.\n"
@@ -6957,55 +6966,55 @@ msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
 msgstr ""
 "No se pueden analizar los argumentos '%s' para el filtro '%s', abortando.\n"
 
-#: src/core/command.c:3449
+#: src/core/command.c:3450
 msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr ""
 "La opción del fichero de salida no está permitida en este contexto, se "
 "ignora.\n"
 
-#: src/core/command.c:3453
+#: src/core/command.c:3454
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Argumento inesperado para apilado '%s', abortando.\n"
 
-#: src/core/command.c:3471
+#: src/core/command.c:3472
 #, c-format
 msgid "Stacking sequence %s\n"
 msgstr "Secuencia de apilado %s\n"
 
-#: src/core/command.c:3481
+#: src/core/command.c:3482
 msgid "Not using rejection for stacking\n"
 msgstr "No se usa el rechazo para el apilado\n"
 
-#: src/core/command.c:3532
+#: src/core/command.c:3533
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr "No se puede guardar el resultado del apilado %s\n"
 
-#: src/core/command.c:3539 src/core/command_line_processor.c:465
+#: src/core/command.c:3540 src/core/command_line_processor.c:465
 #: src/gui/single_image.c:103 src/main.c:342
 #, c-format
 msgid "No sequence `%s' found.\n"
 msgstr "No se encontró la secuencia '%s'.\n"
 
-#: src/core/command.c:3553
+#: src/core/command.c:3554
 msgid "Looking for sequences in current working directory...\n"
 msgstr "Buscando secuencias en el directorio actual...\n"
 
-#: src/core/command.c:3555
+#: src/core/command.c:3556
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr "Error buscando secuencias o abriendo el directorio.\n"
 
-#: src/core/command.c:3564
+#: src/core/command.c:3565
 msgid "Starting stacking of found sequences...\n"
 msgstr "Comenzando el apilado de las secuencias encontradas...\n"
 
-#: src/core/command.c:3576
+#: src/core/command.c:3577
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr "Apiladas %d secuencias correctamente.\n"
 
-#: src/core/command.c:3634 src/core/command.c:3751
+#: src/core/command.c:3635 src/core/command.c:3752
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
@@ -7013,24 +7022,24 @@ msgstr ""
 "La media de apilados con rechazo requiere dos argumentos adicionales: sigma "
 "bajo y sigma alto.\n"
 
-#: src/core/command.c:3639 src/core/command.c:3756
+#: src/core/command.c:3640 src/core/command.c:3757
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
 msgstr ""
 
-#: src/core/command.c:3644 src/core/command.c:3761
+#: src/core/command.c:3645 src/core/command.c:3762
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
 msgstr ""
 
-#: src/core/command.c:3652 src/core/command.c:3769
+#: src/core/command.c:3653 src/core/command.c:3770
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr "El tipo de método de apilado '%s' no es válido\n"
 
-#: src/core/command.c:3682 src/stacking/stacking.c:449
+#: src/core/command.c:3683 src/stacking/stacking.c:449
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
@@ -7038,39 +7047,39 @@ msgstr ""
 "Parece que hay un error al reservar memoria, cambie la opciones de memoria e "
 "intente arreglarlo.\n"
 
-#: src/core/command.c:3685
+#: src/core/command.c:3686
 msgid "Stacked sequence successfully.\n"
 msgstr "Secuencia apilada correctamente.\n"
 
-#: src/core/command.c:3813
+#: src/core/command.c:3814
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr "No se puede analizar el offset de la expresión: %s, abortando.\n"
 
-#: src/core/command.c:3819 src/core/preprocess.c:478
+#: src/core/command.c:3820 src/core/preprocess.c:478
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr "Offset sintético: Nivel = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:3822
+#: src/core/command.c:3823
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr "El offset está fuera de los límites permitidos [-%d,%d], abortando.\n"
 
-#: src/core/command.c:3890 src/core/preprocess.c:637
+#: src/core/command.c:3891 src/core/preprocess.c:637
 msgid "Preprocessing...\n"
 msgstr "Procesando...\n"
 
-#: src/core/command.c:3908
+#: src/core/command.c:3909
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr "Modo de proceso de imágenes de 16 bits por canal activado.\n"
 
-#: src/core/command.c:3909
+#: src/core/command.c:3910
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr "Modo de proceso de imágenes de 32 bits por canal activado.\n"
 
-#: src/core/command.c:3923
+#: src/core/command.c:3924
 msgid "Please specify the type of compression and quantization value.\n"
 msgstr "Por favor especifique el tipo de compresión y valor de cuantización.\n"
 
@@ -7085,33 +7094,33 @@ msgstr "Por favor especifique el tipo de compresión y valor de cuantización.\n
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:3947
+#: src/core/command.c:3948
 #, fuzzy
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr ""
 "Tipo de compresión incorrecto. Las opciones son  rice, gzip1, gzip2 or "
 "hcompress\n"
 
-#: src/core/command.c:3951
+#: src/core/command.c:3952
 msgid "Please specify the value of quantization.\n"
 msgstr "Especifique el valor de cuantización.\n"
 
-#: src/core/command.c:3957
+#: src/core/command.c:3958
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr "La cuantización sólo puede ser igual a 0 para GZIP1 y GZIP2.\n"
 
-#: src/core/command.c:3960
+#: src/core/command.c:3961
 #, c-format
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
 msgstr ""
 "Compresión habilitada con el algoritmo %s y valor de cuantización de %.2lf\n"
 
-#: src/core/command.c:3963
+#: src/core/command.c:3964
 msgid "No compression enabled.\n"
 msgstr "No hay compresión habilitada.\n"
 
-#: src/core/command.c:3982
+#: src/core/command.c:3983
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
@@ -7120,14 +7129,14 @@ msgstr ""
 "El número de procesadores lógicos debe ser mayor que 0 y menor o igual que "
 "%d.\n"
 
-#: src/core/command.c:3993
+#: src/core/command.c:3994
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] "Usando %d procesador lógico\n"
 msgstr[1] "Usando %d procesadores lógicos\n"
 
-#: src/core/command.c:4009
+#: src/core/command.c:4010
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
@@ -7135,7 +7144,7 @@ msgstr ""
 "El rango aceptado para el ratio de memoria usado para el apilado es [0.05, "
 "4], con valores recomendados por debajo de la memoria disponible\n"
 
-#: src/core/command.c:4013
+#: src/core/command.c:4014
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -7146,29 +7155,29 @@ msgstr ""
 "en disco (SWAP), lo cual puede ralentizar y no es recomendable  (%g "
 "solicitado)\n"
 
-#: src/core/command.c:4017
+#: src/core/command.c:4018
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr "La memoria usable para el apilado ha cambiado a %g\n"
 
-#: src/core/command.c:4025
+#: src/core/command.c:4026
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr "******* LISTA DE COMANDOS DISPONIBLES *******\n"
 
-#: src/core/command.c:4082
+#: src/core/command.c:4083
 msgid "Required version is not correct.\n"
 msgstr "La versión requerida no es correcta.\n"
 
-#: src/core/command.c:4104
+#: src/core/command.c:4105
 msgid "The required version of Siril is ok.\n"
 msgstr "La versión requerida de Siril es correcta.\n"
 
-#: src/core/command.c:4109
+#: src/core/command.c:4110
 msgid "A newer version of Siril is required, please update your version.\n"
 msgstr ""
 "Se requiere una nueva versión de Siril, por favor actualice la versión.\n"
 
-#: src/core/command.c:4111
+#: src/core/command.c:4112
 #, c-format
 msgid ""
 "The script you are executing requires a newer version of Siril to run (%s), "
@@ -7177,27 +7186,27 @@ msgstr ""
 "El script que está ejecutando requiere una versión más actual de Siril (%s), "
 "cancelando.\n"
 
-#: src/core/command.c:4132
+#: src/core/command.c:4133
 #, fuzzy
 msgid "Selection: x and y must be positive values.\n"
 msgstr "Recortar: x e y deben ser valores positivos.\n"
 
-#: src/core/command.c:4136
+#: src/core/command.c:4137
 #, fuzzy
 msgid "Selection: width and height must be greater than 0.\n"
 msgstr "Recortar: ancho y alto deben ser mayores que 0.\n"
 
-#: src/core/command.c:4149
+#: src/core/command.c:4150
 #, fuzzy
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr "Especifique el valor de cuantización.\n"
 
-#: src/core/command.c:4157
+#: src/core/command.c:4158
 #, fuzzy
 msgid "A selection is already made, aborting\n"
 msgstr "Seleccione un área de la imagen primero"
 
-#: src/core/command.c:4160
+#: src/core/command.c:4161
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr ""

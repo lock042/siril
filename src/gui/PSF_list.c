@@ -546,9 +546,9 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	gchar *msg, *coordinates, *url = NULL;
 	const char *str;
 	if (com.magOffset > 0.0)
-		str = "true reduced";
+		str = _("true reduced");
 	else
-		str = "relative";
+		str = _("relative");
 
 	double x = result->x0 + area->x;
 	double y = area->y + area->h - result->y0;
