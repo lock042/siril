@@ -1357,6 +1357,10 @@ int process_seq_psf(int nb) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
+	if (!sequence_is_loaded()) {
+		PRINT_NOT_FOR_SINGLE;
+		return 1;
+	}
 	if (com.selection.w > 300 || com.selection.h > 300){
 		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 		return 1;
@@ -1367,7 +1371,7 @@ int process_seq_psf(int nb) {
 	}
 
 	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
-	if (sequence_is_loaded() && layer != -1) {
+	if (layer >= 0) {
 		framing_mode framing = REGISTERED_FRAME;
 		if (framing == REGISTERED_FRAME && !com.seq.regparam[layer])
 			framing = ORIGINAL_FRAME;
@@ -1378,12 +1382,8 @@ int process_seq_psf(int nb) {
 		}
 		siril_log_message(_("Running the PSF on the loaded sequence, layer %d\n"), layer);
 		seqpsf(&com.seq, layer, FALSE, FALSE, framing, TRUE);
-		return 0;
 	}
-	else {
-		PRINT_NOT_FOR_SINGLE;
-		return 1;
-	}
+	return 0;
 }
 
 int process_seq_crop(int nb) {
