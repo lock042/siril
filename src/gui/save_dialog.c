@@ -378,6 +378,9 @@ static int save_dialog() {
 // idle function executed at the end of the Save Data processing
 gboolean end_save(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
+	stop_processing_thread();
+
+
 	if (args->retval)
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("File saving failed. Check the logs for more info."));
 
@@ -385,7 +388,6 @@ gboolean end_save(gpointer p) {
 	gtk_widget_hide(lookup_widget("savepopup"));
 	display_filename(); // update filename display
 	set_precision_switch();
-	stop_processing_thread();
 	set_cursor_waiting(FALSE);
 	close_dialog();	// is this different from the hide above?
 	update_MenuItem();
