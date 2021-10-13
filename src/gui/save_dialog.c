@@ -380,7 +380,6 @@ gboolean end_save(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
 	stop_processing_thread();
 
-
 	if (args->retval)
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("File saving failed. Check the logs for more info."));
 
