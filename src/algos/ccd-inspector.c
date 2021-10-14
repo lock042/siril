@@ -145,7 +145,7 @@ int draw_sensor_tilt(fits *fit) {
 
 		draw_polygon((float) fit->rx, (float) fit->ry, m1, m2, m3, m4, mr1);
 		siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
-				nbstars, m, worst - best, ((worst - best) / ref) * 100.f, mr2 - mr1);
+				nbstars, m, worst - best, roundf(((worst - best) / ref) * 100.f), mr2 - mr1);
 	}
 
 	free(f);
