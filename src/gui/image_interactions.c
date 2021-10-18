@@ -567,13 +567,21 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
-	static const gchar *label_density[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb"};
-	static const gchar *label_wcs[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue" };
+	const gchar *label_density_names[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb" };
+	const gchar *label_wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue" };
+	static GtkLabel *labels_wcs[sizeof label_wcs_names / sizeof(gchar *)] = { 0 };
+	static GtkLabel *labels_density[sizeof label_density_names / sizeof(gchar *)] = { 0 };
+	if (!labels_wcs[0]) {
+		for (int i = 0; i < sizeof label_wcs_names / sizeof(gchar *); i++)
+			labels_wcs[i] = GTK_LABEL(lookup_widget(label_wcs_names[i]));
+		for (int i = 0; i < sizeof label_density_names / sizeof(gchar *); i++)
+			labels_density[i] = GTK_LABEL(lookup_widget(label_density_names[i]));
+	}
 
-	gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), "");
+	gtk_label_set_text(labels_density[com.cvport], "");
 
 	if (com.cvport < RGB_VPORT) {
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), "");
+		gtk_label_set_text(labels_wcs[com.cvport], "");
 
 		if (inside) {
 			static gchar buffer[256] = { 0 };
@@ -614,7 +622,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 						gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 						g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
 
-						gtk_label_set_text(GTK_LABEL(lookup_widget(label_wcs[com.cvport])), wcs_buffer);
+						gtk_label_set_text(labels_wcs[com.cvport], wcs_buffer);
 
 						g_free(ra);
 						g_free(dec);
@@ -624,7 +632,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			}
 
 			if (buffer[0] != '\0') {
-				gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), buffer);
+				gtk_label_set_text(labels_density[com.cvport], buffer);
 			}
 		}
 	} else {
@@ -644,7 +652,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 										gfit.fpdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1)  + zoomed.x] * 100.0
 										);
 			}
-			gtk_label_set_text(GTK_LABEL(lookup_widget(label_density[com.cvport])), buffer);
+			gtk_label_set_text(labels_density[com.cvport], buffer);
 		}
 	}
 
