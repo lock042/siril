@@ -420,28 +420,28 @@ static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
 				if (i < 10)
 					index[i] = 0; /* avoid null and negative values */
 				else
-					index[i] = round_to_BYTE(logf((float) i / 10.f) * slope); //10.f is arbitrary: good matching with ds9
+					index[i] = roundf_to_BYTE(logf((float) i / 10.f) * slope); //10.f is arbitrary: good matching with ds9
 				break;
 			case SQRT_DISPLAY:
 				// sqrt(2^16) = 2^8
-				index[i] = round_to_BYTE(sqrtf((float) i) * slope);
+				index[i] = roundf_to_BYTE(sqrtf((float) i) * slope);
 				break;
 			case SQUARED_DISPLAY:
 				// pow(2^4,2) = 2^8
-				index[i] = round_to_BYTE(SQR((float)i) * slope);
+				index[i] = roundf_to_BYTE(SQR((float)i) * slope);
 				break;
 			case ASINH_DISPLAY:
 				// asinh(2.78*10^110) = 255
-				index[i] = round_to_BYTE(asinhf((float) i / 1000.f) * slope); //1000.f is arbitrary: good matching with ds9, could be asinhf(a*Q*i)/Q
+				index[i] = roundf_to_BYTE(asinhf((float) i / 1000.f) * slope); //1000.f is arbitrary: good matching with ds9, could be asinhf(a*Q*i)/Q
 				break;
 			case LINEAR_DISPLAY:
-				index[i] = round_to_BYTE((float) i * slope);
+				index[i] = roundf_to_BYTE((float) i * slope);
 				break;
 			case STF_DISPLAY:
 				pxl = (gfit.orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
-				index[i] = round_to_BYTE((MTF(pxl, stfM, stfShadows, stfHighlights)) * slope);
+				index[i] = roundf_to_BYTE((MTF(pxl, stfM, stfShadows, stfHighlights)) * slope);
 				break;
 			default:
 				return 1;

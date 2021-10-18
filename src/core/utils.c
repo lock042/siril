@@ -170,6 +170,12 @@ WORD truncate_to_WORD(int x) {
 	return (WORD)x;
 }
 
+BYTE truncate_to_BYTE(WORD x) {
+	if (x > UCHAR_MAX)
+		return UCHAR_MAX;
+	return (BYTE)x;
+}
+
 /**
  * Clamp an integer value in the interval given by [low, high]
  * @param val value to be checked

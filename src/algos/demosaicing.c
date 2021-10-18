@@ -1104,15 +1104,12 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		fit->bitpix = fit->orig_bitpix;
 		// color RGBRGB format to fits RRGGBB format
 		for (size_t i = 0, j = 0; j < npixels; i += 3, j++) {
-			double r = (double) newbuf[i + RLAYER];
-			double g = (double) newbuf[i + GLAYER];
-			double b = (double) newbuf[i + BLAYER];
-			fit->pdata[RLAYER][j] =
-					(fit->bitpix == 8) ? round_to_BYTE(r) : round_to_WORD(r);
-			fit->pdata[GLAYER][j] =
-					(fit->bitpix == 8) ? round_to_BYTE(g) : round_to_WORD(g);
-			fit->pdata[BLAYER][j] =
-					(fit->bitpix == 8) ? round_to_BYTE(b) : round_to_WORD(b);
+			WORD r = newbuf[i + RLAYER];
+			WORD g = newbuf[i + GLAYER];
+			WORD b = newbuf[i + BLAYER];
+			fit->pdata[RLAYER][j] = (fit->bitpix == 8) ? truncate_to_BYTE(r) : r;
+			fit->pdata[GLAYER][j] = (fit->bitpix == 8) ? truncate_to_BYTE(g) : g;
+			fit->pdata[BLAYER][j] = (fit->bitpix == 8) ? truncate_to_BYTE(b) : b;
 		}
 	} else {
 		// use librtprocess debayer

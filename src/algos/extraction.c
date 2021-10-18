@@ -40,16 +40,16 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
 				break;
 			default:
 				printf("Should not happen.\n");
@@ -330,19 +330,19 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
 				OIII->data[j] = (c1 + c2 + c3) / 3;
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
 				OIII->data[j] = (c1 + c2 + c0) / 3;
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
 				OIII->data[j] = (c0 + c2 + c3) / 3;
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
 				OIII->data[j] = (c1 + c0 + c3) / 3;
 				break;
 			default:
@@ -616,10 +616,10 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 			WORD c0 = in->data[col + (1 + row) * in->rx];
 			WORD c2 = in->data[1 + col + (1 + row) * in->rx];
 
-			cfa0->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
-			cfa1->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
-			cfa2->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
-			cfa3->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+			cfa0->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
+			cfa1->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
+			cfa2->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
+			cfa3->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
 			j++;
 		}
 	}

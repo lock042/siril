@@ -1174,7 +1174,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		for (pixel = 0; pixel < ser_file->image_width * ser_file->image_height;
 				pixel++) {
 			if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8)
-				data8[dest] = round_to_BYTE(fit->pdata[plane][pixel]);
+				data8[dest] = truncate_to_BYTE(fit->pdata[plane][pixel]);
 			else {
 				if (ser_file->little_endian == SER_BIG_ENDIAN)
 					data16[dest] = (fit->pdata[plane][pixel] >> 8 | fit->pdata[plane][pixel] << 8);
@@ -1368,9 +1368,9 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
 		guchar *pptr = &pixbuf_data[Ws * i * 3];
 		for (j = 0; j < Ws; j++) {
-			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);
+			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
+			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
+			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
 			ptr++;
 		}
 	}
