@@ -37,17 +37,54 @@
 static const gchar *variables[] = {"I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9", "I10"};
 #define MAX_IMAGES G_N_ELEMENTS(variables)
 
+static const gchar * functions[] = { // TODO: should we use tabular in tinyexpr.c?
+    "abs",
+    "acos",
+    "asin",
+    "atan",
+    "atan2",
+    "ceil",
+    "cos",
+    "cosh",
+    "e",
+    "exp",
+    "fac",
+    "floor",
+    "ln",
+    "log",
+    "log10",
+    "ncr",
+    "npr",
+    "pi",
+    "pow",
+    "sin",
+    "sinh",
+    "sqrt",
+    "tan",
+    "tanh"
+};
+
+#define MAX_FUNCTIONS G_N_ELEMENTS(functions)
+
+
 enum {
 	COLUMN_IMAGE_NUM,		// string
 	COLUMN_IMAGE_PATH,		// string
 	N_COLUMNS
 };
 
+enum {
+	COLUMN_FUNCTION		 // string
+};
+
 static fits var_fit[MAX_IMAGES] = { 0 };
 
 static GtkListStore *pixel_math_list_store = NULL;
+static GtkListStore *pixel_math_list_store_functions = NULL;
 static GtkTreeView *pixel_math_tree_view = NULL;
+static GtkTreeView *pixel_math_treeview_functions = NULL;
 static GtkTreeModel *pixel_math_tree_model = NULL;
+static GtkTreeModel *pixel_math_tree_model_functions = NULL;
 static GtkLabel *pixel_math_status_bar = NULL;
 static GtkTextView *pixel_math_text_view = NULL;
 
@@ -58,11 +95,19 @@ static void init_widgets() {
 		pixel_math_list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "pixel_math_liststore"));
 		pixel_math_status_bar = GTK_LABEL(lookup_widget("pixel_math_status"));
 		pixel_math_text_view = GTK_TEXT_VIEW(lookup_widget("pixel_math_textview"));
+		pixel_math_treeview_functions = GTK_TREE_VIEW(gtk_builder_get_object(builder, "pixel_math_treeview_functions"));
+		pixel_math_tree_model_functions = gtk_tree_view_get_model(pixel_math_treeview_functions);
+		pixel_math_list_store_functions = GTK_LIST_STORE(gtk_builder_get_object(builder, "pixel_math_liststore_functions"));
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_functions")), TRUE);
+#endif
 
 	}
 	g_assert(pixel_math_tree_view);
 	g_assert(pixel_math_tree_model);
 	g_assert(pixel_math_list_store);
+	g_assert(pixel_math_list_store_functions);
 	g_assert(pixel_math_status_bar);
 	g_assert(pixel_math_text_view);
 }
@@ -201,6 +246,12 @@ static int get_pixel_math_number_of_rows(){
 	else return 0;
 }
 
+static int get_pixel_math_functions_number_of_rows(){
+	if (GTK_IS_TREE_MODEL(pixel_math_list_store_functions))
+		return gtk_tree_model_iter_n_children(GTK_TREE_MODEL(pixel_math_list_store_functions), NULL);
+	else return 0;
+}
+
 static int pixel_math_evaluate(gchar *expression) {
 	int nb_rows = 0;
 
@@ -259,6 +310,19 @@ static const gchar *get_pixel_math_var_name(int i) {
 	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
 	gtk_tree_model_get_iter(pixel_math_tree_model, &iter, path);
 	gtk_tree_model_get_value(pixel_math_tree_model, &iter, COLUMN_IMAGE_NUM, &value);
+
+	return g_value_get_string(&value);
+}
+
+static const gchar *get_function_name(int i) {
+	GtkTreeIter iter;
+	GValue value = G_VALUE_INIT;
+
+	init_widgets();
+
+	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
+	gtk_tree_model_get_iter(pixel_math_tree_model_functions, &iter, path);
+	gtk_tree_model_get_value(pixel_math_tree_model_functions, &iter, COLUMN_FUNCTION, &value);
 
 	return g_value_get_string(&value);
 }
@@ -367,6 +431,40 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(pixel_math_text_view);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_pixel_math_var_name(i[0]);
+
+	gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
+
+	gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
+	gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+}
+
+/* Add an image to the list. */
+static void add_functions_to_list() {
+	GtkTreeIter iter;
+
+	init_widgets();
+	for (int i = 0; i < MAX_FUNCTIONS; i++) {
+		gtk_list_store_append(pixel_math_list_store_functions, &iter);
+		gtk_list_store_set(pixel_math_list_store_functions, &iter,
+				COLUMN_FUNCTION, functions[i],
+				-1);
+	}
+}
+
+void on_pixel_math_dialog_show(GtkWidget *w, gpointer user_data) {
+	if (!get_pixel_math_functions_number_of_rows())
+		add_functions_to_list();
+}
+
+void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
+		GtkTreePath *path, GtkTreeViewColumn *column) {
+	GtkTextIter iter;
+
+	init_widgets();
+
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(pixel_math_text_view);
+	gint *i = gtk_tree_path_get_indices(path);
+	const gchar *str = get_function_name(i[0]);
 
 	gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
 
