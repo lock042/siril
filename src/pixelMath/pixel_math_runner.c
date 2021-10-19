@@ -37,31 +37,37 @@
 static const gchar *variables[] = {"I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9", "I10"};
 #define MAX_IMAGES G_N_ELEMENTS(variables)
 
-static const gchar * functions[] = { // TODO: should we use tabular in tinyexpr.c?
-    "abs",
-    "acos",
-    "asin",
-    "atan",
-    "atan2",
-    "ceil",
-    "cos",
-    "cosh",
-    "e",
-    "exp",
-    "fac",
-    "floor",
-    "ln",
-    "log",
-    "log10",
-    "ncr",
-    "npr",
-    "pi",
-    "pow",
-    "sin",
-    "sinh",
-    "sqrt",
-    "tan",
-    "tanh"
+typedef struct {
+	const gchar *name;
+	const gchar *prototype;
+	const gchar *definition;
+} _pm_functions;
+
+static const _pm_functions functions[] = { // TODO: should we use tabular in tinyexpr.c?
+    { "abs",   "abs ( x )",      N_("Absolute value of x.")       },
+    { "acos",  "acos ( x )",     N_("Arc cosine of x.")           },
+    { "asin",  "asin ( x )",     N_("Arc sine of x.")             },
+    { "atan",  "atan ( x )",     N_("Arc tangent of x.")          },
+    { "atan2", "atan2 ( y, x )", N_("Arc tangent of y/x.")        },
+    { "ceil",  "ceil ( x )",     N_("Round x upwards to the nearest integer.")},
+    { "cos",   "cos ( x )",      N_("Cosine of x.")               },
+    { "cosh",  "cosh ( x )",     N_("Hyperbolic cosine of x.")    },
+    { "e",     "e",              N_("The constant e=2.718282...") },
+    { "exp",   "exp ( x )",      N_("Exponential function.")      },
+    { "fac",   "fac( x )",       N_("Factorial function.")        },
+    { "floor", "floor ( x )",    N_("Highest integer less than or equal to x.")},
+    { "ln",    "ln ( x )",       N_("Natural logarithm of x.")    },
+    { "log",   "log ( x )",      N_("Base-10 logarithm of x.")    },
+    { "log10", "log10 ( x )",    N_("Base-2 logarithm of x.")     },
+    { "ncr",   "ncr ( x, y )",   N_("Combinations function.")     },
+    { "npr",   "npr ( x, y )",   N_("Permutations function.")     },
+    { "pi",    "pi",             N_("The constant \u03c0=3.141592...") },
+    { "pow",   "pow ( x, y )",   N_("Exponentiation function.")   },
+    { "sin",   "sin ( x )",      N_("Sine of x.")                 },
+    { "sinh",  "sinh ( x )",     N_("Hyperbolic sine of x.")      },
+    { "sqrt",  "sqrt ( x )",     N_("Square root of x.")          },
+    { "tan",   "tan ( x )",      N_("Tangent of x.")              },
+    { "tanh",  "tanh ( x )",     N_("Hyperbolic tangent of x.")   }
 };
 
 #define MAX_FUNCTIONS G_N_ELEMENTS(functions)
@@ -110,6 +116,7 @@ static void init_widgets() {
 	g_assert(pixel_math_list_store_functions);
 	g_assert(pixel_math_status_bar);
 	g_assert(pixel_math_text_view);
+
 }
 
 void remove_spaces_from_str(gchar *s) {
@@ -438,6 +445,31 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
 }
 
+gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
+		gboolean keyboard_tip, GtkTooltip *tooltip, gpointer data) {
+	GtkTreeIter iter;
+	GtkTreeView *tree_view = GTK_TREE_VIEW(widget);
+	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
+	GtkTreePath *path = NULL;
+
+	char buffer[512];
+
+	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
+			&model, &path, &iter))
+		return FALSE;
+
+	gint *i = gtk_tree_path_get_indices(path);
+
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[i[0]].prototype, functions[i[0]].definition);
+	gtk_tooltip_set_markup(tooltip, buffer);
+
+	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
+
+	gtk_tree_path_free(path);
+
+	return TRUE;
+}
+
 /* Add an image to the list. */
 static void add_functions_to_list() {
 	GtkTreeIter iter;
@@ -446,7 +478,7 @@ static void add_functions_to_list() {
 	for (int i = 0; i < MAX_FUNCTIONS; i++) {
 		gtk_list_store_append(pixel_math_list_store_functions, &iter);
 		gtk_list_store_set(pixel_math_list_store_functions, &iter,
-				COLUMN_FUNCTION, functions[i],
+				COLUMN_FUNCTION, functions[i].name,
 				-1);
 	}
 }

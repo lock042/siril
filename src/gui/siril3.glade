@@ -10220,18 +10220,20 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       <object class="GtkTreeView" id="pixel_math_treeview_functions">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="has-tooltip">True</property>
                         <property name="model">pixel_math_liststore_functions</property>
                         <property name="headers-clickable">False</property>
                         <property name="reorderable">True</property>
                         <property name="search-column">0</property>
                         <property name="enable-grid-lines">both</property>
+                        <signal name="query-tooltip" handler="query_tooltip_tree_view_cb" swapped="no"/>
                         <signal name="row-activated" handler="on_pixel_math_treeview_functions_row_activated" swapped="no"/>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection"/>
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn26">
-                            <property name="title" translatable="yes">Functions</property>
+                            <property name="title" translatable="yes">Function</property>
                             <property name="clickable">True</property>
                             <property name="sort-indicator">True</property>
                             <property name="sort-column-id">0</property>
