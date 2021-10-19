@@ -197,21 +197,6 @@ static void sequence_list_change_selection(gchar *path, gboolean new_value) {
 	gtk_list_store_set(list_store, &iter, COLUMN_SELECTED, new_value, -1);
 }
 
-static GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
-		GtkTreeModel *model) {
-	GList *ref = NULL;
-	GList *sel, *s;
-
-	sel = gtk_tree_selection_get_selected_rows(selection, &model);
-
-	for (s = sel; s; s = s->next) {
-		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
-		ref = g_list_prepend(ref, rowref);
-	}
-	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
-	return ref;
-}
-
 static int get_image_index_from_path(GtkTreePath *path) {
 	GValue value = G_VALUE_INIT;
 	gint index;

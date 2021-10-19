@@ -49,6 +49,7 @@ static const SirilDialogEntry entries[] =
 		{"ImagePlateSolver_Dial", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"linearmatch_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"Median_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+		{"pixel_math_dialog", OTHER_DIALOG, FALSE, NULL},
 		{"resample_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"rgradient_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"rotation_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},

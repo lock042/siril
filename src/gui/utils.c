@@ -109,6 +109,21 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 	return popover;
 }
 
+GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
+		GtkTreeModel *model) {
+	GList *ref = NULL;
+	GList *sel, *s;
+
+	sel = gtk_tree_selection_get_selected_rows(selection, &model);
+
+	for (s = sel; s; s = s->next) {
+		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
+		ref = g_list_prepend(ref, rowref);
+	}
+	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
+	return ref;
+}
+
 /* size is in Bytes */
 void set_GUI_MEM(guint64 used, const gchar *label) {
 	if (com.headless)
