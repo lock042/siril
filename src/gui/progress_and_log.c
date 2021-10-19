@@ -255,26 +255,25 @@ static gboolean idle_set_cursor(gpointer garg) {
 	GdkCursor *cursor;
 	static const gchar *current_name = NULL;
 
-	if (g_strcmp0(current_name, arg->cursor_name)) {
-		GdkDisplay *display = gdk_display_get_default();
-		GdkCursor *new = gdk_cursor_new_from_name(display, arg->cursor_name);
-		GdkScreen *screen = gdk_screen_get_default();
-		GList *list = gdk_screen_get_toplevel_windows(screen);
+	GdkDisplay *display = gdk_display_get_default();
+	GdkCursor *new = gdk_cursor_new_from_name(display, arg->cursor_name);
+	GdkScreen *screen = gdk_screen_get_default();
+	GList *list = gdk_screen_get_toplevel_windows(screen);
 
-		if (arg->change) {
-			cursor = new;
-		} else {
-			cursor = NULL;
-		}
-		for (GList *l = list; l; l = l->next) {
-			GdkWindow *window = GDK_WINDOW(l->data);
-			gdk_window_set_cursor(window, cursor);
-			gdk_display_sync(gdk_window_get_display(window));
-		}
-
-		gdk_display_flush(display);
-		g_list_free(list);
+	if (arg->change) {
+		cursor = new;
+	} else {
+		cursor = NULL;
 	}
+	for (GList *l = list; l; l = l->next) {
+		GdkWindow *window = GDK_WINDOW(l->data);
+		gdk_window_set_cursor(window, cursor);
+		gdk_display_sync(gdk_window_get_display(window));
+	}
+
+	gdk_display_flush(display);
+	g_list_free(list);
+
 	free(arg);
 	return FALSE;
 }
