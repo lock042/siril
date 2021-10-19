@@ -64,7 +64,7 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 
 static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	GString *all_filter = NULL;
-	gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fits.fz";
+	gchar *fits_filter = FITS_EXTENSIONS;
 	gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 	gchar *pic_filter = "*.pic;*.PIC";
 	gchar *ser_filter = "*.ser;*.SER";

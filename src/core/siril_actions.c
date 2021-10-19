@@ -496,6 +496,10 @@ void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpoint
 	open_compositing_window();
 }
 
+void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("pixel_math_dialog");
+}
+
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("split_cfa_dialog");
 }

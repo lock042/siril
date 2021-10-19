@@ -226,6 +226,10 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	pixelMath/pixel_math_runner.c \
+	pixelMath/pixel_math_runner.h \
+	pixelMath/tinyexpr.c \
+	pixelMath/tinyexpr.h \
 	registration/3stars.c \
 	registration/comet.c \
 	registration/global.c \
