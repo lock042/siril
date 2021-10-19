@@ -23,6 +23,10 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
+/*
+ * 2021/10/19: add trunc function
+ */
+
 /* COMPILE TIME OPTIONS */
 
 /* Exponentiation associativity:
@@ -186,6 +190,7 @@ static const te_variable functions[] = {
     {"sqrt", sqrt,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"tan", tan,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"tanh", tanh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"trunc", trunc,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {0, 0, 0, 0}
 };
 
