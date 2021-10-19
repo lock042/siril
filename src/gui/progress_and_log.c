@@ -251,9 +251,8 @@ struct _cursor_data {
 
 /* thread-safe cursor change */
 static gboolean idle_set_cursor(gpointer garg) {
-	struct _cursor_data *arg = (struct _cursor_data *)garg;
+	struct _cursor_data *arg = (struct _cursor_data*) garg;
 	GdkCursor *cursor;
-	static const gchar *current_name = NULL;
 
 	GdkDisplay *display = gdk_display_get_default();
 	GdkCursor *new = gdk_cursor_new_from_name(display, arg->cursor_name);
@@ -265,6 +264,7 @@ static gboolean idle_set_cursor(gpointer garg) {
 	} else {
 		cursor = NULL;
 	}
+
 	for (GList *l = list; l; l = l->next) {
 		GdkWindow *window = GDK_WINDOW(l->data);
 		gdk_window_set_cursor(window, cursor);
