@@ -252,21 +252,39 @@ struct _cursor_data {
 /* thread-safe cursor change */
 static gboolean idle_set_cursor(gpointer garg) {
 	struct _cursor_data *arg = (struct _cursor_data*) garg;
-	GdkCursor *cursor;
+	GdkCursor *cursor = NULL;
+	static const gchar *current_name = NULL;
 
 	GdkDisplay *display = gdk_display_get_default();
-	GdkCursor *new = gdk_cursor_new_from_name(display, arg->cursor_name);
 	GdkScreen *screen = gdk_screen_get_default();
-	GList *list = gdk_screen_get_toplevel_windows(screen);
 
 	if (arg->change) {
-		cursor = new;
+		if (!current_name ||
+				(current_name && arg->cursor_name && g_strcmp0(current_name, arg->cursor_name))) {
+			cursor = gdk_cursor_new_from_name(display, arg->cursor_name);
+			current_name = arg->cursor_name;
+		}
+		else {
+			// it's the current cursor
+			free(arg);
+			return FALSE;
+		}
 	} else {
-		cursor = NULL;
+		if (!current_name) {
+			// it's the current default
+			free(arg);
+			return FALSE;
+		}
+		current_name = NULL;
 	}
 
+	GList *list = gdk_screen_get_toplevel_windows(screen);
 	for (GList *l = list; l; l = l->next) {
 		GdkWindow *window = GDK_WINDOW(l->data);
+		/* Passing NULL for the cursor argument to gdk_window_set_cursor()
+		 * means that window will use the cursor of its parent window. Most
+		 * windows should use this default.
+		 */
 		gdk_window_set_cursor(window, cursor);
 		gdk_display_sync(gdk_window_get_display(window));
 	}
