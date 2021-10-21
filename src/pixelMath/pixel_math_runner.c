@@ -383,8 +383,10 @@ static void select_image(int id) {
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 		filename = gtk_file_chooser_get_filename(chooser);
 
-		add_image_to_variable_list(filename, id);
-		g_free(filename);
+		if (filename) {
+			add_image_to_variable_list(filename, id);
+			g_free(filename);
+		}
 	}
 
 	gtk_widget_destroy(dialog);
