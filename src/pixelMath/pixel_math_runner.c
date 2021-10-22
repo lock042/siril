@@ -389,6 +389,7 @@ static void select_image(int id) {
 		}
 	}
 
+	siril_preview_free(preview);
 	gtk_widget_destroy(dialog);
 }
 
