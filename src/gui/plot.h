@@ -37,14 +37,24 @@ typedef struct plot_data_struct {
 
 
 /* has to be the same as in the glade file */
-enum photmetry_source {
-	ROUNDNESS,
+enum photometry_source {
 	FWHM,
+	ROUNDNESS,
 	AMPLITUDE,
 	MAGNITUDE,
 	BACKGROUND,
 	X_POSITION,
 	Y_POSITION
+};
+
+/* has to be the same as in the glade file */
+enum registration_source {
+	r_FWHM,
+	r_ROUNDNESS,
+	r_WFWHM,
+	r_QUALITY,
+	r_X_POSITION,
+	r_Y_POSITION
 };
 
 gchar *siril_win_get_gnuplot_path();
