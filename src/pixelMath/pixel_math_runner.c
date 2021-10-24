@@ -480,6 +480,8 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	const gchar *str = get_pixel_math_var_name(i[0]);
 
 	if (str) {
+		gtk_text_buffer_delete_selection(tbuf, TRUE, TRUE);
+
 		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
 
 		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
@@ -541,6 +543,8 @@ void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 	const gchar *str = get_function_name(i[0]);
 
 	if (str) {
+		gtk_text_buffer_delete_selection(tbuf, TRUE, TRUE);
+
 		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
 
 		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
