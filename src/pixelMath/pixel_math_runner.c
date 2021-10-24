@@ -23,6 +23,7 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "gui/utils.h"
+#include "gui/dialogs.h"
 #include "gui/dialog_preview.h"
 #include "gui/image_display.h"
 #include "gui/message_dialog.h"
@@ -316,10 +317,12 @@ static const gchar *get_pixel_math_var_name(int i) {
 	init_widgets();
 
 	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
-	gtk_tree_model_get_iter(pixel_math_tree_model, &iter, path);
-	gtk_tree_model_get_value(pixel_math_tree_model, &iter, COLUMN_IMAGE_NUM, &value);
+	if (gtk_tree_model_get_iter(pixel_math_tree_model, &iter, path)) {
+		gtk_tree_model_get_value(pixel_math_tree_model, &iter, COLUMN_IMAGE_NUM, &value);
+		return g_value_get_string(&value);
+	}
 
-	return g_value_get_string(&value);
+	return NULL;
 }
 
 static const gchar *get_function_name(int i) {
@@ -329,10 +332,12 @@ static const gchar *get_function_name(int i) {
 	init_widgets();
 
 	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
-	gtk_tree_model_get_iter(pixel_math_tree_model_functions, &iter, path);
-	gtk_tree_model_get_value(pixel_math_tree_model_functions, &iter, COLUMN_FUNCTION, &value);
+	if (gtk_tree_model_get_iter(pixel_math_tree_model_functions, &iter, path)) {
+		gtk_tree_model_get_value(pixel_math_tree_model_functions, &iter, COLUMN_FUNCTION, &value);
+		return g_value_get_string(&value);
+	}
 
-	return g_value_get_string(&value);
+	return NULL;
 }
 
 /* Add an image to the list. */
@@ -364,7 +369,26 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 	gtk_file_chooser_set_filter(file_chooser, f);
 }
 
-static void select_image(int *id) {
+static int search_for_free_index() {
+	int i;
+	for (i = 0; i < MAX_IMAGES; i++) {
+		gboolean found = FALSE;
+		for (int j = 0; j < MAX_IMAGES; j++) {
+			const gchar *var = get_pixel_math_var_name(j);
+			if (!var) break;
+			if (!g_strcmp0(var, variables[i])) {
+				found = TRUE;
+				break;
+			}
+		}
+		if (!found) {
+			return i;
+		}
+	}
+	return i + 1;
+}
+
+static void select_image(int nb) {
 	GtkWidget *dialog;
 	fileChooserPreview *preview = NULL;
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
@@ -380,6 +404,7 @@ static void select_image(int *id) {
 	res = gtk_dialog_run(GTK_DIALOG(dialog));
 	if (res == GTK_RESPONSE_ACCEPT) {
 		GSList *l;
+		int pos = nb;
 
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 		GSList *filenames = gtk_file_chooser_get_filenames(chooser);
@@ -389,10 +414,11 @@ static void select_image(int *id) {
 
 			filename = (char *) l->data;
 			if (filename) {
-				add_image_to_variable_list(filename, *id);
-				(*id)++;
+				int idx = search_for_free_index();
+				add_image_to_variable_list(filename, idx);
 				g_free(filename);
-				if (*id == MAX_IMAGES) {
+				pos++;
+				if (pos == MAX_IMAGES) {
 					break;
 				}
 			}
@@ -406,12 +432,12 @@ static void select_image(int *id) {
 void on_pixel_math_add_var_button_clicked(GtkButton *button, gpointer user_data) {
 	init_widgets();
 
-	int id = get_pixel_math_number_of_rows();
-	if (id == MAX_IMAGES) {
+	int nb = get_pixel_math_number_of_rows();
+	if (nb == MAX_IMAGES) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot load new image"),
 				_("You've reached the maximum of loaded image file."));
 	} else {
-		select_image(&id);
+		select_image(nb);
 	}
 }
 
@@ -453,10 +479,12 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_pixel_math_var_name(i[0]);
 
-	gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
+	if (str) {
+		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
 
-	gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
-	gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
+		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+	}
 }
 
 gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
@@ -512,8 +540,14 @@ void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_function_name(i[0]);
 
-	gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
+	if (str) {
+		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
 
-	gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
-	gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
+		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+	}
+}
+
+void on_close_pixel_math_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("pixel_math_dialog");
 }

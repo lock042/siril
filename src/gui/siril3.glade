@@ -10083,6 +10083,20 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/photometry_dark.svg</property>
   </object>
+  <object class="GtkListStore" id="pixel_math_liststore">
+    <columns>
+      <!-- column-name ïxel_math_var -->
+      <column type="gchararray"/>
+      <!-- column-name Pixel_math_path -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_functions">
+    <columns>
+      <!-- column-name pixel_math_function -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
     <property name="name">400</property>
     <property name="width-request">800</property>
@@ -10252,6 +10266,20 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
             <property name="spacing">5</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkButton" id="close_pixel_math">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_close_pixel_math_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="apply_pixel_math">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -10324,20 +10352,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore">
-    <columns>
-      <!-- column-name ïxel_math_var -->
-      <column type="gchararray"/>
-      <!-- column-name Pixel_math_path -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_functions">
-    <columns>
-      <!-- column-name pixel_math_function -->
-      <column type="gchararray"/>
-    </columns>
   </object>
   <object class="GtkMenu" id="precision_menu">
     <property name="visible">True</property>
