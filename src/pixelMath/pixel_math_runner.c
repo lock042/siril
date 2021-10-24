@@ -364,7 +364,7 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 	gtk_file_chooser_set_filter(file_chooser, f);
 }
 
-static void select_image(int id) {
+static void select_image(int *id) {
 	GtkWidget *dialog;
 	fileChooserPreview *preview = NULL;
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
@@ -373,19 +373,29 @@ static void select_image(int id) {
 	dialog = gtk_file_chooser_dialog_new("Open File", GTK_WINDOW(lookup_widget("pixel_math_dialog")), action,
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,	NULL);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
-	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), FALSE);
+	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fits.fz)"), FITS_EXTENSIONS);
 	siril_file_chooser_add_preview(GTK_FILE_CHOOSER(dialog), preview);
 
 	res = gtk_dialog_run(GTK_DIALOG(dialog));
 	if (res == GTK_RESPONSE_ACCEPT) {
-		char *filename;
-		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		filename = gtk_file_chooser_get_filename(chooser);
+		GSList *l;
 
-		if (filename) {
-			add_image_to_variable_list(filename, id);
-			g_free(filename);
+		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+		GSList *filenames = gtk_file_chooser_get_filenames(chooser);
+
+		for (l = filenames; l; l = l->next) {
+			char *filename;
+
+			filename = (char *) l->data;
+			if (filename) {
+				add_image_to_variable_list(filename, *id);
+				(*id)++;
+				g_free(filename);
+				if (*id == MAX_IMAGES) {
+					break;
+				}
+			}
 		}
 	}
 
@@ -401,7 +411,7 @@ void on_pixel_math_add_var_button_clicked(GtkButton *button, gpointer user_data)
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot load new image"),
 				_("You've reached the maximum of loaded image file."));
 	} else {
-		select_image(id);
+		select_image(&id);
 	}
 }
 
