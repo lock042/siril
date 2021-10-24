@@ -52,11 +52,12 @@ static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL;
 static pldata *plot_data;
 static struct kpair ref;
-static gboolean is_fwhm = FALSE, use_photometry = FALSE, requires_color_update =
-		FALSE;
+static gboolean use_photometry = FALSE, requires_color_update =
+		FALSE, requires_seqlist_update = FALSE;
 static char *ylabel = NULL;
 static gchar *xlabel = NULL;
-static enum photmetry_source selected_source = ROUNDNESS;
+static enum photometry_source photometry_selected_source = FWHM;
+static enum registration_source registration_selected_source = r_FWHM;
 static int julian0 = 0;
 static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
@@ -65,6 +66,28 @@ static gboolean force_Julian = FALSE;
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
 static void free_colors(struct kplotcfg *cfg);
+void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data);
+void on_plotCombo_changed(GtkComboBox *box, gpointer user_data);
+
+
+static const gchar *photometry_labels[] = {
+		N_("FWHM"),
+		N_("Roundness"),
+		N_("Amplitude"),
+		N_("Magnitude"),
+		N_("Background"),
+		N_("X Position"),
+		N_("Y Position")
+};
+
+static const gchar *registration_labels[] = {
+		N_("FWHM"),
+		N_("Roundness"),
+		N_("wFWHM"),
+		N_("Quality"),
+		N_("X Position"),
+		N_("Y Position")
+};
 
 static pldata *alloc_plot_data(int size) {
 	pldata *plot = calloc(1, sizeof(pldata));
@@ -110,35 +133,52 @@ static pldata *alloc_plot_data(int size) {
 static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		pldata *plot) {
 	int i, j;
+	double fwhm;
 
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl)
 			continue;
-		double fwhm;
-		if (is_arcsec) {
-			double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
-			convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
-		} else {
-			fwhm = seq->regparam[layer][i].fwhm;
-		}
 		plot->data[j].x = (double) i + 1;
-		plot->data[j].y = is_fwhm ?	fwhm : seq->regparam[layer][i].quality;
+		switch (registration_selected_source) {
+			case r_ROUNDNESS:
+				plot->data[j].y = seq->regparam[layer][i].roundness;
+				break;
+			case r_FWHM:
+				if (is_arcsec) {
+					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+				} else {
+					fwhm = seq->regparam[layer][i].fwhm;
+				}
+				plot->data[j].y = fwhm;
+				break;
+			case r_X_POSITION:
+				plot->data[j].y = seq->regparam[layer][i].shiftx;
+				break;
+			case r_Y_POSITION:
+				plot->data[j].y = seq->regparam[layer][i].shifty;
+				break;
+			case r_WFWHM:
+				if (is_arcsec) {
+					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+				} else {
+					fwhm = seq->regparam[layer][i].weighted_fwhm;
+				}
+				plot->data[j].y = fwhm;
+				break;
+			case r_QUALITY:
+				plot->data[j].y = seq->regparam[layer][i].quality;
+				break;
+			default:
+				break;
+		}
 		plot->frame[j] =  plot->data[j].x;
+		if (i == ref_image) ref.y = plot->data[j].y;
 		j++;
 	}
 	plot->nb = j;
-
-	double fwhm;
-	if (is_arcsec) {
-		double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
-		convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][ref_image].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
-	} else {
-		fwhm = seq->regparam[layer][ref_image].fwhm;
-	}
-
 	ref.x = (double) ref_image + 1;
-	ref.y = is_fwhm ? fwhm : seq->regparam[layer][ref_image].quality;
-
 }
 
 static void set_x_values(sequence *seq, pldata *plot, int i, int j) {
@@ -203,7 +243,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		}
 		set_x_values(seq, plot, i, j);
 
-		switch (selected_source) {
+		switch (photometry_selected_source) {
 			case ROUNDNESS:
 				plot->data[j].y = psfs[i]->fwhmy / psfs[i]->fwhmx;
 				break;
@@ -245,6 +285,8 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 				break;
 			case Y_POSITION:
 				plot->data[j].y = psfs[i]->ypos;
+				break;	
+			default:
 				break;
 		}
 
@@ -530,9 +572,26 @@ static void free_plot_data() {
 
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(box));
-	gtk_widget_set_visible(combo, use_photometry);
+	
 	gtk_widget_set_visible(varCurve, use_photometry);
+	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
+	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
+
+	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(combo));
+	int i = 0;
+	if (use_photometry) {
+		while (i < (G_N_ELEMENTS(photometry_labels))) {
+			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), photometry_labels[i]);
+			i++;
+		}
+	} else {
+		while (i < (G_N_ELEMENTS(registration_labels))) {
+			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), registration_labels[i]);
+			i++;
+		}
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), (use_photometry) ? photometry_selected_source : registration_selected_source);
 	drawPlot();
 }
 
@@ -540,8 +599,8 @@ void reset_plot() {
 	free_plot_data();
 	if (sourceCombo) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
-		gtk_widget_set_visible(sourceCombo, FALSE);
-		gtk_widget_set_visible(combo, FALSE);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), registration_selected_source);
+		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
@@ -550,16 +609,46 @@ void reset_plot() {
 }
 
 static int compare(const void *a, const void *b) {
-    struct kpair datax_a = * ((struct kpair *) a);
-    struct kpair datax_b = * ((struct kpair *) b);
+	struct kpair datax_a = * ((struct kpair *) a);
+	struct kpair datax_b = * ((struct kpair *) b);
 
-    if (datax_a.x > datax_b.x) {
-        return 1;
-    } else if (datax_a.x < datax_b.x) {
-        return -1;
-    } else
-        return 0;
+	if (datax_a.x > datax_b.x) {
+		return 1;
+	} else if (datax_a.x < datax_b.x) {
+		return -1;
+	} else
+		return 0;
 }
+
+static int comparey(const void *a, const void *b) {
+	struct kpair datax_a = * ((struct kpair *) a);
+	struct kpair datax_b = * ((struct kpair *) b);
+
+	if (datax_a.y == 0.) return 1; // push zeros at the back
+	if (datax_b.y == 0.) return -1; // push zeros at the back
+	if (datax_a.y > datax_b.y) {
+		return 1;
+	} else if (datax_a.y < datax_b.y) {
+		return -1;
+	} else
+		return 0;
+}
+
+static int comparey_desc(const void *a, const void *b) {
+	struct kpair datax_a = * ((struct kpair *) b);
+	struct kpair datax_b = * ((struct kpair *) a);
+
+	if (datax_a.y == 0.) return -1; // push zeros at the back
+	if (datax_b.y == 0.) return 1; // push zeros at the back
+	if (datax_a.y > datax_b.y) {
+		return 1;
+	} else if (datax_a.y < datax_b.y) {
+		return -1;
+	} else
+		return 0;
+}
+
+
 
 void drawPlot() {
 	int ref_image;
@@ -608,7 +697,6 @@ void drawPlot() {
 			return;
 
 		int layer = 0;
-
 		for (int i = 0; i < seq->nb_layers; i++) {
 			if (com.seq.regparam[i]) {
 				layer = i;
@@ -619,21 +707,28 @@ void drawPlot() {
 			return;
 
 		if (seq->regparam[layer][ref_image].fwhm > 0.0f) {
-			is_fwhm = TRUE;
-			if (is_arcsec)
-				ylabel = _("FWHM ('')");
-			else
-				ylabel = _("FWHM (px)");
-		} else if (seq->regparam[layer][ref_image].quality > 0.0) {
-			is_fwhm = FALSE;
-			ylabel = _("Quality");
-		} else
-			return;
-
+			if (registration_selected_source > r_WFWHM) {
+				registration_selected_source = r_FWHM;
+				g_signal_handlers_block_by_func(combo, on_plotCombo_changed, NULL);
+				gtk_combo_box_set_active(GTK_COMBO_BOX(combo), registration_selected_source);
+				g_signal_handlers_unblock_by_func(combo, on_plotCombo_changed, NULL);
+			}
+		} else {
+			if (registration_selected_source < r_QUALITY) {
+				registration_selected_source = r_QUALITY;
+				g_signal_handlers_block_by_func(combo, on_plotCombo_changed, NULL);
+				gtk_combo_box_set_active(GTK_COMBO_BOX(combo), registration_selected_source);
+				g_signal_handlers_unblock_by_func(combo, on_plotCombo_changed, NULL);
+			}
+		}
+		update_ylabel();
 		/* building data array */
 		plot_data = alloc_plot_data(seq->number);
-
 		build_registration_dataset(seq, layer, ref_image, plot_data);
+		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
+			fill_sequence_list(seq, layer, FALSE); 
+			requires_seqlist_update = FALSE;
+		}
 	}
 	gtk_widget_set_sensitive(julianw, julian0);
 	gtk_widget_queue_draw(drawingPlot);
@@ -742,7 +837,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		cfgplot.borderline.clr.rgba[2] = 0.5;
 		cfgplot.borderline.clr.rgba[3] = 1.0;
 		cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
-		cfgplot.xtics = 3;
+		cfgplot.xtics = 5;
 		cfgplot.yaxislabel = ylabel;
 		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
@@ -769,19 +864,36 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		int max_data = kdata_xmax(d1, NULL);
 
 		if (nb_graphs == 1) {
-			struct kpair *avg;
-
-			avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
-			j = min_data;
-			for (i = 0; i < (max_data - min_data) + 1; i++) {
-				avg[i].x = plot_data->data[j].x;
-				avg[i].y = mean;
-				++j;
+			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) ||(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY))) {
+				struct kpair *sorted_data;
+				sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
+				for (int i = 0; i < plot_data->nb; i++) {
+					sorted_data[i].x = plot_data->data[i].x;
+					sorted_data[i].y = plot_data->data[i].y;
+				}
+				qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY)) ? comparey_desc : comparey);
+				double imin = plot_data->data[min_data].x;
+				double imax = plot_data->data[max_data].x;
+				double pace = (imax - imin + 2.) / ((double)plot_data->nb + 1.);
+				for (int i = 0; i < plot_data->nb; i++) {
+					sorted_data[i].x = imin + i * pace;
+				}
+				d1 = kdata_array_alloc(sorted_data, plot_data->nb);
+				kplot_attach_data(p, d1, KPLOT_LINES, NULL);
+				free(sorted_data);
+			} else {
+				struct kpair *avg;
+				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
+				j = min_data;
+				for (i = 0; i < (max_data - min_data) + 1; i++) {
+					avg[i].x = plot_data->data[j].x;
+					avg[i].y = mean;
+					++j;
+				}
+				mean_d = kdata_array_alloc(avg, (max_data - min_data) + 1);
+				kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
+				free(avg);
 			}
-
-			mean_d = kdata_array_alloc(avg, (max_data - min_data) + 1);
-			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
-			free(avg);
 
 			if (ref.x >= 0.0 && ref.y >= 0.0) {
 				ref_d = kdata_array_alloc(&ref, 1);
@@ -819,10 +931,12 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
+	requires_seqlist_update = TRUE;
 	drawPlot();
 }
 
 void on_arcsecPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
+	requires_seqlist_update = TRUE;
 	is_arcsec = gtk_toggle_button_get_active(button);
 	drawPlot();
 }
@@ -833,47 +947,72 @@ void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 static void update_ylabel() {
-	selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-	gtk_widget_set_sensitive(varCurve, selected_source == MAGNITUDE);
 	gboolean arcsec_is_ok = (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.f
-			&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
-			&& gfit.binning_y > 0);
-	gtk_widget_set_visible(arcsec, selected_source == FWHM && arcsec_is_ok);
-	switch (selected_source) {
-	case ROUNDNESS:
-		ylabel = _("Star roundness (1 is round)");
-		break;
-	case FWHM:
-		if (is_arcsec)
-			ylabel = _("FWHM ('')");
-		else
-			ylabel = _("FWHM (px)");
-		break;
-	case AMPLITUDE:
-		ylabel = _("Amplitude");
-		break;
-	case MAGNITUDE:
-		if (com.magOffset > 0.0 || com.seq.reference_star >= 0)
-			ylabel = _("Star magnitude (absolute)");
-		else
-			ylabel = _("Star magnitude (relative, use setmag)");
-		break;
-	case BACKGROUND:
-		ylabel = _("Background value");
-		break;
-	case X_POSITION:
-		ylabel = _("Star position on X axis");
-		break;
-	case Y_POSITION:
-		ylabel = _("Star position on Y axis");
-		break;
+		&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
+		&& gfit.binning_y > 0);
+	int current_selected_source;
+	if (use_photometry) {
+		current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+		photometry_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
+		gtk_widget_set_visible(arcsec, ((current_selected_source == FWHM) && arcsec_is_ok));
+		switch (current_selected_source) {
+			case ROUNDNESS:
+				ylabel = _("Star roundness (1 is round)");
+				break;
+			case FWHM:
+				ylabel = (is_arcsec) ? _("FWHM ('')") : _("FWHM (px)");
+				break;
+			case AMPLITUDE:
+				ylabel = _("Amplitude");
+				break;
+			case MAGNITUDE:
+				if (com.magOffset > 0.0 || com.seq.reference_star >= 0)
+					ylabel = _("Star magnitude (absolute)");
+				else
+					ylabel = _("Star magnitude (relative, use setmag)");
+				break;
+			case BACKGROUND:
+				ylabel = _("Background value");
+				break;
+			case X_POSITION:
+				ylabel = _("Star position on X axis");
+				break;
+			case Y_POSITION:
+				ylabel = _("Star position on Y axis");
+				break;
+		}
+	} else {
+		current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+		registration_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));	
+		gtk_widget_set_visible(arcsec, ((current_selected_source == r_FWHM) || (current_selected_source == r_WFWHM)) && arcsec_is_ok);
+		switch (current_selected_source) {
+			case r_ROUNDNESS:
+				ylabel = _("Star roundness (1 is round)");
+				break;
+			case r_FWHM:
+				ylabel = (is_arcsec) ? _("FWHM ('')") : _("FWHM (px)");
+				break;
+			case r_WFWHM:
+				ylabel = (is_arcsec) ? _("wFWHM ('')") : _("wFWHM (px)");
+				break;
+			case r_X_POSITION:
+				ylabel = _("Star position on X axis");
+				break;
+			case r_Y_POSITION:
+				ylabel = _("Star position on Y axis");
+				break;
+			case r_QUALITY:
+				ylabel = _("Quality");
+				break;
+		}
 	}
 }
 
 void notify_new_photometry() {
 	control_window_switch_to_tab(PLOT);
 	requires_color_update = TRUE;
-	gtk_widget_set_visible(sourceCombo, TRUE);
+	gtk_widget_set_sensitive(sourceCombo, TRUE);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 1);
 	gtk_widget_set_sensitive(buttonClearLatest, TRUE);
 	gtk_widget_set_sensitive(buttonClearAll, TRUE);
@@ -914,9 +1053,10 @@ static void free_colors(struct kplotcfg *cfg) {
 	free(cfg->clrs);
 }
 
-static int get_index_of_frame(gdouble x, gdouble y) {
-	if (!plot_data) return -1;
-	if (!com.seq.imgparam) return -1;
+static gboolean get_index_of_frame(gdouble x, gdouble y, int *index, double *val, double *ypos) {
+	if (!plot_data) return FALSE;
+	if (!com.seq.imgparam) return FALSE;
+	double miny = DBL_MAX, maxy = - DBL_MAX;
 
 	pldata *plot = plot_data;
 
@@ -926,15 +1066,22 @@ static int get_index_of_frame(gdouble x, gdouble y) {
 	while (plot->frame[com.seq.selnum - 1 - i] == 0.0) {
 		i++;
 	}
+	for (int j = 0; j < plot->nb; j++) {
+		if (plot->data[j].y < miny) miny = plot->data[j].y;
+		if (plot->data[j].y > maxy) maxy = plot->data[j].y;
+	}
+
 	point max = { plot->frame[com.seq.selnum - 1 - i], plot->data[com.seq.selnum - 1 - i].y };
-	point intervale = { get_dimx() / (max.x - min.x), get_dimy() / (max.y - min.y)};
+	point intervale = { get_dimx() / (max.x - min.x), get_dimy() / (maxy - miny)};
 	point pos = { x - get_offsx(), get_dimy() - y + get_offsy() };
 
-	int index = (int) round(pos.x / intervale.x) + (int) min.x - 1;
-	if (index >= 0 && index <= max.x && com.seq.imgparam[index].incl) {
-		return index;
+	*index = (int) round(pos.x / intervale.x) + (int) min.x - 1;
+	if (*index >= 0 && *index <= max.x && com.seq.imgparam[*index].incl) {
+		*val = plot_data->data[*index].y;
+		*ypos = (pos.y / intervale.y) + miny;
+		return TRUE;
 	}
-	return -1;
+	return FALSE;
 }
 
 gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
@@ -942,9 +1089,11 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	gtk_widget_set_has_tooltip(widget, FALSE);
 
-	int index = get_index_of_frame(event->x, event->y);
-	if (index >= 0) {
-		gchar *tooltip_text = g_strdup_printf("Frame: %d", (index + 1));
+	int index;
+	double val, ypos;
+	gboolean getvals = get_index_of_frame(event->x, event->y, &index, &val, &ypos);
+	if (getvals) {
+		gchar *tooltip_text = g_strdup_printf("Frame#%d value: %0.2f\nY pos: %0.2f", (index + 1), val, ypos);
 		gtk_widget_set_tooltip_text(widget, tooltip_text);
 		return TRUE;
 	}
@@ -974,8 +1123,10 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	static GtkMenu *menu = NULL;
 	static GtkMenuItem *menu_item = NULL;
 
-	int index = get_index_of_frame(event->x, event->y);
-	if (index < 0) return;
+	int index;
+	double val, ypos;
+	gboolean getvals = get_index_of_frame(event->x, event->y, &index, &val, &ypos);
+	if (!getvals) return;
 
 	if (!menu) {
 		menu = GTK_MENU(lookup_widget("menu_plot"));
@@ -1015,12 +1166,12 @@ static signed long extract_int_from_label(const gchar *str) {
 	gchar *p = (gchar *)str;
 	while (*p) {
 		if (g_ascii_isdigit(*p) || ((*p == '-' || *p == '+') && g_ascii_isdigit(*(p + 1)))) {
-	        // Found a number
-	        return g_ascii_strtoll(p, &p, 10); // return number
-	    } else {
-	        // Otherwise, move on to the next character.
-	        p++;
-	    }
+			// Found a number
+			return g_ascii_strtoll(p, &p, 10); // return number
+		} else {
+			// Otherwise, move on to the next character.
+			p++;
+		}
 	}
 	return -1;
 }
