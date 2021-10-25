@@ -118,6 +118,9 @@ static void init_widgets() {
 	g_assert(pixel_math_list_store_functions);
 	g_assert(pixel_math_status_bar);
 	g_assert(pixel_math_text_view);
+	g_assert(pixel_math_treeview_functions);
+	g_assert(pixel_math_tree_model_functions);
+	g_assert(pixel_math_list_store_functions);
 
 }
 
@@ -175,6 +178,61 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	return FALSE;
 }
 
+static const gchar *get_pixel_math_var_paths(int i) {
+	GtkTreeIter iter;
+	GValue value = G_VALUE_INIT;
+
+	init_widgets();
+
+	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
+	gtk_tree_model_get_iter(pixel_math_tree_model, &iter, path);
+	gtk_tree_model_get_value(pixel_math_tree_model, &iter, COLUMN_IMAGE_PATH, &value);
+
+	return g_value_get_string(&value);
+}
+
+static int get_pixel_math_number_of_rows(){
+	if (GTK_IS_TREE_MODEL(pixel_math_list_store))
+		return gtk_tree_model_iter_n_children(GTK_TREE_MODEL(pixel_math_list_store), NULL);
+	else return 0;
+}
+
+static int get_pixel_math_functions_number_of_rows(){
+	if (GTK_IS_TREE_MODEL(pixel_math_list_store_functions))
+		return gtk_tree_model_iter_n_children(GTK_TREE_MODEL(pixel_math_list_store_functions), NULL);
+	else return 0;
+}
+
+static const gchar *get_pixel_math_var_name(int i) {
+	GtkTreeIter iter;
+	GValue value = G_VALUE_INIT;
+
+	init_widgets();
+
+	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
+	if (gtk_tree_model_get_iter(pixel_math_tree_model, &iter, path)) {
+		gtk_tree_model_get_value(pixel_math_tree_model, &iter, COLUMN_IMAGE_NUM, &value);
+		return g_value_get_string(&value);
+	}
+
+	return NULL;
+}
+
+static const gchar *get_function_name(int i) {
+	GtkTreeIter iter;
+	GValue value = G_VALUE_INIT;
+
+	init_widgets();
+
+	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
+	if (gtk_tree_model_get_iter(pixel_math_tree_model_functions, &iter, path)) {
+		gtk_tree_model_get_value(pixel_math_tree_model_functions, &iter, COLUMN_FUNCTION, &value);
+		return g_value_get_string(&value);
+	}
+
+	return NULL;
+}
+
 static gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -195,7 +253,7 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 		double *x = malloc(nb_rows * sizeof(double));
 
 		for (int i = 0; i < nb_rows; i++) {
-			vars[i].name = variables[i];
+			vars[i].name = get_pixel_math_var_name(i);
 			vars[i].address = &x[i];
 			vars[i].context = NULL;
 			vars[i].type = 0;
@@ -236,30 +294,6 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 	return GINT_TO_POINTER(args->ret);
 }
 
-static const gchar *get_pixel_math_var_paths(int i) {
-	GtkTreeIter iter;
-	GValue value = G_VALUE_INIT;
-
-	init_widgets();
-
-	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
-	gtk_tree_model_get_iter(pixel_math_tree_model, &iter, path);
-	gtk_tree_model_get_value(pixel_math_tree_model, &iter, COLUMN_IMAGE_PATH, &value);
-
-	return g_value_get_string(&value);
-}
-
-static int get_pixel_math_number_of_rows(){
-	if (GTK_IS_TREE_MODEL(pixel_math_list_store))
-		return gtk_tree_model_iter_n_children(GTK_TREE_MODEL(pixel_math_list_store), NULL);
-	else return 0;
-}
-
-static int get_pixel_math_functions_number_of_rows(){
-	if (GTK_IS_TREE_MODEL(pixel_math_list_store_functions))
-		return gtk_tree_model_iter_n_children(GTK_TREE_MODEL(pixel_math_list_store_functions), NULL);
-	else return 0;
-}
 
 static int pixel_math_evaluate(gchar *expression) {
 	int nb_rows = 0;
@@ -308,36 +342,6 @@ static int pixel_math_evaluate(gchar *expression) {
 	start_in_new_thread(apply_pixel_math_operation, args);
 
 	return 0;
-}
-
-static const gchar *get_pixel_math_var_name(int i) {
-	GtkTreeIter iter;
-	GValue value = G_VALUE_INIT;
-
-	init_widgets();
-
-	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
-	if (gtk_tree_model_get_iter(pixel_math_tree_model, &iter, path)) {
-		gtk_tree_model_get_value(pixel_math_tree_model, &iter, COLUMN_IMAGE_NUM, &value);
-		return g_value_get_string(&value);
-	}
-
-	return NULL;
-}
-
-static const gchar *get_function_name(int i) {
-	GtkTreeIter iter;
-	GValue value = G_VALUE_INIT;
-
-	init_widgets();
-
-	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
-	if (gtk_tree_model_get_iter(pixel_math_tree_model_functions, &iter, path)) {
-		gtk_tree_model_get_value(pixel_math_tree_model_functions, &iter, COLUMN_FUNCTION, &value);
-		return g_value_get_string(&value);
-	}
-
-	return NULL;
 }
 
 /* Add an image to the list. */
@@ -441,7 +445,7 @@ void on_pixel_math_add_var_button_clicked(GtkButton *button, gpointer user_data)
 	}
 }
 
-void on_pixel_math_remove_var_button_clicked(GtkButton *button, gpointer user_data) {
+void on_pixel_math_remove_var_button_clicked(void) {
 	GtkTreeSelection *selection;
 	GList *references, *list;
 
@@ -554,4 +558,30 @@ void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 
 void on_close_pixel_math_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("pixel_math_dialog");
+}
+
+void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
+		char *new_text, gpointer user_data) {
+
+	int i = 0;
+
+	while (i < strlen(new_text)) {
+		if (!g_ascii_isalpha(new_text[i++])) return;
+	}
+
+	GtkTreeIter iter;
+	GValue value = G_VALUE_INIT;
+
+	init_widgets();
+
+	g_value_init(&value, G_TYPE_STRING);
+	g_assert(G_VALUE_HOLDS_STRING(&value));
+
+	gtk_tree_model_get_iter_from_string(pixel_math_tree_model, &iter, path);
+	g_value_set_string(&value, new_text);
+
+	gtk_list_store_set_value(pixel_math_list_store, &iter, COLUMN_IMAGE_NUM,
+			&value);
+	g_value_unset (&value);
+
 }

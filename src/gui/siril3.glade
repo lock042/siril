@@ -10098,7 +10098,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     </columns>
   </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
-    <property name="name">400</property>
     <property name="width-request">800</property>
     <property name="height-request">500</property>
     <property name="can-focus">False</property>
@@ -10179,7 +10178,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="sort-indicator">True</property>
                         <property name="sort-column-id">0</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_variables"/>
+                          <object class="GtkCellRendererText" id="cellrenderer_variables">
+                            <property name="editable">True</property>
+                            <signal name="edited" handler="on_cellrenderer_variables_edited" swapped="no"/>
+                          </object>
                           <attributes>
                             <attribute name="text">0</attribute>
                           </attributes>
