@@ -445,7 +445,7 @@ void on_pixel_math_add_var_button_clicked(GtkButton *button, gpointer user_data)
 	}
 }
 
-void on_pixel_math_remove_var_button_clicked(void) {
+static void remove_selected_lines() {
 	GtkTreeSelection *selection;
 	GList *references, *list;
 
@@ -464,6 +464,10 @@ void on_pixel_math_remove_var_button_clicked(void) {
 	}
 	g_list_free(references);
 	gtk_tree_selection_unselect_all(selection);
+}
+
+void on_pixel_math_remove_var_button_clicked(GtkButton *button, gpointer user_data) {
+	remove_selected_lines();
 }
 
 void on_apply_pixel_math_clicked(GtkButton *button, gpointer user_data) {
@@ -569,10 +573,10 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 		if (!g_ascii_isalpha(new_text[i++])) return;
 	}
 
+	init_widgets();
+
 	GtkTreeIter iter;
 	GValue value = G_VALUE_INIT;
-
-	init_widgets();
 
 	g_value_init(&value, G_TYPE_STRING);
 	g_assert(G_VALUE_HOLDS_STRING(&value));
@@ -580,8 +584,18 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 	gtk_tree_model_get_iter_from_string(pixel_math_tree_model, &iter, path);
 	g_value_set_string(&value, new_text);
 
-	gtk_list_store_set_value(pixel_math_list_store, &iter, COLUMN_IMAGE_NUM,
-			&value);
+	gtk_list_store_set_value(pixel_math_list_store, &iter, COLUMN_IMAGE_NUM, &value);
 	g_value_unset (&value);
 
+}
+
+
+gboolean on_pixel_math_treeview_key_release_event(GtkWidget *widget, GdkEventKey *event,
+		gpointer user_data) {
+	if (event->keyval == GDK_KEY_Delete || event->keyval == GDK_KEY_KP_Delete
+			|| event->keyval == GDK_KEY_BackSpace) {
+		remove_selected_lines();
+		return TRUE;
+	}
+	return FALSE;
 }
