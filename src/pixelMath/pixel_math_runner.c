@@ -567,10 +567,11 @@ void on_close_pixel_math_clicked(GtkButton *button, gpointer user_data) {
 void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 		char *new_text, gpointer user_data) {
 
-	int i = 0;
+	const char *p = new_text;
 
-	while (i < strlen(new_text)) {
-		if (!g_ascii_isalpha(new_text[i++])) return;
+	/* Exclude if non alpha variable */
+	while (*p) {
+		if (!g_ascii_isalpha(*p++)) return;
 	}
 
 	init_widgets();
@@ -586,9 +587,7 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 
 	gtk_list_store_set_value(pixel_math_list_store, &iter, COLUMN_IMAGE_NUM, &value);
 	g_value_unset (&value);
-
 }
-
 
 gboolean on_pixel_math_treeview_key_release_event(GtkWidget *widget, GdkEventKey *event,
 		gpointer user_data) {
