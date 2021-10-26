@@ -61,6 +61,7 @@ static const _pm_functions functions[] = { // TODO: should we use tabular in tin
     { "ln",    "ln ( x )",       N_("Natural logarithm of x.")     },
     { "log",   "log ( x )",      N_("Base-10 logarithm of x.")     },
     { "log10", "log10 ( x )",    N_("Base-10 logarithm of x.")      },
+    { "log2",  "log2 ( x )",     N_("Base-2 logarithm of x.")      },
     { "ncr",   "ncr ( x, y )",   N_("Combinations function.")      },
     { "npr",   "npr ( x, y )",   N_("Permutations function.")      },
     { "pi",    "pi",             N_("The constant \u03c0=3.141592...") },

@@ -181,6 +181,7 @@ static const te_variable functions[] = {
     {"log", log10,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
     {"log10", log10,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"log2", log2,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"ncr", ncr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"npr", npr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0},
