@@ -10180,6 +10180,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           <object class="GtkCellRendererText" id="cellrenderer_variables">
                             <property name="editable">True</property>
                             <signal name="edited" handler="on_cellrenderer_variables_edited" swapped="no"/>
+                            <signal name="editing-canceled" handler="on_cellrenderer_variables_editing_canceled" swapped="no"/>
+                            <signal name="editing-started" handler="on_cellrenderer_variables_editing_started" swapped="no"/>
                           </object>
                           <attributes>
                             <attribute name="text">0</attribute>
