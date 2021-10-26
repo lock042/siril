@@ -29,6 +29,7 @@
 #include "gui/message_dialog.h"
 #include "gui/open_dialog.h"
 #include "gui/progress_and_log.h"
+#include "gui/histogram.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 
@@ -168,6 +169,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		com.uniq->fit = args->fit;
 		clearfits(&gfit);
 		copyfits(args->fit, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		invalidate_gfit_histogram();
 		open_single_image_from_gfit();
 	}
 	set_cursor_waiting(FALSE);
