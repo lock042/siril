@@ -571,7 +571,7 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 
 	/* Exclude if non alpha variable */
 	while (*p) {
-		if (!g_ascii_isalpha(*p++)) return;
+		if (!g_ascii_isalnum(*p++)) return;
 	}
 
 	init_widgets();
