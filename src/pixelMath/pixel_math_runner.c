@@ -589,6 +589,14 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 
 	init_widgets();
 
+	/* Exclude duplicate names */
+	int nb_rows = 0;
+	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
+		const gchar *var = get_pixel_math_var_name(nb_rows);
+		if (!g_strcmp0(var, new_text)) return;
+		nb_rows++;
+	}
+
 	GtkTreeIter iter;
 	GValue value = G_VALUE_INIT;
 
