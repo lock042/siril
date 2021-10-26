@@ -25,6 +25,7 @@
 
 /*
  * 2021/10/19: add trunc function
+ * 2021/10/26: add log2 function
  */
 
 /* COMPILE TIME OPTIONS */

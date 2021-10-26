@@ -585,7 +585,7 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 	const char *p = new_text;
 
 	if (*p == '\0') return;
-	/* Exclude if non alpha variable */
+	/* Exclude if non alphanum variable */
 	while (*p) {
 		if (!g_ascii_isalnum(*p++)) return;
 	}
@@ -600,6 +600,7 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 		nb_rows++;
 	}
 
+	/* Value looks fine, we copy it */
 	GtkTreeIter iter;
 	GValue value = G_VALUE_INIT;
 
@@ -616,12 +617,10 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 
 void on_cellrenderer_variables_editing_started(GtkCellRenderer *renderer,
 		GtkCellEditable *editable, char *path, gpointer user_data) {
-	g_signal_handlers_block_by_func(lookup_widget("pixel_math_treeview"),
-			on_pixel_math_treeview_key_release_event, NULL);
+	g_signal_handlers_block_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
 }
 
 void on_cellrenderer_variables_editing_canceled(GtkCellRenderer *renderer,
 		gpointer user_data) {
-	g_signal_handlers_unblock_by_func(lookup_widget("pixel_math_treeview"),
-			on_pixel_math_treeview_key_release_event, NULL);
+	g_signal_handlers_unblock_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
 }
