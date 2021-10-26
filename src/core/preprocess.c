@@ -422,7 +422,7 @@ int preprocess_single_image(struct preprocessing_data *args) {
 	return ret;
 }
 
-int evaluateoffsetlevel(const char* expression) {
+int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// try to find an occurence of *
 	// If none -> the level is just an integer to evaluate
 	// If found -> Try to find $ sign to read the offset value and its multiplier
@@ -445,7 +445,7 @@ int evaluateoffsetlevel(const char* expression) {
 		multiplier = g_ascii_strtoull(expressioncpy, NULL, 10);
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
-	offsetlevel = (int)(multiplier * gfit.key_offset);
+	offsetlevel = (int)(multiplier * fit->key_offset);
 	if (expressioncpy) g_free(expressioncpy);
 	return offsetlevel;
 free_on_error:
@@ -470,7 +470,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			const char *error = NULL;
             if (filename[0] == '=') { // offset is specified as a level not a file
 			    set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
-				int offsetlevel = evaluateoffsetlevel(filename + 1);
+				int offsetlevel = evaluateoffsetlevel(filename + 1, &gfit);
 				if (!offsetlevel) {
 					error = _("NOT USING OFFSET: the offset value could not be parsed");
 					args->use_bias = FALSE;

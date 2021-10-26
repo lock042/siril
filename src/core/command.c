@@ -3821,16 +3821,28 @@ int process_preprocess(int nb) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
 				if (expression[0] == '=') {
-					int offsetlevel = evaluateoffsetlevel(expression+1);
-					if (!offsetlevel) {
-						siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
+					// loading the sequence first image metadata in case $OFFSET is passed in the expression
+					int image_to_load = sequence_find_refimage(seq);
+					fits reffit = { 0 };
+					memset(&reffit, 0, sizeof(fits));
+					if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+						siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+						clearfits(&reffit);
 						g_free(expression);
 						retvalue = 1;
 						break;
+					}
+					// parsing offset level
+					int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
+					clearfits(&reffit);
+					g_free(expression);
+					if (!offsetlevel) {
+						siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
+						retvalue = 1;
+						break;
 					} else {
-						g_free(expression);
 						siril_log_message(_("Synthetic offset: Level = %d\n"), offsetlevel);
-						int maxlevel = (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+						int maxlevel = (seq->bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 						if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
 							siril_log_message(_("The offset value is out of allowable bounds [-%d,%d], aborting.\n"), maxlevel, maxlevel);
 							retvalue = 1;

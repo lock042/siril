@@ -114,7 +114,6 @@ static void fillSeqAviExport() {
 }
 
 static sequence *check_seq_one_file(const char* name);
-static int seq_read_frame_metadata(sequence *seq, int index, fits *dest);
 
 void populate_seqcombo(const gchar *realname) {
 	control_window_switch_to_tab(IMAGE_SEQ);
@@ -810,7 +809,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 
 // not thread-safe
 // gets image naxes and bitpix
-static int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
+int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 	assert(index < seq->number);
 	char filename[256];
 	switch (seq->type) {
