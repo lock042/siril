@@ -25,7 +25,7 @@
 
 /*
  * 2021/10/19: add trunc function
- * 2021/10/26: add log2 function
+ * 2021/10/26: add log2 function and ~ operator as the inverse operator (~X = 1 - X)
  */
 
 /* COMPILE TIME OPTIONS */
@@ -237,6 +237,7 @@ static double sub(double a, double b) {return a - b;}
 static double mul(double a, double b) {return a * b;}
 static double divide(double a, double b) {return a / b;}
 static double negate(double a) {return -a;}
+static double inverse(double a) {return 1 - a;}
 static double comma(double a, double b) {(void)a; return b;}
 
 
@@ -291,6 +292,7 @@ void next_token(state *s) {
                 switch (s->next++[0]) {
                     case '+': s->type = TOK_INFIX; s->function = add; break;
                     case '-': s->type = TOK_INFIX; s->function = sub; break;
+                    case '~': s->type = TOK_INFIX; s->function = inverse; break;
                     case '*': s->type = TOK_INFIX; s->function = mul; break;
                     case '/': s->type = TOK_INFIX; s->function = divide; break;
                     case '^': s->type = TOK_INFIX; s->function = pow; break;
@@ -409,8 +411,8 @@ static te_expr *base(state *s) {
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+")} <base> */
     int sign = 1;
-    while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
-        if (s->function == sub) sign = -sign;
+    while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == inverse)) {
+        if (s->function == sub || s->function == inverse) sign = -sign;
         next_token(s);
     }
 
@@ -420,7 +422,11 @@ static te_expr *power(state *s) {
         ret = base(s);
     } else {
         ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-        ret->function = negate;
+        if (s->function == sub) {
+        	ret->function = negate;
+        } else {
+        	ret->function = inverse;
+        }
     }
 
     return ret;
@@ -503,7 +509,7 @@ static te_expr *expr(state *s) {
     /* <expr>      =    <term> {("+" | "-") <term>} */
     te_expr *ret = term(s);
 
-    while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
+    while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == inverse)) {
         te_fun2 t = s->function;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
