@@ -10194,7 +10194,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="title" translatable="yes">Path</property>
                         <property name="expand">True</property>
                         <property name="clickable">True</property>
-                        <property name="sort-column-id">3</property>
+                        <property name="sort-column-id">1</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderer_paths"/>
                           <attributes>
