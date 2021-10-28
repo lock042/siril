@@ -515,7 +515,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 
 	gint *i = gtk_tree_path_get_indices(path);
 
-	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[i[0]].prototype, functions[i[0]].definition);
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[i[0]].prototype, _(functions[i[0]].definition));
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
