@@ -582,12 +582,12 @@ void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 	int i = 0;
 	if (use_photometry) {
 		while (i < (G_N_ELEMENTS(photometry_labels))) {
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), photometry_labels[i]);
+			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _(photometry_labels[i]));
 			i++;
 		}
 	} else {
 		while (i < (G_N_ELEMENTS(registration_labels))) {
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), registration_labels[i]);
+			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _(registration_labels[i]));
 			i++;
 		}
 	}
