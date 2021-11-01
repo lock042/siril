@@ -9147,6 +9147,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <signal name="activate" handler="on_menu_plot_exclude_activate" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_plot_show">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Show frame %d</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="on_menu_plot_show_activate" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkMenu" id="menugray">
     <property name="visible">True</property>
@@ -15174,6 +15183,23 @@ To be enabled, the reference image must have been explicitly set and already dis
                                 <property name="can-focus">False</property>
                                 <property name="spacing">5</property>
                                 <child>
+                                  <object class="GtkButton" id="varCurvePhotometry">
+                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.
+WARNING: gnuplot must be installed.</property>
+                                    <property name="halign">center</property>
+                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
                                   <object class="GtkComboBoxText" id="plotSourceCombo">
                                     <property name="visible">True</property>
                                     <property name="sensitive">False</property>
@@ -15191,7 +15217,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                     <property name="fill">True</property>
                                     <property name="padding">6</property>
                                     <property name="pack-type">end</property>
-                                    <property name="position">0</property>
+                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -15205,8 +15231,8 @@ To be enabled, the reference image must have been explicitly set and already dis
                                       <item translatable="yes">Roundness</item>
                                       <item translatable="yes">wFWHM</item>
                                       <item translatable="yes">Quality</item>
-                                      <item translatable="yes">X position</item>
-                                      <item translatable="yes">Y position</item>
+                                      <item translatable="yes">X Position</item>
+                                      <item translatable="yes">Y Position</item>
                                     </items>
                                     <signal name="changed" handler="on_plotCombo_changed" swapped="no"/>
                                   </object>
@@ -15214,22 +15240,56 @@ To be enabled, the reference image must have been explicitly set and already dis
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="pack-type">end</property>
-                                    <property name="position">1</property>
+                                    <property name="position">2</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkCheckButton" id="JulianPhotometry">
-                                    <property name="label" translatable="yes">Julian Date</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Y:</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="pack-type">end</property>
-                                    <property name="position">2</property>
+                                    <property name="position">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBoxText" id="plotComboX">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="active">6</property>
+                                    <items>
+                                      <item translatable="yes">FWHM</item>
+                                      <item translatable="yes">Roundness</item>
+                                      <item translatable="yes">wFWHM</item>
+                                      <item translatable="yes">Quality</item>
+                                      <item translatable="yes">X Position</item>
+                                      <item translatable="yes">Y Position</item>
+                                      <item translatable="yes">Frame</item>
+                                    </items>
+                                    <signal name="changed" handler="on_plotComboX_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="pack-type">end</property>
+                                    <property name="position">4</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">X:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="pack-type">end</property>
+                                    <property name="position">5</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -15245,24 +15305,22 @@ To be enabled, the reference image must have been explicitly set and already dis
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="pack-type">end</property>
-                                    <property name="position">3</property>
+                                    <property name="position">6</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="varCurvePhotometry">
-                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
-                                    <property name="sensitive">False</property>
+                                  <object class="GtkCheckButton" id="JulianPhotometry">
+                                    <property name="label" translatable="yes">Julian Date</property>
                                     <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.
-WARNING: gnuplot must be installed.</property>
-                                    <property name="halign">center</property>
-                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+                                    <property name="receives-default">False</property>
+                                    <property name="draw-indicator">True</property>
+                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">4</property>
+                                    <property name="pack-type">end</property>
+                                    <property name="position">7</property>
                                   </packing>
                                 </child>
                               </object>

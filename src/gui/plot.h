@@ -54,7 +54,8 @@ enum registration_source {
 	r_WFWHM,
 	r_QUALITY,
 	r_X_POSITION,
-	r_Y_POSITION
+	r_Y_POSITION,
+	r_FRAME
 };
 
 gchar *siril_win_get_gnuplot_path();
