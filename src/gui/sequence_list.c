@@ -28,6 +28,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/plot.h"
 #include "io/sequence.h"
+#include "io/image_format_fits.h"
 #include "algos/PSF.h"
 #include "registration/registration.h"	// for update_reg_interface
 #include "stacking/stacking.h"	// for update_stack_interface
@@ -38,9 +39,10 @@ static gboolean fill_sequence_list_idle(gpointer p);
 
 static const char *bg_colour[] = { "WhiteSmoke", "#1B1B1B" };
 static const char *ref_bg_colour[] = { "Beige", "#4A4A39" };
+static gchar *qualfmt = "%.3f";
 
 static  GtkWidget *combo = NULL, *arcsec = NULL, *sourceCombo = NULL;
-static enum registration_source selected_source = -1;
+static int selected_source = -1;
 static gboolean is_arcsec = FALSE;
 
 struct _seq_list {
@@ -76,15 +78,16 @@ static void fwhm_quality_cell_data_function(GtkTreeViewColumn *col,
 	gdouble quality;
 	gchar buf[20];
 	gtk_tree_model_get(model, iter, COLUMN_FWHM, &quality, -1);
-	if (quality >= 0.0)
-		g_snprintf(buf, sizeof(buf), "%.3f", quality);
+	if (quality > -DBL_MAX)
+		g_snprintf(buf, sizeof(buf), qualfmt, quality);
 	else
 		g_strlcpy(buf, "N/A", sizeof(buf));
 	g_object_set(renderer, "text", buf, NULL);
 }
 
-static void update_seqlist_dialog_combo() {
+static void update_seqlist_dialog_combo(int layer) {
 	if (!sequence_is_loaded()) return;
+	int activelayer;
 
 	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
 	g_signal_handlers_block_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
@@ -93,12 +96,14 @@ static void update_seqlist_dialog_combo() {
 
 	if (com.seq.nb_layers == 1) {
 		gtk_combo_box_text_append_text(seqcombo, _("B&W channel"));
+		activelayer = 0;
 	} else {
 		gtk_combo_box_text_append_text(seqcombo, _("Red channel"));
 		gtk_combo_box_text_append_text(seqcombo, _("Green channel"));
 		gtk_combo_box_text_append_text(seqcombo, _("Blue channel"));
+		activelayer = layer >= 0 ? layer : 0;
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), com.cvport == RGB_VPORT ? 1 : com.cvport);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
 }
 
 static void initialize_title() {
@@ -144,27 +149,31 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 	char imname[256];
 	char *basename;
 	int shiftx = -1, shifty = -1;
-	double fwhm = -1.0;
+	double fwhm = -DBL_MAX;
 	int color;
 	double bin;
-
-	get_list_store();
+	gboolean use_photometry = FALSE;
 
 	if (combo == NULL) combo = lookup_widget("plotCombo");
 	if (sourceCombo == NULL) sourceCombo = lookup_widget("plotSourceCombo");
 	if (arcsec == NULL) arcsec = lookup_widget("arcsecPhotometry");
 	selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	is_arcsec = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(arcsec));
+	use_photometry = (gboolean)gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
+	qualfmt = (seq && use_photometry && (selected_source == BACKGROUND) && (get_data_type(seq->bitpix) == DATA_FLOAT)) ? ("%.5f") : ("%.3f");
+	if (selected_source == BACKGROUND) {
+		int a = 0;
+	}
 
 	if (seq == NULL) {
 		gtk_list_store_clear(list_store);
 		return;		// just clear the list
 	}
-	if (seq->regparam && seq->regparam[layer]) {
-		shiftx = roundf_to_int(seq->regparam[layer][index].shiftx);
-		shifty = roundf_to_int(seq->regparam[layer][index].shifty);
-		
-		if (!gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo))) {//registration selected in plot
+	get_list_store();
+	if (!use_photometry) { // reporting registration data
+		if (seq->regparam && seq->regparam[layer]) {
+			shiftx = roundf_to_int(seq->regparam[layer][index].shiftx);
+			shifty = roundf_to_int(seq->regparam[layer][index].shifty);
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
@@ -195,9 +204,55 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 				default: 
 					break;
 			}
+		} else {
+			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Quality"));
 		}
-	} else {
-		gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Quality"));
+	} else { //reporting photometry data for the reference star
+		psf_star **psfs = seq->photometry[0];
+		if (psfs && psfs[index]) {
+			shiftx = roundf_to_int(psfs[index]->xpos);
+			shifty = roundf_to_int(psfs[index]->ypos);
+			switch (selected_source) {
+				case ROUNDNESS:
+					fwhm = psfs[index]->fwhmy / psfs[index]->fwhmx;
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Roundness"));
+					break;
+				case FWHM:
+					if (is_arcsec) {
+						fwhm_to_arcsec_if_needed(&gfit, psfs[index]);
+						fwhm = psfs[index]->fwhmx_arcsec < 0 ? psfs[index]->fwhmx : psfs[index]->fwhmx_arcsec;
+					} else {
+						fwhm_to_pixels(psfs[index]);
+						fwhm = psfs[index]->fwhmx;
+					}
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("FWHM"));
+					break;
+				case AMPLITUDE:
+					fwhm = psfs[index]->A;
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Amplitude"));
+					break;
+				case MAGNITUDE:
+					fwhm = psfs[index]->mag;
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Magnitude"));
+					break;
+				case BACKGROUND:
+					fwhm = psfs[index]->B;
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Background"));
+					break;
+				case X_POSITION:
+					fwhm = psfs[index]->xpos;
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("X Position"));
+					break;
+				case Y_POSITION:
+					fwhm = psfs[index]->ypos;
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Y Position"));
+					break;	
+				default:
+					break;
+			}
+		} else {
+			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("FWHM"));
+		}
 	}
 
 	color = (com.pref.combo_theme == 0) ? 1 : 0;
@@ -264,7 +319,7 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 	model = gtk_tree_view_get_model(tree_view);
 	selection = gtk_tree_view_get_selection(tree_view);
 	references = get_row_references_of_selected_rows(selection, model);
-	references = g_list_reverse(references); // for some reason, refs are retruened in the reverse order of selection
+	references = g_list_reverse(references); // for some reason, refs are returned in the reverse order of selection
 
 	for (list = references; list; list = list->next) {
 		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
@@ -379,9 +434,9 @@ void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data
 	}
 }
 
-void update_seqlist() {
+void update_seqlist(int layer) {
 	initialize_title();
-	update_seqlist_dialog_combo();
+	update_seqlist_dialog_combo(layer);
 	initialize_search_entry();
 	display_status();
 }
@@ -610,4 +665,35 @@ void adjust_refimage(int n) {
 	g_signal_handlers_block_by_func(ref_butt2, on_ref_frame_toggled, treeview1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ref_butt2), com.seq.reference_image == n);
 	g_signal_handlers_unblock_by_func(ref_butt2, on_ref_frame_toggled, treeview1);
+}
+
+void sequence_list_select_row_from_index(int index) {
+	GtkWidget *tree_view = NULL;
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gboolean valid, found = FALSE;
+	
+	tree_view = lookup_widget("treeview1");
+	get_list_store();
+	valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_store), &iter);
+	while (valid && !found)
+	{
+		gint int_data;
+		gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, COLUMN_INDEX, &int_data, -1);
+		if (int_data - 1 == index) {
+			found = TRUE;
+		} else {
+			valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list_store), &iter);
+		}
+	}
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view)); //clear current selection
+	gtk_tree_selection_unselect_all(selection);
+	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	gtk_tree_selection_select_path(selection, path);
+	gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW(tree_view), path, NULL, FALSE, FALSE, FALSE);
+	gtk_tree_path_free(path);
+
+	seq_load_image(&com.seq, index, TRUE);
+	redraw(com.cvport, REMAP_NONE);
 }

@@ -764,7 +764,7 @@ void set_layers_for_assign() {
 }
 
 /* updates the combo box of registration layers to reflect data availability */
-void set_layers_for_registration() {
+int set_layers_for_registration() {
 	static GtkComboBoxText *cbbt_layers = NULL;
 	int i;
 	int reminder;
@@ -800,6 +800,8 @@ void set_layers_for_registration() {
 	/* Already initialized or default selection to channel with data */
 	else
 		gtk_combo_box_set_active(GTK_COMBO_BOX(cbbt_layers), reminder);
+	
+	return reminder;
 }
 
 void show_data_dialog(char *text, char *title, gchar *parent, gchar *url) {

@@ -482,9 +482,9 @@ int set_seq(const char *name){
 		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
 		set_cutoff_sliders_values();	// update values for contrast sliders for this image
 		set_layers_for_assign();	// set default layers assign and populate combo box
-		set_layers_for_registration();	// set layers in the combo box for registration
-		update_seqlist();
-		fill_sequence_list(seq, RLAYER, FALSE);// display list of files in the sequence
+		int layer = set_layers_for_registration();	// set layers in the combo box for registration
+		update_seqlist(layer);
+		fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
 		set_output_filename_to_sequence_name();
 		sliders_mode_set_state(com.sliders);
 		initialize_display_mode();
@@ -1303,7 +1303,7 @@ void close_sequence(int loading_another) {
 			gtk_combo_box_set_active(seqcombo, -1);
 		}
 		adjust_sellabel();
-		update_seqlist();
+		update_seqlist(-1);
 	}
 }
 
@@ -1530,16 +1530,30 @@ gboolean end_seqpsf(gpointer p) {
 	int photometry_index = 0;
 	gboolean displayed_warning = FALSE, write_to_regdata = FALSE;
 	gboolean duplicate_for_regdata = FALSE, dont_stop_thread;
+	gboolean saveregdata = TRUE;
+	gboolean has_any_regdata = FALSE;
 
 	if (args->retval)
 		goto proper_ending;
+	
+	for (int i = 0; i < seq->nb_layers; i++) {
+		has_any_regdata = has_any_regdata || seq->regparam[i];
+	}
 
 	if (spsfargs->for_registration || !seq->regparam[layer]) {
-		if (!spsfargs->for_registration && !seq->regparam[layer])
-			duplicate_for_regdata = TRUE;
-		check_or_allocate_regparam(seq, layer);
-		write_to_regdata = TRUE;
-		seq->needs_saving = TRUE;
+		if (!spsfargs->for_registration && !seq->regparam[layer]) {
+			if (has_any_regdata) {
+				saveregdata = siril_confirm_dialog(_("No registration data stored for this layer"),
+				_("Some registration data was found for another layer.\n"
+					"Do you want to save the psf data as registration data for this layer?"), _("Save"));
+				duplicate_for_regdata = saveregdata;
+			} else {
+				duplicate_for_regdata = TRUE;
+			}
+		}
+		if (saveregdata) check_or_allocate_regparam(seq, layer);
+		write_to_regdata = saveregdata;
+		seq->needs_saving = saveregdata;
 	}
 	if (!spsfargs->for_registration) {
 		int i;
@@ -1590,7 +1604,7 @@ gboolean end_seqpsf(gpointer p) {
 		 * in case seqpsf is called for registration. */
 		// update the list in the GUI
 		if (seq->type != SEQ_INTERNAL) {
-			update_seqlist();
+			update_seqlist(layer);
 			fill_sequence_list(seq, layer, FALSE);
 		}
 		set_layers_for_registration();	// update display of available reg data

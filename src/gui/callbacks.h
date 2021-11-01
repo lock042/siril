@@ -34,7 +34,7 @@ void update_display_fwhm();
 void display_filename();
 void set_precision_switch();
 void set_layers_for_assign();
-void set_layers_for_registration();
+int set_layers_for_registration();
 void show_dialog(const char *text, const char *title, const char *icon);
 void show_txt_and_data_dialog(const char *text, const char *data, const char *title, const char *icon);
 void show_data_dialog(char *text, char *title, gchar *parent, gchar *extra_button);
@@ -81,5 +81,10 @@ void on_check_button_pref_bias_bis_toggled(GtkToggleButton *togglebutton, gpoint
 
 void on_checkbutton_cam_toggled(GtkToggleButton *button, gpointer user_data);
 void on_checkbutton_auto_toggled(GtkToggleButton *button, gpointer user_data);
+
+void on_focal_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_combobinning_changed(GtkComboBox *box, gpointer user_data);
 
 #endif

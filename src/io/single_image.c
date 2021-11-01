@@ -75,6 +75,15 @@ void free_image_data() {
 	clearfits(&gfit);
 	invalidate_WCS_keywords(&gfit);
 	if (!com.headless) {
+		GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(builder, "combobinning"));
+		GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
+		GtkEntry* pitchX_entry = GTK_ENTRY(lookup_widget("pitchX_entry"));
+		GtkEntry* pitchY_entry = GTK_ENTRY(lookup_widget("pitchY_entry"));
+		// avoid redrawing plot while com.seq has not been updated
+		g_signal_handlers_block_by_func(focal_entry, on_focal_entry_changed, NULL);
+		g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+		g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+		g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
 		clear_stars_list();
 		delete_selected_area();
 		clear_sampling_setting_box();	// clear focal and pixel pitch info
@@ -87,6 +96,10 @@ void free_image_data() {
 		free(com.qphot);
 		com.qphot = NULL;
 		clear_sensor_tilt();
+		g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
+		g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+		g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+		g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
 	}
 	clear_histograms();
 

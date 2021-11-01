@@ -45,6 +45,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
+#include "registration/registration.h"
 
 #include "siril_actions.h"
 #include "algos/astrometry_solver.h"
@@ -357,7 +358,8 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 					_("Load another image"));
 		}
 		if (confirm) {
-			update_seqlist();
+			int layer = get_registration_layer(&com.seq);
+			update_seqlist(layer);
 			siril_open_dialog("seqlist_dialog");
 		}
 	}
