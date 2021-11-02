@@ -163,7 +163,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 	qualfmt = (seq && use_photometry && (selected_source == BACKGROUND) && (get_data_type(seq->bitpix) == DATA_FLOAT)) ? ("%.5f") : ("%.3f");
 
 	if (seq == NULL) {
-		gtk_list_store_clear(list_store);
+		if (list_store) gtk_list_store_clear(list_store);
 		return;		// just clear the list
 	}
 	get_list_store();
