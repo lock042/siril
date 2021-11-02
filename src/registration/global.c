@@ -269,11 +269,20 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
 		}
 
+		/* sometimes sequence are not consistent.... They shouldn't but ..... */
+		int layer;
+		if (regargs->layer > RLAYER && !isrgb(fit)) {
+			layer = RLAYER;
+			siril_log_color_message(_("It looks like your sequence is not consistent, with a mix of monochrome and RGB images."), "salmon");
+		} else {
+			layer = regargs->layer;
+		}
+
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
+			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
 		}
 		else {
-			stars = peaker(fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
 		}
 
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
