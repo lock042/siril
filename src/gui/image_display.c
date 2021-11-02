@@ -606,10 +606,10 @@ static void draw_selection(const draw_data_t* dd) {
 			cairo_set_line_width(cr, 1.0 / dd->zoom);
 			point selection_center = { com.selection.x + com.selection.w / 2,
 				com.selection.y + com.selection.h / 2 };
-			cairo_move_to(cr, selection_center.x, selection_center.y - 2 / dd->zoom);
-			cairo_line_to(cr, selection_center.x, selection_center.y + 2 / dd->zoom);
-			cairo_move_to(cr, selection_center.x - 2 / dd->zoom, selection_center.y);
-			cairo_line_to(cr, selection_center.x + 2 / dd->zoom, selection_center.y);
+			cairo_move_to(cr, selection_center.x, selection_center.y - 5 / dd->zoom);
+			cairo_line_to(cr, selection_center.x, selection_center.y + 5 / dd->zoom);
+			cairo_move_to(cr, selection_center.x - 5 / dd->zoom, selection_center.y);
+			cairo_line_to(cr, selection_center.x + 5 / dd->zoom, selection_center.y);
 			cairo_stroke(cr);
 		}
 	}

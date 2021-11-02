@@ -161,9 +161,6 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 	is_arcsec = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(arcsec));
 	use_photometry = (gboolean)gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
 	qualfmt = (seq && use_photometry && (selected_source == BACKGROUND) && (get_data_type(seq->bitpix) == DATA_FLOAT)) ? ("%.5f") : ("%.3f");
-	if (selected_source == BACKGROUND) {
-		int a = 0;
-	}
 
 	if (seq == NULL) {
 		gtk_list_store_clear(list_store);
