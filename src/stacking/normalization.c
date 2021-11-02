@@ -60,6 +60,11 @@ static int _compute_normalization_for_image(struct stacking_args *args, int i, i
 				}
 				fit_is_open = TRUE; // to avoid opening fit more than once if RGB
 			}
+			/* check if rgb images are mixed with monochrome images */
+			if (layer > RLAYER && !isrgb(&fit)) {
+				siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "red");
+				return ST_GENERIC_ERROR;
+			}
 			// retry with the fit to compute it
 			if (!(stat = statistics(args->seq, args->image_indices[i], &fit, layer, NULL, STATS_NORM, multithread)))
 				return ST_GENERIC_ERROR;

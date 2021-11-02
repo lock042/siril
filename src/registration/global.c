@@ -273,7 +273,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		int layer;
 		if (regargs->layer > RLAYER && !isrgb(fit)) {
 			layer = RLAYER;
-			siril_log_color_message(_("It looks like your sequence is not consistent, with a mix of monochrome and RGB images."), "salmon");
+			siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "salmon");
 		} else {
 			layer = regargs->layer;
 		}
