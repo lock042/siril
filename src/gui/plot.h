@@ -44,7 +44,8 @@ enum photometry_source {
 	MAGNITUDE,
 	BACKGROUND,
 	X_POSITION,
-	Y_POSITION
+	Y_POSITION,
+	SNR
 };
 
 /* has to be the same as in the glade file */

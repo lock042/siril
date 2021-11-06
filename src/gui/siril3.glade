@@ -6760,6 +6760,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
                     <property name="reorderable">True</property>
                     <property name="sort-indicator">True</property>
                     <property name="sort-column-id">7</property>
+                    <signal name="clicked" handler="on_column_clicked" swapped="no"/>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6"/>
                       <attributes>
@@ -6833,6 +6834,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
                     <property name="reorderable">True</property>
                     <property name="sort-indicator">True</property>
                     <property name="sort-column-id">4</property>
+                    <signal name="clicked" handler="on_column_clicked" swapped="no"/>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5"/>
                       <attributes>
@@ -15223,7 +15225,7 @@ WARNING: gnuplot must be installed.</property>
                                 <child>
                                   <object class="GtkComboBoxText" id="plotCombo">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
+                                    <property name="can-focus">True</property>
                                     <property name="tooltip-text" translatable="yes">Select which information to display from photometry data.</property>
                                     <property name="active">0</property>
                                     <items>
@@ -15259,7 +15261,7 @@ WARNING: gnuplot must be installed.</property>
                                 <child>
                                   <object class="GtkComboBoxText" id="plotComboX">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
+                                    <property name="can-focus">True</property>
                                     <property name="active">6</property>
                                     <items>
                                       <item translatable="yes">FWHM</item>

@@ -83,7 +83,8 @@ static const gchar *photometry_labels[] = {
 		N_("Magnitude"),
 		N_("Background"),
 		N_("X Position"),
-		N_("Y Position")
+		N_("Y Position"),
+		N_("SNR")
 };
 
 static const gchar *registration_labels[] = {
@@ -331,7 +332,10 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 				break;
 			case Y_POSITION:
 				plot->data[j].y = psfs[i]->ypos;
-				break;	
+				break;
+			case SNR:
+				plot->data[j].y = psfs[i]->SNR;
+				break;
 			default:
 				break;
 		}
@@ -1091,6 +1095,9 @@ static void update_ylabel() {
 				break;
 			case Y_POSITION:
 				ylabel = _("Star position on Y axis");
+				break;
+			case SNR:
+				ylabel = _("SNR (dB)");
 				break;
 			default:
 				break;
