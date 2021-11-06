@@ -1378,6 +1378,6 @@ void on_menu_plot_show_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	if (index > 0) {
 		siril_open_dialog("seqlist_dialog");
 		update_seqlist(use_photometry ? 0 : reglayer);
-		sequence_list_select_row_from_index(index - 1);
+		sequence_list_select_row_from_index(index - 1, TRUE);
 	}
 }

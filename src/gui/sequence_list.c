@@ -399,7 +399,7 @@ void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data
 }
 void on_column_clicked(GtkComboBoxText *widget, gpointer user_data) {
 	int active = com.seq.current;
-	sequence_list_select_row_from_index(active);
+	sequence_list_select_row_from_index(active, FALSE);
 }
 
 void update_seqlist(int layer) {
@@ -407,7 +407,7 @@ void update_seqlist(int layer) {
 	update_seqlist_dialog_combo(layer);
 	initialize_search_entry();
 	display_status();
-	if (sequence_is_loaded()) sequence_list_select_row_from_index(com.seq.current);
+	if (sequence_is_loaded()) sequence_list_select_row_from_index(com.seq.current, FALSE);
 }
 
 /* called on sequence loading (set_seq), on layer tab change and on registration data update.
@@ -512,8 +512,8 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	gtk_tree_view_set_model(args->tview, GTK_TREE_MODEL(list_store));
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
 
-	//select and scroll to image loaded as gfit
-	sequence_list_select_row_from_index(args->seq->current);
+	//select and scroll to image already loaded as gfit
+	sequence_list_select_row_from_index(args->seq->current, FALSE);
 	g_signal_handlers_unblock_by_func(args->tview, on_treeview1_cursor_changed, NULL);
 
 	free(args);
@@ -713,7 +713,7 @@ void adjust_refimage(int n) {
 	g_signal_handlers_unblock_by_func(ref_butt2, on_ref_frame_toggled, treeview1);
 }
 
-void sequence_list_select_row_from_index(int index) {
+void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 	GtkWidget *tree_view = NULL;
 	GtkTreeIter iter;
 	GtkTreeModel *model;
@@ -740,6 +740,8 @@ void sequence_list_select_row_from_index(int index) {
 	gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW(tree_view), path, NULL, FALSE, FALSE, FALSE);
 	gtk_tree_path_free(path);
 
-	seq_load_image(&com.seq, index, TRUE);
-	redraw(com.cvport, REMAP_NONE);
+	if (do_load_image) {
+		seq_load_image(&com.seq, index, TRUE);
+		redraw(com.cvport, REMAP_NONE);
+	}
 }

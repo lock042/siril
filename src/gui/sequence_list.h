@@ -32,7 +32,7 @@ void update_seqlist(int layer);
 void exclude_single_frame(int index);
 void toggle_image_selection(int index_in_list, int real_index, gboolean initvalue);
 void adjust_refimage(int n);
-void sequence_list_select_row_from_index(int index);
+void sequence_list_select_row_from_index(int index, gboolean do_load_image);
 
 
 #endif /* SRC_GUI_SEQUENCE_LIST_H_ */
