@@ -277,7 +277,7 @@ sequence * readseqfile(const char *name){
 							goto error;
 						}
 					}
-				} else if (version == 2) {
+				} else if (version <= 2) { // include version 1
 					// version 2 with roundness instead of weird things
 						if (sscanf(line+3, "%f %f %g %g %lg",
 									&(regparam[i].shiftx),
@@ -499,7 +499,7 @@ sequence * readseqfile(const char *name){
 	seq->end = seq->imgparam[seq->number-1].filenum;
 	seq->current = -1;
 	fix_selnum(seq, TRUE);
-	
+
 	// copy some regparam_bkp to regparam if it applies
 	if (ser_is_cfa(seq->ser_file) && com.pref.debayer.open_debayer &&
 			seq->regparam_bkp && seq->regparam_bkp[0] &&
@@ -511,7 +511,7 @@ sequence * readseqfile(const char *name){
 		}
 	}
 
-	
+
 	free(seqfilename);
 	return seq;
 error:
@@ -520,7 +520,7 @@ error:
 		free(seq->seqname);
 	free(seq);
 	siril_log_message(_("Could not load sequence %s\n"), name);
-	
+
 	free(seqfilename);
 	return NULL;
 }
@@ -546,7 +546,7 @@ int writeseqfile(sequence *seq){
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of files (images), selection, and registration data\n");
 	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d\n", 
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed, seq->reference_image, CURRENT_SEQFILE_VERSION);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
@@ -571,7 +571,7 @@ int writeseqfile(sequence *seq){
 
 	for(i=0; i < seq->number; ++i){
 		fprintf(seqfile,"I %d %d\n",
-				seq->imgparam[i].filenum, 
+				seq->imgparam[i].filenum,
 				seq->imgparam[i].incl);
 	}
 
