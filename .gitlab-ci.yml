@@ -42,7 +42,7 @@ build-image:
     - echo "FROM debian:testing" > Dockerfile
     - echo "RUN apt-get update" >> Dockerfile
     - echo "RUN apt-get install -y --no-install-recommends \\" >> Dockerfile
-    - echo "at-spi2-core build-essential wget desktop-file-utils cmake hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev libopencv-dev librsvg2-dev libraw-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev wcslib-dev python3 python3-pip libjson-glib-dev gcovr" >> Dockerfile
+    - echo "at-spi2-core build-essential desktop-file-utils cmake hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev libopencv-dev librsvg2-dev libraw-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev wcslib-dev python3 python3-pip libjson-glib-dev gcovr" >> Dockerfile
     - echo "RUN python3 -m pip install meson ninja" >> Dockerfile
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-debian-latest --cache=true --cache-ttl=120h
     
@@ -149,11 +149,8 @@ deps-debian:
     - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`:$LD_LIBRARY_PATH"
     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
   script:
-    - wget https://launchpadlibrarian.net/558337737/criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff.gz
-    - echo "71555a7520386dc20bae4097b505f43a criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff.gz" | md5sum -c -
-    - gunzip criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff.gz
     - cd _Criterion
-    - patch --binary -p1 < ../criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff
+    - patch --binary -p1 < ../build/criterion.patch
     - meson _build --prefix ${INSTALL_PREFIX}
     - ninja -C _build install
   needs: ["build-image"]
