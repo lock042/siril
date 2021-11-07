@@ -150,7 +150,7 @@ deps-debian:
     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
   script:
     - wget https://launchpadlibrarian.net/558337737/criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff.gz
-		- echo "71555a7520386dc20bae4097b505f43a criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff.gz" | md5sum -c -
+    - echo "71555a7520386dc20bae4097b505f43a criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff.gz" | md5sum -c -
     - gunzip criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff.gz
     - cd _Criterion
     - patch --binary -p1 < ../criterion_2.3.3git1-1build2.1_2.3.3git1-1ubuntu1.diff
