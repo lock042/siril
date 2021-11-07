@@ -625,18 +625,16 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 			GtkTreeModel *tree_model,
 			GtkTreeIter *iter,
 			gpointer data) {
-
-	gchar *text;
 	gboolean sensitive = TRUE;
 
 	if (!use_photometry) {
-		gtk_tree_model_get (tree_model, iter, 0, &text, -1);
+		GtkTreePath* path = gtk_tree_model_get_path (tree_model, iter);
+		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (!is_fwhm) {
-			sensitive = ((g_strcmp0(N_("Frame"), text) == 0) || (g_strcmp0(N_("Quality"), text) == 0) || (g_strcmp0(N_("X Position"), text) == 0) || (g_strcmp0(N_("Y Position"), text) == 0));
+			sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
 		} else {
-			sensitive = ((g_strcmp0(N_("Frame"), text) == 0) || (g_strcmp0(N_("FWHM"), text) == 0) || (g_strcmp0(N_("Roundness"), text) == 0) || (g_strcmp0(N_("wFWHM"), text) == 0));
+			sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS));
 		}
-		g_free (text);
 	}
 	g_object_set(cell, "sensitive", sensitive, NULL);
 }
@@ -676,7 +674,7 @@ static void validate_combos() {
 		gtk_widget_set_sensitive(comboX, FALSE);
 	} else {
 		while (i < (G_N_ELEMENTS(registration_labels)) - 1) { // do not write 'Frame' as possible Y value
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), registration_labels[i]);
+			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _(registration_labels[i]));
 			i++;
 		}
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
