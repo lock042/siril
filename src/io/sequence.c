@@ -489,6 +489,11 @@ int set_seq(const char *name){
 		sliders_mode_set_state(com.sliders);
 		initialize_display_mode();
 		reset_plot(); // reset all plots
+		/* reset 3-stars reg if required */
+		struct registration_method *method;
+		method = get_selected_registration_method();
+		if (method && method->method_ptr &&  (method->method_ptr == &register_3stars))
+			reset_3stars();
 
 		/* initialize image-related runtime data */
 		set_display_mode();		// display the display mode in the combo box
@@ -508,9 +513,6 @@ int set_seq(const char *name){
 		/* update parameters */
 		set_GUI_CAMERA();
 		set_GUI_photometry();
-
-		/* reset 3-stars reg if required */
-		reset_3stars();
 
 		/* redraw and display image */
 		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
