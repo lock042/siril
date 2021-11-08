@@ -509,6 +509,9 @@ int set_seq(const char *name){
 		set_GUI_CAMERA();
 		set_GUI_photometry();
 
+		/* reset 3-stars reg if required */
+		reset_3stars();
+
 		/* redraw and display image */
 		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
 		redraw(com.cvport, REMAP_ALL);

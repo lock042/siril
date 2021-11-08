@@ -424,10 +424,15 @@ static int rotate_images(struct registration_args *regargs, regdata *current_reg
 	}
 	free(results);
 	results = NULL;
+	reset_3stars();
+	return args->retval;
+}
+
+void reset_3stars(){
 	reset_icons();
 	for (int i = 0; i < 3; i++)
 		unset_suggested(three_buttons[i]);
 	set_suggested(three_buttons[0]);
 	set_registration_ready(FALSE);
-	return args->retval;
 }
+
