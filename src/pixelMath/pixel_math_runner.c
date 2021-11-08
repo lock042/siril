@@ -582,6 +582,7 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 
 	g_signal_handlers_unblock_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
 
+	gboolean abort = TRUE;
 	const char *p = new_text;
 
 	if (*p == '\0') return;
@@ -589,6 +590,18 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 	while (*p) {
 		if (!g_ascii_isalnum(*p++)) return;
 	}
+
+	/* no we exclude name that contain only digit */
+	p = new_text;
+
+	while (*p) {
+		if (g_ascii_isalpha(*p++)) {
+			/* at least one char is alphanum */
+			abort = FALSE;
+		}
+	}
+
+	if (abort) return;
 
 	init_widgets();
 
