@@ -777,9 +777,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
 		else gtk_label_set_text(labelreginfo, "");
 		// the 3 stars method has special GUI requirements
-		if (method->method_ptr != &register_3stars) {
-			gtk_widget_set_sensitive(go_register, TRUE);
-		}
+		gtk_widget_set_sensitive(go_register, (method->method_ptr != &register_3stars));
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {

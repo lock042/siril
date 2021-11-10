@@ -429,10 +429,11 @@ static int rotate_images(struct registration_args *regargs, regdata *current_reg
 }
 
 void reset_3stars(){
-	reset_icons();
-	for (int i = 0; i < 3; i++)
-		unset_suggested(three_buttons[i]);
-	set_suggested(three_buttons[0]);
-	set_registration_ready(FALSE);
+    if (!GTK_IS_WIDGET(three_buttons[0])) return;
+    reset_icons();
+    for (int i = 0; i < 3; i++)
+        unset_suggested(three_buttons[i]);
+    set_suggested(three_buttons[0]);
+    set_registration_ready(FALSE);
 }
 
