@@ -15559,7 +15559,7 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                   <object class="GtkComboBoxText" id="comborejection">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="tooltip-markup" translatable="yes">Six rejection algorithms are available:
+                                                    <property name="tooltip-markup" translatable="yes">Seven rejection algorithms are available:
 
 &lt;b&gt;Percentile Clipping&lt;/b&gt; is a one-step rejection algorithm ideal for small sets of data (up to 6 images).
 
