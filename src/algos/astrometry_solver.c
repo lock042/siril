@@ -1532,7 +1532,7 @@ void crop_astrometry_data(fits *fit, point shift) {
 	if (fit->wcsdata.ra != -1.) update_coords(); //to have plate solve window well-centered in case of subsequent call
 }
 
-void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
+void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]) {
 	extract_cdelt_from_cd(cd[0][0], cd[0][1], cd[1][0], cd[1][1], &cdelt[0], &cdelt[1]);
 
 	pc[0][0] = cd[0][0] / cdelt[0];
@@ -1541,7 +1541,7 @@ void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
 	pc[1][1] = cd[1][1] / cdelt[1];
 }
 
-void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
+void wcs_pc_to_cd(double pc[][2], double cdelt[2], double cd[][2]) {
 	cd[0][0] = pc[0][0] * cdelt[0];
 	cd[0][1] = pc[0][1] * cdelt[0];
 	cd[1][0] = pc[1][0] * cdelt[1];
