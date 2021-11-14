@@ -5,6 +5,7 @@ First Release candidate version for 1.0.0
 * Fixed FWHM units and star center position in Dynamic PSF
 * Fixed bug in ECC algorithm
 * Fixed registration with various image size
+* Review GUI and improve responsiveness
 * Save focal and wcs data in the swap file using undo/redo
 * New candidates star detection algorithm to improve speed and accuracy
 * New SNR estimator in photometry analysis
