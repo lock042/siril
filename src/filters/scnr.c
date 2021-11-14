@@ -38,7 +38,7 @@
 static gboolean end_scnr(gpointer p) {
 	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
@@ -125,7 +125,7 @@ gpointer scnr(gpointer p) {
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkComboBox *comboscnr = GTK_COMBO_BOX(
-			gtk_builder_get_object(builder, "combo_scnr"));
+			gtk_builder_get_object(gui.builder, "combo_scnr"));
 	int type = gtk_combo_box_get_active(comboscnr);
 
 	if (type == -1)
@@ -137,12 +137,12 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	 * Type 1: Maximum Neutral protection
 	 */
 	int type = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(gtk_builder_get_object(builder, "combo_scnr")));
+			GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
 	GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(builder, "preserve_light"));
+			gtk_builder_get_object(gui.builder, "preserve_light"));
 	gboolean preserve = gtk_toggle_button_get_active(light_button);
 	double amount = gtk_range_get_value(
-			GTK_RANGE(gtk_builder_get_object(builder, "scale_scnr")));
+			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
 
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -166,8 +166,7 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
-	int type = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(gtk_builder_get_object(builder, "combo_scnr")));
+	int type = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_scnr")));
 	GtkScale *scale = GTK_SCALE(lookup_widget("scale_scnr"));
 	GtkLabel *label = GTK_LABEL(lookup_widget("label56"));
 	GtkSpinButton *spinButton = GTK_SPIN_BUTTON(lookup_widget("spin_scnr"));

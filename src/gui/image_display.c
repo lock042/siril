@@ -47,30 +47,47 @@
 
 #include "image_display.h"
 
-typedef struct draw_data {
-	cairo_t *cr;
-	int vport;
-	double zoom;
-	gboolean neg_view;
-	cairo_filter_t filter;
-	guint image_width, image_height;
-	guint window_width, window_height;
-} draw_data_t;
-
-typedef struct label_point_struct {
-	double x, y, ra, dec, angle;
-	gboolean isRA;
-	int border;
-} label_point;
-
 /* remap index data, an index for each layer */
-static BYTE *remap_index[MAXGRAYVPORT];
-static float last_pente[MAXGRAYVPORT];
-static display_mode last_mode[MAXGRAYVPORT];
+static BYTE *remap_index;
+static float last_pente;
+static display_mode last_mode;
 
 /* STF (auto-stretch) data */
-static gboolean stfComputed;	// Flag to know if STF parameters are available
-static float stfShadows, stfHighlights, stfM;
+static gboolean stf_computed = FALSE; // Flag to know if STF parameters are available
+static float stf_shadows, stf_highlights, stf_m;
+
+
+static int allocate_full_surface(struct image_view *view) {
+	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx);
+
+	// allocate the image surface if not already done or the same size
+	if (stride != view->full_surface_stride
+			|| gfit.ry != view->full_surface_height
+			|| !view->full_surface || !view->buf) {
+		guchar *oldbuf = view->buf;
+		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
+		view->full_surface_stride = stride;
+		view->full_surface_height = gfit.ry;
+		view->buf = realloc(oldbuf, stride * gfit.ry * sizeof(guchar));
+		if (!view->buf) {
+			PRINT_ALLOC_ERR;
+			if (oldbuf)
+				free(oldbuf);
+			return 1;
+		}
+		if (view->full_surface)
+			cairo_surface_destroy(view->full_surface);
+		view->full_surface = cairo_image_surface_create_for_data(view->buf,
+				CAIRO_FORMAT_RGB24, gfit.rx, gfit.ry, stride);
+		if (cairo_surface_status(view->full_surface) != CAIRO_STATUS_SUCCESS) {
+			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
+			cairo_surface_destroy(view->full_surface);
+			view->full_surface = NULL;
+			return 1;
+		}
+	}
+	return 0;
+}
 
 static void remaprgb(void) {
 	guint32 *dst;
@@ -82,63 +99,35 @@ static void remaprgb(void) {
 	if (!isrgb(&gfit))
 		return;
 
-	// allocate if not already done or the same size
-	if (cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx)
-			!= com.surface_stride[RGB_VPORT]
-			|| gfit.ry != com.surface_height[RGB_VPORT]
-			|| !com.surface[RGB_VPORT] || !com.rgbbuf) {
-		guchar *oldbuf = com.rgbbuf;
-		siril_debug_print("RGB display buffers and surface (re-)allocation\n");
-		com.surface_stride[RGB_VPORT] = cairo_format_stride_for_width(
-				CAIRO_FORMAT_RGB24, gfit.rx);
-		com.surface_height[RGB_VPORT] = gfit.ry;
-		com.rgbbuf = realloc(com.rgbbuf,
-				com.surface_stride[RGB_VPORT] * gfit.ry * sizeof(guchar));
-		if (com.rgbbuf == NULL) {
-			PRINT_ALLOC_ERR;
-			if (oldbuf)
-				free(oldbuf);
-			return;
-		}
-		if (com.surface[RGB_VPORT])
-			cairo_surface_destroy(com.surface[RGB_VPORT]);
-		com.surface[RGB_VPORT] = cairo_image_surface_create_for_data(com.rgbbuf,
-				CAIRO_FORMAT_RGB24, gfit.rx, gfit.ry,
-				com.surface_stride[RGB_VPORT]);
-		if (cairo_surface_status(com.surface[RGB_VPORT])
-				!= CAIRO_STATUS_SUCCESS) {
-			siril_debug_print("Error creating the Cairo image surface for the RGB image\n");
-			cairo_surface_destroy(com.surface[RGB_VPORT]);
-			com.surface[RGB_VPORT] = NULL;
-			return;
-		}
-	}
+	struct image_view *rgbview = &gui.view[RGB_VPORT];
+	if (allocate_full_surface(rgbview))
+		return;
+
 	// WARNING : this assumes that R, G and B buffers are already allocated and mapped
 	// it seems ok, but one can probably imagine situations where it segfaults
-	bufr = (const guint32*) com.graybuf[RED_VPORT];
-	bufg = (const guint32*) com.graybuf[GREEN_VPORT];
-	bufb = (const guint32*) com.graybuf[BLUE_VPORT];
+	bufr = (const guint32*) gui.view[RED_VPORT].buf;
+	bufg = (const guint32*) gui.view[GREEN_VPORT].buf;
+	bufb = (const guint32*) gui.view[BLUE_VPORT].buf;
 	if (bufr == NULL || bufg == NULL || bufb == NULL) {
 		siril_debug_print("remaprgb: gray buffers not allocated for display\n");
 		return;
 	}
-	dst = (guint32*) com.rgbbuf;	// index is j
+	dst = (guint32*) rgbview->buf;	// index is j
 	nbdata = gfit.rx * gfit.ry;	// source images are 32-bit RGBA
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; ++i) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
 	// flush to ensure all writing to the image was done and redraw the surface
-	cairo_surface_flush(com.surface[RGB_VPORT]);
-	cairo_surface_mark_dirty(com.surface[RGB_VPORT]);
+	cairo_surface_flush(rgbview->full_surface);
+	cairo_surface_mark_dirty(rgbview->full_surface);
 }
 
-static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
-		int vport);
+static int make_index_for_current_display();
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
@@ -147,68 +136,23 @@ static void remap(int vport) {
 	// to the buffer to be displayed; display only is modified
 	guint y;
 	BYTE *dst, *index, rainbow_index[UCHAR_MAX + 1][3];
-	WORD *src, hi, lo;
+	WORD *src;
 	float *fsrc;
-	display_mode mode;
-	color_map color;
-	gboolean do_cut_over, inverted;
+	gboolean inverted;
 
 	siril_debug_print("remap %d\n", vport);
 	if (vport == RGB_VPORT) {
 		remaprgb();
 		return;
 	}
-
-	int no_data = 0;
-	if (single_image_is_loaded()) {
-		if (vport >= com.uniq->nb_layers)
-			no_data = 1;
-	} else if (sequence_is_loaded()) {
-		if (vport >= com.seq.nb_layers)
-			no_data = 1;
-	}
-	else no_data = 1;
-	if (gfit.type == DATA_UNSUPPORTED)
-		no_data = 1;
-	if (no_data) {
-		siril_debug_print("vport is out of bounds or data is not loaded yet\n");
+	if (gfit.type == DATA_UNSUPPORTED) {
+		siril_debug_print("data is not loaded yet\n");
 		return;
 	}
 
-	// allocate if not already done or the same size
-	if (cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx)
-			!= com.surface_stride[vport] || gfit.ry != com.surface_height[vport]
-			|| !com.surface[vport] || !com.graybuf[vport]) {
-		guchar *oldbuf = com.graybuf[vport];
-		siril_debug_print("Gray display buffers and surface (re-)allocation\n");
-		if (gfit.rx == 0 || gfit.ry == 0) {
-			siril_debug_print("gfit has a zero size, must not happen!\n");
-			return;
-		}
-		com.surface_stride[vport] = cairo_format_stride_for_width(
-				CAIRO_FORMAT_RGB24, gfit.rx);
-		com.surface_height[vport] = gfit.ry;
-		com.graybuf[vport] = realloc(com.graybuf[vport],
-				com.surface_stride[vport] * gfit.ry * sizeof(guchar));
-		if (com.graybuf[vport] == NULL) {
-			PRINT_ALLOC_ERR;
-			if (oldbuf)
-				free(oldbuf);
-			return;
-		}
-		if (com.surface[vport])
-			cairo_surface_destroy(com.surface[vport]);
-		com.surface[vport] = cairo_image_surface_create_for_data(
-				com.graybuf[vport], CAIRO_FORMAT_RGB24, gfit.rx, gfit.ry,
-				com.surface_stride[vport]);
-		if (cairo_surface_status(com.surface[vport]) != CAIRO_STATUS_SUCCESS) {
-			siril_debug_print("Error creating the Cairo image surface for vport %d\n",
-					vport);
-			cairo_surface_destroy(com.surface[vport]);
-			com.surface[vport] = NULL;
-			return;
-		}
-	}
+	struct image_view *view = &gui.view[vport];
+	if (allocate_full_surface(view))
+		return;
 
 	static GtkApplicationWindow *app_win = NULL;
 	if (app_win == NULL) {
@@ -220,24 +164,7 @@ static void remap(int vport) {
 	inverted = g_variant_get_boolean(state);
 	g_variant_unref(state);
 
-	if (single_image_is_loaded() && com.seq.current != RESULT_IMAGE) {
-		mode = com.uniq->layers[vport].rendering_mode;
-		hi = com.uniq->layers[vport].hi;
-		lo = com.uniq->layers[vport].lo;
-		do_cut_over = com.uniq->layers[vport].cut_over;
-	} else if (sequence_is_loaded() && vport < com.seq.nb_layers) {
-		// the check above is needed because there may be a different
-		// number of channels between the unique image and the sequence
-		mode = com.seq.layers[vport].rendering_mode;
-		hi = com.seq.layers[vport].hi;
-		lo = com.seq.layers[vport].lo;
-		do_cut_over = com.seq.layers[vport].cut_over;
-	} else {
-		siril_debug_print("BUG in unique image remap\n");
-		return;
-	}
-
-	if (mode == HISTEQ_DISPLAY) {
+	if (gui.rendering_mode == HISTEQ_DISPLAY) {
 		if (gfit.type == DATA_USHORT) {
 			double hist_sum, nb_pixels;
 			size_t i, hist_nb_bins;
@@ -249,18 +176,18 @@ static void remap(int vport) {
 			nb_pixels = (double)(gfit.rx * gfit.ry);
 
 			// build the remap_index
-			if (!remap_index[vport])
-				remap_index[vport] = malloc(USHRT_MAX + 1);
+			if (!remap_index)
+				remap_index = malloc(USHRT_MAX + 1);
 
-			remap_index[vport][0] = 0;
+			remap_index[0] = 0;
 			hist_sum = gsl_histogram_get(histo, 0);
 			for (i = 1; i < hist_nb_bins; i++) {
 				hist_sum += gsl_histogram_get(histo, i);
-				remap_index[vport][i] = round_to_BYTE(
+				remap_index[i] = round_to_BYTE(
 						(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
 			}
 
-			last_mode[vport] = mode;
+			last_mode = gui.rendering_mode;
 		}
 		else if (gfit.type == DATA_FLOAT) {
 			double hist_sum, nb_pixels;
@@ -273,47 +200,44 @@ static void remap(int vport) {
 			nb_pixels = (double)(gfit.rx * gfit.ry);
 
 			// build the remap_index
-			if (!remap_index[vport])
-				remap_index[vport] = malloc(USHRT_MAX + 1);
+			if (!remap_index)
+				remap_index = malloc(USHRT_MAX + 1);
 
-			remap_index[vport][0] = 0;
+			remap_index[0] = 0;
 			hist_sum = gsl_histogram_get(histo, 0);
 			for (i = 1; i < hist_nb_bins; i++) {
 				hist_sum += gsl_histogram_get(histo, i);
-				remap_index[vport][i] = round_to_BYTE(
+				remap_index[i] = round_to_BYTE(
 						(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
 			}
 
-			last_mode[vport] = mode;
+			last_mode = gui.rendering_mode;
 		}
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
 		// for all other modes and ushort data, the index can be reused
-		if (mode == STF_DISPLAY && !stfComputed) {
-			stfM = findMidtonesBalance(&gfit, &stfShadows, &stfHighlights);
-			stfComputed = TRUE;
+		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
+			stf_m = findMidtonesBalance(&gfit, &stf_shadows, &stf_highlights);
+			stf_computed = TRUE;
 		}
-		make_index_for_current_display(mode, lo, hi, vport);
-		if (mode == STF_DISPLAY)
-			set_viewer_mode_widgets_sensitive(FALSE);
-		else
-			set_viewer_mode_widgets_sensitive(TRUE);
+		make_index_for_current_display();
+		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 	}
 
 	src = gfit.pdata[vport];
 	fsrc = gfit.fpdata[vport];
-	dst = com.graybuf[vport];
+	dst = view->buf;
 
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
 	state = g_action_get_state(action_color);
-	color = g_variant_get_boolean(state);
+	color_map color = g_variant_get_boolean(state);
 	g_variant_unref(state);
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	index = remap_index[vport];
+	index = remap_index;
 
-	gboolean special_mode = (mode == HISTEQ_DISPLAY || mode == STF_DISPLAY);
+	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -327,20 +251,20 @@ static void remap(int vport) {
 			if (gfit.type == DATA_USHORT) {
 				if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[src[src_index]];
-				else if (do_cut_over && src[src_index] > hi)	// cut
+				else if (gui.cut_over && src[src_index] > gui.hi)	// cut
 					dst_pixel_value = 0;
 				else {
-					dst_pixel_value = index[src[src_index] - lo < 0 ? 0 : src[src_index] - lo];
+					dst_pixel_value = index[src[src_index] - gui.lo < 0 ? 0 : src[src_index] - gui.lo];
 				}
 			} else if (gfit.type == DATA_FLOAT) {
 				if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
-				else if (do_cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > hi)	// cut
+				else if (gui.cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > gui.hi)	// cut
 					dst_pixel_value = 0;
 				else {
 					dst_pixel_value = index[
-						roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - lo < 0 ? 0 :
-							roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - lo];
+						roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
+							roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo];
 				}
 			}
 
@@ -360,35 +284,33 @@ static void remap(int vport) {
 	}
 
 	// flush to ensure all writing to the image was done and redraw the surface
-	cairo_surface_flush(com.surface[vport]);
-	cairo_surface_mark_dirty(com.surface[vport]);
+	cairo_surface_flush(view->full_surface);
+	cairo_surface_mark_dirty(view->full_surface);
 
 	test_and_allocate_reference_image(vport);
 }
 
-static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
-		int vport) {
-	float slope;
+static int make_index_for_current_display() {
+	float slope, delta = gui.hi - gui.lo;
 	int i;
 	BYTE *index;
 	float pxl;
-
 	/* initialization of data required to build the remap_index */
-	switch (mode) {
+	switch (gui.rendering_mode) {
 		case LINEAR_DISPLAY:
-			slope = UCHAR_MAX_SINGLE / (float) (hi - lo);
+			slope = UCHAR_MAX_SINGLE / delta;
 			break;
 		case LOG_DISPLAY:
-			slope = fabsf(UCHAR_MAX_SINGLE / logf((float)(hi - lo) * 0.1f));
+			slope = fabsf(UCHAR_MAX_SINGLE / logf(delta * 0.1f));
 			break;
 		case SQRT_DISPLAY:
-			slope = UCHAR_MAX_SINGLE / sqrtf((float)(hi - lo));
+			slope = UCHAR_MAX_SINGLE / sqrtf(delta);
 			break;
 		case SQUARED_DISPLAY:
-			slope = UCHAR_MAX_SINGLE / SQR((float)(hi - lo));
+			slope = UCHAR_MAX_SINGLE / SQR(delta);
 			break;
 		case ASINH_DISPLAY:
-			slope = UCHAR_MAX_SINGLE / asinhf((float)(hi - lo) * 0.001f);
+			slope = UCHAR_MAX_SINGLE / asinhf(delta * 0.001f);
 			break;
 		case STF_DISPLAY:
 			slope = UCHAR_MAX_SINGLE;
@@ -396,25 +318,25 @@ static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
 		default:
 			return 1;
 	}
-	if ((mode != HISTEQ_DISPLAY && mode != STF_DISPLAY) && slope == last_pente[vport]
-			&& mode == last_mode[vport]) {
+	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
+			slope == last_pente && gui.rendering_mode == last_mode) {
 		siril_debug_print("Re-using previous remap_index\n");
 		return 0;
 	}
 	siril_debug_print("Rebuilding remap_index\n");
 
 	/************* Building the remap_index **************/
-	if (!remap_index[vport]) {
-		remap_index[vport] = malloc(USHRT_MAX + 1);
-		if (!remap_index[vport]) {
+	if (!remap_index) {
+		remap_index = malloc(USHRT_MAX + 1);
+		if (!remap_index) {
 			PRINT_ALLOC_ERR;
 			return 1;
 		}
 	}
-	index = remap_index[vport];
+	index = remap_index;
 
 	for (i = 0; i <= USHRT_MAX; i++) {
-		switch (mode) {
+		switch (gui.rendering_mode) {
 			case LOG_DISPLAY:
 				// ln(5.56*10^110) = 255
 				if (i < 10)
@@ -441,7 +363,7 @@ static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
 				pxl = (gfit.orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
-				index[i] = roundf_to_BYTE((MTF(pxl, stfM, stfShadows, stfHighlights)) * slope);
+				index[i] = roundf_to_BYTE((MTF(pxl, stf_m, stf_shadows, stf_highlights)) * slope);
 				break;
 			default:
 				return 1;
@@ -456,8 +378,8 @@ static int make_index_for_current_display(display_mode mode, WORD lo, WORD hi,
 			index[i] = UCHAR_MAX;
 	}
 
-	last_pente[vport] = slope;
-	last_mode[vport] = mode;
+	last_pente = slope;
+	last_mode = gui.rendering_mode;
 	return 0;
 }
 
@@ -468,16 +390,44 @@ static int make_index_for_rainbow(BYTE index[][3]) {
 	for (i = 0; i < UCHAR_MAX + 1; i++) {
 		r = g = b = (double) i / UCHAR_MAX_DOUBLE;
 		rgb_to_hsv(r, g, b, &h, &s, &v);
-		double off = 300.0 / 360.0;  /* Arbitrary: we want h from 300 to 0 deg */
+		double off = 300.0 / 360.0; /* Arbitrary: we want h from 300 to 0 deg */
 		h = (off - (double) i * (off / UCHAR_MAX_DOUBLE));
 		s = 1.;
-		v = 1.; /* Saturation and Value are set to 100%  */
+		v = 1.; /* Saturation and Value are set to 100% */
 		hsv_to_rgb(h, s, v, &r, &g, &b);
 		index[i][0] = round_to_BYTE(r * UCHAR_MAX_DOUBLE);
 		index[i][1] = round_to_BYTE(g * UCHAR_MAX_DOUBLE);
 		index[i][2] = round_to_BYTE(b * UCHAR_MAX_DOUBLE);
 	}
 	return 0;
+}
+
+/*****************************************************************************
+ * ^ ^ ^ above:     R E M A P P I N G     I M A G E     D A T A        ^ ^ ^ *
+ *                                                                           *
+ * v v v below:          R E D R A W I N G     W I D G E T S           v v v *
+ *****************************************************************************/
+
+typedef struct draw_data {
+	cairo_t *cr;	// the context to draw to
+	int vport;	// the viewport index to draw
+	double zoom;	// the current zoom value
+	gboolean neg_view;	// negative view
+	cairo_filter_t filter;	// the type of image filtering to use
+	guint image_width, image_height;	// image size
+	guint window_width, window_height;	// drawing area size
+} draw_data_t;
+
+typedef struct label_point_struct {
+	double x, y, ra, dec, angle;
+	gboolean isRA;
+	int border;
+} label_point;
+
+static void request_gtk_redraw() {
+	//siril_debug_print("image redraw requested (vport %d)\n", gui.cvport);
+	GtkWidget *widget = gui.view[gui.cvport].drawarea;
+	gtk_widget_queue_draw(widget);
 }
 
 static void draw_empty_image(const draw_data_t* dd) {
@@ -511,8 +461,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 
 	g_object_unref(pixbuf);
 
-#ifdef SIRIL_UNSTABLE
-	{
+
 		GtkWidget *widget = lookup_widget("drawingareargb");
 		GtkStyleContext *context = gtk_widget_get_style_context(widget);
 		GtkStateFlags state = gtk_widget_get_state_flags(widget);
@@ -525,12 +474,14 @@ static void draw_empty_image(const draw_data_t* dd) {
 
 		layout = gtk_widget_create_pango_layout(widget, NULL);
 
+#ifdef SIRIL_UNSTABLE
+
 		msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
-				"<small>commit <tt>%s</tt></small>\n"
-				"<small>Please test bugs against "
-				"latest git master branch\n"
-				"before reporting them.</small>"),
-				SIRIL_GIT_VERSION_ABBREV);
+			"<small>commit <tt>%s</tt></small>\n"
+			"<small>Please test bugs against "
+			"latest git master branch\n"
+			"before reporting them.</small>"),
+			SIRIL_GIT_VERSION_ABBREV);
 		pango_layout_set_markup(layout, msg, -1);
 		g_free(msg);
 		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
@@ -547,30 +498,72 @@ static void draw_empty_image(const draw_data_t* dd) {
 		cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
 				(allocation.height - (h * scale)) / 2);
 
+#else
+		msg = g_strdup_printf("%s", PACKAGE_STRING);
+
+		pango_layout_set_markup(layout, msg, -1);
+		g_free(msg);
+		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+
+		pango_layout_get_pixel_size(layout, &w, &h);
+		gtk_widget_get_allocation(widget, &allocation);
+
+		scale = MIN(((gdouble ) allocation.width / 4.0) / (gdouble ) w,
+				((gdouble ) allocation.height / 4.0) / (gdouble ) h / 4);
+
+		gtk_style_context_get_color(context, state, &color);
+		gdk_cairo_set_source_rgba(cr, &color);
+
+		cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
+				3 * (allocation.height - (h * scale)) / 4);
+
+#endif /* SIRIL_UNSTABLE */
 		cairo_scale(cr, scale, scale);
 
 		pango_cairo_show_layout(cr, layout);
 
 		g_object_unref(layout);
-	}
-#endif /* SIRIL_UNSTABLE */
-
 }
 
 static void draw_vport(const draw_data_t* dd) {
-	cairo_set_source_surface(dd->cr, com.surface[dd->vport], 0, 0);
-	cairo_pattern_set_filter(cairo_get_source(dd->cr), dd->filter);
+	struct image_view *view = &gui.view[dd->vport];
+	if (!view->disp_surface) {
+		cairo_surface_t *target = cairo_get_target(dd->cr);
+		/*view->disp_surface =
+			cairo_surface_create_similar(target, CAIRO_CONTENT_COLOR,
+					dd->window_width, dd->window_height);*/
+		view->disp_surface = cairo_surface_create_similar_image(target, CAIRO_FORMAT_ARGB32,
+					dd->window_width, dd->window_height);
+		if (cairo_surface_status(view->disp_surface) != CAIRO_STATUS_SUCCESS) {
+			siril_debug_print("Error creating the cairo image disp_surface for vport %d\n", dd->vport);
+			cairo_surface_destroy(view->disp_surface);
+			view->disp_surface = NULL;
+			return;
+		}
+		view->view_width = dd->window_width;
+		view->view_height = dd->window_height;
+		cairo_t *cached_cr = cairo_create(view->disp_surface);
+
+		cairo_transform(cached_cr, &gui.display_matrix);
+		cairo_set_source_surface(cached_cr, view->full_surface, 0, 0);
+		cairo_pattern_set_filter(cairo_get_source(cached_cr), dd->filter);
+		cairo_paint(cached_cr);
+		cairo_destroy(cached_cr);
+
+		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
+				view->view_width, view->view_height);
+	}
+	cairo_set_source_surface(dd->cr, view->disp_surface, 0, 0);
 	cairo_paint(dd->cr);
+
+	// prepare the display matrix for remaining drawing (selection, stars, ...)
+	cairo_transform(dd->cr, &gui.display_matrix);
 }
 
-/* This method setup the viewport coordinates and draw the main image
- */
 static void draw_main_image(const draw_data_t* dd) {
-	if ((dd->vport == RGB_VPORT && com.rgbbuf) || com.graybuf[dd->vport]) {
-		cairo_transform(dd->cr, &com.display_matrix);
+	if (gui.view[dd->vport].buf) {
 		draw_vport(dd);
 	} else {
-		// For empty image, coordinates are untouched
 		draw_empty_image(dd);
 	}
 }
@@ -587,7 +580,7 @@ static void draw_selection(const draw_data_t* dd) {
 		cairo_stroke(cr);
 
 		// display a grid when the selection is being made / modified, when it is big enough
-		if (com.pref.selection_guides > 1 && com.drawing && com.selection.w > 40 / dd->zoom && com.selection.h > 40 / dd->zoom) {
+		if (com.pref.selection_guides > 1 && gui.drawing && com.selection.w > 40 / dd->zoom && com.selection.h > 40 / dd->zoom) {
 			cairo_set_line_width(cr, 0.4 / dd->zoom);
 			cairo_set_dash(cr, NULL, 0, 0);
 			for (int i = 1; i < com.pref.selection_guides; i++) {
@@ -602,7 +595,7 @@ static void draw_selection(const draw_data_t* dd) {
 		}
 
 		// display a mini cross when the selection is being dragged
-		if (com.freezeX && com.freezeY) {
+		if (gui.freezeX && gui.freezeY) {
 			cairo_set_line_width(cr, 1.0 / dd->zoom);
 			point selection_center = { com.selection.x + (double)com.selection.w / 2.,
 				com.selection.y + (double)com.selection.h / 2. };
@@ -682,8 +675,8 @@ static void draw_stars(const draw_data_t* dd) {
 		for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 			cairo_set_dash(cr, NULL, 0, 0);
 			cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
-								  com.seq.photometry_colors[i][1],
-								  com.seq.photometry_colors[i][2], 1.0);
+					com.seq.photometry_colors[i][1],
+					com.seq.photometry_colors[i][2], 1.0);
 			cairo_set_line_width(cr, 2.0 / dd->zoom);
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
@@ -691,10 +684,10 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
-						  2. * M_PI);
+						2. * M_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0.,
-						  2. * M_PI);
+						2. * M_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40);
@@ -863,23 +856,23 @@ static gboolean get_line_intersection(double p0_x, double p0_y, double p1_x,
 		double p1_y, double p2_x, double p2_y, double p3_x, double p3_y,
 		double *i_x, double *i_y) {
 	double s1_x, s1_y, s2_x, s2_y;
-    s1_x = p1_x - p0_x;     s1_y = p1_y - p0_y;
-    s2_x = p3_x - p2_x;     s2_y = p3_y - p2_y;
+	s1_x = p1_x - p0_x;	s1_y = p1_y - p0_y;
+	s2_x = p3_x - p2_x;	s2_y = p3_y - p2_y;
 	double det = -s2_x * s1_y + s1_x * s2_y;
-	if (fabs(det) < DBL_EPSILON) return FALSE;
-    double s, t;
-    s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / det;
-    t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / det;
-    if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
-    {
-        // Collision detected
-        if (i_x != NULL)
-            *i_x = p0_x + (t * s1_x);
-        if (i_y != NULL)
-            *i_y = p0_y + (t * s1_y);
-        return TRUE;
-    }
-    return FALSE; // No collision
+	if (fabs(det) < DBL_EPSILON)
+		return FALSE;
+	double s, t;
+	s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / det;
+	t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / det;
+	if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+		// Collision detected
+		if (i_x != NULL)
+			*i_x = p0_x + (t * s1_x);
+		if (i_y != NULL)
+			*i_y = p0_y + (t * s1_y);
+		return TRUE;
+	}
+	return FALSE; // No collision
 }
 
 static gint border_compare(label_point *a, label_point *b) {
@@ -1241,21 +1234,16 @@ static void draw_analysis(const draw_data_t* dd) {
 	}
 }
 
-static gboolean redraw_idle(gpointer p) {
-	redraw(com.cvport, GPOINTER_TO_INT(p)); // draw stars
-	return FALSE;
-}
-
 void initialize_image_display() {
 	int i;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
-		remap_index[i] = NULL;
-		last_pente[i] = 0.f;
-		last_mode[i] = HISTEQ_DISPLAY;
+		remap_index = NULL;
+		last_pente = 0.f;
+		last_mode = HISTEQ_DISPLAY;
 		// only HISTEQ mode always computes the index, it's a good initializer here
 	}
 
-	cairo_matrix_init_identity(&com.display_matrix);
+	cairo_matrix_init_identity(&gui.display_matrix);
 }
 
 /* this function calculates the "fit to window" zoom values, given the window
@@ -1263,20 +1251,35 @@ void initialize_image_display() {
  * Should not be called before displaying the main gray window when using zoom to fit */
 double get_zoom_val() {
 	int window_width, window_height;
-	double wtmp, htmp;
-	static GtkWidget *scrolledwin = NULL;
-	if (scrolledwin == NULL)
-		scrolledwin = lookup_widget("scrolledwindowr");
-	if (com.zoom_value > 0.)
-		return com.zoom_value;
+	if (gui.zoom_value > 0.)
+		return gui.zoom_value;
 	/* else if zoom is < 0, it means fit to window */
-	window_width = gtk_widget_get_allocated_width(scrolledwin);
-	window_height = gtk_widget_get_allocated_height(scrolledwin);
+	window_width = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
+	window_height = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
 	if (gfit.rx == 0 || gfit.ry == 0 || window_height <= 1 || window_width <= 1)
 		return 1.0;
-	wtmp = (double) window_width / (double) gfit.rx;
-	htmp = (double) window_height / (double) gfit.ry;
+	double wtmp = (double) window_width / (double) gfit.rx;
+	double htmp = (double) window_height / (double) gfit.ry;
 	return min(wtmp, htmp);
+}
+
+// passing -1 means invalidate all
+static void invalidate_image_render_cache(int vport) {
+	/* the render cache is a surface containing the rendering of the image
+	 * from the mapped buffers to the drawing area.
+	 * If some of the parameters change, the cache must be invalidated to
+	 * redraw the image: image content, image mapping, widget dimensions.
+	 */
+	for (int i = 0; i < MAXVPORT; i++) {
+		if (vport >= 0 && i != vport)
+			continue;
+		if (gui.view[i].disp_surface)
+			cairo_surface_destroy(gui.view[i].disp_surface);
+		gui.view[i].disp_surface = NULL;
+		gui.view[i].view_height = -1;
+		gui.view[i].view_width = -1;
+	}
+	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
 }
 
 void adjust_vport_size_to_image() {
@@ -1284,78 +1287,63 @@ void adjust_vport_size_to_image() {
 	double zoom = get_zoom_val();
 	if (zoom <= 0.0) return;
 	/* Init display matrix from current display state */
-	cairo_matrix_init(&com.display_matrix,
-					  zoom, 0, 0, zoom,
-					  com.display_offset.x,
-					  com.display_offset.y);
-	/* Compute the inverse display matrix used for coordinate transformation */
-	com.image_matrix = com.display_matrix;
-	cairo_matrix_invert(&com.image_matrix);
-}
+	cairo_matrix_t new_matrix;
+	/*siril_debug_print("computing matrix for zoom %g and offset [%g, %g]\n",
+			zoom, gui.display_offset.x, gui.display_offset.y);*/
+	cairo_matrix_init(&new_matrix,
+			zoom, 0, 0, zoom,
+			gui.display_offset.x,
+			gui.display_offset.y);
+	if (memcmp(&new_matrix, &gui.display_matrix, sizeof(new_matrix))) {
+		invalidate_image_render_cache(-1);
+		gui.display_matrix = new_matrix;
 
-static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb"};
-
-static gboolean set_label_zoom_text_idle(gpointer p) {
-	const gchar *txt = (const gchar *) p;
-	GtkLabel *label = GTK_LABEL(lookup_widget(label_zoom[com.cvport]));
-
-	gtk_label_set_text(label, txt);
-	return FALSE;
-}
-
-static void update_zoom_label(gdouble zoom) {
-	static gchar zoom_buffer[256] = { 0 };
-	if ((single_image_is_loaded() || sequence_is_loaded()) && com.cvport < RGB_VPORT) {
-		if (zoom < 0) {
-			zoom = get_zoom_val();
-		}
-		g_sprintf(zoom_buffer, "%d%%", (int) (zoom * 100.0));
-		gdk_threads_add_idle(set_label_zoom_text_idle, zoom_buffer);
+		/* Compute the inverse display matrix used for coordinate transformation */
+		gui.image_matrix = gui.display_matrix;
+		cairo_matrix_invert(&gui.image_matrix);
+		//siril_debug_print("  matrix changed\n");
 	}
 }
 
-void redraw(int vport, int doremap) {
+void redraw(remap_type doremap) {
 	if (com.script) return;
 
-	update_zoom_label(com.zoom_value);
-
-	if (vport >= MAXVPORT) {
-		siril_debug_print(_("redraw: maximum number of layers supported is %d"
-					" (current image has %d).\n"), MAXVPORT, vport);
+	if (doremap == REDRAW_OVERLAY) {
+		request_gtk_redraw();
 		return;
 	}
-	GtkWidget *widget = com.vport[vport];
+
+	int vport = gui.cvport;
+	if (doremap >= REDRAW_IMAGE)
+		invalidate_image_render_cache(vport);
 
 	if (doremap == REMAP_ALL) {
-		stfComputed = FALSE;
+		stf_computed = FALSE;
 		for (int i = 0; i < gfit.naxes[2]; i++) {
 			remap(i);
 		}
 		if (gfit.naxis == 3)
 			remaprgb();
-		gtk_widget_queue_draw(widget);
+		request_gtk_redraw();
 		return;
 	}
 
+	// REDRAW_IMAGE or REMAP_ONLY
 	switch (vport) {
 		case RED_VPORT:
 		case BLUE_VPORT:
 		case GREEN_VPORT:
 			if (doremap == REMAP_ONLY) {
 				remap(vport);
-			}
-			gtk_widget_queue_draw(widget);
-			if (gfit.naxes[2] == 1)
-				break;
-			/* no break */
-		case RGB_VPORT:
-			if (gfit.naxis == 3) {
-				if (doremap != REMAP_NONE) {
+				if (gfit.naxis == 3)
 					remaprgb();
-				}
-				widget = com.vport[RGB_VPORT];
-				gtk_widget_queue_draw(widget);
 			}
+			request_gtk_redraw();
+			break;	// if we can't see the two widgets at the same time
+		case RGB_VPORT:
+			if (gfit.naxis == 3 && doremap == REMAP_ONLY)
+				remaprgb();
+			request_gtk_redraw();
 			break;
 		default:
 			siril_debug_print("redraw: unknown viewport number %d\n", vport);
@@ -1363,27 +1351,25 @@ void redraw(int vport, int doremap) {
 	}
 }
 
-void queue_redraw(int doremap) {
-	// request a redraw from another thread
-	siril_add_idle(redraw_idle, GINT_TO_POINTER(doremap));
+static gboolean redraw_idle(gpointer p) {
+	redraw((remap_type)GPOINTER_TO_INT(p)); // draw stars
+	return FALSE;
 }
 
+void queue_redraw(remap_type doremap) {
+	// request a redraw from another thread
+	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
+}
 
-/* callback for GtkDrawingArea, draw event
- * see http://developer.gnome.org/gtk3/3.2/GtkDrawingArea.html
- * http://developer.gnome.org/gdk-pixbuf/stable/gdk-pixbuf-Image-Data-in-Memory.html
- * http://www.cairographics.org/manual/
- * http://www.cairographics.org/manual/cairo-Image-Surfaces.html#cairo-image-surface-create-for-data
- */
+/* callback for GtkDrawingArea, draw event */
 gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	draw_data_t dd;
 	static GtkApplicationWindow *app_win = NULL;
+	static GAction *action_neg = NULL;
 	if (app_win == NULL) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
 	}
-	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *state = g_action_get_state(action_neg);
-
 	// we need to identify which vport is being redrawn
 	dd.vport = match_drawing_area_widget(widget, TRUE);
 	if (dd.vport == -1) {
@@ -1395,15 +1381,43 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	dd.cr = cr;
 	dd.window_width = gtk_widget_get_allocated_width(widget);
 	dd.window_height = gtk_widget_get_allocated_height(widget);
+
+	if (dd.window_width != gui.view[dd.vport].view_width ||
+			dd.window_height != gui.view[dd.vport].view_height) {
+		siril_debug_print("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
+				dd.window_width, dd.window_height,
+				gui.view[dd.vport].view_width, gui.view[dd.vport].view_height);
+		invalidate_image_render_cache(dd.vport);
+	}
+
 	dd.zoom = get_zoom_val();
 	dd.image_width = gfit.rx;
 	dd.image_height = gfit.ry;
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
+
+	GVariant *state = g_action_get_state(action_neg);
 	dd.neg_view = g_variant_get_boolean(state);
+	g_variant_unref(state);
+
+#if 0
+	static struct timeval prevtime = { 0 };
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	int us = (now.tv_sec - prevtime.tv_sec) * 1000000 + now.tv_usec - prevtime.tv_usec;
+	prevtime = now;
+
+	GdkRectangle rect;
+	if (!gdk_cairo_get_clip_rectangle(cr, &rect) || (rect.width == 0 && rect.height == 0)) {
+		printf("nothing to redraw\n");
+		return FALSE;
+	}
+	if (us < 320000)
+		printf("redraw %d ms\t(at %d, %d of size %d x %d)\n", us/1000,
+				rect.x, rect.y, rect.width, rect.height);
+#endif
+
 
 	adjust_vport_size_to_image();
-
-	cairo_save(cr);
 
 	/* RGB or gray images */
 	draw_main_image(&dd);
@@ -1427,10 +1441,6 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* background removal gradient selection boxes */
 	draw_brg_boxes(&dd);
-
-	cairo_restore(cr);
-
-	g_variant_unref(state);
 
 	return FALSE;
 }
@@ -1456,7 +1466,6 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
 	GVariant *state = g_action_get_state(action_neg);
 
-
 	dd.vport = vport;
 	dd.cr = cr;
 	dd.window_width = gtk_widget_get_allocated_width(widget);
@@ -1466,6 +1475,7 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	dd.image_height = gfit.ry;
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 	dd.neg_view = g_variant_get_boolean(state);
+	g_variant_unref(state);
 
 	/* RGB or gray images */
 	draw_main_image(&dd);

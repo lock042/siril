@@ -42,8 +42,6 @@ GtkWindow *siril_get_active_window();
 void initialize_FITS_name_entries();
 
 void adjust_vport_size_to_image();
-void scrollbars_hadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
-void scrollbars_vadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void set_output_filename_to_sequence_name();
 void close_tab();
 void activate_tab(int vport);

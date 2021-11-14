@@ -100,14 +100,14 @@ static GtkTextView *pixel_math_text_view = NULL;
 
 static void init_widgets() {
 	if (!pixel_math_tree_view) {
-		pixel_math_tree_view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "pixel_math_treeview"));
+		pixel_math_tree_view = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview"));
 		pixel_math_tree_model = gtk_tree_view_get_model(pixel_math_tree_view);
-		pixel_math_list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "pixel_math_liststore"));
+		pixel_math_list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore"));
 		pixel_math_status_bar = GTK_LABEL(lookup_widget("pixel_math_status"));
 		pixel_math_text_view = GTK_TEXT_VIEW(lookup_widget("pixel_math_textview"));
-		pixel_math_treeview_functions = GTK_TREE_VIEW(gtk_builder_get_object(builder, "pixel_math_treeview_functions"));
+		pixel_math_treeview_functions = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_functions"));
 		pixel_math_tree_model_functions = gtk_tree_view_get_model(pixel_math_treeview_functions);
-		pixel_math_list_store_functions = GTK_LIST_STORE(gtk_builder_get_object(builder, "pixel_math_liststore_functions"));
+		pixel_math_list_store_functions = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore_functions"));
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_functions")), TRUE);
@@ -166,7 +166,6 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		com.uniq->filename = strdup(_("new empty image"));
 		com.uniq->fileexist = FALSE;
 		com.uniq->nb_layers = args->fit->naxes[2];
-		com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 		com.uniq->fit = args->fit;
 		clearfits(&gfit);
 		copyfits(args->fit, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);

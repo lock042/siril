@@ -88,7 +88,7 @@ static gboolean check_escape(GtkWidget *widget, GdkEventKey *event,
 void siril_open_dialog(gchar *id) {
 	gint x, y;
 	gboolean win_already_shown = FALSE;
-	GtkWindow *win = GTK_WINDOW(gtk_builder_get_object(builder, id));
+	GtkWindow *win = GTK_WINDOW(gtk_builder_get_object(gui.builder, id));
 
 	if (get_entry_by_id(id).type != INFORMATION_DIALOG) {
 		for (int i = 0; i < G_N_ELEMENTS(entries); i++) {

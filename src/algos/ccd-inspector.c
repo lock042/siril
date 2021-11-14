@@ -65,7 +65,7 @@ static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float
 
 	com.tilt->fwhm_centre = mcentre;
 
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void clear_sensor_tilt() {
@@ -80,7 +80,7 @@ int draw_sensor_tilt(fits *fit) {
 	float r = sqrtf(center.x * center.x + center.y * center.y);
 	float r1 = 0.25f * r;
 	float r2 = 0.75f * r;
-	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
+	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
 	delete_selected_area();
 

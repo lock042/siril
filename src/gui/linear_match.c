@@ -211,7 +211,7 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 			apply_linear_to_fits(&gfit, a, b);
 
 			adjust_cutoff_from_updated_gfit();
-			redraw(com.cvport, REMAP_ALL);
+			redraw(REMAP_ALL);
 			redraw_previews();
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot compute linear coefficients."),

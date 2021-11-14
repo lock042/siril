@@ -182,7 +182,7 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image)
-		queue_redraw(REMAP_NONE); // draw stars
+		queue_redraw(REDRAW_OVERLAY); // draw stars
 
 	sadata->ref.x = fit.rx;
 	sadata->ref.y = fit.ry;
@@ -642,7 +642,6 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
-	seq.layers = calloc(seq.nb_layers, sizeof(layer_info));
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;

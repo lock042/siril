@@ -107,7 +107,7 @@ static void histo_close(gboolean revert) {
 		}
 		copy_backup_to_gfit();
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
 	}
@@ -125,7 +125,7 @@ static void histo_recompute() {
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 }
 
@@ -249,7 +249,7 @@ static void set_histo_toggles_names() {
 static double get_histoZoomValueH() {
 	static GtkAdjustment *histoAdjZoomH = NULL;
 	if (!histoAdjZoomH)
-		histoAdjZoomH = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "histoAdjZoomH"));
+		histoAdjZoomH = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomH"));
 
 	return gtk_adjustment_get_value(histoAdjZoomH);
 }
@@ -257,7 +257,7 @@ static double get_histoZoomValueH() {
 static double get_histoZoomValueV() {
 	static GtkAdjustment *histoAdjZoomV = NULL;
 	if (!histoAdjZoomV)
-		histoAdjZoomV = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "histoAdjZoomV"));
+		histoAdjZoomV = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomV"));
 
 	return gtk_adjustment_get_value(histoAdjZoomV);
 }
@@ -916,8 +916,8 @@ void apply_histo_cancel() {
 void on_histoZoom100_clicked(GtkButton *button, gpointer user_data) {
 	GtkAdjustment *histoAdjZoomH, *histoAdjZoomV;
 
-	histoAdjZoomH = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "histoAdjZoomH"));
-	histoAdjZoomV = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "histoAdjZoomV"));
+	histoAdjZoomH = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomH"));
+	histoAdjZoomV = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomV"));
 
 	gtk_adjustment_set_value(histoAdjZoomH, 1.0);
 	gtk_adjustment_set_value(histoAdjZoomV, 1.0);

@@ -652,7 +652,7 @@ static gchar *project_catalog(GFile *catalogue_name, SirilWorldCS *catalog_cente
 
 static void get_list_IPS() {
 	if (list_IPS == NULL)
-		list_IPS = GTK_LIST_STORE(gtk_builder_get_object(builder, "liststoreIPS"));
+		list_IPS = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststoreIPS"));
 }
 
 static void clear_all_objects() {
@@ -687,7 +687,7 @@ static void add_object_to_list() {
 static void unselect_all_items() {
 	GtkTreeSelection *selection;
 
-	selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "gtkselectionIPS"));
+	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "gtkselectionIPS"));
 	gtk_tree_selection_unselect_all(selection);
 }
 
@@ -1218,9 +1218,9 @@ static gboolean end_plate_solver(gpointer p) {
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 			fits_flip_top_to_bottom(args->fit);
 			flip_bottom_up_astrometry_data(args->fit);
-			redraw(com.cvport, REMAP_ALL);
+			redraw(REMAP_ALL);
 		} else {
-			redraw(com.cvport, REMAP_NONE);
+			redraw(REDRAW_OVERLAY);
 		}
 		load_WCS_from_memory(args->fit);
 		free(solution);

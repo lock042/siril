@@ -666,7 +666,7 @@ int remove_star(int index) {
 	free_psf(com.stars[index]);
 	memmove(&com.stars[index], &com.stars[index + 1],
 			(N - index - 1) * sizeof(*com.stars));
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 	return 0;
 }
 
@@ -745,7 +745,7 @@ gpointer findstar(gpointer p) {
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
-	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
+	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
 		return;

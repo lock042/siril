@@ -123,7 +123,7 @@ static gboolean _3stars_seqpsf_end(gpointer p) {
 
 psf_end:
 	memset(&com.selection, 0, sizeof(rectangle));
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 
 	awaiting_star = 0;
 	free(args);

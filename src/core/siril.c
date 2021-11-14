@@ -229,16 +229,12 @@ int ddp(fits *a, int level, float coeff, float sigma) {
 int visu(fits *fit, int low, int high) {
 	if (low < 0 || low > USHRT_MAX || high < 1 || high > USHRT_MAX)
 		return 1;
-	if (single_image_is_loaded() && com.cvport < com.uniq->nb_layers) {
-		com.uniq->layers[com.cvport].hi = high;
-		com.uniq->layers[com.cvport].lo = low;
-	} else if (sequence_is_loaded() && com.cvport < com.seq.nb_layers) {
-		com.seq.layers[com.cvport].hi = high;
-		com.seq.layers[com.cvport].lo = low;
-	} else
+	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return 1;
+	gui.lo = low;
+	gui.hi = high;
 	set_cutoff_sliders_values();
-	redraw(com.cvport, REMAP_ONLY);
+	redraw(REMAP_ONLY);
 	redraw_previews();
 	return 0;
 }

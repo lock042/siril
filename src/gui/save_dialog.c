@@ -474,13 +474,8 @@ static gpointer mini_save_dialog(gpointer p) {
 			/* Check if MIPS-HI and MIPS-LO must be updated. If yes,
 			 * Values are taken from the layer 0 */
 			if (args->update_hilo) {
-				if (sequence_is_loaded() && !single_image_is_loaded()) {
-					gfit.hi = com.seq.layers[RLAYER].hi;
-					gfit.lo = com.seq.layers[RLAYER].lo;
-				} else {
-					gfit.hi = com.uniq->layers[RLAYER].hi;
-					gfit.lo = com.uniq->layers[RLAYER].lo;
-				}
+				gfit.hi = gui.hi;
+				gfit.lo = gui.lo;
 				if (gfit.orig_bitpix == BYTE_IMG
 						&& (gfit.hi > UCHAR_MAX || gfit.lo > UCHAR_MAX)) {
 					gfit.hi = UCHAR_MAX;
@@ -758,11 +753,10 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 void on_header_snapshot_button_clicked(gboolean clipboard) {
 	GError *error = NULL;
 	gchar *timestamp, *filename;
-	GdkPixbuf *pixbuf;
 	GtkWidget *widget;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 
-	widget = lookup_widget(area[com.cvport]);
+	widget = lookup_widget(area[gui.cvport]);
 	timestamp = build_timestamp_filename();
 	filename = g_strdup_printf("%s.png", timestamp);
 
@@ -770,23 +764,23 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	/* create cr from the surface */
 	int width = max(gfit.rx, gtk_widget_get_allocated_width(widget));
 	int height = max(gfit.ry, gtk_widget_get_allocated_height(widget));
-	cairo_surface_t *surface = cairo_surface_create_similar(com.surface[com.cvport], CAIRO_CONTENT_COLOR_ALPHA, width, height);
+	cairo_surface_t *surface = cairo_surface_create_similar(gui.view[gui.cvport].full_surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
 	cairo_t *cr = cairo_create(surface);
 
 	/* add image and all annotations if available */
-	add_image_and_label_to_cairo(cr, com.cvport);
+	add_image_and_label_to_cairo(cr, gui.cvport);
 
 	cairo_destroy(cr);
 
 	double z = get_zoom_val();
 
-	gint x1 = max(0, (int) com.display_offset.x);
-	gint y1 = max(0, (int) com.display_offset.y);
+	gint x1 = max(0, (int) gui.display_offset.x);
+	gint y1 = max(0, (int) gui.display_offset.y);
 
-	gint x2 = min(width * z + (int) com.display_offset.x, gtk_widget_get_allocated_width(widget));
-	gint y2 = min(height * z + (int) com.display_offset.y, gtk_widget_get_allocated_height(widget));
+	gint x2 = min(width * z + (int) gui.display_offset.x, gtk_widget_get_allocated_width(widget));
+	gint y2 = min(height * z + (int) gui.display_offset.y, gtk_widget_get_allocated_height(widget));
 
-	pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
+	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
 	if (pixbuf) {
 		if (clipboard) {
 			GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);

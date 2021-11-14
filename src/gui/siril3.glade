@@ -11720,46 +11720,34 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">current red file</property>
                             <property name="halign">end</property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">True</property>
+                            <property name="fill">False</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkScrolledWindow" id="scrolledwindowr">
+                          <object class="GtkDrawingArea" id="drawingarear">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <child>
-                              <object class="GtkViewport" id="viewportr">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <signal name="drag-data-received" handler="on_viewport_drag_data_received" swapped="no"/>
-                                <signal name="drag-leave" handler="on_viewport_drag_leave" swapped="no"/>
-                                <signal name="drag-motion" handler="on_viewport_drag_motion" swapped="no"/>
-                                <child>
-                                  <object class="GtkDrawingArea" id="drawingarear">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
-                                    <property name="margin-start">2</property>
-                                    <property name="margin-end">2</property>
-                                    <property name="margin-top">2</property>
-                                    <property name="margin-bottom">2</property>
-                                    <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
-                                    <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
-                                    <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
+                            <property name="can-focus">False</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="margin-start">2</property>
+                            <property name="margin-end">2</property>
+                            <property name="margin-top">2</property>
+                            <property name="margin-bottom">2</property>
+                            <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+                            <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
+                            <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
+                            <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
+                            <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                            <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -11772,14 +11760,16 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">end</property>
-                            <property name="ellipsize">start</property>
+                            <property name="label"> </property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">True</property>
+                            <property name="fill">False</property>
                             <property name="position">2</property>
                           </packing>
                         </child>
@@ -11787,7 +11777,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           <object class="GtkBox" id="hboxr">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="valign">center</property>
                             <property name="spacing">10</property>
                             <child>
                               <object class="GtkLabel" id="labelzoom_red">
@@ -11795,7 +11784,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="width-chars">6</property>
+                                <property name="single-line-mode">True</property>
                                 <property name="max-width-chars">6</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -11811,12 +11802,14 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="padding">6</property>
                                 <property name="position">1</property>
@@ -11828,6 +11821,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="ellipsize">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -11836,7 +11831,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
-                                <property name="position">4</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -11844,6 +11839,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -11851,15 +11848,14 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">12</property>
                                 <property name="pack-type">end</property>
-                                <property name="position">6</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">True</property>
+                            <property name="fill">False</property>
                             <property name="position">3</property>
                           </packing>
                         </child>
@@ -11871,10 +11867,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="can-focus">False</property>
                         <property name="label" translatable="yes">Red</property>
                         <property name="justify">center</property>
+                        <property name="single-line-mode">True</property>
                       </object>
                       <packing>
                         <property name="tab-fill">False</property>
-                        <property name="reorderable">True</property>
                       </packing>
                     </child>
                     <child>
@@ -11888,6 +11884,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">current green file</property>
                             <property name="halign">end</property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
@@ -11899,35 +11897,21 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkScrolledWindow" id="scrolledwindowg">
+                          <object class="GtkDrawingArea" id="drawingareag">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <child>
-                              <object class="GtkViewport" id="viewportg">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <signal name="drag-data-received" handler="on_viewport_drag_data_received" swapped="no"/>
-                                <signal name="drag-leave" handler="on_viewport_drag_leave" swapped="no"/>
-                                <signal name="drag-motion" handler="on_viewport_drag_motion" swapped="no"/>
-                                <child>
-                                  <object class="GtkDrawingArea" id="drawingareag">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
-                                    <property name="margin-start">2</property>
-                                    <property name="margin-end">2</property>
-                                    <property name="margin-top">2</property>
-                                    <property name="margin-bottom">2</property>
-                                    <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
-                                    <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
-                                    <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
+                            <property name="can-focus">False</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="margin-start">2</property>
+                            <property name="margin-end">2</property>
+                            <property name="margin-top">2</property>
+                            <property name="margin-bottom">2</property>
+                            <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+                            <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
+                            <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
+                            <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
+                            <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                            <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -11940,6 +11924,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">end</property>
+                            <property name="label"> </property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
@@ -11956,29 +11943,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="can-focus">False</property>
                             <property name="valign">center</property>
                             <property name="spacing">10</property>
-                            <child type="center">
-                              <object class="GtkLabel" id="labelfwhm_green">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <style>
-                                  <class name="label-data"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">8</property>
-                                <property name="position">3</property>
-                              </packing>
-                            </child>
                             <child>
                               <object class="GtkLabel" id="labelzoom_green">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="width-chars">6</property>
+                                <property name="single-line-mode">True</property>
                                 <property name="max-width-chars">6</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -11990,11 +11963,31 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               </packing>
                             </child>
                             <child>
+                              <object class="GtkLabel" id="labelfwhm_green">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="padding">6</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkLabel" id="labelselection_green">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="ellipsize">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -12003,7 +11996,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
-                                <property name="position">4</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -12011,6 +12004,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -12018,9 +12013,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">4</property>
                                 <property name="pack-type">end</property>
-                                <property name="position">6</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                           </object>
@@ -12045,7 +12039,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       <packing>
                         <property name="position">1</property>
                         <property name="tab-fill">False</property>
-                        <property name="reorderable">True</property>
                       </packing>
                     </child>
                     <child>
@@ -12059,6 +12052,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">current blue file</property>
                             <property name="halign">end</property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
@@ -12070,35 +12065,21 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkScrolledWindow" id="scrolledwindowb">
+                          <object class="GtkDrawingArea" id="drawingareab">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <child>
-                              <object class="GtkViewport" id="viewportb">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <signal name="drag-data-received" handler="on_viewport_drag_data_received" swapped="no"/>
-                                <signal name="drag-leave" handler="on_viewport_drag_leave" swapped="no"/>
-                                <signal name="drag-motion" handler="on_viewport_drag_motion" swapped="no"/>
-                                <child>
-                                  <object class="GtkDrawingArea" id="drawingareab">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
-                                    <property name="margin-start">2</property>
-                                    <property name="margin-end">2</property>
-                                    <property name="margin-top">2</property>
-                                    <property name="margin-bottom">2</property>
-                                    <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
-                                    <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
-                                    <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
+                            <property name="can-focus">False</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="margin-start">2</property>
+                            <property name="margin-end">2</property>
+                            <property name="margin-top">2</property>
+                            <property name="margin-bottom">2</property>
+                            <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+                            <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
+                            <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
+                            <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
+                            <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                            <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -12111,6 +12092,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">end</property>
+                            <property name="label"> </property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
@@ -12133,7 +12117,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="width-chars">6</property>
+                                <property name="single-line-mode">True</property>
                                 <property name="max-width-chars">6</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -12149,14 +12135,16 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">8</property>
+                                <property name="padding">6</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
@@ -12166,6 +12154,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="ellipsize">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -12174,7 +12164,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="padding">3</property>
-                                <property name="position">4</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -12182,6 +12172,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
                                 <style>
                                   <class name="label-data"/>
                                 </style>
@@ -12189,9 +12181,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="padding">4</property>
                                 <property name="pack-type">end</property>
-                                <property name="position">6</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                           </object>
@@ -12216,7 +12207,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       <packing>
                         <property name="position">2</property>
                         <property name="tab-fill">False</property>
-                        <property name="reorderable">True</property>
                       </packing>
                     </child>
                     <child>
@@ -12229,6 +12219,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">end</property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
@@ -12240,35 +12232,21 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkScrolledWindow" id="scrolledwindowrgb">
+                          <object class="GtkDrawingArea" id="drawingareargb">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <child>
-                              <object class="GtkViewport" id="viewport2">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <signal name="drag-data-received" handler="on_viewport_drag_data_received" swapped="no"/>
-                                <signal name="drag-leave" handler="on_viewport_drag_leave" swapped="no"/>
-                                <signal name="drag-motion" handler="on_viewport_drag_motion" swapped="no"/>
-                                <child>
-                                  <object class="GtkDrawingArea" id="drawingareargb">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
-                                    <property name="margin-start">2</property>
-                                    <property name="margin-end">2</property>
-                                    <property name="margin-top">2</property>
-                                    <property name="margin-bottom">2</property>
-                                    <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
-                                    <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
-                                    <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                                    <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
-                                    <signal name="popup-menu" handler="rgb_area_popup_menu_handler" swapped="no"/>
-                                    <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
+                            <property name="can-focus">False</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
+                            <property name="margin-start">2</property>
+                            <property name="margin-end">2</property>
+                            <property name="margin-top">2</property>
+                            <property name="margin-bottom">2</property>
+                            <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+                            <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
+                            <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
+                            <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                            <signal name="popup-menu" handler="rgb_area_popup_menu_handler" swapped="no"/>
+                            <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -12277,29 +12255,16 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkBox" id="hboxrgb">
+                          <object class="GtkLabel" id="labelrgb">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="spacing">2</property>
-                            <child>
-                              <object class="GtkLabel" id="labelrgb">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">The RGB channel is only used for visualisation. Please work on the Red, Green or Blue channel.</property>
-                                <property name="label" translatable="yes">ONLY FOR VISUALISATION</property>
-                                <property name="width-chars">20</property>
-                                <attributes>
-                                  <attribute name="weight" value="bold"/>
-                                  <attribute name="foreground" value="#efef29292929"/>
-                                </attributes>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="padding">2</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
+                            <property name="tooltip-text" translatable="yes">The RGB channel is only used for visualisation. Please work on the Red, Green or Blue channel.</property>
+                            <property name="label" translatable="yes">ONLY FOR VISUALISATION</property>
+                            <property name="width-chars">20</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                              <attribute name="foreground" value="#efef29292929"/>
+                            </attributes>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -12312,6 +12277,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">end</property>
+                            <property name="label"> </property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
                             <style>
                               <class name="label-data"/>
                             </style>
@@ -12319,6 +12287,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
+                            <property name="pack-type">end</property>
                             <property name="position">3</property>
                           </packing>
                         </child>
@@ -12400,8 +12369,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                         <property name="reorderable">True</property>
                                         <property name="search-column">0</property>
                                         <signal name="drag-data-received" handler="on_treeview_convert_drag_data_received" swapped="no"/>
-                                        <signal name="drag-leave" handler="on_treeview_convert_drag_leave" swapped="no"/>
-                                        <signal name="drag-motion" handler="on_treeview_convert_drag_motion" swapped="no"/>
                                         <signal name="key-release-event" handler="on_treeview_convert_key_release_event" swapped="no"/>
                                         <child internal-child="selection">
                                           <object class="GtkTreeSelection">
@@ -16553,7 +16520,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                   </object>
                   <packing>
                     <property name="resize">False</property>
-                    <property name="shrink">False</property>
+                    <property name="shrink">True</property>
                   </packing>
                 </child>
               </object>
@@ -17660,6 +17627,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                 <property name="halign">end</property>
                 <property name="label">Mem: N/A</property>
                 <property name="justify">right</property>
+                <property name="single-line-mode">True</property>
+                <property name="track-visited-links">False</property>
                 <attributes>
                   <attribute name="scale" value="0.80000000000000004"/>
                 </attributes>
@@ -17679,6 +17648,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                 <property name="halign">end</property>
                 <property name="label" translatable="yes" context="GUI" comments="Must be short !!">Disk Space: N/A</property>
                 <property name="justify">right</property>
+                <property name="single-line-mode">True</property>
+                <property name="track-visited-links">False</property>
                 <attributes>
                   <attribute name="scale" value="0.80000000000000004"/>
                 </attributes>
@@ -21734,6 +21705,8 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="label" translatable="yes">available mem</property>
+                                    <property name="single-line-mode">True</property>
+                                    <property name="track-visited-links">False</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>

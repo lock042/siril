@@ -153,7 +153,7 @@ int process_satu(int nb){
 	enhance_saturation(args);
 
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 
@@ -161,20 +161,14 @@ int process_satu(int nb){
 }
 
 int process_save(int nb){
-	if (sequence_is_loaded() && !single_image_is_loaded()) {
-		gfit.hi = com.seq.layers[RLAYER].hi;
-		gfit.lo = com.seq.layers[RLAYER].lo;
-	}
-	else if (single_image_is_loaded()) {
-		gfit.hi = com.uniq->layers[RLAYER].hi;
-		gfit.lo = com.uniq->layers[RLAYER].lo;
-	} else {
+	if (!sequence_is_loaded() && !single_image_is_loaded())
 		return 1;
-	}
 
 	gchar *filename = g_strdup(word[1]);
 	set_cursor_waiting(TRUE);
-	int retval = savefits(filename, &(gfit));
+	gfit.lo = gui.lo;
+	gfit.hi = gui.hi;
+	int retval = savefits(filename, &gfit);
 	set_precision_switch();
 	set_cursor_waiting(FALSE);
 	g_free(filename);
@@ -190,7 +184,7 @@ int process_savebmp(int nb){
 	gchar *filename = g_strdup_printf("%s.bmp", word[1]);
 
 	set_cursor_waiting(TRUE);
-	savebmp(filename, &(gfit));
+	savebmp(filename, &gfit);
 	set_cursor_waiting(FALSE);
 	g_free(filename);
 	return 0;
@@ -304,7 +298,7 @@ int process_imoper(int nb){
 
 	clearfits(&fit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return retval;
 }
@@ -321,7 +315,7 @@ int process_addmax(int nb){
 		return -1;
 	if (addmax(&gfit, &fit) == 0) {
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 	}
 	clearfits(&fit);
@@ -343,7 +337,7 @@ int process_fdiv(int nb){
 
 	clearfits(&fit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -362,7 +356,7 @@ int process_fmul(int nb){
 	soper(&gfit, coeff, OPER_MUL, TRUE);
 
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -397,7 +391,7 @@ int process_gauss(int nb){
 
 	unsharp(&gfit, g_ascii_strtod(word[1], NULL), 0.0, TRUE);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -415,7 +409,7 @@ int process_grey_flat(int nb) {
 
 	compute_grey_flat(&gfit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 
 	return 0;
@@ -481,7 +475,7 @@ int process_unsharp(int nb) {
 
 	unsharp(&(gfit), g_ascii_strtod(word[1], NULL), g_ascii_strtod(word[2], NULL), TRUE);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -530,7 +524,7 @@ int process_crop(int nb) {
 	delete_selected_area();
 	reset_display_offset();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	
 	return 0;
@@ -585,7 +579,7 @@ int process_wrecons(int nb) {
 	}
 
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -658,7 +652,7 @@ int process_log(int nb){
 
 	loglut(&gfit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -679,7 +673,7 @@ int process_linear_match(int nb) {
 		apply_linear_to_fits(&gfit, a, b);
 
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
 	}
@@ -698,7 +692,7 @@ int process_asinh(int nb) {
 	set_cursor_waiting(TRUE);
 	asinhlut(&gfit, beta, 0, FALSE);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 	return 0;
@@ -1073,7 +1067,7 @@ int	process_mirrorx(int nb){
 	}
 
 	mirrorx(&gfit, TRUE);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1085,7 +1079,7 @@ int	process_mirrory(int nb){
 	}
 
 	mirrory(&gfit, TRUE);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1098,7 +1092,7 @@ int process_mtf(int nb) {
 	mtf_with_parameters(&gfit, lo, mid, hi);
 
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1120,7 +1114,7 @@ int process_resample(int nb) {
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA);
 	
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 	return 0;
@@ -1170,7 +1164,7 @@ int process_rotate(int nb) {
 	}
 
 	verbose_rotate_image(&gfit, degree, OPENCV_AREA, crop);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 	return 0;
@@ -1184,7 +1178,7 @@ int process_rotatepi(int nb){
 
 	verbose_rotate_image(&gfit, 180.0, -1, 1);
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1195,39 +1189,41 @@ int process_set_mag(int nb) {
 		return 1;
 	}
 
-	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
+	if (gui.cvport >= MAXGRAYVPORT) {
+		siril_log_color_message(_("Please display the channel on which you set the reference magnitude\n"), "red");
+		return 1;
+	}
+
 	double mag_reference = g_ascii_strtod(word[1], NULL);
 
-	if (layer != -1) {
-		gboolean found = FALSE;
-		double mag = 0.0;
-		if (com.qphot) {
-			mag = com.qphot->mag;
-			found = TRUE;
-		} else {
-			if (com.selection.w > 300 || com.selection.h > 300){
-				siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-				return 1;
-			}
-			if (com.selection.w <= 0 || com.selection.h <= 0){
-				siril_log_message(_("Select an area first\n"));
-				return 1;
-			}
-			psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
-			if (result) {
-				found = TRUE;
-				mag = result->mag;
-				free_psf(result);
-			}
+	gboolean found = FALSE;
+	double mag = 0.0;
+	if (com.qphot) {
+		mag = com.qphot->mag;
+		found = TRUE;
+	} else {
+		if (com.selection.w > 300 || com.selection.h > 300){
+			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+			return 1;
 		}
-		if (found) {
-			com.magOffset = mag_reference - mag;
-			siril_log_message(_(
+		if (com.selection.w <= 0 || com.selection.h <= 0){
+			siril_log_message(_("Select an area first\n"));
+			return 1;
+		}
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, TRUE, TRUE);
+		if (result) {
+			found = TRUE;
+			mag = result->mag;
+			free_psf(result);
+		}
+	}
+	if (found) {
+		com.magOffset = mag_reference - mag;
+		siril_log_message(_(
 					"Relative magnitude: %.3lf, "
 					"True reduced magnitude: %.3lf, "
 					"Offset: %.3lf\n"
-					), mag, mag_reference, com.magOffset);
-		}
+				   ), mag, mag_reference, com.magOffset);
 	}
 	return 0;
 }
@@ -1332,22 +1328,23 @@ int process_psf(int nb){
 		return 1;
 	}
 
-	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
-	if (layer != -1) {
+	if (gui.cvport >= MAXGRAYVPORT) {
+		siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
+		return 1;
+	}
 
-		if (com.selection.w > 300 || com.selection.h > 300){
-			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-			return 1;
-		}
-		if (com.selection.w <= 0 || com.selection.h <= 0){
-			siril_log_message(_("Select an area first\n"));
-			return 1;
-		}
-		psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
-		if (result) {
-			psf_display_result(result, &com.selection);
-			free_psf(result);
-		}
+	if (com.selection.w > 300 || com.selection.h > 300){
+		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+		return 1;
+	}
+	if (com.selection.w <= 0 || com.selection.h <= 0){
+		siril_log_message(_("Select an area first\n"));
+		return 1;
+	}
+	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, TRUE, TRUE);
+	if (result) {
+		psf_display_result(result, &com.selection);
+		free_psf(result);
 	}
 	return 0;
 }
@@ -1370,19 +1367,22 @@ int process_seq_psf(int nb) {
 		return 1;
 	}
 
-	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
-	if (layer >= 0) {
-		framing_mode framing = REGISTERED_FRAME;
-		if (framing == REGISTERED_FRAME && !com.seq.regparam[layer])
-			framing = ORIGINAL_FRAME;
-		if (framing == ORIGINAL_FRAME) {
-			GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-			if (gtk_toggle_button_get_active(follow))
-				framing = FOLLOW_STAR_FRAME;
-		}
-		siril_log_message(_("Running the PSF on the loaded sequence, layer %d\n"), layer);
-		seqpsf(&com.seq, layer, FALSE, FALSE, framing, TRUE);
+	if (gui.cvport >= MAXGRAYVPORT) {
+		siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
+		return 1;
 	}
+
+	int layer = gui.cvport;
+	framing_mode framing = REGISTERED_FRAME;
+	if (framing == REGISTERED_FRAME && !com.seq.regparam[layer])
+		framing = ORIGINAL_FRAME;
+	if (framing == ORIGINAL_FRAME) {
+		GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+		if (gtk_toggle_button_get_active(follow))
+			framing = FOLLOW_STAR_FRAME;
+	}
+	siril_log_message(_("Running the PSF on the loaded sequence, layer %d\n"), layer);
+	seqpsf(&com.seq, layer, FALSE, FALSE, framing, TRUE);
 	return 0;
 }
 
@@ -1557,7 +1557,7 @@ int process_tilt(int nb) {
 	if (word[1] && !g_ascii_strcasecmp(word[1], "clear")) {
 		clear_sensor_tilt();
 		siril_log_message(_("Clearing tilt information\n"));
-		redraw(com.cvport, REMAP_NONE);
+		redraw(REDRAW_OVERLAY);
 	} else {
 		set_cursor_waiting(TRUE);
 		draw_sensor_tilt(&gfit);
@@ -1591,7 +1591,7 @@ int process_thresh(int nb){
 	threshlo(&gfit, lo);
 	threshhi(&gfit, hi);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1610,7 +1610,7 @@ int process_threshlo(int nb){
 	}
 	threshlo(&gfit, lo);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1629,7 +1629,7 @@ int process_threshhi(int nb){
 	}
 	threshhi(&gfit, hi);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1639,7 +1639,7 @@ int process_neg(int nb) {
 	pos_to_neg(&gfit);
 	update_gfit_histogram_if_needed();
 	invalidate_stats_from_fit(&gfit);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 	return 0;
@@ -1659,7 +1659,7 @@ int process_nozero(int nb){
 	}
 	nozero(&gfit, (WORD)level);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1675,7 +1675,7 @@ int process_ddp(int nb) {
 	float sigma = g_ascii_strtod(word[3], NULL);
 	ddp(&gfit, level, coeff, sigma);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -1705,7 +1705,6 @@ int process_new(int nb){
 	com.uniq->filename = strdup(_("new empty image"));
 	com.uniq->fileexist = FALSE;
 	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 	com.uniq->fit = &gfit;
 
 	open_single_image_from_gfit();
@@ -1763,12 +1762,12 @@ int process_fill2(int nb){
 	area.x = gfit.rx - area.x - area.w;
 	area.y = gfit.ry - area.y - area.h;
 	fill(&gfit, level, &area);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	return 0;
 }
 
 int process_findstar(int nb){
-	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
+	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
 	delete_selected_area();
 
@@ -1858,7 +1857,7 @@ int process_fix_xtrans(int nb) {
 
 	fix_xtrans_ac(&gfit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	return 0;
 }
 
@@ -1896,7 +1895,7 @@ int process_cosme(int nb) {
 
 	invalidate_stats_from_fit(&gfit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -2021,7 +2020,7 @@ int process_clear(int nb) {
 int process_clearstar(int nb){
 	clear_stars_list();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 	redraw_previews();
 	return 0;
 }
@@ -2031,6 +2030,9 @@ int process_close(int nb) {
 	close_single_image();
 	if (!com.script) {
 		update_MenuItem();
+		display_filename();
+		update_zoom_label();
+		update_display_fwhm();
 		reset_plot(); // reset all plots
 		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
 		
@@ -2070,7 +2072,7 @@ int process_fill(int nb){
 		siril_log_message(_("Wrong parameters.\n"));
 		return 1;
 	}
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	return 0;
 }
 
@@ -2083,7 +2085,7 @@ int process_offset(int nb){
 	int level = g_ascii_strtod(word[1], NULL);
 	off(&gfit, level);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }
@@ -2230,7 +2232,7 @@ int process_subsky(int nb) {
 		com.grad_samples = NULL;
 
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		set_cursor_waiting(FALSE);
 	}
 
@@ -2333,7 +2335,7 @@ int select_unselect(gboolean select) {
 
 	if (!com.headless) {
 		if (current_updated) {
-			redraw(com.cvport, REMAP_NONE);
+			redraw(REDRAW_OVERLAY);
 			adjust_sellabel();
 		}
 		drawPlot();
@@ -4175,7 +4177,7 @@ int process_boxselect(int nb){
 			return 1;
 		}
 		memcpy(&com.selection, &area, sizeof(rectangle));
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 	} else {
 		if (nb > 1) {
