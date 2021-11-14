@@ -40,12 +40,12 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		check_display_ref = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_displayref"));
 		labelRegRef = lookup_widget("labelRegRef");
 	}
-	display_ref_image = com.refimage_regbuffer && com.refimage_surface
+	display_ref_image = gui.refimage_regbuffer && gui.refimage_surface
 			&& gtk_toggle_button_get_active(check_display_ref)
 							&& !gtk_widget_get_visible(labelRegRef);
 
-	if (widget == com.preview_area[0]) current_preview = 0;
-	else if (widget == com.preview_area[1]) current_preview = 1;
+	if (widget == gui.preview_area[0]) current_preview = 0;
+	else if (widget == gui.preview_area[1]) current_preview = 1;
 	else {
 		fprintf(stderr, "Uninitialized com.preview_area or unknown drawing area!\n");
 		return TRUE;
@@ -59,7 +59,7 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	cairo_fill(cr);
 
 	/* display current image with shifts */
-	if (!com.preview_surface[current_preview]) {
+	if (!gui.preview_surface[current_preview]) {
 		GtkStyleContext *context = gtk_widget_get_style_context(widget);
 		GtkStateFlags state = gtk_widget_get_state_flags(widget);
 		PangoLayout *layout;
@@ -101,13 +101,13 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	}
 	cairo_translate(cr, area_width / 2.0 - com.seq.previewX[current_preview],
 			area_height/2.0-com.seq.previewY[current_preview]);
-	if (com.seq.regparam && com.seq.regparam[com.cvport]) {
-		shiftx = roundf_to_int(com.seq.regparam[com.cvport][com.seq.current].shiftx);
-		shifty = roundf_to_int(com.seq.regparam[com.cvport][com.seq.current].shifty);
+	if (com.seq.regparam && com.seq.regparam[gui.cvport]) {
+		shiftx = roundf_to_int(com.seq.regparam[gui.cvport][com.seq.current].shiftx);
+		shifty = roundf_to_int(com.seq.regparam[gui.cvport][com.seq.current].shifty);
 	}
 	if (shiftx || shifty)
 		cairo_translate(cr, shiftx, -shifty);
-	cairo_set_source_surface(cr, com.preview_surface[current_preview], 0, 0);
+	cairo_set_source_surface(cr, gui.preview_surface[current_preview], 0, 0);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 
@@ -116,7 +116,7 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		/* already translated above but undo the shift translate */
 		if (shiftx || shifty)
 			cairo_translate(cr, -shiftx, shifty);
-		cairo_set_source_surface(cr, com.refimage_surface, 0, 0);
+		cairo_set_source_surface(cr, gui.refimage_surface, 0, 0);
 		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 		cairo_paint_with_alpha(cr, 0.5);
 	}
@@ -137,38 +137,39 @@ void test_and_allocate_reference_image(int vport) {
 			&& gtk_combo_box_get_active(cbbt_layers) == vport && vport < gfit.naxes[2]) {
 		/* this is the registration layer and the reference frame,
 		 * save the buffer for alignment preview */
-		if (!com.refimage_regbuffer || !com.refimage_surface) {
-			guchar *oldbuf = com.refimage_regbuffer;
-			com.refimage_regbuffer = realloc(com.refimage_regbuffer,
-					com.surface_stride[vport] * gfit.ry * sizeof(guchar));
-			if (com.refimage_regbuffer == NULL) {
+		struct image_view *view = &gui.view[vport];
+		if (!gui.refimage_regbuffer || !gui.refimage_surface) {
+			guchar *oldbuf = gui.refimage_regbuffer;
+			gui.refimage_regbuffer = realloc(gui.refimage_regbuffer,
+					view->full_surface_stride * gfit.ry * sizeof(guchar));
+			if (gui.refimage_regbuffer == NULL) {
 				PRINT_ALLOC_ERR;
 				if (oldbuf)
 					free(oldbuf);
 				return;
 			}
 
-			if (com.refimage_surface)
-				cairo_surface_destroy(com.refimage_surface);
-			com.refimage_surface = cairo_image_surface_create_for_data(
-					com.refimage_regbuffer, CAIRO_FORMAT_RGB24, gfit.rx,
-					gfit.ry, com.surface_stride[vport]);
-			if (cairo_surface_status(com.refimage_surface)
+			if (gui.refimage_surface)
+				cairo_surface_destroy(gui.refimage_surface);
+			gui.refimage_surface = cairo_image_surface_create_for_data(
+					gui.refimage_regbuffer, CAIRO_FORMAT_RGB24, gfit.rx,
+					gfit.ry, view->full_surface_stride);
+			if (cairo_surface_status(gui.refimage_surface)
 					!= CAIRO_STATUS_SUCCESS) {
 				fprintf(stderr,
 						"Error creating the Cairo image surface for the reference image.\n");
-				cairo_surface_destroy(com.refimage_surface);
-				com.refimage_surface = NULL;
+				cairo_surface_destroy(gui.refimage_surface);
+				gui.refimage_surface = NULL;
 			} else {
 				fprintf(stdout,
 						"Saved the reference frame buffer for alignment preview.\n");
 				enable_view_reference_checkbox(TRUE);
 			}
 		}
-		memcpy(com.refimage_regbuffer, com.graybuf[vport],
-				com.surface_stride[vport] * gfit.ry * sizeof(guchar));
-		cairo_surface_flush(com.refimage_surface);
-		cairo_surface_mark_dirty(com.refimage_surface);
+		memcpy(gui.refimage_regbuffer, view->buf,
+				view->full_surface_stride * gfit.ry * sizeof(guchar));
+		cairo_surface_flush(gui.refimage_surface);
+		cairo_surface_mark_dirty(gui.refimage_surface);
 	}
 }
 
@@ -177,7 +178,7 @@ void redraw_previews() {
 	int i;
 	if (com.script) return;
 	for (i = 0; i < PREVIEW_NB; i++)
-		gtk_widget_queue_draw(com.preview_area[i]);
+		gtk_widget_queue_draw(gui.preview_area[i]);
 }
 
 void set_preview_area(int preview_area, int centerX, int centerY) {
@@ -185,33 +186,34 @@ void set_preview_area(int preview_area, int centerX, int centerY) {
 	 * mouse click callback and image change.
 	 * load the preview area from reference image, from current image,
 	 * sets the cairo_surface_t */
-	guint area_width = gtk_widget_get_allocated_width (com.preview_area[preview_area]);
-	guint area_height = gtk_widget_get_allocated_height (com.preview_area[preview_area]);
+	guint area_width = gtk_widget_get_allocated_width (gui.preview_area[preview_area]);
+	guint area_height = gtk_widget_get_allocated_height (gui.preview_area[preview_area]);
 
 	com.seq.previewX[preview_area] = centerX;
 	com.seq.previewY[preview_area] = centerY;
 	com.seq.previewW[preview_area] = area_width;
 	com.seq.previewH[preview_area] = area_height;
 
+	struct image_view *view = &gui.view[gui.cvport];
 	if (cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx) !=
-			com.surface_stride[com.cvport] ||
-			gfit.ry != com.surface_height[com.cvport] ||
-			!com.preview_surface[preview_area]) {
-		if (com.preview_surface[preview_area])
-			cairo_surface_destroy(com.preview_surface[preview_area]);
-		com.preview_surface[preview_area] =
-			cairo_image_surface_create_for_data(com.graybuf[com.cvport],
+			view->full_surface_stride ||
+			gfit.ry != view->full_surface_height ||
+			!gui.preview_surface[preview_area]) {
+		if (gui.preview_surface[preview_area])
+			cairo_surface_destroy(gui.preview_surface[preview_area]);
+		gui.preview_surface[preview_area] =
+			cairo_image_surface_create_for_data(view->buf,
 					CAIRO_FORMAT_RGB24,
 					gfit.rx, gfit.ry,
-					com.surface_stride[com.cvport]);
-		if (cairo_surface_status(com.preview_surface[preview_area]) != CAIRO_STATUS_SUCCESS) {
+					view->full_surface_stride);
+		if (cairo_surface_status(gui.preview_surface[preview_area]) != CAIRO_STATUS_SUCCESS) {
 			fprintf(stderr, "Error creating the Cairo image surface for preview %d\n", preview_area);
-			cairo_surface_destroy(com.preview_surface[preview_area]);
-			com.preview_surface[preview_area] = NULL;
+			cairo_surface_destroy(gui.preview_surface[preview_area]);
+			gui.preview_surface[preview_area] = NULL;
 		}
 	}
 	// queue for redraw
-	gtk_widget_queue_draw(com.preview_area[preview_area]);
+	gtk_widget_queue_draw(gui.preview_area[preview_area]);
 	// flush to ensure all writing to the image was done and redraw the surface
 	//cairo_surface_flush (com.preview_surface[preview_area]);
 	//cairo_surface_mark_dirty (com.preview_surface[preview_area]);
@@ -238,14 +240,14 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 				preview_area = 0;
 			else
 				preview_area = 1;
-			cairo_surface_destroy(com.preview_surface[preview_area]);
-			com.preview_surface[preview_area] = NULL;
+			cairo_surface_destroy(gui.preview_surface[preview_area]);
+			gui.preview_surface[preview_area] = NULL;
 			com.seq.previewX[preview_area] = -1;
 			com.seq.previewY[preview_area] = -1;
 			com.seq.previewH[preview_area] = 0;
 			com.seq.previewW[preview_area] = 0;
 			// queue for redraw
-			gtk_widget_queue_draw(com.preview_area[preview_area]);
+			gtk_widget_queue_draw(gui.preview_area[preview_area]);
 		}
 	}
 }
@@ -295,8 +297,8 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 	static GtkComboBox *cbbt_layers = NULL;
 	int current_layer, new_value;
 	if (spin_shiftx == NULL) {
-		spin_shiftx = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "spinbut_shiftx"));
-		cbbt_layers = GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxreglayer"));
+		spin_shiftx = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shiftx"));
+		cbbt_layers = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
 	}
 	if (com.seq.regparam == NULL) {
 		/* allocated when the number of layers is loaded from the sequence,

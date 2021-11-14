@@ -406,7 +406,6 @@ int preprocess_single_image(struct preprocessing_data *args) {
 			copyfits(&fit, com.uniq->fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 			if (com.uniq->nb_layers != fit.naxes[2]) {
 				com.uniq->nb_layers = fit.naxes[2];
-				com.uniq->layers = realloc(com.uniq->layers, com.uniq->nb_layers * sizeof(layer_info));
 			}
 			if (com.uniq->filename)
 				free(com.uniq->filename);

@@ -60,9 +60,9 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the main data struct
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
-GtkBuilder *builder = NULL;	// get widget references anywhere
 const gchar *startup_cwd = NULL;
 gboolean forcecwd = FALSE;
 
@@ -100,22 +100,20 @@ static GOptionEntry main_option[] = {
 };
 
 static void global_initialization() {
-	com.cvport = RED_VPORT;
-	com.show_excluded = TRUE;
 	com.selected_star = -1;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.qphot = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
-	com.color = NORMAL_COLOR;
-	for (int i = 0; i < MAXVPORT; i++)
-		com.buf_is_dirty[i] = TRUE;
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-	/* initialize the com struct and zoom level */
-	com.sliders = MINMAX;
-	com.zoom_value = ZOOM_DEFAULT;
+
+	gui.cvport = RED_VPORT;
+	gui.show_excluded = TRUE;
+	//gui.color = NORMAL_COLOR;
+	gui.sliders = MINMAX;
+	gui.zoom_value = ZOOM_DEFAULT;
 
 	initialize_default_preferences();
 }

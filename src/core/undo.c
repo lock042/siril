@@ -308,7 +308,7 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
-			redraw(com.cvport, REMAP_ALL);
+			redraw(REMAP_ALL);
 		}
 		break;
 	case REDO:
@@ -320,7 +320,7 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
-			redraw(com.cvport, REMAP_ALL);
+			redraw(REMAP_ALL);
 		}
 		break;
 	default:

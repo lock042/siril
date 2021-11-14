@@ -40,6 +40,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
+#include "registration/registration.h"
 #include "kplot.h"
 #include "algos/PSF.h"
 #include "io/ser.h"
@@ -51,9 +52,9 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
-		*comboX = NULL;
+		*comboX = NULL, *layer_selector = NULL;
 static pldata *plot_data;
-static struct kpair ref;
+static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_color_update =
 		FALSE, requires_seqlist_update = FALSE;
 static char *ylabel = NULL;
@@ -142,6 +143,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		pldata *plot) {
 	int i, j;
 	double fwhm;
+	curr.x = -1.0;
+	curr.y = -1.0;
 
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl)
@@ -223,6 +226,10 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			ref.x = plot->data[j].x;
 			ref.y = plot->data[j].y;
 		}
+		if ((i == seq->current) & com.seq.imgparam[i].incl) {
+			curr.x = plot->data[j].x;
+			curr.y = plot->data[j].y;
+		}
 		j++;
 	}
 	plot->nb = j;
@@ -265,6 +272,8 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	psf_star **psfs = seq->photometry[dataset], *ref_psf;
 	if (seq->reference_star >= 0 && !seq->photometry[seq->reference_star])
 		seq->reference_star = -1;
+	curr.x = -1.0;
+	curr.y = -1.0;
 
 	for (i = 0, j = 0; i < size; i++) {
 		if (!seq->imgparam[i].incl || !psfs[i])
@@ -344,6 +353,10 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		if (i == ref_image) {
 			ref.x = plot->data[j].x;
 			ref.y = plot->data[j].y;
+		}
+		if ((i == seq->current) & com.seq.imgparam[i].incl) {
+			curr.x = plot->data[j].x;
+			curr.y = plot->data[j].y;
 		}
 		j++;
 	}
@@ -614,9 +627,7 @@ static void free_plot_data() {
 	}
 	plot_data = NULL;
 	julian0 = 0;
-	reglayer = 0;
 	if (xlabel) {
-		//g_free(xlabel); TODO: check why can't be freed - crash on unknown signal
 		xlabel = NULL;
 	}
 }
@@ -650,11 +661,14 @@ static void fill_plot_statics() {
 		sourceCombo = lookup_widget("plotSourceCombo");
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
+		layer_selector = lookup_widget("seqlist_dialog_combo");
 	}
 }
 static void validate_combos() {
 	fill_plot_statics();
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
+	if (!use_photometry)
+		reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(layer_selector));
 	gtk_widget_set_visible(varCurve, use_photometry);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
@@ -713,6 +727,7 @@ void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 
 void reset_plot() {
 	free_plot_data();
+	int layer;
 	if (sourceCombo) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), registration_selected_source); //remove?
@@ -723,6 +738,8 @@ void reset_plot() {
 		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
 		gtk_widget_set_sensitive(buttonClearAll, FALSE);
+		layer = get_registration_layer(&com.seq);
+		update_seqlist(layer);
 	}
 }
 
@@ -772,7 +789,7 @@ void drawPlot() {
 	int ref_image;
 	sequence *seq;
 
-	fill_plot_statics();
+	validate_combos();
 
 	seq = &com.seq;
 	if (plot_data)
@@ -788,6 +805,8 @@ void drawPlot() {
 		update_ylabel();
 		ref.x = -1.0;
 		ref.y = -1.0;
+		curr.x = -1.0;
+		curr.y = -1.0;
 
 		plot = alloc_plot_data(seq->number);
 		plot_data = plot;
@@ -801,7 +820,7 @@ void drawPlot() {
 			qsort(plot->data, plot->nb, sizeof(struct kpair), compare);
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
-			fill_sequence_list(seq, reglayer, FALSE); 
+			update_seqlist(reglayer); 
 			requires_seqlist_update = FALSE;
 		}
 	} else {
@@ -809,22 +828,15 @@ void drawPlot() {
 		if (!(seq->regparam))
 			return;
 
-		for (int i = 0; i < seq->nb_layers; i++) {
-			if (seq->regparam[i]) {
-				reglayer = i;
-				break;
-			}
-		}
 		if ((!seq->regparam[reglayer]))
 			return;
 		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f) ? TRUE : FALSE;
-		validate_combos();
 		update_ylabel();
 		/* building data array */
 		plot_data = alloc_plot_data(seq->number);
 		build_registration_dataset(seq, reglayer, ref_image, plot_data);
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
-			fill_sequence_list(seq, reglayer, FALSE); 
+			update_seqlist(reglayer);
 			requires_seqlist_update = FALSE;
 		}
 	}
@@ -917,7 +929,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	struct kdatacfg cfgdata;
 
 	if (plot_data) {
-		struct kdata *d1, *ref_d, *mean_d;
+		struct kdata *d1, *ref_d, *mean_d, *curr_d;
 		pldata *plot = plot_data;
 
 		d1 = ref_d = mean_d = NULL;
@@ -1003,6 +1015,10 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 				ref_d = kdata_array_alloc(&ref, 1);
 				kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
 			}
+			if (curr.x >= 0.0 && curr.y >= 0.0) {
+				curr_d = kdata_array_alloc(&curr, 1);
+				kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
+			}
 		}
 
 		width = gtk_widget_get_allocated_width(widget);
@@ -1020,7 +1036,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 				com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
 				com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
 			}
-			redraw(com.cvport, REMAP_ONLY);
+			redraw(REMAP_ONLY);
 			requires_color_update = FALSE;
 		}
 

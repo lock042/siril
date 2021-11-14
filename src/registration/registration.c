@@ -130,7 +130,7 @@ void initialize_registration_methods() {
 
 	/* fill comboboxregmethod */
 	regcombo = GTK_COMBO_BOX_TEXT(
-			gtk_builder_get_object(builder, "comboboxregmethod"));
+			gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 	gtk_combo_box_text_remove_all(regcombo);
 	i = 0;
 	while (reg_methods[i] != NULL) {
@@ -149,7 +149,7 @@ void initialize_registration_methods() {
 
 struct registration_method *get_selected_registration_method() {
 	GtkComboBoxText *regcombo = GTK_COMBO_BOX_TEXT(
-			gtk_builder_get_object(builder, "comboboxregmethod"));
+			gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 	int index = 0;
 
 	gchar *text = gtk_combo_box_text_get_active_text (regcombo);
@@ -680,7 +680,7 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
-	GtkAdjustment *register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "register_minpairs"));
+	GtkAdjustment *register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "register_minpairs"));
 	double val = gtk_adjustment_get_value(register_minpairs);
 
 	switch(gtk_combo_box_get_active(box)) {
@@ -885,7 +885,7 @@ void get_the_registration_area(struct registration_args *reg_args,
 			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", reg_args->selection.x,
 					reg_args->selection.y, reg_args->selection.w,
 					reg_args->selection.h);
-			redraw(com.cvport, REMAP_NONE);
+			redraw(REDRAW_OVERLAY);
 			break;
 	}
 }

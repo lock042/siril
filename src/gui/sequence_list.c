@@ -86,6 +86,24 @@ static void fwhm_quality_cell_data_function(GtkTreeViewColumn *col,
 	g_object_set(renderer, "text", buf, NULL);
 }
 
+static void set_sensitive_layers(GtkCellLayout *cell_layout,
+			GtkCellRenderer *cell,
+			GtkTreeModel *tree_model,
+			GtkTreeIter *iter,
+			gpointer data) {
+	gboolean sensitive = TRUE;
+
+	if (!use_photometry) {
+		GtkTreePath* path = gtk_tree_model_get_path (tree_model, iter);
+		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
+		if (!(&com.seq.regparam))
+			return;
+		if (com.seq.regparam[*index] == NULL)
+			sensitive = FALSE;
+	}
+	g_object_set(cell, "sensitive", sensitive, NULL);
+}
+
 static void update_seqlist_dialog_combo(int layer) {
 	if (!sequence_is_loaded()) return;
 	int activelayer;
@@ -93,17 +111,26 @@ static void update_seqlist_dialog_combo(int layer) {
 	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
 	g_signal_handlers_block_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
 	gtk_combo_box_text_remove_all(seqcombo);
-	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
 
 	if (com.seq.nb_layers == 1) {
 		gtk_combo_box_text_append_text(seqcombo, _("B&W channel"));
 		activelayer = 0;
+		gtk_widget_set_sensitive(GTK_WIDGET(seqcombo), FALSE);
 	} else {
 		gtk_combo_box_text_append_text(seqcombo, _("Red channel"));
 		gtk_combo_box_text_append_text(seqcombo, _("Green channel"));
 		gtk_combo_box_text_append_text(seqcombo, _("Blue channel"));
 		activelayer = layer >= 0 ? layer : 0;
+		gtk_widget_set_sensitive(GTK_WIDGET(seqcombo), (use_photometry) ? FALSE : TRUE);
 	}
+	//setting sensitvity of the different layers in the layer combo
+	gtk_cell_layout_clear(GTK_CELL_LAYOUT(seqcombo));
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(seqcombo), renderer, TRUE);
+	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(seqcombo), renderer, "text", 0, NULL);
+	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(seqcombo), renderer, set_sensitive_layers, NULL, NULL);
+	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
+
 	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
 }
 
@@ -126,7 +153,7 @@ static void initialize_title() {
 }
 
 static void initialize_search_entry() {
-	GtkTreeView *tree_view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview1"));
+	GtkTreeView *tree_view = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "treeview1"));
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("seqlistsearch"));
 
 	gtk_entry_set_text (entry, "");
@@ -135,10 +162,10 @@ static void initialize_search_entry() {
 
 static void get_list_store() {
 	if (list_store == NULL) {
-		list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "liststore1"));
+		list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststore1"));
 
-		GtkTreeViewColumn *col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5"));
-		GtkCellRenderer *cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cellrenderertext5"));
+		GtkTreeViewColumn *col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5"));
+		GtkCellRenderer *cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cellrenderertext5"));
 		gtk_tree_view_column_set_cell_data_func(col, cell, fwhm_quality_cell_data_function, NULL, NULL);
 	}
 }
@@ -307,7 +334,7 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 	sequence_list_change_reference();
 	writeseqfile(&com.seq);
 	if (!com.script) {
-		redraw(com.cvport, REMAP_NONE);
+		redraw(REDRAW_OVERLAY);
 		drawPlot();
 	}
 }
@@ -357,7 +384,7 @@ static void sequence_setselect_all(gboolean include_all) {
 	update_reg_interface(FALSE);
 	update_stack_interface(TRUE);
 	writeseqfile(&com.seq);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 	drawPlot();
 	adjust_sellabel();
 }
@@ -395,8 +422,12 @@ void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data
 	int active = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
 	if (active >= 0) {
 		fill_sequence_list(&com.seq, active, FALSE);
+		g_signal_handlers_block_by_func(GTK_COMBO_BOX(widget), on_seqlist_dialog_combo_changed, NULL);
+		drawPlot();
+		g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(widget), on_seqlist_dialog_combo_changed, NULL);
 	}
 }
+
 void on_column_clicked(GtkComboBoxText *widget, gpointer user_data) {
 	int active = com.seq.current;
 	sequence_list_select_row_from_index(active, FALSE);
@@ -446,56 +477,56 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 		if (args->seq->regparam && args->seq->regparam[args->layer]) {
 			switch (selected_source) {
 				case r_FWHM:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("FWHM"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 					break;
 				case r_WFWHM:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("wFWHM"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("wFWHM"));
 					break;
 				case r_ROUNDNESS:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Roundness"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
 					break;
 				case r_QUALITY:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Quality"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
 					break;
 				default: 
 					break;
 			}
 		} else {
-			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("FWHM"));
+			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 		}
 	} else { //reporting photometry data for the reference star
 		psf_star **psfs = args->seq->photometry[0];
 		if (psfs && psfs[0]) {
 			switch (selected_source) {
 				case ROUNDNESS:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Roundness"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
 					break;
 				case FWHM:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("FWHM"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 					break;
 				case AMPLITUDE:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Amplitude"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Amplitude"));
 					break;
 				case MAGNITUDE:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Magnitude"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Magnitude"));
 					break;
 				case BACKGROUND:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Background"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
 					break;
 				case X_POSITION:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("X Position"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("X Position"));
 					break;
 				case Y_POSITION:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Y Position"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Y Position"));
 					break;
 				case SNR:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("SNR"));
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("SNR"));
 					break;
 				default:
 					break;
 			}
 		} else {
-			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("FWHM"));
+			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 		}
 	}
 	gint sort_column_id;
@@ -531,7 +562,7 @@ void exclude_single_frame(int index) {
 	else 	com.seq.selnum--;
 	update_reg_interface(FALSE);
 	update_stack_interface(FALSE);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 	drawPlot();
 	adjust_sellabel();
 	writeseqfile(&com.seq);
@@ -668,6 +699,7 @@ void sequence_list_change_current() {
 				(index == com.seq.current) ? 800 : 400, -1);
 		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list_store), &iter);
 	}
+	drawPlot();
 }
 
 void sequence_list_change_reference() {
@@ -742,6 +774,6 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 
 	if (do_load_image) {
 		seq_load_image(&com.seq, index, TRUE);
-		redraw(com.cvport, REMAP_NONE);
+		redraw(REDRAW_OVERLAY);
 	}
 }

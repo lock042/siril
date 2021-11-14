@@ -180,7 +180,7 @@ layer *create_layer(int index) {
 				"Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(ret->chooser), com.wd);
 	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser),
-			GTK_FILE_FILTER(gtk_builder_get_object(builder, "filefilter1")));
+			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
 			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
 	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
@@ -330,29 +330,29 @@ void open_compositing_window() {
 	if (!compositing_loaded) {
 		register_selection_update_callback(update_compositing_interface);
 
-		gtk_builder_connect_signals (builder, NULL);
+		gtk_builder_connect_signals(gui.builder, NULL);
 
 		/* parse the default palette */
 		for (i=0; i<sizeof(list_of_12_color_names)/sizeof(const char*); i++)
 			gdk_rgba_parse(&list_of_12_palette_colors[i], list_of_12_color_names[i]);
-		color_dialog = GTK_COLOR_CHOOSER_DIALOG(gtk_builder_get_object(builder, "colorchooserdialog"));
+		color_dialog = GTK_COLOR_CHOOSER_DIALOG(gtk_builder_get_object(gui.builder, "colorchooserdialog"));
 		gtk_color_chooser_add_palette(GTK_COLOR_CHOOSER(color_dialog),
 				GTK_ORIENTATION_VERTICAL, 2, 12, list_of_12_palette_colors);
 		populate_filter_lists();
-		wl_entry = GTK_ENTRY(gtk_builder_get_object(builder, "entry_wavelength"));
-		box = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "comboboxtext_filters"));
+		wl_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_wavelength"));
+		box = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxtext_filters"));
 
 
 		/* allocate default layers and populate widget data */
-		grid_layers = GTK_GRID(gtk_builder_get_object(builder, "grid_layers"));
+		grid_layers = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_layers"));
 		add_the_layer_add_button();
 
 		layers[0] = calloc(1, sizeof(layer));
-		layers[0]->chooser = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(builder, "filechooser_lum"));
+		layers[0]->chooser = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));
 		gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[0]->chooser), com.wd);
-		layers[0]->label = GTK_LABEL(gtk_builder_get_object(builder, "label_lum"));
-		layers[0]->spinbutton_x = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "spinbutton_lum_x"));
-		layers[0]->spinbutton_y = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "spinbutton_lum_y"));
+		layers[0]->label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_lum"));
+		layers[0]->spinbutton_x = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_x"));
+		layers[0]->spinbutton_y = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_y"));
 		set_luminance(&layers[0]->color);	// special case of luminance
 
 		for (i=1; i<4; i++) {
@@ -370,7 +370,7 @@ void open_compositing_window() {
 		reg_methods[2] = NULL;
 		update_compositing_interface();
 		/* fill compositing_align_method_combo */
-		GtkComboBoxText *aligncombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "compositing_align_method_combo"));
+		GtkComboBoxText *aligncombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 		gtk_combo_box_text_remove_all(aligncombo);
 		i = 0;
 		while (reg_methods[i] != NULL) {
@@ -471,7 +471,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 			retval = 1;
 		} else {
 		/* Force first tab to be Red and not B&W if an image was already loaded */
-			GtkNotebook* Color_Layers = GTK_NOTEBOOK(gtk_builder_get_object(builder, "notebook1"));
+			GtkNotebook* Color_Layers = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook1"));
 			GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, RED_VPORT);
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
 			close_tab();
@@ -512,7 +512,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 
 	/* special case of luminance selected */
 	if (layer == 0) {
-		GtkToggleButton *lum_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "composition_use_lum"));
+		GtkToggleButton *lum_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "composition_use_lum"));
 		g_signal_handlers_block_by_func(lum_button, on_composition_use_lum_toggled, NULL);
 		gtk_toggle_button_set_active(lum_button, !retval);
 		g_signal_handlers_unblock_by_func(lum_button, on_composition_use_lum_toggled, NULL);
@@ -545,20 +545,19 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		com.uniq->filename = strdup(_("Unsaved compositing result"));
 		com.uniq->fileexist = FALSE;
 		com.uniq->nb_layers = gfit.naxes[2];
-		com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 		com.uniq->fit = &gfit;
 
 		initialize_display_mode();
 		display_filename();
 		set_precision_switch();
-		sliders_mode_set_state(com.sliders);
+		sliders_mode_set_state(gui.sliders);
 
 		gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), FALSE);
 		init_layers_hi_and_lo_values(MIPSLOHI);
 		set_cutoff_sliders_max_values();
 		set_cutoff_sliders_values();
 		set_display_mode();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 
 		sequence_list_change_current();
 	}
@@ -566,7 +565,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		update_MenuItem();
 		gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), TRUE);
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 	}
 }
 
@@ -616,7 +615,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	create_the_internal_sequence();
 
 	/* align it */
-	regcombo = GTK_COMBO_BOX(gtk_builder_get_object(builder, "compositing_align_method_combo"));
+	regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 
 	regargs.seq = seq;
@@ -710,10 +709,10 @@ void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRG
 
 /* called when selection changed */
 void update_compositing_interface() {
-	if (!builder) return;
-	GtkLabel *label = GTK_LABEL(gtk_builder_get_object(builder, "label_msg"));
-	GtkComboBox *combo = GTK_COMBO_BOX(gtk_builder_get_object(builder, "compositing_align_method_combo"));
-	//int ref_layer = gtk_combo_box_get_active(GTK_COMBO_BOX(gtk_builder_get_object(builder, "compositing_align_layer_combo")));
+	if (!gui.builder) return;
+	GtkLabel *label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_msg"));
+	GtkComboBox *combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
+	//int ref_layer = gtk_combo_box_get_active(GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_layer_combo")));
 	int sel_method = gtk_combo_box_get_active(combo);
 	/* select default method as function of selection size */
 	if (sel_method == -1 && com.selection.w > 0 && com.selection.h > 0) {
@@ -901,7 +900,7 @@ void update_result(int and_refresh) {
 	}
 	if (and_refresh) {
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 	}
 }
 
@@ -1041,7 +1040,7 @@ gboolean on_color_button_motion_event(GtkWidget *widget, GdkEventMotion *event, 
 /* fill the combo box containing filter names */
 void populate_filter_lists() {
 	int i, nb_filters;
-	GtkComboBoxText *cbox = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "comboboxtext_filters"));
+	GtkComboBoxText *cbox = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxtext_filters"));
 	nb_filters = get_nb_narrow_filters();
 	gtk_combo_box_text_remove_all(cbox);
 	for (i=0; i<nb_filters; i++)
@@ -1086,7 +1085,7 @@ void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
 	//gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
 
 	/* Reset GtkFileChooserButton Luminance */
-	GtkFileChooserButton *lum = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(builder, "filechooser_lum"));
+	GtkFileChooserButton *lum = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));
 	gtk_file_chooser_unselect_all (GTK_FILE_CHOOSER (lum));
 
 	if (seq) {
@@ -1104,7 +1103,7 @@ void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
 	current_layer_color_choosing = 0;
 
 	luminance_mode = 0;
-	GtkToggleButton *lum_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "composition_use_lum"));
+	GtkToggleButton *lum_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "composition_use_lum"));
 	gtk_toggle_button_set_active(lum_button, 0);
 	gtk_label_set_text(layers[0]->label, _("not loaded"));
 	gtk_widget_set_tooltip_text(GTK_WIDGET(layers[0]->label), _("not loaded"));

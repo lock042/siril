@@ -26,27 +26,40 @@
 struct _label_data {
 	const char *label_name;
 	char *text;
+	const char *class_to_add;
+	const char *class_to_remove;
 };
 
 static gboolean set_label_text_idle(gpointer p) {
 	struct _label_data *args = (struct _label_data *) p;
-	GtkLabel *label = GTK_LABEL(lookup_widget(args->label_name));
+	GtkWidget *widget = lookup_widget(args->label_name);
+	GtkLabel *label = GTK_LABEL(widget);
 
-	gtk_label_set_text(label, args->text);
+	if (args->class_to_add || args->class_to_remove) {
+		GtkStyleContext *context = gtk_widget_get_style_context(widget);
+		if (args->class_to_add)
+			gtk_style_context_add_class(context, args->class_to_add);
+		if (args->class_to_remove)
+			gtk_style_context_remove_class(context, args->class_to_remove);
+	}
+	if (strcmp(gtk_label_get_text(label), args->text))
+		gtk_label_set_text(label, args->text);
 	free(args->text);
 	free(args);
 	return FALSE;
 }
 
-void set_label_text_from_main_thread(const char *label_name, const char *text) {
+static void set_label_text_from_main_thread(const char *label_name, const char *text, const char *class_to_add, const char *class_to_remove) {
 	struct _label_data *data = malloc(sizeof(struct _label_data));
 	data->label_name = label_name;
 	data->text = strdup(text);
+	data->class_to_add = class_to_add;
+	data->class_to_remove = class_to_remove;
 	gdk_threads_add_idle(set_label_text_idle, data);
 }
 
 GtkWidget* lookup_widget(const gchar *widget_name) {
-	return GTK_WIDGET(gtk_builder_get_object(builder, widget_name));
+	return GTK_WIDGET(gtk_builder_get_object(gui.builder, widget_name));
 }
 
 void control_window_switch_to_tab(main_tabs tab) {
@@ -136,7 +149,7 @@ void set_GUI_MEM(guint64 used, const gchar *label) {
 	} else {
 		str = g_strdup(_("Mem: N/A"));
 	}
-	set_label_text_from_main_thread(label, str);
+	set_label_text_from_main_thread(label, str, NULL, NULL);
 	g_free(str);
 }
 
@@ -144,12 +157,11 @@ void set_GUI_DiskSpace(gint64 space, const gchar *label) {
 	if (com.headless)
 		return;
 	gchar *str;
-	GtkStyleContext *context = gtk_widget_get_style_context(lookup_widget(label));
-	gtk_style_context_remove_class(context, "label-info");
+	gboolean set_class = FALSE;
 
 	if (space > 0) {
 		if (space < 1073741824) { // we want to warn user of space is less than 1GiB
-			gtk_style_context_add_class(context, "label-info");
+			set_class = TRUE;
 		}
 		gchar *mem = g_format_size_full(space, G_FORMAT_SIZE_IEC_UNITS);
 		str = g_strdup_printf(_("Disk Space: %s"), mem);
@@ -157,7 +169,9 @@ void set_GUI_DiskSpace(gint64 space, const gchar *label) {
 	} else {
 		str = g_strdup(_("Disk Space: N/A"));
 	}
-	set_label_text_from_main_thread(label, str);
+	set_label_text_from_main_thread(label, str,
+			set_class ? "label-info" : NULL,
+			set_class ? NULL : "label-info");
 	g_free(str);
 }
 

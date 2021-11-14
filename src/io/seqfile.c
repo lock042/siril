@@ -157,7 +157,6 @@ sequence * readseqfile(const char *name){
 					// the seq_check_basic_data() call later
 					if (seq->nb_layers >= 1) {
 						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
-						seq->layers = calloc(seq->nb_layers, sizeof(layer_info));
 						if (ser_is_cfa(seq->ser_file))
 							seq->regparam_bkp = calloc(3, sizeof(regdata*));
 					}
@@ -279,12 +278,12 @@ sequence * readseqfile(const char *name){
 					}
 				} else if (version <= 2) { // include version 1
 					// version 2 with roundness instead of weird things
-						if (sscanf(line+3, "%f %f %g %g %lg",
-									&(regparam[i].shiftx),
-									&(regparam[i].shifty),
-									&(regparam[i].fwhm),
-									&(regparam[i].roundness),
-									&(regparam[i].quality)) != 5) {
+					if (sscanf(line+3, "%f %f %g %g %lg",
+								&(regparam[i].shiftx),
+								&(regparam[i].shifty),
+								&(regparam[i].fwhm),
+								&(regparam[i].roundness),
+								&(regparam[i].quality)) != 5) {
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
@@ -332,8 +331,6 @@ sequence * readseqfile(const char *name){
 						seq->nb_layers = 3;
 						if (seq->regparam)
 							seq->regparam = realloc(seq->regparam, seq->nb_layers * sizeof(regdata *));
-						if (seq->layers)
-							seq->layers = realloc(seq->regparam, seq->nb_layers * sizeof(layer_info));
 						seq->needs_saving = TRUE;
 					}
 				}

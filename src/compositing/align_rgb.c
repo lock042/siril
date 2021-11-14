@@ -153,7 +153,7 @@ int rgb_align(int m) {
 		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 		align_and_compose();
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 	}
 	set_cursor_waiting(FALSE);
 	free_internal_sequence(seq);

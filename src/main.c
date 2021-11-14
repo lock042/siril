@@ -63,9 +63,9 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the main data struct
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
-GtkBuilder *builder = NULL;	// get widget references anywhere
 const gchar *startup_cwd = NULL;
 gboolean forcecwd = FALSE;
 
@@ -119,9 +119,9 @@ void load_glade_file() {
 	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
 
 	/* try to load the glade file, from the sources defined above */
-	builder = gtk_builder_new();
+	gui.builder = gtk_builder_new();
 
-	if (!gtk_builder_add_from_file(builder, gladefile, &err)) {
+	if (!gtk_builder_add_from_file(gui.builder, gladefile, &err)) {
 		g_error(_("%s was not found or contains errors, "
 					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
 		g_clear_error(&err);
@@ -132,23 +132,21 @@ void load_glade_file() {
 }
 
 static void global_initialization() {
-	com.cvport = RED_VPORT;
-	com.show_excluded = TRUE;
 	com.selected_star = -1;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.qphot = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
-	com.color = NORMAL_COLOR;
-	for (int i = 0; i < MAXVPORT; i++)
-		com.buf_is_dirty[i] = TRUE;
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-	/* initialize the com struct and zoom level */
-	com.sliders = MINMAX;
-	com.zoom_value = ZOOM_DEFAULT;
-	com.ratio = 0.0;
+
+	gui.cvport = RED_VPORT;
+	gui.show_excluded = TRUE;
+	//gui.color = NORMAL_COLOR;
+	gui.sliders = MINMAX;
+	gui.zoom_value = ZOOM_DEFAULT;
+	gui.ratio = 0.0;
 
 	initialize_default_preferences();
 }
@@ -320,7 +318,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	if (!com.headless) {
-		gtk_builder_connect_signals (builder, NULL);
+		gtk_builder_connect_signals(gui.builder, NULL);
 		initialize_all_GUI(supported_files);
 	}
 

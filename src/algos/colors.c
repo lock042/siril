@@ -666,13 +666,13 @@ void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!selection_black_value[0]) {
 		selection_black_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_x"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_x"));
 		selection_black_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_y"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_y"));
 		selection_black_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_w"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_w"));
 		selection_black_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_h"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_h"));
 	}
 
 	gtk_spin_button_set_value(selection_black_value[0], com.selection.x);
@@ -689,23 +689,23 @@ void initialize_calibration_interface() {
 
 	if (!selection_black_adjustment[0]) {
 		selection_black_adjustment[0] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_x"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_x"));
 		selection_black_adjustment[1] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_y"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_y"));
 		selection_black_adjustment[2] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_w"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_w"));
 		selection_black_adjustment[3] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_h"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_h"));
 	}
 	if (!selection_white_adjustment[0]) {
 		selection_white_adjustment[0] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_x"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_x"));
 		selection_white_adjustment[1] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_y"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_y"));
 		selection_white_adjustment[2] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_w"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_w"));
 		selection_white_adjustment[3] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_h"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_h"));
 	}
 	gtk_adjustment_set_upper(selection_black_adjustment[0], gfit.rx);
 	gtk_adjustment_set_upper(selection_black_adjustment[1], gfit.ry);
@@ -777,13 +777,13 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 
 	if (!selection_black_value[0]) {
 		selection_black_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_x"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_x"));
 		selection_black_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_y"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_y"));
 		selection_black_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_w"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_w"));
 		selection_black_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_h"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_h"));
 	}
 	width = (int) gtk_spin_button_get_value(selection_black_value[2]);
 	height = (int) gtk_spin_button_get_value(selection_black_value[3]);
@@ -804,7 +804,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	background_neutralize(&gfit, black_selection);
 	delete_selected_area();
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
@@ -815,13 +815,13 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!selection_white_value[0]) {
 		selection_white_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_x"));
+				gtk_builder_get_object(gui.builder, "spin_white_x"));
 		selection_white_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_y"));
+				gtk_builder_get_object(gui.builder, "spin_white_y"));
 		selection_white_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_w"));
+				gtk_builder_get_object(gui.builder, "spin_white_w"));
 		selection_white_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_h"));
+				gtk_builder_get_object(gui.builder, "spin_white_h"));
 	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
@@ -1046,7 +1046,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 
 	delete_selected_area();
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
@@ -1103,7 +1103,7 @@ void negative_processing() {
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 }

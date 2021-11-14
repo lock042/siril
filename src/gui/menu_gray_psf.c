@@ -27,20 +27,21 @@
 #include "io/sequence.h"
 #include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
 
 static void set_selection_ratio(double ratio) {
-	com.ratio = ratio;
+	gui.ratio = ratio;
 	enforce_ratio_and_clamp();
 	update_display_selection();
 	new_selection_zone();
-	gtk_widget_queue_draw(com.vport[com.cvport]);
+	redraw(REDRAW_OVERLAY);
 }
 
 void on_menuitem_selection_free_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.ratio = 0.0;
+		gui.ratio = 0.0;
 	}
 }
 
@@ -100,7 +101,7 @@ void on_menuitem_selection_all_activate(GtkMenuItem *menuitem, gpointer user_dat
 	// "Select All" need to reset any enforced ratio that would not match the ratio of the image
 	// 1. it's nice to NOT enforce a ratio when the user just want to select the whole image
 	// 2. it's nice to keep the enforced ratio if it does match the image
-	if (com.ratio != ((double)gfit.rx / (double)gfit.ry)) {
+	if (gui.ratio != ((double)gfit.rx / (double)gfit.ry)) {
 		set_selection_ratio(0.0);
 	} else {
 		set_selection_ratio((double)gfit.rx / (double)gfit.ry); // triggers the new_selection() callbacks etc.
