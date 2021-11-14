@@ -187,6 +187,19 @@ static gboolean siril_update_get_highest(JsonParser *parser,
 	return (*highest_version != NULL);
 }
 
+static void remove_alpha(gchar *str) {
+	unsigned long i = 0;
+	unsigned long j = 0;
+	char c;
+
+	while ((c = str[i++]) != '\0') {
+		if (g_ascii_isdigit(c)) {
+			str[j++] = c;
+		}
+	}
+	str[j] = '\0';
+}
+
 /**
  * Check if the version is a patched version.
  * patched version are named like that x.y.z.patch where patch only contains digits.
@@ -195,12 +208,7 @@ static gboolean siril_update_get_highest(JsonParser *parser,
  * @return 0 if the version is not patched. The version of the patch is returned otherwise.
  */
 static guint check_for_patch(gchar *version) {
-	guint i = 0;
-
-	while (version[i]) {
-		if (g_ascii_isalpha(version[i])) return 0;
-		i++;
-	}
+	remove_alpha(version);
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
@@ -231,8 +239,10 @@ static version_number get_last_version_number(gchar *version_str) {
 		version.minor_version = g_ascii_strtoull(v[1], NULL, 10);
 	if (v[0] && v[1] && v[2])
 		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
-	if (v[0] && v[1] && v[2] && v[3])
+	if (v[0] && v[1] && v[2] && v[3]) {
+		remove_alpha(v[3]);
 		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
+	}
 
 	g_strfreev(v);
 	return version;
