@@ -1267,8 +1267,8 @@ void save_fits_header(fits *fit) {
 
 	status = 0;
 	char programm[32];
-	sprintf(programm, "%s v%s", PACKAGE, VERSION);
-	programm[0] = toupper(programm[0]);			// convert siril to Siril
+
+	sprintf(programm, "%c%s v%s", toupper(PACKAGE[0]), PACKAGE + 1, VERSION);
 	fits_update_key(fit->fptr, TSTRING, "PROGRAM", programm,
 			"Software that created this HDU", &status);
 

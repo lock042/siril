@@ -156,8 +156,7 @@ static void set_copyright_in_TIFF() {
 	if (com.pref.copyright && (com.pref.copyright[0] != '\0')) {
 		copyright = g_strdup(com.pref.copyright);
 	} else {
-		copyright = g_strdup_printf("%s v%s", PACKAGE, VERSION);
-		copyright[0] = toupper(copyright[0]);			// convert siril to Siril
+		copyright = g_strdup_printf("%c%s v%s", toupper(PACKAGE[0]), PACKAGE + 1, VERSION);
 	}
 
 	gtk_text_buffer_get_bounds(tbuf, &itStart, &itEnd);
