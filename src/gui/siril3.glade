@@ -12317,8 +12317,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="vscrollbar-policy">never</property>
                     <property name="shadow-type">in</property>
-                    <property name="min-content-height">600</property>
                     <child>
                       <object class="GtkViewport">
                         <property name="visible">True</property>
