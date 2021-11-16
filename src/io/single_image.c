@@ -46,6 +46,7 @@
 #include "gui/progress_and_log.h"
 #include "core/undo.h"
 #include "core/processing.h"
+#include "compositing/compositing.h"
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
@@ -170,7 +171,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
 		char *msg = siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		set_cursor_waiting(FALSE);
 		free(realname);
 		return 1;
@@ -218,6 +219,7 @@ int open_single_image(const char* filename) {
 	char *realname;
 	gboolean is_single_sequence;
 
+	reset_compositing_module();
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
 
