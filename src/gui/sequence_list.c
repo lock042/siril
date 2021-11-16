@@ -87,14 +87,12 @@ static void fwhm_quality_cell_data_function(GtkTreeViewColumn *col,
 }
 
 static void set_sensitive_layers(GtkCellLayout *cell_layout,
-			GtkCellRenderer *cell,
-			GtkTreeModel *tree_model,
-			GtkTreeIter *iter,
-			gpointer data) {
+		GtkCellRenderer *cell, GtkTreeModel *tree_model, GtkTreeIter *iter,
+		gpointer data) {
 	gboolean sensitive = TRUE;
 
-	if (!use_photometry) {
-		GtkTreePath* path = gtk_tree_model_get_path (tree_model, iter);
+	if (sequence_is_loaded() && !use_photometry) {
+		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (!(&com.seq.regparam))
 			return;
