@@ -488,6 +488,7 @@ static gboolean end_update_idle(gpointer p) {
 	}
 
 	/* free data */
+	set_cursor_waiting(FALSE);
 	g_free(args->content);
 	free(args);
 	http_cleanup();
