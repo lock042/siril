@@ -596,7 +596,7 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,
 			SNR_quality(result->SNR), result->rmse);
-	show_data_dialog(msg, "PSF and quick photometry results", NULL, url);
+	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(coordinates);
 	g_free(msg);
 	g_free(url);
