@@ -39,6 +39,7 @@
 #include "io/single_image.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
+#include "algos/demosaicing.h"
 #include "opencv/opencv.h"
 
 int threshlo(fits *fit, WORD level) {
@@ -228,16 +229,12 @@ int ddp(fits *a, int level, float coeff, float sigma) {
 int visu(fits *fit, int low, int high) {
 	if (low < 0 || low > USHRT_MAX || high < 1 || high > USHRT_MAX)
 		return 1;
-	if (single_image_is_loaded() && com.cvport < com.uniq->nb_layers) {
-		com.uniq->layers[com.cvport].hi = high;
-		com.uniq->layers[com.cvport].lo = low;
-	} else if (sequence_is_loaded() && com.cvport < com.seq.nb_layers) {
-		com.seq.layers[com.cvport].hi = high;
-		com.seq.layers[com.cvport].lo = low;
-	} else
+	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return 1;
+	gui.lo = low;
+	gui.hi = high;
 	set_cutoff_sliders_values();
-	redraw(com.cvport, REMAP_ONLY);
+	redraw(REMAP_ONLY);
 	redraw_previews();
 	return 0;
 }
@@ -391,33 +388,64 @@ void show_FITS_header(fits *fit) {
 }
 
 void compute_grey_flat(fits *fit) {
-	float mean[4];
-	float diag1, diag2, coeff1, coeff2;
-	int config;
+	float coeff1, coeff2;
+	double mean[36] = {0};
+	double green_var[num_filter_patterns];
+	double ch_mean[num_filter_patterns][3];
+	double delta;
+	unsigned int cell, pat, pat_width, pat_cell, ch_n[3];
+	unsigned int guessed_pat = 0;
 
-	/* compute means of 4 channels */
+	/* compute mean of each element in 6x6 blocks */
 	compute_means_from_flat_cfa(fit, mean);
 
 	/* compute coefficients */
 
-	/* looking for green diagonal */
-	diag1 = mean[0] / mean[3];
-	diag2 = mean[1] / mean[2];
+	for (pat = 0; pat < num_filter_patterns; pat++) {
+		green_var[pat] = 0;
+		ch_mean[pat][0] = ch_mean[pat][1] = ch_mean[pat][2] = 0;
+		ch_n[0] = ch_n[1] = ch_n[2] = 0;
+		/* compute width of the (square) CFA pattern */
+		/* added 0.1 in case the result of sqrt is something like 5.999999 and it gets casted to int as 5 */
+		pat_width = (unsigned int) (sqrt(strlen(filter_pattern[pat]))+0.1);
 
-	/* BAYER_FILTER_RGGB
-	 * BAYER_FILTER_BGGR */
-	if (fabs(1.f - diag1) < fabs(1.f - diag2)) {
-		coeff1 = mean[1] / mean[0];
-		coeff2 = mean[2] / mean[3];
-		config = 0;
-	} /* BAYER_FILTER_GBRG
-	 * BAYER_FILTER_GRBG */
-	else {
-		coeff1 = mean[0] / mean[1];
-		coeff2 = mean[3] / mean[2];
-		config = 1;
+		for (cell = 0; cell < 36; cell++) {
+			/* convert 6 x 6 block coordinates to CFA pattern local coordinates */
+			pat_cell = ( cell / 6 % pat_width) * pat_width + cell % pat_width;
+
+			switch(filter_pattern[pat][pat_cell]) {
+				case 'G':
+					delta = mean[cell] - ch_mean[pat][1];
+					ch_n[1]++;
+					ch_mean[pat][1] += delta/ch_n[1];
+					/* we use welford's algortihm to compute the variance */
+					green_var[pat] += delta*(mean[cell]-ch_mean[pat][1]);
+					break;
+				case 'R':
+					delta = mean[cell] - ch_mean[pat][0];
+					ch_n[0]++;
+					ch_mean[pat][0] += delta/ch_n[0];
+					break;
+				case 'B':
+					delta = mean[cell] - ch_mean[pat][2];
+					ch_n[2]++;
+					ch_mean[pat][2] += delta/ch_n[2];
+					break;
+			}
+		}
+		/* we use bessel's correction, so n-1 */
+		green_var[pat] /= (double) (ch_n[1]-1);
+		if (green_var[pat] < green_var[guessed_pat]) {
+			guessed_pat = pat;
+		}
 	}
 
+	siril_debug_print("Guessed pattern: #%d (%s)\n", guessed_pat, filter_pattern[guessed_pat]);
+
+	coeff1 = ch_mean[guessed_pat][0]/ch_mean[guessed_pat][1];
+	coeff2 = ch_mean[guessed_pat][2]/ch_mean[guessed_pat][1];
+	siril_debug_print("coeff1: %.5f, coeff2: %.5f\n", coeff1, coeff2);
+
 	/* applies coefficients to cfa image */
-	equalize_cfa_fit_with_coeffs(fit, coeff1, coeff2, config);
+	equalize_cfa_fit_with_coeffs(fit, coeff1, coeff2, filter_pattern[guessed_pat]);
 }

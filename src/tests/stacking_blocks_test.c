@@ -7,8 +7,6 @@
 #include "stacking/stacking.h"
 #include <stdio.h>
 
-cominfo com;	// the main data struct
-
 /* This is the test file for the function that allocates data block to thread
  * for siril median or mean stacking.
  */

@@ -151,6 +151,9 @@ src_files = [
   'gui/statistics_list.c',
   'gui/utils.c',
   
+  'pixelMath/pixel_math_runner.c',
+  'pixelMath/tinyexpr.c',
+  
   'registration/3stars.c',
   'registration/comet.c',
   'registration/global.c',

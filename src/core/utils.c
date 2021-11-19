@@ -170,6 +170,12 @@ WORD truncate_to_WORD(int x) {
 	return (WORD)x;
 }
 
+BYTE truncate_to_BYTE(WORD x) {
+	if (x > UCHAR_MAX)
+		return UCHAR_MAX;
+	return (BYTE)x;
+}
+
 /**
  * Clamp an integer value in the interval given by [low, high]
  * @param val value to be checked
@@ -1162,14 +1168,8 @@ char *format_basename(char *root, gboolean can_free) {
  * @return the computed slope
  */
 float compute_slope(WORD *lo, WORD *hi) {
-	if (sequence_is_loaded() && !single_image_is_loaded()) {
-		*hi = com.seq.layers[RLAYER].hi;
-		*lo = com.seq.layers[RLAYER].lo;
-	}
-	else {
-		*hi = com.uniq->layers[RLAYER].hi;
-		*lo = com.uniq->layers[RLAYER].lo;
-	}
+	*lo = gui.lo;
+	*hi = gui.hi;
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 

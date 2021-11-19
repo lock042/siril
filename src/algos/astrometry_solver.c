@@ -652,7 +652,7 @@ static gchar *project_catalog(GFile *catalogue_name, SirilWorldCS *catalog_cente
 
 static void get_list_IPS() {
 	if (list_IPS == NULL)
-		list_IPS = GTK_LIST_STORE(gtk_builder_get_object(builder, "liststoreIPS"));
+		list_IPS = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststoreIPS"));
 }
 
 static void clear_all_objects() {
@@ -687,7 +687,7 @@ static void add_object_to_list() {
 static void unselect_all_items() {
 	GtkTreeSelection *selection;
 
-	selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "gtkselectionIPS"));
+	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "gtkselectionIPS"));
 	gtk_tree_selection_unselect_all(selection);
 }
 
@@ -1218,9 +1218,9 @@ static gboolean end_plate_solver(gpointer p) {
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 			fits_flip_top_to_bottom(args->fit);
 			flip_bottom_up_astrometry_data(args->fit);
-			redraw(com.cvport, REMAP_ALL);
+			redraw(REMAP_ALL);
 		} else {
-			redraw(com.cvport, REMAP_NONE);
+			redraw(REDRAW_OVERLAY);
 		}
 		load_WCS_from_memory(args->fit);
 		free(solution);
@@ -1532,7 +1532,7 @@ void crop_astrometry_data(fits *fit, point shift) {
 	if (fit->wcsdata.ra != -1.) update_coords(); //to have plate solve window well-centered in case of subsequent call
 }
 
-void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
+void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]) {
 	extract_cdelt_from_cd(cd[0][0], cd[0][1], cd[1][0], cd[1][1], &cdelt[0], &cdelt[1]);
 
 	pc[0][0] = cd[0][0] / cdelt[0];
@@ -1541,7 +1541,7 @@ void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
 	pc[1][1] = cd[1][1] / cdelt[1];
 }
 
-void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
+void wcs_pc_to_cd(double pc[][2], double cdelt[2], double cd[][2]) {
 	cd[0][0] = pc[0][0] * cdelt[0];
 	cd[0][1] = pc[0][1] * cdelt[0];
 	cd[1][0] = pc[1][0] * cdelt[1];
@@ -1569,7 +1569,11 @@ gpointer match_catalog(gpointer p) {
 	}
 
 	if (!args->manual) {
+		com.starfinder_conf.pixel_size_x = com.pref.focal;
+		com.starfinder_conf.focal_length = com.pref.pitch;
 		com.stars = peaker(args->fit, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE); // TODO: use good layer
+		com.starfinder_conf.pixel_size_x = 0.;
+		com.starfinder_conf.focal_length = 0.;
 	} else {
 		if (com.stars)
 			while (com.stars[n_fit++]);
@@ -1627,7 +1631,7 @@ gpointer match_catalog(gpointer p) {
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
 		args->ret = new_star_match(com.stars, cstars, n, nobj, scale_min,
 				scale_max, &H, args->for_photometry_cc,
-				FULLAFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
+				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
 			scale_min = -1.0;
 			scale_max = -1.0;
@@ -1683,7 +1687,7 @@ gpointer match_catalog(gpointer p) {
 				solution->focal = RADCONV * solution->pixel_size / resolution;
 				siril_debug_print("Current focal: %0.2fmm\n", solution->focal);
 				
-				if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, FULLAFFINE_TRANSFORMATION)){
+				if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
 					siril_log_color_message(_("Updating homography failed.\n"), "red");
 					args->ret = 1;
 				}

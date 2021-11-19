@@ -53,9 +53,9 @@ static void to_cartesian(double r, double theta, point center, point *p) {
 }
 
 static gboolean end_rgradient_filter(gpointer p) {
-	struct median_filter_data *args = (struct median_filter_data *) p;
+	struct rgradient_filter_data *args = (struct rgradient_filter_data *) p;
 	stop_processing_thread();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 

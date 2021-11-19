@@ -581,7 +581,6 @@ static gpointer live_stacker(gpointer arg) {
 			/* number of channels may have changed */
 			com.seq.current = RESULT_IMAGE;
 			com.uniq->nb_layers = gfit.naxes[2];
-			com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 			com.uniq->fit = &gfit;
 			siril_add_idle(livestacking_first_result_idle, NULL);
 			first_stacking_result = FALSE;

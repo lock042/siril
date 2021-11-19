@@ -157,7 +157,6 @@ sequence * readseqfile(const char *name){
 					// the seq_check_basic_data() call later
 					if (seq->nb_layers >= 1) {
 						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
-						seq->layers = calloc(seq->nb_layers, sizeof(layer_info));
 						if (ser_is_cfa(seq->ser_file))
 							seq->regparam_bkp = calloc(3, sizeof(regdata*));
 					}
@@ -277,14 +276,14 @@ sequence * readseqfile(const char *name){
 							goto error;
 						}
 					}
-				} else if (version == 2) {
+				} else if (version <= 2) { // include version 1
 					// version 2 with roundness instead of weird things
-						if (sscanf(line+3, "%f %f %g %g %lg",
-									&(regparam[i].shiftx),
-									&(regparam[i].shifty),
-									&(regparam[i].fwhm),
-									&(regparam[i].roundness),
-									&(regparam[i].quality)) != 5) {
+					if (sscanf(line+3, "%f %f %g %g %lg",
+								&(regparam[i].shiftx),
+								&(regparam[i].shifty),
+								&(regparam[i].fwhm),
+								&(regparam[i].roundness),
+								&(regparam[i].quality)) != 5) {
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
@@ -332,8 +331,6 @@ sequence * readseqfile(const char *name){
 						seq->nb_layers = 3;
 						if (seq->regparam)
 							seq->regparam = realloc(seq->regparam, seq->nb_layers * sizeof(regdata *));
-						if (seq->layers)
-							seq->layers = realloc(seq->regparam, seq->nb_layers * sizeof(layer_info));
 						seq->needs_saving = TRUE;
 					}
 				}
@@ -499,7 +496,7 @@ sequence * readseqfile(const char *name){
 	seq->end = seq->imgparam[seq->number-1].filenum;
 	seq->current = -1;
 	fix_selnum(seq, TRUE);
-	
+
 	// copy some regparam_bkp to regparam if it applies
 	if (ser_is_cfa(seq->ser_file) && com.pref.debayer.open_debayer &&
 			seq->regparam_bkp && seq->regparam_bkp[0] &&
@@ -511,7 +508,7 @@ sequence * readseqfile(const char *name){
 		}
 	}
 
-	
+
 	free(seqfilename);
 	return seq;
 error:
@@ -520,7 +517,7 @@ error:
 		free(seq->seqname);
 	free(seq);
 	siril_log_message(_("Could not load sequence %s\n"), name);
-	
+
 	free(seqfilename);
 	return NULL;
 }
@@ -546,7 +543,7 @@ int writeseqfile(sequence *seq){
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of files (images), selection, and registration data\n");
 	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d\n", 
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed, seq->reference_image, CURRENT_SEQFILE_VERSION);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
@@ -571,7 +568,7 @@ int writeseqfile(sequence *seq){
 
 	for(i=0; i < seq->number; ++i){
 		fprintf(seqfile,"I %d %d\n",
-				seq->imgparam[i].filenum, 
+				seq->imgparam[i].filenum,
 				seq->imgparam[i].incl);
 	}
 

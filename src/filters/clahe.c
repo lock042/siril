@@ -76,13 +76,25 @@ static int clahe_update_preview() {
 	return 0;
 }
 
+static gboolean end_clahe(gpointer p) {
+	struct CLAHE_data *args = (struct CLAHE_data *) p;
+	stop_processing_thread();
+	set_cursor_waiting(FALSE);
+
+	free(args);
+
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	return FALSE;
+}
+
 gpointer clahe(gpointer p) {
 	struct CLAHE_data *args = (struct CLAHE_data*) p;
 
 	cvClahe(args->fit, args->clip, args->tileSize);
 
-	siril_add_idle(end_generic, args);
-	free(args);
+	siril_add_idle(end_clahe, args);
 	return GINT_TO_POINTER(0);
 }
 

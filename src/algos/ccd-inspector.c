@@ -65,7 +65,7 @@ static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float
 
 	com.tilt->fwhm_centre = mcentre;
 
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void clear_sensor_tilt() {
@@ -80,7 +80,7 @@ int draw_sensor_tilt(fits *fit) {
 	float r = sqrtf(center.x * center.x + center.y * center.y);
 	float r1 = 0.25f * r;
 	float r2 = 0.75f * r;
-	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
+	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
 	delete_selected_area();
 
@@ -141,8 +141,11 @@ int draw_sensor_tilt(fits *fit) {
 		float best = min(min(m1, m2), min(m3, m4));
 		float worst = max(max(m1, m2), max(m3, m4));
 
+		float ref = (m1 + m2 + m3 + m4) / 4.f;
+
 		draw_polygon((float) fit->rx, (float) fit->ry, m1, m2, m3, m4, mr1);
-		siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f, Off-axis aberration[FWHM]: %.2f\n"), nbstars, m, worst - best, mr2 - mr1);
+		siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
+				nbstars, m, worst - best, roundf(((worst - best) / ref) * 100.f), mr2 - mr1);
 	}
 
 	free(f);

@@ -57,6 +57,7 @@
 #include "image_format_fits.h"
 #include "gui/histogram.h"
 #include "gui/image_display.h"
+#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"	// clear_stars_list
 #include "gui/sequence_list.h"
@@ -114,7 +115,6 @@ static void fillSeqAviExport() {
 }
 
 static sequence *check_seq_one_file(const char* name);
-static int seq_read_frame_metadata(sequence *seq, int index, fits *dest);
 
 void populate_seqcombo(const gchar *realname) {
 	control_window_switch_to_tab(IMAGE_SEQ);
@@ -405,8 +405,7 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		if (seq->nb_layers == -1 || seq->nb_layers != fit->naxes[2]) {
 			seq->nb_layers = fit->naxes[2];
 			seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
-			seq->layers = calloc(seq->nb_layers, sizeof(layer_info));
-			if (!seq->regparam || !seq->layers) {
+			if (!seq->regparam) {
 				PRINT_ALLOC_ERR;
 				clearfits(fit);
 				return 1;
@@ -482,14 +481,15 @@ int set_seq(const char *name){
 		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
 		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
 		set_cutoff_sliders_values();	// update values for contrast sliders for this image
-		set_layers_for_assign();	// set default layers assign and populate combo box
-		set_layers_for_registration();	// set layers in the combo box for registration
-		update_seqlist();
-		fill_sequence_list(seq, RLAYER, FALSE);// display list of files in the sequence
+		int layer = set_layers_for_registration();	// set layers in the combo box for registration
+		update_seqlist(layer);
+		fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
 		set_output_filename_to_sequence_name();
-		sliders_mode_set_state(com.sliders);
+		sliders_mode_set_state(gui.sliders);
 		initialize_display_mode();
+		update_zoom_label();
 		reset_plot(); // reset all plots
+		reset_3stars();
 
 		/* initialize image-related runtime data */
 		set_display_mode();		// display the display mode in the combo box
@@ -512,7 +512,7 @@ int set_seq(const char *name){
 
 		/* redraw and display image */
 		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		drawPlot();
 	}
 
@@ -544,15 +544,14 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			return 1;
 		}
 		set_fwhm_star_as_star_list(seq);// display the fwhm star if possible
-		if (com.sliders != USER) {
-			init_layers_hi_and_lo_values(com.sliders);
-			sliders_mode_set_state(com.sliders);
+		if (gui.sliders != USER) {
+			init_layers_hi_and_lo_values(gui.sliders);
+			sliders_mode_set_state(gui.sliders);
 			set_cutoff_sliders_max_values();// update min and max values for contrast sliders
 			set_cutoff_sliders_values();	// update values for contrast sliders for this image
 			set_display_mode();		// display the display mode in the combo box
 		}
-		copy_rendering_settings();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 
 		redraw_previews();		// redraw registration preview areas
 		display_filename();		// display filename in gray window
@@ -810,7 +809,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 
 // not thread-safe
 // gets image naxes and bitpix
-static int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
+int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 	assert(index < seq->number);
 	char filename[256];
 	switch (seq->type) {
@@ -1208,13 +1207,6 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		free(seq->stats_bkp);
 	}
 
-	// free name of the layers
-	if (seq->nb_layers > 0) {
-		for (layer = 0; layer < seq->nb_layers; layer++) {
-			free(seq->layers[layer].name);
-		}
-	}
-
 	for (j = 0; j < seq->number; j++) {
 		if (seq->fptr && seq->fptr[j]) {
 			int status = 0;
@@ -1227,7 +1219,6 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		}
 	}
 	if (seq->seqname)	free(seq->seqname);
-	if (seq->layers)	free(seq->layers);
 	if (seq->imgparam)	free(seq->imgparam);
 	if (seq->fptr)		free(seq->fptr);
 
@@ -1304,7 +1295,7 @@ void close_sequence(int loading_another) {
 			gtk_combo_box_set_active(seqcombo, -1);
 		}
 		adjust_sellabel();
-		update_seqlist();
+		update_seqlist(-1);
 	}
 }
 
@@ -1365,7 +1356,6 @@ void check_or_allocate_regparam(sequence *seq, int layer) {
 	assert(layer < seq->nb_layers);
 	if (!seq->regparam && seq->nb_layers > 0) {
 		seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
-		seq->layers = calloc(seq->nb_layers, sizeof(layer_info));
 	}
 	if (seq->regparam && !seq->regparam[layer] && seq->number > 0) {
 		seq->regparam[layer] = calloc(seq->number, sizeof(regdata));
@@ -1531,16 +1521,30 @@ gboolean end_seqpsf(gpointer p) {
 	int photometry_index = 0;
 	gboolean displayed_warning = FALSE, write_to_regdata = FALSE;
 	gboolean duplicate_for_regdata = FALSE, dont_stop_thread;
+	gboolean saveregdata = TRUE;
+	gboolean has_any_regdata = FALSE;
 
 	if (args->retval)
 		goto proper_ending;
+	
+	for (int i = 0; i < seq->nb_layers; i++) {
+		has_any_regdata = has_any_regdata || seq->regparam[i];
+	}
 
 	if (spsfargs->for_registration || !seq->regparam[layer]) {
-		if (!spsfargs->for_registration && !seq->regparam[layer])
-			duplicate_for_regdata = TRUE;
-		check_or_allocate_regparam(seq, layer);
-		write_to_regdata = TRUE;
-		seq->needs_saving = TRUE;
+		if (!spsfargs->for_registration && !seq->regparam[layer]) {
+			if (has_any_regdata) {
+				saveregdata = siril_confirm_dialog(_("No registration data stored for this layer"),
+				_("Some registration data was found for another layer.\n"
+					"Do you want to save the psf data as registration data for this layer?"), _("Save"));
+				duplicate_for_regdata = saveregdata;
+			} else {
+				duplicate_for_regdata = TRUE;
+			}
+		}
+		if (saveregdata) check_or_allocate_regparam(seq, layer);
+		write_to_regdata = saveregdata;
+		seq->needs_saving = saveregdata;
 	}
 	if (!spsfargs->for_registration) {
 		int i;
@@ -1591,7 +1595,7 @@ gboolean end_seqpsf(gpointer p) {
 		 * in case seqpsf is called for registration. */
 		// update the list in the GUI
 		if (seq->type != SEQ_INTERNAL) {
-			update_seqlist();
+			update_seqlist(layer);
 			fill_sequence_list(seq, layer, FALSE);
 		}
 		set_layers_for_registration();	// update display of available reg data
@@ -1681,13 +1685,13 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 
 void free_reference_image() {
 	fprintf(stdout, "Purging previously saved reference frame data.\n");
-	if (com.refimage_regbuffer) {
-		free(com.refimage_regbuffer);
-		com.refimage_regbuffer = NULL;
+	if (gui.refimage_regbuffer) {
+		free(gui.refimage_regbuffer);
+		gui.refimage_regbuffer = NULL;
 	}
-	if (com.refimage_surface) {
-		cairo_surface_destroy(com.refimage_surface);
-		com.refimage_surface = NULL;
+	if (gui.refimage_surface) {
+		cairo_surface_destroy(gui.refimage_surface);
+		gui.refimage_surface = NULL;
 	}
 	if (com.seq.reference_image == -1)
 		enable_view_reference_checkbox(FALSE);

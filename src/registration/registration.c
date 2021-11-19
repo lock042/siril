@@ -130,7 +130,7 @@ void initialize_registration_methods() {
 
 	/* fill comboboxregmethod */
 	regcombo = GTK_COMBO_BOX_TEXT(
-			gtk_builder_get_object(builder, "comboboxregmethod"));
+			gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 	gtk_combo_box_text_remove_all(regcombo);
 	i = 0;
 	while (reg_methods[i] != NULL) {
@@ -149,7 +149,7 @@ void initialize_registration_methods() {
 
 struct registration_method *get_selected_registration_method() {
 	GtkComboBoxText *regcombo = GTK_COMBO_BOX_TEXT(
-			gtk_builder_get_object(builder, "comboboxregmethod"));
+			gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 	int index = 0;
 
 	gchar *text = gtk_combo_box_text_get_active_text (regcombo);
@@ -680,11 +680,12 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
-	GtkAdjustment *register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "register_minpairs"));
+	GtkAdjustment *register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "register_minpairs"));
 	double val = gtk_adjustment_get_value(register_minpairs);
 
 	switch(gtk_combo_box_get_active(box)) {
 	case SHIFT_TRANSFORMATION:
+	case SIMILARITY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		gtk_adjustment_set_lower (register_minpairs, 3);
 		break;
@@ -776,9 +777,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
 		else gtk_label_set_text(labelreginfo, "");
 		// the 3 stars method has special GUI requirements
-		if (method->method_ptr != &register_3stars) {
-			gtk_widget_set_sensitive(go_register, TRUE);
-		}
+		gtk_widget_set_sensitive(go_register, (method->method_ptr != &register_3stars));
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
@@ -886,7 +885,7 @@ void get_the_registration_area(struct registration_args *reg_args,
 			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", reg_args->selection.x,
 					reg_args->selection.y, reg_args->selection.w,
 					reg_args->selection.h);
-			redraw(com.cvport, REMAP_NONE);
+			redraw(REDRAW_OVERLAY);
 			break;
 	}
 }
@@ -1001,7 +1000,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
-	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_reserved_thread(register_thread_func, reg_args);
@@ -1036,8 +1034,8 @@ static gboolean end_register_idle(gpointer p) {
 
 	if (!args->retval) {
 		if (!args->load_new_sequence) {
-			int chan = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("seqlist_dialog_combo")));
-			update_seqlist();
+			int chan = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboboxreglayer")));
+			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
 			set_layers_for_registration();	// update display of available reg data
 		}

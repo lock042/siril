@@ -115,7 +115,8 @@ static GActionEntry single_processing_entries[] = {
 
 static GActionEntry none_processing_entries[] = {
 		{ "fft-processing", fft_activate },
-		{ "rgb-compositing-processing", rgb_compositing_activate }
+		{ "rgb-compositing-processing", rgb_compositing_activate },
+		{ "pixel-math", pixel_math_activate }
 };
 
 static void _siril_window_enable_action_group(GActionMap *map,
@@ -211,6 +212,7 @@ void siril_window_enable_none_proc_actions(GtkApplicationWindow *window, gboolea
 	static const gchar *none_processing_actions[] = {
 		"fft-processing",
 		"rgb-compositing-processing",
+		"pixel-math",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), none_processing_actions, enable);

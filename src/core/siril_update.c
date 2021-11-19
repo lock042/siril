@@ -43,7 +43,7 @@
 #define SIRIL_DOWNLOAD DOMAIN"download"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 
-static gchar *get_changelog(gint x, gint y, gint z, gint p);
+static gchar *get_changelog(gchar *str);
 
 
 // taken from gimp
@@ -187,6 +187,19 @@ static gboolean siril_update_get_highest(JsonParser *parser,
 	return (*highest_version != NULL);
 }
 
+static void remove_alpha(gchar *str) {
+	unsigned long i = 0;
+	unsigned long j = 0;
+	char c;
+
+	while ((c = str[i++]) != '\0') {
+		if (g_ascii_isdigit(c)) {
+			str[j++] = c;
+		}
+	}
+	str[j] = '\0';
+}
+
 /**
  * Check if the version is a patched version.
  * patched version are named like that x.y.z.patch where patch only contains digits.
@@ -195,12 +208,7 @@ static gboolean siril_update_get_highest(JsonParser *parser,
  * @return 0 if the version is not patched. The version of the patch is returned otherwise.
  */
 static guint check_for_patch(gchar *version) {
-	guint i = 0;
-
-	while (version[i]) {
-		if (g_ascii_isalpha(version[i])) return 0;
-		i++;
-	}
+	remove_alpha(version);
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
@@ -231,8 +239,10 @@ static version_number get_last_version_number(gchar *version_str) {
 		version.minor_version = g_ascii_strtoull(v[1], NULL, 10);
 	if (v[0] && v[1] && v[2])
 		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
-	if (v[0] && v[1] && v[2] && v[3])
+	if (v[0] && v[1] && v[2] && v[3]) {
+		remove_alpha(v[3]);
 		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
+	}
 
 	g_strfreev(v);
 	return version;
@@ -300,7 +310,6 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 	guint x = last_version_available.major_version;
 	guint y = last_version_available.minor_version;
 	guint z = last_version_available.micro_version;
-	guint patch = last_version_available.patched_version;
 	if (x == 0 && y == 0 && z == 0) {
 		if (*verbose)
 			msg = siril_log_message(_("No update check: cannot fetch version file\n"));
@@ -309,7 +318,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			msg = siril_log_message(_("New version is available. You can download it at "
 							"<a href=\"%s\">%s</a>\n"),
 					SIRIL_DOWNLOAD, SIRIL_DOWNLOAD);
-			changelog = get_changelog(x, y, z, patch);
+			changelog = get_changelog(version);
 			if (changelog) {
 				*data = parse_changelog(changelog);
 				/* force the verbose variable */
@@ -376,14 +385,11 @@ static void http_cleanup() {
 	curl = NULL;
 }
 
-static gchar *get_changelog(gint x, gint y, gint z, gint p) {
+static gchar *get_changelog(gchar *str) {
 	struct ucontent *changelog;
 	gchar *result = NULL;
-	gchar str[20];
 	gchar *changelog_url;
 	long code;
-
-	GString *url = g_string_new(GITLAB_URL);
 
 	changelog = g_try_malloc(sizeof(struct ucontent));
 	if (changelog == NULL) {
@@ -395,13 +401,10 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	changelog->data[0] = '\0';
 	changelog->len = 0;
 
-	if (p != 0) {
-		g_snprintf(str, sizeof(str), "/%d.%d.%d.%d/", x, y, z, p);
-	} else {
-		g_snprintf(str, sizeof(str), "/%d.%d.%d/", x, y, z);
-	}
+	GString *url = g_string_new(GITLAB_URL);
+	url = g_string_append(url, "/");
 	url = g_string_append(url, str);
-	url = g_string_append(url, "ChangeLog");
+	url = g_string_append(url, "/ChangeLog");
 
 	changelog_url = g_string_free(url, FALSE);
 	curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
@@ -485,6 +488,7 @@ static gboolean end_update_idle(gpointer p) {
 	}
 
 	/* free data */
+	set_cursor_waiting(FALSE);
 	g_free(args->content);
 	free(args);
 	http_cleanup();
@@ -599,19 +603,14 @@ void siril_check_updates(gboolean verbose) {
 
 #else
 
-static gchar *get_changelog(gint x, gint y, gint z, gint p) {
+static gchar *get_changelog(gchar *str) {
 	GError *error = NULL;
 	gchar *result = NULL;
-	gchar *str;
 
-	if (p != 0) {
-		str = g_strdup_printf("/%d.%d.%d.%d/", x, y, z, p);
-	} else {
-		str = g_strdup_printf("/%d.%d.%d/", x, y, z);
-	}
 	GString *url = g_string_new(GITLAB_URL);
+	url = g_string_append(url, "/");
 	url = g_string_append(url, str);
-	url = g_string_append(url, "ChangeLog");
+	url = g_string_append(url, "/ChangeLog");
 
 	gchar *changelog_url = g_string_free(url, FALSE);
 	GFile *file = g_file_new_for_uri(changelog_url);
@@ -622,7 +621,6 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	}
 
 	g_free(changelog_url);
-	g_free(str);
 	g_object_unref(file);
 
 	return result;

@@ -35,13 +35,16 @@ static command commands[] = {
 	{"clear", 0, "clear", process_clear, STR_CLEAR, FALSE},
 	{"clearstar", 0, "clearstar", process_clearstar, STR_CLEARSTAR, FALSE},
 	{"close", 0, "close", process_close, STR_CLOSE, TRUE},
-	{"convert", 1, "convert basename [-debayer] [-fitseq] [-start=index] [-out=]", process_convert, STR_CONVERT, TRUE},
-	{"convertraw", 1, "convertraw basename [-debayer] [-fitseq] [-start=index] [-out=]", process_convertraw, STR_CONVERTRAW, TRUE},
+	{"convert", 1, "convert basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERT, TRUE},
+	{"convertraw", 1, "convertraw basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convertraw, STR_CONVERTRAW, TRUE},
 	{"cosme", 1, "cosme [filename].lst", process_cosme, STR_COSME, TRUE},
 	{"cosme_cfa", 1, "cosme_cfa [filename].lst", process_cosme, STR_COSME_CFA, TRUE},
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE},
+#ifdef _WIN32
+	{"dir", 0, "dir", process_ls, STR_LS, FALSE},
+#endif
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE},
@@ -78,7 +81,7 @@ static command commands[] = {
 
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE},
-	{"load", 1, "load filename.[ext]", process_load, STR_LOAD, TRUE},
+	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE},
 	// specific loads are not required, but could be used to force the
 	// extension to a higher priority in case two files with same basename
 	// exist (stat_file() manages that priority order for now).
@@ -94,7 +97,7 @@ static command commands[] = {
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE},
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE},
-	{"nozero", 1, "nozero level (replaces null values by level)", process_nozero, STR_NOZERO, TRUE}, /* replaces null values by level */
+	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE}, /* replaces null values by level */
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE},
 
@@ -152,7 +155,7 @@ static command commands[] = {
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE},
-	{"split", 3, "split R G B", process_split, STR_SPLIT, TRUE},
+	{"split", 3, "split fileR fileG fileB", process_split, STR_SPLIT, TRUE},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE},
 	{"stack", 1, "stack sequencename [type] [rejection type] [sigma low] [sigma high] [-nonorm, norm=] [-output_norm] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]", process_stackone, STR_STACK, TRUE},
 	{"stackall", 0, "stackall [type] [rejection type] [sigma low] [sigma high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]", process_stackall, STR_STACKALL, TRUE},

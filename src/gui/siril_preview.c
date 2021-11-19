@@ -52,7 +52,7 @@ static gboolean update_preview(gpointer user_data) {
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	if (im->show_preview) {
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
 	}
@@ -100,7 +100,7 @@ void siril_preview_hide() {
 	copy_backup_to_gfit();
 	clear_backup();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 }
 

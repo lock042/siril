@@ -6,7 +6,6 @@
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
 fits gfit;	// currently loaded image
-GtkBuilder *builder;	// get widget references anywhere
 char **supported_extensions;
 
 gboolean sequence_is_loaded() {
@@ -140,6 +139,14 @@ void siril_widget_destroy(SirilWidget *widgetdialog) {
 
 void gui_log_message(const char* msg, const char* color) {
         fprintf(stderr, "ERROR: calling undefined function gui_log_message\n");
+}
+
+void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
+        fprintf(stderr, "ERROR: calling undefined function wcs_cd_to_pc\n");
+}
+
+void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
+        fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
 }
 
 #ifdef DUMMY_LOG

@@ -46,6 +46,7 @@
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
 #include "livestacking/livestacking.h"
+#include "registration/registration.h"
 
 #include "siril_actions.h"
 #include "algos/astrometry_solver.h"
@@ -193,12 +194,13 @@ void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
-		com.zoom_value = ZOOM_FIT;
+		gui.zoom_value = ZOOM_FIT;
 		reset_display_offset();
-		redraw(com.cvport, REMAP_NONE);
+		redraw(REDRAW_IMAGE);
 	} else {
-		com.zoom_value = get_zoom_val();
+		gui.zoom_value = get_zoom_val();
 	}
+	update_zoom_label();
 	g_simple_action_set_state(action, state);
 }
 
@@ -222,15 +224,16 @@ void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	update_zoom_fit_button();
-	com.zoom_value = ZOOM_NONE;
+	gui.zoom_value = ZOOM_NONE;
 	reset_display_offset();
-	redraw(com.cvport, REMAP_NONE);
+	update_zoom_label();
+	redraw(REDRAW_IMAGE);
 }
 
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 }
@@ -248,7 +251,7 @@ void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data
 	g_simple_action_set_state(action, state);
 	free(com.qphot);
 	com.qphot = NULL;
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -262,7 +265,7 @@ void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 }
@@ -289,7 +292,7 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	psf_star *result = NULL;
-	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
+	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
 
 	if (layer == -1)
 		return;
@@ -330,13 +333,13 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 		com.found_object = NULL;
 	}
 	g_simple_action_set_state(action, state);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	com.show_wcs_grid = g_variant_get_boolean(state);
 	g_simple_action_set_state(action, state);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -368,7 +371,8 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 					_("Load another image"));
 		}
 		if (confirm) {
-			update_seqlist();
+			int layer = get_registration_layer(&com.seq);
+			update_seqlist(layer);
 			siril_open_dialog("seqlist_dialog");
 		}
 	}
@@ -505,6 +509,10 @@ void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 
 void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	open_compositing_window();
+}
+
+void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("pixel_math_dialog");
 }
 
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

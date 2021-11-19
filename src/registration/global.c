@@ -56,6 +56,7 @@ static void print_alignment_results(Homography H, int filenum, float FWHMx, floa
 static int get_min_requires_stars(transformation_type type) {
 	switch(type) {
 	case SHIFT_TRANSFORMATION:
+	case SIMILARITY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		return 3;
 	default:
@@ -180,7 +181,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image)
-		queue_redraw(REMAP_NONE); // draw stars
+		queue_redraw(REDRAW_OVERLAY); // draw stars
 
 	sadata->ref.x = fit.rx;
 	sadata->ref.y = fit.ry;
@@ -267,11 +268,20 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
 		}
 
+		/* sometimes sequence are not consistent.... They shouldn't but ..... */
+		int layer;
+		if (regargs->layer > RLAYER && !isrgb(fit)) {
+			layer = RLAYER;
+			siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "salmon");
+		} else {
+			layer = regargs->layer;
+		}
+
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
+			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
 		}
 		else {
-			stars = peaker(fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
 		}
 
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
@@ -329,6 +339,13 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 					"red", MIN_RATIO_INLIERS, filenum);
 				free_fitted_stars(stars);
 				return 1;
+			break;
+			case SIMILARITY_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
+					"red", MIN_RATIO_INLIERS, filenum);
+				free_fitted_stars(stars);
+				return 1;
+			break;
 			case AFFINE_TRANSFORMATION:
 				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
 					"red", MIN_RATIO_INLIERS, filenum);
@@ -621,7 +638,6 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
-	seq.layers = calloc(seq.nb_layers, sizeof(layer_info));
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;

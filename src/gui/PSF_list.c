@@ -26,12 +26,9 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_world_cs.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
@@ -165,41 +162,41 @@ static void gdouble_rmse_cell_data_function(GtkTreeViewColumn *col,
 
 static void get_stars_list_store() {
 	if (liststore_stars == NULL)
-		liststore_stars = GTK_LIST_STORE(gtk_builder_get_object(builder, "liststore_stars"));
+		liststore_stars = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststore_stars"));
 
 	GtkTreeViewColumn *col;
 	GtkCellRenderer *cell;
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn7"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_x0"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn7"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_x0"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_x0_cell_data_function, NULL, NULL);
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn8"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_y0"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn8"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_y0"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_y0_cell_data_function, NULL, NULL);
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn9"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_fwhmx"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn9"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_fwhmx"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_fwhmx_cell_data_function, NULL, NULL);
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn10"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_fwhmy"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn10"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_fwhmy"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_fwhmy_cell_data_function, NULL, NULL);
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn_mag"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_mag"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn_mag"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_mag"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_mag_cell_data_function, NULL, NULL);
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn14"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_r"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn14"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_r"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_r_cell_data_function, NULL, NULL);
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn6"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_angle"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn6"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_angle"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_angle_cell_data_function, NULL, NULL);
 
-	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn15"));
-	cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cell_rmse"));
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn15"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_rmse"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_rmse_cell_data_function, NULL, NULL);
 }
 
@@ -287,8 +284,8 @@ static void display_status() {
 }
 
 static void remove_selected_star(int index) {
-	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "treeview-selection"));
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(builder, "Stars_stored")));
+	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
 	GtkTreeIter iter;
 
 	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
@@ -306,7 +303,7 @@ static void remove_all_stars(){
 	clear_stars_list();
 	com.selected_star = -1;
 	display_status();
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 static int save_list(gchar *filename) {
@@ -415,7 +412,7 @@ void add_star_to_list(psf_star *star) {
 
 	get_stars_list_store();
 	if (!selection)
-		selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "treeview-selection"));
+		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	if (star == NULL) {
 		gtk_list_store_clear(liststore_stars);
 		return;		// just clear the list
@@ -462,7 +459,7 @@ void refresh_star_list(psf_star **star){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
 	fill_stars_list(&gfit, com.stars);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void clear_stars_list() {
@@ -491,9 +488,7 @@ void clear_stars_list() {
 }
 
 void pick_a_star() {
-	int layer = match_drawing_area_widget(com.vport[com.cvport], FALSE);
-	int new_index;
-
+	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
 	if (layer != -1) {
 		if (!(com.selection.h && com.selection.w))
 			return;
@@ -502,6 +497,7 @@ void pick_a_star() {
 					_("To determine the PSF, please make a selection around a star."));
 			return;
 		}
+		int new_index;
 		psf_star *new_star = add_star(&gfit, layer, &new_index);
 		if (new_star) {
 			add_star_to_list(new_star);
@@ -509,7 +505,7 @@ void pick_a_star() {
 		} else
 			return;
 	}
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 }
 
 static gchar *build_wcs_url(gchar *ra, gchar *dec) {
@@ -549,9 +545,9 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	gchar *msg, *coordinates, *url = NULL;
 	const char *str;
 	if (com.magOffset > 0.0)
-		str = "true reduced";
+		str = _("true reduced");
 	else
-		str = "relative";
+		str = _("relative");
 
 	double x = result->x0 + area->x;
 	double y = area->y + area->h - result->y0;
@@ -600,7 +596,7 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,
 			SNR_quality(result->SNR), result->rmse);
-	show_data_dialog(msg, "PSF and quick photometry results", NULL, url);
+	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(coordinates);
 	g_free(msg);
 	g_free(url);
@@ -631,7 +627,7 @@ void on_treeview_cursor_changed(GtkTreeView *tree_view,
 
 		com.selected_star = get_index_of_selected_star(x0, y0);
 		display_status();
-		redraw(com.cvport, REMAP_NONE);
+		redraw(REDRAW_OVERLAY);
 	}
 }
 
@@ -659,24 +655,6 @@ void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
 void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 	remove_all_stars();
 	clear_sensor_tilt();
-}
-
-void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
-	int nbstars = 0;
-	int layer = com.cvport == RGB_VPORT ? GLAYER : com.cvport;
-	if (!single_image_is_loaded() && !sequence_is_loaded()) {
-		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
-		return;
-	}
-	set_cursor_waiting(TRUE);
-
-	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
-	delete_selected_area();
-	com.stars = peaker(&gfit, layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
-	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, layer);
-	if (com.stars)
-		refresh_star_list(com.stars);
-	set_cursor_waiting(FALSE);
 }
 
 void on_export_button_clicked(GtkButton *button, gpointer user_data) {

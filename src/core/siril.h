@@ -1,7 +1,7 @@
 #ifndef SIRIL_H
 #define SIRIL_H
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#include <config.h>
 #endif
 
 #include <glib.h>
@@ -33,7 +33,7 @@
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
 #define siril_debug_print(fmt, ...) \
-   do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
 #define PRINT_ANOTHER_THREAD_RUNNING siril_log_message(_("Another task is already in progress, ignoring new request.\n"))
@@ -51,7 +51,7 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
-#define SWAP(a,b)  { double temp = (a); (a) = (b); (b) = temp; }
+#define SWAP(a,b) { double temp = (a); (a) = (b); (b) = temp; }
 
 #define SQR(x) ((x)*(x))
 #endif
@@ -80,7 +80,7 @@ typedef unsigned short WORD;	// default type for internal image data
 #define ZOOM_MAX	128
 #define ZOOM_MIN	0.03125
 #define ZOOM_IN		1.5
-#define ZOOM_OUT    1.0 / ZOOM_IN
+#define ZOOM_OUT	1.0 / ZOOM_IN
 #define ZOOM_NONE	1.0
 #define ZOOM_FIT	-1.0	// or any value < 0
 #define ZOOM_DEFAULT	ZOOM_FIT
@@ -104,15 +104,6 @@ typedef GtkWidget SirilWidget;
 #else
 #define SIRIL_EOL "\n"
 #endif
-
-/* when requesting an image redraw, it can be asked to remap its data before redrawing it.
- * REMAP_NONE	doesn't remaps the data,
- * REMAP_ONLY	remaps only the current viewport (color channel) and the mixed (RGB) image
- * REMAP_ALL	remaps all view ports, useful when all the colors come from the same file.
- */
-#define REMAP_NONE	0
-#define REMAP_ONLY	1
-#define REMAP_ALL	2
 
 typedef enum {
 	TYPEUNDEF = (1 << 1),
@@ -165,13 +156,12 @@ typedef enum {
 				// the loaded sequence
 
 #define MAX_STARS 200000		// maximum length of com.stars
-#define MAX_STARS_FITTED 2000   // maximum number of stars fitted for registration
+#define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
 
 #define INDEX_MAX 65535		// maximum index for images
 
 typedef struct imdata imgdata;
 typedef struct registration_data regdata;
-typedef struct layer_info_struct layer_info;
 typedef struct sequ sequence;
 typedef struct single_image single;
 typedef struct wcs_struct wcs_info;
@@ -181,6 +171,7 @@ typedef struct libraw_config libraw;
 typedef struct phot_config phot;
 typedef struct stack_config stackconf;
 typedef struct comp_config compconf;
+typedef struct guiinf guiinfo;
 typedef struct cominf cominfo;
 typedef struct image_stats imstats;
 typedef struct rectangle_struct rectangle;
@@ -216,7 +207,7 @@ typedef enum {
 	ASINH_DISPLAY,
 	STF_DISPLAY,
 	HISTEQ_DISPLAY
-} display_mode;			// used in the layer_info_struct below
+} display_mode;
 #define DISPLAY_MODE_MAX HISTEQ_DISPLAY
 
 typedef enum {
@@ -270,15 +261,6 @@ typedef enum {
 #define BAYER_FILTER_MIN BAYER_FILTER_RGGB
 #define BAYER_FILTER_MAX BAYER_FILTER_GRBG
 
-struct layer_info_struct {
-	char *name;			// name of the layer (a filter name)
-	double wavelength;		// the wavelength of the filter, in nanometres
-	WORD lo, hi;			// the values of the cutoff sliders
-	//WORD min, max;		// the min and max values of the sliders
-	gboolean cut_over, cut_under;	// display values over hi or under lo as negative
-	display_mode rendering_mode;	// defaults to LINEAR_DISPLAY
-};
-
 typedef enum { SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
 #ifdef HAVE_FFMS2
 	SEQ_AVI,
@@ -314,7 +296,6 @@ struct sequ {
 	unsigned int rx;	// first image width
 	unsigned int ry;	// first image height
 	int bitpix;		// image pixel format, from fits
-	layer_info *layers;	// info about layers, may be null if nb_layers is unknown
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
 	regdata **regparam;	// *regparam[nb_layers], may be null if nb_layers is unknown
@@ -365,7 +346,6 @@ struct single_image {
 	gboolean fileexist;// flag of existing file
 	char *comment;		// comment on how the file got there (user load, result...)
 	int nb_layers;		// number of layers embedded in each image file
-	layer_info *layers;	// info about layers
 	fits *fit;		// the fits is still gfit, but a reference doesn't hurt
 };
 
@@ -465,7 +445,7 @@ struct ffit {
  * Don't forget to update conversion.c:initialize_libraw_settings() data when
  * modifying the glade settings */
 struct libraw_config {
-	double mul[3], bright;					// Color  & brightness adjustement mul[0] = red, mul[1] = green = 1, mul[2] = blue
+	double mul[3], bright;					// Color & brightness adjustement mul[0] = red, mul[1] = green = 1, mul[2] = blue
 	int auto_mul, use_camera_wb, use_auto_wb;		// White Balance parameters
 	int user_qual;						// Index of the Matrix interpolation set in dcraw, 0: bilinear, 1: VNG, 2: PPG, 3: AHD
 	int user_black;						// black point correction
@@ -540,6 +520,7 @@ struct star_finder_struct {
 	gboolean adjust;
 	double sigma;
 	double roundness;
+	double focal_length, pixel_size_x;
 };
 
 struct save_config_struct {
@@ -561,9 +542,9 @@ struct pref_struct {
 	gboolean is_maximized;
 
 	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
-	gboolean prepro_equalize_cfa;  // Use to save if flat will be equalized in preprocessing
-	gboolean fix_xtrans; // Use to fix xtrans darks and biases with the AF square
-	rectangle xtrans_af; // if no xtrans model found, use these values
+	gboolean prepro_equalize_cfa; // Use to save if flat will be equalized in preprocessing
+	gboolean fix_xtrans;	// Use to fix xtrans darks and biases with the AF square
+	rectangle xtrans_af;	// if no xtrans model found, use these values
 	rectangle xtrans_sample; // if no xtrans model found, use these values
 	gchar *prepro_bias_lib;
 	gboolean use_bias_lib;
@@ -577,13 +558,13 @@ struct pref_struct {
 	save_config save;
 	gboolean show_thumbnails; // show or don't show thumbnails in open dialog box
 	gint thumbnail_size;
-	gboolean check_update; // check update at startup
+	gboolean check_update;	// check update at startup
 	gboolean script_check_requires; // check the requires command in scripts
 
-	gint combo_theme;           // value of the combobox theme
-	gdouble font_scale;           // font scale
+	gint combo_theme;	// value of the combobox theme
+	gdouble font_scale;	// font scale
 	gboolean icon_symbolic;		// icon style
-	gchar *combo_lang;           // string value of the combobox lang
+	gchar *combo_lang;	// string value of the combobox lang
 
 	gchar *ext;		// FITS extension used in SIRIL
 
@@ -595,64 +576,77 @@ struct pref_struct {
 
 	libraw raw_set;			// the libraw settings
 	struct debayer_config debayer;	// debayer settings
-	phot phot_set;          // photometry settings
-	gboolean catalog[7]; // Yet 6 catalogs and 1 user catalog
-	int position_compass; // compass position
-	int wcs_formalism; // formalism used in FITS header
+	phot phot_set;		// photometry settings
+	gboolean catalog[7];	// Yet 6 catalogs and 1 user catalog
+	int position_compass;	// compass position
+	int wcs_formalism;	// formalism used in FITS header
 
-	stackconf stack; // stacking option
-	compconf comp; // compression option
-	gboolean rgb_aladin; // Add CTYPE3='RGB' in the FITS header
+	stackconf stack;	// stacking option
+	compconf comp;		// compression option
+	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 
 	gboolean force_to_16bit;
 
 	gint selection_guides;	// number of elements of the grid guides (2 for a simple cross, 3 for the 3 thirds rule, etc.)
 
-	gchar *copyright;		// User copyright when saving image as TIFF
+	gchar *copyright;	// User copyright when saving image as TIFF
 
 };
 /**
- * End of preference structure. Read above.
+ * End of preference structure. Read above if modified.
  */
 
-/* The global data structure of siril, the only with gfit and the gtk builder,
- * declared in main.c */
-struct cominf {
-	/* current version of GTK, through GdkPixmap, doesn't handle gray images, so
-	 * graybufs are the same size than the rgbbuf with 3 times the same value */
-	guchar *graybuf[MAXGRAYVPORT];	// one B/W display buffer per viewport (R,G,B)
-	guchar *rgbbuf;			// one rgb display buffer
-	/* cairo image surface related data */
-	int surface_stride[MAXVPORT];	// allocated stride
-	int surface_height[MAXVPORT];	// allocated height
-	cairo_surface_t *surface[MAXVPORT];
-	gboolean buf_is_dirty[MAXVPORT];// dirtyness of each buffer (= need to redraw)
+/* The rendering of the main image is cached. As it can be much larger than the
+ * widget in which it's displayed, it can take a lot of time to transform it
+ * for rendering. Unfortunately, rendering is requested on each update of a
+ * label, so every time the pointer moves above the image.
+ * With the caching, the rendering is done once in a cache surface
+ * (disp_surface) and this surface is just displayed on subsequent calls if the
+ * image, the transform or the widget size has not changed.
+ */
+struct image_view {
+	GtkWidget *drawarea;
 
-	/* Color map */
-	color_map color;
+	guchar *buf;	// display buffer (image mapped to 3 times 8-bit)
+	int full_surface_stride;
+	int full_surface_height;
+	int view_width;	// drawing area size
+	int view_height;
 
-	GtkWidget *vport[MAXVPORT];	// one drawingarea per layer, one rgb drawingarea
+	cairo_surface_t *full_surface;
+	cairo_surface_t *disp_surface;	// the cache
+};
+
+
+/* The global data structure of siril gui */
+struct guiinf {
+	GtkBuilder *builder;		// the builder of the glade interface
+
+	/*********** rendering of gfit, the currently loaded image ***********/
+	struct image_view view[MAXVPORT];
 	int cvport;			// current viewport, index in the list vport above
-	GtkAdjustment *hadj[MAXVPORT];	// adjustments of vport scrollbars
-	GtkAdjustment *vadj[MAXVPORT];	// adjustments of vport scrollbars
-	sliders_mode sliders;		// 0: min/max, 1: MIPS-LO/HI, 2: user
+
+	cairo_matrix_t display_matrix;	// matrix used for image rendering (convert image to display coordinates)
+	cairo_matrix_t image_matrix;	// inverse of display_matrix (convert display to image coordinates)
+	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
+	point display_offset;		// image display offset
+
+	gboolean translating;		// the image is being translated
+
+	/*********** Color mapping **********/
+	WORD lo, hi;			// the values of the cutoff sliders
+	gboolean cut_over;		// display values over hi as negative
+	sliders_mode sliders;		// lo/hi, minmax, user
+	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY
+
 	gboolean show_excluded;		// show excluded images in sequences
 
-	cairo_matrix_t display_matrix; // matrix used for image rendering (convert image to display coordinates)
-	cairo_matrix_t image_matrix; // inverse of display_matrix (convert display to image coordinates)
-	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
-	point display_offset; // image display offset
-	gboolean translating;		// true we are in display transating mode
-
-	preferences pref; // saved variable in preferences
-
 	/* selection rectangle for registration, FWHM, PSF */
-	gboolean drawing;			// true if the rectangle is being set (clicked motion)
-	pointi start;				// where the mouse was originally clicked to
-	pointi origin;				// where the selection was originally located
+	gboolean drawing;		// true if the rectangle is being set (clicked motion)
+	pointi start;			// where the mouse was originally clicked to
+	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection 
-	rectangle selection;		// coordinates of the selection rectangle
-	double ratio;				// enforced ratio of the selection (default is 0: none)
+	double ratio;			// enforced ratio of the selection (default is 0: none)
 
 	/* alignment preview data */
 	//guchar *preview_buf[PREVIEW_NB];
@@ -660,13 +654,6 @@ struct cominf {
 	GtkWidget *preview_area[PREVIEW_NB];
 	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
 	cairo_surface_t *refimage_surface;
-
-	gchar *wd;			// working directory, where images and sequences are
-	gchar *initfile;	// the path of the init file
-	
-	int reg_settings;		// Use to save registration method in the init file
-
-	gboolean cache_upscaled;	// keep up-scaled files for 'drizzle' (only used by developers)
 	
 	int filter;			// file extension filter for open/save dialogs
 
@@ -678,6 +665,18 @@ struct cominf {
 	int cmd_hist_size;		// allocated size
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
+
+};
+
+/* The global data structure of siril core */
+struct cominf {
+	preferences pref; // saved variable in preferences
+	gchar *wd;			// working directory, where images and sequences are
+	gchar *initfile;	// the path of the init file
+
+	int reg_settings;		// Use to save registration method in the init file
+
+	gboolean cache_upscaled;	// keep up-scaled files for 'drizzle' (only used by developers)
 
 	/* history of operations */
 	historic *history;			// the history of all operations
@@ -699,8 +698,8 @@ struct cominf {
 	GSList *grad_samples;
 	GSList *found_object;
 	gboolean show_wcs_grid;
-	psf_star *qphot;      // quick photometry result
-	sensor_tilt *tilt;     // tilt information
+	psf_star *qphot;		// quick photometry result
+	sensor_tilt *tilt;		// tilt information
 
 	int max_thread;			// maximum of thread used for parallel execution
 
@@ -712,6 +711,8 @@ struct cominf {
 	gboolean script;		// scripts execution
 	gboolean stop_script;		// abort script execution
 	GThread *script_thread;		// reads a script and executes its commands
+
+	rectangle selection;		// coordinates of the selection rectangle
 };
 
 /* this structure is used to characterize the statistics of the image */
@@ -732,28 +733,8 @@ typedef struct Homo {
 	int Inliers;
 } Homography;
 
-#if 0
-/* TODO: this structure aims to allow the composition of several 1-channel images and make
- * more easy the management of RGB compositing */
-typedef struct image_layer_struct image_layer;
-struct image_layer_struct {
-	char		*layer_name;		/* the name of the layer (the color or band name) */
-	fits		*fit;			/* fits data of the layer */
-	int		naxis;			/* this image is naxis in fits */
-	guchar		*graybuf;		/* mapped image for display purposes */
-	int		stride;			/* Cairo data width */
-	cairo_surface_t	*surface;		/* Cairo image surface */
-	GtkWidget	*vport;			/* the viewport */
-	double		wavelength;		/* the wavelength associated with the channel */
-	guchar		rmap, gmap, bmap;	/* mapping to rgb colors, initialized function of the wavelength */
-	unsigned int	hi, lo;			/* same as fits_data->{hi,lo} but for display/compositing purposes */
-	char		*filename;		/* the filename of the fits_data file */
-	int		naxis;			/* axis number of the fits file filename, may not be 0 if it's an RGB fits for example */
-};
-#endif
-
 #ifndef MAIN
-extern GtkBuilder *builder;	// get widget references anywhere
+extern guiinfo gui;
 extern cominfo com;		// the main data struct
 extern fits gfit;		// currently loaded image
 #endif

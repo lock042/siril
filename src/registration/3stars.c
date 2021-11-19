@@ -123,7 +123,7 @@ static gboolean _3stars_seqpsf_end(gpointer p) {
 
 psf_end:
 	memset(&com.selection, 0, sizeof(rectangle));
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 
 	awaiting_star = 0;
 	free(args);
@@ -424,10 +424,16 @@ static int rotate_images(struct registration_args *regargs, regdata *current_reg
 	}
 	free(results);
 	results = NULL;
-	reset_icons();
-	for (int i = 0; i < 3; i++)
-		unset_suggested(three_buttons[i]);
-	set_suggested(three_buttons[0]);
-	set_registration_ready(FALSE);
+	reset_3stars();
 	return args->retval;
 }
+
+void reset_3stars(){
+    if (!GTK_IS_WIDGET(three_buttons[0])) return;
+    reset_icons();
+    for (int i = 0; i < 3; i++)
+        unset_suggested(three_buttons[i]);
+    set_suggested(three_buttons[0]);
+    set_registration_ready(FALSE);
+}
+

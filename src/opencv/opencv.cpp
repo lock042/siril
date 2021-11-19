@@ -397,9 +397,9 @@ unsigned char *cvCalculH(s_star *star_array_img,
 
 	/* build vectors with lists of stars. */
 	switch (type) {
-	case AFFINE_TRANSFORMATION:
+	case SIMILARITY_TRANSFORMATION:
 	case HOMOGRAPHY_TRANSFORMATION:
-	case FULLAFFINE_TRANSFORMATION:	
+	case AFFINE_TRANSFORMATION:	
 		for (int i = 0; i < n; i++) {
 			ref.push_back(Point2f(star_array_ref[i].x, star_array_ref[i].y));
 			img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
@@ -424,7 +424,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		H.at<double>(0,2) = s.at<double>(0);
 		H.at<double>(1,2) = s.at<double>(1);		
 	break;
-	case AFFINE_TRANSFORMATION:
+	case SIMILARITY_TRANSFORMATION:
 		a = estimateAffinePartial2D(img, ref, mask, CV_RANSAC, defaultRANSACReprojThreshold);
 		if (countNonZero(a) < 1) return NULL; //must count before filling H, otherwise zero elements cannot be caught
 		H = Mat::eye(3, 3, CV_64FC1);
@@ -434,7 +434,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		H = findHomography(img, ref, CV_RANSAC, defaultRANSACReprojThreshold, mask);
 		if (countNonZero(H) < 1) return NULL;
 		break;
-	case FULLAFFINE_TRANSFORMATION:
+	case AFFINE_TRANSFORMATION:
 		a = estimateAffine2D(img, ref, mask, CV_RANSAC, defaultRANSACReprojThreshold);
 		if (countNonZero(a) < 1) return NULL; //must count before filling H, otherwise zero elements cannot be caught
 		H = Mat::eye(3, 3, CV_64FC1);

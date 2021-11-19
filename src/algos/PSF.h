@@ -3,6 +3,7 @@
 
 #include <gsl/gsl_matrix.h>
 #include <algos/photometry.h>
+#include "algos/star_finder.h"
 
 //in siril.h: typedef struct fwhm_struct psf_star;
 

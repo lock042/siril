@@ -277,7 +277,7 @@ static void show_command_help_popup(GtkEntry *entry) {
 
 				token = g_strsplit_set(current->usage, " ", -1);
 				GString *str = g_string_new(token[0]);
-				str = g_string_prepend(str, "<span foreground=\"red\"><b>");
+				str = g_string_prepend(str, "<span foreground=\"red\" size=\"larger\"><b>");
 				str = g_string_append(str, "</b>");
 				if (token[1] != NULL) {
 					str = g_string_append(str,
@@ -337,46 +337,46 @@ static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event
 	switch (keyval) {
 	case GDK_KEY_Up:
 		handled = 1;
-		if (!com.cmd_history)
+		if (!gui.cmd_history)
 			break;
-		if (com.cmd_hist_display > 0) {
-			if (com.cmd_history[com.cmd_hist_display - 1])
-				--com.cmd_hist_display;
+		if (gui.cmd_hist_display > 0) {
+			if (gui.cmd_history[gui.cmd_hist_display - 1])
+				--gui.cmd_hist_display;
 			// display previous entry
-			gtk_entry_set_text(entry, com.cmd_history[com.cmd_hist_display]);
-		} else if (com.cmd_history[com.cmd_hist_size - 1]) {
+			gtk_entry_set_text(entry, gui.cmd_history[gui.cmd_hist_display]);
+		} else if (gui.cmd_history[gui.cmd_hist_size - 1]) {
 			// ring back, display previous
-			com.cmd_hist_display = com.cmd_hist_size - 1;
-			gtk_entry_set_text(entry, com.cmd_history[com.cmd_hist_display]);
+			gui.cmd_hist_display = gui.cmd_hist_size - 1;
+			gtk_entry_set_text(entry, gui.cmd_history[gui.cmd_hist_display]);
 		}
 		entrylength = gtk_entry_get_text_length(entry);
 		gtk_editable_set_position(editable, entrylength);
 		break;
 	case GDK_KEY_Down:
 		handled = 1;
-		if (!com.cmd_history)
+		if (!gui.cmd_history)
 			break;
-		if (com.cmd_hist_display == com.cmd_hist_current)
+		if (gui.cmd_hist_display == gui.cmd_hist_current)
 			break;
-		if (com.cmd_hist_display == com.cmd_hist_size - 1) {
-			if (com.cmd_hist_current == 0) {
+		if (gui.cmd_hist_display == gui.cmd_hist_size - 1) {
+			if (gui.cmd_hist_current == 0) {
 				// ring forward, end
 				gtk_entry_set_text(entry, "");
-				com.cmd_hist_display++;
-			} else if (com.cmd_history[0]) {
+				gui.cmd_hist_display++;
+			} else if (gui.cmd_history[0]) {
 				// ring forward, display next
-				com.cmd_hist_display = 0;
-				gtk_entry_set_text(entry, com.cmd_history[0]);
+				gui.cmd_hist_display = 0;
+				gtk_entry_set_text(entry, gui.cmd_history[0]);
 			}
 		} else {
-			if (com.cmd_hist_display == com.cmd_hist_current - 1) {
+			if (gui.cmd_hist_display == gui.cmd_hist_current - 1) {
 				// end
 				gtk_entry_set_text(entry, "");
-				com.cmd_hist_display++;
-			} else if (com.cmd_history[com.cmd_hist_display + 1]) {
+				gui.cmd_hist_display++;
+			} else if (gui.cmd_history[gui.cmd_hist_display + 1]) {
 				// display next
 				gtk_entry_set_text(entry,
-						com.cmd_history[++com.cmd_hist_display]);
+						gui.cmd_history[++gui.cmd_hist_display]);
 			}
 		}
 		entrylength = gtk_entry_get_text_length(entry);
@@ -447,7 +447,6 @@ int processcommand(const char *line) {
 		}
 		free(myline);
 	}
-	set_cursor_waiting(FALSE);
 	return 0;
 }
 
@@ -612,22 +611,22 @@ void on_GtkCommandHelper_clicked(GtkButton *button, gpointer user_data) {
  */
 
 static void history_add_line(char *line) {
-	if (!com.cmd_history) {
-		com.cmd_hist_size = CMD_HISTORY_SIZE;
-		com.cmd_history = calloc(com.cmd_hist_size, sizeof(const char*));
-		com.cmd_hist_current = 0;
-		com.cmd_hist_display = 0;
+	if (!gui.cmd_history) {
+		gui.cmd_hist_size = CMD_HISTORY_SIZE;
+		gui.cmd_history = calloc(gui.cmd_hist_size, sizeof(const char*));
+		gui.cmd_hist_current = 0;
+		gui.cmd_hist_display = 0;
 	}
-	com.cmd_history[com.cmd_hist_current] = line;
-	com.cmd_hist_current++;
+	gui.cmd_history[gui.cmd_hist_current] = line;
+	gui.cmd_hist_current++;
 	// circle at the end
-	if (com.cmd_hist_current == com.cmd_hist_size)
-		com.cmd_hist_current = 0;
-	if (com.cmd_history[com.cmd_hist_current]) {
-		free(com.cmd_history[com.cmd_hist_current]);
-		com.cmd_history[com.cmd_hist_current] = NULL;
+	if (gui.cmd_hist_current == gui.cmd_hist_size)
+		gui.cmd_hist_current = 0;
+	if (gui.cmd_history[gui.cmd_hist_current]) {
+		free(gui.cmd_history[gui.cmd_hist_current]);
+		gui.cmd_history[gui.cmd_hist_current] = NULL;
 	}
-	com.cmd_hist_display = com.cmd_hist_current;
+	gui.cmd_hist_display = gui.cmd_hist_current;
 }
 
 void on_command_activate(GtkEntry *entry, gpointer user_data) {

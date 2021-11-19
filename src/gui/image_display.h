@@ -3,11 +3,20 @@
 
 #include "core/siril.h"
 
+typedef enum {
+	REDRAW_OVERLAY, // only overlays changed
+	REDRAW_IMAGE,   // the image changed, render it and overlays
+	REMAP_ONLY,     // the image render scaling changed, remap the cvport and render all
+	REMAP_ALL       // the image data changed, remap and render all
+} remap_type;
+
 void initialize_image_display();
 
-void queue_redraw(int doremap);
-void redraw(int vport, int remap);
+void redraw(remap_type doremap);	// redraw the image, possibly with a remap
+void queue_redraw(remap_type doremap); // call redraw from another thread
+
 double get_zoom_val();	// for image_interactions
+
 point get_center_of_vport();
 void add_image_and_label_to_cairo(cairo_t *cr, int vport);
 

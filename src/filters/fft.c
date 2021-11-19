@@ -419,7 +419,7 @@ static gboolean end_fourier_transform(gpointer p) {
 	struct fft_data *args = (struct fft_data *)p;
 	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	free(args->type);
 	free(args);
@@ -538,9 +538,9 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (notebookFFT == NULL) {
 		notebookFFT = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebook_fft"));
+				gtk_builder_get_object(gui.builder, "notebook_fft"));
 		order = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "fft_centered"));
+				gtk_builder_get_object(gui.builder, "fft_centered"));
 	}
 
 	page = gtk_notebook_get_current_page(notebookFFT);

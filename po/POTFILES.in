@@ -100,6 +100,8 @@ src/io/ser.c
 src/io/single_image.c
 src/main.c
 src/opencv/opencv.cpp
+src/pixelMath/pixel_math_runner.c
+src/pixelMath/tinyexpr.c
 src/registration/3stars.c
 src/registration/comet.c
 src/registration/global.c

@@ -47,10 +47,10 @@ static sequence_type get_activated_output_type();
 
 static void init_widgets() {
 	if (!tree_view) {
-		tree_view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview_convert"));
+		tree_view = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "treeview_convert"));
 		model = gtk_tree_view_get_model(tree_view);
 		liststore_convert = GTK_LIST_STORE(
-				gtk_builder_get_object(builder, "liststore_convert"));
+				gtk_builder_get_object(gui.builder, "liststore_convert"));
 	}
 	g_assert(tree_view);
 	g_assert(model);
@@ -275,21 +275,6 @@ static void add_file_to_list(GFile *file) {
 	g_free(size);
 }
 
-static GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
-		GtkTreeModel *model) {
-	GList *ref = NULL;
-	GList *sel, *s;
-
-	sel = gtk_tree_selection_get_selected_rows(selection, &model);
-
-	for (s = sel; s; s = s->next) {
-		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
-		ref = g_list_prepend(ref, rowref);
-	}
-	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
-	return ref;
-}
-
 static void remove_selected_files_from_list() {
 	GtkTreeSelection *selection;
 	GList *references, *list;
@@ -383,18 +368,6 @@ void on_remove_convert_button_clicked(GtkToolButton *button, gpointer user_data)
 	remove_selected_files_from_list();
 	check_for_conversion_form_completeness();
 	on_input_files_change();
-}
-
-void on_treeview_convert_drag_leave(GtkWidget *widget, GdkDragContext *context, guint time,
-		gpointer user_data) {
-	gtk_drag_unhighlight(widget);
-}
-
-gboolean on_treeview_convert_drag_motion(GtkWidget *widget, GdkDragContext *context,
-		gint x, gint y, guint time) {
-	gtk_drag_highlight(widget);
-
-	return TRUE;
 }
 
 void on_treeview_convert_drag_data_received(GtkWidget *widget,
@@ -587,7 +560,7 @@ void process_destroot(sequence_type output_type) {
 static sequence_type get_activated_output_type() {
 	static GtkComboBox *combo = NULL;
 	if (!combo)
-		combo = GTK_COMBO_BOX(gtk_builder_get_object(builder, "prepro_output_type_combo1"));
+		combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "prepro_output_type_combo1"));
 	return (sequence_type)gtk_combo_box_get_active(combo);
 }
 

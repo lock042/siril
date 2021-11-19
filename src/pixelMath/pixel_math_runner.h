@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -17,28 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_GUI_UTILS_H_
-#define SRC_GUI_UTILS_H_
+#ifndef SRC_PIXELMATH_PIXEL_MATH_RUNNER_H_
+#define SRC_PIXELMATH_PIXEL_MATH_RUNNER_H_
 
-typedef enum {
-	FILE_CONVERSION,
-	IMAGE_SEQ,
-	PRE_PROC,
-	REGISTRATION,
-	PLOT,
-	STACKING,
-	OUTPUT_LOGS
-} main_tabs;
+#include "core/siril.h"
 
+struct pixel_math_data {
+	fits *fit;
+	int nb_rows;
+	int ret;
+	gchar *expression;
+};
 
-GtkWidget* lookup_widget (const gchar *widget_name);
-void control_window_switch_to_tab(main_tabs tab);
-GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
-GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf);
-GList *get_row_references_of_selected_rows(GtkTreeSelection *selection, GtkTreeModel *model);
-void set_GUI_MEM(guint64 used, const gchar *label);
-void set_GUI_DiskSpace(gint64 mem, const gchar *label);
-void set_suggested(GtkWidget *widget);
-void unset_suggested(GtkWidget *widget);
-
-#endif /* SRC_GUI_UTILS_H_ */
+#endif /* SRC_PIXELMATH_PIXEL_MATH_RUNNER_H_ */
