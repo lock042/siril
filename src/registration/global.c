@@ -65,6 +65,21 @@ static int get_min_requires_stars(transformation_type type) {
 	}
 }
 
+const char *describe_transformation_type(transformation_type type) {
+	switch(type) {
+		case SHIFT_TRANSFORMATION:
+			return _("shift-only (2 degrees)");
+		case SIMILARITY_TRANSFORMATION:
+			return _("similarity (4 degrees)");
+		case AFFINE_TRANSFORMATION:
+			return _("affine (6 degrees)");
+		case HOMOGRAPHY_TRANSFORMATION:
+			return _("homography (8 degrees)");
+		default:
+			return _("INVALID");
+	}
+}
+
 regdata *star_align_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
 	if (regargs->seq->regparam[regargs->layer]) {

@@ -8813,7 +8813,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="width-request">500</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Live Stacking</property>
-    <property name="resizable">False</property>
     <property name="icon">pixmaps/siril.svg</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_livestacking_player_hide" swapped="no"/>
@@ -8865,13 +8864,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="livest_label1">
+              <object class="GtkCheckButton" id="ls_debayer">
+                <property name="label" translatable="yes">debayer</property>
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">live stacking...</property>
-                <style>
-                  <class name="record"/>
-                </style>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">for now only detected in files and automatically enabled</property>
+                <property name="margin-end">6</property>
+                <property name="draw-indicator">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -8888,55 +8889,57 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           </packing>
         </child>
         <child>
-          <object class="GtkStatusbar">
+          <object class="GtkLabel" id="ls_config_label">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">10</property>
-            <property name="margin-right">10</property>
-            <property name="margin-start">10</property>
-            <property name="margin-end">10</property>
-            <property name="margin-top">6</property>
-            <property name="margin-bottom">6</property>
-            <property name="orientation">vertical</property>
-            <property name="spacing">2</property>
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="wrap">True</property>
+            <property name="max-width-chars">40</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="padding">6</property>
             <property name="position">1</property>
           </packing>
         </child>
         <child>
-          <object class="GtkBox">
+          <object class="GtkLabel" id="ls_cumul_label">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <child>
-              <object class="GtkCheckButton" id="ls_debayer">
-                <property name="label" translatable="yes">debayer</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">for now only detected in files and automatically enabled</property>
-                <property name="draw-indicator">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
+            <property name="halign">end</property>
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="label" translatable="yes">waiting for input files</property>
+            <property name="single-line-mode">True</property>
+            <property name="track-visited-links">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="padding">6</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="livest_label1">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="label" translatable="yes">live stacking...</property>
+            <property name="single-line-mode">True</property>
+            <property name="track-visited-links">False</property>
+            <style>
+              <class name="record"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">6</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>

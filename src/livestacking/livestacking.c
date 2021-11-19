@@ -42,6 +42,12 @@
 #include "gui/image_display.h"
 #include "gui.h"
 
+/* hard-coded configuration */
+#define REGISTRATION_TYPE SIMILARITY_TRANSFORMATION
+#define REGISTRATION_INTERPOLATION OPENCV_CUBIC
+/****************************/
+
+
 #define WAIT_FILE_WRITTEN_US 60000	// check file size or readbility every 60 ms
 #define WAIT_FILE_WRITTEN_ITERS 11	// 60*11 = 660ms, after that it's a failure
 #define EXIT_TOKEN ":EXIT:"
@@ -180,6 +186,7 @@ void on_livestacking_start() {
 	}
 
 	init_preprocessing();
+	livestacking_display_config(prepro != NULL, REGISTRATION_TYPE);
 
 	g_signal_connect(G_OBJECT(dirmon), "changed", G_CALLBACK(file_changed), NULL);
 	livestacking_display(_("Live stacking waiting for files"));
@@ -233,7 +240,7 @@ void on_livestacking_start() {
 			return 1;
 		}
 
-		if (cvTransformImage(fit, H, FALSE, OPENCV_CUBIC)) {
+		if (cvTransformImage(fit, H, FALSE, REGISTRATION_INTERPOLATION)) {
 			return 1;
 		}
 
@@ -278,7 +285,8 @@ static int start_global_registration(sequence *seq) {
 	reg_args.translation_only = FALSE;
 	reg_args.prefix = "r_";
 	reg_args.load_new_sequence = FALSE;
-	reg_args.interpolation = OPENCV_CUBIC;
+	reg_args.interpolation = REGISTRATION_INTERPOLATION;
+	reg_args.type = REGISTRATION_TYPE;
 	/*reg_args.func(&reg_args);
 	if (reg_args.retval)
 		return 1;*/
@@ -397,7 +405,7 @@ static int preprocess_image(char *filename, char *target) {
 
 static gpointer live_stacker(gpointer arg) {
 	g_async_queue_ref(new_files_queue);
-	int index = 1;
+	int index = 1, number_of_images_stacked = 1;
 	gboolean first_loop = TRUE;	// only original images in the sequence
 	do {
 		gchar *filename = g_async_queue_pop(new_files_queue); // blocking
@@ -470,6 +478,7 @@ static gpointer live_stacker(gpointer arg) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
 				livestacking_display(_("Waiting for second image"));
+				livestacking_update_number_of_images(1, gfit.exposure);
 				continue;
 			}
 			first_loop = FALSE;
@@ -593,6 +602,8 @@ static gpointer live_stacker(gpointer arg) {
 		g_free(str);
 
 		index++;
+		number_of_images_stacked++;
+		livestacking_update_number_of_images(number_of_images_stacked, gfit.exposure);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");
