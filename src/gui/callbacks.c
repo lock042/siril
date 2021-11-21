@@ -578,6 +578,7 @@ void update_display_fwhm() {
  * if a unique file is loaded, its details are used instead of any sequence data
  */
 void display_filename() {
+	gboolean local_filename = FALSE;
 	int nb_layers, vport;
 	char *filename;
 	if (single_image_is_loaded()) {	// unique image
@@ -585,6 +586,7 @@ void display_filename() {
 		nb_layers = com.uniq->nb_layers;
 	} else if (sequence_is_loaded()) {	// sequence
 		filename = malloc(256);
+		local_filename = TRUE;
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		nb_layers = com.seq.nb_layers;
 	} else {
@@ -601,9 +603,8 @@ void display_filename() {
 		g_free(c);
 	}
 
-	if (sequence_is_loaded()) {
+	if (local_filename)
 		free(filename);
-	}
 	g_free(base_name);
 }
 

@@ -464,76 +464,73 @@ static void draw_empty_image(const draw_data_t* dd) {
 	g_object_unref(pixbuf);
 
 
-		GtkWidget *widget = lookup_widget("drawingareargb");
-		GtkStyleContext *context = gtk_widget_get_style_context(widget);
-		GtkStateFlags state = gtk_widget_get_state_flags(widget);
-		PangoLayout *layout;
-		gchar *msg;
-		GtkAllocation allocation;
-		gdouble scale;
-		GdkRGBA color;
-		gint w, h;
+	GtkWidget *widget = lookup_widget("drawingareargb");
+	GtkStyleContext *context = gtk_widget_get_style_context(widget);
+	GtkStateFlags state = gtk_widget_get_state_flags(widget);
+	PangoLayout *layout;
+	gchar *msg;
+	GtkAllocation allocation;
+	gdouble scale;
+	GdkRGBA color;
+	gint w, h;
 
-		layout = gtk_widget_create_pango_layout(widget, NULL);
+	layout = gtk_widget_create_pango_layout(widget, NULL);
 
 #ifdef SIRIL_UNSTABLE
 
-		msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
-			"<small>commit <tt>%s</tt></small>\n"
-			"<small>Please test bugs against "
-			"latest git master branch\n"
-			"before reporting them.</small>"),
+	msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
+				"<small>commit <tt>%s</tt></small>\n"
+				"<small>Please test bugs against "
+				"latest git master branch\n"
+				"before reporting them.</small>"),
 			SIRIL_GIT_VERSION_ABBREV);
-		pango_layout_set_markup(layout, msg, -1);
-		g_free(msg);
-		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_markup(layout, msg, -1);
+	g_free(msg);
+	pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
 
-		pango_layout_get_pixel_size(layout, &w, &h);
-		gtk_widget_get_allocation(widget, &allocation);
+	pango_layout_get_pixel_size(layout, &w, &h);
+	gtk_widget_get_allocation(widget, &allocation);
 
-		scale = MIN(((gdouble ) allocation.width / 2.0) / (gdouble ) w,
-				((gdouble ) allocation.height / 2.0) / (gdouble ) h / 2);
+	scale = MIN(((gdouble ) allocation.width / 2.0) / (gdouble ) w,
+			((gdouble ) allocation.height / 2.0) / (gdouble ) h / 2);
 
-		gtk_style_context_get_color(context, state, &color);
-		gdk_cairo_set_source_rgba(cr, &color);
+	gtk_style_context_get_color(context, state, &color);
+	gdk_cairo_set_source_rgba(cr, &color);
 
-		cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
-				(allocation.height - (h * scale)) / 2);
+	cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
+			(allocation.height - (h * scale)) / 2);
 
 #else
-		msg = g_strdup_printf("%c%s", toupper(PACKAGE_STRING[0]), PACKAGE_STRING + 1);
+	msg = g_strdup_printf("%c%s", toupper(PACKAGE_STRING[0]), PACKAGE_STRING + 1);
 
-		pango_layout_set_markup(layout, msg, -1);
-		g_free(msg);
-		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_markup(layout, msg, -1);
+	g_free(msg);
+	pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
 
-		pango_layout_get_pixel_size(layout, &w, &h);
-		gtk_widget_get_allocation(widget, &allocation);
+	pango_layout_get_pixel_size(layout, &w, &h);
+	gtk_widget_get_allocation(widget, &allocation);
 
-		scale = MIN(((gdouble ) allocation.width / 4.0) / (gdouble ) w,
-				((gdouble ) allocation.height / 4.0) / (gdouble ) h / 4);
+	scale = MIN(((gdouble ) allocation.width / 4.0) / (gdouble ) w,
+			((gdouble ) allocation.height / 4.0) / (gdouble ) h / 4);
 
-		gtk_style_context_get_color(context, state, &color);
-		gdk_cairo_set_source_rgba(cr, &color);
+	gtk_style_context_get_color(context, state, &color);
+	gdk_cairo_set_source_rgba(cr, &color);
 
-		cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
-				3 * (allocation.height - (h * scale)) / 4);
+	cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
+			3 * (allocation.height - (h * scale)) / 4);
 
 #endif /* SIRIL_UNSTABLE */
-		cairo_scale(cr, scale, scale);
+	cairo_scale(cr, scale, scale);
 
-		pango_cairo_show_layout(cr, layout);
+	pango_cairo_show_layout(cr, layout);
 
-		g_object_unref(layout);
+	g_object_unref(layout);
 }
 
 static void draw_vport(const draw_data_t* dd) {
 	struct image_view *view = &gui.view[dd->vport];
 	if (!view->disp_surface) {
 		cairo_surface_t *target = cairo_get_target(dd->cr);
-		/*view->disp_surface =
-			cairo_surface_create_similar(target, CAIRO_CONTENT_COLOR,
-					dd->window_width, dd->window_height);*/
 		view->disp_surface = cairo_surface_create_similar_image(target, CAIRO_FORMAT_ARGB32,
 					dd->window_width, dd->window_height);
 		if (cairo_surface_status(view->disp_surface) != CAIRO_STATUS_SUCCESS) {
@@ -1281,7 +1278,7 @@ static void invalidate_image_render_cache(int vport) {
 		gui.view[i].view_height = -1;
 		gui.view[i].view_width = -1;
 	}
-	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
+	siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
 }
 
 void adjust_vport_size_to_image() {
