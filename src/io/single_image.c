@@ -116,6 +116,13 @@ void free_image_data() {
 		}
 		view->full_surface_stride = 0;
 		view->full_surface_height = 0;
+
+		if (view->disp_surface) {
+			cairo_surface_destroy(view->disp_surface);
+			view->disp_surface = NULL;
+		}
+		view->view_width = -1;
+		view->view_height= -1;
 	}
 	if (!com.headless)
 		activate_tab(gui.cvport);
