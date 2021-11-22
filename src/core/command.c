@@ -1767,6 +1767,10 @@ int process_fill2(int nb){
 }
 
 int process_findstar(int nb){
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
 	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
 	delete_selected_area();
