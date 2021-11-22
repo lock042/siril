@@ -44,6 +44,7 @@
 #include "kplot.h"
 #include "algos/PSF.h"
 #include "io/ser.h"
+#include "io/sequence.h"
 #include "gui/gnuplot_i/gnuplot_i.h"
 #include "gui/PSF_list.h"
 
@@ -664,11 +665,15 @@ static void fill_plot_statics() {
 		layer_selector = lookup_widget("seqlist_dialog_combo");
 	}
 }
+
 static void validate_combos() {
 	fill_plot_statics();
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
-	if (!use_photometry)
+	if (!use_photometry) {
 		reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(layer_selector));
+		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
+			reglayer = get_registration_layer(&com.seq);
+	}
 	gtk_widget_set_visible(varCurve, use_photometry);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);

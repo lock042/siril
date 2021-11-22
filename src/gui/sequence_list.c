@@ -94,7 +94,7 @@ static void set_sensitive_layers(GtkCellLayout *cell_layout,
 	if (sequence_is_loaded() && !use_photometry) {
 		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
-		if (!(&com.seq.regparam))
+		if (!(com.seq.regparam))
 			return;
 		if (com.seq.regparam[*index] == NULL)
 			sensitive = FALSE;

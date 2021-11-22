@@ -37,6 +37,7 @@
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
+#include "gui/plot.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -229,6 +230,7 @@ int open_single_image(const char* filename) {
 	reset_compositing_module();
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
+	reset_plot(); // clear existing plot if any
 
 	retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
 	if (retval == 2) {
