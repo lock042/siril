@@ -501,7 +501,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 			(allocation.height - (h * scale)) / 2);
 
 #else
-	msg = g_strdup_printf("%c%s", toupper(PACKAGE_STRING[0]), PACKAGE_STRING + 1);
+	msg = g_strdup_printf("%c%s", toupper(PACKAGE_STRING[0]), (char *)PACKAGE_STRING + 1);
 
 	pango_layout_set_markup(layout, msg, -1);
 	g_free(msg);

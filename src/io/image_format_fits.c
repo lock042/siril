@@ -1268,7 +1268,7 @@ void save_fits_header(fits *fit) {
 	status = 0;
 	char programm[32];
 
-	sprintf(programm, "%c%s v%s", toupper(PACKAGE[0]), PACKAGE + 1, VERSION);
+	sprintf(programm, "%c%s v%s", toupper(PACKAGE[0]), (char*) PACKAGE + 1, VERSION);
 	fits_update_key(fit->fptr, TSTRING, "PROGRAM", programm,
 			"Software that created this HDU", &status);
 
