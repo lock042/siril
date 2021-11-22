@@ -26,6 +26,7 @@ typedef struct {
 	guint minor_version;
 	guint micro_version;
 	guint patched_version;
+	gboolean rc_version;
 } version_number;
 
 //void siril_check_updates(gboolean verbose);
