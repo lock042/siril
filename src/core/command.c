@@ -1085,6 +1085,10 @@ int	process_mirrory(int nb){
 }
 
 int process_mtf(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
 	float lo = g_ascii_strtod(word[1], NULL);
 	float mid = g_ascii_strtod(word[2], NULL);
 	float hi = g_ascii_strtod(word[3], NULL);
