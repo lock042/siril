@@ -1085,8 +1085,8 @@ int	process_mirrory(int nb){
 }
 
 int process_mtf(int nb) {
-	if (!single_image_is_loaded()) {
-		PRINT_NOT_FOR_SEQUENCE;
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
 	float lo = g_ascii_strtod(word[1], NULL);
