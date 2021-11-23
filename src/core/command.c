@@ -1286,6 +1286,7 @@ int process_set_ext(int nb) {
 				&& (g_ascii_strncasecmp(word[1], "fts", 3))
 				&& (g_ascii_strncasecmp(word[1], "fits", 4))) {
 			siril_log_message(_("FITS extension unknown: %s\n"), word[1]);
+			return 1;
 		}
 
 		free(com.pref.ext);
