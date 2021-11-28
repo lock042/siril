@@ -263,7 +263,7 @@ void computeStat() {
 		name = g_strdup_printf("%s", com.uniq->filename);
 	else if (sequence_is_loaded())
 		name = g_strdup_printf(_("Image %d/%d from the sequence %s"),
-				com.seq.current, com.seq.number, com.seq.seqname);
+				com.seq.current, com.seq.number + 1, com.seq.seqname);
 	else
 		name = g_strdup_printf(_("unknown image"));
 
