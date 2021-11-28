@@ -119,6 +119,45 @@ void test_ushort_force_float() {
 	cr_expect_float_eq(a->fdata[3], 0.0305180f, 1e-7, "expected 0.0305180, got %.7f", a->fdata[3]);
 	cr_expect_float_eq(a->fdata[4], 2.0f, 1e-7, "expected 1.0, got %f", a->fdata[4]);
 
+	clearfits(a);
+	dataa = alloc_data(origa, size);
+
+	new_fit_image_with_data(&a, size, 1, 1, DATA_USHORT, dataa);
+
+	retval = soper(a, 2.f, OPER_DIV, TRUE);
+	cr_assert(!retval, "soper MUL failed");
+	cr_expect_float_eq(a->fdata[0], 0.0f, 1e-7, "expected 0.0, got %.7f", a->fdata[0]);
+	cr_expect_float_eq(a->fdata[1], 0.0000076f, 1e-7, "expected 0.0000076, got %.7f", a->fdata[1]);
+	cr_expect_float_eq(a->fdata[2], 0.0000153f, 1e-7, "expected 0.0000153, got %.7f", a->fdata[2]);
+	cr_expect_float_eq(a->fdata[3], 0.0076295f, 1e-7, "expected 0.0076295, got %.7f", a->fdata[3]);
+	cr_expect_float_eq(a->fdata[4], 0.5f, 1e-7, "expected 0.5, got %f", a->fdata[4]);
+
+	clearfits(a);
+	dataa = alloc_data(origa, size);
+
+	new_fit_image_with_data(&a, size, 1, 1, DATA_USHORT, dataa);
+
+	retval = soper(a, 0.1f, OPER_ADD, TRUE);
+	cr_assert(!retval, "soper MUL failed");
+	cr_expect_float_eq(a->fdata[0], 0.1f, 1e-7, "expected 0.1, got %.7f", a->fdata[0]);
+	cr_expect_float_eq(a->fdata[1], 0.1000153f, 1e-7, "expected 0.1000153, got %.7f", a->fdata[1]);
+	cr_expect_float_eq(a->fdata[2], 0.1000305f, 1e-7, "expected 0.1000305, got %.7f", a->fdata[2]);
+	cr_expect_float_eq(a->fdata[3], 0.1152590f, 1e-7, "expected 0.1152590, got %.7f", a->fdata[3]);
+	cr_expect_float_eq(a->fdata[4], 1.1f, 1e-7, "expected 1.1, got %f", a->fdata[4]);
+
+	clearfits(a);
+	dataa = alloc_data(origa, size);
+
+	new_fit_image_with_data(&a, size, 1, 1, DATA_USHORT, dataa);
+
+	retval = soper(a, 0.1f, OPER_SUB, TRUE);
+	cr_assert(!retval, "soper MUL failed");
+	cr_expect_float_eq(a->fdata[0], -0.1f, 1e-7, "expected -0.1, got %.7f", a->fdata[0]);
+	cr_expect_float_eq(a->fdata[1], -0.0999847f, 1e-7, "expected -0.0999847, got %.7f", a->fdata[1]);
+	cr_expect_float_eq(a->fdata[2], -0.0999695f, 1e-7, "expected -0.0999695, got %.7f", a->fdata[2]);
+	cr_expect_float_eq(a->fdata[3], -0.0847410f, 1e-7, "expected -0.084741, got %.7f", a->fdata[3]);
+	cr_expect_float_eq(a->fdata[4], 0.9f, 1e-7, "expected 0.9, got %f", a->fdata[4]);
+
 }
 
 void test_float() {
