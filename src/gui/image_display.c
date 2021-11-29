@@ -58,6 +58,7 @@ static display_mode last_mode;
 static gboolean stf_computed = FALSE; // Flag to know if STF parameters are available
 static float stf_shadows, stf_highlights, stf_m;
 
+static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
 	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx);
@@ -127,6 +128,7 @@ static void remaprgb(void) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
+	invalidate_image_render_cache(RGB_VPORT);
 }
 
 static int make_index_for_current_display();
@@ -288,6 +290,7 @@ static void remap(int vport) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
+	invalidate_image_render_cache(vport);
 
 	test_and_allocate_reference_image(vport);
 }
@@ -426,7 +429,7 @@ typedef struct label_point_struct {
 	int border;
 } label_point;
 
-static void request_gtk_redraw() {
+static void request_gtk_redraw_of_cvport() {
 	//siril_debug_print("image redraw requested (vport %d)\n", gui.cvport);
 	GtkWidget *widget = gui.view[gui.cvport].drawarea;
 	gtk_widget_queue_draw(widget);
@@ -1306,48 +1309,26 @@ void adjust_vport_size_to_image() {
 
 void redraw(remap_type doremap) {
 	if (com.script) return;
+	siril_debug_print("redraw %d\n", doremap);
 
-	if (doremap == REDRAW_OVERLAY) {
-		request_gtk_redraw();
-		return;
-	}
-
-	int vport = gui.cvport;
-	if (doremap >= REDRAW_IMAGE)
-		invalidate_image_render_cache(vport);
-
-	if (doremap == REMAP_ALL) {
-		stf_computed = FALSE;
-		for (int i = 0; i < gfit.naxes[2]; i++) {
-			remap(i);
-		}
-		if (gfit.naxis == 3)
-			remaprgb();
-		request_gtk_redraw();
-		return;
-	}
-
-	// REDRAW_IMAGE or REMAP_ONLY
-	switch (vport) {
-		case RED_VPORT:
-		case BLUE_VPORT:
-		case GREEN_VPORT:
-			if (doremap == REMAP_ONLY) {
-				remap(vport);
-				if (gfit.naxis == 3)
-					remaprgb();
+	switch (doremap) {
+		case REDRAW_OVERLAY:
+			break;
+		case REDRAW_IMAGE:
+			invalidate_image_render_cache(-1);
+			break;
+		case REMAP_ALL:
+			stf_computed = FALSE;
+			for (int i = 0; i < gfit.naxes[2]; i++) {
+				remap(i);
 			}
-			request_gtk_redraw();
-			break;	// if we can't see the two widgets at the same time
-		case RGB_VPORT:
-			if (gfit.naxis == 3 && doremap == REMAP_ONLY)
+			if (gfit.naxis == 3)
 				remaprgb();
-			request_gtk_redraw();
 			break;
 		default:
-			siril_debug_print("redraw: unknown viewport number %d\n", vport);
-			break;
+			siril_debug_print("UNKNOWN REMAP\n\n");
 	}
+	request_gtk_redraw_of_cvport();
 }
 
 static gboolean redraw_idle(gpointer p) {

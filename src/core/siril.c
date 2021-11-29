@@ -234,7 +234,7 @@ int visu(fits *fit, int low, int high) {
 	gui.lo = low;
 	gui.hi = high;
 	set_cutoff_sliders_values();
-	redraw(REMAP_ONLY);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }

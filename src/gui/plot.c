@@ -1041,7 +1041,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 				com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
 				com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
 			}
-			redraw(REMAP_ONLY);
+			redraw(REDRAW_OVERLAY);
 			requires_color_update = FALSE;
 		}
 
