@@ -5651,7 +5651,6 @@ msgstr "Bestand [%s] bestaat niet\n"
 msgid "Cannot create output folder: %s\n"
 msgstr ""
 "Kan geen uitvoermap maken: %s\n"
-"\n"
 
 #: src/algos/annotate.c:399
 msgid "Catalogue deletion"
@@ -5698,7 +5697,6 @@ msgid "%d pair match.\n"
 msgid_plural "%d pair matches.\n"
 msgstr[0] ""
 "%d overeenstemmende paar.\n"
-"\n"
 msgstr[1] "%d overeenstemmende paren.\n"
 
 #: src/algos/astrometry_solver.c:832 src/registration/global.c:658
@@ -5756,7 +5754,6 @@ msgstr "TYCHO-2 catalogus grootte: %d objecten\n"
 msgid "Catalog Gaia %s size: %d objects\n"
 msgstr ""
 "Catalogus Gaia %s grootte: %d objecten\n"
-"\n"
 
 #: src/algos/astrometry_solver.c:1030
 #, c-format
@@ -6161,7 +6158,6 @@ msgstr "Horizontaal spiegelbeeld: bezig...\n"
 msgid "Vertical mirror: processing...\n"
 msgstr ""
 "Verticaal spiegelbeeld: bezig...\n"
-"\n"
 
 #: src/algos/geometry.c:391 src/algos/geometry.c:427
 msgid "Crop: processing...\n"
@@ -6221,7 +6217,6 @@ msgstr "Ruis starndaarddeviatie: berekening...\n"
 msgid "Background noise value (channel: #%d): %0.3f (%.3e)\n"
 msgstr ""
 "Background noise waarde (kanaal: #% d):% 0.3f (% .3e)\n"
-"\n"
 
 #. Translator note: radii is plural for radius
 #: src/algos/photometry.c:275
@@ -6289,7 +6284,6 @@ msgstr "Kan de afbeelding niet kopiëren voor verwerking\n"
 msgid "Could not apply Gaussian filter, aborting\n"
 msgstr ""
 "Kan Gauss-filter niet toepassen, wordt afgebroken\n"
-"\n"
 
 #: src/algos/star_finder.c:288
 msgid "Selection is larger than image\n"
@@ -6628,7 +6622,6 @@ msgstr "Kan frame %d niet lezen van invoersequentie `%s'\n"
 msgid "Failed to write frame %d in merged sequence\n"
 msgstr ""
 "Kan frame %d niet in samengevoegde sequentie schrijven\n"
-"\n"
 
 #: src/core/command.c:1009 src/core/command.c:1049
 msgid "Error while finalizing the merged sequence\n"
@@ -6704,7 +6697,6 @@ msgstr "Foute parameters. Sigma moet >= 0.05 en rondheid tussen 0 en 0.9.\n"
 msgid "Reference magnitude unset for sequence\n"
 msgstr ""
 "Referentiemagnitude niet gekozen voor de sequentie\n"
-"\n"
 
 #: src/core/command.c:1383
 #, c-format
@@ -6790,7 +6782,6 @@ msgstr "Er waren fouten, controleer de input file.\n"
 msgid "The size of the kernel MUST be odd and in the range [3, 15].\n"
 msgstr ""
 "De grootte van de kernel MOET oneven zijn en binnen het bereik [3, 15].\n"
-"\n"
 
 #: src/core/command.c:1981
 msgid "Modulation value MUST be between 0 and 1\n"
@@ -6854,7 +6845,6 @@ msgstr "Er zijn geen RAW-bestanden gevonden voor conversie\n"
 msgid "Conversion: processing %d RAW files...\n"
 msgstr ""
 "Conversie: verwerking van %d RAW-bestanden ...\n"
-"\n"
 
 #: src/core/command.c:3023
 #, c-format
@@ -7121,7 +7111,6 @@ msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] ""
 "Nu %d logische processor gebruikt\n"
-"\n"
 msgstr[1] "Nu %d logische processoren gebruiken\n"
 
 #: src/core/command.c:4022
@@ -8560,7 +8549,6 @@ msgstr "Verbruik: %s\n"
 msgid "This command cannot be used in a script: %s\n"
 msgstr ""
 "Dit commando kan niet in een script worden gebruikt: %s\n"
-"\n"
 
 #. process the command
 #: src/core/command_line_processor.c:102
@@ -8628,7 +8616,6 @@ msgstr "Helpfunctie niet beschikbaar voor deze commando"
 msgid "Starting script %s\n"
 msgstr ""
 "Begin van script %s\n"
-"\n"
 
 #: src/core/command_line_processor.c:441
 msgid "Command execution failed.\n"
@@ -8639,7 +8626,6 @@ msgstr "Commando uitvoering gefaald.\n"
 msgid "Loading sequence `%s' failed.\n"
 msgstr ""
 "Sequentie `%s' laden mislukt.\n"
-"\n"
 
 #: src/core/initfile.c:56
 #, c-format
@@ -8761,7 +8747,6 @@ msgstr "De genaamde pipe file "
 msgid "Could not open the named pipe\n"
 msgstr ""
 "Kon het genaamde pipe niet openen\n"
-"\n"
 
 #: src/core/pipe.c:299 src/core/pipe.c:375
 msgid "command too long or malformed\n"
@@ -9105,7 +9090,6 @@ msgstr "Alle beelden die nog geen output hebben bewerken (%d)"
 msgid "for a total of images processed of %d)\n"
 msgstr ""
 "voor een totaal van %d bewerkte beelden)\n"
-"\n"
 
 #: src/core/signals.c:46
 msgid "Please report this bug to: "
@@ -9255,7 +9239,6 @@ msgstr "Niets om opnieuw te doen"
 msgid "Unknown error\n"
 msgstr ""
 "Onbekende fout\n"
-"\n"
 
 #: src/core/utils.c:889
 #, c-format
@@ -9930,7 +9913,6 @@ msgid ""
 msgstr ""
 "Gelieve te installeren alvorens een grafiek van een variabele ster proberen te "
 "berekenen.\n"
-"\n"
 
 #: src/gui/plot.c:354
 msgid "Gnuplot is unavailable"
@@ -10012,7 +9994,6 @@ msgstr "FITS-compressie uitgeschakeld\n"
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr ""
 "Schrijven in deze map is niet toegestaan: %s\n"
-"\n"
 
 #: src/gui/preferences.c:565
 msgid "Cannot refresh script list"
@@ -10343,7 +10324,6 @@ msgstr "Zoek scripts in: \"%s\"...\n"
 msgid "Loading script: %s\n"
 msgstr ""
 "Script laden: %s\n"
-"\n"
 
 #: src/gui/script_menu.c:241
 msgid "Cannot refresh the scripts if the list is empty.\n"
@@ -10789,7 +10769,6 @@ msgstr "Het maken van het FITS-reeksbestand `%s' is mislukt, afgebroken.\n"
 msgid "Reading %s\n"
 msgstr ""
 "Lezen %s\n"
-"\n"
 
 #: src/io/conversion.c:1129
 #, c-format
@@ -11056,7 +11035,6 @@ msgstr "NetBMP bestand opslaan: bestand %s, %ld la(a)g(en), %ux%u pixels\n"
 msgid "Wrong magic cookie in PIC file. This image is not supported.\n"
 msgstr ""
 "Fout magisch getal in het PIC bestand. Afbeelding niet ondersteund.\n"
-"\n"
 
 #: src/io/image_formats_internal.c:820
 #, c-format
@@ -11142,7 +11120,6 @@ msgstr "Sorry, Siril kan het bestand %s niet openen.\n"
 msgid "Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 "JPEG bestand lezen: bestand %s, %ld la(ag)en, %ux%u pixels\n"
-"\n"
 
 #: src/io/image_formats_libraries.c:786
 msgid "Siril cannot create JPG file.\n"
@@ -11232,7 +11209,6 @@ msgstr "Filterpatroon: %s\n"
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 "RAW bestand lezen: betand %s, %ld la(a)g(en), %ux%u pixels\n"
-"\n"
 
 #: src/io/image_formats_libraries.c:1658
 msgid "primary"
@@ -11293,7 +11269,6 @@ msgid "%s: Copying registration data from non-demosaiced layer to green layer\n"
 msgstr ""
 "%s: Koiëert registratiegegevens van niet-gedemozaïeceerde laag naar groene "
 "laag\n"
-"\n"
 
 #: src/io/seqfile.c:522
 #, c-format
@@ -11474,7 +11449,6 @@ msgid ""
 msgstr ""
 "MP4 output is niet ondersteund omdat siril niet met ffmpeg support werd "
 "gecompileerd.\n"
-"\n"
 
 #: src/io/sequence_export.c:211
 msgid ""
@@ -11702,7 +11676,6 @@ msgstr ""
 "%s niet gevonden of bevat fouten, kan GUI niet opmaken:\n"
 "%s\n"
 "Sluiten.\n"
-"\n"
 
 #: src/main.c:162
 #, c-format
@@ -12288,7 +12261,6 @@ msgid "%d file was ignored and excluded\n"
 msgid_plural "%d files were ignored and excluded\n"
 msgstr[0] ""
 "%d bestand werd genegeerd en uitgesloten\n"
-"\n"
 msgstr[1] "%d bestanden werden genegeerd en uitgesloten\n"
 
 #: src/registration/registration.c:777
@@ -12533,7 +12505,6 @@ msgstr ""
 "geopend. U kunt overwegen om deze limiet te verhogen (de methode is "
 "afhankelijk van uw besturingssysteem) of om uw FITS-reeks om te zetten in een "
 "SER-reeks voordat u gaat stapelen, of om te stapelen met de \"som\"-methode.\n"
-"\n"
 
 #: src/stacking/stacking.c:154
 msgid "Stacking result will be stored as a 32-bit image\n"
