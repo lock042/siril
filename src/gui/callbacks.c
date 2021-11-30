@@ -541,7 +541,7 @@ int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb) {
 }
 
 void update_display_selection() {
-	if (gui.cvport == RGB_VPORT) return;
+	if (gui.cvport == RGB_VPORT || com.script) return;
 	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb"};
 	static gchar selection_buffer[256] = { 0 };
 
@@ -555,7 +555,7 @@ void update_display_selection() {
 }
 
 void update_display_fwhm() {
-	if (gui.cvport == RGB_VPORT) return;
+	if (gui.cvport == RGB_VPORT || com.script) return;
 	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb"};
 	static gchar fwhm_buffer[256] = { 0 };
 

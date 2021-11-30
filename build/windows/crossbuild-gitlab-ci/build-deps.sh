@@ -18,7 +18,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Build LibRaw from github
-crossroad install lcms2
+crossroad install lcms2 sed
 git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 cd LibRaw
 autoreconf -fi && \
