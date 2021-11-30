@@ -173,7 +173,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 			retval = 1;
 	}
 	gchar *fname = g_path_get_basename(name);
-	if (!set_seq(fname)) {
+	if (!set_seq(fname) && !com.script) {
 		/* if it loads, make it selected and only element in the list of sequences */
 		populate_seqcombo(realname);
 	}
@@ -478,42 +478,44 @@ int set_seq(const char *name){
 		close_sequence(TRUE);
 		memcpy(&com.seq, seq, sizeof(sequence));
 
-		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-		set_cutoff_sliders_values();	// update values for contrast sliders for this image
-		int layer = set_layers_for_registration();	// set layers in the combo box for registration
-		update_seqlist(layer);
-		fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
-		set_output_filename_to_sequence_name();
-		sliders_mode_set_state(gui.sliders);
-		initialize_display_mode();
-		update_zoom_label();
-		reset_plot(); // reset all plots
-		reset_3stars();
+		if (!com.script) {
+			init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
+			set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+			set_cutoff_sliders_values();	// update values for contrast sliders for this image
+			int layer = set_layers_for_registration();	// set layers in the combo box for registration
+			update_seqlist(layer);
+			fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
+			set_output_filename_to_sequence_name();
+			sliders_mode_set_state(gui.sliders);
+			initialize_display_mode();
+			update_zoom_label();
+			reset_plot(); // reset all plots
+			reset_3stars();
 
-		/* initialize image-related runtime data */
-		set_display_mode();		// display the display mode in the combo box
-		display_filename();		// display filename in gray window
-		set_precision_switch(); // set precision on screen
-		adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-		update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
-		update_reg_interface(FALSE);	// change the registration prereq message
-	//	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-		adjust_reginfo();		// change registration displayed/editable values
-		update_gfit_histogram_if_needed();
-		adjust_sellabel();
-		fillSeqAviExport();	// fill GtkEntry of export box
+			/* initialize image-related runtime data */
+			set_display_mode();		// display the display mode in the combo box
+			display_filename();		// display filename in gray window
+			set_precision_switch(); // set precision on screen
+			adjust_refimage(seq->current);	// check or uncheck reference image checkbox
+			update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+			update_reg_interface(FALSE);	// change the registration prereq message
+		//	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
+			adjust_reginfo();		// change registration displayed/editable values
+			update_gfit_histogram_if_needed();
+			adjust_sellabel();
+			fillSeqAviExport();	// fill GtkEntry of export box
 
-		/* update menus */
-		update_MenuItem();
-		/* update parameters */
-		set_GUI_CAMERA();
-		set_GUI_photometry();
+			/* update menus */
+			update_MenuItem();
+			/* update parameters */
+			set_GUI_CAMERA();
+			set_GUI_photometry();
 
-		/* redraw and display image */
-		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-		redraw(REMAP_ALL);
-		drawPlot();
+			/* redraw and display image */
+			close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
+			redraw(REMAP_ALL);
+			drawPlot();
+		}
 	}
 
 	return 0;
@@ -537,7 +539,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	}
 	seq->current = index;
 
-	if (load_it) {
+	if (load_it && !com.script) {
 		set_cursor_waiting(TRUE);
 		if (seq_read_frame(seq, index, &gfit, FALSE, -1)) {
 			set_cursor_waiting(FALSE);
@@ -1277,7 +1279,7 @@ void close_sequence(int loading_another) {
 	if (sequence_is_loaded()) {
 		fprintf(stdout, "MODE: closing sequence\n");
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
-		if (!com.headless) {
+		if (!com.script) {
 			free_cbbt_layers();
 			clear_sequence_list();
 		}
@@ -1285,17 +1287,19 @@ void close_sequence(int loading_another) {
 			writeseqfile(&com.seq);
 		free_sequence(&com.seq, FALSE);
 		initialize_sequence(&com.seq, FALSE);
-		if (!com.headless) {
+		if (!com.script) {
 			clear_stars_list();
 			update_stack_interface(TRUE);
 		}
-		if (!loading_another && !com.headless) {
+		if (!loading_another && !com.script) {
 			// unselect the sequence in the sequence list
 			GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
 			gtk_combo_box_set_active(seqcombo, -1);
 		}
-		adjust_sellabel();
-		update_seqlist(-1);
+		if (!com.script) {
+			adjust_sellabel();
+			update_seqlist(-1);
+		}
 	}
 }
 

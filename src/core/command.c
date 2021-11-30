@@ -347,6 +347,7 @@ int process_fmul(int nb){
 		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
 	}
+	gboolean from8b = (gfit.orig_bitpix == BYTE_IMG); // get orig bitdepth of 8b before it gets converted to 32b by soper
 
 	float coeff = g_ascii_strtod(word[1], NULL);
 	if (coeff <= 0.f) {
@@ -354,6 +355,13 @@ int process_fmul(int nb){
 		return 1;
 	}
 	soper(&gfit, coeff, OPER_MUL, TRUE);
+	if (from8b) { // image is now 32b, need to reset slider max and update hi/lo
+		invalidate_stats_from_fit(&gfit);
+		image_find_minmax(&gfit);
+		gfit.hi = (WORD)(gfit.maxi * USHRT_MAX_SINGLE);
+		gfit.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
+		set_cutoff_sliders_max_values();
+	}
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -1132,6 +1140,11 @@ int process_rgradient(int nb) {
 
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
+	if (gfit.orig_bitpix == BYTE_IMG) {
+		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
 		return 1;
 	}
 
@@ -3859,7 +3872,8 @@ int process_preprocess(int nb) {
 							retvalue = 1;
 							break;
 						} else {
-							args->bias_level = (float)offsetlevel * INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+								args->bias_level = (float)offsetlevel;
+								args->bias_level *= (seq->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 							args->use_bias = TRUE;
 						}
 					}
@@ -3868,6 +3882,10 @@ int process_preprocess(int nb) {
 					args->bias = calloc(1, sizeof(fits));
 					if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_to_16bit)) {
 						args->use_bias = TRUE;
+						// if input is 8b, we assume 32b master needs to be rescaled
+						if ((args->bias->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+						}
 					} else {
 						retvalue = 1;
 						free(args->bias);
@@ -3879,6 +3897,10 @@ int process_preprocess(int nb) {
 				if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
 					args->use_dark = TRUE;
 					args->use_cosmetic_correction = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->dark->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				} else {
 					retvalue = 1;
 					free(args->dark);
@@ -3888,6 +3910,10 @@ int process_preprocess(int nb) {
 				args->flat = calloc(1, sizeof(fits));
 				if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
 					args->use_flat = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->flat->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				} else {
 					retvalue = 1;
 					free(args->flat);
@@ -3903,6 +3929,11 @@ int process_preprocess(int nb) {
 				}
 				args->ppprefix = strdup(value);
 			} else if (!strcmp(word[i], "-opt")) {
+				if (seq->bitpix == BYTE_IMG) {
+					siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
+					retvalue = 1;
+					break;
+				}
 				args->use_dark_optim = TRUE;
 			} else if (!strcmp(word[i], "-fix_xtrans")) {
 				args->fix_xtrans = TRUE;

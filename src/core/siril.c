@@ -209,6 +209,10 @@ int loglut(fits *fit) {
 
 int ddp(fits *a, int level, float coeff, float sigma) {
 	fits fit = { 0 };
+	if (a->orig_bitpix == BYTE_IMG) {
+		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
+		return 1;
+	}
 	if (level < 0 || level > USHRT_MAX) {
 		siril_log_color_message(_("ddp level argument must be [0, 65535]\n"), "green");
 		return 1;

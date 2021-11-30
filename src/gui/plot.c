@@ -641,11 +641,14 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 
 	if (!use_photometry) {
 		GtkTreePath* path = gtk_tree_model_get_path (tree_model, iter);
+		if (!path) return;
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
-		if (!is_fwhm) {
-			sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
-		} else {
-			sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS));
+		if (!index) {
+			if (!is_fwhm) {
+				sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
+			} else {
+				sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS));
+			}
 		}
 	}
 	g_object_set(cell, "sensitive", sensitive, NULL);
@@ -833,8 +836,9 @@ void drawPlot() {
 		if (!(seq->regparam))
 			return;
 
-		if ((!seq->regparam[reglayer]))
+		if ((!seq->regparam[reglayer]) || reglayer < 0)
 			return;
+
 		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f) ? TRUE : FALSE;
 		update_ylabel();
 		/* building data array */
