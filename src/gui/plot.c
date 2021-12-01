@@ -1250,23 +1250,14 @@ static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_in
 	double invrangex = 1./(maxx - minx);
 	double invrangey = 1./(maxy - miny);
 
-	if (X_selected_source < r_FRAME || force_Julian) {
-		for (int j = 0; j < plot->nb; j++) {
-			dist = pow((*index - plot->data[j].x) * invrangex, 2) + pow((*ypos - plot->data[j].y) * invrangey, 2);
-			if (dist < mindist) {
-				mindist = dist;
-				closestframe = plot->frame[j];
-			}
+	for (int j = 0; j < plot->nb; j++) {
+		dist = pow((*index - plot->data[j].x) * invrangex, 2) + pow((*ypos - plot->data[j].y) * invrangey, 2);
+		if (dist < mindist) {
+			mindist = dist;
+			closestframe = plot->frame[j];
 		}
-		*index = (mindist < 0.0004) ? closestframe : -1; // only set index if distance between cursor and a point is small enough (2% of scales)
-	} else {
-		int j;
-		for (j = 0; j < plot->nb - 1; j++) {
-			if (plot->frame[j + 1] > (int)*index) break;
-		}
-		*index = plot->frame[j];
-		*val = plot->data[j].y;
 	}
+	*index = (mindist < 0.0004) ? closestframe : -1; // only set index if distance between cursor and a point is small enough (2% of scales)
 
 	if (check_index_incl && (*index >= 0 && *index <= maxx)) return com.seq.imgparam[(int)*index - 1].incl;
 	return TRUE;
@@ -1279,17 +1270,13 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	gtk_widget_set_has_tooltip(widget, FALSE);
 
 	double index, val, ypos;
-	gboolean getvals = get_index_of_frame(event->x, event->y, (X_selected_source == r_FRAME && !force_Julian), &index, &val, &ypos);
+	gboolean getvals = get_index_of_frame(event->x, event->y, FALSE, &index, &val, &ypos);
 	gchar *tooltip_text;
 	if (getvals) {
-		if (X_selected_source < r_FRAME || force_Julian) {
-			if (index > 0) {
-				tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", val, ypos,(int)index);
-			} else {
-				tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", val, ypos);
-			}
+		if (index > 0) {
+			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", val, ypos,(int)index);
 		} else {
-			tooltip_text = g_strdup_printf("Frame#%d value: %0.3f\nY pos: %0.3f", (int)index, val, ypos);
+			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", val, ypos);
 		}
 		gtk_widget_set_tooltip_text(widget, tooltip_text);
 		g_free(tooltip_text);
@@ -1322,7 +1309,6 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	static GtkMenuItem *menu_item = NULL;
 	static GtkMenuItem *menu_item2 = NULL;
 
-	// if (X_selected_source < r_FRAME) return;
 	double index, val, ypos;
 	gboolean getvals = get_index_of_frame(event->x, event->y, TRUE, &index, &val, &ypos);
 	if (!getvals) return;
