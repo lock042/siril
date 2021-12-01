@@ -29,7 +29,7 @@ project('siril',
   ['c','cpp'],
   version : '1.0.0-rc2',
   license : ['GPL3'],
-  meson_version: '>=0.53.0',
+  meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
     'cpp_std=c++11',
