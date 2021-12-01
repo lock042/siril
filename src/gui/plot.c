@@ -34,6 +34,7 @@
 #include "core/siril_date.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/sleef.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/dialogs.h"
@@ -1251,7 +1252,7 @@ static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_in
 	double invrangey = 1./(maxy - miny);
 
 	for (int j = 0; j < plot->nb; j++) {
-		dist = pow((*index - plot->data[j].x) * invrangex, 2) + pow((*ypos - plot->data[j].y) * invrangey, 2);
+		dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
 		if (dist < mindist) {
 			mindist = dist;
 			closestframe = plot->frame[j];
