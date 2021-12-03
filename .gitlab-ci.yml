@@ -280,6 +280,8 @@ win-installer-nightly:
     #- if: '$GIMP_CI_WIN_INSTALLER != null'
     # Merge requests with appropriate label.
     #- if: '$CI_MERGE_REQUEST_LABELS =~ /.*5. Windows Installer.*/'
+  tags:
+    - win32-ps
   stage: packaging
   dependencies:
     - win64-nightly
