@@ -280,6 +280,8 @@ win-installer-nightly:
     #- if: '$GIMP_CI_WIN_INSTALLER != null'
     # Merge requests with appropriate label.
     #- if: '$CI_MERGE_REQUEST_LABELS =~ /.*5. Windows Installer.*/'
+  variables:
+    CHERE_INVOKING: "yes"
   tags:
     - windows
   stage: packaging
