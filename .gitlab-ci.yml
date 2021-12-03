@@ -281,7 +281,7 @@ win-installer-nightly:
     # Merge requests with appropriate label.
     #- if: '$CI_MERGE_REQUEST_LABELS =~ /.*5. Windows Installer.*/'
   tags:
-    - win32-ps
+    - windows
   stage: packaging
   dependencies:
     - win64-nightly
