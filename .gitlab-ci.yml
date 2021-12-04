@@ -284,7 +284,7 @@ win-installer-nightly:
     CHERE_INVOKING: "yes"
   tags:
     - windows
-  stage: packaging
+  stage: prepare
   # dependencies:
   #   - win64-nightly
   artifacts:
