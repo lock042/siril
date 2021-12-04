@@ -187,24 +187,6 @@ deps-win64:
       - _deps/
   needs: ["build-image-win64"]
 
-deps-win64-native:
-  stage: dependencies
-  variables:
-    MSYSTEM: "MINGW64"
-    CHERE_INVOKING: "yes"
-  tags:
-    - win32-ps
-  script:
-    - C:\msys64\usr\bin\pacman --noconfirm -Syyuu
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/build-deps-native.sh"
-  artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    when: always
-    expire_in: 2 hours
-    paths:
-      - _install-w64
-  needs: []
-
 siril-win64/testing-meson:
   except:
     - schedules
@@ -238,29 +220,6 @@ siril-win64/testing-meson:
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}
-
-# siril-win64-native:
-#   stage: siril
-#   variables:
-#     MSYSTEM: "MINGW64"
-#     CHERE_INVOKING: "yes"
-#   tags:
-#     - win32-ps
-#   script:
-#     - C:\msys64\usr\bin\pacman --noconfirm -Syyuu
-#     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/build-siril-native.sh"
-#   artifacts:
-#     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-#     when: always
-#     expire_in: 1 day
-#     paths:
-#     - _install-w64
-#     - _build-w64/build/windows/installer/lang/
-#     - _build-w64/config.log
-#   cache:
-#     paths:
-#     - _ccache/
-#   needs: ["deps-win64-native"]
 
 ################################################################################
 # Packaging
