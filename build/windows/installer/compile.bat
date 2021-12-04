@@ -7,11 +7,7 @@ set SIRIL64=%~3
 set DEPS_BASE=%~4
 set DEPS64=%~5
 
-if [%INNOPATH%]==[] (
-FOR /F "usebackq tokens=5,* skip=2" %%A IN (`REG QUERY "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1" /v "Inno Setup: App Path" /reg:32`) DO set INNOPATH=%%B
-) else (if [%INNOPATH%]==[] (
-FOR /F "usebackq tokens=5,* skip=2" %%A IN (`REG QUERY "HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1" /v "Inno Setup: App Path" /reg:32`) DO set INNOPATH=%%B
-))
+set INNOPATH = "c:\program files (x86)\inno setup 6"
 if not exist "%INNOPATH%\iscc.exe" goto noinno
 
 ::i'd use %*, but shift has no effect on it
