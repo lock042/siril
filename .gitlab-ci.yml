@@ -295,7 +295,7 @@ win-installer-nightly:
     - build/windows/installer/_Output
     - installer.log
   script:
-    - wget.exe https://jrsoftware.org/download.php/is.exe ./is.exe //SILENT //SUPPRESSMSGBOXES //CURRENTUSER //SP- //LOG="innosetup.log"
+    - choco install innosetup
   # needs: ["win64-nightly"]
 
 flatpak-nightly:
