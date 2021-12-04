@@ -7,7 +7,8 @@ set SIRIL64=%~3
 set DEPS_BASE=%~4
 set DEPS64=%~5
 
-set INNOPATH = "c:\program files (x86)\inno setup 6"
+set INNOPATH=c:\program files (x86)\inno setup 6
+echo "%INNOPATH%\iscc.exe"
 if not exist "%INNOPATH%\iscc.exe" goto noinno
 
 ::i'd use %*, but shift has no effect on it
