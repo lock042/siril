@@ -297,7 +297,7 @@ win-installer-nightly:
   script:
     - Get-Location
     - choco install innosetup -y
-    - choco install msys2 --params "/NoUpdate /InstallDir:C:\msys64"
+    - choco install -y msys2 --params "/NoUpdate /InstallDir:C:\msys64"
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/installer-siril-msys2.sh > installer.log 2>&1"
     # - Start-Process "cmd.exe" "/c C:\GitLab-Runner\builds\free-astro\siril\build\windows\installer\compile.bat 1.0.0 ../../.. siril-w64 ../../.. siril-w64"
   # needs: ["win64-nightly"]

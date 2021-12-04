@@ -1,6 +1,6 @@
 # Install Inno Setup.
-wget https://jrsoftware.org/download.php/is.exe
-./is.exe //SILENT //SUPPRESSMSGBOXES //CURRENTUSER //SP- //LOG="innosetup.log"
+#wget https://jrsoftware.org/download.php/is.exe
+#./is.exe //SILENT //SUPPRESSMSGBOXES //CURRENTUSER //SP- //LOG="innosetup.log"
 
 # Construct now the installer.
 MAJOR_VERSION=`grep 'm4_define(\[siril_major_version' configure.ac |sed 's/m4_define(\[siril_major_version.*\[\([0-9]*\)\].*/\1/'`
