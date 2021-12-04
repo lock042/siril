@@ -284,9 +284,9 @@ win-installer-nightly:
     CHERE_INVOKING: "yes"
   tags:
     - windows
-  stage: prepare
-  # dependencies:
-  #   - win64-nightly
+  stage: packaging
+  dependencies:
+    - win64-nightly
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -296,11 +296,11 @@ win-installer-nightly:
     - installer.log
   script:
     - Get-Location
+    - Get-ChildItem
     - choco install innosetup -y
     - choco install -y msys2 --params "/NoUpdate /InstallDir:C:\msys64"
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/installer-siril-msys2.sh > installer.log 2>&1"
-    # - Start-Process "cmd.exe" "/c C:\GitLab-Runner\builds\free-astro\siril\build\windows\installer\compile.bat 1.0.0 ../../.. siril-w64 ../../.. siril-w64"
-  # needs: ["win64-nightly"]
+  needs: ["win64-nightly"]
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed

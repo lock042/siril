@@ -3,6 +3,7 @@
 
 #define MyAppName "SiriL"
 #define MyAppExeName "siril.exe"
+#define SirilDir "C:\GitLab-Runner\builds\free-astro\siril\siril"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -32,14 +33,14 @@ Name: "fr"; MessagesFile: "compiler:Languages\French.isl"; InfoBeforeFile: "text
 Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "C:\Users\Cyril\Documents\SiriL\bin\siril.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
-Source: "C:\Users\Cyril\Pictures\SiriL_Travail\*"; DestDir: "{%USERPROFILE}\Pictures\"; Languages: fr; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Cyril\Pictures\SiriL_Work\*"; DestDir: "{%USERPROFILE}\Pictures\"; Languages: en; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Cyril\Documents\SiriL\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Cyril\Documents\SiriL\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Cyril\Documents\SiriL\share\*"; DestDir: "{app}\share"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Cyril\Documents\SiriL\scripts-FR\*"; DestDir: "{app}\scripts"; Languages: fr; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Cyril\Documents\SiriL\scripts-EN\*"; DestDir: "{app}\scripts"; Languages: en; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SirilDir}\bin\siril.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
+; Source: "C:\Users\Cyril\Pictures\SiriL_Travail\*"; DestDir: "{%USERPROFILE}\Pictures\"; Languages: fr; Flags: ignoreversion recursesubdirs createallsubdirs
+; Source: "C:\Users\Cyril\Pictures\SiriL_Work\*"; DestDir: "{%USERPROFILE}\Pictures\"; Languages: en; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SirilDir}\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SirilDir}\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SirilDir}\share\*"; DestDir: "{app}\share"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SirilDir}\scripts-FR\*"; DestDir: "{app}\scripts"; Languages: fr; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SirilDir}\scripts-EN\*"; DestDir: "{app}\scripts"; Languages: en; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
