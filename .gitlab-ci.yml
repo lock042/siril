@@ -295,7 +295,7 @@ win-installer-nightly:
     - build/windows/installer/_Output
     - installer.log
   script:
-    - choco install innosetup
+    - choco install innosetup -y
   # needs: ["win64-nightly"]
 
 flatpak-nightly:
