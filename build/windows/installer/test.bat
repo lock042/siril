@@ -1,0 +1,1 @@
+echo The current directory is %CD%
