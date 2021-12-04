@@ -644,7 +644,7 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 		GtkTreePath* path = gtk_tree_model_get_path (tree_model, iter);
 		if (!path) return;
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
-		if (!index) {
+		if (index) {
 			if (!is_fwhm) {
 				sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
 			} else {
