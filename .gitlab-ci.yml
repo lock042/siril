@@ -284,9 +284,9 @@ win-installer-nightly:
     CHERE_INVOKING: "yes"
   tags:
     - windows
-  stage: prepare
-  # dependencies:
-  #   - win64-nightly
+  stage: packaging
+  dependencies:
+    - win64-nightly
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -296,7 +296,8 @@ win-installer-nightly:
     - installer.log
   script:
     - choco install innosetup -y
-  # needs: ["win64-nightly"]
+    - call windows\installer\compile.bat 1.0.0 ../../.. siril-w64 ../../.. siril-w64
+  needs: ["win64-nightly"]
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
