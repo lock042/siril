@@ -273,13 +273,14 @@ win64-nightly:
       - ${INSTALL_DIR}
 
 win-installer-nightly:
-#  rules:
-#    # On releases.
-#    - if: '$CI_COMMIT_TAG != null'
-#    # Merge requests with appropriate label.
-#    - if: '$CI_MERGE_REQUEST_LABELS =~ /.*Windows Installer.*/'
-#    - changes:
-#      - build/windows/installer/*
+  rules:
+    # On releases.
+    - if: '$CI_COMMIT_TAG != null'
+    # Merge requests with appropriate label.
+    - if: '$CI_MERGE_REQUEST_LABELS =~ /.*Windows Installer.*/'
+    # when commit message has [packaging]
+    - variables:
+      - $CI_COMMIT_MESSAGE =~/[packaging]/
   variables:
     CHERE_INVOKING: "yes"
   tags:
