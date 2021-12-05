@@ -279,8 +279,7 @@ win-installer-nightly:
     # Merge requests with appropriate label.
     - if: '$CI_MERGE_REQUEST_LABELS =~ /.*Windows Installer.*/'
     # when commit message has [packaging]
-    - variables:
-      - $CI_COMMIT_MESSAGE =~/[packaging]/
+    - if: '$CI_COMMIT_MESSAGE =~ /[packaging]/'
   variables:
     CHERE_INVOKING: "yes"
   tags:
