@@ -279,7 +279,7 @@ flatpak-nightly:
   only: 
    - schedules
   image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.38"
-  stage: "packaging"
+  stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.free_astro.siril.json"
     FLATPAK_MODULE: "siril"
@@ -327,7 +327,7 @@ flatpak-nightly:
 appimage-nightly:
   except:
     - schedules
-  stage: "packaging"
+  stage: packaging
   image: $CI_REGISTRY_IMAGE:build-debian-oldstable
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -350,7 +350,7 @@ appimage-nightly:
 cppcheck:
   except:
     - schedules
-  stage: "analysis"
+  stage: analysis
   before_script:
     - apt-get update
     - apt-get install -y cppcheck
@@ -366,8 +366,6 @@ cppcheck:
     paths:
       - report
   needs: []
-  except:
-    - schedules
 
 ################################################################################
 # Distribution
@@ -375,10 +373,8 @@ win-installer:
   rules:
     # On releases.
     - if: '$CI_COMMIT_TAG != null'
-    # Merge requests with appropriate label.
-    - if: '$CI_MERGE_REQUEST_LABELS =~ /.*Windows Installer.*/'
     # when commit message has [packaging]
-    - if: '$CI_COMMIT_MESSAGE =~ /[packaging]/'
+    - if: '$CI_COMMIT_MESSAGE =~ /[distribution]/'
   variables:
     CHERE_INVOKING: "yes"
   tags:
