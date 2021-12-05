@@ -279,7 +279,7 @@ win-installer-nightly:
     # Merge requests with appropriate label.
     - if: '$CI_MERGE_REQUEST_LABELS =~ /.*Windows Installer.*/'
     - changes:
-      - /*.{iss, isi, rtf}
+      - build/windows/installer/*
   variables:
     CHERE_INVOKING: "yes"
   tags:
