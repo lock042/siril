@@ -27,6 +27,8 @@ SolidCompression=yes
 ChangesAssociations=yes
 ArchitecturesInstallIn64BitMode=x64
 
+WizardSmallImageFile=siril.bmp
+
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"; InfoBeforeFile: "texts\About-EN.rtf"; InfoAfterFile: "texts\Scripts-EN.rtf"
 Name: "fr"; MessagesFile: "compiler:Languages\French.isl"; InfoBeforeFile: "texts\About-FR.rtf"; InfoAfterFile: "texts\Scripts-FR.rtf"
