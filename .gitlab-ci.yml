@@ -13,6 +13,7 @@ stages:
   - siril
   - packaging
   - analysis
+  - distribution
 
 variables:
   GIT_DEPTH: "1"
@@ -272,35 +273,6 @@ win64-nightly:
     paths:
       - ${INSTALL_DIR}
 
-win-installer-nightly:
-#  rules:
-#    # On releases.
-#    - if: '$CI_COMMIT_TAG != null'
-#    # Merge requests with appropriate label.
-#    - if: '$CI_MERGE_REQUEST_LABELS =~ /.*Windows Installer.*/'
-#    # when commit message has [packaging]
-#    - if: '$CI_COMMIT_MESSAGE =~ /[packaging]/'
-  variables:
-    CHERE_INVOKING: "yes"
-  tags:
-    - windows
-  stage: packaging
-  dependencies:
-    - win64-nightly
-  artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    when: always
-    expire_in: 1 week
-    paths:
-    - build/windows/installer/_Output
-    - installer.log
-  script:
-    - Get-Location
-    - Get-ChildItem
-    - choco install innosetup -y
-    - choco install -y msys2 --params "/NoUpdate /InstallDir:C:\msys64"
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/installer-siril-msys2.sh > installer.log 2>&1"
-  needs: ["win64-nightly"]
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
@@ -396,3 +368,35 @@ cppcheck:
   needs: []
   except:
     - schedules
+
+################################################################################
+# Distribution
+win-installer:
+  rules:
+    # On releases.
+    - if: '$CI_COMMIT_TAG != null'
+    # Merge requests with appropriate label.
+    - if: '$CI_MERGE_REQUEST_LABELS =~ /.*Windows Installer.*/'
+    # when commit message has [packaging]
+    - if: '$CI_COMMIT_MESSAGE =~ /[packaging]/'
+  variables:
+    CHERE_INVOKING: "yes"
+  tags:
+    - windows
+  stage: distribution
+  dependencies:
+    - win64-nightly
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    when: always
+    expire_in: 1 week
+    paths:
+    - build/windows/installer/_Output
+    - installer.log
+  script:
+    - Get-Location
+    - Get-ChildItem
+    - choco install innosetup -y
+    - choco install -y msys2 --params "/NoUpdate /InstallDir:C:\msys64"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/installer-siril-msys2.sh > installer.log 2>&1"
+  needs: ["win64-nightly"]
