@@ -188,7 +188,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			default:
 				break;
 		}
-		// plot->data[j].x = (double) i + 1;
+		plot->data[j].x = (isnan(plot->data[j].x)) ? 0.0 : plot->data[j].x;
 		switch (registration_selected_source) {
 			case r_ROUNDNESS:
 				plot->data[j].y = seq->regparam[layer][i].roundness;
@@ -223,6 +223,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			default:
 				break;
 		}
+		plot->data[j].y = (isnan(plot->data[j].y)) ? 0.0 : plot->data[j].y;
 		plot->frame[j] =  (double) i + 1;
 		if (i == ref_image) {
 			ref.x = plot->data[j].x;
