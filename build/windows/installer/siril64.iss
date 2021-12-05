@@ -27,6 +27,8 @@ SolidCompression=yes
 ChangesAssociations=yes
 ArchitecturesInstallIn64BitMode=x64
 
+WizardImageFile=windows-installer-intro-big.bmp
+WizardImageStretch=yes
 WizardSmallImageFile=siril.bmp
 
 [Languages]
