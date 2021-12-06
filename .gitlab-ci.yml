@@ -28,8 +28,6 @@ variables:
 
 # Image for GNU/Linux build
 build-image:
-  except:
-    - schedules
   stage: prepare
   cache: {}
   image:
@@ -42,8 +40,6 @@ build-image:
     
 # Image for GNU/Linux build
 build-image-oldstable:
-  except:
-    - schedules
   stage: prepare
   cache: {}
   image:
@@ -56,8 +52,6 @@ build-image-oldstable:
 
 # Image for Windows64 build
 build-image-win64:
-  except:
-    - schedules
   stage: prepare
   cache: {}
   image:
@@ -99,8 +93,6 @@ deps-debian:
   needs: ["build-image"]
 
 .siril-debian/testing-base:
-  except:
-    - schedules
   stage: siril
   image: $CI_REGISTRY_IMAGE:build-debian-latest
   dependencies:
@@ -158,8 +150,6 @@ siril-debian/testing-meson:
 # WINDOWS 64-bit CI
 
 deps-win64:
-  except:
-    - schedules
   stage: dependencies
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   variables:
@@ -189,8 +179,6 @@ deps-win64:
   needs: ["build-image-win64"]
 
 siril-win64/testing-meson:
-  except:
-    - schedules
   stage: siril
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   dependencies:
@@ -226,8 +214,6 @@ siril-win64/testing-meson:
 # Packaging
 
 win64-nightly:
-  except:
-    - schedules
   stage: packaging
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   dependencies:
@@ -276,8 +262,11 @@ win64-nightly:
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
-  only: 
-   - schedules
+  rules:
+    # On releases.
+    - if: '$CI_COMMIT_TAG != null'
+    # When commit message has the trigger CI-flatpak.
+    - if: '$CI_COMMIT_MESSAGE =~ /CI-flatpak/'
   image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.38"
   stage: packaging
   variables:
@@ -325,8 +314,6 @@ flatpak-nightly:
   
 
 appimage-nightly:
-  except:
-    - schedules
   stage: packaging
   image: $CI_REGISTRY_IMAGE:build-debian-oldstable
   variables:
@@ -348,8 +335,6 @@ appimage-nightly:
 # Analysis
 
 cppcheck:
-  except:
-    - schedules
   stage: analysis
   before_script:
     - apt-get update
@@ -370,11 +355,9 @@ cppcheck:
 ################################################################################
 # Distribution
 win-installer:
-  rules:
-    # On releases.
-    - if: '$CI_COMMIT_TAG != null'
-    # When commit message has the trigger -distribution.
-    - if: '$CI_COMMIT_MESSAGE =~ /-distribution/'
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null
   variables:
     CHERE_INVOKING: "yes"
   tags:
