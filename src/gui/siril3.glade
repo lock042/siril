@@ -15095,6 +15095,10 @@ To be enabled, the reference image must have been explicitly set and already dis
                                       <object class="GtkBox" id="GtkBoxPng">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
                                         <property name="spacing">5</property>
                                         <child>
                                           <object class="GtkButton" id="ButtonSaveCSV">
@@ -15109,7 +15113,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">False</property>
-                                            <property name="position">2</property>
+                                            <property name="position">0</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -15126,7 +15130,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">3</property>
+                                            <property name="position">1</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -15143,7 +15147,29 @@ To be enabled, the reference image must have been explicitly set and already dis
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">4</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
+                                            <property name="label" translatable="yes">legend</property>
+                                            <property name="single-line-mode">True</property>
+                                            <attributes>
+                                              <attribute name="style" value="italic"/>
+                                            </attributes>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">6</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">5</property>
                                           </packing>
                                         </child>
                                       </object>
@@ -15157,6 +15183,10 @@ To be enabled, the reference image must have been explicitly set and already dis
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
                                         <property name="spacing">5</property>
                                         <child>
                                           <object class="GtkButton" id="varCurvePhotometry">
