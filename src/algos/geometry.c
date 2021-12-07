@@ -182,6 +182,7 @@ static void rotate_gui(fits *fit) {
 			cropped ? "TRUE" : "FALSE");
 	verbose_rotate_image(fit, angle, interpolation, cropped);
 	
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
@@ -481,6 +482,7 @@ void siril_rotate90() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (90.0deg)"));
 		verbose_rotate_image(&gfit, 90.0, -1, 0);	// fast rotation, no interpolation, no crop
+		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
@@ -490,6 +492,7 @@ void siril_rotate270() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (-90.0deg)"));
 		verbose_rotate_image(&gfit, 270.0, -1, 0);// fast rotation, no interpolation, no crop
+		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
@@ -588,6 +591,7 @@ void siril_crop() {
 	crop(&gfit, &com.selection);
 	delete_selected_area();
 	reset_display_offset();
+	update_zoom_label();
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();

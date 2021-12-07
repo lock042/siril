@@ -532,6 +532,7 @@ int process_crop(int nb) {
 	delete_selected_area();
 	reset_display_offset();
 	adjust_cutoff_from_updated_gfit();
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	
@@ -1181,6 +1182,8 @@ int process_rotate(int nb) {
 	}
 
 	verbose_rotate_image(&gfit, degree, OPENCV_AREA, crop);
+
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
@@ -1195,6 +1198,7 @@ int process_rotatepi(int nb){
 
 	verbose_rotate_image(&gfit, 180.0, -1, 1);
 
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;

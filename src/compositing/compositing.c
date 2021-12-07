@@ -532,6 +532,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		com.uniq->fit = &gfit;
 
 		initialize_display_mode();
+		update_zoom_label();
 		display_filename();
 		set_precision_switch();
 		sliders_mode_set_state(gui.sliders);
