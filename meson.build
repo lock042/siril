@@ -37,6 +37,9 @@ project('siril',
   ],
 )
 
+rootInclude = include_directories('.')
+srcInclude  = include_directories('src')
+
 warnings = []
 
 enable_openmp = get_option('openmp')
@@ -291,6 +294,11 @@ conf_data.set('SIRIL_UNSTABLE', stable ? false : 1)
 conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') ? 1 : false)
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
+
+conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
+conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
+pre_release_arr = siril_version_micro.split('-')
+conf_data.set('SIRIL_MICRO_VERSION', pre_release_arr[0])
 
 conf_data.set_quoted('PACKAGE', meson.project_name(), description : 'Name of package.')
 conf_data.set_quoted('PACKAGE_NAME', meson.project_name(), description : 'Define to the full name of this package.')
