@@ -232,7 +232,12 @@ opencv4_dep = dependency('opencv4', required : true, version: '>= 4.4.0')
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()
-  sub_proj = cmake.subproject('librtprocess', cmake_options: '-DBUILD_SHARED_LIBS=OFF')
+  opt_var = cmake.subproject_options()
+
+  # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
+  opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+  sub_proj = cmake.subproject('librtprocess', options: opt_var)
+  
   rtprocess_dep = sub_proj.dependency('rtprocess')
   rtprocess_inc = sub_proj.include_directories('rtprocess')
 else
