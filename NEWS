@@ -1,3 +1,9 @@
+v1.0.0~RC2 December 08, 2021
+Second Release candidate version for 1.0.0
+* Fixes many crashes
+* Minor improvements in plot feature
+* Restore HD for macOS application
+
 v1.0.0~RC1 November 20, 2021
 First Release candidate version for 1.0.0
 
