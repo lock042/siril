@@ -421,6 +421,70 @@ void on_composition_use_lum_toggled(GtkToggleButton *togglebutton, gpointer user
 		update_result(1);
 }
 
+static void check_gfit_is_ours() {
+	if (number_of_images_loaded() < 1)
+		return;
+	gboolean update_needed = FALSE;
+	int update_from_layer = -1;
+	if (luminance_mode) {
+		if (has_fit(0) &&
+				(layers[0]->the_fit.rx != gfit.rx ||
+				 layers[0]->the_fit.ry != gfit.ry ||
+				 !gfit.fdata)) {
+			update_needed = TRUE;
+			update_from_layer = 0;
+		}
+	} else {
+		for (int i = 1; layers[i]; i++)
+			if (has_fit(i) &&
+					(layers[i]->the_fit.rx != gfit.rx ||
+					 layers[i]->the_fit.ry != gfit.ry ||
+					 !gfit.fdata)) {
+				update_needed = TRUE;
+				update_from_layer = i;
+				break;
+			}
+	}
+
+	if (!update_needed)
+		return;
+
+	/* create the new result image if it's the first opened image */
+	close_single_image();
+	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1)) {
+		clearfits(&layers[update_from_layer]->the_fit);
+		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
+		return;
+	}
+
+	/* open the single image.
+	 * code taken from stacking.c:start_stacking() and read_single_image() */
+	clear_stars_list();
+	com.seq.current = UNRELATED_IMAGE;
+	com.uniq = calloc(1, sizeof(single));
+	com.uniq->comment = strdup(_("Compositing result image"));
+	com.uniq->filename = strdup(_("Unsaved compositing result"));
+	com.uniq->fileexist = FALSE;
+	com.uniq->nb_layers = gfit.naxes[2];
+	com.uniq->fit = &gfit;
+
+	initialize_display_mode();
+	update_zoom_label();
+	display_filename();
+	set_precision_switch();
+	sliders_mode_set_state(gui.sliders);
+
+	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
+	init_layers_hi_and_lo_values(MIPSLOHI);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	set_display_mode();
+	redraw(REMAP_ALL);
+
+	sequence_list_change_current();
+}
+
+
 /* callback for the file chooser's file selection: try to load the pointed file, allocate the
  * destination image if this is the first image, and update the result. */
 void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
@@ -431,6 +495,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 			&& (single_image_is_loaded() || (sequence_is_loaded()))) {
 		process_close(0);
 	}
+	check_gfit_is_ours();
 
 	for (layer = 0; layers[layer]; layer++)
 		if (layers[layer]->chooser == widget)
@@ -507,51 +572,8 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		return;
 	}
 
-	/* create the new result image if it's the first opened image */
-	if (number_of_images_loaded() == 1) {
-		close_single_image();
-		if (copyfits(&layers[layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1)) {
-			clearfits(&layers[layer]->the_fit);
-			siril_log_color_message(_("Could not display image, unloading it\n"), "red");
-			return;
-		}
-	}
-
-	update_result(0);
-
-	/* open the single image.
-	 * code taken from stacking.c:start_stacking() and read_single_image() */
-	if (number_of_images_loaded() == 1) {
-		clear_stars_list();
-		com.seq.current = UNRELATED_IMAGE;
-		com.uniq = calloc(1, sizeof(single));
-		com.uniq->comment = strdup(_("Compositing result image"));
-		com.uniq->filename = strdup(_("Unsaved compositing result"));
-		com.uniq->fileexist = FALSE;
-		com.uniq->nb_layers = gfit.naxes[2];
-		com.uniq->fit = &gfit;
-
-		initialize_display_mode();
-		update_zoom_label();
-		display_filename();
-		set_precision_switch();
-		sliders_mode_set_state(gui.sliders);
-
-		gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), FALSE);
-		init_layers_hi_and_lo_values(MIPSLOHI);
-		set_cutoff_sliders_max_values();
-		set_cutoff_sliders_values();
-		set_display_mode();
-		redraw(REMAP_ALL);
-
-		sequence_list_change_current();
-	}
-	else {
-		update_MenuItem();
-		gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), TRUE);
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-	}
+	update_result(1);
+	update_MenuItem();
 }
 
 void create_the_internal_sequence() {
@@ -877,6 +899,7 @@ static void clear_pixel(GdkRGBA *pixel) {
 
 /* recompute the layer composition and optionnally refresh the displayed result image */
 static void update_result(int and_refresh) {
+	check_gfit_is_ours();
 	if (luminance_mode && has_fit(0)) {
 		luminance_and_colors_align_and_compose();
 	} else {

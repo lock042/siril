@@ -306,11 +306,11 @@ void set_icon_entry(GtkEntry *entry, gchar *string) {
 
 void update_MenuItem() {
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	gboolean is_a_single_image_loaded;		/* An image is loaded. Not a sequence or only the result of stacking process */
+	gboolean is_a_single_image_loaded;	/* An image is loaded. Not a sequence or only the result of stacking process */
 	gboolean is_a_singleRGB_image_loaded;	/* A RGB image is loaded. Not a sequence or only the result of stacking process */
-	gboolean any_image_is_loaded;			/* Something is loaded. Single image or Sequence */
+	gboolean any_image_is_loaded;		/* Something is loaded. Single image or Sequence */
 
-	is_a_single_image_loaded = single_image_is_loaded()	&& (!sequence_is_loaded() || (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
+	is_a_single_image_loaded = single_image_is_loaded() && (!sequence_is_loaded() || (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
 	is_a_singleRGB_image_loaded = isrgb(&gfit) && single_image_is_loaded();
 	any_image_is_loaded = single_image_is_loaded() || sequence_is_loaded();
 
