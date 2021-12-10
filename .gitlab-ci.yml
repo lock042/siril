@@ -6,10 +6,10 @@ macos-build:
   before_script:
     - cd build/macOS/
   script:
-    - ./010-install_python.sh
-    - ./020-install_SDK.sh 
-    - ./100-setup_jhbuild.sh
-    - ./110-setup_gtk_mac_bundler.sh
+    - ./010-install_python.sh 1>/dev/null
+    - ./020-install_SDK.sh 1>/dev/null
+    - ./100-setup_jhbuild.sh 1>/dev/null
+    - ./110-setup_gtk_mac_bundler.sh 1>/dev/null
     - ./120-bootstrap.sh
   cache:
     key: setup-system
