@@ -12,7 +12,7 @@
     # Certificates are outdated, most likely after the recent
     # Let's Encrypt root certs fiasco. This fixes it by
     # updating the certs.
-    - open /Applications/Python\ 3.9/Install\ Certificates.command
+    #- open /Applications/Python\ 3.9/Install\ Certificates.command
     - cd /Library/Developer/CommandLineTools/SDKs
     - sudo curl -L 'https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.12.sdk.tar.xz' | sudo tar -xzf -
     - echo 'export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX10.12.sdk' > ~/.profile
