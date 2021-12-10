@@ -1,5 +1,5 @@
 macos-build:
-  stage: prepare
+  stage: build
   tags:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
