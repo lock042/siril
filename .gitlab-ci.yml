@@ -18,7 +18,9 @@
     - echo 'export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX10.12.sdk' > ~/.profile
     - echo 'export MACOSX_DEPLOYMENT_TARGET=10.12' >> ~/.profile
     - cd $HOME
-    - mkdir -p ~/.config && cp ~/project/jhbuildrc-gtk-osx-gimp-2.99 ~/.config/jhbuildrc-custom
+    - mkdir -p ~/project
+    - mkdir -p ~/.config
+    - curl -L 'https://raw.githubusercontent.com/lock042/siril-macos-build/mainline/jhbuildrc-gtk-osx-gimp-2.99' > ~/.config/jhbuildrc-custom
     - curl https://gitlab.gnome.org/samm-git/gtk-osx/raw/gimp/gtk-osx-setup.sh > gtk-osx-setup.sh
     - chmod +x gtk-osx-setup.sh
     - echo 'export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH:$HOME/.new_local/bin"' >> ~/.profile
