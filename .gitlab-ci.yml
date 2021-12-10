@@ -19,7 +19,7 @@ macos-deps:
       - ~/.config
 
 macos-siril:
-  stage: deployed
+  stage: deploy
   tags:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
