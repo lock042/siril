@@ -603,7 +603,7 @@ void generate_background_samples(int nb_of_samples, double tolerance) {
 		com.grad_samples = update_median_for_rgb_samples(com.grad_samples, &gfit);
 	}
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -756,7 +756,7 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 
 	generate_background_samples(nb_of_samples, tolerance);
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -764,7 +764,7 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -812,7 +812,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		invalidate_stats_from_fit(&gfit);
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		set_cursor_waiting(FALSE);
 	}
 }
@@ -825,7 +825,7 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {

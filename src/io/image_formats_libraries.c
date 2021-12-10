@@ -1239,8 +1239,8 @@ static float estimate_pixel_pitch(libraw_data_t *raw) {
 }
 
 static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
-/* libraw_open_wfile is not defined for all windows compilers */
-#if defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)
+/* libraw_open_wfile is not defined for all windows compilers in previous LibRaw versions */
+#if (defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)) || (defined(_WIN32) && LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0))
 	wchar_t *wname;
 
 	wname = g_utf8_to_utf16(name, -1, NULL, NULL, NULL);

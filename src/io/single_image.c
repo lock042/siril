@@ -37,6 +37,7 @@
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
+#include "gui/plot.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -46,6 +47,7 @@
 #include "gui/progress_and_log.h"
 #include "core/undo.h"
 #include "core/processing.h"
+#include "compositing/compositing.h"
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
@@ -75,6 +77,15 @@ void free_image_data() {
 	clearfits(&gfit);
 	invalidate_WCS_keywords(&gfit);
 	if (!com.headless) {
+		GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));
+		GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
+		GtkEntry* pitchX_entry = GTK_ENTRY(lookup_widget("pitchX_entry"));
+		GtkEntry* pitchY_entry = GTK_ENTRY(lookup_widget("pitchY_entry"));
+		// avoid redrawing plot while com.seq has not been updated
+		g_signal_handlers_block_by_func(focal_entry, on_focal_entry_changed, NULL);
+		g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+		g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+		g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
 		clear_stars_list();
 		delete_selected_area();
 		clear_sampling_setting_box();	// clear focal and pixel pitch info
@@ -87,32 +98,40 @@ void free_image_data() {
 		free(com.qphot);
 		com.qphot = NULL;
 		clear_sensor_tilt();
+		g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
+		g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+		g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+		g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
 	}
 	clear_histograms();
 
-	for (int vport = 0; vport < MAXGRAYVPORT; vport++) {
-		if (com.graybuf[vport]) {
-			free(com.graybuf[vport]);
-			com.graybuf[vport] = NULL;
+	for (int vport = 0; vport < MAXVPORT; vport++) {
+		struct image_view *view = &gui.view[vport];
+		if (view->buf) {
+			free(view->buf);
+			view->buf = NULL;
 		}
-		if (com.surface[vport]) {
-			cairo_surface_destroy(com.surface[vport]);
-			com.surface[vport] = NULL;
+		if (view->full_surface) {
+			cairo_surface_destroy(view->full_surface);
+			view->full_surface = NULL;
 		}
-		com.surface_stride[vport] = 0;
-		com.surface_height[vport] = 0;
+		view->full_surface_stride = 0;
+		view->full_surface_height = 0;
+
+		if (view->disp_surface) {
+			cairo_surface_destroy(view->disp_surface);
+			view->disp_surface = NULL;
+		}
+		view->view_width = -1;
+		view->view_height= -1;
 	}
 	if (!com.headless)
-		activate_tab(com.cvport);
-	if (com.rgbbuf) {
-		free(com.rgbbuf);
-		com.rgbbuf = NULL;
-	}
+		activate_tab(gui.cvport);
+
 	if (com.uniq) {
 		free(com.uniq->filename);
 		com.uniq->fileexist = FALSE;
 		free(com.uniq->comment);
-		free(com.uniq->layers);
 		free(com.uniq);
 		com.uniq = NULL;
 	}
@@ -120,14 +139,14 @@ void free_image_data() {
 	if (!com.headless) {
 		/* free alignment preview data */
 		for (int i = 0; i < PREVIEW_NB; i++) {
-			if (com.preview_surface[i]) {
-				cairo_surface_destroy(com.preview_surface[i]);
-				com.preview_surface[i] = NULL;
+			if (gui.preview_surface[i]) {
+				cairo_surface_destroy(gui.preview_surface[i]);
+				gui.preview_surface[i] = NULL;
 			}
 		}
-		if (com.refimage_surface) {
-			cairo_surface_destroy(com.refimage_surface);
-			com.refimage_surface = NULL;
+		if (gui.refimage_surface) {
+			cairo_surface_destroy(gui.refimage_surface);
+			gui.refimage_surface = NULL;
 		}
 	}
 }
@@ -160,7 +179,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
 		char *msg = siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		set_cursor_waiting(FALSE);
 		free(realname);
 		return 1;
@@ -188,7 +207,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		*realname_out = realname;
 	else
 		free(realname);
-	com.filter = (int) imagetype;
+	gui.filter = (int) imagetype;
 	siril_add_idle(end_read_single_image, NULL);
 	return retval;
 }
@@ -208,8 +227,10 @@ int open_single_image(const char* filename) {
 	char *realname;
 	gboolean is_single_sequence;
 
+	reset_compositing_module();
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
+	reset_plot(); // clear existing plot if any
 
 	retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
 	if (retval == 2) {
@@ -235,7 +256,6 @@ int open_single_image(const char* filename) {
 		com.uniq->filename = realname;
 		com.uniq->fileexist = get_type_from_filename(com.uniq->filename) == TYPEFITS;
 		com.uniq->nb_layers = gfit.naxes[2];
-		com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 		com.uniq->fit = &gfit;
 		siril_add_idle(end_open_single_image, realname);
 	}
@@ -250,9 +270,11 @@ void open_single_image_from_gfit() {
 
 	initialize_display_mode();
 
+	update_zoom_label();
+
 	init_layers_hi_and_lo_values(MIPSLOHI);		// If MIPS-LO/HI exist we load these values. If not it is min/max
 
-	sliders_mode_set_state(com.sliders);
+	sliders_mode_set_state(gui.sliders);
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
 
@@ -268,7 +290,7 @@ void open_single_image_from_gfit() {
 
 	close_tab();
 	update_gfit_histogram_if_needed();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 }
 
 /* searches the image for minimum and maximum pixel value, on each layer
@@ -310,14 +332,14 @@ double fit_get_min(fits *fit, int layer) {
 	return fit->stats[layer]->min;
 }
 
-static void fit_lohi_to_layers(fits *fit, double lo, double hi, layer_info *layer) {
+static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
 	if (fit->type == DATA_USHORT) {
-		layer->lo = (WORD)lo;
-		layer->hi = (WORD)hi;
+		gui.lo = (WORD)lo;
+		gui.hi = (WORD)hi;
 	}
 	else if (fit->type == DATA_FLOAT) {
-		layer->lo = float_to_ushort_range((float)lo);
-		layer->hi = float_to_ushort_range((float)hi);
+		gui.lo = float_to_ushort_range((float)lo);
+		gui.hi = float_to_ushort_range((float)hi);
 	}
 }
 
@@ -329,29 +351,14 @@ static void fit_lohi_to_layers(fits *fit, double lo, double hi, layer_info *laye
  */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
-	int i, nb_layers;
-	layer_info *layers=NULL;
-
-	if (com.uniq && com.uniq->layers && com.seq.current != RESULT_IMAGE) {
-		nb_layers = com.uniq->nb_layers;
-		layers = com.uniq->layers;
-	} else if (sequence_is_loaded() && com.seq.layers) {
-		nb_layers = com.seq.nb_layers;
-		layers = com.seq.layers;
+	if (gfit.hi == 0 || force_minmax == MINMAX) {
+		gui.sliders = MINMAX;
+		image_find_minmax(&gfit);
+		fit_lohi_to_layers(&gfit, gfit.mini, gfit.maxi);
 	} else {
-		fprintf(stderr, "COULD NOT INIT HI AND LO VALUES\n");
-		return;
-	}
-	for (i=0; i<nb_layers; i++) {
-		if (gfit.hi == 0 || force_minmax == MINMAX) {
-			com.sliders = MINMAX;
-			image_find_minmax(&gfit);
-			fit_lohi_to_layers(&gfit, gfit.mini, gfit.maxi, &layers[i]);
-		} else {
-			com.sliders = MIPSLOHI;
-			layers[i].hi = gfit.hi;
-			layers[i].lo = gfit.lo;
-		}
+		gui.sliders = MIPSLOHI;
+		gui.hi = gfit.hi;
+		gui.lo = gfit.lo;
 	}
 }
 
@@ -361,7 +368,7 @@ void adjust_cutoff_from_updated_gfit() {
 	if (!com.script) {
 		invalidate_gfit_histogram();
 		compute_histo_for_gfit();
-		init_layers_hi_and_lo_values(com.sliders);
+		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
 	}
 }

@@ -44,10 +44,10 @@ void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	int combo_size = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(
-				gtk_builder_get_object(builder, "combo_ksize_median")));
+				gtk_builder_get_object(gui.builder, "combo_ksize_median")));
 	double amount = gtk_range_get_value(
-			GTK_RANGE(gtk_builder_get_object(builder, "scale_median")));
-	int iterations = round_to_int(gtk_spin_button_get_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "median_button_iterations"))));
+			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_median")));
+	int iterations = round_to_int(gtk_spin_button_get_value(GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "median_button_iterations"))));
 
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -234,7 +234,7 @@ static gboolean end_median_filter(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 

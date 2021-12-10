@@ -53,9 +53,9 @@ static void to_cartesian(double r, double theta, point center, point *p) {
 }
 
 static gboolean end_rgradient_filter(gpointer p) {
-	struct median_filter_data *args = (struct median_filter_data *) p;
+	struct rgradient_filter_data *args = (struct rgradient_filter_data *) p;
 	stop_processing_thread();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 
@@ -233,6 +233,11 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	if (!single_image_is_loaded()) return;
+
+	if (gfit.orig_bitpix == BYTE_IMG) {
+		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
+		return;
+	}
 
 	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
 	args->xc = get_xc();

@@ -61,21 +61,6 @@
 #include "siril_preview.h"
 #include "siril-window.h"
 
-layer_info predefined_layers_colors[] = {
-	/* name, lambda, lo, hi, c/over, c/under, mode */
-	{ N_("Luminance"), 0.0, 0, 0, FALSE, FALSE, LINEAR_DISPLAY }, // no color, undefined value is <0
-	{ N_("Red"), 650.0, 0, 0, FALSE, FALSE, LINEAR_DISPLAY }, // approx. of the middle of the color
-	{ N_("Green"), 530.0, 0, 0, FALSE, FALSE, LINEAR_DISPLAY },	// approx. of the middle of the color
-	{ N_("Blue"), 450.0, 0, 0, FALSE, FALSE, LINEAR_DISPLAY }// approx. of the middle of the color
-};
-
-/*****************************************************************************
- *                    S T A T I C      F U N C T I O N S                     *
- ****************************************************************************/
-/*
- * Memory label static functions
- */
-
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
 	GtkWidget *scalemin = lookup_widget("scalemin");
@@ -179,8 +164,8 @@ void set_sliders_value_to_gfit() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
 	}
 
 	gfit.hi = gtk_adjustment_get_value(adj1);
@@ -195,8 +180,8 @@ void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 	gdouble max_val;
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
 	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
@@ -220,45 +205,27 @@ void set_cutoff_sliders_values() {
 	static GtkAdjustment *adjmin = NULL, *adjmax = NULL;
 	static GtkEntry *maxentry = NULL, *minentry = NULL;
 	static GtkToggleButton *cutmax = NULL;
-	WORD hi, lo;
-	int vport;
-	gboolean cut_over;
 	if (adjmin == NULL) {
-		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment1")); // scalemax
-		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment2")); // scalemin
-		maxentry = GTK_ENTRY(gtk_builder_get_object(builder, "max_entry"));
-		minentry = GTK_ENTRY(gtk_builder_get_object(builder, "min_entry"));
+		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1")); // scalemax
+		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2")); // scalemin
+		maxentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "max_entry"));
+		minentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "min_entry"));
 		cutmax = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "checkcut_max"));
+				gtk_builder_get_object(gui.builder, "checkcut_max"));
 	}
-	vport = com.cvport;
-	if (com.cvport ==  RGB_VPORT) vport = GREEN_VPORT;
-	if (single_image_is_loaded() && vport < com.uniq->nb_layers &&
-			com.uniq->layers && com.seq.current != RESULT_IMAGE) {
-		hi = com.uniq->layers[vport].hi;
-		lo = com.uniq->layers[vport].lo;
-		cut_over = com.uniq->layers[vport].cut_over;
-	}
-	/* When com.seq.current == RESULT_IMAGE we take sequence values */
-	else if (sequence_is_loaded() && vport < com.seq.nb_layers
-			&& com.seq.layers) {
-		hi = com.seq.layers[vport].hi;
-		lo = com.seq.layers[vport].lo;
-		cut_over = com.seq.layers[vport].cut_over;
-	} else
-		return;	// there should be no other normal cases
-	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), lo, hi);
-	gtk_adjustment_set_value(adjmin, (gdouble)lo);
-	gtk_adjustment_set_value(adjmax, (gdouble)hi);
-	g_snprintf(buffer, 6, "%u", hi);
+
+	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), gui.lo, gui.hi);
+	gtk_adjustment_set_value(adjmin, (gdouble)gui.lo);
+	gtk_adjustment_set_value(adjmax, (gdouble)gui.hi);
+	g_snprintf(buffer, 6, "%u", gui.hi);
 	g_signal_handlers_block_by_func(maxentry, on_max_entry_changed, NULL);
 	gtk_entry_set_text(maxentry, buffer);
 	g_signal_handlers_unblock_by_func(maxentry, on_max_entry_changed, NULL);
-	g_snprintf(buffer, 6, "%u", lo);
+	g_snprintf(buffer, 6, "%u", gui.lo);
 	g_signal_handlers_block_by_func(minentry, on_min_entry_changed, NULL);
 	gtk_entry_set_text(minentry, buffer);
 	g_signal_handlers_unblock_by_func(minentry, on_min_entry_changed, NULL);
-	gtk_toggle_button_set_active(cutmax, cut_over);
+	gtk_toggle_button_set_active(cutmax, gui.cut_over);
 }
 
 void on_menu_display_selection_done(GtkMenuShell *menushell, gpointer user_data) {
@@ -267,10 +234,9 @@ void on_menu_display_selection_done(GtkMenuShell *menushell, gpointer user_data)
 	const char *const text = gtk_label_get_text(GTK_LABEL(lbl));
 
 	gtk_label_set_text((GtkLabel *)user_data, text);
+	gui.rendering_mode = get_display_mode_from_menu();
 
-	copy_rendering_settings();
-	redraw(com.cvport, REMAP_ALL);
-
+	redraw(REMAP_ALL);
 	redraw_previews();
 }
 
@@ -278,26 +244,11 @@ void on_menu_display_selection_done(GtkMenuShell *menushell, gpointer user_data)
  * The operation is purely graphical. */
 void set_display_mode() {
 	static GtkMenu *display_menu = NULL;
-	display_mode mode;
-	int vport;
-
-	if (!display_menu) {
+	if (!display_menu)
 		display_menu = GTK_MENU(lookup_widget("menu_display"));
-	}
-
-	vport = com.cvport;
-	if (com.cvport == RGB_VPORT) vport = GREEN_VPORT;
-	if (single_image_is_loaded() && vport < com.uniq->nb_layers && com.uniq->layers
-			&& com.seq.current != RESULT_IMAGE)
-		mode = com.uniq->layers[vport].rendering_mode;
-	else if (sequence_is_loaded() && vport < com.seq.nb_layers
-			&& com.seq.layers)
-		mode = com.seq.layers[vport].rendering_mode;
-	else
-		return;
 
 	g_signal_handlers_block_by_func(display_menu, on_menu_display_selection_done, NULL);
-	gtk_menu_set_active(display_menu, mode);
+	gtk_menu_set_active(display_menu, gui.rendering_mode);
 	g_signal_handlers_unblock_by_func(display_menu, on_menu_display_selection_done, NULL);
 }
 
@@ -355,11 +306,11 @@ void set_icon_entry(GtkEntry *entry, gchar *string) {
 
 void update_MenuItem() {
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	gboolean is_a_single_image_loaded;		/* An image is loaded. Not a sequence or only the result of stacking process */
+	gboolean is_a_single_image_loaded;	/* An image is loaded. Not a sequence or only the result of stacking process */
 	gboolean is_a_singleRGB_image_loaded;	/* A RGB image is loaded. Not a sequence or only the result of stacking process */
-	gboolean any_image_is_loaded;			/* Something is loaded. Single image or Sequence */
+	gboolean any_image_is_loaded;		/* Something is loaded. Single image or Sequence */
 
-	is_a_single_image_loaded = single_image_is_loaded()	&& (!sequence_is_loaded() || (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
+	is_a_single_image_loaded = single_image_is_loaded() && (!sequence_is_loaded() || (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
 	is_a_singleRGB_image_loaded = isrgb(&gfit) && single_image_is_loaded();
 	any_image_is_loaded = single_image_is_loaded() || sequence_is_loaded();
 
@@ -443,7 +394,10 @@ void sliders_mode_set_state(sliders_mode sliders) {
 }
 
 display_mode get_display_mode_from_menu() {
-	GtkWidget *w = gtk_menu_get_active(GTK_MENU(lookup_widget("menu_display")));
+	static GtkWidget *menu = NULL;
+	if (!menu)
+		menu = lookup_widget("menu_display");
+	GtkWidget *w = gtk_menu_get_active(GTK_MENU(menu));
 	if (w == lookup_widget("log_item"))
 		return LOG_DISPLAY;
 	else if (w == lookup_widget("square_root_item"))
@@ -460,71 +414,6 @@ display_mode get_display_mode_from_menu() {
 		return LINEAR_DISPLAY;
 }
 
-/* When rendering settings are chained, they need to be copied to other layers
- * when modified on the current layer. This procedure does that. It can be
- * called whenever a value has changed, or when the chaning has been enabled,
- * to synchronize all data.
- * Current view port is com.cvport, and data is stored in layer_info structs
- * Synchronized data: hi and lo cursors, cut over box, rendering mode.
- * DOES NOT REMAP/REDRAW.
- *
- */
-int copy_rendering_settings() {
-	static GtkRange *range_lo = NULL, *range_hi = NULL;
-	static GtkToggleButton *cutmax = NULL;
-
-	display_mode mode;
-	WORD lo, hi;
-	gboolean cut_over;
-	int i, nb_layers;
-	layer_info *layers = NULL;
-
-	if (!range_lo) {	// init widgets
-		range_lo = GTK_RANGE(gtk_builder_get_object(builder, "scalemin"));
-		range_hi = GTK_RANGE(gtk_builder_get_object(builder, "scalemax"));
-		cutmax = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "checkcut_max"));
-	}
-
-	int cvport = com.cvport == RGB_VPORT ? 0 : com.cvport;
-
-	if (single_image_is_loaded() &&
-			cvport < com.uniq->nb_layers && com.uniq->layers &&
-			com.seq.current != RESULT_IMAGE) {
-		layers = com.uniq->layers;
-		nb_layers = com.uniq->nb_layers;
-	} else if (sequence_is_loaded() && cvport < com.seq.nb_layers
-			&& com.seq.layers) {
-		layers = com.seq.layers;
-		nb_layers = com.seq.nb_layers;
-	} else
-		return 0;
-
-	int raw_mode = get_display_mode_from_menu();
-	/* update values in the layer_info for cvport */
-	layers[cvport].rendering_mode =
-		raw_mode >= 0 ? raw_mode : LINEAR_DISPLAY;
-	layers[cvport].lo = round_to_WORD(gtk_range_get_value(range_lo));
-	layers[cvport].hi = round_to_WORD(gtk_range_get_value(range_hi));
-	layers[cvport].cut_over = gtk_toggle_button_get_active(cutmax);
-
-	mode = layers[cvport].rendering_mode;
-	lo = layers[cvport].lo;
-	hi = layers[cvport].hi;
-	cut_over = layers[cvport].cut_over;
-
-	for (i = 0; i < nb_layers; i++) {
-		if (i == cvport)
-			continue;
-		layers[i].rendering_mode = mode;
-		layers[i].lo = lo;
-		layers[i].hi = hi;
-		layers[i].cut_over = cut_over;
-	}
-
-	return 0;
-}
-
 void update_prepro_interface(gboolean allow_debayer) {
 	static GtkToggleButton *udark = NULL, *uoffset = NULL, *uflat = NULL,
 			       *checkAutoEvaluate = NULL;
@@ -534,15 +423,15 @@ void update_prepro_interface(gboolean allow_debayer) {
 	static GtkComboBox *output_type = NULL;
 	if (udark == NULL) {
 		udark = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "usedark_button"));
+				gtk_builder_get_object(gui.builder, "usedark_button"));
 		uoffset = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "useoffset_button"));
+				gtk_builder_get_object(gui.builder, "useoffset_button"));
 		uflat = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "useflat_button"));
+				gtk_builder_get_object(gui.builder, "useflat_button"));
 		checkAutoEvaluate = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "checkbutton_auto_evaluate"));
+				gtk_builder_get_object(gui.builder, "checkbutton_auto_evaluate"));
 		output_type = GTK_COMBO_BOX(
-				gtk_builder_get_object(builder, "prepro_output_type_combo"));
+				gtk_builder_get_object(gui.builder, "prepro_output_type_combo"));
 		prepro_button = lookup_widget("prepro_button");
 		cosme_grid = lookup_widget("grid24");
 		dark_optim = lookup_widget("checkDarkOptimize");
@@ -578,7 +467,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 
 void clear_sampling_setting_box() {
 	GtkComboBox *binning = GTK_COMBO_BOX(
-			gtk_builder_get_object(builder, "combobinning"));
+			gtk_builder_get_object(gui.builder, "combobinning"));
 	GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
 	GtkEntry* pitchX_entry = GTK_ENTRY(lookup_widget("pitchX_entry"));
 	GtkEntry* pitchY_entry = GTK_ENTRY(lookup_widget("pitchY_entry"));
@@ -617,64 +506,92 @@ const char *untranslated_vport_number_to_name(int vport) {
 	return NULL;
 }
 
+const gchar *layer_name_for_gfit(int layer) {
+	if (gfit.naxes[2] == 1) {
+		if (layer != 0) {
+			siril_debug_print("unloaded layer name requested %d\n", layer);
+			return "unset";
+		}
+		return _("Luminance");
+	}
+	switch (layer) {
+		case 0:
+			return _("Red");
+		case 1:
+			return _("Green");
+		case 2:
+			return _("Blue");
+		default:
+			siril_debug_print("unloaded layer name requested %d\n", layer);
+			return "unset";
+	}
+}
+
 int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb) {
 	/* could be done with a for i=0 loop, to get rid of these defines */
-	if (drawing_area == com.vport[RED_VPORT])
+	if (drawing_area == gui.view[RED_VPORT].drawarea)
 		return RED_VPORT;
-	if (drawing_area == com.vport[GREEN_VPORT])
+	if (drawing_area == gui.view[GREEN_VPORT].drawarea)
 		return GREEN_VPORT;
-	else if (drawing_area == com.vport[BLUE_VPORT])
+	else if (drawing_area == gui.view[BLUE_VPORT].drawarea)
 		return BLUE_VPORT;
-	else if (allow_rgb && drawing_area == com.vport[RGB_VPORT])
+	else if (allow_rgb && drawing_area == gui.view[RGB_VPORT].drawarea)
 		return RGB_VPORT;
 	return -1;
 }
 
 void update_display_selection() {
-	if (com.cvport == RGB_VPORT) return;
+	if (gui.cvport == RGB_VPORT || com.script) return;
 	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb"};
 	static gchar selection_buffer[256] = { 0 };
 
 	if (com.selection.w && com.selection.h) {
 		g_sprintf(selection_buffer, _("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
 			(double)com.selection.w / (double)com.selection.h);
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[com.cvport])), selection_buffer);
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[gui.cvport])), selection_buffer);
 	} else {
-		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[com.cvport])), "");
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[gui.cvport])), "");
 	}
 }
 
 void update_display_fwhm() {
-	if (com.cvport == RGB_VPORT) return;
+	if (gui.cvport == RGB_VPORT || com.script) return;
 	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb"};
 	static gchar fwhm_buffer[256] = { 0 };
 
-	if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
+	if (!single_image_is_loaded() && !sequence_is_loaded()) {
+		g_sprintf(fwhm_buffer, " ");
+	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
 		if (com.selection.w < 300 && com.selection.h < 300) {
 			double roundness;
-			double fwhm_val = psf_get_fwhm(&gfit, com.cvport, &com.selection, &roundness);
+			double fwhm_val = psf_get_fwhm(&gfit, gui.cvport, &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
 		} else
 			g_sprintf(fwhm_buffer, _("fwhm: N/A"));
 	} else {
 		g_sprintf(fwhm_buffer, _("fwhm: N/A"));
 	}
-	gtk_label_set_text(GTK_LABEL(lookup_widget(label_fwhm[com.cvport])), fwhm_buffer);
+	gtk_label_set_text(GTK_LABEL(lookup_widget(label_fwhm[gui.cvport])), fwhm_buffer);
 }
 
 /* displays the opened image file name in the layers window.
  * if a unique file is loaded, its details are used instead of any sequence data
  */
 void display_filename() {
+	gboolean local_filename = FALSE;
 	int nb_layers, vport;
 	char *filename;
-	if (com.uniq) {	// unique image
+	if (single_image_is_loaded()) {	// unique image
 		filename = com.uniq->filename;
 		nb_layers = com.uniq->nb_layers;
-	} else {	// sequence
+	} else if (sequence_is_loaded()) {	// sequence
 		filename = malloc(256);
+		local_filename = TRUE;
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		nb_layers = com.seq.nb_layers;
+	} else {
+		filename = " ";
+		nb_layers = 3;
 	}
 	vport = nb_layers > 1 ? nb_layers + 1 : nb_layers;
 
@@ -686,9 +603,8 @@ void display_filename() {
 		g_free(c);
 	}
 
-	if (!com.uniq) {
+	if (local_filename)
 		free(filename);
-	}
 	g_free(base_name);
 }
 
@@ -710,7 +626,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 				fit_replace_buffer(&gfit, float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
-				redraw(com.cvport, REMAP_ALL);
+				redraw(REMAP_ALL);
 			}
 		} else if (gfit.type == DATA_USHORT) {
 			if (is_preview_active())
@@ -718,7 +634,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 			fit_replace_buffer(&gfit, ushort_buffer_to_float(gfit.data, ndata), DATA_FLOAT);
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
-			redraw(com.cvport, REMAP_ALL);
+			redraw(REMAP_ALL);
 		}
 	}
 	set_precision_switch();
@@ -738,52 +654,25 @@ void set_precision_switch() {
 	}
 }
 
-/* set available layers in the layer list of registration */
-void set_layers_for_assign() {
-	int i;
-	if (!com.seq.layers)
-		return;
-	for (i = 0; i < com.seq.nb_layers; i++) {
-		if (!com.seq.layers[i].name) {
-			if (com.seq.nb_layers == 1) {
-				com.seq.layers[i].name = strdup(
-						_(predefined_layers_colors[i].name));
-				com.seq.layers[i].wavelength =
-					predefined_layers_colors[i].wavelength;
-			} else if (com.seq.nb_layers == 3) {
-				com.seq.layers[i].name = strdup(
-						_(predefined_layers_colors[i + 1].name));
-				com.seq.layers[i].wavelength =
-					predefined_layers_colors[i + 1].wavelength;
-			} else {
-				com.seq.layers[i].name = strdup(_("Unassigned"));
-				com.seq.layers[i].wavelength = -1.0;
-			}
-		}
-	}
-}
-
 /* updates the combo box of registration layers to reflect data availability */
-void set_layers_for_registration() {
+int set_layers_for_registration() {
 	static GtkComboBoxText *cbbt_layers = NULL;
 	int i;
 	int reminder;
 
 	if (cbbt_layers == NULL)
 		cbbt_layers = GTK_COMBO_BOX_TEXT(
-				gtk_builder_get_object(builder, "comboboxreglayer"));
+				gtk_builder_get_object(gui.builder, "comboboxreglayer"));
 	reminder = gtk_combo_box_get_active(GTK_COMBO_BOX(cbbt_layers));
 
 	gtk_combo_box_text_remove_all(cbbt_layers);
 	for (i = 0; i < com.seq.nb_layers; i++) {
 		gchar *layer;
-		if (com.seq.layers[i].name)
-			layer = g_strdup_printf("%d: %s", i, com.seq.layers[i].name);
-		else
-			layer = g_strdup_printf(_("%d: not affected yet"), i);
+		const gchar *layer_name = layer_name_for_gfit(i);
+		layer = g_strdup_printf("%d: %s", i, layer_name);
 		if (com.seq.regparam[i]) {
 			str_append(&layer,  " (*)");
-			if (reminder == -1)	// set as default selection
+			if (reminder == -1 || ((reminder >= 0) && !(com.seq.regparam[reminder]))) // set as default selection
 				reminder = i;
 		}
 		gtk_combo_box_text_append_text(cbbt_layers, layer);
@@ -800,6 +689,8 @@ void set_layers_for_registration() {
 	/* Already initialized or default selection to channel with data */
 	else
 		gtk_combo_box_set_active(GTK_COMBO_BOX(cbbt_layers), reminder);
+	
+	return reminder;
 }
 
 void show_data_dialog(char *text, char *title, gchar *parent, gchar *url) {
@@ -1031,26 +922,9 @@ void set_accel_map(const gchar * const *accelmap) {
 	}
 }
 
-/* Initialize the combobox when loading new single_image */
+/* Initialize the rendering mode from the GUI */
 void initialize_display_mode() {
-	display_mode mode;
-	int i;
-
-	int raw_mode = get_display_mode_from_menu();
-
-	/* Check if never initialized. In this case the mode is set to linear */
-	if (raw_mode == -1)
-		mode = LINEAR_DISPLAY;
-	else
-		mode = raw_mode;
-	/* The mode is applyed for each layer */
-	if (single_image_is_loaded() && com.seq.current != RESULT_IMAGE) {
-		for (i = 0; i < com.uniq->nb_layers; i++)
-			com.uniq->layers[i].rendering_mode = mode;
-	} else if (sequence_is_loaded()) {
-		for (i = 0; i < com.seq.nb_layers; i++)
-			com.seq.layers[i].rendering_mode = mode;
-	}
+	gui.rendering_mode = get_display_mode_from_menu();
 }
 
 void set_GUI_CWD() {
@@ -1163,23 +1037,6 @@ void set_GUI_CAMERA() {
 	}
 }
 
-static void initialize_scrollbars() {
-	char *vport_names[] = { "r", "g", "b", "rgb" };
-
-	for (int i = 0; i < sizeof(vport_names) / sizeof(char *); i++) {
-		char *window_name = g_strdup_printf("scrolledwindow%s", vport_names[i]);
-		GtkScrolledWindow *win = GTK_SCROLLED_WINDOW(gtk_builder_get_object(builder, window_name));
-		com.hadj[i] = gtk_scrolled_window_get_hadjustment(win);
-		g_signal_connect(com.hadj[i], "value-changed",
-				G_CALLBACK(scrollbars_hadjustment_changed_handler), NULL);
-		com.vadj[i] = gtk_scrolled_window_get_vadjustment(win);
-		g_signal_connect(com.vadj[i], "value-changed",
-				G_CALLBACK(scrollbars_vadjustment_changed_handler), NULL);
-
-		g_free(window_name);
-	}
-}
-
 static GtkTargetEntry drop_types[] = {
 	{ "text/uri-list", 0, 0 }
 };
@@ -1198,14 +1055,13 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
-	com.vport[RED_VPORT] = lookup_widget("drawingarear");
-	com.vport[GREEN_VPORT] = lookup_widget("drawingareag");
-	com.vport[BLUE_VPORT] = lookup_widget("drawingareab");
-	com.vport[RGB_VPORT] = lookup_widget("drawingareargb");
-	com.preview_area[0] = lookup_widget("drawingarea_preview1");
-	com.preview_area[1] = lookup_widget("drawingarea_preview2");
+	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
+	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
+	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
+	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
+	gui.preview_area[0] = lookup_widget("drawingarea_preview1");
+	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
 	initialize_image_display();
-	initialize_scrollbars();
 	init_mouse();
 
 	/* populate language combo */
@@ -1261,7 +1117,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* support for converting files by dragging onto the GtkTreeView */
 	gtk_drag_dest_set(lookup_widget("treeview_convert"),
-			GTK_DEST_DEFAULT_MOTION, drop_types, G_N_ELEMENTS(drop_types),
+			GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_HIGHLIGHT, drop_types, G_N_ELEMENTS(drop_types),
 			GDK_ACTION_COPY);
 
 	siril_drag_single_image_set_dest();
@@ -1314,85 +1170,61 @@ void on_register_all_toggle(GtkToggleButton *togglebutton, gpointer user_data) {
 /* when the cursor moves, update the value displayed in the textbox and save it
  * in the related layer_info. Does not change display until cursor is released. */
 void on_minscale_changed(GtkRange *range, gpointer user_data) {
-	GtkEntry *minentry;
-	gchar *buffer;
+	GtkEntry *minentry = (GtkEntry *)user_data;
+	gchar buffer[12];
+	int value = (int)gtk_range_get_value(range);
+	if (value == gui.lo)
+		return;
+	gui.lo = value;
+	g_sprintf(buffer, "%u", value);
 
-	minentry = (GtkEntry *)user_data;
-
-	if (single_image_is_loaded() && com.seq.current < RESULT_IMAGE) {
-		int value = (int) gtk_range_get_value(range);
-		if (com.cvport < com.uniq->nb_layers)
-			com.uniq->layers[com.cvport].lo = value;
-		buffer = g_strdup_printf("%u", value);
-	} else if (sequence_is_loaded()) {
-		int value = (int) gtk_range_get_value(range);
-		if (com.cvport < com.seq.nb_layers)
-			com.seq.layers[com.cvport].lo = value;
-		buffer = g_strdup_printf("%u", value);
-
-	} else return;
 	g_signal_handlers_block_by_func(minentry, on_min_entry_changed, NULL);
 	gtk_entry_set_text(minentry, buffer);
 	g_signal_handlers_unblock_by_func(minentry, on_min_entry_changed, NULL);
-	g_free(buffer);
 }
 
 /* when the cursor moves, update the value displayed in the textbox and save it
  * in the related layer_info. Does not change display until cursor is released. */
 void on_maxscale_changed(GtkRange *range, gpointer user_data) {
-	GtkEntry *maxentry;
-	gchar *buffer;
+	GtkEntry *maxentry = (GtkEntry *)user_data;
+	gchar buffer[12];
+	int value = (int)gtk_range_get_value(range);
+	if (value == gui.hi)
+		return;
+	gui.hi = value;
+	g_sprintf(buffer, "%u", value);
 
-	maxentry = (GtkEntry *)user_data;
-
-	if (single_image_is_loaded() && com.seq.current < RESULT_IMAGE) {
-		int value = (int) gtk_range_get_value(range);
-		if (com.cvport < com.uniq->nb_layers)
-			com.uniq->layers[com.cvport].hi = value;
-		buffer = g_strdup_printf("%u", value);
-	} else if (sequence_is_loaded()) {
-		int value = (int) gtk_range_get_value(range);
-		if (com.cvport < com.seq.nb_layers)
-			com.seq.layers[com.cvport].hi = value;
-		buffer = g_strdup_printf("%u", value);
-	} else return;
 	g_signal_handlers_block_by_func(maxentry, on_max_entry_changed, NULL);
 	gtk_entry_set_text(maxentry, buffer);
 	g_signal_handlers_unblock_by_func(maxentry, on_max_entry_changed, NULL);
-	g_free(buffer);
 }
 
 gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	if (com.sliders != USER) {
-		com.sliders = USER;
-		sliders_mode_set_state(com.sliders);
+	if (gui.sliders != USER) {
+		gui.sliders = USER;
+		sliders_mode_set_state(gui.sliders);
 	}
-	copy_rendering_settings();
-	redraw(com.cvport, REMAP_ALL);
-
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return FALSE;
 }
 
 gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	if (com.sliders != USER) {
-		com.sliders = USER;
-		sliders_mode_set_state(com.sliders);
+	if (gui.sliders != USER) {
+		gui.sliders = USER;
+		sliders_mode_set_state(gui.sliders);
 	}
-	copy_rendering_settings();
-	redraw(com.cvport, REMAP_ALL);
-
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return FALSE;
 }
 
 /* a checkcut checkbox was toggled. Update the layer_info and others if chained. */
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	copy_rendering_settings();
-	redraw(com.cvport, REMAP_ALL);
-
+	gui.cut_over = gtk_toggle_button_get_active(togglebutton);
+	redraw(REMAP_ALL);
 	redraw_previews();
 }
 
@@ -1552,10 +1384,10 @@ void siril_quit() {
 void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
 	if (gtk_toggle_button_get_active(togglebutton)) {
-		com.sliders = MINMAX;
-		init_layers_hi_and_lo_values(com.sliders);
+		gui.sliders = MINMAX;
+		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 	}
 }
@@ -1563,10 +1395,10 @@ void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
 	if (gtk_toggle_button_get_active(togglebutton)) {
-		com.sliders = MIPSLOHI;
-		init_layers_hi_and_lo_values(com.sliders);
+		gui.sliders = MIPSLOHI;
+		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 	}
 }
@@ -1574,10 +1406,10 @@ void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
 	if (gtk_toggle_button_get_active(togglebutton)) {
-		com.sliders = USER;
-		init_layers_hi_and_lo_values(com.sliders);
+		gui.sliders = USER;
+		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 	}
 }
@@ -1588,23 +1420,15 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 
 		guint value = g_ascii_strtoull(txt, NULL, 10);
 
-		if (com.sliders != USER) {
-			com.sliders = USER;
-			sliders_mode_set_state(com.sliders);
+		if (gui.sliders != USER) {
+			gui.sliders = USER;
+			sliders_mode_set_state(gui.sliders);
 		}
-		if (single_image_is_loaded() && com.cvport < com.uniq->nb_layers
-				&& com.seq.current != RESULT_IMAGE)
-			com.uniq->layers[com.cvport].hi = value;
-		else if (sequence_is_loaded() && com.cvport < com.seq.nb_layers)
-			com.seq.layers[com.cvport].hi = value;
-		else
-			return;
+		gui.hi = value;
 
 		set_cutoff_sliders_values();
 
-		copy_rendering_settings();
-		redraw(com.cvport, REMAP_ALL);
-
+		redraw(REMAP_ALL);
 		redraw_previews();
 	}
 }
@@ -1645,22 +1469,15 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 
 		guint value = g_ascii_strtoull(txt, NULL, 10);
 
-		if (com.sliders != USER) {
-			com.sliders = USER;
-			sliders_mode_set_state(com.sliders);
+		if (gui.sliders != USER) {
+			gui.sliders = USER;
+			sliders_mode_set_state(gui.sliders);
 		}
-		if (single_image_is_loaded() && com.cvport < com.uniq->nb_layers
-				&& com.seq.current != RESULT_IMAGE)
-			com.uniq->layers[com.cvport].lo = value;
-		else if (sequence_is_loaded() && com.cvport < com.seq.nb_layers)
-			com.seq.layers[com.cvport].lo = value;
-		else
-			return;
+		gui.lo = value;
+
 		set_cutoff_sliders_values();
 
-		copy_rendering_settings();
-		redraw(com.cvport, REMAP_ALL);
-
+		redraw(REMAP_ALL);
 		redraw_previews();
 	}
 }
@@ -1704,10 +1521,8 @@ void on_seqproc_entry_changed(GtkComboBox *widget, gpointer user_data) {
 /* signal handler for the gray window layer change */
 void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 		guint page_num, gpointer user_data) {
-	com.cvport = page_num;
-	set_cutoff_sliders_values();// load the previous known values for sliders
-	set_display_mode();		// change the mode in the combo box if needed
-	redraw(com.cvport, REMAP_ONLY);
+	gui.cvport = page_num;
+	redraw(REDRAW_OVERLAY);
 	update_display_selection();	// update the dimensions of the selection when switching page
 	update_display_fwhm();
 }
@@ -1774,27 +1589,6 @@ void on_comboboxreglayer_changed(GtkComboBox *widget, gpointer user_data) {
 		return;
 	free_reference_image();
 	update_stack_interface(TRUE);
-}
-
-void scrollbars_hadjustment_changed_handler(GtkAdjustment *adjustment,
-		gpointer user_data) {
-	double value = gtk_adjustment_get_value(adjustment);
-
-	for (int i = 0; i < MAXVPORT; i++) {
-		if (com.hadj[i] != adjustment) {
-			gtk_adjustment_set_value(com.hadj[i], value);
-		}
-	}
-}
-
-void scrollbars_vadjustment_changed_handler(GtkAdjustment *adjustment,
-		gpointer user_data) {
-	double value = gtk_adjustment_get_value(adjustment);
-	for (int i = 0; i < MAXVPORT; i++) {
-		if (com.vadj[i] != adjustment) {
-			gtk_adjustment_set_value(com.vadj[i], value);
-		}
-	}
 }
 
 void on_spinCPU_value_changed (GtkSpinButton *spinbutton, gpointer user_data) {

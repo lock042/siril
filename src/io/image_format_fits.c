@@ -1267,8 +1267,8 @@ void save_fits_header(fits *fit) {
 
 	status = 0;
 	char programm[32];
-	sprintf(programm, "%s v%s", PACKAGE, VERSION);
-	programm[0] = toupper(programm[0]);			// convert siril to Siril
+
+	sprintf(programm, "%c%s v%s", toupper(PACKAGE[0]), (char*) PACKAGE + 1, VERSION);
 	fits_update_key(fit->fptr, TSTRING, "PROGRAM", programm,
 			"Software that created this HDU", &status);
 
@@ -1837,7 +1837,7 @@ int save_opened_fits(fits *f) {
 				if (norm == USHRT_MAX_DOUBLE)
 					data8[i] = conv_to_BYTE((double)f->data[i]);
 				else
-					data8[i] = round_to_BYTE(f->data[i]);
+					data8[i] = truncate_to_BYTE(f->data[i]);
 			}
 		}
 		if (fits_write_pix(f->fptr, TBYTE, orig, pixel_count, data8, &status)) {
@@ -2527,9 +2527,9 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 }
 
 static void gray2rgb(float gray, guchar *rgb) {
-	*rgb++ = (guchar) round_to_BYTE(255. * gray);
-	*rgb++ = (guchar) round_to_BYTE(255. * gray);
-	*rgb++ = (guchar) round_to_BYTE(255. * gray);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {

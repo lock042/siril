@@ -29,7 +29,7 @@ struct preprocessing_data {
 };
 
 int preprocess_single_image(struct preprocessing_data *args);
-int evaluateoffsetlevel(const char* expression);
+int evaluateoffsetlevel(const char* expression, fits *fit);
 void start_sequence_preprocessing(struct preprocessing_data *prepro);
 
 #endif

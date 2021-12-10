@@ -226,6 +226,10 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	pixelMath/pixel_math_runner.c \
+	pixelMath/pixel_math_runner.h \
+	pixelMath/tinyexpr.c \
+	pixelMath/tinyexpr.h \
 	registration/3stars.c \
 	registration/comet.c \
 	registration/global.c \
@@ -326,12 +330,6 @@ AM_LDFLAGS += -Wl,--export-all-symbols
 if !SIRIL_DEBUG
 AM_LDFLAGS += -mwindows
 endif #!SIRIL_DEBUG
-if HAVE_WINDRES
-$(top_builddir)/platform-specific/windows/siril.res.o: $(top_srcdir)/platform-specific/windows/siril.rc
-	mkdir -p $(top_builddir)/platform-specific/windows/
-	$(WINDRES) $< $@
-siril_LDADD += $(top_builddir)/platform-specific/windows/siril.res.o
-endif #HAVE_WINDRES
 else
 if !PLATFORM_OSX
 AM_LDFLAGS += -rdynamic

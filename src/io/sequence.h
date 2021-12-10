@@ -14,6 +14,7 @@ int	seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit);
 int	set_seq(const char *);
 char *	seq_get_image_filename(sequence *seq, int index, char *name_buf);
 int	seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, int thread_id);
+int seq_read_frame_metadata(sequence *seq, int index, fits *dest);
 int	seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int thread_id);
 int	seq_load_image(sequence *seq, int index, gboolean load_it);
 int64_t seq_compute_size(sequence *seq, int nb_frames, data_type type);

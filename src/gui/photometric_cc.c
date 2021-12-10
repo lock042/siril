@@ -430,7 +430,7 @@ static gboolean end_photometric_cc(gpointer p) {
 	g_object_unref(args->bv_stream);
 	free(args);
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	
 	set_cursor_waiting(FALSE);
@@ -535,10 +535,10 @@ void initialize_photometric_cc_dialog() {
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
-	selection_cc_black_adjustment[0] = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_cc_bkg_x"));
-	selection_cc_black_adjustment[1] = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_cc_bkg_y"));
-	selection_cc_black_adjustment[2] = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_cc_bkg_w"));
-	selection_cc_black_adjustment[3] = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjustment_cc_bkg_h"));
+	selection_cc_black_adjustment[0] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_x"));
+	selection_cc_black_adjustment[1] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_y"));
+	selection_cc_black_adjustment[2] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_w"));
+	selection_cc_black_adjustment[3] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_h"));
 
 	gtk_widget_set_visible(button_ips_ok, FALSE);
 	gtk_widget_set_visible(button_cc_ok, TRUE);

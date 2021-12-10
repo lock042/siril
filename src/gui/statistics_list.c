@@ -58,7 +58,7 @@ char *statName[] = {
 
 static void get_statlist_store() {
 	if (list_store == NULL)
-		list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "liststoreStat"));
+		list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststoreStat"));
 }
 /* Add a statistic to the list. If imstats is NULL, the list is cleared. */
 static void add_stats_to_list(imstats *stat[], int nblayer, data_type type, gboolean normalized) {
@@ -71,7 +71,7 @@ static void add_stats_to_list(imstats *stat[], int nblayer, data_type type, gboo
 
 	get_statlist_store();
 	if (!selection)
-		selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "treeview-selection9"));
+		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection9"));
 	if (stat[RLAYER] == NULL) {
 		gtk_list_store_clear(list_store);
 		return;		// just clear the list
@@ -263,7 +263,7 @@ void computeStat() {
 		name = g_strdup_printf("%s", com.uniq->filename);
 	else if (sequence_is_loaded())
 		name = g_strdup_printf(_("Image %d/%d from the sequence %s"),
-				com.seq.current, com.seq.number, com.seq.seqname);
+				com.seq.current, com.seq.number + 1, com.seq.seqname);
 	else
 		name = g_strdup_printf(_("unknown image"));
 

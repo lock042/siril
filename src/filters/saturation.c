@@ -311,7 +311,7 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 
 	copy_backup_to_gfit();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 }

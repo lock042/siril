@@ -378,7 +378,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 
@@ -708,7 +708,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	sigma[1] = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
 	seq = GTK_TOGGLE_BUTTON(lookup_widget("checkCosmeticSeq"));
 	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
-	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjCosmeAmount"));
+	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
 
 	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
 

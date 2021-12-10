@@ -84,6 +84,7 @@ int register_star_alignment(struct registration_args *args);
 int register_ecc(struct registration_args *args);
 int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
+void reset_3stars();
 
 pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);

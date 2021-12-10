@@ -26,8 +26,8 @@
 /**********************************************/
 #include "io/image_format_fits.h"
 
-cominfo com;	// the main data struct
-GtkBuilder *builder = NULL;	// get widget references anywhere
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
 
 /* required links:

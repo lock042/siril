@@ -34,7 +34,7 @@ void update_display_fwhm();
 void display_filename();
 void set_precision_switch();
 void set_layers_for_assign();
-void set_layers_for_registration();
+int set_layers_for_registration();
 void show_dialog(const char *text, const char *title, const char *icon);
 void show_txt_and_data_dialog(const char *text, const char *data, const char *title, const char *icon);
 void show_data_dialog(char *text, char *title, gchar *parent, gchar *extra_button);
@@ -42,8 +42,6 @@ GtkWindow *siril_get_active_window();
 void initialize_FITS_name_entries();
 
 void adjust_vport_size_to_image();
-void scrollbars_hadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
-void scrollbars_vadjustment_changed_handler(GtkAdjustment *adjustment, gpointer user_data);
 void set_output_filename_to_sequence_name();
 void close_tab();
 void activate_tab(int vport);
@@ -81,5 +79,10 @@ void on_check_button_pref_bias_bis_toggled(GtkToggleButton *togglebutton, gpoint
 
 void on_checkbutton_cam_toggled(GtkToggleButton *button, gpointer user_data);
 void on_checkbutton_auto_toggled(GtkToggleButton *button, gpointer user_data);
+
+void on_focal_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_combobinning_changed(GtkComboBox *box, gpointer user_data);
 
 #endif

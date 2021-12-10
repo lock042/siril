@@ -406,7 +406,6 @@ int preprocess_single_image(struct preprocessing_data *args) {
 			copyfits(&fit, com.uniq->fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 			if (com.uniq->nb_layers != fit.naxes[2]) {
 				com.uniq->nb_layers = fit.naxes[2];
-				com.uniq->layers = realloc(com.uniq->layers, com.uniq->nb_layers * sizeof(layer_info));
 			}
 			if (com.uniq->filename)
 				free(com.uniq->filename);
@@ -422,7 +421,7 @@ int preprocess_single_image(struct preprocessing_data *args) {
 	return ret;
 }
 
-int evaluateoffsetlevel(const char* expression) {
+int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// try to find an occurence of *
 	// If none -> the level is just an integer to evaluate
 	// If found -> Try to find $ sign to read the offset value and its multiplier
@@ -445,7 +444,7 @@ int evaluateoffsetlevel(const char* expression) {
 		multiplier = g_ascii_strtoull(expressioncpy, NULL, 10);
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
-	offsetlevel = (int)(multiplier * gfit.key_offset);
+	offsetlevel = (int)(multiplier * fit->key_offset);
 	if (expressioncpy) g_free(expressioncpy);
 	return offsetlevel;
 free_on_error:
@@ -468,9 +467,9 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
 			const char *error = NULL;
-            if (filename[0] == '=') { // offset is specified as a level not a file
-			    set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
-				int offsetlevel = evaluateoffsetlevel(filename + 1);
+			if (filename[0] == '=') { // offset is specified as a level not a file
+				set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
+				int offsetlevel = evaluateoffsetlevel(filename + 1, &gfit);
 				if (!offsetlevel) {
 					error = _("NOT USING OFFSET: the offset value could not be parsed");
 					args->use_bias = FALSE;
@@ -481,11 +480,12 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 						error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
 						args->use_bias = FALSE;
 					} else {
-						args->bias_level = (float)offsetlevel * INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+						args->bias_level = (float)offsetlevel;
+						args->bias_level *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 						args->use_bias = TRUE;
 					}
 				}
-            } else {
+			} else {
 				args->bias = calloc(1, sizeof(fits));
 				set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
 				if (!readfits(filename, args->bias, NULL, !com.pref.force_to_16bit)) {
@@ -496,6 +496,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 						error = _("NOT USING OFFSET: image dimensions are different");
 					} else {
 						args->use_bias = TRUE;
+						// if input is 8b, we assume 32b master needs to be rescaled
+						if ((args->bias->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+						}
 					}
 				} else error = _("NOT USING OFFSET: cannot open the file");
 			}
@@ -529,6 +533,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					error = _("NOT USING DARK: image dimensions are different");
 				} else {
 					args->use_dark = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->dark->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				}
 
 			} else error = _("NOT USING DARK: cannot open the file");
@@ -546,6 +554,18 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			// dark optimization
 			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkDarkOptimize"));
 			args->use_dark_optim = gtk_toggle_button_get_active(tbutton);
+			const char *error = NULL;
+			if ((gfit.orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
+				error = _("Dark optimization: This process cannot be applied to 8b images");
+			}
+			if (error) {
+				siril_log_color_message("%s\n", "red", error);
+				set_progress_bar_data(error, PROGRESS_DONE);
+				free(args->dark);
+				gtk_entry_set_text(entry, "");
+				args->use_dark_optim = FALSE;
+				has_error = TRUE;
+			}
 
 			// cosmetic correction
 			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
@@ -586,6 +606,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					error = _("NOT USING FLAT: image dimensions are different");
 				} else {
 					args->use_flat = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->flat->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				}
 
 			} else error = _("NOT USING FLAT: cannot open the file");

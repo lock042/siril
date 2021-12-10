@@ -1,27 +1,37 @@
+v1.0.0~RC2 December 08, 2021
+Second Release candidate version for 1.0.0
+* Fixes many crashes
+* Minor improvements in plot feature
+* Restore HD for macOS application
+
 v1.0.0~RC1 November 20, 2021
 First Release candidate version for 1.0.0
 
-* Fixed memory leak in opencv
-* Fixed FWHM units and star center position in Dynamic PSF
-* Fixed bug in ECC algorithm
-* Fixed registration with various image size
-* Save focal and wcs data in the swap file using undo/redo
-* New candidates star detection algorithm to improve speed and accuracy
+* New Pixel Math tool
+* New plot tool to visualize and sort sequence based on any registration data field available
+* New tilt estimation feature (from GUI or command)
 * New SNR estimator in photometry analysis
 * New button for quick photometry
-* New command (and UI button) for tilt estimation
-* New command boxselect to specify a selection average
 * New commands seqcosme and seqcosme_cfa to remove deviant pixels on sequence, using file computed with find_hot
-* New choices of degrees of freedom (shift, affine or homography) for global registration
+* New command boxselect to specify a selection box with x, y, w and h
+* Improved candidates star detection speed and accuracy with a new algorithm
+* Reviewed GUI and improved responsiveness
+* Saving focal and WCS data in the swap file using undo/redo
+* WCS data is now updated after geometric transformations (mirror, rotate and crop)
 * Seqcrop command can now be used in scripts
 * Added autocropping of wide-field images, as well as using a selection for plate solving
-* WCS data is now updated after geometric transformations (mirror, rotate and crop)
+* Added choices of degrees of freedom (shift, similitude, affine or homography) for global registration
 * Added UI button to plot WCS grid and compass
 * Added user catalogue for astrometry annotation
 * Added GAIA EDR3 catalogue for astrometry
 * Added choice between clipboard and file for snapshot
-* Added equalize cfa for xtrans sensor
-* Allows to force debayer of SER files
+* Added equalize CFA for X-Trans sensor
+* Allowing debayer to be forced for SER files
+* Converted constant bitrate quality to constant quality rate settings in sequence export to film
+* Fixed memory leak in opencv that made registration of FITS files fail often
+* Fixed FWHM units and star center position in Dynamic PSF
+* Fixed global registration with various image sizes
+* Fixed bug in ECC algorithm
 
 v0.99.10.1 June 23, 2021
 Patch version to fix some issues

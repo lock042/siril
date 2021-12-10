@@ -49,6 +49,7 @@ static const SirilDialogEntry entries[] =
 		{"ImagePlateSolver_Dial", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"linearmatch_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"Median_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+		{"pixel_math_dialog", OTHER_DIALOG, FALSE, NULL},
 		{"resample_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"rgradient_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"rotation_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -87,7 +88,7 @@ static gboolean check_escape(GtkWidget *widget, GdkEventKey *event,
 void siril_open_dialog(gchar *id) {
 	gint x, y;
 	gboolean win_already_shown = FALSE;
-	GtkWindow *win = GTK_WINDOW(gtk_builder_get_object(builder, id));
+	GtkWindow *win = GTK_WINDOW(gtk_builder_get_object(gui.builder, id));
 
 	if (get_entry_by_id(id).type != INFORMATION_DIALOG) {
 		for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
@@ -112,7 +113,7 @@ void siril_open_dialog(gchar *id) {
 		gtk_window_set_position(win, GTK_WIN_POS_CENTER);
 	}
 	gtk_window_set_type_hint(win, GDK_WINDOW_TYPE_HINT_DIALOG);
-	gtk_window_set_transient_for(win, GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))));
+	gtk_window_set_transient_for(win, GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 }
 

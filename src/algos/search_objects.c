@@ -73,7 +73,7 @@ void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
 				force_to_refresh_catalogue_list();
-				redraw(com.cvport, REMAP_NONE);
+				redraw(REDRAW_OVERLAY);
 			}
 			gtk_entry_set_text(GTK_ENTRY(entry), "");
 			siril_close_dialog("search_objects");

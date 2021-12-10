@@ -149,6 +149,9 @@ src_files = [
   'gui/statistics_list.c',
   'gui/utils.c',
   
+  'pixelMath/pixel_math_runner.c',
+  'pixelMath/tinyexpr.c',
+  
   'registration/3stars.c',
   'registration/comet.c',
   'registration/global.c',
@@ -196,6 +199,7 @@ siril_gui = executable('siril', 'main.c', win_res,
                        c_args : siril_c_flag,
                        cpp_args : siril_cpp_flag,
                        install : true,
+                       win_subsystem : stable ? 'windows' : 'console',                       
                       )
 
 ################################################################################
