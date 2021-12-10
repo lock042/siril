@@ -15,3 +15,8 @@ source ~/.profile
 PIPENV_YES=1 ./gtk-osx-setup.sh
 $HOME/.new_local/bin/jhbuild bootstrap-gtk-osx-gimp
 cat ~/.profile
+
+if [ $? -ne 0 ]; then
+  echo "Installation of jhbuild failed.";
+  exit 1;
+fi
