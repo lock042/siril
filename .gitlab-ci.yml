@@ -1,4 +1,4 @@
-macos-build:
+macos-deps:
   stage: build
   tags:
     - shared-macos-amd64
@@ -18,3 +18,19 @@ macos-build:
       - ~/gtk
       - ~/.config
 
+macos-siril:
+  stage: deployed
+  tags:
+    - shared-macos-amd64
+  image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
+  before_script:
+    - source ~/.profile && jhbuild build $(jhbuild info siril|grep '^Requires:'|sed -e 's|^Requires:||' -e 's|gegl||'|tr -d ',')
+    - find  ~/gtk/source -type d -mindepth 1 -maxdepth 1 | xargs -I% rm -rf %/*
+  script:
+    - jhbuild build siril
+  cache:
+    key: setup-system
+    paths:
+      - ~/.new_local
+      - ~/gtk
+      - ~/.config
