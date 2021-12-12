@@ -53,6 +53,7 @@ static preferences pref_init = {
 				.w = 0,
 				.h = 0
 		},
+		.pan_position = -1,
 		.is_maximized = FALSE,
 		.prepro_cfa = FALSE,
 		.prepro_equalize_cfa = TRUE,

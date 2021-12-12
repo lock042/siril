@@ -1053,6 +1053,13 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 	return FALSE;
 }
 
+static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
+	com.pref.pan_position = gtk_paned_get_position(GTK_PANED(paned));
+	printf("position:%d\n", com.pref.pan_position);
+	writeinitfile();
+}
+
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
@@ -1157,6 +1164,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * Doing it in the glade file is a bad idea because they are called too many times during loading */
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
+	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 }
 
 /*****************************************************************************
@@ -1352,6 +1360,11 @@ void load_main_window_state() {
 			gtk_window_move(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), x, y);
 			gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
 		}
+	}
+
+	if (com.pref.pan_position > 0) {
+		gtk_paned_set_position(GTK_PANED(lookup_widget("main_panel")), com.pref.pan_position);
+		printf("set position at %d\n", com.pref.pan_position);
 	}
 }
 
