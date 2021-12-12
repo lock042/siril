@@ -2,9 +2,9 @@
 
 cd $HOME
 mkdir -p ~/project && mkdir -p ~/.config
-curl -L 'https://gitlab.com/free-astro/siril-macos-build/-/raw/mainline/jhbuildrc-gtk-osx-gimp-2.99' > ~/.config/jhbuildrc-custom
-curl 'https://gitlab.com/free-astro/siril-macos-build/-/raw/mainline/gtk-osx-setup.sh' > ~/project/gtk-osx-setup.sh
-chmod +x gtk-osx-setup.sh
+
+
+chmod +x ~/project/gtk-osx-setup.sh
 echo 'export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH:$HOME/.new_local/bin"' >> ~/.profile
 echo 'export ARCHFLAGS="-arch x86_64"' >> ~/.profile
 # PYTHON variable seems to be incorrectly set
