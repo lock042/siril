@@ -1,8 +1,6 @@
 #!/bin/bash
 
 cd $HOME
-mkdir -p ~/project && mkdir -p ~/.config
-
 
 chmod +x ~/project/gtk-osx-setup.sh
 echo 'export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH:$HOME/.new_local/bin"' >> ~/.profile
