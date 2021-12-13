@@ -9,6 +9,7 @@ macos-deps:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   before_script:
+    - echo "$(ls)"
     - mkdir -p ~/project && mkdir -p ~/.config
     - cd build/macOS/ || exit 1
     - cp -fv jhbuildrc-gtk-osx-siril ~/.config/jhbuildrc-custom || exit 1
