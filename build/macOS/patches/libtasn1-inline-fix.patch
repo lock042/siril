@@ -1,0 +1,12 @@
+diff --git a/lib/parser_aux.c b/lib/parser_aux.c
+index bb88ab9..92905dc 100644
+--- a/lib/parser_aux.c
++++ b/lib/parser_aux.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include <limits.h> // WORD_BIT
++#define _GL_EXTERN_INLINE_STDHEADER_BUG
+ 
+ #include "int.h"
+ #include "parser_aux.h"

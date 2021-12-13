@@ -1,0 +1,72 @@
+diff --git a/Source/cmake/FindOpenGL.cmake b/Source/cmake/FindOpenGL.cmake
+index e03a421..480c9e3 100644
+--- a/Source/cmake/FindOpenGL.cmake
++++ b/Source/cmake/FindOpenGL.cmake
+@@ -29,37 +29,4 @@
+ # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+-find_package(PkgConfig QUIET)
+ 
+-pkg_check_modules(PC_OPENGL gl)
+-
+-if (PC_OPENGL_FOUND)
+-    set(OPENGL_DEFINITIONS ${PC_OPENGL_CFLAGS_OTHER})
+-endif ()
+-
+-find_path(OPENGL_INCLUDE_DIRS NAMES GL/gl.h
+-    HINTS ${PC_OPENGL_INCLUDEDIR} ${PC_OPENGL_INCLUDE_DIRS}
+-)
+-
+-set(OPENGL_NAMES ${OPENGL_NAMES} gl GL)
+-find_library(OPENGL_LIBRARIES NAMES ${OPENGL_NAMES}
+-    HINTS ${PC_OPENGL_LIBDIR} ${PC_OPENGL_LIBRARY_DIRS}
+-)
+-
+-include(FindPackageHandleStandardArgs)
+-find_package_handle_standard_args(OpenGL REQUIRED_VARS OPENGL_INCLUDE_DIRS OPENGL_LIBRARIES
+-                                  FOUND_VAR OPENGL_FOUND)
+-
+-mark_as_advanced(OPENGL_INCLUDE_DIRS OPENGL_LIBRARIES)
+-
+-if (OPENGL_FOUND)
+-    # We don't use find_package for GLX because it is part of -lGL, unlike EGL. We need to
+-    # have OPENGL_INCLUDE_DIRS as part of the directories check_include_files() looks for in
+-    # case OpenGL is installed into a non-standard location.
+-    include(CMakePushCheckState)
+-    CMAKE_PUSH_CHECK_STATE()
+-    set(CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES} ${OPENGL_INCLUDE_DIRS})
+-    include(CheckIncludeFiles)
+-    check_include_files("GL/glx.h" GLX_FOUND)
+-    CMAKE_POP_CHECK_STATE()
+-endif ()
+diff --git a/Source/cmake/FindOpenGLES2.cmake b/Source/cmake/FindOpenGLES2.cmake
+index 70fd5e6..14627dd 100644
+--- a/Source/cmake/FindOpenGLES2.cmake
++++ b/Source/cmake/FindOpenGLES2.cmake
+@@ -4,25 +4,4 @@
+ #     OPENGLES2_LIBRARIES
+ #     OPENGLES2_DEFINITIONS
+ 
+-find_package(PkgConfig QUIET)
+ 
+-pkg_check_modules(PC_OPENGLES2 glesv2)
+-
+-if (PC_OPENGLES2_FOUND)
+-    set(OPENGLES2_DEFINITIONS ${PC_OPENGLES2_CFLAGS_OTHER})
+-endif ()
+-
+-find_path(OPENGLES2_INCLUDE_DIRS NAMES GLES2/gl2.h
+-    HINTS ${PC_OPENGLES2_INCLUDEDIR} ${PC_OPENGLES2_INCLUDE_DIRS}
+-)
+-
+-set(OPENGLES2_NAMES ${OPENGLES2_NAMES} glesv2 GLESv2)
+-find_library(OPENGLES2_LIBRARIES NAMES ${OPENGLES2_NAMES}
+-    HINTS ${PC_OPENGLES2_LIBDIR} ${PC_OPENGLES2_LIBRARY_DIRS}
+-)
+-
+-include(FindPackageHandleStandardArgs)
+-find_package_handle_standard_args(OpenGLES2 REQUIRED_VARS OPENGLES2_INCLUDE_DIRS OPENGLES2_LIBRARIES
+-                                  FOUND_VAR OPENGLES2_FOUND)
+-
+-mark_as_advanced(OPENGLES2_INCLUDE_DIRS OPENGLES2_LIBRARIES)
