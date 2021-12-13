@@ -20,7 +20,6 @@ macos-deps:
     - ./020-install_SDK.sh 1>/dev/null
     - ./100-setup_jhbuild.sh 1>/dev/null
     - ./110-setup_gtk_mac_bundler.sh 1>/dev/null
-    - ./120-bootstrap.sh 1>/dev/null
   cache:
     key: setup-jhbuild-v1
     paths:
