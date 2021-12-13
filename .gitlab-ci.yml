@@ -9,6 +9,10 @@ macos-deps:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   before_script:
+      # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/327#note_225643576
+    - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
+    - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
+    - if [ -d home/.config ]; then echo "Restoring ~/.config"; mv home/.config ~/; fi
     - mkdir -p ~/project && mkdir -p ~/.config
     - cp -fv build/macOS/jhbuildrc-gtk-osx-siril ~/.config/jhbuildrc-custom || exit 1
     - cp -Rf build/macOS/modulesets ~/project/ || exit 1
@@ -16,16 +20,19 @@ macos-deps:
     - cp -fv build/macOS/gtk-osx-setup.sh ~/project/gtk-osx-setup.sh || exit 1
   script:
     - ./build/macOS/010-install_python.sh 1>/dev/null
-    - echo "$(ls -alh ~)"
     #- ./build/macOS/020-install_SDK.sh 1>/dev/null
     #- ./build/macOS/100-setup_jhbuild.sh 1>/dev/null
     #- ./build/macOS/110-setup_gtk_mac_bundler.sh 1>/dev/null
+  after_script:
+    - mkdir -p home && mv ~/.new_local home
+    - mkdir -p home && mv ~/gtk home
+    - mkdir -p home && mv ~/.config home
   cache:
     key: setup-v1
     paths:
-      - ~/.new_local
-      - ~/gtk
-      - ~/.config
+      - home/.new_local
+      - home/gtk
+      - home/.config
       
 macos-bootstrap:
   stage: bootstrap
@@ -33,15 +40,22 @@ macos-bootstrap:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   before_script:
+    - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
+    - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
+    - if [ -d home/.config ]; then echo "Restoring ~/.config"; mv home/.config ~/; fi
     - cd build/macOS/ || exit 1
   script:
     - ./120-bootstrap.sh 1>/dev/null
+  after_script:
+    - mkdir -p home && mv ~/.new_local home
+    - mkdir -p home && mv ~/gtk home
+    - mkdir -p home && mv ~/.config home
   cache:
     key: setup-v1
     paths:
-      - ~/.new_local
-      - ~/gtk
-      - ~/.config
+      - home/.new_local
+      - home/gtk
+      - home/.config
           
 macos-siril:
   stage: deploy
@@ -52,13 +66,20 @@ macos-siril:
     - macos-deps
     - macos-bootstrap
   before_script:
+    - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
+    - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
+    - if [ -d home/.config ]; then echo "Restoring ~/.config"; mv home/.config ~/; fi
     - source ~/.profile && jhbuild build $(jhbuild info siril|grep '^Requires:'|sed -e 's|^Requires:||' -e 's|gegl||'|tr -d ',')
     - find  ~/gtk/source -type d -mindepth 1 -maxdepth 1 | xargs -I% rm -rf %/*
   script:
     - jhbuild build siril
+  after_script:
+    - mkdir -p home && mv ~/.new_local home
+    - mkdir -p home && mv ~/gtk home
+    - mkdir -p home && mv ~/.config home
   cache:
     key: setup-v1
     paths:
-      - ~/.new_local
-      - ~/gtk
-      - ~/.config
+      - home/.new_local
+      - home/gtk
+      - home/.config
