@@ -16,6 +16,7 @@ macos-deps:
     - cp -fv build/macOS/gtk-osx-setup.sh ~/project/gtk-osx-setup.sh || exit 1
   script:
     - ./build/macOS/010-install_python.sh 1>/dev/null
+    - echo "$(ls -alh)"
     #- ./build/macOS/020-install_SDK.sh 1>/dev/null
     #- ./build/macOS/100-setup_jhbuild.sh 1>/dev/null
     #- ./build/macOS/110-setup_gtk_mac_bundler.sh 1>/dev/null
