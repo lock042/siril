@@ -12,7 +12,7 @@ macos-deps:
       # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/327#note_225643576
     - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
     - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
-    - if [ -d home/.config ]; then echo "Restoring ~/.config"; mv home/.config ~/; fi
+    - if [ -d home/.config ]; then echo "Restoring ~/.config"; rm -Rf ~/.config; mv home/.config ~/; fi
     - mkdir -p ~/project && mkdir -p ~/.config
     - cp -fv build/macOS/jhbuildrc-gtk-osx-siril ~/.config/jhbuildrc-custom || exit 1
     - cp -Rf build/macOS/modulesets ~/project/ || exit 1
@@ -42,10 +42,9 @@ macos-bootstrap:
   before_script:
     - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
     - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
-    - if [ -d home/.config ]; then echo "Restoring ~/.config"; mv home/.config ~/; fi
-    - cd build/macOS/ || exit 1
+    - if [ -d home/.config ]; then echo "Restoring ~/.config"; rm -Rf ~/.config; mv home/.config ~/; fi
   script:
-    - ./120-bootstrap.sh 1>/dev/null
+    - ./build/macOS/120-bootstrap.sh 1>/dev/null
   after_script:
     - mkdir -p home && mv ~/.new_local home
     - mkdir -p home && mv ~/gtk home
@@ -68,7 +67,7 @@ macos-siril:
   before_script:
     - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
     - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
-    - if [ -d home/.config ]; then echo "Restoring ~/.config"; mv home/.config ~/; fi
+    - if [ -d home/.config ]; then echo "Restoring ~/.config"; rm -Rf ~/.config; mv home/.config ~/; fi
     - source ~/.profile && jhbuild build $(jhbuild info siril|grep '^Requires:'|sed -e 's|^Requires:||' -e 's|gegl||'|tr -d ',')
     - find  ~/gtk/source -type d -mindepth 1 -maxdepth 1 | xargs -I% rm -rf %/*
   script:
