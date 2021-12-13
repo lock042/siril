@@ -20,15 +20,15 @@ macos-deps:
     - cp -fv build/macOS/gtk-osx-setup.sh ~/project/gtk-osx-setup.sh || exit 1
   script:
     - ./build/macOS/010-install_python.sh 1>/dev/null
-    #- ./build/macOS/020-install_SDK.sh 1>/dev/null
-    #- ./build/macOS/100-setup_jhbuild.sh 1>/dev/null
-    #- ./build/macOS/110-setup_gtk_mac_bundler.sh 1>/dev/null
+    - ./build/macOS/020-install_SDK.sh 1>/dev/null
+    - ./build/macOS/100-setup_jhbuild.sh 1>/dev/null
+    - ./build/macOS/110-setup_gtk_mac_bundler.sh 1>/dev/null
   after_script:
     - mkdir -p home && mv ~/.new_local home
     - mkdir -p home && mv ~/gtk home
     - mkdir -p home && mv ~/.config home
   cache:
-    key: setup-v1
+    key: setup-v2
     paths:
       - home/.new_local
       - home/gtk
@@ -51,7 +51,7 @@ macos-bootstrap:
     - mkdir -p home && mv ~/gtk home
     - mkdir -p home && mv ~/.config home
   cache:
-    key: setup-v1
+    key: setup-v2
     paths:
       - home/.new_local
       - home/gtk
@@ -78,7 +78,7 @@ macos-siril:
     - mkdir -p home && mv ~/gtk home
     - mkdir -p home && mv ~/.config home
   cache:
-    key: setup-v1
+    key: setup-v2
     paths:
       - home/.new_local
       - home/gtk
