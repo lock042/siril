@@ -51,7 +51,7 @@ static int readinitfile() {
 
 	config_init(&config);
 #if defined(_WIN32)
-	config_file = g_win32_locale_filename_from_utf8(name);
+	config_file = g_win32_locale_filename_from_utf8(com.initfile);
 	return ret;
 #else
 	config_file = g_strdup(com.initfile);
@@ -626,7 +626,7 @@ int writeinitfile() {
 	_save_misc(&config, root);
 
 #if defined(_WIN32)
-	config_file = g_win32_locale_filename_from_utf8(name);
+	config_file = g_win32_locale_filename_from_utf8(com.initfile);
 	return ret;
 #else
 	config_file = g_strdup(com.initfile);
