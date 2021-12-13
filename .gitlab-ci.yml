@@ -10,7 +10,7 @@ macos-deps:
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   before_script:
     - echo "$(pwd)"
-    - cd ~/cache
+    - cd ~/cache/free-astro
     - echo "$(ls -alh)"
     - mkdir -p ~/project && mkdir -p ~/.config
     - cd build/macOS/ || exit 1
