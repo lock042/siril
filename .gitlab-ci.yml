@@ -9,21 +9,16 @@ macos-deps:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   before_script:
-    - echo "$(pwd)"
-    - cd ~/cache/free-astro/siril/setup-v1
-    - unzip cache.zip
-    - echo "$(ls -alh)"
     - mkdir -p ~/project && mkdir -p ~/.config
-    - cd build/macOS/ || exit 1
-    - cp -fv jhbuildrc-gtk-osx-siril ~/.config/jhbuildrc-custom || exit 1
+    - cp -fv build/macOS/jhbuildrc-gtk-osx-siril ~/.config/jhbuildrc-custom || exit 1
     - cp -Rf modulesets ~/project/ || exit 1
     - cp -Rf patches ~/project/ || exit 1
     - cp -fv gtk-osx-setup.sh ~/project/gtk-osx-setup.sh || exit 1
   script:
-    - ./010-install_python.sh 1>/dev/null
-    - ./020-install_SDK.sh 1>/dev/null
-    - ./100-setup_jhbuild.sh 1>/dev/null
-    - ./110-setup_gtk_mac_bundler.sh 1>/dev/null
+    - ./build/macOS/010-install_python.sh 1>/dev/null
+    #- ./build/macOS/020-install_SDK.sh 1>/dev/null
+    #- ./build/macOS/100-setup_jhbuild.sh 1>/dev/null
+    #- ./build/macOS/110-setup_gtk_mac_bundler.sh 1>/dev/null
   cache:
     key: setup-v1
     paths:
