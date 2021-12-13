@@ -7,8 +7,8 @@ macos-deps:
     - mkdir -p ~/project && mkdir -p ~/.config
     - cd build/macOS/ || exit 1
     - cp -fv jhbuildrc-gtk-osx-siril ~/.config/jhbuildrc-custom || exit 1
-    - cp -Rf modulesets ~/project/
-    - cp -Rf patches ~/project/
+    - cp -Rf modulesets ~/project/ || exit 1
+    - cp -Rf patches ~/project/ || exit 1
     - cp -fv gtk-osx-setup.sh ~/project/gtk-osx-setup.sh || exit 1
   script:
     - ./010-install_python.sh 1>/dev/null
@@ -16,6 +16,7 @@ macos-deps:
     - ./100-setup_jhbuild.sh 1>/dev/null
     - ./110-setup_gtk_mac_bundler.sh 1>/dev/null
     - ./120-bootstrap.sh 1>/dev/null
+  timeout: 4h
   cache:
     key: setup-system
     paths:
