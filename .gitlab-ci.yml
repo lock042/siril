@@ -1,5 +1,10 @@
+stages:
+  - jhbuild-build
+  - bootstrap
+  - deploy
+  
 macos-deps:
-  stage: build
+  stage: jhbuild-build
   tags:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
@@ -16,14 +21,26 @@ macos-deps:
     - ./100-setup_jhbuild.sh 1>/dev/null
     - ./110-setup_gtk_mac_bundler.sh 1>/dev/null
     - ./120-bootstrap.sh 1>/dev/null
-  timeout: 4h
   cache:
-    key: setup-system
+    key: setup-jhbuild-v1
     paths:
       - ~/.new_local
       - ~/gtk
       - ~/.config
-
+      
+macos-bootstreap.sh
+  stage: bootstreap
+  tags:
+    - shared-macos-amd64
+  script:
+    - ./120-bootstrap.sh 1>/dev/null
+  cache:
+    key: bootstrap-v1
+    paths:
+      - ~/.new_local
+      - ~/gtk
+      - ~/.config
+          
 macos-siril:
   stage: deploy
   tags:
@@ -35,7 +52,9 @@ macos-siril:
   script:
     - jhbuild build siril
   cache:
-    key: setup-system
+    key: 
+      - setup-jhbuild-v1
+      - bootstrap-v1
     paths:
       - ~/.new_local
       - ~/gtk
