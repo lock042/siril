@@ -31,6 +31,7 @@ macos-bootstrap:
   stage: bootstrap
   tags:
     - shared-macos-amd64
+  image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
   script:
     - ./120-bootstrap.sh 1>/dev/null
   cache:
