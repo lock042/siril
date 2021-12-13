@@ -30,7 +30,7 @@ macos-deps:
     - mkdir -p home && mv ~/.config home
     - mkdir -p home && mv ~/.profile home
   cache:
-    key: setup-v2
+    key: setup-v3
     paths:
       - home/.new_local
       - home/gtk
@@ -55,7 +55,7 @@ macos-bootstrap:
     - mkdir -p home && mv ~/.config home
     - mkdir -p home && mv ~/.profile home
   cache:
-    key: setup-v2
+    key: setup-v3
     paths:
       - home/.new_local
       - home/gtk
@@ -85,7 +85,7 @@ macos-siril:
     - mkdir -p home && mv ~/.config home
     - mkdir -p home && mv ~/.profile home
   cache:
-    key: setup-v2
+    key: setup-v3
     paths:
       - home/.new_local
       - home/gtk
