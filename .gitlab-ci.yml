@@ -11,6 +11,7 @@ macos-deps:
   before_script:
     - echo "$(pwd)"
     - cd ~/cache/free-astro/siril/setup-v1
+    - unzip cache.zip
     - echo "$(ls -alh)"
     - mkdir -p ~/project && mkdir -p ~/.config
     - cd build/macOS/ || exit 1
