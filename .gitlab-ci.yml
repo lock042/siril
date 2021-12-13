@@ -55,9 +55,7 @@ macos-siril:
   script:
     - jhbuild build siril
   cache:
-    key: 
-      - setup-jhbuild-v1
-      - bootstrap-v1
+    key: bootstrap-v1
     paths:
       - ~/.new_local
       - ~/gtk
