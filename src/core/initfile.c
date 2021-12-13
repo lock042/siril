@@ -52,7 +52,6 @@ static int readinitfile() {
 	config_init(&config);
 #if defined(_WIN32)
 	config_file = g_win32_locale_filename_from_utf8(com.initfile);
-	return ret;
 #else
 	config_file = g_strdup(com.initfile);
 #endif
@@ -607,7 +606,7 @@ static int siril_config_write_file(config_t *config, const char *filename) {
 
 int writeinitfile() {
 	int ret = 0;
-	gchar config_file;
+	gchar *config_file;
 	config_t config;
 	config_setting_t *root;
 
