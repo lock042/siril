@@ -13,7 +13,7 @@ macos-deps:
     - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
     - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
     - if [ -d home/.config ]; then echo "Restoring ~/.config"; rm -Rf ~/.config; mv home/.config ~/; fi
-    - if [ -d home/.profile ]; then echo "Restoring ~/.profile"; rm -Rf ~/.profile; mv home/.profile ~/; fi
+    - if [ -f home/.profile ]; then echo "Restoring ~/.profile"; rm -Rf ~/.profile; mv home/.profile ~/; fi
     - mkdir -p ~/project && mkdir -p ~/.config
     - cp -fv build/macOS/jhbuildrc-gtk-osx-siril ~/.config/jhbuildrc-custom || exit 1
     - cp -Rf build/macOS/modulesets ~/project/ || exit 1
@@ -46,7 +46,7 @@ macos-bootstrap:
     - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
     - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
     - if [ -d home/.config ]; then echo "Restoring ~/.config"; rm -Rf ~/.config; mv home/.config ~/; fi
-    - if [ -d home/.profile ]; then echo "Restoring ~/.profile"; rm -Rf ~/.profile; mv home/.profile ~/; fi
+    - if [ -f home/.profile ]; then echo "Restoring ~/.profile"; rm -Rf ~/.profile; mv home/.profile ~/; fi
   script:
     - ./build/macOS/120-bootstrap.sh 1>/dev/null
   after_script:
@@ -74,7 +74,7 @@ macos-siril:
     - if [ -d home/.new_local ]; then echo "Restoring ~/.new_local"; mv home/.new_local ~/; fi
     - if [ -d home/gtk ]; then echo "Restoring ~/gtk"; mv home/gtk ~/; fi
     - if [ -d home/.config ]; then echo "Restoring ~/.config"; rm -Rf ~/.config; mv home/.config ~/; fi
-    - if [ -d home/.profile ]; then echo "Restoring ~/.profile"; rm -Rf ~/.profile; mv home/.profile ~/; fi
+    - if [ -f home/.profile ]; then echo "Restoring ~/.profile"; rm -Rf ~/.profile; mv home/.profile ~/; fi
     - source ~/.profile && jhbuild build $(jhbuild info siril|grep '^Requires:'|sed -e 's|^Requires:||' -e 's|gegl||'|tr -d ',')
     - find  ~/gtk/source -type d -mindepth 1 -maxdepth 1 | xargs -I% rm -rf %/*
   script:
