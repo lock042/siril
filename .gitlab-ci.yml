@@ -36,20 +36,17 @@ macos-bootstrap:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.bootstrap --destination $CI_REGISTRY_IMAGE:build-bootstrap --cache=true --cache-ttl=120h
-  needs: ["build-jhbuild"]
+  needs: ["macos-deps"]
           
 macos-siril:
   stage: deploy
   tags:
     - shared-macos-amd64
   image: macos-11-xcode-12 # https://docs.gitlab.com/ee/ci/runners/build_cloud/macos/environment.html
-  dependencies:
-    - macos-deps
-    - macos-bootstrap
   before_script:
     - source ~/.profile && jhbuild build $(jhbuild info siril|grep '^Requires:'|sed -e 's|^Requires:||' -e 's|gegl||'|tr -d ',')
     - find  ~/gtk/source -type d -mindepth 1 -maxdepth 1 | xargs -I% rm -rf %/*
   script:
     - jhbuild build siril
-  needs: ["build-bootstrap"]
+  needs: ["macos-bootstrap"]
   
