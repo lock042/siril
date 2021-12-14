@@ -51,6 +51,9 @@
   <plist>${project}/Info.plist</plist>
 
   <main-binary>${prefix}/bin/siril</main-binary>
+  <!-- siril additional binaries -->
+  <binary dest="${bundle}/Contents/MacOS">${prefix}/bin/siril-cli</binary>
+
 
   <!-- Copy in the input methods. Dunno if they actually work with
        OSX. Note the ${gtkdir} macro, which expands to the correct
