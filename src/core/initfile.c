@@ -42,7 +42,6 @@ static const char *keywords[] = { "working-directory", "libraw-settings",
 
 static int readinitfile() {
 	config_t config;
-	gchar *config_file;
 	const char *dir = NULL;
 	GSList *list = NULL;
 
@@ -50,17 +49,11 @@ static int readinitfile() {
 		return 1;
 
 	config_init(&config);
-#if defined(_WIN32)
-	config_file = g_win32_locale_filename_from_utf8(com.initfile);
-#else
-	config_file = g_strdup(com.initfile);
-#endif
 
-	if (config_read_file(&config, config_file) == CONFIG_FALSE) {
-		g_free(config_file);
+	if (config_read_file(&config, com.initfile) == CONFIG_FALSE) {
 		return 1;
 	}
-	siril_log_message(_("Loading init file: '%s'\n"), config_file);
+	siril_log_message(_("Loading init file: '%s'\n"), com.initfile);
 
 	/* Keeping the up-scaled files poses a few problems with sequence
 	 * filtering changing and user comprehension, so for now it can only be
@@ -605,8 +598,6 @@ static int siril_config_write_file(config_t *config, const char *filename) {
  */
 
 int writeinitfile() {
-	int ret = 0;
-	gchar *config_file;
 	config_t config;
 	config_setting_t *root;
 
@@ -624,20 +615,13 @@ int writeinitfile() {
 	_save_photometry(&config, root);
 	_save_misc(&config, root);
 
-#if defined(_WIN32)
-	config_file = g_win32_locale_filename_from_utf8(com.initfile);
-	return ret;
-#else
-	config_file = g_strdup(com.initfile);
-#endif
-
-	if (!siril_config_write_file(&config, config_file)) {
+	if (!siril_config_write_file(&config, com.initfile)) {
 		fprintf(stderr, "Error while writing file.\n");
-		ret = 1;
+		config_destroy(&config);
+		return 1;
 	}
 	config_destroy(&config);
-	g_free(config_file);
-	return ret;
+	return 0;
 }
 
 int checkinitfile() {
@@ -659,7 +643,12 @@ int checkinitfile() {
 	}
 	g_free(pathname);
 
-	com.initfile = config_file;
+#ifdef _WIN32
+	com.initfile = g_win32_locale_filename_from_utf8(config_file);
+#else
+	com.initfile = g_strdup(config_file);
+#endif
+	g_free(config_file);
 
 	if (readinitfile()) {
 		/* init file does not exist, so we create it */
