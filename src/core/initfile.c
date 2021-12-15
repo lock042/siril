@@ -58,6 +58,7 @@ static int readinitfile() {
 #endif
 
 	if (config_read_file(&config, com.initfile) == CONFIG_FALSE) {
+		config_destroy(&config);
 		return 1;
 	}
 	siril_log_message(_("Loading init file: '%s'\n"), com.initfile);
