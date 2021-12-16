@@ -646,6 +646,7 @@ int checkinitfile() {
 		} else {
 			g_fprintf(stderr, "Failed to create config dir %s!\n", pathname);
 			g_free(pathname);
+			g_free(config_file);
 			return 1;
 		}
 	}
