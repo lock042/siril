@@ -804,9 +804,9 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	background_neutralize(&gfit, black_selection);
 	delete_selected_area();
 
+	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
 	redraw_previews();
-	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
 }
 
