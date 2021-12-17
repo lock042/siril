@@ -42,8 +42,6 @@ Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm
 
 [Files]
 Source: "{#RootDir}\siril\bin\siril.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
-; Source: "C:\Users\Cyril\Pictures\SiriL_Travail\*"; DestDir: "{%USERPROFILE}\Pictures\"; Languages: fr; Flags: ignoreversion recursesubdirs createallsubdirs
-; Source: "C:\Users\Cyril\Pictures\SiriL_Work\*"; DestDir: "{%USERPROFILE}\Pictures\"; Languages: en; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RootDir}\siril\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RootDir}\siril\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RootDir}\siril\share\*"; DestDir: "{app}\share"; Flags: ignoreversion recursesubdirs createallsubdirs
