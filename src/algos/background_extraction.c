@@ -769,7 +769,8 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkBkgSeq")))
+	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(lookup_widget("checkBkgSeq"));
+	if (gtk_toggle_button_get_active(seq_button)
 			&& sequence_is_loaded()) {
 		struct background_data *args = malloc(sizeof(struct background_data));
 
@@ -797,6 +798,8 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "bkg_";
 		args->seq = &com.seq;
+		/* now we uncheck the button */
+		gtk_toggle_button_set_active(seq_button, FALSE);
 		apply_background_extraction_to_sequence(args);
 	} else {
 		if (com.grad_samples == NULL) {
