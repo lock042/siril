@@ -122,9 +122,7 @@ but you can also install SIRIL from source using homebrew.
 SIRIL on Microsoft Windows
 ----------------
 SIRIL is supported on Microsoft Windows since version 0.9.8.  We provide binary files
-in two formats:
- * an installer.
- * an archive (zip file).
+in an installer.
 
 You can also build it from source yourself with msys2, it is documented
 [here](https://free-astro.org/index.php?title=Siril:install#Installing_on_Windows).
@@ -160,7 +158,10 @@ FITS is the most commonly used digital file format in astronomy.
 Since FITS is a container and doesn't specify the order and size of data, it's
 useful to fix it at some point. Currently, SIRIL uses 32-bit floating point per
 channel values (TFLOAT), and images are stored channel after channel on a
-bottom-to-top, left-to-right order.
+bottom-to-top, left-to-right order. The convention chosen is the same as professional 
+tools, like ds9 (Harvard Smithsonian Center for Astrophysics) and fv
+(FITS viewer from NASA) that store images bottom-up too. More details are 
+described [here](https://free-astro.org/index.php?title=Siril:FITS_orientation).
 
 All files imported and converted in SIRIL or files exported by SIRIL are in this
 FITS format, except sequence files like SER and films, which are read from the
