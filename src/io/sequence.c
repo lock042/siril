@@ -1726,6 +1726,8 @@ int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_fl
 	unsigned int memory_per_scaled_image_MB = memory_per_scaled_image / BYTES_IN_A_MB;
 	if (memory_per_scaled_image_MB == 0)
 		memory_per_scaled_image_MB = 1;
+	if (memory_per_orig_image_MB == 0)
+		memory_per_orig_image_MB = 1;
 	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_scaled_image_MB, max_memory_MB);
 	if (MB_per_orig_image)
 		*MB_per_orig_image = memory_per_orig_image_MB;
