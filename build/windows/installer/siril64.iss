@@ -5,7 +5,7 @@
 
 #define MyAppName "SiriL"
 #define MyAppExeName "siril.exe"
-#define RootDir "C:\GitLab-Runner\builds\free-astro\siril"
+#define RootDir ROOTDIR
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -20,7 +20,7 @@ AppSupportURL=https://www.siril.org/
 AppUpdatesURL=https://www.siril.org/
 DefaultDirName={commonpf}\SiriL
 DefaultGroupName=SiriL
-OutputDir=_Output
+OutputDir={#OUTPUT}
 OutputBaseFilename=siril-{#MAJOR}.{#MINOR}.{#MICRO}-setup
 Compression=lzma
 SolidCompression=yes
@@ -31,11 +31,13 @@ WizardImageFile=windows-installer-intro-big.bmp
 WizardImageStretch=yes
 WizardSmallImageFile=siril.bmp
 
+LicenseFile=gpl-3.0.rtf
+
 UninstallDisplayIcon={app}\bin\{#MyAppExeName}
 
 [Languages]
-Name: "en"; MessagesFile: "compiler:Default.isl"; InfoBeforeFile: "texts\About-EN.rtf"; InfoAfterFile: "texts\Scripts-EN.rtf"
-Name: "fr"; MessagesFile: "compiler:Languages\French.isl"; InfoBeforeFile: "texts\About-FR.rtf"; InfoAfterFile: "texts\Scripts-FR.rtf"
+Name: "en"; MessagesFile: "compiler:Default.isl";
+Name: "fr"; MessagesFile: "compiler:Languages\French.isl";
 
 [Tasks]
 Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
@@ -60,4 +62,64 @@ Root: HKCR; Subkey: "{#MyAppName}\shell\open\command";  ValueData: """{app}\bin\
 [Icons]
 Name: "{group}\SiriL"; Filename: "{app}\bin\{#MyAppExeName}";
 Name: "{group}\{cm:UninstallProgram,SiriL}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\SiriL"; Filename: "{app}\bin\{#MyAppExeName}"; Tasks: desktopicon; 
+Name: "{commondesktop}\SiriL"; Filename: "{app}\bin\{#MyAppExeName}"; Tasks: desktopicon;
+
+[Run]
+Filename: "{app}\bin\siril.exe"; Description: "{cm:LaunchProgram,SiriL}"; Flags: postinstall waituntilidle skipifsilent
+Filename: "{code:getFSURL}"; Description: "{code:getFSstring}"; Flags: postinstall nowait shellexec unchecked
+
+[Code]
+function getFSURL(s : string) : string;
+    var langage : string;
+begin
+    case ActiveLanguage() of  
+        'en' : langage := 'https://siril.org/tutorials/first-steps/';
+        'fr' : langage := 'https://siril.org/fr/tutorials/first-steps/';
+    end;
+    Result := langage;
+end;
+
+function getFSstring(s : string) : string;
+    var langage : string;
+begin
+    case ActiveLanguage() of  
+        'en' : langage := 'Visit our First Steps page';
+        'fr' : langage := 'Ouvrir la page Premiers Pas';
+    end;
+    Result := langage;
+end;
+
+procedure OpenBrowser(Url: string);
+var
+  ErrorCode: Integer;
+begin
+  ShellExec('open', Url, '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
+end;
+
+procedure DonateClick(Sender: TObject);
+begin
+    case ActiveLanguage() of  
+        'en' : OpenBrowser('https://siril.org/donate/');
+        'fr' : OpenBrowser('https://siril.org/fr/donate/');
+    end;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+var
+  Button: TButton;
+begin
+  if CurPageID = wpFinished then
+    begin
+      Button := TButton.Create(WizardForm);
+      Button.Parent := WizardForm;
+      Button.Left := ScaleX(16);
+      Button.Top := WizardForm.NextButton.Top;
+      Button.Width := WizardForm.NextButton.Width;
+      Button.Height := WizardForm.NextButton.Height;
+      case ActiveLanguage() of  
+          'en' : Button.Caption := 'Donate';
+          'fr' : Button.Caption := 'Dons';
+      end;
+      Button.OnClick := @DonateClick;
+    end;
+end;
