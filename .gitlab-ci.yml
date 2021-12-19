@@ -374,5 +374,5 @@ win-installer:
     - installer.log
   script:
     - choco install innosetup -y
-    - powershell -File .\build\windows\siril-win-installer.ps1 2>&1 > installer.log
+    - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-nightly"]
