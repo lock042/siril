@@ -87,7 +87,7 @@ deps-debian:
     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
   script:
     - cd _Criterion
-    - patch --binary -p1 < ../build/criterion.patch
+    - patch --binary -p1 < ../build/windows/criterion.patch
     - meson _build --prefix ${INSTALL_PREFIX}
     - ninja -C _build install
   needs: ["build-image"]
