@@ -63,3 +63,6 @@ Root: HKCR; Subkey: "{#MyAppName}\shell\open\command";  ValueData: """{app}\bin\
 Name: "{group}\SiriL"; Filename: "{app}\bin\{#MyAppExeName}";
 Name: "{group}\{cm:UninstallProgram,SiriL}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\SiriL"; Filename: "{app}\bin\{#MyAppExeName}"; Tasks: desktopicon; 
+
+[Run]
+Filename: "{app}\bin\siril.exe"; Description: "{cm:LaunchProgram,SiriL}"; Flags: postinstall nowait skipifsilent
