@@ -357,7 +357,7 @@ cppcheck:
 win-installer:
   only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null
+      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
   variables:
     CHERE_INVOKING: "yes"
   tags:
