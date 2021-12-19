@@ -7,24 +7,25 @@ Get-ChildItem meson.build |
     }
 
 $VERSIONSTR=$MAJOR_VERSION+'.'+$MINOR_VERSION+'.'+$MICRO_VERSION
-Write-Output $VERSIONSTR
+Write-Output ('SiriL Version: '+$VERSIONSTR)
 
 #storing cwd for later use
 $RootDir=(Get-Item .).FullName
-Write-Output $RootDir
+Write-Output ('Root Directory: '+$RootDir)
 
-# Preparing installer with Innoset
-cd build\windows\installer
-$INNOPATH="c:\program files (x86)\inno setup 6\iscc.exe"
-Write-Output $INNOPATH
-#Check for existence of icss.exe, otherwise, throw erroe message and exit
-if (-not(Test-Path -Path $INNOPATH -PathType Leaf)) {
-    Write-Host "Innosetup exe was not found at $INNOPATH"
+# Checking Inno-setup install
+$a="path to executable: "
+$INNOPATH=(iscc --shimgen-noop | Select-String $a) -split $a | select-object -Last 1 | ForEach-Object Trim
+Write-Output ('Inno-setup executable: '+$INNOPATH)
+#Check for existence of iscc.exe, otherwise, throw error message and exit
+if (!$INNOPATH) {
+    Write-Host "Inno-setup exe was not found on your system"
     Write-Host "Aborting"
     exit 1
 }
 
 # Running inno setup with parameters
+cd build\windows\installer
 $Output="..\..\..\WinInstaller"  #location to store installer
 
 $Param1="-DVERSION="+$VERSIONSTR
@@ -35,7 +36,7 @@ $Param3="-DROOTDIR="+$RootDir
 
 # Test if the installer was created and return success/failure
 cd $Output
-Write-Output (Get-Item .).FullName
+Write-Output ('Installer package directory: '+(Get-Item .).FullName)
 $EXE_ROOT = 'siril-'+$VERSIONSTR+'-setup'
 $EXE_NAME = $EXE_ROOT+'.exe'
 $SHA256_NAME = $EXE_ROOT+'.SHA256SUMS'
@@ -47,4 +48,5 @@ If (Test-Path -Path $EXE_NAME ) {
 } else {
     exit 1
 }
+
 
