@@ -31,6 +31,8 @@ WizardImageFile=windows-installer-intro-big.bmp
 WizardImageStretch=yes
 WizardSmallImageFile=siril.bmp
 
+LicenseFile=gpl-3.0.rtf
+
 UninstallDisplayIcon={app}\bin\{#MyAppExeName}
 
 [Languages]
