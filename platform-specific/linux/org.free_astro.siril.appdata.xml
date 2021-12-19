@@ -88,6 +88,32 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+      <release version="1.0.0" date="">
+      <url type="details">https://www.siril.org/.................</url>
+      <description>
+        <p>
+          First release of the 1.0.0 series which prominently features
+          the 32bits processing and new look and feel.
+          The most outstanding changes are:
+        </p>
+        <ul>
+          <li>
+          ..................
+          </li>
+          <li>
+          ....................
+          </li>
+          <li>
+          ......................
+          </li>
+          <li>
+          .........................
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.0.0~rc2" date="2021-12-08" />
+    <release version="1.0.0~rc1" date="2021-11-20" />
     <release version="0.99.10.1" date="2021-06-23" />
     <release version="0.99.10" date="2021-06-11" />
     <release version="0.99.8.1" date="2021-02-13" />
