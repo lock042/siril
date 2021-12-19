@@ -5,7 +5,7 @@
 
 #define MyAppName "SiriL"
 #define MyAppExeName "siril.exe"
-#define RootDir "C:\GitLab-Runner\builds\free-astro\siril"
+#define RootDir ROOTDIR
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -20,7 +20,7 @@ AppSupportURL=https://www.siril.org/
 AppUpdatesURL=https://www.siril.org/
 DefaultDirName={commonpf}\SiriL
 DefaultGroupName=SiriL
-OutputDir=_Output
+OutputDir={#OUTPUT}
 OutputBaseFilename=siril-{#MAJOR}.{#MINOR}.{#MICRO}-setup
 Compression=lzma
 SolidCompression=yes

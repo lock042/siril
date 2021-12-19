@@ -357,7 +357,7 @@ cppcheck:
 win-installer:
   only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null
+      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null || CI_COMMIT_BRANCH =~ /wininstall/
   variables:
     CHERE_INVOKING: "yes"
   tags:
@@ -370,10 +370,9 @@ win-installer:
     when: always
     expire_in: 1 week
     paths:
-    - build/windows/installer/_Output
+    - WinInstaller
     - installer.log
   script:
-    - Get-Location
     - choco install innosetup -y
     - powershell -File .\build\windows\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-nightly"]
