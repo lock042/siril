@@ -92,17 +92,16 @@ So far, we are using submodule for the use of some algorithms. You must therefor
 Building SIRIL for GNU/Linux
 ----------------------------
 The process now uses the meson build system that is faster and more modern than autotools.
-However, meson build is still experimental so we encourage you to report bugs.
 Run with the following commands:
 
     meson --buildtype release _build 
     ninja -C _build
-    sudo ninja -C _build install
+    ninja -C _build install
     
 To update Siril, run the following commands
     
     git pull --recurse-submodules
-    sudo ninja -C _build install
+    ninja -C _build install
 
 
 Note that a binary package for stable version of SIRIL is maintained for Debian. 
