@@ -182,7 +182,7 @@ Useful links
 ------------
  * [Project Homepage](https://www.siril.org)
  * [Documentation](https://free-astro.org/siril_doc-en)
- * [Forum](https://discuss.pixls.us/c/software/siril)
+ * [Forum](https://discuss.pixls.us/siril)
  * [Releases and Downloads](https://free-astro.org/index.php?title=Siril:releases)
  * [Report a bug](https://gitlab.com/free-astro/siril/issues)
  * [Supported commands](https://free-astro.org/index.php?title=Siril:Commands)
