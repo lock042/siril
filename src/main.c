@@ -320,8 +320,8 @@ static void siril_app_activate(GApplication *application) {
 	if (!com.headless) {
 		gtk_builder_connect_signals(gui.builder, NULL);
 #ifdef OS_OSX
-	GtkSettings *settings = gtk_settings_get_default();
-	g_object_set(settings, "gtk-enable-animations", FALSE, NULL);
+		GtkSettings *settings = gtk_settings_get_default();
+		g_object_set(settings, "gtk-enable-animations", FALSE, NULL);
 #endif
 		initialize_all_GUI(supported_files);
 	}
