@@ -888,6 +888,7 @@ static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3
 
 
 static void draw_wcs_grid(const draw_data_t* dd) {
+#ifdef HAVE_WCSLIB
 	if (!com.show_wcs_grid) return;
 	fits *fit = &gfit;
 	if (!has_wcs(fit)) return;
@@ -1105,6 +1106,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	g_slist_free_full(existingtags, (GDestroyNotify) g_free);
 
 	draw_compass(dd);
+#endif
 }
 
 static gdouble x_circle(gdouble x, gdouble radius) {

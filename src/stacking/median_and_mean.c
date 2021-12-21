@@ -107,6 +107,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 
 			/* open input images */
 			if (seq_open_image(args->seq, image_index)) {
+				siril_log_message(_("Opening image %s failed\n"), filename);
 				return ST_SEQUENCE_ERROR;
 			}
 
@@ -116,6 +117,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			status = 0;
 			fits_get_img_param(args->seq->fptr[image_index], 3, bitpix, naxis, naxes, &status);
 			if (status) {
+				siril_log_message(_("Opening image %s failed\n"), filename);
 				fits_report_error(stderr, status); /* print error message */
 				return ST_SEQUENCE_ERROR;
 			}

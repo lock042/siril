@@ -87,7 +87,7 @@ deps-debian:
     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
   script:
     - cd _Criterion
-    - patch --binary -p1 < ../build/criterion.patch
+    - patch --binary -p1 < ../build/windows/criterion.patch
     - meson _build --prefix ${INSTALL_PREFIX}
     - ninja -C _build install
   needs: ["build-image"]
@@ -357,7 +357,7 @@ cppcheck:
 win-installer:
   only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null
+      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
   variables:
     CHERE_INVOKING: "yes"
   tags:
@@ -370,10 +370,9 @@ win-installer:
     when: always
     expire_in: 1 week
     paths:
-    - build/windows/installer/_Output
+    - WinInstaller
     - installer.log
   script:
-    - Get-Location
     - choco install innosetup -y
-    - powershell -File .\build\windows\siril-win-installer.ps1 2>&1 > installer.log
+    - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-nightly"]

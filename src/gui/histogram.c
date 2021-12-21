@@ -863,7 +863,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")))
+	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq"));
+	if (gtk_toggle_button_get_active(seq_button)
 			&& sequence_is_loaded()) {
 		/* Apply to the whole sequence */
 		struct mtf_data *args = malloc(sizeof(struct mtf_data));
@@ -884,6 +885,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
+		gtk_toggle_button_set_active(seq_button, FALSE);
 		apply_mtf_to_sequence(args);
 
 	} else {

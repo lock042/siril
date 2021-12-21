@@ -268,11 +268,12 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
+#ifdef HAVE_WCSLIB
 	if (image->wcslib) {
 		rotate_astrometry_data(image, center, angle, cropped);
 		load_WCS_from_memory(image);
 	}
-
+#endif
 	return 0;
 }
 
@@ -350,10 +351,12 @@ void mirrorx(fits *fit, gboolean verbose) {
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
+#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		flip_bottom_up_astrometry_data(fit);
 		load_WCS_from_memory(fit);
 	}
+#endif
 }
 
 void mirrory(fits *fit, gboolean verbose) {
@@ -372,10 +375,12 @@ void mirrory(fits *fit, gboolean verbose) {
 		show_time(t_start, t_end);
 	}
 
+#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		flip_left_right_astrometry_data(fit);
 		load_WCS_from_memory(fit);
 	}
+#endif
 }
 
 /* inplace cropping of the image in fit
@@ -466,10 +471,12 @@ int crop(fits *fit, rectangle *bounds) {
 	} else {
 		return -1;
 	}
+#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		crop_astrometry_data(fit, shift);
 		load_WCS_from_memory(fit);
 	}
+#endif
 	return 0;
 }
 

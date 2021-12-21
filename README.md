@@ -92,17 +92,16 @@ So far, we are using submodule for the use of some algorithms. You must therefor
 Building SIRIL for GNU/Linux
 ----------------------------
 The process now uses the meson build system that is faster and more modern than autotools.
-However, meson build is still experimental so we encourage you to report bugs.
 Run with the following commands:
 
     meson --buildtype release _build 
     ninja -C _build
-    sudo ninja -C _build install
+    ninja -C _build install
     
 To update Siril, run the following commands
     
     git pull --recurse-submodules
-    sudo ninja -C _build install
+    ninja -C _build install
 
 
 Note that a binary package for stable version of SIRIL is maintained for Debian. 
@@ -122,9 +121,7 @@ but you can also install SIRIL from source using homebrew.
 SIRIL on Microsoft Windows
 ----------------
 SIRIL is supported on Microsoft Windows since version 0.9.8.  We provide binary files
-in two formats:
- * an installer.
- * an archive (zip file).
+in an installer.
 
 You can also build it from source yourself with msys2, it is documented
 [here](https://free-astro.org/index.php?title=Siril:install#Installing_on_Windows).
@@ -160,7 +157,10 @@ FITS is the most commonly used digital file format in astronomy.
 Since FITS is a container and doesn't specify the order and size of data, it's
 useful to fix it at some point. Currently, SIRIL uses 32-bit floating point per
 channel values (TFLOAT), and images are stored channel after channel on a
-bottom-to-top, left-to-right order.
+bottom-to-top, left-to-right order. The convention chosen is the same as professional 
+tools, like ds9 (Harvard Smithsonian Center for Astrophysics) and fv
+(FITS viewer from NASA) that store images bottom-up too. More details are 
+described [here](https://free-astro.org/index.php?title=Siril:FITS_orientation).
 
 All files imported and converted in SIRIL or files exported by SIRIL are in this
 FITS format, except sequence files like SER and films, which are read from the
@@ -181,7 +181,7 @@ Useful links
 ------------
  * [Project Homepage](https://www.siril.org)
  * [Documentation](https://free-astro.org/siril_doc-en)
- * [Forum](https://discuss.pixls.us/c/software/siril)
+ * [Forum](https://discuss.pixls.us/siril)
  * [Releases and Downloads](https://free-astro.org/index.php?title=Siril:releases)
  * [Report a bug](https://gitlab.com/free-astro/siril/issues)
  * [Supported commands](https://free-astro.org/index.php?title=Siril:Commands)

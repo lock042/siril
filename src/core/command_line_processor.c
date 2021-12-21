@@ -243,7 +243,8 @@ gpointer execute_script(gpointer p) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
-	com.script = FALSE;
+	if (!com.headless)
+		com.script = FALSE;
 	/* Now we want to restore the saved cwd */
 	siril_change_dir(saved_cwd, NULL);
 	writeinitfile();
