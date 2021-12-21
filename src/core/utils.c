@@ -1282,3 +1282,16 @@ gchar* url_cleanup(const gchar *uri_string) {
 
 	return g_string_free(copy, FALSE);
 }
+
+/**
+ * Deblanks a string
+ * @param s string to be deblanked
+ */
+void remove_spaces_from_str(gchar *s) {
+	gchar *d = s;
+	do {
+		while (g_ascii_isspace(*d)) {
+			++d;
+		}
+	} while((*s++ = *d++));
+}
