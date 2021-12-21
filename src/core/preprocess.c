@@ -428,7 +428,7 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 
 	gchar *expressioncpy = g_strdup(expression);
 	remove_spaces_from_str(expressioncpy);
-	gchar *mulsignpos = g_strrstr(expressioncpy, (gchar*)"*");
+	gchar *mulsignpos = g_strrstr(expressioncpy, "*");
 	int offsetlevel, multiplier;
 	if (!mulsignpos) {
 		offsetlevel = g_ascii_strtoull(expressioncpy, NULL, 10);
