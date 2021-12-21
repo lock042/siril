@@ -209,6 +209,9 @@ static int readinitfile() {
 
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.pan_position);
 
+		if (config_setting_lookup_bool(misc_setting, "is_extended", &com.pref.is_extended) == CONFIG_FALSE) {
+			com.pref.is_extended = TRUE;
+		}
 		if (config_setting_lookup_bool(misc_setting, "first_start_1", &com.pref.first_start) == CONFIG_FALSE) {
 			com.pref.first_start = TRUE;
 		}
@@ -515,6 +518,9 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 
 	misc_setting = config_setting_add(misc_group, "pan_position", CONFIG_TYPE_INT);
 	config_setting_set_int(misc_setting, com.pref.pan_position);
+
+	misc_setting = config_setting_add(misc_group, "is_extended", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(misc_setting, com.pref.is_extended);
 
 	misc_setting = config_setting_add(misc_group, "swap_directory", CONFIG_TYPE_STRING);
 	config_setting_set_string(misc_setting, com.pref.swap_dir);

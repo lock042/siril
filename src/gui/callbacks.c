@@ -1053,13 +1053,30 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 	return FALSE;
 }
 
+void on_button_paned_clicked(GtkButton *button, gpointer user_data) {
+	GtkPaned *paned = (GtkPaned*) user_data;
+	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(button)));
+	GtkWidget *widget = gtk_paned_get_child2(paned);
+
+	gtk_widget_set_visible(widget, !com.pref.is_extended);
+
+	if (!com.pref.is_extended) {
+		gtk_image_set_from_icon_name(image, "pan-end-symbolic",
+				GTK_ICON_SIZE_BUTTON);
+	} else {
+		gtk_image_set_from_icon_name(image, "pan-start-symbolic",
+				GTK_ICON_SIZE_BUTTON);
+	}
+	com.pref.is_extended = !com.pref.is_extended;
+	if (com.pref.remember_windows)
+		writeinitfile();
+}
+
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
 	int position = gtk_paned_get_position(GTK_PANED(paned));
-	printf("position:%d\n", position);
 	if (first_resize) {
 		if (com.pref.pan_position > 0) {
-			printf("forcing position at %d\n", com.pref.pan_position);
 			gtk_paned_set_position(paned, com.pref.pan_position);
 		}
 		first_resize = FALSE;
@@ -1068,13 +1085,12 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 		int max_position;
 		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
 		if (position == max_position) {
-			printf("max position detected\n");
 			com.pref.pan_position = -1;
 			// hide it
 			on_button_paned_clicked(GTK_BUTTON(lookup_widget("button_paned")), paned);
 			gtk_paned_set_position(paned, -1);	// reset to default 
 		}
-		//if (com.pref.remember_windows) // shouldn't we do this?
+		if (com.pref.remember_windows)
 			writeinitfile();
 	}
 }
@@ -1380,6 +1396,18 @@ void load_main_window_state() {
 			gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
 		}
 	}
+
+	/* Now we handle the main panel */
+	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
+	GtkWidget *widget = gtk_paned_get_child2(paned);
+
+	gtk_widget_set_visible(widget, com.pref.is_extended);
+	if (com.pref.is_extended) {
+		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+	} else {
+		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
+	}
 }
 
 void gtk_main_quit() {
@@ -1641,22 +1669,4 @@ void on_rgb_align_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 
 void on_gotoStacking_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(STACKING);
-}
-
-void on_button_paned_clicked(GtkButton *button, gpointer user_data) {
-	static gboolean is_extended = TRUE;
-	GtkPaned *paned = (GtkPaned*) user_data;
-	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(button)));
-	GtkWidget *widget = gtk_paned_get_child2(paned);
-
-	gtk_widget_set_visible(widget, !is_extended);
-
-	if (!is_extended) {
-		gtk_image_set_from_icon_name(image, "pan-end-symbolic",
-				GTK_ICON_SIZE_BUTTON);
-	} else {
-		gtk_image_set_from_icon_name(image, "pan-start-symbolic",
-				GTK_ICON_SIZE_BUTTON);
-	}
-	is_extended = !is_extended;
 }

@@ -540,6 +540,7 @@ struct pref_struct {
 	gboolean remember_windows;
 	rectangle main_w_pos;
 	gint pan_position;
+	gboolean is_extended;
 	gboolean is_maximized;
 
 	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
