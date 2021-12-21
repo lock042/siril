@@ -1061,11 +1061,9 @@ void on_button_paned_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_visible(widget, !com.pref.is_extended);
 
 	if (!com.pref.is_extended) {
-		gtk_image_set_from_icon_name(image, "pan-end-symbolic",
-				GTK_ICON_SIZE_BUTTON);
+		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
 	} else {
-		gtk_image_set_from_icon_name(image, "pan-start-symbolic",
-				GTK_ICON_SIZE_BUTTON);
+		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 	}
 	com.pref.is_extended = !com.pref.is_extended;
 	if (com.pref.remember_windows)
