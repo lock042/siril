@@ -1076,19 +1076,20 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
 	int position = gtk_paned_get_position(GTK_PANED(paned));
 	if (first_resize) {
-		if (com.pref.pan_position > 0) {
+		if (com.pref.remember_windows && com.pref.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.pan_position);
 		}
 		first_resize = FALSE;
 	} else {
-		com.pref.pan_position = position;
+		if (com.pref.remember_windows)
+			com.pref.pan_position = position;
 		int max_position;
 		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
 		if (position == max_position) {
 			com.pref.pan_position = -1;
 			// hide it
 			on_button_paned_clicked(GTK_BUTTON(lookup_widget("button_paned")), paned);
-			gtk_paned_set_position(paned, -1);	// reset to default 
+			gtk_paned_set_position(paned, -1);	// reset to default
 		}
 		if (com.pref.remember_windows)
 			writeinitfile();
