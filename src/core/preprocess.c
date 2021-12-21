@@ -427,7 +427,8 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// If found -> Try to find $ sign to read the offset value and its multiplier
 
 	gchar *expressioncpy = g_strdup(expression);
-	gchar *mulsignpos = g_strrstr (expressioncpy, (gchar*)"*");
+	remove_spaces_from_str(expressioncpy);
+	gchar *mulsignpos = g_strrstr(expressioncpy, (gchar*)"*");
 	int offsetlevel, multiplier;
 	if (!mulsignpos) {
 		offsetlevel = g_ascii_strtoull(expressioncpy, NULL, 10);
@@ -440,8 +441,10 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	if (!((expressioncpy[0] == '$') || (mulsignpos[0] == '$'))) goto free_on_error; //found a * char but none of the words start with a $
 	if (expressioncpy[0] == '$') {
 		multiplier = g_ascii_strtoull(mulsignpos, NULL, 10);
+		if (!g_str_equal(expressioncpy,"$OFFSET")) goto free_on_error;
 	} else {
 		multiplier = g_ascii_strtoull(expressioncpy, NULL, 10);
+		if (!g_str_equal(mulsignpos,"$OFFSET")) goto free_on_error;
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
 	offsetlevel = (int)(multiplier * fit->key_offset);
