@@ -1088,7 +1088,7 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 		if (position == max_position) {
 			com.pref.pan_position = -1;
 			// hide it
-			on_button_paned_clicked(GTK_BUTTON(lookup_widget("button_paned")), paned);
+			g_signal_emit_by_name(GTK_BUTTON(lookup_widget("button_paned")), "clicked");
 			gtk_paned_set_position(paned, -1);	// reset to default
 		}
 		if (com.pref.remember_windows)
