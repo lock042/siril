@@ -1053,26 +1053,10 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 	return FALSE;
 }
 
-void on_button_paned_clicked(GtkButton *button, gpointer user_data) {
-	GtkPaned *paned = (GtkPaned*) user_data;
-	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(button)));
-	GtkWidget *widget = gtk_paned_get_child2(paned);
-
-	gtk_widget_set_visible(widget, !com.pref.is_extended);
-
-	if (!com.pref.is_extended) {
-		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
-	} else {
-		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
-	}
-	com.pref.is_extended = !com.pref.is_extended;
-	if (com.pref.remember_windows)
-		writeinitfile();
-}
-
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
 	int position = gtk_paned_get_position(GTK_PANED(paned));
+	printf("position= %d\n", com.pref.pan_position);
 	if (first_resize) {
 		if (com.pref.remember_windows && com.pref.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.pan_position);
@@ -1084,9 +1068,12 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 		int max_position;
 		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
 		if (position == max_position) {
+			GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 			com.pref.pan_position = -1;
 			// hide it
-			g_signal_emit_by_name(GTK_BUTTON(lookup_widget("button_paned")), "clicked");
+			//g_signal_emit_by_name(GTK_BUTTON(lookup_widget("button_paned")), "clicked");
+			GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
+			g_action_activate(action_panel, NULL);
 			gtk_paned_set_position(paned, -1);	// reset to default
 		}
 		if (com.pref.remember_windows)

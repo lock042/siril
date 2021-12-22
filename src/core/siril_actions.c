@@ -24,6 +24,7 @@
 #include "core/undo.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
+#include "core/initfile.h"
 #include "algos/annotate.h"
 #include "algos/colors.h"
 #include "algos/noise.h"
@@ -138,6 +139,23 @@ void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 		is_extended = is_control_box_visible;
 	}
 	gtk_widget_set_visible(toolbarbox, is_fullscreen);
+}
+
+void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
+	GtkWidget *widget = gtk_paned_get_child2(paned);
+
+	gtk_widget_set_visible(widget, !com.pref.is_extended);
+
+	if (!com.pref.is_extended) {
+		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+	} else {
+		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
+	}
+	com.pref.is_extended = !com.pref.is_extended;
+	if (com.pref.remember_windows)
+		writeinitfile();
 }
 
 void keyboard_shortcuts_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

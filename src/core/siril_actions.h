@@ -40,6 +40,7 @@ void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) ;
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void keyboard_shortcuts_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void tab_conversion_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void tab_sequence_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
