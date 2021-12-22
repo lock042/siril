@@ -99,6 +99,13 @@ static gint object_compare(gconstpointer *a, gconstpointer *b) {
 	}
 }
 
+/**
+ * Catalogue must be formatted as follow:
+ * This is a "; separated value" file
+ * code ; ra ; dec sign ; dec ; radius ; name ; alias
+ *
+ */
+
 static GSList *load_catalog(const gchar *filename, gint cat_index) {
 	GFile *file;
 	gchar *line;

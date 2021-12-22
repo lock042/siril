@@ -736,6 +736,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 			args->seqEntry = "cc_";
 		args->seq = &com.seq;
 		args->multithread = FALSE;
+		gtk_toggle_button_set_active(seq, FALSE);
 		apply_cosmetic_to_sequence(args);
 	} else {
 		args->multithread = TRUE;

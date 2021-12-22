@@ -131,6 +131,7 @@ gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
 gchar *siril_truncate_str(gchar *str, gint size);
 char **glist_to_array(GList *list, int *arg_count);
 gchar* url_cleanup(const gchar *uri_string);
+void remove_spaces_from_str(gchar *s);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,

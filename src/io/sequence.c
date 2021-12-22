@@ -441,11 +441,13 @@ int set_seq(const char *name){
 
 #ifdef HAVE_FFMS2
 	int convert = 0;
-	if (seq->type == SEQ_AVI) {
-		convert = siril_confirm_dialog(_("Deprecated sequence"),
-				_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
-						" We strongly encourage you to convert this sequence into a SER file."
-						" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
+	if (!com.headless) {
+		if (seq->type == SEQ_AVI) {
+			convert = siril_confirm_dialog(_("Deprecated sequence"),
+					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
+							" We strongly encourage you to convert this sequence into a SER file."
+							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
+		}
 	}
 
 	if (convert) {
@@ -1724,6 +1726,8 @@ int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_fl
 	unsigned int memory_per_scaled_image_MB = memory_per_scaled_image / BYTES_IN_A_MB;
 	if (memory_per_scaled_image_MB == 0)
 		memory_per_scaled_image_MB = 1;
+	if (memory_per_orig_image_MB == 0)
+		memory_per_orig_image_MB = 1;
 	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_scaled_image_MB, max_memory_MB);
 	if (MB_per_orig_image)
 		*MB_per_orig_image = memory_per_orig_image_MB;

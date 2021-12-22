@@ -430,6 +430,8 @@ static gboolean end_photometric_cc(gpointer p) {
 	g_object_unref(args->bv_stream);
 	free(args);
 
+	invalidate_gfit_histogram();
+	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	
