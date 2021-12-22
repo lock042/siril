@@ -3866,9 +3866,10 @@ int process_preprocess(int nb) {
 					if (!offsetlevel) {
 						siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
 						retvalue = 1;
-						break;
 						g_free(expression);
+						break;
 					} else {
+						g_free(expression);
 						siril_log_message(_("Synthetic offset: Level = %d\n"), offsetlevel);
 						int maxlevel = (seq->bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 						if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
@@ -3880,7 +3881,6 @@ int process_preprocess(int nb) {
 								args->bias_level *= (seq->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 							args->use_bias = TRUE;
 						}
-						g_free(expression);
 					}
 				} else {
 					g_free(expression);
