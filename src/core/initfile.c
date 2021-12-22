@@ -58,6 +58,7 @@ static int readinitfile() {
 #endif
 
 	if (config_read_file(&config, com.initfile) == CONFIG_FALSE) {
+		siril_log_color_message(_("Cannot load initfile: %s\n"), "red", config_error_text(&config));
 		config_destroy(&config);
 		return 1;
 	}
@@ -655,12 +656,7 @@ int checkinitfile() {
 	}
 	g_free(pathname);
 
-#ifdef _WIN32
-	com.initfile = g_win32_locale_filename_from_utf8(config_file);
-#else
-	com.initfile = g_strdup(config_file);
-#endif
-	g_free(config_file);
+	com.initfile = config_file;
 
 	if (readinitfile()) {
 		/* init file does not exist, so we create it */
