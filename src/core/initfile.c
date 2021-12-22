@@ -53,8 +53,10 @@ static int readinitfile() {
 #ifdef _WIN32
 	/* in the case the filename is given as argument */
 	gchar *config_file = g_win32_locale_filename_from_utf8(com.initfile);
-	g_free(com.initfile);
-	com.initfile = config_file;
+	if (config_file) {
+		g_free(com.initfile);
+		com.initfile = config_file;
+	}
 #endif
 
 	if (config_read_file(&config, com.initfile) == CONFIG_FALSE) {
