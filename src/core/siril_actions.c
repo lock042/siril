@@ -146,16 +146,19 @@ void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
 	GtkWidget *widget = gtk_paned_get_child2(paned);
 
-	gtk_widget_set_visible(widget, !com.pref.is_extended);
+	gboolean is_visible = gtk_widget_is_visible(widget);
 
-	if (!com.pref.is_extended) {
+	gtk_widget_set_visible(widget, !is_visible);
+
+	if (!is_visible) {
 		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
 	} else {
 		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 	}
-	com.pref.is_extended = !com.pref.is_extended;
-	if (com.pref.remember_windows)
+	if (com.pref.remember_windows) {
+		com.pref.is_extended = !is_visible;
 		writeinitfile();
+	}
 }
 
 void keyboard_shortcuts_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

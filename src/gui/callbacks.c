@@ -1056,7 +1056,7 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
 	int position = gtk_paned_get_position(GTK_PANED(paned));
-	printf("position= %d\n", com.pref.pan_position);
+//	printf("position= %d\n", com.pref.pan_position);
 	if (first_resize) {
 		if (com.pref.remember_windows && com.pref.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.pan_position);
@@ -1071,7 +1071,6 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 			GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 			com.pref.pan_position = -1;
 			// hide it
-			//g_signal_emit_by_name(GTK_BUTTON(lookup_widget("button_paned")), "clicked");
 			GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
 			g_action_activate(action_panel, NULL);
 			gtk_paned_set_position(paned, -1);	// reset to default
@@ -1363,36 +1362,38 @@ void save_main_window_state() {
 }
 
 void load_main_window_state() {
-	GtkWidget *win = lookup_widget("control_window");
-	GdkRectangle workarea = { 0 };
+	if (!com.script && com.pref.remember_windows) {
+		GtkWidget *win = lookup_widget("control_window");
+		GdkRectangle workarea = { 0 };
 
-	gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
+		gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
 
-	int w = com.pref.main_w_pos.w;
-	int h = com.pref.main_w_pos.h;
+		int w = com.pref.main_w_pos.w;
+		int h = com.pref.main_w_pos.h;
 
-	int x = CLAMP(com.pref.main_w_pos.x, 0, workarea.width - w);
-	int y = CLAMP(com.pref.main_w_pos.y, 0, workarea.height - h);
+		int x = CLAMP(com.pref.main_w_pos.x, 0, workarea.width - w);
+		int y = CLAMP(com.pref.main_w_pos.y, 0, workarea.height - h);
 
-	if (com.pref.remember_windows && w > 0 && h > 0) {
-		if (com.pref.is_maximized) {
-			gtk_window_maximize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)));
-		} else {
-			gtk_window_move(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), x, y);
-			gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
+		if (w > 0 && h > 0) {
+			if (com.pref.is_maximized) {
+				gtk_window_maximize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)));
+			} else {
+				gtk_window_move(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), x, y);
+				gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
+			}
 		}
-	}
 
-	/* Now we handle the main panel */
-	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
-	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
-	GtkWidget *widget = gtk_paned_get_child2(paned);
+		/* Now we handle the main panel */
+		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+		GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
+		GtkWidget *widget = gtk_paned_get_child2(paned);
 
-	gtk_widget_set_visible(widget, com.pref.is_extended);
-	if (com.pref.is_extended) {
-		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
-	} else {
-		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
+		gtk_widget_set_visible(widget, com.pref.is_extended);
+		if (com.pref.is_extended) {
+			gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+		} else {
+			gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
+		}
 	}
 }
 
