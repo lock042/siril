@@ -104,9 +104,18 @@ begin
     end;
 end;
 
+procedure GetNewsGenericURL(Sender: TObject);
+begin
+    case ActiveLanguage() of  
+        'en' : OpenBrowser('https://siril.org/download/' + '{#SetupSetting("AppVersion")}' + '/');
+        'fr' : OpenBrowser('https://siril.org/fr/download/' + '{#SetupSetting("AppVersion")}' + '/');
+    end;
+end;
+
 procedure CurPageChanged(CurPageID: Integer);
 var
   Button: TButton;
+  Button2: TButton;
 begin
   if CurPageID = wpFinished then
     begin
@@ -121,5 +130,18 @@ begin
           'fr' : Button.Caption := 'Dons';
       end;
       Button.OnClick := @DonateClick;
+
+      Button2 := TButton.Create(WizardForm);
+      Button2.Parent := WizardForm;
+      Button2.Left := Button.Left + Button.Width + ScaleX(5);
+      Button2.Top := WizardForm.NextButton.Top;
+      Button2.Width := WizardForm.NextButton.Width;
+      Button2.Height := WizardForm.NextButton.Height;
+      case ActiveLanguage() of  
+          'en' : Button2.Caption := 'News';
+          'fr' : Button2.Caption := 'Nouvelles';
+      end;
+      Button2.OnClick := @GetNewsGenericURL;
+
     end;
 end;
