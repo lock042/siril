@@ -139,7 +139,7 @@ begin
       Button2.Height := WizardForm.NextButton.Height;
       case ActiveLanguage() of  
           'en' : Button2.Caption := 'News';
-          'fr' : Button2.Caption := 'Nouvelles';
+          'fr' : Button2.Caption := 'Nouveautés';
       end;
       Button2.OnClick := @GetNewsGenericURL;
 
