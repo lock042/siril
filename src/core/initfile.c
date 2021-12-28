@@ -629,6 +629,15 @@ int writeinitfile() {
 	_save_photometry(&config, root);
 	_save_misc(&config, root);
 
+#ifdef _WIN32
+	/* in the case the filename is given as argument */
+	gchar *config_file = g_win32_locale_filename_from_utf8(com.initfile);
+	if (config_file) {
+		g_free(com.initfile);
+		com.initfile = config_file;
+	}
+#endif
+
 	if (!siril_config_write_file(&config, com.initfile)) {
 		fprintf(stderr, "Error while writing file.\n");
 		config_destroy(&config);
