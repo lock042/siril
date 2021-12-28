@@ -1055,8 +1055,7 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
-	int position = gtk_paned_get_position(GTK_PANED(paned));
-//	printf("position= %d\n", com.pref.pan_position);
+	int position = gtk_paned_get_position(paned);
 	if (first_resize) {
 		if (com.pref.remember_windows && com.pref.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.pan_position);
@@ -1075,8 +1074,6 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 			g_action_activate(action_panel, NULL);
 			gtk_paned_set_position(paned, -1);	// reset to default
 		}
-		if (com.pref.remember_windows)
-			writeinitfile();
 	}
 }
 
@@ -1185,6 +1182,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
+	g_signal_connect(lookup_widget("main_panel"), "size-allocate", G_CALLBACK(pane_notify_position_cb), NULL);
 }
 
 /*****************************************************************************
@@ -1352,12 +1350,12 @@ static rectangle get_window_position(GtkWindow *window) {
 
 void save_main_window_state() {
 	if (!com.script && com.pref.remember_windows) {
-		static GtkWidget *main_w = NULL;
+		static GtkWindow *main_w = NULL;
 
 		if (!main_w)
-			main_w = lookup_widget("control_window");
-		com.pref.main_w_pos = get_window_position(GTK_WINDOW(GTK_APPLICATION_WINDOW(main_w)));
-		com.pref.is_maximized = gtk_window_is_maximized(GTK_WINDOW(GTK_APPLICATION_WINDOW(main_w)));
+			main_w = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		com.pref.main_w_pos = get_window_position(main_w);
+		com.pref.is_maximized = gtk_window_is_maximized(main_w);
 	}
 }
 
