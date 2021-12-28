@@ -16577,7 +16577,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Hide the control panel to show only the image panel (toggle).</property>
-                <signal name="clicked" handler="on_button_paned_clicked" object="main_panel" swapped="no"/>
+                <property name="action-name">win.panel</property>
                 <child>
                   <object class="GtkImage" id="right_panel_image">
                     <property name="visible">True</property>
