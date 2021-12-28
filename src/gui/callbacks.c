@@ -1056,6 +1056,7 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
 	int position = gtk_paned_get_position(paned);
+	//printf("position updated to %d\n", position);
 	if (first_resize) {
 		if (com.pref.remember_windows && com.pref.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.pan_position);
@@ -1075,6 +1076,13 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 			gtk_paned_set_position(paned, -1);	// reset to default
 		}
 	}
+}
+
+static void pane_size_allocate_cb(GtkPaned* paned,
+		GtkAllocation* allocation, gpointer user_data) {
+	//printf("size-allocate\n");
+	g_signal_handlers_disconnect_by_func(paned, pane_size_allocate_cb, NULL);
+	pane_notify_position_cb(paned, user_data);
 }
 
 void initialize_all_GUI(gchar *supported_files) {
@@ -1182,7 +1190,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
-	g_signal_connect(lookup_widget("main_panel"), "size-allocate", G_CALLBACK(pane_notify_position_cb), NULL);
+	g_signal_connect(lookup_widget("main_panel"), "size-allocate", G_CALLBACK(pane_size_allocate_cb), NULL);
 }
 
 /*****************************************************************************
