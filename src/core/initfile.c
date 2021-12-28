@@ -50,7 +50,18 @@ static int readinitfile() {
 
 	config_init(&config);
 
+#ifdef _WIN32
+	/* in the case the filename is given as argument */
+	gchar *config_file = g_win32_locale_filename_from_utf8(com.initfile);
+	if (config_file) {
+		g_free(com.initfile);
+		com.initfile = config_file;
+	}
+#endif
+
 	if (config_read_file(&config, com.initfile) == CONFIG_FALSE) {
+		siril_log_color_message(_("Cannot load initfile: %s\n"), "red", config_error_text(&config));
+		config_destroy(&config);
 		return 1;
 	}
 	siril_log_message(_("Loading init file: '%s'\n"), com.initfile);
@@ -630,6 +641,15 @@ int writeinitfile() {
 	_save_photometry(&config, root);
 	_save_misc(&config, root);
 
+#ifdef _WIN32
+	/* in the case the filename is given as argument */
+	gchar *config_file = g_win32_locale_filename_from_utf8(com.initfile);
+	if (config_file) {
+		g_free(com.initfile);
+		com.initfile = config_file;
+	}
+#endif
+
 	if (!siril_config_write_file(&config, com.initfile)) {
 		fprintf(stderr, "Error while writing file.\n");
 		config_destroy(&config);
@@ -653,6 +673,7 @@ int checkinitfile() {
 		} else {
 			g_fprintf(stderr, "Failed to create config dir %s!\n", pathname);
 			g_free(pathname);
+			g_free(config_file);
 			return 1;
 		}
 	}
