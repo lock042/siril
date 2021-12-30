@@ -267,6 +267,7 @@ static gpointer export_sequence(gpointer ptr) {
 		stackargs.normalize = ADDITIVE_SCALING;
 		stackargs.reglayer = reglayer;
 		stackargs.use_32bit_output = (output_bitpix == FLOAT_IMG);
+		stackargs.ref_image = args->seq->reference_image;
 
 		// build image indices used by normalization
 		if (stack_fill_list_of_unfiltered_images(&stackargs))
@@ -299,7 +300,7 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 		if (!args->filtering_criterion(args->seq, i, args->filtering_parameter)) {
-			siril_log_message(_("image %d is excluded from export\n"), i);
+			siril_log_message(_("image %d is excluded from export\n"), i + 1);
 			skipped++;
 			continue;
 		}
