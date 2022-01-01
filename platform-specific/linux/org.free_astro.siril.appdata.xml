@@ -4,6 +4,8 @@
   <id>org.free_astro.siril.desktop</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
+  <developer_name>Free-astro Team</developer_name>
+  <launchable type="desktop-id">org.free_astro.siril.desktop</launchable>
   <name>Siril</name>
   <name xml:lang="fr_FR">Siril</name>
   <summary>Astronomical image (pre-)processing program</summary>
