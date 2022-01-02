@@ -90,8 +90,8 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-      <release version="1.0.0" date="">
-      <url type="details">https://www.siril.org/.................</url>
+      <release version="1.0.0" type="stable" date="">
+      <url type="details">https://www.siril.org/download/1.0.0</url>
       <description>
         <p>
           First release of the 1.0.0 series which prominently features
