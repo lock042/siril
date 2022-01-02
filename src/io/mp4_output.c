@@ -46,9 +46,9 @@
 
 #define SCALE_FLAGS SWS_BICUBIC
 
-static int vp9_quality_to_crf[] = { 36, 34, 31, 27, 22 };
-static int x264_quality_to_crf[] = { 29, 26, 23, 20, 17 };
-static int x265_quality_to_crf[] = { 34, 31, 28, 25, 22 };
+static double vp9_quality_to_crf[]  = { 36.0, 34.0, 31.0, 27.0, 22.0 };
+static double x264_quality_to_crf[] = { 29.0, 26.0, 23.0, 20.0, 17.0 };
+static double x265_quality_to_crf[] = { 34.0, 31.0, 28.0, 25.0, 22.0 };
 
 #define CHECK_OPT_SET_RETVAL \
 	if (retval == AVERROR_OPTION_NOT_FOUND) { \
@@ -109,7 +109,8 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 	ost->enc = c;
 
 	c->codec_id = codec_id;
-	int crf, retval;
+	int retval;
+	double crf;
 	switch (codec_id) {
 		case AV_CODEC_ID_VP9:
 			c->bit_rate = 0;
@@ -117,8 +118,8 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 			float size_factor = 5.0f * logf(w * h / (1920 * 1080));
 			if (size_factor < -4.0f) size_factor = -4.0f;
 			crf = vp9_quality_to_crf[ost->quality-1] - roundf_to_int(size_factor);
-			siril_debug_print("VP9 constant quality value: %d\n", crf);
-			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
+			siril_debug_print("VP9 constant quality value: %lf\n", crf);
+			retval = av_opt_set_double(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
 			break;
 		case AV_CODEC_ID_H264:
@@ -126,7 +127,7 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 			 * default, and 51 is worst quality possible. A subjectively sane range
 			 * is 17–28. Consider 17 or 18 to be visually lossless or nearly so. */
 			crf = x264_quality_to_crf[ost->quality-1];
-			siril_debug_print("x264 constant quality value: %d\n", crf);
+			siril_debug_print("x264 constant quality value: %lf\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
 			retval = av_opt_set(c->priv_data, "preset", "fast", 0);
@@ -137,7 +138,7 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 		case AV_CODEC_ID_H265:
 			// default is 28, it should visually correspond to libx264 video at CRF 23
 			crf = x265_quality_to_crf[ost->quality-1];
-			siril_debug_print("x265 constant quality value: %d\n", crf);
+			siril_debug_print("x265 constant quality value: %lf\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
 			retval = av_opt_set(c->priv_data, "preset", "fast", 0);
