@@ -419,7 +419,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	switch (type) {
 	case SHIFT_TRANSFORMATION:
 		estimateTranslation3D(img3, ref3, s, mask, CV_RANSAC, defaultRANSACReprojThreshold);
-		// if (float(countNonZero(mask))/n < 0.1) return NULL; //TBD trying to implement a way to detect the quality of the fit - rejecting if less than 10% are inliers
+		if (!s.cols) return NULL; // exit if could not find a match at all=> s is null
 		H = Mat::eye(3, 3, CV_64FC1);
 		H.at<double>(0,2) = s.at<double>(0);
 		H.at<double>(1,2) = s.at<double>(1);		
