@@ -1190,7 +1190,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
-	g_signal_connect(lookup_widget("main_panel"), "size-allocate", G_CALLBACK(pane_size_allocate_cb), NULL);
+//	g_signal_connect(lookup_widget("main_panel"), "size-allocate", G_CALLBACK(pane_size_allocate_cb), NULL);
 }
 
 /*****************************************************************************
