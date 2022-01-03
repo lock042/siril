@@ -1078,13 +1078,6 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	}
 }
 
-static void pane_size_allocate_cb(GtkPaned* paned,
-		GtkAllocation* allocation, gpointer user_data) {
-	//printf("size-allocate\n");
-	g_signal_handlers_disconnect_by_func(paned, pane_size_allocate_cb, NULL);
-	pane_notify_position_cb(paned, user_data);
-}
-
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
@@ -1190,7 +1183,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
-//	g_signal_connect(lookup_widget("main_panel"), "size-allocate", G_CALLBACK(pane_size_allocate_cb), NULL);
 }
 
 /*****************************************************************************
