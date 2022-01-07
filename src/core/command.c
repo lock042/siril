@@ -3749,6 +3749,7 @@ int process_stackone(int nb) {
 	sequence *seq = load_sequence(word[1], &arg->seqfile);
 	if (!seq)
 		goto failure;
+	free_sequence(seq, TRUE);
 
 	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] -out=result_filename
 	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] -out=result_filename
