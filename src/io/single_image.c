@@ -166,7 +166,7 @@ static gboolean end_read_single_image(gpointer p) {
  * real file name of the loaded file, since the given filename can be without
  * extension.
  * @param is_sequence is set to TRUE if the loaded image is in fact a SER or AVI sequence. Can be NULL
- * @return
+ * @return 0 on success
  */
 int read_single_image(const char *filename, fits *dest, char **realname_out,
 		gboolean allow_sequences, gboolean *is_sequence, gboolean allow_dialogs,
@@ -178,9 +178,10 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
-		char *msg = siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-		set_cursor_waiting(FALSE);
+		siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
+		// this dialog is inconsistent with other error handlings of this function
+		// and another dialog exists in open_single_image too
+		//siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		free(realname);
 		return 1;
 	}
@@ -191,6 +192,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			single_sequence = TRUE;
 		} else {
 			siril_log_message(_("Cannot open a sequence from here\n"));
+			free(realname);
 			return 1;
 		}
 	} else {
@@ -227,20 +229,15 @@ int open_single_image(const char* filename) {
 	char *realname;
 	gboolean is_single_sequence;
 
-	reset_compositing_module();
+	if (!com.script) {
+		reset_compositing_module();
+		reset_plot(); // clear existing plot if any
+	}
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
-	reset_plot(); // clear existing plot if any
 
 	retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
-	if (retval == 2) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
-				_("This file could not be opened because "
-						"its extension is not supported."));
-		return 1;
-	}
-
-	if (retval < 0) {
+	if (retval) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
@@ -257,7 +254,15 @@ int open_single_image(const char* filename) {
 		com.uniq->fileexist = get_type_from_filename(com.uniq->filename) == TYPEFITS;
 		com.uniq->nb_layers = gfit.naxes[2];
 		com.uniq->fit = &gfit;
-		siril_add_idle(end_open_single_image, realname);
+		if (!com.headless) {
+			/* we don't need to use siril_add_idle here, because this idle
+			 * function needs to be called for load to work properly and
+			 * display the GUI for the loaded image. The image being loaded in
+			 * gfit, not displaying it may cause some inconsistencies,
+			 * possibly reported as a crash (see #770)
+			 */
+			gdk_threads_add_idle(end_open_single_image, realname);
+		}
 	}
 	return retval;
 }
