@@ -2,6 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #include "version.isi"
+#include "environment.iss"
 
 #define MyAppName "SiriL"
 #define MyAppExeName "siril.exe"
@@ -26,6 +27,8 @@ Compression=lzma
 SolidCompression=yes
 ChangesAssociations=yes
 ArchitecturesInstallIn64BitMode=x64
+DisableDirPage=yes
+DisableProgramGroupPage=yes
 
 WizardImageFile=windows-installer-intro-big.bmp
 WizardImageStretch=yes
@@ -39,8 +42,15 @@ UninstallDisplayIcon={app}\bin\{#MyAppExeName}
 Name: "en"; MessagesFile: "compiler:Default.isl";
 Name: "fr"; MessagesFile: "compiler:Languages\French.isl";
 
+[CustomMessages]
+AddToPath=Add Siril to PATH variable
+fr.AddToPath=Ajouter Siril dans la variable PATH
+Environment=Environment variable
+fr.Environment=Environnement
+
 [Tasks]
 Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: envPath; Description: "{cm:AddToPath}"; GroupDescription: "{cm:Environment}"; Flags: unchecked
 
 [Files]
 Source: "{#RootDir}\siril\bin\siril.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
@@ -145,3 +155,10 @@ begin
 
     end;
 end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+    if (CurStep = ssPostInstall) and WizardIsTaskSelected('envPath')
+     then EnvAddPath(ExpandConstant('{app}') +'\bin');
+end;
+
