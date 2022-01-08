@@ -1404,7 +1404,12 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 		}
 
 		if (selected_item >= 0) {
-			update_coordinates(platedObject[selected_item].world_cs);
+			if (platedObject[selected_item].world_cs)
+				update_coordinates(platedObject[selected_item].world_cs);
+			else {
+				char *msg = siril_log_message(_("There are no available coordinates with this name, try with another name\n"));
+				siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), msg);
+			}
 		}
 
 		g_value_unset(&value);
