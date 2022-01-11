@@ -62,7 +62,6 @@ void wcs_pc_to_cd(double pc[][2], double cdelt[2], double cd[][2]);
 gpointer match_catalog(gpointer p);
 
 gboolean confirm_delete_wcs_keywords(fits *fit);
-void invalidate_WCS_keywords(fits *fit);
 void flip_bottom_up_astrometry_data(fits *fit);
 void flip_left_right_astrometry_data(fits *fit);
 void rotate_astrometry_data(fits *fit, point center, double angle, gboolean cropped);

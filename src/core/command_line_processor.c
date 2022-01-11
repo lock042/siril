@@ -159,7 +159,12 @@ static void clear_status_bar() {
 static gboolean end_script(gpointer p) {
 	clear_status_bar();
 	set_GUI_CWD();
-	
+	update_MenuItem();
+
+	/* redraws are ignored during scripts, we need to redraw now if needed */
+	if (sequence_is_loaded() || single_image_is_loaded())
+		redraw(REMAP_ALL);
+
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -245,11 +250,6 @@ gpointer execute_script(gpointer p) {
 
 	if (!com.headless) {
 		com.script = FALSE;
-
-		/* redraws are ignored during scripts, we need to redraw now if needed */
-		if (sequence_is_loaded() || single_image_is_loaded())
-			redraw(REMAP_ALL);
-
 		siril_add_idle(end_script, NULL);
 	}
 

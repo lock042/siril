@@ -221,7 +221,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	gettimeofday(&t_start, NULL);
 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
-	invalidate_WCS_keywords(image);
+	free_wcs(image);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);

@@ -5,6 +5,7 @@
 
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
+guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
 char **supported_extensions;
 
@@ -147,6 +148,10 @@ void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
 
 void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
         fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
+}
+
+void invalidate_WCS_keywords(fits *fit) {
+        fprintf(stderr, "ERROR: calling undefined function invalidate_WCS_keywords\n");
 }
 
 #ifdef DUMMY_LOG
