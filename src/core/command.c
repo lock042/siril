@@ -2054,15 +2054,6 @@ int process_clearstar(int nb){
 int process_close(int nb) {
 	close_sequence(FALSE);
 	close_single_image();
-	if (!com.script) {
-		update_MenuItem();
-		display_filename();
-		update_zoom_label();
-		update_display_fwhm();
-		reset_plot(); // reset all plots
-		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-		
-	}
 	return 0;
 }
 

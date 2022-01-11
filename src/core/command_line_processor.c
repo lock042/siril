@@ -28,11 +28,12 @@
 #include "core/OS_utils.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 
 #include "command_line_processor.h"
 
@@ -150,11 +151,9 @@ static void display_command_on_status_bar(int line, char *myline) {
 }
 
 static void clear_status_bar() {
-	if (!com.headless) {
-		GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
-		gtk_statusbar_remove_all(bar, 0);
-		update_log_icon(FALSE);
-	}
+	GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
+	gtk_statusbar_remove_all(bar, 0);
+	update_log_icon(FALSE);
 }
 
 static gboolean end_script(gpointer p) {
@@ -243,12 +242,20 @@ gpointer execute_script(gpointer p) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
-	if (!com.headless)
+
+	if (!com.headless) {
 		com.script = FALSE;
+
+		/* redraws are ignored during scripts, we need to redraw now if needed */
+		if (sequence_is_loaded() || single_image_is_loaded())
+			redraw(REMAP_ALL);
+
+		siril_add_idle(end_script, NULL);
+	}
+
 	/* Now we want to restore the saved cwd */
 	siril_change_dir(saved_cwd, NULL);
 	writeinitfile();
-	siril_add_idle(end_script, NULL);
 	if (!retval) {
 		siril_log_message(_("Script execution finished successfully.\n"));
 		gettimeofday(&t_end, NULL);
@@ -259,7 +266,10 @@ gpointer execute_script(gpointer p) {
 		set_progress_bar_data(msg, PROGRESS_DONE);
 	}
 	g_free(saved_cwd);
+
 	fprintf(stdout, "Script thread exiting\n");
+	g_thread_unref(com.script_thread);
+	com.script_thread = NULL;
 	return GINT_TO_POINTER(retval);
 }
 
@@ -399,12 +409,10 @@ int processcommand(const char *line) {
 	if (line[0] == '\0' || line[0] == '\n')
 		return 0;
 	if (line[0] == '@') { // case of files
-		if (get_thread_run()) {
+		if (get_thread_run() || get_script_thread_run()) {
 			PRINT_ANOTHER_THREAD_RUNNING;
 			return 1;
 		}
-		if (com.script_thread)
-			g_thread_join(com.script_thread);
 
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
