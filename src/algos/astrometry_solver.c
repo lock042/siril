@@ -584,8 +584,22 @@ static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog,
 	if (output_stream == NULL) {
 		if (error != NULL) {
 			/* if file exist and user uses cache */
-			if (error->code == G_IO_ERROR_EXISTS && use_cache) {
-				siril_log_color_message(_("Using data in cache\n"), "salmon");
+			if (error->code == G_IO_ERROR_EXISTS) {
+				if (use_cache) {
+					siril_log_color_message(_("Using data in cache\n"), "salmon");
+				} else {
+					/* file exist but we don't want to use cache */
+					output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+					if (output_stream == NULL) {
+						if (error != NULL) {
+							g_warning("%s\n", error->message);
+							g_clear_error(&error);
+							fprintf(stderr, "astrometry_solver: Cannot open catalogue\n");
+							g_object_unref(file);
+							return NULL;
+						}
+					}
+				}
 				g_clear_error(&error);
 			} else {
 				g_warning("%s\n", error->message);
@@ -595,7 +609,9 @@ static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog,
 				return NULL;
 			}
 		}
-	} else {
+	}
+
+	if (output_stream != NULL || !use_cache) {
 		gchar *url = get_catalog_url(catalog_center, m, fov, onlineCatalog);
 		buffer = fetch_url(url);
 		g_free(url);
