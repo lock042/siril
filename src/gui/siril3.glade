@@ -7405,7 +7405,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                           <object class="GtkTreeView" id="GtkTreeViewIPS">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Several resolvers can be found and displayed in this list. However, it just about getting the coordinates of the center of the objec. Choosing one item or the others should not unfluence the plate-solving or the photometry data, which is based on the selected catalogue.</property>
+                            <property name="tooltip-text" translatable="yes">Several resolvers can be found and displayed in this list. However, it just about getting the coordinates of the center of the objec. Choosing one item or the others should not influence the plate-solving or the photometry data, which is based on the selected catalogue.</property>
                             <property name="model">liststoreIPS</property>
                             <property name="search-column">0</property>
                             <signal name="cursor-changed" handler="on_GtkTreeViewIPS_cursor_changed" swapped="no"/>
