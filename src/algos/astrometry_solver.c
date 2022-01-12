@@ -1910,6 +1910,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 	args->use_cache = is_cache_activated();
 	args->fit = &gfit;
 	scalefactor = args->downsample ? DOWNSAMPLE_FACTOR : 1.0;
+	set_cursor_waiting(TRUE);
 	
 	if (!args->manual) {
 		// first checking if there is a selection or if the full field is to be used
@@ -1965,6 +1966,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center) == 0.0) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), _("Please enter object coordinates."));
+		set_cursor_waiting(FALSE);
 		return 1;
 	}
 
@@ -1974,6 +1976,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 	if (!catalog_name) {
 		siril_world_cs_unref(catalog_center);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
+		set_cursor_waiting(FALSE);
 		return 1;
 	}
 	args->cat_center = catalog_center; //for projection later on
@@ -1982,6 +1985,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 	args->pixel_size = px_size;
 	args->flip_image = flip_image_after_ps();
 
+	set_cursor_waiting(FALSE);
 	return 0;
 }
 
