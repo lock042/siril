@@ -114,7 +114,7 @@ static void fillSeqAviExport() {
 	}
 }
 
-static sequence *check_seq_one_file(const char* name);
+static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq);
 
 void populate_seqcombo(const gchar *realname) {
 	control_window_switch_to_tab(IMAGE_SEQ);
@@ -141,7 +141,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	}
 	g_free(dirname);
 
-	sequence *new_seq = check_seq_one_file(realname); // it's not the real .seq read
+	sequence *new_seq = check_seq_one_file(realname, TRUE); // it's not the real .seq read
 	if (!new_seq)
 		return 1;
 	free_sequence(new_seq, TRUE);
@@ -227,7 +227,7 @@ int check_seq(int recompute_stats) {
 		const char *ext = get_filename_ext(file);
 		if (!ext) continue;
 
-		if ((new_seq = check_seq_one_file(file))) {
+		if ((new_seq = check_seq_one_file(file, FALSE))) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
 		} else if (!strcasecmp(ext, com.pref.ext + 1)) {
@@ -240,7 +240,7 @@ int check_seq(int recompute_stats) {
 					}
 				}
 				/* not found */
-				if (current_seq == -1) {
+				if (current_seq < 0) {
 					new_seq = calloc(1, sizeof(sequence));
 					initialize_sequence(new_seq, TRUE);
 					new_seq->seqname = basename;
@@ -261,6 +261,10 @@ int check_seq(int recompute_stats) {
 				if (fixed > sequences[current_seq]->fixed)
 					sequences[current_seq]->fixed = fixed;
 			}
+			else if ((new_seq = check_seq_one_file(file, TRUE))) {
+				sequences[nb_seq] = new_seq;
+				nb_seq++;
+			}
 		}
 		if (nb_seq == max_seq) {
 			max_seq *= 2;
@@ -279,12 +283,32 @@ int check_seq(int recompute_stats) {
 	if (nb_seq > 0) {
 		int retval = 1;
 		for (i = 0; i < nb_seq; i++) {
-			if (sequences[i]->beg != sequences[i]->end) {
-				siril_debug_print(_("sequence %d, found: %d to %d\n"),
-						i + 1, sequences[i]->beg, sequences[i]->end);
-				if (!buildseqfile(sequences[i], recompute_stats) && retval)
-					retval = 0;	// at least one succeeded to be created
+			if (sequences[i]->beg == sequences[i]->end) {
+				/* maybe it's a FITSEQ? */
+				char *name = malloc(strlen(sequences[i]->seqname) + 20);
+				if (!name) {
+					PRINT_ALLOC_ERR;
+					free_sequence(sequences[i], TRUE);
+					continue;
+				}
+				sequence *new_seq;
+				if (get_possible_image_filename(sequences[i],
+							sequences[i]->beg, name) &&
+						(new_seq = check_seq_one_file(name, TRUE))) {
+					free_sequence(sequences[i], TRUE);
+					sequences[i] = new_seq;
+					free(name);
+				}
+				else {
+					free_sequence(sequences[i], TRUE);
+					free(name);
+					continue;
+				}
 			}
+			siril_debug_print(_("sequence %d, found: %d to %d\n"),
+					i + 1, sequences[i]->beg, sequences[i]->end);
+			if (!buildseqfile(sequences[i], recompute_stats) && retval)
+				retval = 0;	// at least one succeeded to be created
 			free_sequence(sequences[i], TRUE);
 		}
 		free(sequences);
@@ -297,7 +321,7 @@ int check_seq(int recompute_stats) {
 }
 
 /* Creates a .seq file for one-file sequence passed in argument */
-static sequence *check_seq_one_file(const char* name) {
+static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq) {
 	if (!com.wd) {
 		siril_log_message(_("Current working directory is not set, aborting.\n"));
 		return NULL;
@@ -342,7 +366,7 @@ static sequence *check_seq_one_file(const char* name) {
 		siril_debug_print("Found a AVI sequence\n");
 	}
 #endif
-	else if (!strcasecmp(ext, com.pref.ext + 1) && fitseq_is_fitseq(name, NULL)) {
+	else if (check_for_fitseq && !strcasecmp(ext, com.pref.ext + 1) && fitseq_is_fitseq(name, NULL)) {
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
 		fitseq_init_struct(fitseq_file);
 		if (fitseq_open(name, fitseq_file)) {
