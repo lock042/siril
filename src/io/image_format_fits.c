@@ -63,6 +63,7 @@ static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", NULL 
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 static char *FILTER[] = {"FILTER", NULL };
 static char *CVF[] = { "CVF", "EGAIN", NULL };
+static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OffsetLevel[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -343,6 +344,7 @@ void read_fits_header(fits *fit) {
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure);
 	__tryToFindKeywords(fit->fptr, TSTRING, FILTER, &fit->filter);
+	__tryToFindKeywords(fit->fptr, TSTRING, IMAGETYP, &fit->image_type);
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->object), NULL, &status);
@@ -1174,6 +1176,11 @@ void save_fits_header(fits *fit) {
 	if (fit->filter[0] != '\0')
 		fits_update_key(fit->fptr, TSTRING, "FILTER", &(fit->filter),
 				"Active filter name", &status);
+
+	status = 0;
+	if (fit->filter[0] != '\0')
+		fits_update_key(fit->fptr, TSTRING, "IMAGETYP", &(fit->image_type),
+				"Type of image", &status);
 
 	status = 0;
 	if (fit->object[0] != '\0')
@@ -2116,6 +2123,7 @@ int copy_fits_metadata(fits *from, fits *to) {
 	if (from->date_obs)
 		to->date_obs = g_date_time_ref(from->date_obs);
 	strncpy(to->filter, from->filter, FLEN_VALUE);
+	strncpy(to->image_type, from->image_type, FLEN_VALUE);
 	strncpy(to->object, from->object, FLEN_VALUE);
 	strncpy(to->instrume, from->instrume, FLEN_VALUE);
 	strncpy(to->telescop, from->telescop, FLEN_VALUE);

@@ -3383,6 +3383,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkScale">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
                         <property name="adjustment">adjustment_background_nb_samples</property>
                         <property name="round-digits">1</property>
                         <property name="draw-value">False</property>
@@ -3414,6 +3415,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                           <object class="GtkSpinButton">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                             <property name="input-purpose">digits</property>
                             <property name="adjustment">adj_background_nb_samples</property>
                             <property name="digits">2</property>

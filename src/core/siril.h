@@ -404,6 +404,7 @@ struct ffit {
 	GDateTime *date, *date_obs;
 	double expstart, expend;
 	char filter[FLEN_VALUE];		// FILTER key
+	char image_type[FLEN_VALUE];	// IMAGETYP key
 	char object[FLEN_VALUE];		// OBJECT key
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
