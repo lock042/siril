@@ -343,6 +343,13 @@ void read_fits_header(fits *fit) {
 
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure);
+
+	status = 0;
+	fits_read_key(fit->fptr, TUINT, "STACKCNT", &(fit->stacknt), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
+
 	__tryToFindKeywords(fit->fptr, TSTRING, FILTER, &fit->filter);
 	__tryToFindKeywords(fit->fptr, TSTRING, IMAGETYP, &fit->image_type);
 
@@ -1131,9 +1138,19 @@ void save_fits_header(fits *fit) {
 	}
 
 	status = 0;
+	if (fit->stacknt > 0)
+		fits_update_key(fit->fptr, TUINT, "STACKCNT", &(fit->stacknt),
+				"Stack frames", &status);
+
+	status = 0;
 	if (fit->exposure > 0.)
 		fits_update_key(fit->fptr, TDOUBLE, "EXPTIME", &(fit->exposure),
 				"Exposure time [s]", &status);
+
+	status = 0;
+	if (fit->livetime > 0.)
+		fits_update_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime),
+				"Exposure time after deadtime correction", &status);
 
 	status = 0;
 	if (fit->expstart > 0.)
@@ -1145,7 +1162,6 @@ void save_fits_header(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->expend),
 				"Exposure end time (standard Julian date)", &status);
 
-	/* all keywords below are non-standard */
 	status = 0;
 	if (fit->pixel_size_x > 0.)
 		fits_update_key(fit->fptr, TFLOAT, "XPIXSZ", &(fit->pixel_size_x),
@@ -1209,7 +1225,6 @@ void save_fits_header(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset),
 				"Y offset of Bayer array", &status);
-
 	}
 
 	status = 0;
@@ -2138,6 +2153,9 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->focal_length = from->focal_length;
 	to->iso_speed = from->iso_speed;
 	to->exposure = from->exposure;
+	to->expstart = from->expstart;
+	to->expend = from->expend;
+	to->livetime = from->livetime;
 	to->aperture = from->aperture;
 	to->ccd_temp = from->ccd_temp;
 	to->cvf = from->cvf;
