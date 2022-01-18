@@ -1466,9 +1466,6 @@ void clearfits(fits *fit) {
 		free(fit->stats);
 	}
 	free_wcs(fit);
-	// isn't this the correct call here instead fo free_wcs?
-	//invalidate_WCS_keywords(fit);
-
 	memset(fit, 0, sizeof(fits));
 }
 

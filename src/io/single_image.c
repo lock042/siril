@@ -106,7 +106,6 @@ static gboolean free_image_data_idle(gpointer p) {
 	return FALSE;
 }
 
-
 static void free_image_data_gui() {
 	/* this function frees resources used in the GUI, some of these resources
 	 * need to be handled in the GTK+ main thread, so we use an idle function
@@ -141,7 +140,6 @@ static void free_image_data_gui() {
 	clear_previews();
 	free_reference_image();
 }
-
 
 /* frees resources when changing sequence or closing a single image */
 void free_image_data() {
