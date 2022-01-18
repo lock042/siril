@@ -36,6 +36,7 @@
 #include "gui/message_dialog.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
+#include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
@@ -485,7 +486,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
 		args->process = FALSE;
 		clearfits(args->fit);
-		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -554,7 +554,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 	clearfits(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_extract_channels, args);
 
 	return GINT_TO_POINTER(0);
 }
@@ -572,7 +571,6 @@ static gpointer extract_channels_float(gpointer p) {
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
 		args->process = FALSE;
 		clearfits(args->fit);
-		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -639,7 +637,6 @@ static gpointer extract_channels_float(gpointer p) {
 	clearfits(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_extract_channels, args);
 
 	return GINT_TO_POINTER(0);
 }

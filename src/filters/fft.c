@@ -32,6 +32,7 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "io/single_image.h"

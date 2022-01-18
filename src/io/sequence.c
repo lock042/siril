@@ -62,6 +62,7 @@
 #include "gui/PSF_list.h"	// clear_stars_list
 #include "gui/sequence_list.h"
 #include "gui/preferences.h"
+#include "gui/registration_preview.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/quality.h"
@@ -1280,6 +1281,8 @@ gboolean close_sequence_idle(gpointer data) {
 	free_cbbt_layers();
 	clear_sequence_list();
 	clear_stars_list();
+	clear_previews();
+	free_reference_image();
 	update_stack_interface(TRUE);
 	adjust_sellabel();
 	update_seqlist(-1);

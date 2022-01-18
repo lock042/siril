@@ -26,6 +26,7 @@
 #include "core/undo.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
+#include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 

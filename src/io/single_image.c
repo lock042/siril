@@ -38,6 +38,7 @@
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
 #include "gui/plot.h"
+#include "gui/registration_preview.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -137,17 +138,8 @@ static void free_image_data_gui() {
 		view->view_height= -1;
 	}
 
-	/* free alignment preview data */
-	for (int i = 0; i < PREVIEW_NB; i++) {
-		if (gui.preview_surface[i]) {
-			cairo_surface_destroy(gui.preview_surface[i]);
-			gui.preview_surface[i] = NULL;
-		}
-	}
-	if (gui.refimage_surface) {
-		cairo_surface_destroy(gui.refimage_surface);
-		gui.refimage_surface = NULL;
-	}
+	clear_previews();
+	free_reference_image();
 }
 
 
@@ -159,7 +151,6 @@ void free_image_data() {
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 	clearfits(&gfit);
-	//invalidate_WCS_keywords(&gfit);
 
 	clear_histograms();
 	//
@@ -399,8 +390,8 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 /* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
 void adjust_cutoff_from_updated_gfit() {
 	invalidate_stats_from_fit(&gfit);
+	invalidate_gfit_histogram();
 	if (!com.script) {
-		invalidate_gfit_histogram();
 		compute_histo_for_gfit();
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();

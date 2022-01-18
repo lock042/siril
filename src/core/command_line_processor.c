@@ -28,6 +28,8 @@
 #include "core/OS_utils.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
+#include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "core/processing.h"
@@ -157,14 +159,20 @@ static void clear_status_bar() {
 }
 
 static gboolean end_script(gpointer p) {
+	/* GTK+ code is ignored during scripts, this is a good place to redraw everything */
 	clear_status_bar();
 	set_GUI_CWD();
 	update_MenuItem();
-
-	/* redraws are ignored during scripts, we need to redraw now if needed */
-	if (sequence_is_loaded() || single_image_is_loaded())
-		redraw(REMAP_ALL);
-
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	update_zoom_label();
+	update_display_fwhm();
+	display_filename();
+	new_selection_zone();
+	set_GUI_misc();
+	set_GUI_compression();
+	update_spinCPU(0);
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }

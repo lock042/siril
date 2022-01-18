@@ -33,6 +33,7 @@
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
