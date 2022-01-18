@@ -643,12 +643,14 @@ static gpointer extract_channels_float(gpointer p) {
 
 gpointer extract_channels(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *)p;
+	gpointer retval = GINT_TO_POINTER(1);
+
 	if (args->fit->type == DATA_USHORT)
-		return extract_channels_ushort(p);
-	if (args->fit->type == DATA_FLOAT)
-		return extract_channels_float(p);
+		retval = extract_channels_ushort(p);
+	else if (args->fit->type == DATA_FLOAT)
+		retval = extract_channels_float(p);
 	siril_add_idle(end_extract_channels, args);
-	return GINT_TO_POINTER(1);
+	return retval;
 }
 
 /****************** Color calibration ************************/
