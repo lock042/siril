@@ -132,7 +132,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="title" translatable="yes">Cosmetic Correction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox36">
@@ -1149,7 +1149,7 @@ artifacts may appear.</property>
     <property name="title" translatable="yes">Wavelets Layers Extraction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox32">
@@ -1301,7 +1301,7 @@ artifacts may appear.</property>
     <property name="title" translatable="yes">Banding Reduction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox31">
@@ -1606,7 +1606,7 @@ artifacts may appear.</property>
     <property name="title" translatable="yes">Median Filter</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox27">
@@ -1902,7 +1902,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="title" translatable="yes">Rotational Gradient</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="box_rgradient">
@@ -3218,7 +3218,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="title" translatable="yes">Background Extraction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_background_extraction_dialog_hide" swapped="no"/>
     <signal name="show" handler="on_background_extraction_dialog_show" swapped="no"/>
@@ -3383,6 +3383,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkScale">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
                         <property name="adjustment">adjustment_background_nb_samples</property>
                         <property name="round-digits">1</property>
                         <property name="draw-value">False</property>
@@ -3414,6 +3415,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                           <object class="GtkSpinButton">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                             <property name="input-purpose">digits</property>
                             <property name="adjustment">adj_background_nb_samples</property>
                             <property name="digits">2</property>
@@ -4832,7 +4834,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="title" translatable="yes">Subtractive Chromatic Green Noise Reduction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_SCNR_dialog_show" swapped="no"/>
     <child internal-child="vbox">
@@ -5178,7 +5180,7 @@ enter a visible wavelength in nm</property>
     <property name="title" translatable="yes">Crop sequence</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox33">
@@ -5289,7 +5291,7 @@ enter a visible wavelength in nm</property>
     <property name="title" translatable="yes">Channel Extraction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox14">
@@ -5727,7 +5729,7 @@ enter a visible wavelength in nm</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Image compositing</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_composition_dialog_hide" swapped="no"/>
     <child internal-child="vbox">
@@ -6115,7 +6117,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Fourier Transform</property>
     <property name="resizable">False</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox20">
@@ -6364,7 +6366,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
     <property name="title" translatable="yes">Linear Match</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -7010,7 +7012,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <property name="title" translatable="yes">Image Plate Solver</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -7405,6 +7407,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                           <object class="GtkTreeView" id="GtkTreeViewIPS">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Several resolvers can be found and displayed in this list. However, it just about getting the coordinates of the center of the objec. Choosing one item or the others should not influence the plate-solving or the photometry data, which is based on the selected catalogue.</property>
                             <property name="model">liststoreIPS</property>
                             <property name="search-column">0</property>
                             <signal name="cursor-changed" handler="on_GtkTreeViewIPS_cursor_changed" swapped="no"/>
@@ -7448,6 +7451,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Flip image at the end of the platesolving if image is mirrored.</property>
                         <property name="halign">end</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
@@ -7480,6 +7484,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Only use the center of the image (or selection) if the field is too wide.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
@@ -7496,7 +7501,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Using catalogue in cache if available</property>
+                        <property name="tooltip-text" translatable="yes">When ticked, the catalogue data around this coordinate is stored locally and can be used again in subsequent solves around the same point, which is faster.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
@@ -7782,9 +7787,9 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can-focus">False</property>
-                        <property name="homogeneous">True</property>
+                        <property name="spacing">10</property>
                         <child>
-                          <!-- n-columns=3 n-rows=3 -->
+                          <!-- n-columns=2 n-rows=3 -->
                           <object class="GtkGrid" id="grid46">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -7870,15 +7875,6 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                                 <property name="top-attach">0</property>
                                 <property name="width">2</property>
                               </packing>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
                             </child>
                           </object>
                           <packing>
@@ -7996,7 +7992,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Statistics</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox30">
@@ -8226,7 +8222,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Dynamic PSF</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_stars_list_window_hide" swapped="no"/>
     <signal name="show" handler="on_stars_list_window_show" swapped="no"/>
@@ -8861,7 +8857,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
             <property name="receives-default">True</property>
             <property name="action-name">win.astrometry</property>
             <property name="text" translatable="yes">Image Plate Solver...</property>
-            <signal name="clicked" handler="on_info_menu_astrometry_clicked" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -10112,6 +10107,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Sequence List</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_pixel_math_dialog_show" swapped="no"/>
     <child>
@@ -11082,7 +11078,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="title" translatable="yes">Resample</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox15">
@@ -11301,7 +11297,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="title" translatable="yes">Rotation</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox22">
@@ -11529,7 +11525,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="title" translatable="yes">Split CFA</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -17716,7 +17712,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
     <property name="height-request">300</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <property name="transient-for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
@@ -17811,7 +17807,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
     <property name="title" translatable="yes">Color Calibration</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox23">
@@ -18517,7 +18513,7 @@ If the selection is empty, the whole image will be used as reference.</property>
     <property name="title" translatable="yes">Preferences</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">

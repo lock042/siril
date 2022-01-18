@@ -404,6 +404,7 @@ struct ffit {
 	GDateTime *date, *date_obs;
 	double expstart, expend;
 	char filter[FLEN_VALUE];		// FILTER key
+	char image_type[FLEN_VALUE];	// IMAGETYP key
 	char object[FLEN_VALUE];		// OBJECT key
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
@@ -412,6 +413,8 @@ struct ffit {
 	int bayer_xoffset, bayer_yoffset;
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
+	double livetime; // total exposure
+	guint stacknt; // number of stacked frame
 	double cvf; // Conversion factor (e-/adu)
 	int key_gain, key_offset; // Gain, Offset values read in camera headers.
 

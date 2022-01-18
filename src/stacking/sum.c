@@ -33,7 +33,7 @@
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels
 	double *fsum[3];	// the new image's channels, for float input image
-	double exposure;	// sum of the exposures
+	double livetime;	// sum of the exposures
 	int reglayer;		// layer used for registration data
 	int ref_image;		// reference image index in the stacked sequence
 	gboolean input_32bits;	// input is a sequence of 32-bit float images
@@ -74,7 +74,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 		ssdata->fsum[0] = NULL;
 	}
 
-	ssdata->exposure = 0.0;
+	ssdata->livetime = 0.0;
 	return ST_OK;
 }
 
@@ -86,7 +86,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-	ssdata->exposure += fit->exposure;
+	ssdata->livetime += fit->exposure;
 	
 	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
 		shiftx = round_to_int(args->seq->regparam[ssdata->reglayer][i].shiftx * (float)args->seq->upscale_at_stacking);
@@ -171,7 +171,8 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		import_metadata_from_serfile(args->seq->ser_file, &gfit);
 	}
 
-	gfit.exposure = ssdata->exposure;
+	gfit.livetime = ssdata->livetime;
+	gfit.stacknt = args->nb_filtered_images;
 	nbdata = args->seq->ry * args->seq->rx;
 
 	if (ssdata->output_32bits) {

@@ -63,6 +63,7 @@ static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", NULL 
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 static char *FILTER[] = {"FILTER", NULL };
 static char *CVF[] = { "CVF", "EGAIN", NULL };
+static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OffsetLevel[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -342,7 +343,15 @@ void read_fits_header(fits *fit) {
 
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure);
+
+	status = 0;
+	fits_read_key(fit->fptr, TUINT, "STACKCNT", &(fit->stacknt), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
+
 	__tryToFindKeywords(fit->fptr, TSTRING, FILTER, &fit->filter);
+	__tryToFindKeywords(fit->fptr, TSTRING, IMAGETYP, &fit->image_type);
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->object), NULL, &status);
@@ -1129,9 +1138,19 @@ void save_fits_header(fits *fit) {
 	}
 
 	status = 0;
+	if (fit->stacknt > 0)
+		fits_update_key(fit->fptr, TUINT, "STACKCNT", &(fit->stacknt),
+				"Stack frames", &status);
+
+	status = 0;
 	if (fit->exposure > 0.)
 		fits_update_key(fit->fptr, TDOUBLE, "EXPTIME", &(fit->exposure),
 				"Exposure time [s]", &status);
+
+	status = 0;
+	if (fit->livetime > 0.)
+		fits_update_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime),
+				"Exposure time after deadtime correction", &status);
 
 	status = 0;
 	if (fit->expstart > 0.)
@@ -1143,7 +1162,6 @@ void save_fits_header(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->expend),
 				"Exposure end time (standard Julian date)", &status);
 
-	/* all keywords below are non-standard */
 	status = 0;
 	if (fit->pixel_size_x > 0.)
 		fits_update_key(fit->fptr, TFLOAT, "XPIXSZ", &(fit->pixel_size_x),
@@ -1176,6 +1194,11 @@ void save_fits_header(fits *fit) {
 				"Active filter name", &status);
 
 	status = 0;
+	if (fit->filter[0] != '\0')
+		fits_update_key(fit->fptr, TSTRING, "IMAGETYP", &(fit->image_type),
+				"Type of image", &status);
+
+	status = 0;
 	if (fit->object[0] != '\0')
 		fits_update_key(fit->fptr, TSTRING, "OBJECT", &(fit->object),
 				"Name of the object of interest", &status);
@@ -1202,7 +1225,6 @@ void save_fits_header(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset),
 				"Y offset of Bayer array", &status);
-
 	}
 
 	status = 0;
@@ -2118,6 +2140,7 @@ int copy_fits_metadata(fits *from, fits *to) {
 	if (from->date_obs)
 		to->date_obs = g_date_time_ref(from->date_obs);
 	strncpy(to->filter, from->filter, FLEN_VALUE);
+	strncpy(to->image_type, from->image_type, FLEN_VALUE);
 	strncpy(to->object, from->object, FLEN_VALUE);
 	strncpy(to->instrume, from->instrume, FLEN_VALUE);
 	strncpy(to->telescop, from->telescop, FLEN_VALUE);
@@ -2132,6 +2155,9 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->focal_length = from->focal_length;
 	to->iso_speed = from->iso_speed;
 	to->exposure = from->exposure;
+	to->expstart = from->expstart;
+	to->expend = from->expend;
+	to->livetime = from->livetime;
 	to->aperture = from->aperture;
 	to->ccd_temp = from->ccd_temp;
 	to->cvf = from->cvf;

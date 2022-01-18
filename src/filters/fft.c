@@ -491,6 +491,11 @@ gpointer fourier_transform(gpointer p) {
 			args->retval = 1;
 			goto end;
 		}
+		if ((tmp->rx != tmp1->rx) || (tmp->ry != tmp1->ry) || (tmp->naxes[2] != tmp1->naxes[2]) || (tmp->bitpix != tmp1->bitpix)) {
+			args->retval = 1;
+			siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+			goto end;
+		}
 		if (tmp->dft.ord[0] == 'C')		// CENTERED
 			args->type_order = TYPE_CENTERED;
 		else if (tmp->dft.ord[0] == 'R')	// REGULAR

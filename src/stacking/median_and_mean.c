@@ -935,7 +935,7 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 		g_date_time_unref(corrected_last_date);
 
 		/* we address the computed values to the keywords */
-		fit->exposure = exposure;
+		fit->livetime = exposure;
 		fit->date_obs = date_obs;
 		fit->expstart = start;
 		fit->expend = end;
@@ -1392,6 +1392,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 
 	compute_date_time_keywords(list_date, &gfit);
+	/* report he number of stacked image */
+	gfit.stacknt = args->nb_images_to_stack;
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);

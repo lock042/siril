@@ -584,8 +584,22 @@ static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog,
 	if (output_stream == NULL) {
 		if (error != NULL) {
 			/* if file exist and user uses cache */
-			if (error->code == G_IO_ERROR_EXISTS && use_cache) {
-				siril_log_color_message(_("Using data in cache\n"), "salmon");
+			if (error->code == G_IO_ERROR_EXISTS) {
+				if (use_cache) {
+					siril_log_color_message(_("Using data in cache\n"), "salmon");
+				} else {
+					/* file exist but we don't want to use cache */
+					output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+					if (output_stream == NULL) {
+						if (error != NULL) {
+							g_warning("%s\n", error->message);
+							g_clear_error(&error);
+							fprintf(stderr, "astrometry_solver: Cannot open catalogue\n");
+							g_object_unref(file);
+							return NULL;
+						}
+					}
+				}
 				g_clear_error(&error);
 			} else {
 				g_warning("%s\n", error->message);
@@ -595,7 +609,9 @@ static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog,
 				return NULL;
 			}
 		}
-	} else {
+	}
+
+	if (output_stream != NULL || !use_cache) {
 		gchar *url = get_catalog_url(catalog_center, m, fov, onlineCatalog);
 		buffer = fetch_url(url);
 		g_free(url);
@@ -1370,10 +1386,6 @@ void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length
 	g_free(result);
 }
 
-void on_info_menu_astrometry_clicked(GtkButton *button, gpointer user_data) {
-	open_astrometry_dialog();
-}
-
 void on_buttonIPS_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("ImagePlateSolver_Dial");
 }
@@ -1404,7 +1416,12 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 		}
 
 		if (selected_item >= 0) {
-			update_coordinates(platedObject[selected_item].world_cs);
+			if (platedObject[selected_item].world_cs)
+				update_coordinates(platedObject[selected_item].world_cs);
+			else {
+				char *msg = siril_log_message(_("There are no available coordinates with this name, try with another name\n"));
+				siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), msg);
+			}
 		}
 
 		g_value_unset(&value);
@@ -1889,6 +1906,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 	args->use_cache = is_cache_activated();
 	args->fit = &gfit;
 	scalefactor = args->downsample ? DOWNSAMPLE_FACTOR : 1.0;
+	set_cursor_waiting(TRUE);
 	
 	if (!args->manual) {
 		// first checking if there is a selection or if the full field is to be used
@@ -1944,6 +1962,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center) == 0.0) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), _("Please enter object coordinates."));
+		set_cursor_waiting(FALSE);
 		return 1;
 	}
 
@@ -1953,6 +1972,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 	if (!catalog_name) {
 		siril_world_cs_unref(catalog_center);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
+		set_cursor_waiting(FALSE);
 		return 1;
 	}
 	args->cat_center = catalog_center; //for projection later on
@@ -1961,6 +1981,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 	args->pixel_size = px_size;
 	args->flip_image = flip_image_after_ps();
 
+	set_cursor_waiting(FALSE);
 	return 0;
 }
 
