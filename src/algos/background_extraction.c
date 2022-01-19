@@ -313,7 +313,7 @@ static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gbool
 	if (fit->type == DATA_USHORT) {
 		for (int y = 0; y < height; ++y) {
 			for (int x = 0; x < width; ++x) {
-				image[y * width + x] = fit->pdata[channel][(height - y - 1)	* width + x] / USHRT_MAX_SINGLE;
+				image[y * width + x] = fit->pdata[channel][(height - y - 1) * width + x] / USHRT_MAX_SINGLE;
 				if (add_dither) {
 					/* add dithering in order to avoid colour banding */
 					image[y * width + x] += (_rand(&seed) % 1048576) * 0.000000000095367431640625f;
@@ -594,9 +594,8 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 	return orig;
 }
 
+/* generates samples and stores them in com.grad_samples */
 void generate_background_samples(int nb_of_samples, double tolerance) {
-	set_cursor_waiting(TRUE);
-
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE);
 	if (gfit.naxes[2] > 1) {
@@ -604,10 +603,10 @@ void generate_background_samples(int nb_of_samples, double tolerance) {
 	}
 
 	redraw(REDRAW_OVERLAY);
-	set_cursor_waiting(FALSE);
 }
 
-gboolean remove_gradient_from_image(int correction, poly_order degree) {
+/* uses samples from com.grad_samples */
+gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean use_dither) {
 	gchar *error;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 	if (!background && !com.script) {
@@ -626,7 +625,7 @@ gboolean remove_gradient_from_image(int correction, poly_order degree) {
 
 	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
-		convert_fits_to_img(&gfit, image, channel, is_dither_checked());
+		convert_fits_to_img(&gfit, image, channel, use_dither);
 		if (!computeBackground(com.grad_samples, background, channel, gfit.rx,
 				gfit.ry, degree, &error)) {
 			free(image);
@@ -755,6 +754,7 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 	tolerance = get_tolerance_value();
 
 	generate_background_samples(nb_of_samples, tolerance);
+	set_cursor_waiting(FALSE);
 }
 
 void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
@@ -806,9 +806,10 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		int correction = get_correction_type();
 		poly_order degree = get_poly_order();
+		gboolean use_dither = is_dither_checked();
 		undo_save_state(&gfit, _("Background extraction (Correction: %s)"),
 				correction ? "Division" : "Subtraction");
-		remove_gradient_from_image(correction, degree);
+		remove_gradient_from_image(correction, degree, use_dither);
 
 		invalidate_stats_from_fit(&gfit);
 		adjust_cutoff_from_updated_gfit();

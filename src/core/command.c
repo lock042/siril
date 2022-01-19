@@ -2247,7 +2247,7 @@ int process_subsky(int nb) {
 	} else {
 		set_cursor_waiting(TRUE);
 		generate_background_samples(20, 1.0);
-		remove_gradient_from_image(0, (poly_order) (degree - 1));
+		remove_gradient_from_image(0, (poly_order) (degree - 1), TRUE);
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
 
