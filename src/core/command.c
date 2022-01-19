@@ -2029,8 +2029,6 @@ int process_cdg(int nb) {
 	if (!FindCentre(&gfit, &x_avg, &y_avg)) {
 		siril_log_message(_("Center of gravity coordinates are (%.3lf, %.3lf)\n"), x_avg, y_avg);
 		return 0;
-	} else {
-		siril_log_message(_("Something wrong happen in cdg command.\n"));
 	}
 	return 1;
 }
