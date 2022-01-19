@@ -466,6 +466,7 @@ static GSList *update_median_for_rgb_samples(GSList *orig, fits *fit) {
 		return NULL;
 	}
 
+	// shouldn't it start at 1?
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		convert_fits_to_img(fit, channelData, channel, FALSE);
 		for (GSList *list = orig; list; list = list->next) {
@@ -693,6 +694,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 
 			set_cursor_waiting(FALSE);
 			free(image);
+			free(background);
 			free_background_sample_list(samples);
 			return 1;
 		}
@@ -709,10 +711,71 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	return 0;
 }
 
+static int background_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	unsigned int required = MB_per_image;
+	if (limit > 0) {
+		/* allocations:
+		 * generate_samples convert_fits_to_luminance allocates         rx * ry * sizeof(float)
+		 * generate_samples allocates a buffer for MAD computation      rx * ry * sizeof(double)
+		 * both are freed at generate_samples exit
+		 * for color images:
+		 *	update_median_for_rgb_samples allocates for median      rx * ry * sizeof(double)
+		 * freed at update_median_for_rgb_samples exit
+		 * remove_gradient_from_image allocates the background image to rx * ry * sizeof(double)
+		 * remove_gradient_from_image allocates the image            to rx * ry * sizeof(double)
+		 *
+		 * so at maximum, ignoring the samples, we need 2 times the double channel size.
+		 */
+		uint64_t double_channel_size = args->seq->rx * args->seq->ry * sizeof(double);
+		unsigned int double_channel_size_MB = double_channel_size / BYTES_IN_A_MB;
+		required = MB_per_image + double_channel_size_MB * 2;
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+
+		if (for_writer) {
+                        /* we allow the already allocated thread_limit images,
+                         * plus how many images can be stored in what remains
+                         * unused by the main processing */
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+                } else limit = thread_limit;
+
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
 void apply_background_extraction_to_sequence(struct background_data *background_args) {
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
+	args->compute_mem_limits_hook = background_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = background_image_hook;
