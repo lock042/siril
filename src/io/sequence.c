@@ -1321,7 +1321,7 @@ gboolean close_sequence_idle(gpointer data) {
 }
 
 static void close_sequence_gui(gboolean loading_sequence_from_combo) {
-	if (!com.script)
+	if (com.script)
 		execute_idle_and_wait_for_it(close_sequence_idle,
 				GINT_TO_POINTER(loading_sequence_from_combo));
 	else close_sequence_idle(GINT_TO_POINTER(loading_sequence_from_combo));
