@@ -651,6 +651,7 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 
 int ser_close_file(struct ser_struct *ser_file) {
 	int retval = 0;
+	user_warned = FALSE;
 	if (!ser_file)
 		return -1;
 	if (ser_file->file) {
@@ -771,6 +772,14 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 				pattern = "GBRG";
 			else if (ser_file->color_id == SER_BAYER_GRBG)
 				pattern = "GRBG";
+		} else {
+			pattern = filter_pattern[com.pref.debayer.bayer_pattern];
+			if (!user_warned) {
+				if (ser_file->color_id == SER_MONO)
+					siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");
+				else siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern);
+				user_warned = TRUE;
+			}
 		}
 	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
 		pattern = filter_pattern[com.pref.debayer.bayer_pattern];

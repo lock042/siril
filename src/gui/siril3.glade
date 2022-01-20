@@ -18648,7 +18648,8 @@ If the selection is empty, the whole image will be used as reference.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">If this box is checked, Siril will automatically apply the Bayer pattern found in the file's header as well as X and Y Bayer offsets. If the result looks wrong uncheck this box and choose manually your pattern in the Debayer box below.</property>
+				    <property name="tooltip-text" translatable="yes">If this box is checked, Siril will automatically apply the Bayer pattern found in the file's header as well as X and Y Bayer offsets. If the result looks wrong uncheck this box and choose manually your pattern in the Debayer box below.
+If unchecked, the Bayer pattern given below will be used instead. Warning: to allow SER files converted from films to be demosaiced, monochrome SER will be forced as CFA with the configured pattern.</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
