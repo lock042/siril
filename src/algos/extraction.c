@@ -164,12 +164,20 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return ret;
 }
 
+static int extract_prepare_hook(struct generic_seq_args *args) {
+	int retval = seq_prepare_hook(args);
+	if (!retval && args->new_ser) {
+		retval = ser_reset_to_monochrome(args->new_ser);
+	}
+	return retval;
+}
+
 void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
-	args->prepare_hook = seq_prepare_hook;
+	args->prepare_hook = extract_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = extractHa_image_hook;
 	args->description = _("Extract Ha");
@@ -292,7 +300,7 @@ void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
-	args->prepare_hook = seq_prepare_hook;
+	args->prepare_hook = extract_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
@@ -465,14 +473,14 @@ static int dual_prepare(struct generic_seq_args *args) {
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 	// we call the generic prepare twice with different prefixes
 	args->new_seq_prefix = "Ha_";
-	if (seq_prepare_hook(args))
+	if (extract_prepare_hook(args))
 		return 1;
 	// but we copy the result between each call
 	cfa_args->new_ser_ha = args->new_ser;
 	cfa_args->new_fitseq_ha = args->new_fitseq;
 
 	args->new_seq_prefix = "OIII_";
-	if (seq_prepare_hook(args))
+	if (extract_prepare_hook(args))
 		return 1;
 	cfa_args->new_ser_oiii = args->new_ser;
 	cfa_args->new_fitseq_oiii = args->new_fitseq;

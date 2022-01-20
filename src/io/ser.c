@@ -584,7 +584,8 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		/* we write the header now, but it should be written again
 		 * before closing in case the number of the image in the new
 		 * SER changes from the copied SER */
-		ser_write_header(ser_file);
+		if (ser_write_header(ser_file))
+			return 1;
 	} else {	// new SER
 		ser_file->file_id = strdup("LUCAM-RECORDER");
 		ser_file->lu_id = 0;
@@ -608,6 +609,13 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 	siril_log_message(_("Created SER file %s\n"), filename);
 	start_writer(ser_file->writer, ser_file->frame_count);
 	return 0;
+}
+
+int ser_reset_to_monochrome(struct ser_struct *ser_file) {
+	ser_file->color_id = SER_MONO;
+	if (ser_file->number_of_planes > 0)
+		ser_file->number_of_planes = 1;
+	return ser_write_header(ser_file);
 }
 
 static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index) {
@@ -763,8 +771,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 				pattern = "GBRG";
 			else if (ser_file->color_id == SER_BAYER_GRBG)
 				pattern = "GRBG";
-		} else {
-			pattern = filter_pattern[com.pref.debayer.bayer_pattern];
 		}
 	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
 		pattern = filter_pattern[com.pref.debayer.bayer_pattern];

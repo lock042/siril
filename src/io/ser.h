@@ -122,15 +122,18 @@ struct ser_struct {
 };
 
 gboolean ser_is_cfa(struct ser_struct *ser_file);
+int ser_reset_to_monochrome(struct ser_struct *ser_file);
 void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp);
 void ser_init_struct(struct ser_struct *ser_file);
 void ser_display_info(struct ser_struct *ser_file);
+
 int ser_open_file(const char *filename, struct ser_struct *ser_file);
 int ser_close_and_delete_file(struct ser_struct *ser_file);
 int ser_write_and_close(struct ser_struct *ser_file);
 int ser_create_file(const char *filename, struct ser_struct *ser_file, gboolean overwrite, struct ser_struct *copy_from);
 int ser_close_file(struct ser_struct *ser_file);
 int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit);
+
 int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolean force_float, gboolean open_debayer);
 int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area);
