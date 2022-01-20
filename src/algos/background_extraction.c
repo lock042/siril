@@ -466,7 +466,6 @@ static GSList *update_median_for_rgb_samples(GSList *orig, fits *fit) {
 		return NULL;
 	}
 
-	// shouldn't it start at 1?
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		convert_fits_to_img(fit, channelData, channel, FALSE);
 		for (GSList *list = orig; list; list = list->next) {
