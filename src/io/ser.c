@@ -771,8 +771,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 				pattern = "GBRG";
 			else if (ser_file->color_id == SER_BAYER_GRBG)
 				pattern = "GRBG";
-		} else {
-			pattern = filter_pattern[com.pref.debayer.bayer_pattern];
 		}
 	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
 		pattern = filter_pattern[com.pref.debayer.bayer_pattern];
