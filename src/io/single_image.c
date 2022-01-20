@@ -57,7 +57,7 @@
 void close_single_image() {
 	if (sequence_is_loaded() && com.seq.current >= 0)
 		return;
-	fprintf(stdout, "MODE: closing single image\n");
+	siril_debug_print("MODE: closing single image\n");
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
 	 */
@@ -66,7 +66,7 @@ void close_single_image() {
 }
 
 static gboolean free_image_data_idle(gpointer p) {
-	fprintf(stdout, "free_image_data_gui() idle called\n");
+	siril_debug_print("free_image_data_gui() idle called\n");
 	reset_compositing_module();
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
@@ -113,7 +113,7 @@ static void free_image_data_gui() {
 	if (com.script)
 		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
 	else free_image_data_idle(NULL);
-	fprintf(stdout, "free_image_data_gui() called\n");
+	siril_debug_print("free_image_data_gui() called\n");
 
 	/* free display image data */
 	for (int vport = 0; vport < MAXVPORT; vport++) {
@@ -143,7 +143,7 @@ static void free_image_data_gui() {
 
 /* frees resources when changing sequence or closing a single image */
 void free_image_data() {
-	fprintf(stdout, "free_image_data() called, clearing loaded image\n");
+	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
 	if (!single_image_is_loaded() && sequence_is_loaded())
@@ -151,10 +151,6 @@ void free_image_data() {
 	clearfits(&gfit);
 
 	clear_histograms();
-	//
-	//if (!com.headless)
-	//	activate_tab(gui.cvport);
-	// ^ what's that? gui.cvport is set by the active tab
 
 	if (com.uniq) {
 		free(com.uniq->filename);
@@ -260,7 +256,7 @@ int open_single_image(const char* filename) {
 	}
 
 	if (!is_single_sequence) {
-		fprintf(stdout, "Loading image OK, now displaying\n");
+		siril_debug_print("Loading image OK, now displaying\n");
 
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
