@@ -1266,6 +1266,13 @@ static void add_object_in_tree_view(const gchar *object) {
 		add_object_to_list();
 		g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		g_free(result);
+
+		/* select first object found in the list*/
+		GtkTreeIter iter;
+		GtkTreeSelection *selection = gtk_tree_view_get_selection (GtkTreeViewIPS);
+		gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_IPS), &iter);
+		gtk_tree_selection_select_iter(selection, &iter);
+		g_signal_emit_by_name(GTK_TREE_VIEW(GtkTreeViewIPS), "cursor-changed");
 	}
 	set_cursor_waiting(FALSE);
 }
