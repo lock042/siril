@@ -319,7 +319,6 @@ sequence * readseqfile(const char *name){
 						seq->ser_file = NULL;
 						goto error;
 					}
-					ser_display_info(seq->ser_file);
 
 					if (ser_is_cfa(seq->ser_file)) {
 						if (!com.pref.debayer.open_debayer) {

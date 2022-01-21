@@ -33,6 +33,7 @@
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"
+#include "io/ser.h"
 
 #include "command_line_processor.h"
 
@@ -463,7 +464,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
 		if (check_seq(FALSE)) {
-			siril_log_message(_("No sequence `%s' found.\n"), name);
+			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);
 			g_free(file);
 			g_free(altfile);
 			return NULL;
@@ -484,12 +485,14 @@ sequence *load_sequence(const char *name, char **get_filename) {
 		}
 	}
 	if (!seq)
-		siril_log_message(_("Loading sequence `%s' failed.\n"), name);
+		siril_log_color_message(_("Loading sequence `%s' failed.\n"), "red", name);
 	else {
 		if (seq_check_basic_data(seq, FALSE) == -1) {
 			free(seq);
 			seq = NULL;
 		}
+		else if (seq->type == SEQ_SER)
+			ser_display_info(seq->ser_file);
 	}
 	g_free(file);
 	g_free(altfile);

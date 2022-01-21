@@ -86,7 +86,7 @@ typedef enum {
  * - the integer types of the header are little endian, which may not be the
  *   case when compiling the struct
  */
-struct ser_struct {
+struct ser_struct {			// size and offset from header
 	char *file_id;			// 14 bytes (0)
 	int lu_id;			// 4	(14)
 	ser_color color_id;		// 4	(18)
@@ -98,16 +98,16 @@ struct ser_struct {
 	char observer[40];		// 40	(42)
 	char instrument[40];		// 40	(82)
 	char telescope[40];		// 40	(122)
-	guint64 date;		// 8	(162)
-	guint64 date_utc;	// 8 (170)
+	guint64 date;			// 8	(162)
+	guint64 date_utc;		// 8	(170)
 
 	/* timestamps (not in the header, timestamps are in trailer) */
 	guint64 *ts;			// total timestamps
 	int ts_alloc;			// allocated number of elements in ts
-	guint64 ts_min, ts_max;// min and max timestamp
-	double fps;				// frame rate
+	guint64 ts_min, ts_max;		// min and max timestamp
+	double fps;			// frame rate
 
-	gint64 filesize;			// size of the file
+	gint64 filesize;		// size of the file
 
 	// internal representations of header data
 	ser_pixdepth byte_pixel_depth;	// more useful representation of the bit_pixel_depth

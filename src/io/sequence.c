@@ -485,6 +485,8 @@ int set_seq(const char *name){
 			free(seq);
 			return 1;
 		}
+		if (seq->type == SEQ_SER)
+			ser_display_info(seq->ser_file);
 		if (retval == 0) {
 			int image_to_load = sequence_find_refimage(seq);
 			if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
