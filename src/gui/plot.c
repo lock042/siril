@@ -389,6 +389,12 @@ static gboolean gnuplot_is_available() {
 #else
 /* returns true if the command gnuplot is available */
 static gboolean gnuplot_is_available() {
+	   char command[50];
+
+	   strcpy( command, "ls -l /usr/bin" );
+	   system(command);
+
+
 	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", siril_win_get_gnuplot_path());
 
 	int retval = system(str);
@@ -412,6 +418,13 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, k, nbImages = 0, ret = 0;
 	pldata *tmp_plot = plot;
 	double *vmag, *err, *x, *real_x;
+
+	if (!gnuplot_is_available()) {
+		char *msg = siril_log_message(_("Please consider to install it before "
+				"trying to plot a graph of a variable star.\n"));
+
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("Gnuplot is unavailable"), msg);
+	}
 
 	/* get number of data */
 	for (i = 0, j = 0; i < plot->nb; i++) {
@@ -887,16 +900,9 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
-//	if (!gnuplot_is_available()) {
-//		char *msg = siril_log_message(_("Please consider to install it before "
-//				"trying to plot a graph of a variable star.\n"));
-//
-//		siril_message_dialog( GTK_MESSAGE_WARNING, _("Gnuplot is unavailable"), msg);
-//	} else {
-		set_cursor_waiting(TRUE);
-		save_dialog(".dat", lightCurve);
-		set_cursor_waiting(FALSE);
-//	}
+	set_cursor_waiting(TRUE);
+	save_dialog(".dat", lightCurve);
+	set_cursor_waiting(FALSE);
 }
 
 void free_photometry_set(sequence *seq, int set) {
