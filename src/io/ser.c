@@ -54,7 +54,7 @@ static int display_date(guint64 timestamp, char *txt) {
 	GDateTime *date = ser_timestamp_to_date_time(timestamp);
 	if (date) {
 		gchar *str = date_time_to_FITS_date(date);
-		fprintf(stdout, "%s%s\n", txt, str);
+		siril_log_message("%s%s\n", txt, str);
 		free(str);
 		g_date_time_unref(date);
 	}
@@ -239,6 +239,9 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	memcpy(ser_file->observer, header + 42, 40);
 	memcpy(ser_file->instrument, header + 82, 40);
 	memcpy(ser_file->telescope, header + 122, 40);
+	ser_file->observer[39] = '\0';
+	ser_file->instrument[39] = '\0';
+	ser_file->telescope[39] = '\0';
 
 	/* internal representations of header data */
 	if (ser_file->bit_pixel_depth <= 8)
@@ -491,21 +494,28 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 void ser_display_info(struct ser_struct *ser_file) {
 	char *color = convert_color_id_to_char(ser_file->color_id);
 
-	fprintf(stdout, "=========== SER file info ==============\n");
-	fprintf(stdout, "file id: %s\n", ser_file->file_id);
-	fprintf(stdout, "lu id: %d\n", ser_file->lu_id);
-	fprintf(stdout, "little endian: %d\n", ser_file->little_endian);
-	fprintf(stdout, "sensor type: %s\n", color);
-	fprintf(stdout, "image size: %d x %d (%d bits)\n", ser_file->image_width,
+	siril_log_message("=========== SER file info ==============\n");
+	if (ser_file->filename)
+		siril_log_message("for file '%s'\n", ser_file->filename);
+	if (ser_file->file_id && strcmp(ser_file->file_id, "LUCAM-RECORDER"))
+		siril_log_message("file id: %s\n", ser_file->file_id);
+	if (ser_file->lu_id != 0)
+		siril_log_message("lu id: %d\n", ser_file->lu_id);
+	siril_log_message("image size: %d x %d (%d bits)\n", ser_file->image_width,
 			ser_file->image_height, ser_file->bit_pixel_depth);
-	fprintf(stdout, "frame count: %u\n", ser_file->frame_count);
-	fprintf(stdout, "observer: %.40s\n", ser_file->observer);
-	fprintf(stdout, "instrument: %.40s\n", ser_file->instrument);
-	fprintf(stdout, "telescope: %.40s\n", ser_file->telescope);
+	siril_log_message("sensor type: %s\n", color);
+	siril_log_message("frame count: %u\n", ser_file->frame_count);
+	if (ser_file->observer[0] != '\0')
+		siril_log_message("observer: %.40s\n", ser_file->observer);
+	if (ser_file->instrument[0] != '\0')
+		siril_log_message("instrument: %.40s\n", ser_file->instrument);
+	if (ser_file->telescope[0] != '\0')
+		siril_log_message("telescope: %.40s\n", ser_file->telescope);
 	display_date(ser_file->date, "local time: ");
 	display_date(ser_file->date_utc, "UTC time: ");
-	fprintf(stdout, "fps: %.3lf\n", ser_file->fps);
-	fprintf(stdout, "========================================\n");
+	if (ser_file->fps > 0.0)
+		siril_log_message("fps: %.3lf\n", ser_file->fps);
+	siril_log_message("========================================\n");
 }
 
 static int ser_end_write(struct ser_struct *ser_file, gboolean abort) {
@@ -787,7 +797,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	}
 	if (pattern) {
 		strcpy(fit->bayer_pattern, pattern);
-		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
+		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE);
 	}
 
 	switch (type_ser) {
