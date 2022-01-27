@@ -20,8 +20,13 @@ if criterion_dep.found()
                                 c_args : siril_c_flag,
                                 cpp_args : siril_cpp_flag)
 
+<<<<<<< Updated upstream
      test('stacking_blocks_test', sorting_exec)
 
+=======
+     test('stacking_blocks_test', stacking_exec)
+     
+>>>>>>> Stashed changes
      date_exec = executable('siril_date_test',
                             'siril_date_test.c',
                             dependencies : [siril_dep, criterion_dep],
