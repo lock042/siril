@@ -78,9 +78,8 @@ gpointer generic_sequence_worker(gpointer p) {
 		args->retval = 1;
 		goto the_end;
 	}
-	if (args->compute_mem_limits_hook)
-		siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
-				args->description, args->max_thread);
+	siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
+			args->description, args->max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
