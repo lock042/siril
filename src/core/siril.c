@@ -18,7 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gtk/gtk.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,6 +33,7 @@
 #include "gui/image_display.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"

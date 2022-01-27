@@ -61,6 +61,7 @@
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
 #include "gui/script_menu.h"
+#include "gui/registration_preview.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/clahe.h"
@@ -442,7 +443,7 @@ int process_rl(int nb) {
 	}
 
 	if (corner < -0.5 || corner > 0.5) {
-		siril_log_message(_("Corner radius boost must be between [0.5, 0.5]\n"));
+		siril_log_message(_("Corner radius boost must be between [-0.5, 0.5]\n"));
 		return 1;
 	}
 
@@ -2054,15 +2055,6 @@ int process_clearstar(int nb){
 int process_close(int nb) {
 	close_sequence(FALSE);
 	close_single_image();
-	if (!com.script) {
-		update_MenuItem();
-		display_filename();
-		update_zoom_label();
-		update_display_fwhm();
-		reset_plot(); // reset all plots
-		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-		
-	}
 	return 0;
 }
 
@@ -2253,7 +2245,7 @@ int process_subsky(int nb) {
 	} else {
 		set_cursor_waiting(TRUE);
 		generate_background_samples(20, 1.0);
-		remove_gradient_from_image(0, (poly_order) (degree - 1));
+		remove_gradient_from_image(0, (poly_order) (degree - 1), TRUE);
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
 
@@ -3981,7 +3973,7 @@ int process_set_32bits(int nb) {
 		siril_log_message(_("16-bit per channel in processed images mode is active\n"));
 	else siril_log_message(_("32-bit per channel in processed images mode is active\n"));
 	writeinitfile();
-	if (!com.headless)
+	if (!com.script)
 		set_GUI_misc();
 	return 0;
 }
@@ -4039,7 +4031,7 @@ int process_set_compress(int nb) {
 	com.pref.comp.fits_method = method;
 	com.pref.comp.fits_quantization = q;
 	com.pref.comp.fits_hcompress_scale = hscale;
-	if (!com.headless)
+	if (!com.script)
 		set_GUI_compression();
 	writeinitfile();
 	return 0;
@@ -4069,7 +4061,7 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	if (!com.headless)
+	if (!com.script)
 		update_spinCPU(0);
 
 	return 0;
@@ -4088,7 +4080,7 @@ int process_set_mem(int nb){
 	com.pref.stack.memory_ratio = ratio;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
-	if (!com.headless)
+	if (!com.script)
 		set_GUI_misc();
 	return 0;
 }

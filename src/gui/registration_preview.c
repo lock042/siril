@@ -25,6 +25,7 @@
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_interactions.h"
+#include "gui/registration_preview.h"
 #include "gui/sequence_list.h"
 #include "registration/registration.h"
 
@@ -181,6 +182,16 @@ void redraw_previews() {
 		gtk_widget_queue_draw(gui.preview_area[i]);
 }
 
+void clear_previews() {
+	/* free alignment preview data */
+	for (int i = 0; i < PREVIEW_NB; i++) {
+		if (gui.preview_surface[i]) {
+			cairo_surface_destroy(gui.preview_surface[i]);
+			gui.preview_surface[i] = NULL;
+		}
+	}
+}
+
 void set_preview_area(int preview_area, int centerX, int centerY) {
 	/* equivalent to remap() for full image visualization, called in the
 	 * mouse click callback and image change.
@@ -254,10 +265,6 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 
 void on_checkbutton_displayref_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	redraw_previews();
-}
-
-void init_mouse() {
-	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 }
 
 /* display registration data (shift{x|y} for now) in the manual adjustments */

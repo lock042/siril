@@ -580,6 +580,12 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	return 0;
 }
 
+gboolean get_script_thread_run() {
+	/* we don't need mutex for this one because it's only checked by user
+	 * input, which is much slower than the function execution */
+	return com.script_thread != NULL;
+}
+
 void wait_for_script_thread() {
 	if (com.script_thread)
 		g_thread_join(com.script_thread);

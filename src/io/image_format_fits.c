@@ -61,7 +61,7 @@ static char *BINY[] = { "YBINNING", "BINY", NULL };
 static char *FOCAL[] = { "FOCAL", "FOCALLEN", NULL };
 static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", NULL };
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
-static char *FILTER[] = {"FILTER", NULL };
+static char *FILTER[] = {"FILTER", "FILT-1", NULL };
 static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OffsetLevel[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
@@ -1466,7 +1466,6 @@ void clearfits(fits *fit) {
 		free(fit->stats);
 	}
 	free_wcs(fit);
-
 	memset(fit, 0, sizeof(fits));
 }
 

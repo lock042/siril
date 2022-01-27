@@ -26,6 +26,7 @@
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/plot.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"

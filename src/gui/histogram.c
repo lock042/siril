@@ -34,6 +34,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
+#include "gui/registration_preview.h"
 #include "core/undo.h"
 
 #include "histogram.h"

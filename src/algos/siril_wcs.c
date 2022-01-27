@@ -64,6 +64,7 @@ void free_wcs(fits *fit) {
 		fit->wcslib = NULL;
 	}
 #endif
+	memset(&fit->wcsdata, 0, sizeof(fit->wcsdata));
 }
 
 gboolean load_WCS_from_memory(fits *fit) {

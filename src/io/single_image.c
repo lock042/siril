@@ -38,6 +38,7 @@
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
 #include "gui/plot.h"
+#include "gui/registration_preview.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -45,6 +46,7 @@
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
+#include "gui/utils.h"
 #include "core/undo.h"
 #include "core/processing.h"
 #include "compositing/compositing.h"
@@ -55,56 +57,65 @@
 void close_single_image() {
 	if (sequence_is_loaded() && com.seq.current >= 0)
 		return;
-	fprintf(stdout, "MODE: closing single image\n");
+	siril_debug_print("MODE: closing single image\n");
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
 	 */
-	if (!com.headless) {
-		siril_close_preview_dialogs();
-	}
 	free_image_data();
 	undo_flush();
 }
 
-/* frees resources when changing sequence or closing a single image
- * (image size may vary, so we reallocate) */
-void free_image_data() {
-	fprintf(stdout, "free_image_data() called, clearing loaded image\n");
-	/* WARNING: single_image.fit references the actual fits image,
-	 * shouldn't it be used here instead of gfit? */
-	if (!single_image_is_loaded() && sequence_is_loaded())
-		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
-	clearfits(&gfit);
-	invalidate_WCS_keywords(&gfit);
-	if (!com.headless) {
-		GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));
-		GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
-		GtkEntry* pitchX_entry = GTK_ENTRY(lookup_widget("pitchX_entry"));
-		GtkEntry* pitchY_entry = GTK_ENTRY(lookup_widget("pitchY_entry"));
-		// avoid redrawing plot while com.seq has not been updated
-		g_signal_handlers_block_by_func(focal_entry, on_focal_entry_changed, NULL);
-		g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
-		g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
-		g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
-		clear_stars_list();
-		delete_selected_area();
-		clear_sampling_setting_box();	// clear focal and pixel pitch info
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
-		g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
-		com.found_object = NULL;
-		reset_display_offset();
-		reset_zoom_default();
-		free(com.qphot);
-		com.qphot = NULL;
-		clear_sensor_tilt();
-		g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
-		g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
-		g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
-		g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
-	}
-	clear_histograms();
+static gboolean free_image_data_idle(gpointer p) {
+	siril_debug_print("free_image_data_gui() idle called\n");
+	reset_compositing_module();
+	reset_plot(); // clear existing plot if any
+	siril_close_preview_dialogs();
+	display_filename();
+	update_zoom_label();
+	update_display_fwhm();
+	adjust_sellabel();
+	update_MenuItem();
+	close_tab();	// close Green and Blue tabs
 
+	GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));
+	GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
+	GtkEntry* pitchX_entry = GTK_ENTRY(lookup_widget("pitchX_entry"));
+	GtkEntry* pitchY_entry = GTK_ENTRY(lookup_widget("pitchY_entry"));
+	// avoid redrawing plot while com.seq has not been updated
+	g_signal_handlers_block_by_func(focal_entry, on_focal_entry_changed, NULL);
+	g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
+	clear_stars_list();
+	delete_selected_area();
+	clear_sampling_setting_box();	// clear focal and pixel pitch info
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
+	g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
+	com.found_object = NULL;
+	reset_display_offset();
+	reset_zoom_default();
+	free(com.qphot);
+	com.qphot = NULL;
+	clear_sensor_tilt();
+	g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
+	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+	g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
+
+	return FALSE;
+}
+
+static void free_image_data_gui() {
+	/* this function frees resources used in the GUI, some of these resources
+	 * need to be handled in the GTK+ main thread, so we use an idle function
+	 * to deal with them */
+	if (com.script)
+		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
+	else free_image_data_idle(NULL);
+	siril_debug_print("free_image_data_gui() called\n");
+
+	/* free display image data */
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
 		if (view->buf) {
@@ -125,8 +136,21 @@ void free_image_data() {
 		view->view_width = -1;
 		view->view_height= -1;
 	}
-	if (!com.headless)
-		activate_tab(gui.cvport);
+
+	clear_previews();
+	free_reference_image();
+}
+
+/* frees resources when changing sequence or closing a single image */
+void free_image_data() {
+	siril_debug_print("free_image_data() called, clearing loaded image\n");
+	/* WARNING: single_image.fit references the actual fits image,
+	 * shouldn't it be used here instead of gfit? */
+	if (!single_image_is_loaded() && sequence_is_loaded())
+		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
+	clearfits(&gfit);
+
+	clear_histograms();
 
 	if (com.uniq) {
 		free(com.uniq->filename);
@@ -136,19 +160,8 @@ void free_image_data() {
 		com.uniq = NULL;
 	}
 
-	if (!com.headless) {
-		/* free alignment preview data */
-		for (int i = 0; i < PREVIEW_NB; i++) {
-			if (gui.preview_surface[i]) {
-				cairo_surface_destroy(gui.preview_surface[i]);
-				gui.preview_surface[i] = NULL;
-			}
-		}
-		if (gui.refimage_surface) {
-			cairo_surface_destroy(gui.refimage_surface);
-			gui.refimage_surface = NULL;
-		}
-	}
+	if (!com.headless)
+		free_image_data_gui();
 }
 
 static gboolean end_read_single_image(gpointer p) {
@@ -166,7 +179,7 @@ static gboolean end_read_single_image(gpointer p) {
  * real file name of the loaded file, since the given filename can be without
  * extension.
  * @param is_sequence is set to TRUE if the loaded image is in fact a SER or AVI sequence. Can be NULL
- * @return
+ * @return 0 on success
  */
 int read_single_image(const char *filename, fits *dest, char **realname_out,
 		gboolean allow_sequences, gboolean *is_sequence, gboolean allow_dialogs,
@@ -178,9 +191,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
-		char *msg = siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-		set_cursor_waiting(FALSE);
+		siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
 		free(realname);
 		return 1;
 	}
@@ -191,6 +202,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			single_sequence = TRUE;
 		} else {
 			siril_log_message(_("Cannot open a sequence from here\n"));
+			free(realname);
 			return 1;
 		}
 	} else {
@@ -227,20 +239,13 @@ int open_single_image(const char* filename) {
 	char *realname;
 	gboolean is_single_sequence;
 
-	reset_compositing_module();
+	/* first, close everything */
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
-	reset_plot(); // clear existing plot if any
 
+	/* open the new file */
 	retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
-	if (retval == 2) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
-				_("This file could not be opened because "
-						"its extension is not supported."));
-		return 1;
-	}
-
-	if (retval < 0) {
+	if (retval) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
@@ -248,7 +253,7 @@ int open_single_image(const char* filename) {
 	}
 
 	if (!is_single_sequence) {
-		fprintf(stdout, "Loading image OK, now displaying\n");
+		siril_debug_print("Loading image OK, now displaying\n");
 
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
@@ -257,7 +262,17 @@ int open_single_image(const char* filename) {
 		com.uniq->fileexist = get_type_from_filename(com.uniq->filename) == TYPEFITS;
 		com.uniq->nb_layers = gfit.naxes[2];
 		com.uniq->fit = &gfit;
-		siril_add_idle(end_open_single_image, realname);
+		if (!com.headless) {
+			/* we don't need to use siril_add_idle here, because this idle
+			 * function needs to be called for load to work properly and
+			 * display the GUI for the loaded image. The image being loaded in
+			 * gfit, not displaying it may cause some inconsistencies,
+			 * possibly reported as a crash (see #770)
+			 */
+			if (com.script)
+				execute_idle_and_wait_for_it(end_open_single_image, NULL);
+			else end_open_single_image(NULL);
+		}
 	}
 	return retval;
 }
@@ -265,6 +280,7 @@ int open_single_image(const char* filename) {
 /* creates a single_image structure and displays a single image, found in gfit.
  */
 void open_single_image_from_gfit() {
+	siril_debug_print("open_single_image_from_gfit()\n");
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
@@ -272,7 +288,7 @@ void open_single_image_from_gfit() {
 
 	update_zoom_label();
 
-	init_layers_hi_and_lo_values(MIPSLOHI);		// If MIPS-LO/HI exist we load these values. If not it is min/max
+	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
 	sliders_mode_set_state(gui.sliders);
 	set_cutoff_sliders_max_values();
@@ -365,8 +381,8 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 /* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
 void adjust_cutoff_from_updated_gfit() {
 	invalidate_stats_from_fit(&gfit);
+	invalidate_gfit_histogram();
 	if (!com.script) {
-		invalidate_gfit_histogram();
 		compute_histo_for_gfit();
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();

@@ -34,6 +34,7 @@
 #include "gui/PSF_list.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
@@ -146,21 +147,21 @@ static void fits_rotate_pi(fits *fit) {
 }
 
 void mirrorx_gui(fits *fit) {
-		set_cursor_waiting(TRUE);
-		undo_save_state(fit, _("Mirror X"));
-		mirrorx(fit, TRUE);
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+	set_cursor_waiting(TRUE);
+	undo_save_state(fit, _("Mirror X"));
+	mirrorx(fit, TRUE);
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }
 
 void mirrory_gui(fits *fit) {
-		set_cursor_waiting(TRUE);
-		undo_save_state(fit, _("Mirror Y"));
-		mirrory(fit, TRUE);
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+	set_cursor_waiting(TRUE);
+	undo_save_state(fit, _("Mirror Y"));
+	mirrory(fit, TRUE);
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }
 
 static void rotate_gui(fits *fit) {
@@ -221,7 +222,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	gettimeofday(&t_start, NULL);
 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
-	invalidate_WCS_keywords(image);
+	free_wcs(image);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);

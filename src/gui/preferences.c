@@ -467,9 +467,6 @@ void set_GUI_compression() {
 		if (com.pref.comp.fits_method == HCOMPRESS_COMP) {
 			gtk_spin_button_set_value(hscale, com.pref.comp.fits_hcompress_scale);
 		}
-		siril_log_message(_("FITS compression enabled\n"), com.pref.ext);
-	} else {
-		siril_log_message(_("FITS compression disabled\n"));
 	}
 }
 
