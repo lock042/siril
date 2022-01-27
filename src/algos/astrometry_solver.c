@@ -1906,7 +1906,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 
 	px_size = get_pixel();
 	scale = get_resolution(get_focal(), px_size);
-	
+
 	args->autocrop = is_autocrop_activated();
 	args->manual = is_detection_manual();
 	args->downsample = is_downsample_activated();
@@ -1914,7 +1914,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 	args->fit = &gfit;
 	scalefactor = args->downsample ? DOWNSAMPLE_FACTOR : 1.0;
 	set_cursor_waiting(TRUE);
-	
+
 	if (!args->manual) {
 		// first checking if there is a selection or if the full field is to be used
 		if (com.selection.w != 0 && com.selection.h != 0) {
@@ -1935,7 +1935,7 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 			croparea.y += (int) ((croparea.h - croparea.h * args->cropfactor) / 2);
 			croparea.w = (int) (args->cropfactor * croparea.w);
 			croparea.h = (int) (args->cropfactor * croparea.h);
-           // TODO calc center offset if need
+			// TODO calc center offset if need
 			siril_log_message(_("Auto-cropped factor: %.2f\n"), args->cropfactor);
 		}
 		siril_log_message(_("Solving on selected area: %d %d %d %d \n"), croparea.x, croparea.y, croparea.w, croparea.h);

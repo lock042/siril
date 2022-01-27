@@ -1,4 +1,3 @@
-//#define WITH_MAIN
 #ifndef WITH_MAIN
 #include <criterion/criterion.h>
 #endif

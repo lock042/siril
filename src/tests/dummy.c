@@ -5,6 +5,7 @@
 
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
+guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
 char **supported_extensions;
 
@@ -153,6 +154,15 @@ void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
 char* siril_log_message(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_color_message(const char* format, const char* color, ...) {
+	va_list args;
+	va_start(args, color);
 	printf("\t");
 	vprintf(format, args);
 	va_end(args);

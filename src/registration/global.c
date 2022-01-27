@@ -97,40 +97,8 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 			return 1;
 		}
 
-		if (args->seq->type == SEQ_SER) {
-			/* copied from seq_prepare_hook with one variation */
-			args->new_ser = malloc(sizeof(struct ser_struct));
-			if (!args->new_ser) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-
-			char dest[256];
-			const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
-			if (ptr)
-				snprintf(dest, 255, "%s%s.ser", regargs->prefix, ptr + 1);
-			else
-				snprintf(dest, 255, "%s%s.ser", regargs->prefix, args->seq->seqname);
-
-			/* Here the last argument is NULL because we do not want copy SER file
-			 * from the original. Indeed in the demosaicing case this would lead to
-			 * a wrong file (B&W and not in RAW data). Moreover, header informations
-			 * (like fps, local and UTC time, ...) have no sense now since some frames
-			 * could be removed from the sequence.
-			 */
-			if (ser_create_file(dest, args->new_ser, TRUE, NULL)) {
-				free(args->new_ser);
-				args->new_ser = NULL;
-				return 1;
-			}
-
-			if (seq_prepare_writer(args))
-				return 1;
-		}
-		else if (args->seq->type == SEQ_FITSEQ) {
-			if (seq_prepare_hook(args))
-				return 1;
-		}
+		if (seq_prepare_hook(args))
+			return 1;
 	}
 
 	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
