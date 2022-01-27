@@ -192,9 +192,6 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
 		siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
-		// this dialog is inconsistent with other error handlings of this function
-		// and another dialog exists in open_single_image too
-		//siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		free(realname);
 		return 1;
 	}
