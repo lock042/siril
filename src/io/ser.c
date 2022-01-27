@@ -1157,8 +1157,8 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	int pixel, plane, dest;
 	int ret, retval = 0;
 	gint64 offset, frame_size;
-	BYTE *data8 = NULL;			// for 8-bit files
-	WORD *data16 = NULL;		// for 16-bit files
+	BYTE *data8 = NULL;	// for 8-bit files
+	WORD *data16 = NULL;	// for 16-bit files
 
 	if (!ser_file || ser_file->file == NULL || !fit)
 		return -1;

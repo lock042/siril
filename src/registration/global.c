@@ -128,6 +128,8 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		return 1;
 	}
+	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
+		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
 
