@@ -36,6 +36,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/image_interactions.h"
+#include "gui/registration_preview.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "histogram.h"
@@ -1283,7 +1284,7 @@ static void invalidate_image_render_cache(int vport) {
 		gui.view[i].view_height = -1;
 		gui.view[i].view_width = -1;
 	}
-	siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
+	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
 }
 
 void adjust_vport_size_to_image() {
@@ -1366,9 +1367,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	if (dd.window_width != gui.view[dd.vport].view_width ||
 			dd.window_height != gui.view[dd.vport].view_height) {
-		siril_debug_print("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
-				dd.window_width, dd.window_height,
-				gui.view[dd.vport].view_width, gui.view[dd.vport].view_height);
+		//siril_debug_print("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
+		//		dd.window_width, dd.window_height,
+		//		gui.view[dd.vport].view_width, gui.view[dd.vport].view_height);
 		invalidate_image_render_cache(dd.vport);
 	}
 

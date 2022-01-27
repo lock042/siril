@@ -313,7 +313,7 @@ static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gbool
 	if (fit->type == DATA_USHORT) {
 		for (int y = 0; y < height; ++y) {
 			for (int x = 0; x < width; ++x) {
-				image[y * width + x] = fit->pdata[channel][(height - y - 1)	* width + x] / USHRT_MAX_SINGLE;
+				image[y * width + x] = fit->pdata[channel][(height - y - 1) * width + x] / USHRT_MAX_SINGLE;
 				if (add_dither) {
 					/* add dithering in order to avoid colour banding */
 					image[y * width + x] += (_rand(&seed) % 1048576) * 0.000000000095367431640625f;
@@ -594,20 +594,19 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 	return orig;
 }
 
+/* generates samples and stores them in com.grad_samples */
 void generate_background_samples(int nb_of_samples, double tolerance) {
-	set_cursor_waiting(TRUE);
-
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE);
 	if (gfit.naxes[2] > 1) {
 		com.grad_samples = update_median_for_rgb_samples(com.grad_samples, &gfit);
 	}
 
-	redraw(REMAP_ALL);
-	set_cursor_waiting(FALSE);
+	redraw(REDRAW_OVERLAY);
 }
 
-gboolean remove_gradient_from_image(int correction, poly_order degree) {
+/* uses samples from com.grad_samples */
+gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean use_dither) {
 	gchar *error;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 	if (!background && !com.script) {
@@ -626,7 +625,7 @@ gboolean remove_gradient_from_image(int correction, poly_order degree) {
 
 	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
-		convert_fits_to_img(&gfit, image, channel, is_dither_checked());
+		convert_fits_to_img(&gfit, image, channel, use_dither);
 		if (!computeBackground(com.grad_samples, background, channel, gfit.rx,
 				gfit.ry, degree, &error)) {
 			free(image);
@@ -694,6 +693,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 
 			set_cursor_waiting(FALSE);
 			free(image);
+			free(background);
 			free_background_sample_list(samples);
 			return 1;
 		}
@@ -710,10 +710,71 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	return 0;
 }
 
+static int background_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	unsigned int required = MB_per_image;
+	if (limit > 0) {
+		/* allocations:
+		 * generate_samples convert_fits_to_luminance allocates         rx * ry * sizeof(float)
+		 * generate_samples allocates a buffer for MAD computation      rx * ry * sizeof(double)
+		 * both are freed at generate_samples exit
+		 * for color images:
+		 *	update_median_for_rgb_samples allocates for median      rx * ry * sizeof(double)
+		 * freed at update_median_for_rgb_samples exit
+		 * remove_gradient_from_image allocates the background image to rx * ry * sizeof(double)
+		 * remove_gradient_from_image allocates the image            to rx * ry * sizeof(double)
+		 *
+		 * so at maximum, ignoring the samples, we need 2 times the double channel size.
+		 */
+		uint64_t double_channel_size = args->seq->rx * args->seq->ry * sizeof(double);
+		unsigned int double_channel_size_MB = double_channel_size / BYTES_IN_A_MB;
+		required = MB_per_image + double_channel_size_MB * 2;
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+
+		if (for_writer) {
+                        /* we allow the already allocated thread_limit images,
+                         * plus how many images can be stored in what remains
+                         * unused by the main processing */
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+                } else limit = thread_limit;
+
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
 void apply_background_extraction_to_sequence(struct background_data *background_args) {
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
+	args->compute_mem_limits_hook = background_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = background_image_hook;
@@ -755,8 +816,6 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 	tolerance = get_tolerance_value();
 
 	generate_background_samples(nb_of_samples, tolerance);
-
-	redraw(REMAP_ALL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -764,7 +823,7 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
 
-	redraw(REMAP_ALL);
+	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
 }
 
@@ -809,9 +868,10 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		int correction = get_correction_type();
 		poly_order degree = get_poly_order();
+		gboolean use_dither = is_dither_checked();
 		undo_save_state(&gfit, _("Background extraction (Correction: %s)"),
 				correction ? "Division" : "Subtraction");
-		remove_gradient_from_image(correction, degree);
+		remove_gradient_from_image(correction, degree, use_dither);
 
 		invalidate_stats_from_fit(&gfit);
 		adjust_cutoff_from_updated_gfit();
@@ -828,7 +888,7 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-	redraw(REMAP_ALL);
+	redraw(REDRAW_OVERLAY);
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {

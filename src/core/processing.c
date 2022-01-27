@@ -78,9 +78,8 @@ gpointer generic_sequence_worker(gpointer p) {
 		args->retval = 1;
 		goto the_end;
 	}
-	if (args->compute_mem_limits_hook)
-		siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
-				args->description, args->max_thread);
+	siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
+			args->description, args->max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
@@ -579,6 +578,12 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.headless)
 		return gdk_threads_add_idle(idle_function, data);
 	return 0;
+}
+
+gboolean get_script_thread_run() {
+	/* we don't need mutex for this one because it's only checked by user
+	 * input, which is much slower than the function execution */
+	return com.script_thread != NULL;
 }
 
 void wait_for_script_thread() {

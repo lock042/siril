@@ -37,6 +37,7 @@
 #include "gui/utils.h"
 #include "progress_and_log.h"
 #include "message_dialog.h"
+#include "registration_preview.h"
 
 mouse_status_enum mouse_status;
 
@@ -163,7 +164,8 @@ void new_selection_zone() {
 
 void delete_selected_area() {
 	memset(&com.selection, 0, sizeof(rectangle));
-	new_selection_zone();
+	if (!com.script)
+		new_selection_zone();
 }
 
 void reset_display_offset() {
@@ -268,6 +270,10 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
 	do_popup_rgbmenu(widget, NULL);
 	return TRUE;
+}
+
+void init_mouse() {
+	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 }
 
 static GdkModifierType get_primary() {

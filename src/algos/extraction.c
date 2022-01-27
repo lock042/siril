@@ -18,6 +18,10 @@ static void update_sampling_information(fits *fit) {
 	fit->pixel_size_y *= 2;
 }
 
+static void update_filter_information(fits *fit, char *filter) {
+	strncpy(fit->filter, filter, FLEN_VALUE);
+}
+
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 	int width = in->rx / 2, height = in->ry / 2;
 
@@ -62,6 +66,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha");
 
 	return 0;
 }
@@ -110,6 +115,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha");
 
 	return 0;
 }
@@ -231,6 +237,7 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
 	update_sampling_information(green);
+	update_filter_information(green, "G");
 
 	return 0;
 }
@@ -274,6 +281,7 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
 	update_sampling_information(green);
+	update_filter_information(green, "G");
 
 	return 0;
 }
@@ -364,9 +372,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha");
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII);
+	update_filter_information(OIII, "OIII");
 
 	return 0;
 }
@@ -420,9 +430,11 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha");
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII);
+	update_filter_information(OIII, "OIII");
 
 	return 0;
 }

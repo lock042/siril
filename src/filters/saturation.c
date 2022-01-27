@@ -34,6 +34,7 @@
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
+#include "gui/registration_preview.h"
 
 #include "saturation.h"
 
