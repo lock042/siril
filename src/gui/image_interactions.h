@@ -31,6 +31,8 @@ typedef enum {
 	MOUSE_ACTION_PHOTOMETRY
 } mouse_status_enum;
 
+void init_mouse();
+
 extern mouse_status_enum mouse_status;	// defined in registration_preview.c
 
 #endif

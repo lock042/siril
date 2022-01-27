@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 
 #include "linear_match.h"
 

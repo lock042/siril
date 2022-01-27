@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"

@@ -2004,16 +2004,6 @@ gboolean confirm_delete_wcs_keywords(fits *fit) {
 	return erase;
 }
 
-void invalidate_WCS_keywords(fits *fit) {
-	if (fit->wcsdata.equinox > 0.0) {
-		memset(&fit->wcsdata, 0, sizeof(fit->wcsdata));
-	}
-	free_wcs(fit);
-	if (!com.headless) {
-		update_MenuItem();
-	}
-}
-
 /** some getters and setters */
 
 SirilWorldCS *get_image_solved_px_cat_center(image_solved *image) {

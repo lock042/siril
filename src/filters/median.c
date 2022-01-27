@@ -30,6 +30,7 @@
 #include "algos/sorting.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "io/single_image.h"

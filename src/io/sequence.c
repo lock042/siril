@@ -62,6 +62,7 @@
 #include "gui/PSF_list.h"	// clear_stars_list
 #include "gui/sequence_list.h"
 #include "gui/preferences.h"
+#include "gui/registration_preview.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/quality.h"
@@ -477,73 +478,81 @@ int set_seq(const char *name){
 	if (convert) {
 		close_sequence(FALSE);
 		convert_single_film_to_ser(seq);
-	} else
+		return 0;
+	}
 #endif
-	{
-		int retval = seq_check_basic_data(seq, TRUE);
-		if (retval == -1) {
+	int retval = seq_check_basic_data(seq, TRUE);
+	if (retval == -1) {
+		free(seq);
+		return 1;
+	}
+	if (retval == 0) {
+		int image_to_load = sequence_find_refimage(seq);
+		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
+			fprintf(stderr, "could not load first image from sequence\n");
 			free(seq);
 			return 1;
 		}
-		if (seq->type == SEQ_SER)
-			ser_display_info(seq->ser_file);
-		if (retval == 0) {
-			int image_to_load = sequence_find_refimage(seq);
-			if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
-				fprintf(stderr, "could not load first image from sequence\n");
-				free(seq);
-				return 1;
-			}
-			seq->current = image_to_load;
+		seq->current = image_to_load;
+	}
+	if (seq->type == SEQ_SER)
+		ser_display_info(seq->ser_file);
+	if (retval == 0) {
+		int image_to_load = sequence_find_refimage(seq);
+		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
+			fprintf(stderr, "could not load first image from sequence\n");
+			free(seq);
+			return 1;
 		}
+		seq->current = image_to_load;
+	}
 
-		basename = g_path_get_basename(seq->seqname);
-		siril_log_message(_("Sequence loaded: %s (%d->%d)\n"),
-				basename, seq->beg, seq->end);
-		g_free(basename);
+	basename = g_path_get_basename(seq->seqname);
+	siril_log_message(_("Sequence loaded: %s (%d->%d)\n"),
+			basename, seq->beg, seq->end);
+	g_free(basename);
 
-		/* Sequence is stored in com.seq for now */
-		close_sequence(TRUE);
-		memcpy(&com.seq, seq, sizeof(sequence));
+	/* Sequence is stored in com.seq for now */
+	close_sequence(TRUE);
+	memcpy(&com.seq, seq, sizeof(sequence));
 
-		if (!com.script) {
-			init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-			set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-			set_cutoff_sliders_values();	// update values for contrast sliders for this image
-			int layer = set_layers_for_registration();	// set layers in the combo box for registration
-			update_seqlist(layer);
-			fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
-			set_output_filename_to_sequence_name();
-			sliders_mode_set_state(gui.sliders);
-			initialize_display_mode();
-			update_zoom_label();
-			reset_plot(); // reset all plots
-			reset_3stars();
+	if (!com.script) {
+		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
+		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+		set_cutoff_sliders_values();	// update values for contrast sliders for this image
+		int layer = set_layers_for_registration();	// set layers in the combo box for registration
+		update_seqlist(layer);
+		fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
+		set_output_filename_to_sequence_name();
+		sliders_mode_set_state(gui.sliders);
+		initialize_display_mode();
+		update_zoom_label();
+		reset_plot(); // reset all plots
+		reset_3stars();
 
-			/* initialize image-related runtime data */
-			set_display_mode();		// display the display mode in the combo box
-			display_filename();		// display filename in gray window
-			set_precision_switch(); // set precision on screen
-			adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-			update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
-			update_reg_interface(FALSE);	// change the registration prereq message
+		/* initialize image-related runtime data */
+		set_display_mode();		// display the display mode in the combo box
+		display_filename();		// display filename in gray window
+		set_precision_switch(); // set precision on screen
+		adjust_refimage(seq->current);	// check or uncheck reference image checkbox
+		update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+		update_reg_interface(FALSE);	// change the registration prereq message
 		//	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-			adjust_reginfo();		// change registration displayed/editable values
-			update_gfit_histogram_if_needed();
-			adjust_sellabel();
-			fillSeqAviExport();	// fill GtkEntry of export box
+		adjust_reginfo();		// change registration displayed/editable values
+		update_gfit_histogram_if_needed();
+		adjust_sellabel();
+		fillSeqAviExport();	// fill GtkEntry of export box
 
-			/* update menus */
-			update_MenuItem();
-			/* update parameters */
-			set_GUI_CAMERA();
-			set_GUI_photometry();
+		/* update menus */
+		update_MenuItem();
+		/* update parameters */
+		set_GUI_CAMERA();
+		set_GUI_photometry();
 
-			/* redraw and display image */
-			close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-			redraw(REMAP_ALL);
-			drawPlot();
-		}
+		/* redraw and display image */
+		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
+		redraw(REMAP_ALL);
+		drawPlot();
 	}
 
 	return 0;
@@ -1302,32 +1311,46 @@ gboolean sequence_is_loaded() {
 	return (com.seq.seqname != NULL && com.seq.imgparam != NULL);
 }
 
+gboolean close_sequence_idle(gpointer data) {
+	fprintf(stdout, "closing sequence idle\n");
+	free_cbbt_layers();
+	clear_sequence_list();
+	clear_stars_list();
+	clear_previews();
+	free_reference_image();
+	update_stack_interface(TRUE);
+	adjust_sellabel();
+	update_seqlist(-1);
+
+	/* unselect the sequence in the sequence list if it's not the one
+	 * being loaded */
+	if (!data) { // loading_sequence_from_combo
+		GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
+		gtk_combo_box_set_active(seqcombo, -1);
+	}
+	return FALSE;
+}
+
+static void close_sequence_gui(gboolean loading_sequence_from_combo) {
+	if (com.script)
+		execute_idle_and_wait_for_it(close_sequence_idle,
+				GINT_TO_POINTER(loading_sequence_from_combo));
+	else close_sequence_idle(GINT_TO_POINTER(loading_sequence_from_combo));
+}
+
 /* Close the com.seq sequence */
-void close_sequence(int loading_another) {
+void close_sequence(int loading_sequence_from_combo) {
 	if (sequence_is_loaded()) {
 		fprintf(stdout, "MODE: closing sequence\n");
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
-		if (!com.script) {
-			free_cbbt_layers();
-			clear_sequence_list();
-		}
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
+
 		free_sequence(&com.seq, FALSE);
 		initialize_sequence(&com.seq, FALSE);
-		if (!com.script) {
-			clear_stars_list();
-			update_stack_interface(TRUE);
-		}
-		if (!loading_another && !com.script) {
-			// unselect the sequence in the sequence list
-			GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
-			gtk_combo_box_set_active(seqcombo, -1);
-		}
-		if (!com.script) {
-			adjust_sellabel();
-			update_seqlist(-1);
-		}
+
+		if (!com.headless)
+			close_sequence_gui(loading_sequence_from_combo);
 	}
 }
 

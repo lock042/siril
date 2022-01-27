@@ -36,6 +36,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/image_interactions.h"
+#include "gui/registration_preview.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "histogram.h"

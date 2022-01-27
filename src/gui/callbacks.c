@@ -60,6 +60,7 @@
 #include "siril_intro.h"
 #include "siril_preview.h"
 #include "siril-window.h"
+#include "registration_preview.h"
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");

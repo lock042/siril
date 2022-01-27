@@ -47,6 +47,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
+#include "gui/registration_preview.h"
 
 #include "photometric_cc.h"
 
