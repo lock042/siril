@@ -1,3 +1,23 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef WITH_MAIN
 #include <criterion/criterion.h>
 #endif
@@ -5,10 +25,6 @@
 #include "../core/siril.h"
 #include "stacking/stacking.h"
 #include <stdio.h>
-
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
 
 /* This is the test file for the function that allocates data block to thread
  * for siril median or mean stacking.
@@ -21,12 +37,16 @@ fits gfit;	// currently loaded image
 
 #ifdef WITH_MAIN
 #define CHECK(cond, ...) \
-	if (cond) { \
+	if (!(cond)) { \
 		fprintf(stderr, __VA_ARGS__); \
 		return 1; \
 	}
 #else
 #define CHECK cr_expect
+
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
+fits gfit;	// currently loaded image
 #endif
 
 int check_that_blocks_cover_the_image(long naxes[3], struct _image_block *blocks, int nb_blocks) {
@@ -345,17 +365,17 @@ int main() {
 }
 #else //with criterion
 
-//Test(stacking_blocks, test1) { cr_assert(test1()); }
-//Test(stacking_blocks, test2) { cr_assert(test2()); }
-//Test(stacking_blocks, test3) { cr_assert(test3()); }
-//Test(stacking_blocks, test4) { cr_assert(test4()); }
-//Test(stacking_blocks, test5) { cr_assert(test5()); }
-//Test(stacking_blocks, test6) { cr_assert(test6()); }
-//Test(stacking_blocks, test7) { cr_assert(test7()); }
-//Test(stacking_blocks, test8) { cr_assert(test8()); }
-//Test(stacking_blocks, test9) { cr_assert(test9()); }
-//Test(stacking_blocks, test10) { cr_assert(test10()); }
-//Test(stacking_blocks, test11) { cr_assert(test11()); }
-//Test(stacking_blocks, test12) { cr_assert(test12()); }
+Test(stacking_blocks, test1) { cr_assert(!test1()); }
+Test(stacking_blocks, test2) { cr_assert(!test2()); }
+Test(stacking_blocks, test3) { cr_assert(!test3()); }
+Test(stacking_blocks, test4) { cr_assert(!test4()); }
+Test(stacking_blocks, test5) { cr_assert(!test5()); }
+Test(stacking_blocks, test6) { cr_assert(!test6()); }
+Test(stacking_blocks, test7) { cr_assert(!test7()); }
+Test(stacking_blocks, test8) { cr_assert(!test8()); }
+Test(stacking_blocks, test9) { cr_assert(!test9()); }
+Test(stacking_blocks, test10) { cr_assert(!test10()); }
+Test(stacking_blocks, test11) { cr_assert(!test11()); }
+Test(stacking_blocks, test12) { cr_assert(!test12()); }
 
 #endif
