@@ -67,7 +67,7 @@ void close_single_image() {
 
 static gboolean free_image_data_idle(gpointer p) {
 	siril_debug_print("free_image_data_gui() idle called\n");
-	reset_compositing_module();
+	//reset_compositing_module();
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
 	display_filename();
