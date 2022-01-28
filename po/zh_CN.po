@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.9.8\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-01-27 15:11+0100\n"
+"POT-Creation-Date: 2022-01-28 07:47+0100\n"
 "PO-Revision-Date: 2021-11-05 15:59+0800\n"
 "Last-Translator: yecloud@me.com\n"
 "Language-Team: astronomy.com.cn <yecloud@me.com>\n"
@@ -5454,7 +5454,7 @@ msgid "%d pair match.\n"
 msgid_plural "%d pair matches.\n"
 msgstr[0] "%d 星点匹配。\n"
 
-#: src/algos/astrometry_solver.c:848 src/registration/global.c:666
+#: src/algos/astrometry_solver.c:848 src/registration/global.c:636
 #, c-format
 msgid "Inliers:%*.3f\n"
 msgstr "缩放：%*.3f\n"
@@ -11128,24 +11128,33 @@ msgstr "确认裁剪"
 msgid "Cropping to selection"
 msgstr "裁减到所选区域"
 
-#: src/io/seqwriter.c:90
+#: src/io/seqwriter.c:107
 msgid ""
 "Cannot add an image with different properties to an existing sequence.\n"
 msgstr ""
 "Cannot add an image with different properties to an existing sequence.\n"
 
-#: src/io/seqwriter.c:120
+#: src/io/seqwriter.c:114
+msgid "Invalid image index requested for write, aborting file creation\n"
+msgstr ""
+
+#: src/io/seqwriter.c:149
 #, c-format
 msgid "writer: Saving image %d, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "writer: Saving image %d, %ld layer(s), %ux%u pixels, %d bits\n"
 
-#: src/io/seqwriter.c:142
+#: src/io/seqwriter.c:169
+#, c-format
+msgid "Incomplete file creation: %d file(s) remained to be written\n"
+msgstr ""
+
+#: src/io/seqwriter.c:176
 #, c-format
 msgid "Saved %d image in the sequence\n"
 msgid_plural "Saved %d images in the sequence\n"
 msgstr[0] "Saved %d image in the sequence\n"
 
-#: src/io/seqwriter.c:223
+#: src/io/seqwriter.c:259
 #, c-format
 msgid ""
 "Number of images allowed in the write queue: %d (zero or less is unlimited)\n"
@@ -11510,7 +11519,7 @@ msgstr "二/三个星点区域的PSF"
 msgid "Draw a selection around the star"
 msgstr "围绕星点画选择框"
 
-#: src/registration/3stars.c:364 src/registration/global.c:564
+#: src/registration/3stars.c:364 src/registration/global.c:534
 #, c-format
 msgid ""
 "%s: not enough memory to do this operation (%s required per thread, %s "
@@ -11543,7 +11552,7 @@ msgid ""
 "alignment."
 msgstr "Siril在对齐操作时无法降DATE-OBS关键字转化为有效的日期数据。"
 
-#: src/registration/comet.c:223 src/registration/global.c:158
+#: src/registration/comet.c:223 src/registration/global.c:126
 #: src/registration/registration.c:555
 msgid "Could not load reference image\n"
 msgstr "无法载入参考帧\n"
@@ -11556,70 +11565,74 @@ msgstr "移动目标对齐"
 msgid "Recomputing already existing registration for this layer\n"
 msgstr "对该通道重新计算已经存在的对齐数据\n"
 
-#: src/registration/global.c:164
+#: src/registration/global.c:132
+msgid "Registering a sequence opened as CFA is a bad idea.\n"
+msgstr ""
+
+#: src/registration/global.c:134
 msgid "Reference Image:\n"
 msgstr "参考帧:\n"
 
-#: src/registration/global.c:173
+#: src/registration/global.c:143
 #, c-format
 msgid "Found %d stars in reference, channel #%d\n"
 msgstr "参考帧中找到%d星点，于通道 #%d\n"
 
-#: src/registration/global.c:178
+#: src/registration/global.c:148
 msgid "There are not enough stars in reference image to perform alignment\n"
 msgstr "参考帧中没有足够数量的星点用于执行对齐\n"
 
-#: src/registration/global.c:230
+#: src/registration/global.c:200
 #, c-format
 msgid "Reference Image: Limiting to %d brightest stars\n"
 msgstr "参考帧：最亮恒星极限为%d\n"
 
-#: src/registration/global.c:235 src/registration/global.c:685
+#: src/registration/global.c:205 src/registration/global.c:655
 #, c-format
 msgid "FWHMx:%*.2f %s\n"
 msgstr "FWHMx:%*.2f %s\n"
 
-#: src/registration/global.c:236 src/registration/global.c:686
+#: src/registration/global.c:206 src/registration/global.c:656
 #, c-format
 msgid "FWHMy:%*.2f %s\n"
 msgstr "FWHMy:%*.2f %s\n"
 
-#: src/registration/global.c:269
+#: src/registration/global.c:239
 #, c-format
 msgid "Frame %d:\n"
 msgstr "第%d帧：\n"
 
-#: src/registration/global.c:276 src/stacking/normalization.c:65
+#: src/registration/global.c:246 src/stacking/normalization.c:65
 msgid ""
 "It looks like your sequence contains a mix of monochrome and RGB images.\n"
 msgstr ""
 
-#: src/registration/global.c:288
+#: src/registration/global.c:258
 #, c-format
 msgid "Found %d stars in image %d, channel #%d\n"
 msgstr "图像%d中找到%d星点，于通道 #%d\n"
 
-#: src/registration/global.c:292
+#: src/registration/global.c:262
 #, c-format
 msgid "Not enough stars. Image %d skipped\n"
 msgstr "没有足够的星点。图像 %d 被跳过\n"
 
-#: src/registration/global.c:299
+#: src/registration/global.c:269
 #, c-format
 msgid "Target Image: Limiting to %d brightest stars\n"
 msgstr "目标图像：最亮恒星极限为%d\n"
 
-#: src/registration/global.c:325
+#: src/registration/global.c:295
 #, c-format
 msgid "Cannot perform star matching: try #%d. Image %d skipped\n"
 msgstr "无法执行星点匹配：尝试#%d。跳过图像 %d \n"
 
-#: src/registration/global.c:331
+#: src/registration/global.c:301
 #, c-format
 msgid "Not enough star pairs (%d): Image %d skipped\n"
 msgstr "没有足够的星点 (%d): 图像 %d 被跳过\n"
 
-#: src/registration/global.c:339
+#: src/registration/global.c:309
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by shift model, it may be too rigid for your "
@@ -11628,7 +11641,7 @@ msgstr ""
 "Less than %d%% star pairs kept by shift model, it may be too rigid for your "
 "data: Image %d skipped\n"
 
-#: src/registration/global.c:345
+#: src/registration/global.c:315
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by similarity model, it may be too rigid for "
@@ -11637,7 +11650,7 @@ msgstr ""
 "Less than %d%% star pairs kept by similarity model, it may be too rigid for "
 "your data: Image %d skipped\n"
 
-#: src/registration/global.c:351
+#: src/registration/global.c:321
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by affine model, it may be too rigid for your "
@@ -11646,7 +11659,7 @@ msgstr ""
 "Less than %d%% star pairs kept by affine model, it may be too rigid for your "
 "data: Image %d skipped\n"
 
-#: src/registration/global.c:357
+#: src/registration/global.c:327
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
@@ -11655,72 +11668,72 @@ msgstr ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
 "important distortion\n"
 
-#: src/registration/global.c:471 src/registration/registration.c:433
+#: src/registration/global.c:441 src/registration/registration.c:433
 #: src/registration/registration.c:519 src/registration/registration.c:654
 msgid "Registration finished.\n"
 msgstr "对齐结束。\n"
 
-#: src/registration/global.c:472
+#: src/registration/global.c:442
 #, c-format
 msgid "%d image processed.\n"
 msgid_plural "%d images processed.\n"
 msgstr[0] "%d 图像已处理。\n"
 
-#: src/registration/global.c:475
+#: src/registration/global.c:445
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "总计： %d 失败， %d 已对齐。\n"
 
-#: src/registration/global.c:486
+#: src/registration/global.c:456
 msgid "Registration aborted.\n"
 msgstr "对齐操作异常中止。\n"
 
-#: src/registration/global.c:599
+#: src/registration/global.c:569
 msgid "Global star registration"
 msgstr "全局星点对齐"
 
 #. Matching information
-#: src/registration/global.c:662
+#: src/registration/global.c:632
 #, c-format
 msgid "Matching stars in image %d: done\n"
 msgstr "匹配星点于图像 %d：完成\n"
 
-#: src/registration/global.c:663
+#: src/registration/global.c:633
 #, c-format
 msgid "Initial pair matches: %d\n"
 msgstr "初始星点匹配：%d\n"
 
-#: src/registration/global.c:664
+#: src/registration/global.c:634
 #, c-format
 msgid "Pair matches after fitting: %d\n"
 msgstr "拟合后星点匹配：%d\n"
 
-#: src/registration/global.c:672
+#: src/registration/global.c:642
 #, c-format
 msgid "scaleX:%*.3f\n"
 msgstr "缩放X轴：%*.3f\n"
 
-#: src/registration/global.c:673
+#: src/registration/global.c:643
 #, c-format
 msgid "scaleY:%*.3f\n"
 msgstr "缩放Y轴：%*.3f\n"
 
-#: src/registration/global.c:674
+#: src/registration/global.c:644
 #, c-format
 msgid "scale:%*.3f\n"
 msgstr "缩放：%*.3f\n"
 
-#: src/registration/global.c:678
+#: src/registration/global.c:648
 #, c-format
 msgid "rotation:%+*.3f deg\n"
 msgstr "旋转：%+*.3f 度\n"
 
-#: src/registration/global.c:683
+#: src/registration/global.c:653
 #, c-format
 msgid "dx:%+*.2f px\n"
 msgstr "x轴平移：%+*.2f px\n"
 
-#: src/registration/global.c:684
+#: src/registration/global.c:654
 #, c-format
 msgid "dy:%+*.2f px\n"
 msgstr "y轴平移：%+*.2f px\n"

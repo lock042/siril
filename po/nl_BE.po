@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-01-27 15:11+0100\n"
+"POT-Creation-Date: 2022-01-28 07:47+0100\n"
 "PO-Revision-Date: 2021-11-17 15:19+0100\n"
 "Last-Translator: Antoine Hoeffelman <antoine.hoeffelman[-at-]gmail.com>\n"
 "Language-Team: Dutch <antoine.hoeffelman[-at-]gmail.com>\n"
@@ -5806,7 +5806,7 @@ msgid_plural "%d pair matches.\n"
 msgstr[0] "%d overeenstemmende paar.\n"
 msgstr[1] "%d overeenstemmende paren.\n"
 
-#: src/algos/astrometry_solver.c:848 src/registration/global.c:666
+#: src/algos/astrometry_solver.c:848 src/registration/global.c:636
 #, c-format
 msgid "Inliers:%*.3f\n"
 msgstr "Uitschieters:%*.3f\n"
@@ -11711,27 +11711,36 @@ msgstr "Bijsnijden bevestigen"
 msgid "Cropping to selection"
 msgstr "Selectie croppen"
 
-#: src/io/seqwriter.c:90
+#: src/io/seqwriter.c:107
 msgid ""
 "Cannot add an image with different properties to an existing sequence.\n"
 msgstr ""
 "Kan geen afbeelding met andere eigenschappen toevoegen aan een bestaande "
 "reeks.\n"
 
-#: src/io/seqwriter.c:120
+#: src/io/seqwriter.c:114
+msgid "Invalid image index requested for write, aborting file creation\n"
+msgstr ""
+
+#: src/io/seqwriter.c:149
 #, c-format
 msgid "writer: Saving image %d, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr ""
 "schrijver: afbeelding opslaan %d, %ld laag(en), %ux%u pixels, %d bits\n"
 
-#: src/io/seqwriter.c:142
+#: src/io/seqwriter.c:169
+#, c-format
+msgid "Incomplete file creation: %d file(s) remained to be written\n"
+msgstr ""
+
+#: src/io/seqwriter.c:176
 #, c-format
 msgid "Saved %d image in the sequence\n"
 msgid_plural "Saved %d images in the sequence\n"
 msgstr[0] "%d afbeelding opgeslagen in de reeks\n"
 msgstr[1] "%d afbeeldingen in de reeks opgeslagen\n"
 
-#: src/io/seqwriter.c:223
+#: src/io/seqwriter.c:259
 #, c-format
 msgid ""
 "Number of images allowed in the write queue: %d (zero or less is unlimited)\n"
@@ -12108,7 +12117,7 @@ msgstr "PSF op gebied voor 2 of 3 sterren"
 msgid "Draw a selection around the star"
 msgstr "Teken een selectie rond de ster"
 
-#: src/registration/3stars.c:364 src/registration/global.c:564
+#: src/registration/3stars.c:364 src/registration/global.c:534
 #, c-format
 msgid ""
 "%s: not enough memory to do this operation (%s required per thread, %s "
@@ -12145,7 +12154,7 @@ msgstr ""
 "Siril kan het DATE-OBS-sleutelwoord niet omzetten in een geldige datum die "
 "nodig is voor de uitlijning."
 
-#: src/registration/comet.c:223 src/registration/global.c:158
+#: src/registration/comet.c:223 src/registration/global.c:126
 #: src/registration/registration.c:555
 msgid "Could not load reference image\n"
 msgstr "Referentiebeeld kon niet worden geladen\n"
@@ -12158,73 +12167,77 @@ msgstr "Bewegend object registratie"
 msgid "Recomputing already existing registration for this layer\n"
 msgstr "Herberekenen van de al bestaande registraties voor deze laag\n"
 
-#: src/registration/global.c:164
+#: src/registration/global.c:132
+msgid "Registering a sequence opened as CFA is a bad idea.\n"
+msgstr ""
+
+#: src/registration/global.c:134
 msgid "Reference Image:\n"
 msgstr "Referentiebeeld:\n"
 
-#: src/registration/global.c:173
+#: src/registration/global.c:143
 #, c-format
 msgid "Found %d stars in reference, channel #%d\n"
 msgstr "%d sterren in referentie gevonden, kanaal #%d\n"
 
-#: src/registration/global.c:178
+#: src/registration/global.c:148
 msgid "There are not enough stars in reference image to perform alignment\n"
 msgstr ""
 "Er zijn niet genoeg sterren in het referentiebeeld om de uitlijning uit te "
 "voeren\n"
 
-#: src/registration/global.c:230
+#: src/registration/global.c:200
 #, c-format
 msgid "Reference Image: Limiting to %d brightest stars\n"
 msgstr "Referentie beeld: Beperking tot de %d helderste sterren\n"
 
-#: src/registration/global.c:235 src/registration/global.c:685
+#: src/registration/global.c:205 src/registration/global.c:655
 #, c-format
 msgid "FWHMx:%*.2f %s\n"
 msgstr "FWHMx:%*.2f %s\n"
 
-#: src/registration/global.c:236 src/registration/global.c:686
+#: src/registration/global.c:206 src/registration/global.c:656
 #, c-format
 msgid "FWHMy:%*.2f %s\n"
 msgstr "FWHMy:%*.2f %s\n"
 
-#: src/registration/global.c:269
+#: src/registration/global.c:239
 #, c-format
 msgid "Frame %d:\n"
 msgstr "Frame %d:\n"
 
-#: src/registration/global.c:276 src/stacking/normalization.c:65
+#: src/registration/global.c:246 src/stacking/normalization.c:65
 msgid ""
 "It looks like your sequence contains a mix of monochrome and RGB images.\n"
 msgstr ""
 
-#: src/registration/global.c:288
+#: src/registration/global.c:258
 #, c-format
 msgid "Found %d stars in image %d, channel #%d\n"
 msgstr "%d sterren in beeld %d gevonden, kanaal #%d\n"
 
-#: src/registration/global.c:292
+#: src/registration/global.c:262
 #, c-format
 msgid "Not enough stars. Image %d skipped\n"
 msgstr "Niet genoeg sterren. Beeld %d overgeslagen\n"
 
-#: src/registration/global.c:299
+#: src/registration/global.c:269
 #, c-format
 msgid "Target Image: Limiting to %d brightest stars\n"
 msgstr "Doel afbeelding: Bepeken tot de %d helderste sterren\n"
 
-#: src/registration/global.c:325
+#: src/registration/global.c:295
 #, c-format
 msgid "Cannot perform star matching: try #%d. Image %d skipped\n"
 msgstr ""
 "Kon ster koppeling niet uitvoeren. Probeer #%d. Beeld %d overgeslagen\n"
 
-#: src/registration/global.c:331
+#: src/registration/global.c:301
 #, c-format
 msgid "Not enough star pairs (%d): Image %d skipped\n"
 msgstr "Niet genoeg sterparen (%d): Afbeelding %d overgeslagen\n"
 
-#: src/registration/global.c:339
+#: src/registration/global.c:309
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by shift model, it may be too rigid for your "
@@ -12233,7 +12246,7 @@ msgstr ""
 "Minder dan %d%% sterparen bewaard door shift model, het kan te rigide zijn "
 "voor uw gegevens: Afbeelding %d overgeslagen\n"
 
-#: src/registration/global.c:345
+#: src/registration/global.c:315
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by similarity model, it may be too rigid for "
@@ -12242,7 +12255,7 @@ msgstr ""
 "Minder dan %d%% sterparen bewaard door gelijkenismodel, het kan te rigide "
 "zijn voor uw gegevens: Afbeelding %d overgeslagen\n"
 
-#: src/registration/global.c:351
+#: src/registration/global.c:321
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by affine model, it may be too rigid for your "
@@ -12251,7 +12264,7 @@ msgstr ""
 "Minder dan %d%% sterparen bewaard door affiene model, het kan te rigide zijn "
 "voor uw gegevens: Afbeelding %d overgeslagen\n"
 
-#: src/registration/global.c:357
+#: src/registration/global.c:327
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
@@ -12260,73 +12273,73 @@ msgstr ""
 "Minder dan %d%% sterparen bewaard door homografiemodel, afbeelding %d kan "
 "belangrijke vervorming vertonen\n"
 
-#: src/registration/global.c:471 src/registration/registration.c:433
+#: src/registration/global.c:441 src/registration/registration.c:433
 #: src/registration/registration.c:519 src/registration/registration.c:654
 msgid "Registration finished.\n"
 msgstr "Registratie klaar.\n"
 
-#: src/registration/global.c:472
+#: src/registration/global.c:442
 #, c-format
 msgid "%d image processed.\n"
 msgid_plural "%d images processed.\n"
 msgstr[0] "%d afbeelding verwerkt.\n"
 msgstr[1] "%d afbeeldingen verwerkt.\n"
 
-#: src/registration/global.c:475
+#: src/registration/global.c:445
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "Totaal: %d gefaald, %d geregistreerd.\n"
 
-#: src/registration/global.c:486
+#: src/registration/global.c:456
 msgid "Registration aborted.\n"
 msgstr "Registratie stopgezet.\n"
 
-#: src/registration/global.c:599
+#: src/registration/global.c:569
 msgid "Global star registration"
 msgstr "Globale sterregistratie"
 
 #. Matching information
-#: src/registration/global.c:662
+#: src/registration/global.c:632
 #, c-format
 msgid "Matching stars in image %d: done\n"
 msgstr "Uitlijning van de sterren in het beeld %d: klaar\n"
 
-#: src/registration/global.c:663
+#: src/registration/global.c:633
 #, c-format
 msgid "Initial pair matches: %d\n"
 msgstr "Eerste paar overeenkomsten: %d\n"
 
-#: src/registration/global.c:664
+#: src/registration/global.c:634
 #, c-format
 msgid "Pair matches after fitting: %d\n"
 msgstr "Paar overeenkomsten na overeenstemming: %d\n"
 
-#: src/registration/global.c:672
+#: src/registration/global.c:642
 #, c-format
 msgid "scaleX:%*.3f\n"
 msgstr "schaalX:%*.3f\n"
 
-#: src/registration/global.c:673
+#: src/registration/global.c:643
 #, c-format
 msgid "scaleY:%*.3f\n"
 msgstr "schaalY:%*.3f\n"
 
-#: src/registration/global.c:674
+#: src/registration/global.c:644
 #, c-format
 msgid "scale:%*.3f\n"
 msgstr "schaal:%*.3f\n"
 
-#: src/registration/global.c:678
+#: src/registration/global.c:648
 #, c-format
 msgid "rotation:%+*.3f deg\n"
 msgstr "rotatie:%+*.3f deg\n"
 
-#: src/registration/global.c:683
+#: src/registration/global.c:653
 #, c-format
 msgid "dx:%+*.2f px\n"
 msgstr "dx:%+*.2f px\n"
 
-#: src/registration/global.c:684
+#: src/registration/global.c:654
 #, c-format
 msgid "dy:%+*.2f px\n"
 msgstr "dy:%+*.2f px\n"

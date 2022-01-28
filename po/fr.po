@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-01-27 15:11+0100\n"
-"PO-Revision-Date: 2022-01-27 15:19+0100\n"
+"POT-Creation-Date: 2022-01-28 07:47+0100\n"
+"PO-Revision-Date: 2022-01-28 07:49+0100\n"
 "Last-Translator: Cyril Richard\n"
 "Language-Team: French <cyril@free-astro.fr>\n"
 "Language: fr\n"
@@ -5798,7 +5798,7 @@ msgid_plural "%d pair matches.\n"
 msgstr[0] "%d paire correspondante.\n"
 msgstr[1] "%d paires correspondantes.\n"
 
-#: src/algos/astrometry_solver.c:848 src/registration/global.c:666
+#: src/algos/astrometry_solver.c:848 src/registration/global.c:636
 #, c-format
 msgid "Inliers:%*.3f\n"
 msgstr "Pts OK :   %*.3f\n"
@@ -11732,26 +11732,37 @@ msgstr "Confirmer Recadrage"
 msgid "Cropping to selection"
 msgstr "Recadrer selon la sélection"
 
-#: src/io/seqwriter.c:90
+#: src/io/seqwriter.c:107
 msgid "Cannot add an image with different properties to an existing sequence.\n"
 msgstr ""
 "Impossible d'ajouter une image avec des propriétés différentes à une séquence "
 "existante.\n"
 
-#: src/io/seqwriter.c:120
+#: src/io/seqwriter.c:114
+msgid "Invalid image index requested for write, aborting file creation\n"
+msgstr ""
+"Index d'image non valide demandé pour l'écriture, abandon de la création du "
+"fichier.\n"
+
+#: src/io/seqwriter.c:149
 #, c-format
 msgid "writer: Saving image %d, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr ""
 "writer : Enregistrement de l'image %d, %ld canal(aux), %ux%u pixels, %d bits\n"
 
-#: src/io/seqwriter.c:142
+#: src/io/seqwriter.c:169
+#, c-format
+msgid "Incomplete file creation: %d file(s) remained to be written\n"
+msgstr "Création de fichier incomplète : %d fichier(s) restant à écrire\n"
+
+#: src/io/seqwriter.c:176
 #, c-format
 msgid "Saved %d image in the sequence\n"
 msgid_plural "Saved %d images in the sequence\n"
 msgstr[0] "Enregistre %d image dans la séquence\n"
 msgstr[1] "Enregistre %d images dans la séquence\n"
 
-#: src/io/seqwriter.c:223
+#: src/io/seqwriter.c:259
 #, c-format
 msgid ""
 "Number of images allowed in the write queue: %d (zero or less is unlimited)\n"
@@ -12130,7 +12141,7 @@ msgstr "PSF de la zone pour 2 ou 3 étoiles"
 msgid "Draw a selection around the star"
 msgstr "Dessinez une sélection autour de l'étoile"
 
-#: src/registration/3stars.c:364 src/registration/global.c:564
+#: src/registration/3stars.c:364 src/registration/global.c:534
 #, c-format
 msgid ""
 "%s: not enough memory to do this operation (%s required per thread, %s "
@@ -12167,7 +12178,7 @@ msgstr ""
 "Siril ne peut pas convertir le mot clé DATE-OBS en une date valide requise par "
 "l'alignement."
 
-#: src/registration/comet.c:223 src/registration/global.c:158
+#: src/registration/comet.c:223 src/registration/global.c:126
 #: src/registration/registration.c:555
 msgid "Could not load reference image\n"
 msgstr "Impossible de charger l'image de référence\n"
@@ -12180,76 +12191,80 @@ msgstr "Alignement des objets en mouvement"
 msgid "Recomputing already existing registration for this layer\n"
 msgstr "Recalcule les informations d'alignement déjà existantes pour ce canal\n"
 
-#: src/registration/global.c:164
+#: src/registration/global.c:132
+msgid "Registering a sequence opened as CFA is a bad idea.\n"
+msgstr "Aligner une séquence ouverte comme CFA est une mauvaise idée.\n"
+
+#: src/registration/global.c:134
 msgid "Reference Image:\n"
 msgstr "Image de Référence :\n"
 
-#: src/registration/global.c:173
+#: src/registration/global.c:143
 #, c-format
 msgid "Found %d stars in reference, channel #%d\n"
 msgstr "%d étoiles trouvées dans l'image référence, canal #%d\n"
 
-#: src/registration/global.c:178
+#: src/registration/global.c:148
 msgid "There are not enough stars in reference image to perform alignment\n"
 msgstr ""
 "Il n'y a pas assez d'étoiles dans l'image de référence pour procéder à un "
 "alignement\n"
 
-#: src/registration/global.c:230
+#: src/registration/global.c:200
 #, c-format
 msgid "Reference Image: Limiting to %d brightest stars\n"
 msgstr "Image de référence : Limitée aux %d étoiles les plus brillantes\n"
 
-#: src/registration/global.c:235 src/registration/global.c:685
+#: src/registration/global.c:205 src/registration/global.c:655
 #, c-format
 msgid "FWHMx:%*.2f %s\n"
 msgstr "FWHMx :%*.2f %s\n"
 
-#: src/registration/global.c:236 src/registration/global.c:686
+#: src/registration/global.c:206 src/registration/global.c:656
 #, c-format
 msgid "FWHMy:%*.2f %s\n"
 msgstr "FWHMy :%*.2f %s\n"
 
-#: src/registration/global.c:269
+#: src/registration/global.c:239
 #, c-format
 msgid "Frame %d:\n"
 msgstr "Image %d :\n"
 
-#: src/registration/global.c:276 src/stacking/normalization.c:65
+#: src/registration/global.c:246 src/stacking/normalization.c:65
 msgid ""
 "It looks like your sequence contains a mix of monochrome and RGB images.\n"
 msgstr ""
 "Il semble que votre séquence contienne un mélange d'images monochromes et "
 "RVB.\n"
 
-#: src/registration/global.c:288
+#: src/registration/global.c:258
 #, c-format
 msgid "Found %d stars in image %d, channel #%d\n"
 msgstr "%d étoiles trouvées dans l'image %d, canal #%d\n"
 
-#: src/registration/global.c:292
+#: src/registration/global.c:262
 #, c-format
 msgid "Not enough stars. Image %d skipped\n"
 msgstr "Pas assez d'étoiles. Image %d écartée\n"
 
-#: src/registration/global.c:299
+#: src/registration/global.c:269
 #, c-format
 msgid "Target Image: Limiting to %d brightest stars\n"
 msgstr "Image cible : Limitée aux %d étoiles les plus brillantes\n"
 
-#: src/registration/global.c:325
+#: src/registration/global.c:295
 #, c-format
 msgid "Cannot perform star matching: try #%d. Image %d skipped\n"
 msgstr ""
 "Impossible d'effectuer un alignement sur les étoiles : essai #%d. Image %d "
 "écartée\n"
 
-#: src/registration/global.c:331
+#: src/registration/global.c:301
 #, c-format
 msgid "Not enough star pairs (%d): Image %d skipped\n"
 msgstr "Pas assez de paires d'étoiles (%d). Image %d écartée\n"
 
-#: src/registration/global.c:339
+#: src/registration/global.c:309
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by shift model, it may be too rigid for your "
@@ -12258,7 +12273,7 @@ msgstr ""
 "Moins de %d%% paires d'étoiles conservées par le modèle de translation, ce "
 "modèle est peut être trop rigide pour vos images: Image %d écartée\n"
 
-#: src/registration/global.c:345
+#: src/registration/global.c:315
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by similarity model, it may be too rigid for "
@@ -12267,7 +12282,7 @@ msgstr ""
 "Moins de %d%% paires d'étoiles conservées par le modèle de similarité, ce "
 "modèle est peut être trop rigide pour vos images: Image %d écartée\n"
 
-#: src/registration/global.c:351
+#: src/registration/global.c:321
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by affine model, it may be too rigid for your "
@@ -12276,7 +12291,7 @@ msgstr ""
 "Moins de %d%% paires d'étoiles conservées par le modèle affine, ce modèle est "
 "peut être trop rigide pour vos images: Image %d écartée\n"
 
-#: src/registration/global.c:357
+#: src/registration/global.c:327
 #, c-format
 msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
@@ -12285,73 +12300,73 @@ msgstr ""
 "Moins de %d%% paires d'étoiles conservées par le modèle d'homographie, l'image "
 "%d peut montrer une distorsion importante\n"
 
-#: src/registration/global.c:471 src/registration/registration.c:433
+#: src/registration/global.c:441 src/registration/registration.c:433
 #: src/registration/registration.c:519 src/registration/registration.c:654
 msgid "Registration finished.\n"
 msgstr "Alignement fini.\n"
 
-#: src/registration/global.c:472
+#: src/registration/global.c:442
 #, c-format
 msgid "%d image processed.\n"
 msgid_plural "%d images processed.\n"
 msgstr[0] "%d image traitée\n"
 msgstr[1] "%d images traitées\n"
 
-#: src/registration/global.c:475
+#: src/registration/global.c:445
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "Total : %d en échec, %d alignées.\n"
 
-#: src/registration/global.c:486
+#: src/registration/global.c:456
 msgid "Registration aborted.\n"
 msgstr "Alignement interrompu.\n"
 
-#: src/registration/global.c:599
+#: src/registration/global.c:569
 msgid "Global star registration"
 msgstr "Alignement global sur les étoiles"
 
 #. Matching information
-#: src/registration/global.c:662
+#: src/registration/global.c:632
 #, c-format
 msgid "Matching stars in image %d: done\n"
 msgstr "Correspondance des étoiles dans l'image %d : finie\n"
 
-#: src/registration/global.c:663
+#: src/registration/global.c:633
 #, c-format
 msgid "Initial pair matches: %d\n"
 msgstr "Paires correspondantes initiales : %d\n"
 
-#: src/registration/global.c:664
+#: src/registration/global.c:634
 #, c-format
 msgid "Pair matches after fitting: %d\n"
 msgstr "Paires correspondantes après ajustement : %d\n"
 
-#: src/registration/global.c:672
+#: src/registration/global.c:642
 #, c-format
 msgid "scaleX:%*.3f\n"
 msgstr "échelleX :%*.3f\n"
 
-#: src/registration/global.c:673
+#: src/registration/global.c:643
 #, c-format
 msgid "scaleY:%*.3f\n"
 msgstr "échelleY :%*.3f\n"
 
-#: src/registration/global.c:674
+#: src/registration/global.c:644
 #, c-format
 msgid "scale:%*.3f\n"
 msgstr "échelle :%*.3f\n"
 
-#: src/registration/global.c:678
+#: src/registration/global.c:648
 #, c-format
 msgid "rotation:%+*.3f deg\n"
 msgstr "rotation :%+*.3f deg\n"
 
-#: src/registration/global.c:683
+#: src/registration/global.c:653
 #, c-format
 msgid "dx:%+*.2f px\n"
 msgstr "dx :%+*.2f px\n"
 
-#: src/registration/global.c:684
+#: src/registration/global.c:654
 #, c-format
 msgid "dy:%+*.2f px\n"
 msgstr "dy :%+*.2f px\n"
