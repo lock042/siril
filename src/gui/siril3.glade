@@ -20914,7 +20914,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 </child>
                                 <child>
                                   <object class="GtkCheckButton" id="photometry_force_radius_button">
-                                    <property name="label" translatable="yes">Automatic Computed with PSF</property>
+                                    <property name="label" translatable="yes">Automatically Calculated with PSF</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
