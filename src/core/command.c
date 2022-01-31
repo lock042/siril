@@ -1232,7 +1232,7 @@ int process_set_mag(int nb) {
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, TRUE, TRUE);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
@@ -1364,7 +1364,7 @@ int process_psf(int nb){
 		siril_log_message(_("Select an area first\n"));
 		return 1;
 	}
-	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);

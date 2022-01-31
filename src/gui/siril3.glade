@@ -94,6 +94,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjFlux">
+    <property name="lower">3</property>
+    <property name="upper">1000</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjGain">
     <property name="upper">100</property>
     <property name="value">2.2999999999999998</property>
@@ -18648,7 +18655,7 @@ If the selection is empty, the whole image will be used as reference.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
-				    <property name="tooltip-text" translatable="yes">If this box is checked, Siril will automatically apply the Bayer pattern found in the file's header as well as X and Y Bayer offsets. If the result looks wrong uncheck this box and choose manually your pattern in the Debayer box below.
+                                    <property name="tooltip-text" translatable="yes">If this box is checked, Siril will automatically apply the Bayer pattern found in the file's header as well as X and Y Bayer offsets. If the result looks wrong uncheck this box and choose manually your pattern in the Debayer box below.
 If unchecked, the Bayer pattern given below will be used instead. Warning: to allow SER files converted from films to be demosaiced, monochrome SER will be forced as CFA with the configured pattern.</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
@@ -20856,6 +20863,98 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkFrame" id="frameflux">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignment40">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=2 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="row-spacing">10</property>
+                                <property name="column-homogeneous">True</property>
+                                <child>
+                                  <object class="GtkLabel" id="label111">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Aperture radius:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spinAperture">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
+                                    <property name="halign">start</property>
+                                    <property name="max-width-chars">7</property>
+                                    <property name="text">30,00</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="adjustment">adjFlux</property>
+                                    <property name="digits">2</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">20</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="photometry_force_radius_button">
+                                    <property name="label" translatable="yes">Automatically Calculated with PSF</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius. When unchecked, you can set the radius value in the box below.</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
+                                    <signal name="toggled" handler="on_photometry_force_radius_button_toggled" object="spinAperture" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="label112">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="label" translatable="yes">Flux Aperture</property>
+                            <property name="single-line-mode">True</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkFrame" id="framePhotRange">
                         <property name="name">framephotorange</property>
                         <property name="visible">True</property>
@@ -20955,7 +21054,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">2</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                     <child>
@@ -21030,7 +21129,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>
