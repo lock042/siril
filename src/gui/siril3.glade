@@ -20897,7 +20897,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="sensitive">False</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Outer radius of the annulus used to measure local background. Default value is 30.00.</property>
+                                    <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
                                     <property name="halign">start</property>
                                     <property name="max-width-chars">7</property>
                                     <property name="text">30,00</property>
@@ -20918,6 +20918,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius. When unchecked, you can set the radius value in the box below.</property>
                                     <property name="halign">start</property>
                                     <property name="active">True</property>
                                     <property name="draw-indicator">True</property>
