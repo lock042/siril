@@ -1531,8 +1531,8 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	if (data->psf) {
 		/* for photometry ? */
 		if (!spsfargs->for_registration) {
-			if (!data->psf->phot_is_valid) {
-				siril_log_color_message(_("Photometry analyze is not good for image %d\n"), "salmon", index);
+			if (data->psf->s_mag > 9.0) {
+				siril_log_color_message(_("Photometry analysis failed for image %d\n"), "salmon", index);
 			}
 		}
 
