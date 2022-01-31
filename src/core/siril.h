@@ -460,6 +460,8 @@ struct phot_config {
 	double gain;	// A/D converter gain in electrons per ADU
 	double inner;	// Inner radius of the annulus used to measure local background.
 	double outer;	// Outer radius of the annulus used to measure local background.
+	double aperture; // flux aperture
+	gboolean force_radius; // force the aperture radius value
 	int minval, maxval;
 };
 

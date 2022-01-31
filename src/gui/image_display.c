@@ -646,7 +646,7 @@ static void draw_stars(const draw_data_t* dd) {
 
 	/* quick photometry */
 	if (!com.script && com.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-		double size = com.qphot->fwhmx * 2.0;
+		double size = com.pref.phot_set.force_radius ? com.pref.phot_set.aperture : com.qphot->fwhmx * 2.0;
 
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);

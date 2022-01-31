@@ -214,6 +214,10 @@ static double getOuterRadius() {
 	return com.pref.phot_set.outer;
 }
 
+static double getAperture() {
+	return com.pref.phot_set.aperture;
+}
+
 static double getMagErr(double intensity, double area, int nsky, double skysig, double *SNR) {
 	double skyvar, sigsq;
 	double err1, err2, err3;
@@ -250,7 +254,7 @@ static double hi_data() {
 }
 
 /* Function that compute all photometric data. The result must be freed */
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean verbose) {
+photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radius, gboolean verbose) {
 	int width = z->size2;
 	int height = z->size1;
 	int n_sky = 0, ret;
@@ -268,7 +272,7 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean verbose) {
 
 	r1 = getInnerRadius();
 	r2 = getOuterRadius();
-	appRadius = psf->fwhmx * 2.0;	// in order to be sure to contain star
+	appRadius = force_radius ? getAperture() : psf->fwhmx * 2.0;	// in order to be sure to contain star
 	if (appRadius >= r1) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -363,6 +367,8 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean verbose) {
 void initialize_photometric_param() {
 	com.pref.phot_set.inner = 20;
 	com.pref.phot_set.outer = 30;
+	com.pref.phot_set.aperture = 10;
+	com.pref.phot_set.force_radius = FALSE;
 	com.pref.phot_set.gain = 2.3;
 	com.pref.phot_set.minval = 0;
 	com.pref.phot_set.maxval = 60000;
