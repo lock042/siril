@@ -1529,6 +1529,13 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	data->psf = psf_get_minimisation(fit, 0, &psfarea, !spsfargs->for_registration, com.pref.phot_set.force_radius, TRUE, FALSE);
 	if (data->psf) {
+		/* for photometry ? */
+		if (!spsfargs->for_registration) {
+			if (!data->psf->phot_is_valid) {
+				siril_log_color_message(_("Photometry analyze is not good for image %d\n"), "salmon", index);
+			}
+		}
+
 		data->psf->xpos = data->psf->x0 + area->x;
 		if (fit->top_down)
 			data->psf->ypos = data->psf->y0 + area->y;

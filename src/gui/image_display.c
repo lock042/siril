@@ -646,7 +646,7 @@ static void draw_stars(const draw_data_t* dd) {
 
 	/* quick photometry */
 	if (!com.script && com.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-		double size = com.pref.phot_set.force_radius ? com.pref.phot_set.aperture : com.qphot->fwhmx * 2.0;
+		double size = (!com.pref.phot_set.force_radius && com.qphot) ? com.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
 
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
@@ -683,7 +683,7 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_line_width(cr, 2.0 / dd->zoom);
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
-				double size = com.pref.phot_set.force_radius ? com.pref.phot_set.aperture : com.qphot->fwhmx * 2.0;
+				double size = (!com.pref.phot_set.force_radius && com.qphot) ? com.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,

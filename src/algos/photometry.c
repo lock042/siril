@@ -358,6 +358,7 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radiu
 		phot->mag = getMagnitude(signalIntensity);
 		phot->s_mag = getMagErr(signalIntensity, area, n_sky, stdev, &SNR);
 		phot->SNR = phot->s_mag < 9.999 ? SNR : 0.0;
+		valid = phot->s_mag < 9.999 ? valid : FALSE;
 		phot->valid = valid;
 	}
 
