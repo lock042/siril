@@ -68,6 +68,7 @@ void close_single_image() {
 static gboolean free_image_data_idle(gpointer p) {
 	siril_debug_print("free_image_data_gui() idle called\n");
 	//reset_compositing_module();
+	delete_selected_area();
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
 	display_filename();
@@ -87,7 +88,6 @@ static gboolean free_image_data_idle(gpointer p) {
 	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
 	clear_stars_list();
-	delete_selected_area();
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
