@@ -208,6 +208,8 @@ static int readinitfile() {
 		config_setting_lookup_float(photometry_setting, "gain", &com.pref.phot_set.gain);
 		config_setting_lookup_float(photometry_setting, "inner-radius", &com.pref.phot_set.inner);
 		config_setting_lookup_float(photometry_setting, "outer-radius", &com.pref.phot_set.outer);
+		config_setting_lookup_float(photometry_setting, "aperture-radius", &com.pref.phot_set.aperture);
+		config_setting_lookup_bool(photometry_setting, "force-radius", &com.pref.phot_set.force_radius);
 		config_setting_lookup_int(photometry_setting, "minval", &com.pref.phot_set.minval);
 		config_setting_lookup_int(photometry_setting, "maxval", &com.pref.phot_set.maxval);
 		if (com.pref.phot_set.inner == 0.0 || com.pref.phot_set.outer == 0.0) {
@@ -518,6 +520,10 @@ static void _save_photometry(config_t *config, config_setting_t *root) {
 	config_setting_set_float(photometry_setting, com.pref.phot_set.inner);
 	photometry_setting = config_setting_add(photometry_group, "outer-radius", CONFIG_TYPE_FLOAT);
 	config_setting_set_float(photometry_setting, com.pref.phot_set.outer);
+	photometry_setting = config_setting_add(photometry_group, "aperture-radius", CONFIG_TYPE_FLOAT);
+	config_setting_set_float(photometry_setting, com.pref.phot_set.aperture);
+	photometry_setting = config_setting_add(photometry_group, "force-radius", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(photometry_setting, com.pref.phot_set.force_radius);
 	photometry_setting = config_setting_add(photometry_group, "minval", CONFIG_TYPE_INT);
 	config_setting_set_int(photometry_setting, com.pref.phot_set.minval);
 	photometry_setting = config_setting_add(photometry_group, "maxval", CONFIG_TYPE_INT);
