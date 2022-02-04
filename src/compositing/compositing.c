@@ -380,12 +380,15 @@ void open_compositing_window() {
 	} else {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
+		close_single_image();
+		close_sequence(FALSE);
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
 			i++;
 		} while (layers[i]) ;
+		update_result(1);
+		update_MenuItem();
 	}
-
 	if (compositing_loaded == 1)
 		siril_open_dialog("composition_dialog");
 }
