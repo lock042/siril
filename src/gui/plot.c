@@ -807,9 +807,19 @@ void drawPlot() {
 		ref_image = 0;
 	else ref_image = seq->reference_image;
 
+	gboolean arcsec_is_ok = (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.f
+		&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
+		&& gfit.binning_y > 0);
+	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+	if (!arcsec_is_ok) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(arcsec), FALSE);
+		is_arcsec = FALSE;
+	}
+
 	if (use_photometry) {
 		// photometry data display
 		pldata *plot;
+		gtk_widget_set_visible(arcsec, ((current_selected_source == FWHM) && arcsec_is_ok));
 		update_ylabel();
 		ref.x = -1.0;
 		ref.y = -1.0;
@@ -840,6 +850,8 @@ void drawPlot() {
 			return;
 
 		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f) ? TRUE : FALSE;
+		gtk_widget_set_visible(arcsec, ((current_selected_source == r_FWHM) || (current_selected_source == r_WFWHM) || (X_selected_source == r_FWHM) || (X_selected_source == r_WFWHM)) && arcsec_is_ok);
+
 		update_ylabel();
 		/* building data array */
 		plot_data = alloc_plot_data(seq->number);
@@ -1086,14 +1098,9 @@ void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 static void update_ylabel() {
-	gboolean arcsec_is_ok = (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.f
-		&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
-		&& gfit.binning_y > 0);
-	int current_selected_source;
-	current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	if (use_photometry) {
 		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
-		gtk_widget_set_visible(arcsec, ((current_selected_source == FWHM) && arcsec_is_ok));
 		switch (current_selected_source) {
 			case ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
@@ -1126,8 +1133,6 @@ static void update_ylabel() {
 				break;
 		}
 	} else {
-		current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-		gtk_widget_set_visible(arcsec, ((current_selected_source == r_FWHM) || (current_selected_source == r_WFWHM) || (X_selected_source == r_FWHM) || (X_selected_source == r_WFWHM)) && arcsec_is_ok);
 		switch (current_selected_source) {
 			case r_ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
