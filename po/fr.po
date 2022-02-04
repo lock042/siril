@@ -6183,7 +6183,7 @@ msgid ""
 "(%s). Overriding settings.\n"
 msgstr ""
 "Le motif de Bayer trouvé dans l'entête (%s) est différent du motif de Bayer "
-"enregistré dans les paramètres (%s). Outrepasser les paramètres.\n"
+"enregistré dans les préférences (%s). Celles-ci sont remplacées.\n"
 
 #: src/algos/demosaicing.c:1220
 msgid "XTRANS Sensor detected. Using special algorithm.\n"
