@@ -1663,6 +1663,7 @@ gboolean end_seqpsf(gpointer p) {
 		set_layers_for_registration();	// update display of available reg data
 		drawPlot();
 		notify_new_photometry();	// switch to and update plot tab
+		redraw(REDRAW_OVERLAY);
 	}
 
 proper_ending:

@@ -57,8 +57,7 @@ static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*comboX = NULL, *layer_selector = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
-static gboolean use_photometry = FALSE, requires_color_update =
-		FALSE, requires_seqlist_update = FALSE;
+static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
 static char *ylabel = NULL;
 static gchar *xlabel = NULL;
 static enum photometry_source photometry_selected_source = FWHM;
@@ -791,8 +790,6 @@ static int comparey_desc(const void *a, const void *b) {
 		return 0;
 }
 
-
-
 void drawPlot() {
 	int ref_image;
 	sequence *seq;
@@ -1050,17 +1047,6 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		cairo_fill(cr);
 		kplot_draw(p, width, height, cr);
 
-		/* copy graph colours for star highlight */
-		if (requires_color_update) {
-			for (i = 0; i < cfgplot.clrsz; i++) {
-				com.seq.photometry_colors[i][0] = cfgplot.clrs[i].rgba[0];
-				com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
-				com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
-			}
-			redraw(REDRAW_OVERLAY);
-			requires_color_update = FALSE;
-		}
-
 		free_colors(&cfgplot);
 		kplot_free(p);
 		kdata_destroy(d1);
@@ -1183,9 +1169,24 @@ static void update_ylabel() {
 	}
 }
 
+/* initialize the colors of each star for photometry, outside
+ * on_DrawingPlot_draw because it may not be called if the panel is hidden, but
+ * the circles in the main image display still use these colors.
+ */
+static void init_plot_colors() {
+	struct kplotcfg cfgplot;
+	set_colors(&cfgplot);
+	/* copy graph colours for star highlight */
+	for (int i = 0; i < cfgplot.clrsz; i++) {
+		com.seq.photometry_colors[i][0] = cfgplot.clrs[i].rgba[0];
+		com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
+		com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
+	}
+}
+
 void notify_new_photometry() {
 	control_window_switch_to_tab(PLOT);
-	requires_color_update = TRUE;
+	init_plot_colors();
 	gtk_widget_set_sensitive(sourceCombo, TRUE);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 1);
 	gtk_widget_set_sensitive(buttonClearLatest, TRUE);
