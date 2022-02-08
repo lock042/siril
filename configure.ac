@@ -168,11 +168,15 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 	AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
 
 	PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.4.0],
-								[OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
-								AC_MSG_ERROR([opencv not found.]))
+			  [AC_DEFINE([HAVE_CV44], [1], [Using OpenCV4.4])]
+			  [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
+			  [PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.2.0],
+					     [AC_MSG_WARN([OpenCV 4.2 found, translation-only registration will be disabled - requires 4.4])]
+					     [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
+					     AC_MSG_ERROR([opencv not found.]))])
 else
 	AC_MSG_ERROR([no C++ compiler found])
-fi
+	fi
 
 PKG_CHECK_MODULES(LIBRTPROCESS, [rtprocess], have_rtprocess="yes", have_rtprocess="no")
 if test "x$have_rtprocess" = "xno"; then
@@ -240,7 +244,7 @@ PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale 
 dnl checking libcurl
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
-        [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl ])],
+        [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])],
         AC_MSG_WARN([libcurl not found. Not using web interaction.]))
         
 dnl check wcslib
