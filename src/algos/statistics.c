@@ -44,6 +44,7 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "sorting.h"
 #include "statistics.h"
 #include "statistics_float.h"
@@ -816,11 +817,51 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
+static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+
+	int is_color = args->seq->nb_layers == 3;
+	required = is_color ? MB_per_image * 4 / 3 : MB_per_image * 2;
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+		limit = thread_limit;
+
+		/* should not happen */
+		if (for_writer)
+			return 1;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+#endif
+	}
+	return limit;
+}
+
+
 void apply_stats_to_sequence(struct stat_data *stat_args) {
 	struct generic_seq_args *args = create_default_seqargs(stat_args->seq);
 	args->seq = stat_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = stat_args->seq->selnum;
+	args->compute_mem_limits_hook = stat_compute_mem_limit;
 	args->prepare_hook = stat_prepare_hook;
 	args->finalize_hook = stat_finalize_hook;
 	args->image_hook = stat_image_hook;
