@@ -231,7 +231,12 @@ cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 json_glib = dependency('json-glib-1.0', version: '>=1.2.6')
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
-opencv4_dep = dependency('opencv4', required : true, version: '>= 4.4.0')
+opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
+if opencv4_dep.version().version_compare('>=4.4.0')
+  conf_data.set('HAVE_OPENCV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
+else
+  warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
+endif
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()
