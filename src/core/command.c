@@ -3261,8 +3261,13 @@ int process_register(int nb) {
 					return 1;
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) { 
+#ifdef HAVE_CV44
 					reg_args->type = SHIFT_TRANSFORMATION;
 					continue;
+#else
+					siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+					return 1;
+#endif
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
 					reg_args->type = SIMILARITY_TRANSFORMATION;

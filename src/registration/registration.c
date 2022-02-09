@@ -953,7 +953,14 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
-
+#ifndef HAVE_CV44
+	if (reg_args->type == SHIFT_TRANSFORMATION) {
+		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+		free(reg_args);
+		unreserve_thread();
+		return;
+	}
+#endif
 
 	/* We check that available disk space is enough when:
 	 * - activating the subpixel alignment, which requires generating a new
