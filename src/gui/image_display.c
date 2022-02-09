@@ -770,6 +770,7 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
+#ifdef HAVE_WCSLIB
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.position_compass;
 	if (!pos) return; // User chose None
@@ -886,6 +887,7 @@ static gint border_compare(label_point *a, label_point *b) {
 
 static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3. / 4., 1.
 		/ 2., 1. / 4., 1. / 6., 1. / 8., 1. / 12., 1. / 16., 1. / 24., 1. / 40., 1. / 48. };
+#endif
 
 
 static void draw_wcs_grid(const draw_data_t* dd) {
