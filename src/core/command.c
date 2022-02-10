@@ -3824,43 +3824,53 @@ failure:
 	return 1;
 }
 
-int process_preprocess(int nb) {
-	struct preprocessing_data *args;
-	int i, retvalue = 0;
-
-	if (word[1][0] == '\0') {
-		return -1;
+/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]
+ * preprocess_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
+ */
+struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
+	int retvalue = 0;
+	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
+	fits reffit = { 0 };
+	int bitpix;
+	if (seq) {
+		if (seq->type == SEQ_SER) {
+			// to be able to check allow_32bit_output. Overridden by -fitseq if required
+			args->output_seqtype = SEQ_SER;
+		}
+		args->seq = seq;
+		args->is_sequence = TRUE;
+		bitpix = seq->bitpix;
 	}
-
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq)
-		return 1;
-
-	args = calloc(1, sizeof(struct preprocessing_data));
+	else {
+		if (read_fits_metadata_from_path(word[1], &reffit)) {
+			siril_log_message(_("Could not load the image, aborting.\n"));
+			clearfits(&reffit);
+			retvalue = 1;
+			goto prepro_parse_end;
+		}
+		bitpix = reffit.bitpix;
+	}
 	args->ppprefix = "pp_";
 	args->bias_level = FLT_MAX;
-	if (seq->type == SEQ_SER)  args->output_seqtype = SEQ_SER; // to be able to check allow_32bit_output. Overiden by -fitseq if required
-	
+
 	/* checking for options */
-	for (i = 2; i < nb; i++) {
+	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
 				if (expression[0] == '=') {
-					// loading the sequence first image metadata in case $OFFSET is passed in the expression
-					int image_to_load = sequence_find_refimage(seq);
-					fits reffit = { 0 };
-					memset(&reffit, 0, sizeof(fits));
-					if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-						siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-						clearfits(&reffit);
-						g_free(expression);
-						retvalue = 1;
-						break;
+					if (seq) {
+						// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
+						int image_to_load = sequence_find_refimage(seq);
+						if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+							siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+							g_free(expression);
+							retvalue = 1;
+							break;
+						}
 					}
 					// parsing offset level
 					int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
-					clearfits(&reffit);
 					if (!offsetlevel) {
 						siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
 						retvalue = 1;
@@ -3869,14 +3879,14 @@ int process_preprocess(int nb) {
 					} else {
 						g_free(expression);
 						siril_log_message(_("Synthetic offset: Level = %d\n"), offsetlevel);
-						int maxlevel = (seq->bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+						int maxlevel = (bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 						if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
 							siril_log_message(_("The offset value is out of allowable bounds [-%d,%d], aborting.\n"), maxlevel, maxlevel);
 							retvalue = 1;
 							break;
 						} else {
-								args->bias_level = (float)offsetlevel;
-								args->bias_level *= (seq->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+							args->bias_level = (float)offsetlevel;
+							args->bias_level *= (bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 							args->use_bias = TRUE;
 						}
 					}
@@ -3886,7 +3896,7 @@ int process_preprocess(int nb) {
 					if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_to_16bit)) {
 						args->use_bias = TRUE;
 						// if input is 8b, we assume 32b master needs to be rescaled
-						if ((args->bias->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+						if ((args->bias->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 						}
 					} else {
@@ -3901,7 +3911,7 @@ int process_preprocess(int nb) {
 					args->use_dark = TRUE;
 					args->use_cosmetic_correction = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->dark->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+					if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 					}
 				} else {
@@ -3914,7 +3924,7 @@ int process_preprocess(int nb) {
 				if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
 					args->use_flat = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->flat->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+					if ((args->flat->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 					}
 				} else {
@@ -3932,7 +3942,7 @@ int process_preprocess(int nb) {
 				}
 				args->ppprefix = strdup(value);
 			} else if (!strcmp(word[i], "-opt")) {
-				if (seq->bitpix == BYTE_IMG) {
+				if (bitpix == BYTE_IMG) {
 					siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
 					retvalue = 1;
 					break;
@@ -3946,21 +3956,35 @@ int process_preprocess(int nb) {
 				args->debayer = TRUE;
 			} else if (!strcmp(word[i], "-equalize_cfa")) {
 				args->equalize_cfa = TRUE;
-			} else if (!strcmp(word[i], "-fitseq")) {
+			} else if (seq && !strcmp(word[i], "-fitseq")) {
 				args->output_seqtype = SEQ_FITSEQ;
 			}
 		}
 	}
 
+prepro_parse_end:
+	clearfits(&reffit);
 	if (retvalue) {
 		free(args);
-		return -1;
+		return NULL;
 	}
+	return args;
+}
+
+int process_preprocess(int nb) {
+	if (word[1][0] == '\0')
+		return -1;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return 1;
+
+	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
+	if (!args)
+		return 1;
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 	gettimeofday(&args->t_start, NULL);
-	args->seq = seq;
-	args->is_sequence = TRUE;
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
@@ -3970,6 +3994,25 @@ int process_preprocess(int nb) {
 
 	start_sequence_preprocessing(args);
 	return 0;
+}
+
+int process_preprocess_single(int nb) {
+	if (word[1][0] == '\0')
+		return -1;
+
+	struct preprocessing_data *args = parse_preprocess_args(nb, NULL);
+	if (!args)
+		return 1;
+
+	siril_log_color_message(_("Preprocessing...\n"), "green");
+	gettimeofday(&args->t_start, NULL);
+	args->autolevel = TRUE;
+	args->normalisation = 1.0f;	// will be updated anyway
+	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
+	args->sigma[1] =  3.00; /* hot pixels */
+	args->allow_32bit_output = !com.pref.force_to_16bit;
+
+	return preprocess_given_image(word[1], args);
 }
 
 int process_set_32bits(int nb) {
