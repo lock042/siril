@@ -46,7 +46,7 @@
 
 #define SCALE_FLAGS SWS_BICUBIC
 
-static double vp9_quality_to_crf[]  = { 32.0, 29.0, 26.0, 20.0, 17.0 };
+static double vp9_quality_to_crf[]  = { 36.0, 34.0, 31.0, 27.0, 22.0 };
 static double x264_quality_to_crf[] = { 29.0, 26.0, 23.0, 20.0, 17.0 };
 static double x265_quality_to_crf[] = { 34.0, 31.0, 28.0, 25.0, 22.0 };
 
@@ -116,7 +116,10 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 	switch (codec_id) {
 		case AV_CODEC_ID_VP9:
 			c->bit_rate = 0;
-			crf = vp9_quality_to_crf[ost->quality - 1];
+			/* for this codec, quality depends on image size (like bit rate) */
+			float size_factor = 5.0f * logf(w * h / (1920 * 1080));
+			if (size_factor < -4.0f) size_factor = -4.0f;
+			crf = vp9_quality_to_crf[ost->quality-1] - roundf_to_int(size_factor);
 			siril_debug_print("VP9 constant quality value: %d\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
@@ -124,6 +127,8 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 			CHECK_OPT_SET_RETVAL;
 			retval = av_opt_set_int(c->priv_data, "frame-parallel", 1, 0);
 			CHECK_OPT_SET_RETVAL;
+			//retval = av_opt_set_int(c->priv_data, "lag-in-frames", 16, 0);
+			//CHECK_OPT_SET_RETVAL;
 			break;
 		case AV_CODEC_ID_H264:
 			/* The range of the CRF scale is 0–51, where 0 is lossless, 23 is the
