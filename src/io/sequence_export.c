@@ -549,11 +549,15 @@ free_and_reset_progress_bar:
 
 void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	int selected = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboExport")));
-	const char *bname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryExportSeq")));
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("entryExportSeq"));
+	const char *bname = gtk_entry_get_text(entry);
 	gboolean normalize = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("exportNormalize")));
 	struct exportseq_args *args;
 
-	if (bname[0] == '\0') return;
+	if (bname[0] == '\0') {
+		widget_set_class(GTK_WIDGET(entry), "warning", "");
+		return;
+	}
 	if (selected == -1) return;
 
 	args = malloc(sizeof(struct exportseq_args));
