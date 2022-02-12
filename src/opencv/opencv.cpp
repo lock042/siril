@@ -406,18 +406,21 @@ unsigned char *cvCalculH(s_star *star_array_img,
 			img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
 		}
 	break;
+#ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
 			ref3.push_back(Point3f(star_array_ref[i].x, star_array_ref[i].y, 0.));
 			img3.push_back(Point3f(star_array_img[i].x, star_array_img[i].y, 0.));
 		}
 	break;
+#endif
 	default:
 		return NULL;
 	}
 
 	//fitting the model
 	switch (type) {
+#ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		estimateTranslation3D(img3, ref3, s, mask, CV_RANSAC, defaultRANSACReprojThreshold);
 		if (!s.cols) return NULL; // exit if could not find a match at all=> s is null
@@ -425,6 +428,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		H.at<double>(0,2) = s.at<double>(0);
 		H.at<double>(1,2) = s.at<double>(1);		
 	break;
+#endif
 	case SIMILARITY_TRANSFORMATION:
 		a = estimateAffinePartial2D(img, ref, mask, CV_RANSAC, defaultRANSACReprojThreshold);
 		if (countNonZero(a) < 1) return NULL; //must count before filling H, otherwise zero elements cannot be caught

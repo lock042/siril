@@ -476,6 +476,7 @@ void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 		gtk_editable_insert_text(editable, result, count, position);
 		g_signal_handlers_unblock_by_func(G_OBJECT (editable),
 				G_CALLBACK (insert_text_handler), data);
+		widget_set_class(GTK_WIDGET(entry), "", "warning");
 	}
 	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
 

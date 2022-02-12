@@ -59,6 +59,14 @@ static void set_label_text_from_main_thread(const char *label_name, const char *
 	gdk_threads_add_idle(set_label_text_idle, data);
 }
 
+void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *class_to_remove) {
+	GtkStyleContext *context = gtk_widget_get_style_context(entry);
+	if (class_to_add)
+		gtk_style_context_add_class(context, class_to_add);
+	if (class_to_remove)
+		gtk_style_context_remove_class(context, class_to_remove);
+}
+
 GtkWidget* lookup_widget(const gchar *widget_name) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, widget_name));
 }
