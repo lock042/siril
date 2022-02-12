@@ -463,6 +463,167 @@ void read_fits_header(fits *fit) {
 	fits_read_history(fit->fptr, &(fit->history));
 }
 
+static gboolean siril_str_has_prefix(char *card, char **key) {
+	int iter = 0;
+	do {
+		gchar *new_key = g_strdup_printf("%-8s=", key[iter]);
+		if (g_str_has_prefix(card, new_key)) {
+			g_free(new_key);
+			return TRUE;
+		}
+		g_free(new_key);
+		iter++;
+	} while ((key[iter]));
+	return FALSE;
+}
+
+/* remove leading and trailing ' */
+static void copy_string_key(char *to, char *from) {
+	from[strlen(from) - 1] = '\0';
+	strncpy(to, from + 1, FLEN_VALUE);
+	to = g_strstrip(to);
+}
+
+int fits_parse_header_string(fits *fit, gchar *header) {
+	int retval = 1;
+	double cd[2][2] = { { 0.0 } };
+	gchar **token = g_strsplit(header, "\n", -1);
+	guint nargs = g_strv_length(token);
+
+	for (int i = 0; i < nargs; i++) {
+		int status = 0;
+		char card[FLEN_CARD] = { 0 };
+		char value[FLEN_VALUE] = { 0 };
+		char comment[FLEN_COMMENT] = { 0 };
+		int keytype;
+
+		fits_parse_template(token[i], card, &keytype, &status);
+		if (status) return status;
+		fits_parse_value(card, value, comment, &status);
+
+		if (g_str_has_prefix(card, "END")) {
+			retval = 0;
+			break;
+		} else if (siril_str_has_prefix(card, PIXELSIZEX)) {
+			fit->pixel_size_x = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, PIXELSIZEY)) {
+			fit->pixel_size_y = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, BINX)) {
+			fit->binning_x = g_ascii_strtoull(value, NULL, 10);
+		} else if (siril_str_has_prefix(card, BINY)) {
+			fit->binning_y = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "ROWORDER=")) {
+			copy_string_key(fit->row_order, value);
+		} else if (g_str_has_prefix(card, "INSTRUME=")) {
+			copy_string_key(fit->instrume, value);
+		} else if (g_str_has_prefix(card, "TELESCOP=")) {
+			copy_string_key(fit->telescop, value);
+		} else if (g_str_has_prefix(card, "OBSERVER=")) {
+			copy_string_key(fit->observer, value);
+		} else if (g_str_has_prefix(card, "BAYERPAT=")) {
+			copy_string_key(fit->bayer_pattern, value);
+		} else if (g_str_has_prefix(card, "XBAYROFF=")) {
+			fit->bayer_xoffset = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "YBAYROFF=")) {
+			fit->bayer_yoffset = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "DATE    =")) {
+			char tmp[FLEN_VALUE];
+			copy_string_key(tmp, value);
+			fit->date = FITS_date_to_date_time(tmp);
+		} else if (g_str_has_prefix(card, "DATE-OBS=")) {
+			char tmp[FLEN_VALUE];
+			copy_string_key(tmp, value);
+			fit->date_obs = FITS_date_to_date_time(tmp);
+		} else if (siril_str_has_prefix(card, FOCAL)) {
+			fit->focal_length = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "FLENGTH =")) {
+			fit->focal_length = g_ascii_strtod(value, NULL) * 1000.0;
+		} else if (siril_str_has_prefix(card, CCD_TEMP)) {
+			fit->ccd_temp = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, EXPOSURE)) {
+			fit->exposure = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "STACKCNT=")) {
+			fit->stacknt = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "LIVETIME=")) {
+			fit->livetime = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, FILTER)) {
+			copy_string_key(fit->filter, value);
+		} else if (siril_str_has_prefix(card, IMAGETYP)) {
+			copy_string_key(fit->image_type, value);
+		} else if (g_str_has_prefix(card, "OBJECT  =")) {
+			copy_string_key(fit->object, value);
+		} else if (g_str_has_prefix(card, "APERTURE=")) {
+			fit->aperture = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "ISOSPEED=")) {
+			fit->iso_speed = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, CVF)) {
+			fit->cvf = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "GAIN   =")) {
+			fit->key_gain = g_ascii_strtoull(value, NULL, 10);
+		} else if (siril_str_has_prefix(card, OffsetLevel)) {
+			fit->key_offset = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "EQUINOX =")) {
+			fit->wcsdata.equinox = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "OBJCTRA =")) {
+			copy_string_key(fit->wcsdata.objctra, value);
+		} else if (g_str_has_prefix(card, "RA      =")) {
+			fit->wcsdata.ra = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "OBJCTDEC=")) {
+			copy_string_key(fit->wcsdata.objctdec, value);
+		} else if (g_str_has_prefix(card, "DEC     =")) {
+			fit->wcsdata.dec = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRPIX1  =")) {
+			fit->wcsdata.crpix[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRPIX2  =")) {
+			fit->wcsdata.crpix[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRVAL1  =")) {
+			fit->wcsdata.crval[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRVAL2  =")) {
+			fit->wcsdata.crval[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CDELT1  =")) {
+			fit->wcsdata.cdelt[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CDELT2  =")) {
+			fit->wcsdata.cdelt[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC1_1   =")) {
+			fit->wcsdata.pc[0][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC1_2   =")) {
+			fit->wcsdata.pc[0][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC2_1   =")) {
+			fit->wcsdata.pc[1][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC2_2   =")) {
+			fit->wcsdata.pc[1][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD1_1   =")) {
+			cd[0][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD1_2   =")) {
+			cd[0][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD2_1   =")) {
+			cd[1][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD2_2   =")) {
+			cd[1][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PLTSOLVD=")) {
+			fit->wcsdata.pltsolvd = !g_strcmp0(value, "T") ? TRUE : FALSE;
+			strncpy(fit->wcsdata.pltsolvd_comment, comment, FLEN_COMMENT);
+		} else if (g_str_has_prefix(card, "DFTNORM0=")) {
+			fit->dft.norm[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "DFTNORM1=")) {
+			fit->dft.norm[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "DFTNORM2=")) {
+			fit->dft.norm[2] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "DFTORD  =")) {
+			copy_string_key(fit->dft.ord, value);
+		} else if (g_str_has_prefix(card, "DFTTYPE =")) {
+			copy_string_key(fit->dft.type, value);
+		}
+	}
+	/* we compute PC and cdelt, but before check that CD is not singular */
+	if ((cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]) != 0.0) {
+		wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
+	}
+	load_WCS_from_memory(fit);
+
+	return retval;
+}
+
 /* copy the header for the current HDU in a heap-allocated string */
 static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int *strlength) {
 	int nkeys, status = 0;
@@ -493,6 +654,18 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 		strcpy(*header + *strlength, "\n");
 		(*strlength)++;
 	}
+	if (*strlength + 3 + 1 >= *strsize) {
+		*strsize += 4;
+		char *newstr = realloc(*header, *strsize);
+		if (!newstr) {
+			PRINT_ALLOC_ERR;
+			free(*header);
+			return 1;
+		}
+		*header = newstr;
+	}
+	strcpy(*header + *strlength, "END");
+	(*strlength) += 3;
 	return 0;
 }
 
