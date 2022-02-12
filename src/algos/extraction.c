@@ -754,6 +754,10 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 		required = 3 * MB_per_image / 2;
 	else if (args->image_hook == split_cfa_image_hook)
 		required = 2 * MB_per_image;
+	else {
+		required = MB_per_image;
+		siril_log_color_message("unknown extraction type\n", "red");
+	}
 
 	if (limit > 0) {
 		int thread_limit = MB_avail / required;

@@ -92,7 +92,8 @@ static BYTE *fits8_to_bgrbgr(fits *image) {
 	return bgrbgr;
 }
 
-/* this prepares input and output images, but lets the input in a non-usable state, beware! */
+/* this prepares input and output images, but lets the input in a non-usable state, beware!
+ * the memory consumption of the combination of this and Mat_to_image is O(n) */
 static int image_to_Mat(fits *image, Mat *in, Mat *out, void **bgr, int target_rx, int target_ry) {
 	if (image->naxes[2] != 1 && image->naxes[2] != 3) {
 		siril_log_message(_("Images with %ld channels are not supported\n"), image->naxes[2]);
