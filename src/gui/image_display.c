@@ -786,7 +786,7 @@ static void draw_compass(const draw_data_t* dd) {
 	if (ra0 == -1) return; // checks implicitly that wcslib member exists
 	double len = (double) fit->ry / 20.;
 	wcs2pix(fit, ra0, dec0 + 0.1, &xN, &yN);
-	wcs2pix(fit, ra0 - 0.1, dec0, &xE, &yE);
+	wcs2pix(fit, ra0 + 0.1, dec0, &xE, &yE);
 	if (fabs(dec0 - 90.) < len * get_wcs_image_resolution(fit)) return; //If within one arrow length of the North Pole, do not plot
 	double angleN = -atan2(yN - ypos, xN - xpos);
 	double angleE = -atan2(yE - ypos, xE - xpos);
@@ -810,8 +810,8 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_line_to(cr, 0.75 * len, +0.15 * len);
 	cairo_line_to(cr, len, 0.);
 	cairo_fill(cr);
-	cairo_move_to(cr, len, 0.1 * len);
-//	cairo_rotate(cr, -angleN);
+	cairo_move_to(cr, len * 1.3, 0.1 * len);
+	cairo_rotate(cr, -angleN);
 	cairo_show_text(cr, "N");
 	cairo_restore(cr); // restore the original transform
 
@@ -825,10 +825,10 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_translate(cr, xdraw, ydraw);
 	cairo_rotate(cr, angleE);
 	cairo_move_to(cr, 0., 0.);
-	cairo_line_to(cr, len / 2., 0.);
+	cairo_line_to(cr, len / 2.0, 0.);
 	cairo_stroke(cr);
-	cairo_move_to(cr, len / 2, -0.1 * len);
-//	cairo_rotate(cr, -angleE);
+	cairo_move_to(cr, (len / 2) * 2.0, -0.1 * len);
+	cairo_rotate(cr, -angleE);
 	cairo_show_text(cr, "E");
 	cairo_restore(cr); // restore the original transform
 }
