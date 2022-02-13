@@ -198,9 +198,9 @@ static gint64 prepro_compute_size_hook(struct generic_seq_args *args, int nb_ima
 static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_writer) {
 	int nb_masters = 0;
 	struct preprocessing_data *prepro = args->user;
-	if (prepro->use_flat) nb_masters++;
-	if (prepro->use_dark) nb_masters++;
-	if (prepro->use_bias) nb_masters++;
+	if (prepro->use_flat && prepro->flat) nb_masters++;
+	if (prepro->use_dark && prepro->dark) nb_masters++;
+	if (prepro->use_bias && prepro->bias) nb_masters++;
 	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
 	/* more:
 	 * are the masters float? yes it !com.pref.force_to_16bit
@@ -247,6 +247,7 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
                          * plus how many images can be stored in what remains
                          * unused by the main processing */
                         limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+			siril_debug_print("%d MB avail for writer\n", MB_avail - required * thread_limit);
                 } else limit = thread_limit;
 
 	}
