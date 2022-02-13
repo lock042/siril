@@ -563,8 +563,9 @@ int mp4_add_frame(struct mp4_struct *video_st, fits *image) {
 	return -1;
 }
 
-int mp4_close(struct mp4_struct *video_st) {
-	flush_stream(video_st);
+int mp4_close(struct mp4_struct *video_st, gboolean aborted) {
+	if (!aborted)
+		flush_stream(video_st);
 
 	/* Write the trailer, if any. The trailer must be written before you
 	 * close the CodecContexts open when you wrote the header; otherwise
