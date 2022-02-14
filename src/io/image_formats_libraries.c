@@ -395,7 +395,7 @@ static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
 int readtif(const char *name, fits *fit, gboolean force_float) {
 	int retval = 0;
 	uint32_t height, width;
-	uint16_t nbits, nsamples, color;
+	uint16_t nbits, nsamples, color, orientation;
 	WORD *data = NULL;
 	float *fdata = NULL;
 	uint16_t sampleformat = 0;
@@ -417,6 +417,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &nbits);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &color);
+	TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
 
 	// Retrieve the Date/Time as in the TIFF TAG
 	gchar *date_time = NULL;
@@ -535,12 +536,35 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 		}
-		mirrorx(fit, FALSE);
+
+		if (orientation == ORIENTATION_TOPLEFT) {
+			mirrorx(fit, FALSE);
+		} else if (orientation == ORIENTATION_TOPRIGHT) {
+			mirrorx(fit, FALSE);
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTRIGHT) {
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTLEFT) {
+			; // do nothing
+		} else {
+			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+		}
 		break;
 	case 32:
 		fit->bitpix = FLOAT_IMG;
 		fit->type = DATA_FLOAT;
-		mirrorx(fit, FALSE);
+		if (orientation == ORIENTATION_TOPLEFT) {
+			mirrorx(fit, FALSE);
+		} else if (orientation == ORIENTATION_TOPRIGHT) {
+			mirrorx(fit, FALSE);
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTRIGHT) {
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTLEFT) {
+			; // do nothing
+		} else {
+			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+		}
 	}
 	fit->orig_bitpix = fit->bitpix;
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
