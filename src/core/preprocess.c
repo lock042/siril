@@ -201,43 +201,37 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
 	if (prepro->use_flat && prepro->flat) nb_masters++;
 	if (prepro->use_dark && prepro->dark) nb_masters++;
 	if (prepro->use_bias && prepro->bias) nb_masters++;
-	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
-	/* more:
-	 * are the masters float? yes it !com.pref.force_to_16bit
+	int input_is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+	int output_is_float = input_is_float || !com.pref.force_to_16bit;
+	/*
+	 * are the masters float? yes if !com.pref.force_to_16bit, raw images too
 	 *
-	 * if (prepro->use_dark_optim && prepro->use_dark) {
-	 *	image gets three copies, if allow_32bits, two of them are grown to 32
-	 *	bits at the same time
-	 *
-	 * for normal operation, it's still converted to 32 bits if allow_32bit
+	 * if (prepro->use_dark_optim && prepro->use_dark)
+	 *	image gets three copies
 	 *
 	 * if (prepro->debayer)
-	 * 	image gets three copies
+	 * 	O(9n) for ushort
+	 * 	O(3n) for float, same as dark optim
 	 */
-	unsigned int MB_per_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
-	if (!is_float && !com.pref.force_to_16bit)
-		MB_avail -= nb_masters * MB_per_image * 2;
-	else MB_avail -= nb_masters * MB_per_image;
+	unsigned int MB_per_input_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
+	if (!input_is_float && output_is_float)
+		MB_per_input_image *= 2;
+	MB_avail -= nb_masters * MB_per_input_image;
 
-	unsigned int required = MB_per_image;
+	unsigned int required = MB_per_input_image;
+	unsigned int MB_per_output_image = MB_per_input_image;
+	if (prepro->debayer) {
+		if (input_is_float || output_is_float)
+			MB_per_output_image *= 3;
+		else MB_per_output_image *= 9;
+		required = MB_per_input_image + MB_per_output_image;
+	}
+	else if (prepro->use_dark_optim && prepro->use_dark) {
+		required = 4 * MB_per_input_image;
+	}
+
 	if (limit > 0) {
-		if (prepro->use_dark_optim && prepro->use_dark) {
-			required = 4 * MB_per_image;
-			if (!is_float && !com.pref.force_to_16bit)
-				required += 2 * MB_per_image;
-		}
-		else if (prepro->debayer) {
-			required = 4 * MB_per_image;
-			if (!is_float && !com.pref.force_to_16bit)
-				required *= 2;
-		}
-		else {
-			required = MB_per_image;
-			if (!is_float && !com.pref.force_to_16bit)
-				required *= 2;
-		}
-
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
                         thread_limit = com.max_thread;
@@ -246,10 +240,9 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
                         /* we allow the already allocated thread_limit images,
                          * plus how many images can be stored in what remains
                          * unused by the main processing */
-                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
 			siril_debug_print("%d MB avail for writer\n", MB_avail - required * thread_limit);
                 } else limit = thread_limit;
-
 	}
 	if (limit == 0) {
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
@@ -267,8 +260,8 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
-				required, MB_per_image, limit, for_writer ? "images" : "threads");
+		siril_debug_print("Memory required per thread: %u MB, per input image: %u MB, per output image %u MB, limiting to %d %s\n",
+				required, MB_per_input_image, MB_per_output_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
 			limit = 1;
