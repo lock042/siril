@@ -64,7 +64,8 @@ static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 static char *FILTER[] = {"FILTER", "FILT-1", NULL };
 static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
-static char *OffsetLevel[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
+static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
+
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
 #define __tryToFindKeywords(fptr, type, keywords, value) \
@@ -367,7 +368,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TUSHORT, "GAIN", &(fit->key_gain), NULL, &status);  // Gain setting from camera
 
-    __tryToFindKeywords(fit->fptr, TUSHORT, OffsetLevel, &fit->key_offset); // Offset setting from camera
+    __tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->key_offset); // Offset setting from camera
 	/*******************************************************************
 	 * ******************* PLATE SOLVING KEYWORDS **********************
 	 * ****************************************************************/
@@ -479,8 +480,8 @@ static gboolean siril_str_has_prefix(char *card, char **key) {
 
 /* remove leading and trailing ' and whitespaces */
 static void copy_string_key(char *to, char *from) {
-	from[strlen(from) - 1] = '\0';
 	strncpy(to, from + 1, FLEN_VALUE);
+	to[strlen(to) - 1] = '\0';
 	to = g_strstrip(to);
 }
 
@@ -560,7 +561,7 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->cvf = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "GAIN   =")) {
 			fit->key_gain = g_ascii_strtoull(value, NULL, 10);
-		} else if (siril_str_has_prefix(card, OffsetLevel)) {
+		} else if (siril_str_has_prefix(card, OFFSETLEVEL)) {
 			fit->key_offset = g_ascii_strtoull(value, NULL, 10);
 		} else if (g_str_has_prefix(card, "EQUINOX =")) {
 			fit->wcsdata.equinox = g_ascii_strtod(value, NULL);
