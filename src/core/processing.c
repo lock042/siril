@@ -345,7 +345,8 @@ gboolean end_generic_sequence(gpointer p) {
  */
 int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float, NULL, &MB_per_image, &MB_avail);
+	int thread_limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float, NULL, &MB_per_image, &MB_avail);
+	int limit = thread_limit;
 	if (limit == 0) {
 		gchar *mem_per_image = g_format_size_full(MB_per_image * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
@@ -357,18 +358,26 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 		g_free(mem_available);
 	} else {
 #ifdef _OPENMP
-		if (for_writer) {
-			int max_queue_size = com.max_thread * 3;
-			if (limit > max_queue_size)
-				limit = max_queue_size;
-		}
-		else if (limit > com.max_thread)
+		/* number of threads for the main computation */
+		if (limit > com.max_thread)
 			limit = com.max_thread;
+		if (for_writer) {
+			/* we take the remainder for the writer */
+			int max_queue_size = com.max_thread * 3;
+			if (thread_limit - limit > max_queue_size)
+				limit = max_queue_size;
+			else limit = thread_limit - limit;
+			if (limit < 1)
+				limit = 1;	// bug #777
+		}
 #else
 		if (!for_writer)
 			limit = 1;
-		else if (limit > 3)
-			limit = 3;
+		else {
+			limit = max(1, limit-1);
+			if (limit > 3)
+				limit = 3;
+		}
 #endif
 	}
 	return limit;

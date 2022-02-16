@@ -71,6 +71,7 @@ static bool progress(double p) {
 	return true;
 }
 
+/* this is at most O(9n) in memory */
 WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6], int bit_depth) {
 
@@ -178,7 +179,7 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 			retval = markesteijn_demosaic(rx, ry, rawdata, red, green, blue, xtrans, rgb_cam, progress, 1, TRUE);
 			break;
 	}
-	free(rawdata[0]);
+	free(rawdata[0]);	// memory size: 2 times original freed
 	free(rawdata);
 
 	// 4. get the result in WORD (memory size: 3 times original)
@@ -256,7 +257,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 		buf[j] = (buf[j] - min) * factor;
 	}
 #ifdef SIRIL_OUTPUT_DEBUG
-		fprintf(stdout, "****** before debayer, data is [%f, %f] (should be [0, 65535]) ******\n", 0., normvalue);
+	fprintf(stdout, "****** before debayer, data is [%f, %f] (should be [0, 65535]) ******\n", 0., normvalue);
 #endif
 
 	for (i = 1; i < ry; i++)
@@ -344,7 +345,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	// TODO: do the following only for interpolations that needed a conversion
 
 #ifdef SIRIL_OUTPUT_DEBUG
-		float min2 = FLT_MAX, max2 = -FLT_MAX;
+	float min2 = FLT_MAX, max2 = -FLT_MAX;
 #endif
 	for (j = 0; j < n; j++) {
 		newdata[j] = newdata[j] * invfactor + min; 
@@ -354,9 +355,9 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 		if (newdata[j] < min2)
 			min2 = newdata[j];
 #endif
-		}
+	}
 #ifdef SIRIL_OUTPUT_DEBUG
-		fprintf(stdout, "****** after debayer, data is [%f, %f] (should be [0, 65535]) ******\n", min2 * normvalue, max2 * normvalue);
+	fprintf(stdout, "****** after debayer, data is [%f, %f] (should be [0, 65535]) ******\n", min2 * normvalue, max2 * normvalue);
 #endif
 
 	free(blue);

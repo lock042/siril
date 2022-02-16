@@ -51,6 +51,11 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
+	if (fits1.type != fits2.type) {
+		fprintf(stdout, "image type differ\n");
+		exit(1);
+	}
+
 	if (fits1.type == DATA_USHORT) {
 		if (memcmp(fits1.data, fits2.data, fits1.naxes[0] * fits1.naxes[1] * fits1.naxes[2] * sizeof(WORD))) {
 			fprintf(stdout, "image data differ\n");
