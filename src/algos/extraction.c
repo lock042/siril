@@ -11,6 +11,8 @@
 #include "gui/progress_and_log.h"
 #include "extraction.h"
 
+static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
+
 static void update_sampling_information(fits *fit) {
 	clear_Bayer_information(fit);
 
@@ -183,6 +185,7 @@ void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = extract_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = extractHa_image_hook;
@@ -308,6 +311,7 @@ void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = extract_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = extractGreen_image_hook;
@@ -596,6 +600,7 @@ void apply_extractHaOIII_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = dual_prepare;
 	args->finalize_hook = dual_finalize;
 	args->save_hook = dual_save;
@@ -739,10 +744,57 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return ret;
 }
 
+static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+
+	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook)
+		required = 5 * MB_per_image / 4;
+	else if (args->image_hook == extractHaOIII_image_hook)
+		required = 3 * MB_per_image / 2;
+	else if (args->image_hook == split_cfa_image_hook)
+		required = 2 * MB_per_image;
+	else {
+		required = MB_per_image;
+		siril_log_color_message("unknown extraction type\n", "red");
+	}
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+		limit = thread_limit;
+
+		/* should not happen */
+		if (for_writer)
+			return 1;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+#endif
+	}
+	return limit;
+}
+
 void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->image_hook = split_cfa_image_hook;
 	args->description = _("Split CFA");
 	args->new_seq_prefix = split_cfa_args->seqEntry;

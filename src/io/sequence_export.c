@@ -107,6 +107,7 @@ static gpointer export_sequence(gpointer ptr) {
 	char *filter_descr;
 	int nb_frames = 0;
 	GDateTime *strTime;
+	gboolean aborted = FALSE;
 #ifdef HAVE_FFMPEG
 	struct mp4_struct *mp4_file = NULL;
 #endif
@@ -297,6 +298,7 @@ static gpointer export_sequence(gpointer ptr) {
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
+			aborted = TRUE;
 			goto free_and_reset_progress_bar;
 		}
 		if (!args->filtering_criterion(args->seq, i, args->filtering_parameter)) {
@@ -522,7 +524,7 @@ free_and_reset_progress_bar:
 		case EXPORT_WEBM_VP9:
 #ifdef HAVE_FFMPEG
 			if (mp4_file) {
-				mp4_close(mp4_file);
+				mp4_close(mp4_file, aborted);
 				free(mp4_file);
 			}
 #endif
@@ -538,6 +540,27 @@ free_and_reset_progress_bar:
 	else {
 		set_progress_bar_data(_("Sequence export succeeded."), PROGRESS_RESET);
 		siril_log_message(_("Sequence export succeeded.\n"));
+	}
+	if (aborted) { //disposing of the file if Stop button was hit
+		switch (args->output){
+			case EXPORT_FITSEQ:
+			case EXPORT_SER:
+			case EXPORT_AVI:
+			case EXPORT_MP4:
+			case EXPORT_MP4_H265:
+			case EXPORT_WEBM_VP9:
+				if (!(dest[0] == '\0')) {
+					GFile *file = g_file_new_build_filename(dest, NULL);
+					g_autoptr(GError) local_error = NULL;
+					if (!g_file_delete(file, NULL, &local_error)) {
+						g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
+					}
+					g_object_unref(file);
+				}
+				break;
+			default:
+				break;
+		}
 	}
 
 	free(args->basename);
