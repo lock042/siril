@@ -1,3 +1,6 @@
+v1.0.0
+* Fix memory consumption for all sequence operations
+
 v1.0.0~RC2 December 08, 2021
 Second Release candidate version for 1.0.0
 * Fixes many crashes
