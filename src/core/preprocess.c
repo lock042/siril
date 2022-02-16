@@ -193,6 +193,85 @@ static gint64 prepro_compute_size_hook(struct generic_seq_args *args, int nb_ima
 	return size;
 }
 
+/* we need to account for the possible 3 master frames loaded at the start and
+ * the memory it takes to calibrate the images */
+static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_writer) {
+	int nb_masters = 0;
+	struct preprocessing_data *prepro = args->user;
+	if (prepro->use_flat && prepro->flat) nb_masters++;
+	if (prepro->use_dark && prepro->dark) nb_masters++;
+	if (prepro->use_bias && prepro->bias) nb_masters++;
+	int input_is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+	int output_is_float = input_is_float || !com.pref.force_to_16bit;
+	/*
+	 * are the masters float? yes if !com.pref.force_to_16bit, raw images too
+	 *
+	 * if (prepro->use_dark_optim && prepro->use_dark)
+	 *	image gets three copies
+	 *
+	 * if (prepro->debayer)
+	 * 	O(9n) for ushort
+	 * 	O(3n) for float, same as dark optim
+	 */
+	unsigned int MB_per_input_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
+	if (!input_is_float && output_is_float)
+		MB_per_input_image *= 2;
+	MB_avail -= nb_masters * MB_per_input_image;
+
+	unsigned int required = MB_per_input_image;
+	unsigned int MB_per_output_image = MB_per_input_image;
+	if (prepro->debayer) {
+		if (input_is_float || output_is_float)
+			MB_per_output_image *= 3;
+		else MB_per_output_image *= 9;
+		required = MB_per_input_image + MB_per_output_image;
+	}
+	else if (prepro->use_dark_optim && prepro->use_dark) {
+		required = 4 * MB_per_input_image;
+	}
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+
+		if (for_writer) {
+                        /* we allow the already allocated thread_limit images,
+                         * plus how many images can be stored in what remains
+                         * unused by the main processing */
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
+			siril_debug_print("%d MB avail for writer\n", MB_avail - required * thread_limit);
+                } else limit = thread_limit;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per input image: %u MB, per output image %u MB, limiting to %d %s\n",
+				required, MB_per_input_image, MB_per_output_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
 static int prepro_prepare_hook(struct generic_seq_args *args) {
 	struct preprocessing_data *prepro = args->user;
 
@@ -347,6 +426,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_to_16bit && prepro->output_seqtype != SEQ_SER;
 	args->compute_size_hook = prepro_compute_size_hook;
+	args->compute_mem_limits_hook = prepro_compute_mem_hook;
 	args->prepare_hook = prepro_prepare_hook;
 	args->image_hook = prepro_image_hook;
 	args->finalize_hook = prepro_finalize_hook;

@@ -1,3 +1,7 @@
+siril 1.0.0
+xx/02/22
+* Fix memory consumption for all sequence operations
+
 siril 1.0.0~RC2
 12/08/21
 * Fixes many crashes
