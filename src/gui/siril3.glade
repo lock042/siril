@@ -5022,14 +5022,14 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     </action-widgets>
   </object>
   <object class="GtkAdjustment" id="adjustment_shiftx">
-    <property name="lower">-300</property>
-    <property name="upper">300</property>
+    <property name="lower">-3000</property>
+    <property name="upper">3000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_shifty">
-    <property name="lower">-300</property>
-    <property name="upper">300</property>
+    <property name="lower">-3000</property>
+    <property name="upper">3000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
