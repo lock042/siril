@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -47,6 +47,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
+#include "gui/registration_preview.h"
 
 #include "photometric_cc.h"
 
@@ -250,7 +251,7 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 		}
 
 		for (int chan = 0; chan < 3; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, TRUE);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE, TRUE);
 			if (!photometry || !photometry->phot_is_valid) {
 				no_phot = TRUE;
 				break;
@@ -430,6 +431,8 @@ static gboolean end_photometric_cc(gpointer p) {
 	g_object_unref(args->bv_stream);
 	free(args);
 
+	invalidate_gfit_histogram();
+	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	

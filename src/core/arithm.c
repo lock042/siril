@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -37,22 +37,32 @@ static int soper_ushort_to_ushort(fits *a, float scalar, image_operator oper) {
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	data = a->data;
+	float invnorm = (a->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : 1.f;
 	if (oper == OPER_DIV) {
 		scalar = 1.0f / scalar;
 		oper = OPER_MUL;
 	}
+	if (oper == OPER_MUL) scalar *= invnorm;
 
 	switch (oper) {
 		case OPER_ADD:
 			for (i = 0; i < n; ++i) {
 				float pixel = ushort_to_float_bitpix(a, data[i]);
-				data[i] = float_to_ushort_range(pixel + scalar);
+				if (invnorm == 1.f) {
+					data[i] = float_to_ushort_range(pixel + scalar);
+				} else {
+					data[i] = float_to_ushort_range(invnorm * (pixel + scalar));
+				}
 			}
 			break;
 		case OPER_SUB:
 			for (i = 0; i < n; ++i) {
 				float pixel = ushort_to_float_bitpix(a, data[i]);
-				data[i] = float_to_ushort_range(pixel - scalar);
+				if (invnorm == 1.f) {
+					data[i] = float_to_ushort_range(pixel - scalar);
+				} else {
+					data[i] = float_to_ushort_range(invnorm * (pixel - scalar));
+				}
 			}
 			break;
 		case OPER_MUL:

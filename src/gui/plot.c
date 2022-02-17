@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include "core/siril_date.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/sleef.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/dialogs.h"
@@ -44,6 +45,7 @@
 #include "kplot.h"
 #include "algos/PSF.h"
 #include "io/ser.h"
+#include "io/sequence.h"
 #include "gui/gnuplot_i/gnuplot_i.h"
 #include "gui/PSF_list.h"
 
@@ -55,8 +57,7 @@ static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*comboX = NULL, *layer_selector = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
-static gboolean use_photometry = FALSE, requires_color_update =
-		FALSE, requires_seqlist_update = FALSE;
+static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
 static char *ylabel = NULL;
 static gchar *xlabel = NULL;
 static enum photometry_source photometry_selected_source = FWHM;
@@ -186,7 +187,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			default:
 				break;
 		}
-		// plot->data[j].x = (double) i + 1;
+		plot->data[j].x = (isnan(plot->data[j].x)) ? 0.0 : plot->data[j].x;
 		switch (registration_selected_source) {
 			case r_ROUNDNESS:
 				plot->data[j].y = seq->regparam[layer][i].roundness;
@@ -221,6 +222,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			default:
 				break;
 		}
+		plot->data[j].y = (isnan(plot->data[j].y)) ? 0.0 : plot->data[j].y;
 		plot->frame[j] =  (double) i + 1;
 		if (i == ref_image) {
 			ref.x = plot->data[j].x;
@@ -415,8 +417,6 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 				"trying to plot a graph of a variable star.\n"));
 
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("Gnuplot is unavailable"), msg);
-
-		return -1;
 	}
 
 	/* get number of data */
@@ -640,11 +640,14 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 
 	if (!use_photometry) {
 		GtkTreePath* path = gtk_tree_model_get_path (tree_model, iter);
+		if (!path) return;
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
-		if (!is_fwhm) {
-			sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
-		} else {
-			sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS));
+		if (index) {
+			if (!is_fwhm) {
+				sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
+			} else {
+				sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS));
+			}
 		}
 	}
 	g_object_set(cell, "sensitive", sensitive, NULL);
@@ -664,11 +667,15 @@ static void fill_plot_statics() {
 		layer_selector = lookup_widget("seqlist_dialog_combo");
 	}
 }
+
 static void validate_combos() {
 	fill_plot_statics();
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
-	if (!use_photometry)
+	if (!use_photometry) {
 		reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(layer_selector));
+		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
+			reglayer = get_registration_layer(&com.seq);
+	}
 	gtk_widget_set_visible(varCurve, use_photometry);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
@@ -783,8 +790,6 @@ static int comparey_desc(const void *a, const void *b) {
 		return 0;
 }
 
-
-
 void drawPlot() {
 	int ref_image;
 	sequence *seq;
@@ -799,9 +804,19 @@ void drawPlot() {
 		ref_image = 0;
 	else ref_image = seq->reference_image;
 
+	gboolean arcsec_is_ok = (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.f
+		&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
+		&& gfit.binning_y > 0);
+	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+	if (!arcsec_is_ok) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(arcsec), FALSE);
+		is_arcsec = FALSE;
+	}
+
 	if (use_photometry) {
 		// photometry data display
 		pldata *plot;
+		gtk_widget_set_visible(arcsec, ((current_selected_source == FWHM) && arcsec_is_ok));
 		update_ylabel();
 		ref.x = -1.0;
 		ref.y = -1.0;
@@ -828,9 +843,12 @@ void drawPlot() {
 		if (!(seq->regparam))
 			return;
 
-		if ((!seq->regparam[reglayer]))
+		if ((!seq->regparam[reglayer]) || reglayer < 0)
 			return;
+
 		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f) ? TRUE : FALSE;
+		gtk_widget_set_visible(arcsec, ((current_selected_source == r_FWHM) || (current_selected_source == r_WFWHM) || (X_selected_source == r_FWHM) || (X_selected_source == r_WFWHM)) && arcsec_is_ok);
+
 		update_ylabel();
 		/* building data array */
 		plot_data = alloc_plot_data(seq->number);
@@ -1029,17 +1047,6 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		cairo_fill(cr);
 		kplot_draw(p, width, height, cr);
 
-		/* copy graph colours for star highlight */
-		if (requires_color_update) {
-			for (i = 0; i < cfgplot.clrsz; i++) {
-				com.seq.photometry_colors[i][0] = cfgplot.clrs[i].rgba[0];
-				com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
-				com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
-			}
-			redraw(REMAP_ONLY);
-			requires_color_update = FALSE;
-		}
-
 		free_colors(&cfgplot);
 		kplot_free(p);
 		kdata_destroy(d1);
@@ -1077,14 +1084,9 @@ void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 static void update_ylabel() {
-	gboolean arcsec_is_ok = (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.f
-		&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
-		&& gfit.binning_y > 0);
-	int current_selected_source;
-	current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	if (use_photometry) {
 		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
-		gtk_widget_set_visible(arcsec, ((current_selected_source == FWHM) && arcsec_is_ok));
 		switch (current_selected_source) {
 			case ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
@@ -1117,8 +1119,6 @@ static void update_ylabel() {
 				break;
 		}
 	} else {
-		current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-		gtk_widget_set_visible(arcsec, ((current_selected_source == r_FWHM) || (current_selected_source == r_WFWHM) || (X_selected_source == r_FWHM) || (X_selected_source == r_WFWHM)) && arcsec_is_ok);
 		switch (current_selected_source) {
 			case r_ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
@@ -1169,9 +1169,24 @@ static void update_ylabel() {
 	}
 }
 
+/* initialize the colors of each star for photometry, outside
+ * on_DrawingPlot_draw because it may not be called if the panel is hidden, but
+ * the circles in the main image display still use these colors.
+ */
+static void init_plot_colors() {
+	struct kplotcfg cfgplot;
+	set_colors(&cfgplot);
+	/* copy graph colours for star highlight */
+	for (int i = 0; i < cfgplot.clrsz; i++) {
+		com.seq.photometry_colors[i][0] = cfgplot.clrs[i].rgba[0];
+		com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
+		com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
+	}
+}
+
 void notify_new_photometry() {
 	control_window_switch_to_tab(PLOT);
-	requires_color_update = TRUE;
+	init_plot_colors();
 	gtk_widget_set_sensitive(sourceCombo, TRUE);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 1);
 	gtk_widget_set_sensitive(buttonClearLatest, TRUE);
@@ -1241,23 +1256,14 @@ static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_in
 	double invrangex = 1./(maxx - minx);
 	double invrangey = 1./(maxy - miny);
 
-	if (X_selected_source < r_FRAME || force_Julian) {
-		for (int j = 0; j < plot->nb; j++) {
-			dist = pow((*index - plot->data[j].x) * invrangex, 2) + pow((*ypos - plot->data[j].y) * invrangey, 2);
-			if (dist < mindist) {
-				mindist = dist;
-				closestframe = plot->frame[j];
-			}
+	for (int j = 0; j < plot->nb; j++) {
+		dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
+		if (dist < mindist) {
+			mindist = dist;
+			closestframe = plot->frame[j];
 		}
-		*index = (mindist < 0.0004) ? closestframe : -1; // only set index if distance between cursor and a point is small enough (2% of scales)
-	} else {
-		int j;
-		for (j = 0; j < plot->nb - 1; j++) {
-			if (plot->frame[j + 1] > (int)*index) break;
-		}
-		*index = plot->frame[j];
-		*val = plot->data[j].y;
 	}
+	*index = (mindist < 0.0004) ? closestframe : -1; // only set index if distance between cursor and a point is small enough (2% of scales)
 
 	if (check_index_incl && (*index >= 0 && *index <= maxx)) return com.seq.imgparam[(int)*index - 1].incl;
 	return TRUE;
@@ -1270,17 +1276,13 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	gtk_widget_set_has_tooltip(widget, FALSE);
 
 	double index, val, ypos;
-	gboolean getvals = get_index_of_frame(event->x, event->y, (X_selected_source == r_FRAME && !force_Julian), &index, &val, &ypos);
+	gboolean getvals = get_index_of_frame(event->x, event->y, FALSE, &index, &val, &ypos);
 	gchar *tooltip_text;
 	if (getvals) {
-		if (X_selected_source < r_FRAME || force_Julian) {
-			if (index > 0) {
-				tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", val, ypos,(int)index);
-			} else {
-				tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", val, ypos);
-			}
+		if (index > 0) {
+			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", val, ypos,(int)index);
 		} else {
-			tooltip_text = g_strdup_printf("Frame#%d value: %0.3f\nY pos: %0.3f", (int)index, val, ypos);
+			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", val, ypos);
 		}
 		gtk_widget_set_tooltip_text(widget, tooltip_text);
 		g_free(tooltip_text);
@@ -1313,7 +1315,6 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	static GtkMenuItem *menu_item = NULL;
 	static GtkMenuItem *menu_item2 = NULL;
 
-	// if (X_selected_source < r_FRAME) return;
 	double index, val, ypos;
 	gboolean getvals = get_index_of_frame(event->x, event->y, TRUE, &index, &val, &ypos);
 	if (!getvals) return;

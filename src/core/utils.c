@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1281,4 +1281,17 @@ gchar* url_cleanup(const gchar *uri_string) {
 	}
 
 	return g_string_free(copy, FALSE);
+}
+
+/**
+ * Deblanks a string
+ * @param s string to be deblanked
+ */
+void remove_spaces_from_str(gchar *s) {
+	gchar *d = s;
+	do {
+		while (g_ascii_isspace(*d)) {
+			++d;
+		}
+	} while((*s++ = *d++));
 }

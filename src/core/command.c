@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -61,6 +61,7 @@
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
 #include "gui/script_menu.h"
+#include "gui/registration_preview.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/clahe.h"
@@ -347,6 +348,7 @@ int process_fmul(int nb){
 		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
 	}
+	gboolean from8b = (gfit.orig_bitpix == BYTE_IMG); // get orig bitdepth of 8b before it gets converted to 32b by soper
 
 	float coeff = g_ascii_strtod(word[1], NULL);
 	if (coeff <= 0.f) {
@@ -354,6 +356,13 @@ int process_fmul(int nb){
 		return 1;
 	}
 	soper(&gfit, coeff, OPER_MUL, TRUE);
+	if (from8b) { // image is now 32b, need to reset slider max and update hi/lo
+		invalidate_stats_from_fit(&gfit);
+		image_find_minmax(&gfit);
+		gfit.hi = (WORD)(gfit.maxi * USHRT_MAX_SINGLE);
+		gfit.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
+		set_cutoff_sliders_max_values();
+	}
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -434,7 +443,7 @@ int process_rl(int nb) {
 	}
 
 	if (corner < -0.5 || corner > 0.5) {
-		siril_log_message(_("Corner radius boost must be between [0.5, 0.5]\n"));
+		siril_log_message(_("Corner radius boost must be between [-0.5, 0.5]\n"));
 		return 1;
 	}
 
@@ -524,6 +533,7 @@ int process_crop(int nb) {
 	delete_selected_area();
 	reset_display_offset();
 	adjust_cutoff_from_updated_gfit();
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	
@@ -1085,6 +1095,10 @@ int	process_mirrory(int nb){
 }
 
 int process_mtf(int nb) {
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
 	float lo = g_ascii_strtod(word[1], NULL);
 	float mid = g_ascii_strtod(word[2], NULL);
 	float hi = g_ascii_strtod(word[3], NULL);
@@ -1131,6 +1145,11 @@ int process_rgradient(int nb) {
 		return 1;
 	}
 
+	if (gfit.orig_bitpix == BYTE_IMG) {
+		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
+		return 1;
+	}
+
 	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
 	args->xc = g_ascii_strtod(word[1], NULL);
 	args->yc = g_ascii_strtod(word[2], NULL);
@@ -1164,6 +1183,8 @@ int process_rotate(int nb) {
 	}
 
 	verbose_rotate_image(&gfit, degree, OPENCV_AREA, crop);
+
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
@@ -1178,6 +1199,7 @@ int process_rotatepi(int nb){
 
 	verbose_rotate_image(&gfit, 180.0, -1, 1);
 
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
@@ -1210,7 +1232,7 @@ int process_set_mag(int nb) {
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, TRUE, TRUE);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
@@ -1282,6 +1304,7 @@ int process_set_ext(int nb) {
 				&& (g_ascii_strncasecmp(word[1], "fts", 3))
 				&& (g_ascii_strncasecmp(word[1], "fits", 4))) {
 			siril_log_message(_("FITS extension unknown: %s\n"), word[1]);
+			return 1;
 		}
 
 		free(com.pref.ext);
@@ -1341,7 +1364,7 @@ int process_psf(int nb){
 		siril_log_message(_("Select an area first\n"));
 		return 1;
 	}
-	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
@@ -1767,6 +1790,10 @@ int process_fill2(int nb){
 }
 
 int process_findstar(int nb){
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
 	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
 	delete_selected_area();
@@ -2028,15 +2055,6 @@ int process_clearstar(int nb){
 int process_close(int nb) {
 	close_sequence(FALSE);
 	close_single_image();
-	if (!com.script) {
-		update_MenuItem();
-		display_filename();
-		update_zoom_label();
-		update_display_fwhm();
-		reset_plot(); // reset all plots
-		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-		
-	}
 	return 0;
 }
 
@@ -2227,7 +2245,7 @@ int process_subsky(int nb) {
 	} else {
 		set_cursor_waiting(TRUE);
 		generate_background_samples(20, 1.0);
-		remove_gradient_from_image(0, (poly_order) (degree - 1));
+		remove_gradient_from_image(0, (poly_order) (degree - 1), TRUE);
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
 
@@ -3243,8 +3261,13 @@ int process_register(int nb) {
 					return 1;
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) { 
+#ifdef HAVE_CV44
 					reg_args->type = SHIFT_TRANSFORMATION;
 					continue;
+#else
+					siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+					return 1;
+#endif
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
 					reg_args->type = SIMILARITY_TRANSFORMATION;
@@ -3723,6 +3746,7 @@ int process_stackone(int nb) {
 	sequence *seq = load_sequence(word[1], &arg->seqfile);
 	if (!seq)
 		goto failure;
+	free_sequence(seq, TRUE);
 
 	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] -out=result_filename
 	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] -out=result_filename
@@ -3837,12 +3861,13 @@ int process_preprocess(int nb) {
 					// parsing offset level
 					int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
 					clearfits(&reffit);
-					g_free(expression);
 					if (!offsetlevel) {
 						siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
 						retvalue = 1;
+						g_free(expression);
 						break;
 					} else {
+						g_free(expression);
 						siril_log_message(_("Synthetic offset: Level = %d\n"), offsetlevel);
 						int maxlevel = (seq->bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 						if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
@@ -3850,7 +3875,8 @@ int process_preprocess(int nb) {
 							retvalue = 1;
 							break;
 						} else {
-							args->bias_level = (float)offsetlevel * INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+								args->bias_level = (float)offsetlevel;
+								args->bias_level *= (seq->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 							args->use_bias = TRUE;
 						}
 					}
@@ -3859,6 +3885,10 @@ int process_preprocess(int nb) {
 					args->bias = calloc(1, sizeof(fits));
 					if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_to_16bit)) {
 						args->use_bias = TRUE;
+						// if input is 8b, we assume 32b master needs to be rescaled
+						if ((args->bias->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+						}
 					} else {
 						retvalue = 1;
 						free(args->bias);
@@ -3870,6 +3900,10 @@ int process_preprocess(int nb) {
 				if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
 					args->use_dark = TRUE;
 					args->use_cosmetic_correction = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->dark->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				} else {
 					retvalue = 1;
 					free(args->dark);
@@ -3879,6 +3913,10 @@ int process_preprocess(int nb) {
 				args->flat = calloc(1, sizeof(fits));
 				if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
 					args->use_flat = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->flat->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				} else {
 					retvalue = 1;
 					free(args->flat);
@@ -3894,6 +3932,11 @@ int process_preprocess(int nb) {
 				}
 				args->ppprefix = strdup(value);
 			} else if (!strcmp(word[i], "-opt")) {
+				if (seq->bitpix == BYTE_IMG) {
+					siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
+					retvalue = 1;
+					break;
+				}
 				args->use_dark_optim = TRUE;
 			} else if (!strcmp(word[i], "-fix_xtrans")) {
 				args->fix_xtrans = TRUE;
@@ -3935,7 +3978,7 @@ int process_set_32bits(int nb) {
 		siril_log_message(_("16-bit per channel in processed images mode is active\n"));
 	else siril_log_message(_("32-bit per channel in processed images mode is active\n"));
 	writeinitfile();
-	if (!com.headless)
+	if (!com.script)
 		set_GUI_misc();
 	return 0;
 }
@@ -3993,7 +4036,7 @@ int process_set_compress(int nb) {
 	com.pref.comp.fits_method = method;
 	com.pref.comp.fits_quantization = q;
 	com.pref.comp.fits_hcompress_scale = hscale;
-	if (!com.headless)
+	if (!com.script)
 		set_GUI_compression();
 	writeinitfile();
 	return 0;
@@ -4023,7 +4066,7 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	if (!com.headless)
+	if (!com.script)
 		update_spinCPU(0);
 
 	return 0;
@@ -4042,7 +4085,7 @@ int process_set_mem(int nb){
 	com.pref.stack.memory_ratio = ratio;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
-	if (!com.headless)
+	if (!com.script)
 		set_GUI_misc();
 	return 0;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -354,10 +355,65 @@ int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return 0;
 }
 
+static int cosmetic_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	/* stats O(m)
+	 * working on image channel as float O(m as float)
+	 */
+	unsigned int MB_per_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	unsigned int required = MB_per_image;
+	if (limit > 0) {
+		int is_color = args->seq->nb_layers == 3;
+		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+		unsigned int float_multiplier = is_float ? 1 : 2;
+		unsigned int MB_per_float_image = MB_per_image * float_multiplier;
+		unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
+		required += MB_per_float_channel;
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+
+		if (for_writer) {
+                        /* we allow the already allocated thread_limit images,
+                         * plus how many images can be stored in what remains
+                         * unused by the main processing */
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+                } else limit = thread_limit;
+
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
 void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	struct generic_seq_args *args = create_default_seqargs(cosme_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = cosme_args->seq->selnum;
+	args->compute_mem_limits_hook = cosmetic_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = cosmetic_image_hook;
@@ -736,6 +792,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 			args->seqEntry = "cc_";
 		args->seq = &com.seq;
 		args->multithread = FALSE;
+		gtk_toggle_button_set_active(seq, FALSE);
 		apply_cosmetic_to_sequence(args);
 	} else {
 		args->multithread = TRUE;

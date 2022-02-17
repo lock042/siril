@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -46,9 +46,9 @@
 
 #define SCALE_FLAGS SWS_BICUBIC
 
-static int vp9_quality_to_crf[] = { 36, 34, 31, 27, 22 };
-static int x264_quality_to_crf[] = { 29, 26, 23, 20, 17 };
-static int x265_quality_to_crf[] = { 34, 31, 28, 25, 22 };
+static double vp9_quality_to_crf[]  = { 44.0, 38.0, 32.0, 26.0, 20.0 };
+static double x264_quality_to_crf[] = { 29.0, 26.0, 23.0, 20.0, 17.0 };
+static double x265_quality_to_crf[] = { 34.0, 31.0, 28.0, 25.0, 22.0 };
 
 #define CHECK_OPT_SET_RETVAL \
 	if (retval == AVERROR_OPTION_NOT_FOUND) { \
@@ -108,24 +108,33 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 	}
 	ost->enc = c;
 
+	c->thread_count = com.max_thread;
+
 	c->codec_id = codec_id;
-	int crf, retval;
+	int retval;
+	int crf;
 	switch (codec_id) {
 		case AV_CODEC_ID_VP9:
 			c->bit_rate = 0;
 			/* for this codec, quality depends on image size (like bit rate) */
-			float size_factor = 5.0f * logf(w * h / (1920 * 1080));
+			float size_factor = 5.0f * logf((float)(w * h) / (1920.0f * 1080.0f));
 			if (size_factor < -4.0f) size_factor = -4.0f;
-			crf = vp9_quality_to_crf[ost->quality-1] - roundf_to_int(size_factor);
+			crf = (int)(vp9_quality_to_crf[ost->quality - 1] - size_factor);
 			siril_debug_print("VP9 constant quality value: %d\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
+			CHECK_OPT_SET_RETVAL;
+			retval = av_opt_set_int(c->priv_data, "speed", 1, 0);
+			CHECK_OPT_SET_RETVAL;
+			retval = av_opt_set_int(c->priv_data, "frame-parallel", 1, 0);
+			CHECK_OPT_SET_RETVAL;
+			retval = av_opt_set_int(c->priv_data, "lag-in-frames", 1, 0);
 			CHECK_OPT_SET_RETVAL;
 			break;
 		case AV_CODEC_ID_H264:
 			/* The range of the CRF scale is 0–51, where 0 is lossless, 23 is the
 			 * default, and 51 is worst quality possible. A subjectively sane range
 			 * is 17–28. Consider 17 or 18 to be visually lossless or nearly so. */
-			crf = x264_quality_to_crf[ost->quality-1];
+			crf = x264_quality_to_crf[ost->quality - 1];
 			siril_debug_print("x264 constant quality value: %d\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
@@ -136,7 +145,7 @@ static int add_stream(struct mp4_struct *ost, AVCodec **codec,
 			break;
 		case AV_CODEC_ID_H265:
 			// default is 28, it should visually correspond to libx264 video at CRF 23
-			crf = x265_quality_to_crf[ost->quality-1];
+			crf = x265_quality_to_crf[ost->quality - 1];
 			siril_debug_print("x265 constant quality value: %d\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
@@ -261,10 +270,9 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 		return 1;
 
 	BYTE map[USHRT_MAX + 1];
-	WORD tmp_pixel_value, hi, lo;
 	int i;
 	
-	float slope = compute_slope(&lo, &hi);
+	float slope = (fit->orig_bitpix == BYTE_IMG) ? 1.0f : UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE;
 
 	for (i = 0; i <= USHRT_MAX; i++) {
 		map[i] = roundf_to_BYTE((float) i * slope);
@@ -287,11 +295,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 			int srcpixel = y * fit->rx;
 			int dstpixel = desty * fit->rx;
 			for (x = 0; x < fit->rx; x++, srcpixel++, dstpixel++) {
-				// linear scaling
-				if (src[srcpixel] - lo < 0)
-					tmp_pixel_value = 0;
-				else 	tmp_pixel_value = src[srcpixel] - lo;
-				dst[dstpixel] = map[tmp_pixel_value];
+				dst[dstpixel] = map[src[srcpixel]];
 			}
 		}
 	} else {
@@ -305,11 +309,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 				int srcpixel = y * fit->rx;
 				int dstpixel = (desty * fit->rx * 3) + channel;
 				for (x = 0; x < fit->rx; x++, srcpixel++, dstpixel+=3) {
-					// linear scaling
-					if (src[srcpixel] - lo < 0)
-						tmp_pixel_value = 0;
-					else 	tmp_pixel_value = src[srcpixel] - lo;
-					dst[dstpixel] = map[tmp_pixel_value];
+					dst[dstpixel] = map[src[srcpixel]];
 				}
 			}
 		}
@@ -554,8 +554,9 @@ int mp4_add_frame(struct mp4_struct *video_st, fits *image) {
 	return -1;
 }
 
-int mp4_close(struct mp4_struct *video_st) {
-	flush_stream(video_st);
+int mp4_close(struct mp4_struct *video_st, gboolean aborted) {
+	if (!aborted)
+		flush_stream(video_st);
 
 	/* Write the trailer, if any. The trailer must be written before you
 	 * close the CodecContexts open when you wrote the header; otherwise

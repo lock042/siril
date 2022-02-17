@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -254,7 +254,7 @@ static void siril_app_activate(GApplication *application) {
 			if (g_strcmp0(main_option_script, "-") == 0) {
 				input_stream = siril_input_stream_from_stdin();
 			} else {
-				GError *error;
+				GError *error = NULL;
 				GFile *file = g_file_new_for_path(main_option_script);
 				if (file)
 					input_stream = (GInputStream *)g_file_read(file, NULL, &error);

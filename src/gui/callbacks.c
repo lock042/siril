@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -60,6 +60,7 @@
 #include "siril_intro.h"
 #include "siril_preview.h"
 #include "siril-window.h"
+#include "registration_preview.h"
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
@@ -306,11 +307,11 @@ void set_icon_entry(GtkEntry *entry, gchar *string) {
 
 void update_MenuItem() {
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	gboolean is_a_single_image_loaded;		/* An image is loaded. Not a sequence or only the result of stacking process */
+	gboolean is_a_single_image_loaded;	/* An image is loaded. Not a sequence or only the result of stacking process */
 	gboolean is_a_singleRGB_image_loaded;	/* A RGB image is loaded. Not a sequence or only the result of stacking process */
-	gboolean any_image_is_loaded;			/* Something is loaded. Single image or Sequence */
+	gboolean any_image_is_loaded;		/* Something is loaded. Single image or Sequence */
 
-	is_a_single_image_loaded = single_image_is_loaded()	&& (!sequence_is_loaded() || (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
+	is_a_single_image_loaded = single_image_is_loaded() && (!sequence_is_loaded() || (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
 	is_a_singleRGB_image_loaded = isrgb(&gfit) && single_image_is_loaded();
 	any_image_is_loaded = single_image_is_loaded() || sequence_is_loaded();
 
@@ -541,7 +542,7 @@ int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb) {
 }
 
 void update_display_selection() {
-	if (gui.cvport == RGB_VPORT) return;
+	if (gui.cvport == RGB_VPORT || com.script) return;
 	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb"};
 	static gchar selection_buffer[256] = { 0 };
 
@@ -555,7 +556,7 @@ void update_display_selection() {
 }
 
 void update_display_fwhm() {
-	if (gui.cvport == RGB_VPORT) return;
+	if (gui.cvport == RGB_VPORT || com.script) return;
 	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb"};
 	static gchar fwhm_buffer[256] = { 0 };
 
@@ -578,6 +579,7 @@ void update_display_fwhm() {
  * if a unique file is loaded, its details are used instead of any sequence data
  */
 void display_filename() {
+	gboolean local_filename = FALSE;
 	int nb_layers, vport;
 	char *filename;
 	if (single_image_is_loaded()) {	// unique image
@@ -585,6 +587,7 @@ void display_filename() {
 		nb_layers = com.uniq->nb_layers;
 	} else if (sequence_is_loaded()) {	// sequence
 		filename = malloc(256);
+		local_filename = TRUE;
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		nb_layers = com.seq.nb_layers;
 	} else {
@@ -601,9 +604,8 @@ void display_filename() {
 		g_free(c);
 	}
 
-	if (sequence_is_loaded()) {
+	if (local_filename)
 		free(filename);
-	}
 	g_free(base_name);
 }
 
@@ -1052,6 +1054,31 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 	return FALSE;
 }
 
+static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
+	static gboolean first_resize = TRUE;
+	int position = gtk_paned_get_position(paned);
+	//printf("position updated to %d\n", position);
+	if (first_resize) {
+		if (com.pref.remember_windows && com.pref.pan_position > 0) {
+			gtk_paned_set_position(paned, com.pref.pan_position);
+		}
+		first_resize = FALSE;
+	} else {
+		if (com.pref.remember_windows)
+			com.pref.pan_position = position;
+		int max_position;
+		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
+		if (position == max_position) {
+			GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+			com.pref.pan_position = -1;
+			// hide it
+			GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
+			g_action_activate(action_panel, NULL);
+			gtk_paned_set_position(paned, -1);	// reset to default
+		}
+	}
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
@@ -1156,6 +1183,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * Doing it in the glade file is a bad idea because they are called too many times during loading */
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
+	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 }
 
 /*****************************************************************************
@@ -1323,33 +1351,47 @@ static rectangle get_window_position(GtkWindow *window) {
 
 void save_main_window_state() {
 	if (!com.script && com.pref.remember_windows) {
-		static GtkWidget *main_w = NULL;
+		static GtkWindow *main_w = NULL;
 
 		if (!main_w)
-			main_w = lookup_widget("control_window");
-		com.pref.main_w_pos = get_window_position(GTK_WINDOW(GTK_APPLICATION_WINDOW(main_w)));
-		com.pref.is_maximized = gtk_window_is_maximized(GTK_WINDOW(GTK_APPLICATION_WINDOW(main_w)));
+			main_w = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		com.pref.main_w_pos = get_window_position(main_w);
+		com.pref.is_maximized = gtk_window_is_maximized(main_w);
 	}
 }
 
 void load_main_window_state() {
-	GtkWidget *win = lookup_widget("control_window");
-	GdkRectangle workarea = { 0 };
+	if (!com.script && com.pref.remember_windows) {
+		GtkWidget *win = lookup_widget("control_window");
+		GdkRectangle workarea = { 0 };
 
-	gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
+		gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
 
-	int w = com.pref.main_w_pos.w;
-	int h = com.pref.main_w_pos.h;
+		int w = com.pref.main_w_pos.w;
+		int h = com.pref.main_w_pos.h;
 
-	int x = CLAMP(com.pref.main_w_pos.x, 0, workarea.width - w);
-	int y = CLAMP(com.pref.main_w_pos.y, 0, workarea.height - h);
+		int x = CLAMP(com.pref.main_w_pos.x, 0, workarea.width - w);
+		int y = CLAMP(com.pref.main_w_pos.y, 0, workarea.height - h);
 
-	if (com.pref.remember_windows && w > 0 && h > 0) {
-		if (com.pref.is_maximized) {
-			gtk_window_maximize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)));
+		if (w > 0 && h > 0) {
+			if (com.pref.is_maximized) {
+				gtk_window_maximize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)));
+			} else {
+				gtk_window_move(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), x, y);
+				gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
+			}
+		}
+
+		/* Now we handle the main panel */
+		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+		GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
+		GtkWidget *widget = gtk_paned_get_child2(paned);
+
+		gtk_widget_set_visible(widget, com.pref.is_extended);
+		if (com.pref.is_extended) {
+			gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
 		} else {
-			gtk_window_move(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), x, y);
-			gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
+			gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 		}
 	}
 }
@@ -1613,22 +1655,4 @@ void on_rgb_align_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 
 void on_gotoStacking_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(STACKING);
-}
-
-void on_button_paned_clicked(GtkButton *button, gpointer user_data) {
-	static gboolean is_extended = TRUE;
-	GtkPaned *paned = (GtkPaned*) user_data;
-	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(button)));
-	GtkWidget *widget = gtk_paned_get_child2(paned);
-
-	gtk_widget_set_visible(widget, !is_extended);
-
-	if (!is_extended) {
-		gtk_image_set_from_icon_name(image, "pan-end-symbolic",
-				GTK_ICON_SIZE_BUTTON);
-	} else {
-		gtk_image_set_from_icon_name(image, "pan-start-symbolic",
-				GTK_ICON_SIZE_BUTTON);
-	}
-	is_extended = !is_extended;
 }

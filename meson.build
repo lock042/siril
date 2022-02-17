@@ -1,6 +1,6 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
 # Reference site is https://free-astro.org/index.php/Siril
 #
 # Siril is free software: you can redistribute it and/or modify
@@ -27,15 +27,18 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.0.0-rc1',
+  version : '1.0.0-rc3',
   license : ['GPL3'],
-  meson_version: '>=0.53.0',
+  meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
     'cpp_std=c++11',
     'buildtype=debugoptimized',
   ],
 )
+
+rootInclude = include_directories('.')
+srcInclude  = include_directories('src')
 
 warnings = []
 
@@ -140,9 +143,6 @@ elif platform_windows
   siril_link_arg += '-Wl,--export-all-symbols'
   siril_link_arg += '-lpsapi'
   siril_link_arg += '-ldbghelp'
-  if stable
-    siril_link_arg += '-mwindows'
-  endif
   siril_c_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
   siril_cpp_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
 elif platform_osx
@@ -231,11 +231,16 @@ cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 json_glib = dependency('json-glib-1.0', version: '>=1.2.6')
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
-opencv4_dep = dependency('opencv4', required : true, version: '>= 4.4.0')
+opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()
-  sub_proj = cmake.subproject('librtprocess', cmake_options: '-DBUILD_SHARED_LIBS=OFF')
+  opt_var = cmake.subproject_options()
+
+  # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
+  opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+  sub_proj = cmake.subproject('librtprocess', options: opt_var)
+  
   rtprocess_dep = sub_proj.dependency('rtprocess')
   rtprocess_inc = sub_proj.include_directories('rtprocess')
 else
@@ -290,6 +295,11 @@ conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') 
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
 
+conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
+conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
+pre_release_arr = siril_version_micro.split('-')
+conf_data.set('SIRIL_MICRO_VERSION', pre_release_arr[0])
+
 conf_data.set_quoted('PACKAGE', meson.project_name(), description : 'Name of package.')
 conf_data.set_quoted('PACKAGE_NAME', meson.project_name(), description : 'Define to the full name of this package.')
 conf_data.set_quoted('PACKAGE_VERSION', siril_version, description : 'Define to the home page for this package.')
@@ -325,6 +335,12 @@ foreach header : [
 endforeach
 
 ## Dependencies configuration
+if opencv4_dep.version().version_compare('>=4.4.0')
+  conf_data.set('HAVE_OPENCV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
+else
+  warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
+endif
+
 if gsl_dep.found()
   if gsl_dep.version().version_compare('>=2.0')
     conf_data.set('HAVE_GSL_1', 0, description : 'Use GSL 1.')

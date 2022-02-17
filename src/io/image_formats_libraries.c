@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1239,8 +1239,8 @@ static float estimate_pixel_pitch(libraw_data_t *raw) {
 }
 
 static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
-/* libraw_open_wfile is not defined for all windows compilers */
-#if defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)
+/* libraw_open_wfile is not defined for all windows compilers in previous LibRaw versions */
+#if (defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)) || (defined(_WIN32) && LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0))
 	wchar_t *wname;
 
 	wname = g_utf8_to_utf16(name, -1, NULL, NULL, NULL);

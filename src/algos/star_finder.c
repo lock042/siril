@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -562,7 +562,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			}
 		}
 
-		psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, FALSE);
+		psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, FALSE, FALSE);
 		gsl_matrix_free(z);
 		if (cur_star) {
 			if (is_star(cur_star, sf, &candidates[candidate])) {
@@ -601,7 +601,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	gboolean already_found = FALSE;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE, TRUE);
 	if (!result)
 		return NULL;
 	/* We do not check if it's matching with the "is_star()" criteria.

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -37,6 +37,7 @@
 #include "gui/utils.h"
 #include "progress_and_log.h"
 #include "message_dialog.h"
+#include "registration_preview.h"
 
 mouse_status_enum mouse_status;
 
@@ -163,7 +164,8 @@ void new_selection_zone() {
 
 void delete_selected_area() {
 	memset(&com.selection, 0, sizeof(rectangle));
-	new_selection_zone();
+	if (!com.script)
+		new_selection_zone();
 }
 
 void reset_display_offset() {
@@ -268,6 +270,10 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
 	do_popup_rgbmenu(widget, NULL);
 	return TRUE;
+}
+
+void init_mouse() {
+	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 }
 
 static GdkModifierType get_primary() {
@@ -429,7 +435,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
 				if (area.x - area.w > 0 && area.x + area.w < gfit.rx
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
-					com.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, TRUE, TRUE);
+					com.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
 					if (com.qphot) {
 						com.qphot->xpos = com.qphot->x0 + area.x;
 						if (gfit.top_down)

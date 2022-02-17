@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include "gui/PSF_list.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
@@ -146,21 +147,21 @@ static void fits_rotate_pi(fits *fit) {
 }
 
 void mirrorx_gui(fits *fit) {
-		set_cursor_waiting(TRUE);
-		undo_save_state(fit, _("Mirror X"));
-		mirrorx(fit, TRUE);
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+	set_cursor_waiting(TRUE);
+	undo_save_state(fit, _("Mirror X"));
+	mirrorx(fit, TRUE);
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }
 
 void mirrory_gui(fits *fit) {
-		set_cursor_waiting(TRUE);
-		undo_save_state(fit, _("Mirror Y"));
-		mirrory(fit, TRUE);
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+	set_cursor_waiting(TRUE);
+	undo_save_state(fit, _("Mirror Y"));
+	mirrory(fit, TRUE);
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }
 
 static void rotate_gui(fits *fit) {
@@ -182,6 +183,7 @@ static void rotate_gui(fits *fit) {
 			cropped ? "TRUE" : "FALSE");
 	verbose_rotate_image(fit, angle, interpolation, cropped);
 	
+	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
@@ -220,7 +222,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	gettimeofday(&t_start, NULL);
 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
-	invalidate_WCS_keywords(image);
+	free_wcs(image);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -267,11 +269,12 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
+#ifdef HAVE_WCSLIB
 	if (image->wcslib) {
 		rotate_astrometry_data(image, center, angle, cropped);
 		load_WCS_from_memory(image);
 	}
-
+#endif
 	return 0;
 }
 
@@ -349,10 +352,12 @@ void mirrorx(fits *fit, gboolean verbose) {
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
+#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		flip_bottom_up_astrometry_data(fit);
 		load_WCS_from_memory(fit);
 	}
+#endif
 }
 
 void mirrory(fits *fit, gboolean verbose) {
@@ -371,10 +376,12 @@ void mirrory(fits *fit, gboolean verbose) {
 		show_time(t_start, t_end);
 	}
 
+#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		flip_left_right_astrometry_data(fit);
 		load_WCS_from_memory(fit);
 	}
+#endif
 }
 
 /* inplace cropping of the image in fit
@@ -465,10 +472,12 @@ int crop(fits *fit, rectangle *bounds) {
 	} else {
 		return -1;
 	}
+#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		crop_astrometry_data(fit, shift);
 		load_WCS_from_memory(fit);
 	}
+#endif
 	return 0;
 }
 
@@ -481,6 +490,7 @@ void siril_rotate90() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (90.0deg)"));
 		verbose_rotate_image(&gfit, 90.0, -1, 0);	// fast rotation, no interpolation, no crop
+		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
@@ -490,6 +500,7 @@ void siril_rotate270() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (-90.0deg)"));
 		verbose_rotate_image(&gfit, 270.0, -1, 0);// fast rotation, no interpolation, no crop
+		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
@@ -588,6 +599,7 @@ void siril_crop() {
 	crop(&gfit, &com.selection);
 	delete_selected_area();
 	reset_display_offset();
+	update_zoom_label();
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();

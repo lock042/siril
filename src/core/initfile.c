@@ -50,7 +50,18 @@ static int readinitfile() {
 
 	config_init(&config);
 
+#ifdef _WIN32
+	/* in the case the filename is given as argument */
+	gchar *config_file = g_win32_locale_filename_from_utf8(com.initfile);
+	if (config_file) {
+		g_free(com.initfile);
+		com.initfile = config_file;
+	}
+#endif
+
 	if (config_read_file(&config, com.initfile) == CONFIG_FALSE) {
+		siril_log_color_message(_("Cannot load initfile: %s\n"), "red", config_error_text(&config));
+		config_destroy(&config);
 		return 1;
 	}
 	siril_log_message(_("Loading init file: '%s'\n"), com.initfile);
@@ -197,8 +208,13 @@ static int readinitfile() {
 		config_setting_lookup_float(photometry_setting, "gain", &com.pref.phot_set.gain);
 		config_setting_lookup_float(photometry_setting, "inner-radius", &com.pref.phot_set.inner);
 		config_setting_lookup_float(photometry_setting, "outer-radius", &com.pref.phot_set.outer);
+		config_setting_lookup_float(photometry_setting, "aperture-radius", &com.pref.phot_set.aperture);
+		config_setting_lookup_bool(photometry_setting, "force-radius", &com.pref.phot_set.force_radius);
 		config_setting_lookup_int(photometry_setting, "minval", &com.pref.phot_set.minval);
 		config_setting_lookup_int(photometry_setting, "maxval", &com.pref.phot_set.maxval);
+		if (com.pref.phot_set.inner == 0.0 || com.pref.phot_set.outer == 0.0) {
+			initialize_photometric_param();
+		}
 	}
 
 	/* Misc setting */
@@ -207,6 +223,11 @@ static int readinitfile() {
 		int type;
 		const char *swap_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
+		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.pan_position);
+
+		if (config_setting_lookup_bool(misc_setting, "is_extended", &com.pref.is_extended) == CONFIG_FALSE) {
+			com.pref.is_extended = TRUE;
+		}
 		if (config_setting_lookup_bool(misc_setting, "first_start_1", &com.pref.first_start) == CONFIG_FALSE) {
 			com.pref.first_start = TRUE;
 		}
@@ -276,6 +297,7 @@ static int readinitfile() {
 			com.pref.main_w_pos.w = config_setting_get_int_elem(misc_setting, 2);
 			com.pref.main_w_pos.h = config_setting_get_int_elem(misc_setting, 3);
 		}
+
 	}
 	com.pref.script_path = list;
 	config_destroy(&config);
@@ -498,6 +520,10 @@ static void _save_photometry(config_t *config, config_setting_t *root) {
 	config_setting_set_float(photometry_setting, com.pref.phot_set.inner);
 	photometry_setting = config_setting_add(photometry_group, "outer-radius", CONFIG_TYPE_FLOAT);
 	config_setting_set_float(photometry_setting, com.pref.phot_set.outer);
+	photometry_setting = config_setting_add(photometry_group, "aperture-radius", CONFIG_TYPE_FLOAT);
+	config_setting_set_float(photometry_setting, com.pref.phot_set.aperture);
+	photometry_setting = config_setting_add(photometry_group, "force-radius", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(photometry_setting, com.pref.phot_set.force_radius);
 	photometry_setting = config_setting_add(photometry_group, "minval", CONFIG_TYPE_INT);
 	config_setting_set_int(photometry_setting, com.pref.phot_set.minval);
 	photometry_setting = config_setting_add(photometry_group, "maxval", CONFIG_TYPE_INT);
@@ -509,6 +535,12 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 	GSList *list = com.pref.script_path;
 
 	misc_group = config_setting_add(root, keywords[MISC], CONFIG_TYPE_GROUP);
+
+	misc_setting = config_setting_add(misc_group, "pan_position", CONFIG_TYPE_INT);
+	config_setting_set_int(misc_setting, com.pref.pan_position);
+
+	misc_setting = config_setting_add(misc_group, "is_extended", CONFIG_TYPE_BOOL);
+	config_setting_set_bool(misc_setting, com.pref.is_extended);
 
 	misc_setting = config_setting_add(misc_group, "swap_directory", CONFIG_TYPE_STRING);
 	config_setting_set_string(misc_setting, com.pref.swap_dir);
@@ -615,6 +647,15 @@ int writeinitfile() {
 	_save_photometry(&config, root);
 	_save_misc(&config, root);
 
+#ifdef _WIN32
+	/* in the case the filename is given as argument */
+	gchar *config_file = g_win32_locale_filename_from_utf8(com.initfile);
+	if (config_file) {
+		g_free(com.initfile);
+		com.initfile = config_file;
+	}
+#endif
+
 	if (!siril_config_write_file(&config, com.initfile)) {
 		fprintf(stderr, "Error while writing file.\n");
 		config_destroy(&config);
@@ -638,6 +679,7 @@ int checkinitfile() {
 		} else {
 			g_fprintf(stderr, "Failed to create config dir %s!\n", pathname);
 			g_free(pathname);
+			g_free(config_file);
 			return 1;
 		}
 	}

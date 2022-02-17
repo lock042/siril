@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -225,7 +225,7 @@ sequence * readseqfile(const char *name){
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
 						to_backup = 1;
-						siril_debug_print("- stats: backing up demosaiced stats\n");
+						siril_debug_print("- stats: backing up demosaiced registration info\n");
 					}
 					current_layer = line[1] - '0';
 				}
@@ -237,9 +237,19 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 
-				if (to_backup)
+				if (to_backup) {
+					if (!seq->regparam_bkp) {
+						fprintf(stderr, "readseqfile: sequence type probably changed from CFA to MONO, invalid file\n");
+						goto error;
+					}
 					regparam = seq->regparam_bkp[current_layer];
-				else regparam = seq->regparam[current_layer];
+				} else {
+					if (!seq->regparam) {
+						fprintf(stderr, "readseqfile: file contains registration data but not the basic information\n");
+						goto error;
+					}
+					regparam = seq->regparam[current_layer];
+				}
 
 				if (!regparam) {
 					regparam = calloc(seq->number, sizeof(regdata));
@@ -254,7 +264,7 @@ sequence * readseqfile(const char *name){
 					else seq->regparam[current_layer] = regparam;
 				}
 				if (i >= seq->number) {
-					fprintf(stderr, "\nreadseqfile ERROR: out of array bounds in reg info!\n\n");
+					fprintf(stderr, "\nreadseqfile: out of array bounds in reg info!\n\n");
 					goto error;
 				}
 				if (version < 1) {
@@ -319,7 +329,6 @@ sequence * readseqfile(const char *name){
 						seq->ser_file = NULL;
 						goto error;
 					}
-					ser_display_info(seq->ser_file);
 
 					if (ser_is_cfa(seq->ser_file)) {
 						if (!com.pref.debayer.open_debayer) {

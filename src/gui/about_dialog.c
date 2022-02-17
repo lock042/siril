@@ -29,6 +29,7 @@
 static gchar **authors = (gchar *[] ) {
 				"Vincent Hourdin <vh@free-astro.vinvin.tf>",
 				"Cyril Richard <cyril@free-astro.org>",
+				"Cécile Melis <cissou8@gmail.com>",
 				"François Meyer",
 				NULL
 };
@@ -54,7 +55,7 @@ void siril_show_about_dialog() {
 	version = g_strdup_printf(_("%s\nThis is an unstable development release\n"
 					"commit %s\n"), VERSION, SIRIL_GIT_VERSION_ABBREV);
 #else
-	version = g_strdup(VERSION);
+	version = g_strdup_printf("%s\ncommit %s", VERSION, SIRIL_GIT_VERSION_ABBREV);
 #endif
 	copyright = g_strdup_printf("Copyright © 2004-2011 François Meyer\n"
 			"Copyright © 2012-%s team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);

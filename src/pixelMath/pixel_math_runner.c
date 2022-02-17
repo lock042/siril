@@ -126,14 +126,6 @@ static void init_widgets() {
 
 }
 
-void remove_spaces_from_str(gchar *s) {
-	gchar *d = s;
-	do {
-		while (g_ascii_isspace(*d)) {
-			++d;
-		}
-	} while((*s++ = *d++));
-}
 
 static gchar* get_pixel_math_expression() {
 	GtkTextIter start, end;

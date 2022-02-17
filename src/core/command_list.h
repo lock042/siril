@@ -101,7 +101,7 @@ static command commands[] = {
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE},
 
-	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-flip] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess, STR_PREPROCESS, TRUE},
+	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess, STR_PREPROCESS, TRUE},
 	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
 
 	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=]", process_register, STR_REGISTER, TRUE},
@@ -133,8 +133,8 @@ static command commands[] = {
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=]", process_seq_extractHa, STR_SEQEXTRACTHA, TRUE},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN, TRUE},
 	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII, TRUE},
-	{"seqcosme", 2, "cosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME, TRUE},
-	{"seqcosme_cfa", 2, "cosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME_CFA, TRUE},
+	{"seqcosme", 2, "seqcosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME, TRUE},
+	{"seqcosme_cfa", 2, "seqcosme_cfa sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME_CFA, TRUE},
 	{"seqcrop", 5, "seqcrop sequencename x y width height [-prefix=]", process_seq_crop, STR_SEQCROP, TRUE},
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME, TRUE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE},
@@ -145,7 +145,7 @@ static command commands[] = {
 	{"seqsubsky", 2, "seqsubsky sequencename degree [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE},
 	{"set32bits", 0, "set32bits", process_set_32bits, STR_SET32, TRUE},
-	{"setcompress", 1, "setcompress 0/1 [-type=] [q] [hscale_factor]", process_set_compress, STR_SETCOMPRESS, TRUE},
+	{"setcompress", 1, "setcompress 0/1 [-type=] [q]", process_set_compress, STR_SETCOMPRESS, TRUE},
 #ifdef _OPENMP
 	{"setcpu", 1, "setcpu number", process_set_cpu, STR_SETCPU, TRUE},
 #endif

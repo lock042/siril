@@ -92,7 +92,8 @@ static BYTE *fits8_to_bgrbgr(fits *image) {
 	return bgrbgr;
 }
 
-/* this prepares input and output images, but lets the input in a non-usable state, beware! */
+/* this prepares input and output images, but lets the input in a non-usable state, beware!
+ * the memory consumption of the combination of this and Mat_to_image is O(n) */
 static int image_to_Mat(fits *image, Mat *in, Mat *out, void **bgr, int target_rx, int target_ry) {
 	if (image->naxes[2] != 1 && image->naxes[2] != 3) {
 		siril_log_message(_("Images with %ld channels are not supported\n"), image->naxes[2]);
@@ -405,25 +406,29 @@ unsigned char *cvCalculH(s_star *star_array_img,
 			img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
 		}
 	break;
+#ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
 			ref3.push_back(Point3f(star_array_ref[i].x, star_array_ref[i].y, 0.));
 			img3.push_back(Point3f(star_array_img[i].x, star_array_img[i].y, 0.));
 		}
 	break;
+#endif
 	default:
 		return NULL;
 	}
 
 	//fitting the model
 	switch (type) {
+#ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		estimateTranslation3D(img3, ref3, s, mask, CV_RANSAC, defaultRANSACReprojThreshold);
-		// if (float(countNonZero(mask))/n < 0.1) return NULL; //TBD trying to implement a way to detect the quality of the fit - rejecting if less than 10% are inliers
+		if (!s.cols) return NULL; // exit if could not find a match at all=> s is null
 		H = Mat::eye(3, 3, CV_64FC1);
 		H.at<double>(0,2) = s.at<double>(0);
 		H.at<double>(1,2) = s.at<double>(1);		
 	break;
+#endif
 	case SIMILARITY_TRANSFORMATION:
 		a = estimateAffinePartial2D(img, ref, mask, CV_RANSAC, defaultRANSACReprojThreshold);
 		if (countNonZero(a) < 1) return NULL; //must count before filling H, otherwise zero elements cannot be caught

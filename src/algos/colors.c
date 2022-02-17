@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -36,6 +36,7 @@
 #include "gui/message_dialog.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
+#include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
@@ -485,7 +486,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
 		args->process = FALSE;
 		clearfits(args->fit);
-		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -554,7 +554,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 	clearfits(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_extract_channels, args);
 
 	return GINT_TO_POINTER(0);
 }
@@ -572,7 +571,6 @@ static gpointer extract_channels_float(gpointer p) {
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
 		args->process = FALSE;
 		clearfits(args->fit);
-		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -639,19 +637,20 @@ static gpointer extract_channels_float(gpointer p) {
 	clearfits(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_extract_channels, args);
 
 	return GINT_TO_POINTER(0);
 }
 
 gpointer extract_channels(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *)p;
+	gpointer retval = GINT_TO_POINTER(1);
+
 	if (args->fit->type == DATA_USHORT)
-		return extract_channels_ushort(p);
-	if (args->fit->type == DATA_FLOAT)
-		return extract_channels_float(p);
+		retval = extract_channels_ushort(p);
+	else if (args->fit->type == DATA_FLOAT)
+		retval = extract_channels_float(p);
 	siril_add_idle(end_extract_channels, args);
-	return GINT_TO_POINTER(1);
+	return retval;
 }
 
 /****************** Color calibration ************************/
@@ -804,9 +803,9 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	background_neutralize(&gfit, black_selection);
 	delete_selected_area();
 
+	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
 	redraw_previews();
-	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
 }
 

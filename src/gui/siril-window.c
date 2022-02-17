@@ -32,6 +32,7 @@ static GActionEntry win_entries[] = {
 		{ "shortcuts", keyboard_shortcuts_activated},
 		{ "cwd", cwd_action_activate },
 		{ "livestacking", livestacking_action_activate },
+		{ "panel", panel_activate },
 
 		{ "conversion", tab_conversion_activate },
 		{ "sequence", tab_sequence_activate },

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/plot.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -94,7 +95,7 @@ static void set_sensitive_layers(GtkCellLayout *cell_layout,
 	if (sequence_is_loaded() && !use_photometry) {
 		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
-		if (!(&com.seq.regparam))
+		if (!(com.seq.regparam))
 			return;
 		if (com.seq.regparam[*index] == NULL)
 			sensitive = FALSE;

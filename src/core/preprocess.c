@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -193,6 +193,85 @@ static gint64 prepro_compute_size_hook(struct generic_seq_args *args, int nb_ima
 	return size;
 }
 
+/* we need to account for the possible 3 master frames loaded at the start and
+ * the memory it takes to calibrate the images */
+static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_writer) {
+	int nb_masters = 0;
+	struct preprocessing_data *prepro = args->user;
+	if (prepro->use_flat && prepro->flat) nb_masters++;
+	if (prepro->use_dark && prepro->dark) nb_masters++;
+	if (prepro->use_bias && prepro->bias) nb_masters++;
+	int input_is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+	int output_is_float = input_is_float || !com.pref.force_to_16bit;
+	/*
+	 * are the masters float? yes if !com.pref.force_to_16bit, raw images too
+	 *
+	 * if (prepro->use_dark_optim && prepro->use_dark)
+	 *	image gets three copies
+	 *
+	 * if (prepro->debayer)
+	 * 	O(9n) for ushort
+	 * 	O(3n) for float, same as dark optim
+	 */
+	unsigned int MB_per_input_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
+	if (!input_is_float && output_is_float)
+		MB_per_input_image *= 2;
+	MB_avail -= nb_masters * MB_per_input_image;
+
+	unsigned int required = MB_per_input_image;
+	unsigned int MB_per_output_image = MB_per_input_image;
+	if (prepro->debayer) {
+		if (input_is_float || output_is_float)
+			MB_per_output_image *= 3;
+		else MB_per_output_image *= 9;
+		required = MB_per_input_image + MB_per_output_image;
+	}
+	else if (prepro->use_dark_optim && prepro->use_dark) {
+		required = 4 * MB_per_input_image;
+	}
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+
+		if (for_writer) {
+                        /* we allow the already allocated thread_limit images,
+                         * plus how many images can be stored in what remains
+                         * unused by the main processing */
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
+			siril_debug_print("%d MB avail for writer\n", MB_avail - required * thread_limit);
+                } else limit = thread_limit;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per input image: %u MB, per output image %u MB, limiting to %d %s\n",
+				required, MB_per_input_image, MB_per_output_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
 int prepro_prepare_hook(struct generic_seq_args *args) {
 	struct preprocessing_data *prepro = args->user;
 
@@ -347,6 +426,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_to_16bit && prepro->output_seqtype != SEQ_SER;
 	args->compute_size_hook = prepro_compute_size_hook;
+	args->compute_mem_limits_hook = prepro_compute_mem_hook;
 	args->prepare_hook = prepro_prepare_hook;
 	args->image_hook = prepro_image_hook;
 	args->finalize_hook = prepro_finalize_hook;
@@ -427,7 +507,9 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// If found -> Try to find $ sign to read the offset value and its multiplier
 
 	gchar *expressioncpy = g_strdup(expression);
-	gchar *mulsignpos = g_strrstr (expressioncpy, (gchar*)"*");
+	gchar *end = NULL;
+	remove_spaces_from_str(expressioncpy);
+	gchar *mulsignpos = g_strrstr(expressioncpy, "*");
 	int offsetlevel, multiplier;
 	if (!mulsignpos) {
 		offsetlevel = g_ascii_strtoull(expressioncpy, NULL, 10);
@@ -439,11 +521,14 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	mulsignpos += 1;
 	if (!((expressioncpy[0] == '$') || (mulsignpos[0] == '$'))) goto free_on_error; //found a * char but none of the words start with a $
 	if (expressioncpy[0] == '$') {
-		multiplier = g_ascii_strtoull(mulsignpos, NULL, 10);
+		multiplier = g_ascii_strtoull(mulsignpos, &end, 10);
+		if (!g_str_equal(expressioncpy,"$OFFSET")) goto free_on_error;
 	} else {
-		multiplier = g_ascii_strtoull(expressioncpy, NULL, 10);
+		multiplier = g_ascii_strtoull(expressioncpy, &end, 10);
+		if (!g_str_equal(mulsignpos,"$OFFSET")) goto free_on_error;
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
+	if (!(end[0] == '\0')) goto free_on_error; // some characters were found after the multiplier
 	offsetlevel = (int)(multiplier * fit->key_offset);
 	if (expressioncpy) g_free(expressioncpy);
 	return offsetlevel;
@@ -467,8 +552,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
 			const char *error = NULL;
-            if (filename[0] == '=') { // offset is specified as a level not a file
-			    set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
+			if (filename[0] == '=') { // offset is specified as a level not a file
+				set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
 				int offsetlevel = evaluateoffsetlevel(filename + 1, &gfit);
 				if (!offsetlevel) {
 					error = _("NOT USING OFFSET: the offset value could not be parsed");
@@ -480,11 +565,12 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 						error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
 						args->use_bias = FALSE;
 					} else {
-						args->bias_level = (float)offsetlevel * INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+						args->bias_level = (float)offsetlevel;
+						args->bias_level *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 						args->use_bias = TRUE;
 					}
 				}
-            } else {
+			} else {
 				args->bias = calloc(1, sizeof(fits));
 				set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
 				if (!readfits(filename, args->bias, NULL, !com.pref.force_to_16bit)) {
@@ -495,6 +581,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 						error = _("NOT USING OFFSET: image dimensions are different");
 					} else {
 						args->use_bias = TRUE;
+						// if input is 8b, we assume 32b master needs to be rescaled
+						if ((args->bias->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+						}
 					}
 				} else error = _("NOT USING OFFSET: cannot open the file");
 			}
@@ -528,6 +618,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					error = _("NOT USING DARK: image dimensions are different");
 				} else {
 					args->use_dark = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->dark->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				}
 
 			} else error = _("NOT USING DARK: cannot open the file");
@@ -545,6 +639,18 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			// dark optimization
 			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkDarkOptimize"));
 			args->use_dark_optim = gtk_toggle_button_get_active(tbutton);
+			const char *error = NULL;
+			if ((gfit.orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
+				error = _("Dark optimization: This process cannot be applied to 8b images");
+			}
+			if (error) {
+				siril_log_color_message("%s\n", "red", error);
+				set_progress_bar_data(error, PROGRESS_DONE);
+				free(args->dark);
+				gtk_entry_set_text(entry, "");
+				args->use_dark_optim = FALSE;
+				has_error = TRUE;
+			}
 
 			// cosmetic correction
 			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
@@ -585,6 +691,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					error = _("NOT USING FLAT: image dimensions are different");
 				} else {
 					args->use_flat = TRUE;
+					// if input is 8b, we assume 32b master needs to be rescaled
+					if ((args->flat->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					}
 				}
 
 			} else error = _("NOT USING FLAT: cannot open the file");

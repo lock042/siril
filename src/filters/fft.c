@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "io/single_image.h"
@@ -488,6 +489,11 @@ gpointer fourier_transform(gpointer p) {
 		if (!tmp1 || readfits(args->phase, tmp1, NULL, FALSE)) {
 			PRINT_ALLOC_ERR;
 			args->retval = 1;
+			goto end;
+		}
+		if ((tmp->rx != tmp1->rx) || (tmp->ry != tmp1->ry) || (tmp->naxes[2] != tmp1->naxes[2]) || (tmp->bitpix != tmp1->bitpix)) {
+			args->retval = 1;
+			siril_log_color_message(_("Images must have same dimensions.\n"), "red");
 			goto end;
 		}
 		if (tmp->dft.ord[0] == 'C')		// CENTERED

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include <glib.h>
 
 #include "utils.h"
 
@@ -56,6 +57,14 @@ static void set_label_text_from_main_thread(const char *label_name, const char *
 	data->class_to_add = class_to_add;
 	data->class_to_remove = class_to_remove;
 	gdk_threads_add_idle(set_label_text_idle, data);
+}
+
+void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *class_to_remove) {
+	GtkStyleContext *context = gtk_widget_get_style_context(entry);
+	if (class_to_add)
+		gtk_style_context_add_class(context, class_to_add);
+	if (class_to_remove)
+		gtk_style_context_remove_class(context, class_to_remove);
 }
 
 GtkWidget* lookup_widget(const gchar *widget_name) {
@@ -183,4 +192,57 @@ void set_suggested(GtkWidget *widget) {
 void unset_suggested(GtkWidget *widget) {
 	gtk_style_context_remove_class(gtk_widget_get_style_context(widget),
 			GTK_STYLE_CLASS_SUGGESTED_ACTION);
+}
+
+/* Managing GUI calls *
+ * We try to separate core concerns from GUI (GTK+) concerns to keep the core
+ * code efficient and clean, and avoir calling GTK+ functions in threads other
+ * than the main GTK+ thread.
+ * GTK+ functions calls should be grouped in idle functions: these are
+ * functions called by the GTK+ main thread whenever it's idle. The problem is
+ * that is we queue several core functions, like in a script execution, the
+ * idle functions may not execute for a purpose corresponding to the current
+ * core data. To fix this issue, when siril is executed in GUI mode, we
+ * synchronize the GUI calls with the core calls with the following functions.
+ * This will slow the execution of some commands down, but will ensure that all
+ * is fine in the GUI.
+ */
+
+struct idle_data {
+	gboolean idle_finished;
+	GMutex mutex;
+	GCond cond;
+	gboolean (*idle)(gpointer);
+	gpointer user;
+};
+
+static gboolean wrapping_idle(gpointer arg) {
+	struct idle_data *data = (struct idle_data *)arg;
+	data->idle(data->user);
+
+	siril_debug_print("idle %p signaling end\n", data->idle);
+	g_mutex_lock(&data->mutex);
+	data->idle_finished = TRUE;
+	g_cond_signal(&data->cond);
+	g_mutex_unlock(&data->mutex);
+
+	return FALSE;
+}
+
+void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
+	struct idle_data data = { .idle_finished = FALSE, .idle = idle, .user = arg };
+	g_mutex_init(&data.mutex);
+	g_cond_init(&data.cond);
+	siril_debug_print("queueing idle %p\n", idle);
+	gdk_threads_add_idle(wrapping_idle, &data);
+
+	siril_debug_print("waiting for idle %p\n", idle);
+	g_mutex_lock (&data.mutex);
+	while (!data.idle_finished)
+		g_cond_wait(&data.cond, &data.mutex);
+	g_mutex_unlock (&data.mutex);
+
+	g_mutex_clear(&data.mutex);
+	g_cond_clear(&data.cond);
+	siril_debug_print("idle %p wait is over\n", idle);
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -36,6 +36,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/image_interactions.h"
+#include "gui/registration_preview.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "histogram.h"
@@ -58,6 +59,7 @@ static display_mode last_mode;
 static gboolean stf_computed = FALSE; // Flag to know if STF parameters are available
 static float stf_shadows, stf_highlights, stf_m;
 
+static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
 	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx);
@@ -127,6 +129,7 @@ static void remaprgb(void) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
+	invalidate_image_render_cache(RGB_VPORT);
 }
 
 static int make_index_for_current_display();
@@ -288,6 +291,7 @@ static void remap(int vport) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
+	invalidate_image_render_cache(vport);
 
 	test_and_allocate_reference_image(vport);
 }
@@ -426,7 +430,7 @@ typedef struct label_point_struct {
 	int border;
 } label_point;
 
-static void request_gtk_redraw() {
+static void request_gtk_redraw_of_cvport() {
 	//siril_debug_print("image redraw requested (vport %d)\n", gui.cvport);
 	GtkWidget *widget = gui.view[gui.cvport].drawarea;
 	gtk_widget_queue_draw(widget);
@@ -464,76 +468,73 @@ static void draw_empty_image(const draw_data_t* dd) {
 	g_object_unref(pixbuf);
 
 
-		GtkWidget *widget = lookup_widget("drawingareargb");
-		GtkStyleContext *context = gtk_widget_get_style_context(widget);
-		GtkStateFlags state = gtk_widget_get_state_flags(widget);
-		PangoLayout *layout;
-		gchar *msg;
-		GtkAllocation allocation;
-		gdouble scale;
-		GdkRGBA color;
-		gint w, h;
+	GtkWidget *widget = lookup_widget("drawingareargb");
+	GtkStyleContext *context = gtk_widget_get_style_context(widget);
+	GtkStateFlags state = gtk_widget_get_state_flags(widget);
+	PangoLayout *layout;
+	gchar *msg;
+	GtkAllocation allocation;
+	gdouble scale;
+	GdkRGBA color;
+	gint w, h;
 
-		layout = gtk_widget_create_pango_layout(widget, NULL);
+	layout = gtk_widget_create_pango_layout(widget, NULL);
 
 #ifdef SIRIL_UNSTABLE
 
-		msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
-			"<small>commit <tt>%s</tt></small>\n"
-			"<small>Please test bugs against "
-			"latest git master branch\n"
-			"before reporting them.</small>"),
+	msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
+				"<small>commit <tt>%s</tt></small>\n"
+				"<small>Please test bugs against "
+				"latest git master branch\n"
+				"before reporting them.</small>"),
 			SIRIL_GIT_VERSION_ABBREV);
-		pango_layout_set_markup(layout, msg, -1);
-		g_free(msg);
-		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_markup(layout, msg, -1);
+	g_free(msg);
+	pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
 
-		pango_layout_get_pixel_size(layout, &w, &h);
-		gtk_widget_get_allocation(widget, &allocation);
+	pango_layout_get_pixel_size(layout, &w, &h);
+	gtk_widget_get_allocation(widget, &allocation);
 
-		scale = MIN(((gdouble ) allocation.width / 2.0) / (gdouble ) w,
-				((gdouble ) allocation.height / 2.0) / (gdouble ) h / 2);
+	scale = MIN(((gdouble ) allocation.width / 2.0) / (gdouble ) w,
+			((gdouble ) allocation.height / 2.0) / (gdouble ) h / 2);
 
-		gtk_style_context_get_color(context, state, &color);
-		gdk_cairo_set_source_rgba(cr, &color);
+	gtk_style_context_get_color(context, state, &color);
+	gdk_cairo_set_source_rgba(cr, &color);
 
-		cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
-				(allocation.height - (h * scale)) / 2);
+	cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
+			(allocation.height - (h * scale)) / 2);
 
 #else
-		msg = g_strdup_printf("%c%s", toupper(PACKAGE_STRING[0]), PACKAGE_STRING + 1);
+	msg = g_strdup_printf("%c%s", toupper(PACKAGE_STRING[0]), (char *)PACKAGE_STRING + 1);
 
-		pango_layout_set_markup(layout, msg, -1);
-		g_free(msg);
-		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_markup(layout, msg, -1);
+	g_free(msg);
+	pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
 
-		pango_layout_get_pixel_size(layout, &w, &h);
-		gtk_widget_get_allocation(widget, &allocation);
+	pango_layout_get_pixel_size(layout, &w, &h);
+	gtk_widget_get_allocation(widget, &allocation);
 
-		scale = MIN(((gdouble ) allocation.width / 4.0) / (gdouble ) w,
-				((gdouble ) allocation.height / 4.0) / (gdouble ) h / 4);
+	scale = MIN(((gdouble ) allocation.width / 4.0) / (gdouble ) w,
+			((gdouble ) allocation.height / 4.0) / (gdouble ) h / 4);
 
-		gtk_style_context_get_color(context, state, &color);
-		gdk_cairo_set_source_rgba(cr, &color);
+	gtk_style_context_get_color(context, state, &color);
+	gdk_cairo_set_source_rgba(cr, &color);
 
-		cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
-				3 * (allocation.height - (h * scale)) / 4);
+	cairo_move_to(cr, (allocation.width - (w * scale)) / 2,
+			3 * (allocation.height - (h * scale)) / 4);
 
 #endif /* SIRIL_UNSTABLE */
-		cairo_scale(cr, scale, scale);
+	cairo_scale(cr, scale, scale);
 
-		pango_cairo_show_layout(cr, layout);
+	pango_cairo_show_layout(cr, layout);
 
-		g_object_unref(layout);
+	g_object_unref(layout);
 }
 
 static void draw_vport(const draw_data_t* dd) {
 	struct image_view *view = &gui.view[dd->vport];
 	if (!view->disp_surface) {
 		cairo_surface_t *target = cairo_get_target(dd->cr);
-		/*view->disp_surface =
-			cairo_surface_create_similar(target, CAIRO_CONTENT_COLOR,
-					dd->window_width, dd->window_height);*/
 		view->disp_surface = cairo_surface_create_similar_image(target, CAIRO_FORMAT_ARGB32,
 					dd->window_width, dd->window_height);
 		if (cairo_surface_status(view->disp_surface) != CAIRO_STATUS_SUCCESS) {
@@ -645,7 +646,7 @@ static void draw_stars(const draw_data_t* dd) {
 
 	/* quick photometry */
 	if (!com.script && com.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-		double size = com.qphot->fwhmx * 2.0;
+		double size = (!com.pref.phot_set.force_radius && com.qphot) ? com.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
 
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
@@ -682,7 +683,7 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_line_width(cr, 2.0 / dd->zoom);
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
-				double size = the_psf->fwhmx * 2.0;
+				double size = (!com.pref.phot_set.force_radius && com.qphot) ? com.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
@@ -769,6 +770,7 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
+#ifdef HAVE_WCSLIB
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.position_compass;
 	if (!pos) return; // User chose None
@@ -784,7 +786,7 @@ static void draw_compass(const draw_data_t* dd) {
 	if (ra0 == -1) return; // checks implicitly that wcslib member exists
 	double len = (double) fit->ry / 20.;
 	wcs2pix(fit, ra0, dec0 + 0.1, &xN, &yN);
-	wcs2pix(fit, ra0 - 0.1, dec0, &xE, &yE);
+	wcs2pix(fit, ra0 + 0.1, dec0, &xE, &yE);
 	if (fabs(dec0 - 90.) < len * get_wcs_image_resolution(fit)) return; //If within one arrow length of the North Pole, do not plot
 	double angleN = -atan2(yN - ypos, xN - xpos);
 	double angleE = -atan2(yE - ypos, xE - xpos);
@@ -808,8 +810,8 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_line_to(cr, 0.75 * len, +0.15 * len);
 	cairo_line_to(cr, len, 0.);
 	cairo_fill(cr);
-	cairo_move_to(cr, len, 0.1 * len);
-//	cairo_rotate(cr, -angleN);
+	cairo_move_to(cr, len * 1.3, 0.1 * len);
+	cairo_rotate(cr, -angleN);
 	cairo_show_text(cr, "N");
 	cairo_restore(cr); // restore the original transform
 
@@ -823,10 +825,10 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_translate(cr, xdraw, ydraw);
 	cairo_rotate(cr, angleE);
 	cairo_move_to(cr, 0., 0.);
-	cairo_line_to(cr, len / 2., 0.);
+	cairo_line_to(cr, len / 2.0, 0.);
 	cairo_stroke(cr);
-	cairo_move_to(cr, len / 2, -0.1 * len);
-//	cairo_rotate(cr, -angleE);
+	cairo_move_to(cr, (len / 2) * 2.0, -0.1 * len);
+	cairo_rotate(cr, -angleE);
 	cairo_show_text(cr, "E");
 	cairo_restore(cr); // restore the original transform
 }
@@ -885,9 +887,11 @@ static gint border_compare(label_point *a, label_point *b) {
 
 static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3. / 4., 1.
 		/ 2., 1. / 4., 1. / 6., 1. / 8., 1. / 12., 1. / 16., 1. / 24., 1. / 40., 1. / 48. };
+#endif
 
 
 static void draw_wcs_grid(const draw_data_t* dd) {
+#ifdef HAVE_WCSLIB
 	if (!com.show_wcs_grid) return;
 	fits *fit = &gfit;
 	if (!has_wcs(fit)) return;
@@ -1105,6 +1109,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	g_slist_free_full(existingtags, (GDestroyNotify) g_free);
 
 	draw_compass(dd);
+#endif
 }
 
 static gdouble x_circle(gdouble x, gdouble radius) {
@@ -1309,48 +1314,26 @@ void adjust_vport_size_to_image() {
 
 void redraw(remap_type doremap) {
 	if (com.script) return;
+	siril_debug_print("redraw %d\n", doremap);
 
-	if (doremap == REDRAW_OVERLAY) {
-		request_gtk_redraw();
-		return;
-	}
-
-	int vport = gui.cvport;
-	if (doremap >= REDRAW_IMAGE)
-		invalidate_image_render_cache(vport);
-
-	if (doremap == REMAP_ALL) {
-		stf_computed = FALSE;
-		for (int i = 0; i < gfit.naxes[2]; i++) {
-			remap(i);
-		}
-		if (gfit.naxis == 3)
-			remaprgb();
-		request_gtk_redraw();
-		return;
-	}
-
-	// REDRAW_IMAGE or REMAP_ONLY
-	switch (vport) {
-		case RED_VPORT:
-		case BLUE_VPORT:
-		case GREEN_VPORT:
-			if (doremap == REMAP_ONLY) {
-				remap(vport);
-				if (gfit.naxis == 3)
-					remaprgb();
+	switch (doremap) {
+		case REDRAW_OVERLAY:
+			break;
+		case REDRAW_IMAGE:
+			invalidate_image_render_cache(-1);
+			break;
+		case REMAP_ALL:
+			stf_computed = FALSE;
+			for (int i = 0; i < gfit.naxes[2]; i++) {
+				remap(i);
 			}
-			request_gtk_redraw();
-			break;	// if we can't see the two widgets at the same time
-		case RGB_VPORT:
-			if (gfit.naxis == 3 && doremap == REMAP_ONLY)
+			if (gfit.naxis == 3)
 				remaprgb();
-			request_gtk_redraw();
 			break;
 		default:
-			siril_debug_print("redraw: unknown viewport number %d\n", vport);
-			break;
+			siril_debug_print("UNKNOWN REMAP\n\n");
 	}
+	request_gtk_redraw_of_cvport();
 }
 
 static gboolean redraw_idle(gpointer p) {
@@ -1386,9 +1369,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	if (dd.window_width != gui.view[dd.vport].view_width ||
 			dd.window_height != gui.view[dd.vport].view_height) {
-		siril_debug_print("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
-				dd.window_width, dd.window_height,
-				gui.view[dd.vport].view_width, gui.view[dd.vport].view_height);
+		//siril_debug_print("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
+		//		dd.window_width, dd.window_height,
+		//		gui.view[dd.vport].view_width, gui.view[dd.vport].view_height);
 		invalidate_image_render_cache(dd.vport);
 	}
 

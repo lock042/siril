@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -53,6 +53,8 @@ static preferences pref_init = {
 				.w = 0,
 				.h = 0
 		},
+		.pan_position = -1,
+		.is_extended = TRUE,
 		.is_maximized = FALSE,
 		.prepro_cfa = FALSE,
 		.prepro_equalize_cfa = TRUE,
@@ -120,6 +122,8 @@ static preferences pref_init = {
 				.gain = 2.3,
 				.inner = 20.0,
 				.outer = 30.0,
+				.aperture = 10.0,
+				.force_radius = FALSE,
 				.minval = 0,
 				.maxval = 60000,
 		},
@@ -265,6 +269,8 @@ static void update_photometry_preferences() {
 	com.pref.phot_set.gain = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")));
 	com.pref.phot_set.inner = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")));
 	com.pref.phot_set.outer = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")));
+	com.pref.phot_set.aperture = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")));
+	com.pref.phot_set.force_radius = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")));
 	com.pref.phot_set.minval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")));
 	com.pref.phot_set.maxval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")));
 }
@@ -344,6 +350,11 @@ static void update_misc_preferences() {
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
 }
 
+void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkWidget *spin = (GtkWidget *)user_data;
+	gtk_widget_set_sensitive(spin, !gtk_toggle_button_get_active(button));
+}
+
 void on_checkbutton_cam_toggled(GtkToggleButton *cam_button, gpointer user_data) {
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto"));
 
@@ -397,12 +408,16 @@ void set_GUI_photometry() {
 	if (com.pref.phot_set.outer > 0.0) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), com.pref.phot_set.outer);
 	}
+	if (com.pref.phot_set.aperture > 0.0) {
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), com.pref.phot_set.aperture);
+	}
 	if (com.pref.phot_set.minval >= 0.0) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), (gdouble) com.pref.phot_set.minval);
 	}
 	if (com.pref.phot_set.maxval >= 0.0) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), (gdouble) com.pref.phot_set.maxval);
 	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), !com.pref.phot_set.force_radius);
 }
 
 void initialize_path_directory(const gchar *path) {
@@ -465,9 +480,6 @@ void set_GUI_compression() {
 		if (com.pref.comp.fits_method == HCOMPRESS_COMP) {
 			gtk_spin_button_set_value(hscale, com.pref.comp.fits_hcompress_scale);
 		}
-		siril_log_message(_("FITS compression enabled\n"), com.pref.ext);
-	} else {
-		siril_log_message(_("FITS compression disabled\n"));
 	}
 }
 
@@ -588,6 +600,8 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 	}
 }
 
+static gboolean from_prefs_init = FALSE;
+
 void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
 	GtkSpinButton *outer;
 	double in, out;
@@ -596,7 +610,7 @@ void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
 	in = gtk_spin_button_get_value(inner);
 	out = gtk_spin_button_get_value(outer);
 
-	if (in >= out) {
+	if (!from_prefs_init && in >= out) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
 				_("Inner radius value must be less than outer. Please change the value."));
 	}
@@ -610,7 +624,7 @@ void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
 	in = gtk_spin_button_get_value(inner);
 	out = gtk_spin_button_get_value(outer);
 
-	if (in >= out) {
+	if (!from_prefs_init && in >= out) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
 				_("Inner radius value must be less than outer. Please change the value."));
 	}
@@ -710,8 +724,12 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_h")), tmp);
 
 	/* tab 6 */
+	from_prefs_init = TRUE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), pref->phot_set.inner);
+	from_prefs_init = FALSE;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), pref->phot_set.aperture);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), !pref->phot_set.force_radius);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), pref->phot_set.gain);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), pref->phot_set.minval);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);

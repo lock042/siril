@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ static int display_date(guint64 timestamp, char *txt) {
 	GDateTime *date = ser_timestamp_to_date_time(timestamp);
 	if (date) {
 		gchar *str = date_time_to_FITS_date(date);
-		fprintf(stdout, "%s%s\n", txt, str);
+		siril_log_message("%s%s\n", txt, str);
 		free(str);
 		g_date_time_unref(date);
 	}
@@ -239,6 +239,9 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	memcpy(ser_file->observer, header + 42, 40);
 	memcpy(ser_file->instrument, header + 82, 40);
 	memcpy(ser_file->telescope, header + 122, 40);
+	ser_file->observer[39] = '\0';
+	ser_file->instrument[39] = '\0';
+	ser_file->telescope[39] = '\0';
 
 	/* internal representations of header data */
 	if (ser_file->bit_pixel_depth <= 8)
@@ -491,21 +494,28 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 void ser_display_info(struct ser_struct *ser_file) {
 	char *color = convert_color_id_to_char(ser_file->color_id);
 
-	fprintf(stdout, "=========== SER file info ==============\n");
-	fprintf(stdout, "file id: %s\n", ser_file->file_id);
-	fprintf(stdout, "lu id: %d\n", ser_file->lu_id);
-	fprintf(stdout, "little endian: %d\n", ser_file->little_endian);
-	fprintf(stdout, "sensor type: %s\n", color);
-	fprintf(stdout, "image size: %d x %d (%d bits)\n", ser_file->image_width,
+	siril_log_message("=========== SER file info ==============\n");
+	if (ser_file->filename)
+		siril_log_message("for file '%s'\n", ser_file->filename);
+	if (ser_file->file_id && strcmp(ser_file->file_id, "LUCAM-RECORDER"))
+		siril_log_message("file id: %s\n", ser_file->file_id);
+	if (ser_file->lu_id != 0)
+		siril_log_message("lu id: %d\n", ser_file->lu_id);
+	siril_log_message("image size: %d x %d (%d bits)\n", ser_file->image_width,
 			ser_file->image_height, ser_file->bit_pixel_depth);
-	fprintf(stdout, "frame count: %u\n", ser_file->frame_count);
-	fprintf(stdout, "observer: %.40s\n", ser_file->observer);
-	fprintf(stdout, "instrument: %.40s\n", ser_file->instrument);
-	fprintf(stdout, "telescope: %.40s\n", ser_file->telescope);
+	siril_log_message("sensor type: %s\n", color);
+	siril_log_message("frame count: %u\n", ser_file->frame_count);
+	if (ser_file->observer[0] != '\0')
+		siril_log_message("observer: %.40s\n", ser_file->observer);
+	if (ser_file->instrument[0] != '\0')
+		siril_log_message("instrument: %.40s\n", ser_file->instrument);
+	if (ser_file->telescope[0] != '\0')
+		siril_log_message("telescope: %.40s\n", ser_file->telescope);
 	display_date(ser_file->date, "local time: ");
 	display_date(ser_file->date_utc, "UTC time: ");
-	fprintf(stdout, "fps: %.3lf\n", ser_file->fps);
-	fprintf(stdout, "========================================\n");
+	if (ser_file->fps > 0.0)
+		siril_log_message("fps: %.3lf\n", ser_file->fps);
+	siril_log_message("========================================\n");
 }
 
 static int ser_end_write(struct ser_struct *ser_file, gboolean abort) {
@@ -584,7 +594,8 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		/* we write the header now, but it should be written again
 		 * before closing in case the number of the image in the new
 		 * SER changes from the copied SER */
-		ser_write_header(ser_file);
+		if (ser_write_header(ser_file))
+			return 1;
 	} else {	// new SER
 		ser_file->file_id = strdup("LUCAM-RECORDER");
 		ser_file->lu_id = 0;
@@ -608,6 +619,13 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 	siril_log_message(_("Created SER file %s\n"), filename);
 	start_writer(ser_file->writer, ser_file->frame_count);
 	return 0;
+}
+
+int ser_reset_to_monochrome(struct ser_struct *ser_file) {
+	ser_file->color_id = SER_MONO;
+	if (ser_file->number_of_planes > 0)
+		ser_file->number_of_planes = 1;
+	return ser_write_header(ser_file);
 }
 
 static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index) {
@@ -643,6 +661,7 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 
 int ser_close_file(struct ser_struct *ser_file) {
 	int retval = 0;
+	user_warned = FALSE;
 	if (!ser_file)
 		return -1;
 	if (ser_file->file) {
@@ -765,6 +784,12 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 				pattern = "GRBG";
 		} else {
 			pattern = filter_pattern[com.pref.debayer.bayer_pattern];
+			if (!user_warned) {
+				if (ser_file->color_id == SER_MONO)
+					siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");
+				else siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern);
+				user_warned = TRUE;
+			}
 		}
 	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
 		pattern = filter_pattern[com.pref.debayer.bayer_pattern];
@@ -772,7 +797,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	}
 	if (pattern) {
 		strcpy(fit->bayer_pattern, pattern);
-		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
+		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE);
 	}
 
 	switch (type_ser) {
@@ -1132,8 +1157,8 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	int pixel, plane, dest;
 	int ret, retval = 0;
 	gint64 offset, frame_size;
-	BYTE *data8 = NULL;			// for 8-bit files
-	WORD *data16 = NULL;		// for 16-bit files
+	BYTE *data8 = NULL;	// for 8-bit files
+	WORD *data16 = NULL;	// for 16-bit files
 
 	if (!ser_file || ser_file->file == NULL || !fit)
 		return -1;

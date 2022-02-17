@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -69,34 +69,37 @@ struct exportseq_args {
 };
 
 
-/* Used for avi exporter, creates buffer as BGRBGR, using GUI cursors lo and hi */
+/* Used for avi exporter, creates buffer as BGRBGR from ushort FITS */
 static uint8_t *fits_to_uint8(fits *fit) {
-	uint8_t *data;
-	int w, h, i, j, channel, step;
-	WORD lo, hi;
+	size_t i, j;
+	size_t n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	int channel = fit->naxes[2];
+	int step = (channel == 3 ? 2 : 0);
 
-	w = fit->rx;
-	h = fit->ry;
-	channel = fit->naxes[2];
-	step = (channel == 3 ? 2 : 0);
-	float slope = compute_slope(&lo, &hi);
-
-	data = malloc(w * h * channel * sizeof(uint8_t));
-	for (i = 0, j = 0; i < w * h * channel; i += channel, j++) {
-		float pixel = fit->pdata[RLAYER][j] - lo < 0 ? 0.0f : (float)(fit->pdata[RLAYER][j] - lo);
-		data[i + step] = (uint8_t) roundf_to_BYTE(pixel * slope);
-		if (channel > 1) {
-			pixel = fit->pdata[GLAYER][j] - lo < 0 ? 0.0f : (float)(fit->pdata[GLAYER][j] - lo);
-			data[i + 1] = (uint8_t) roundf_to_BYTE(pixel * slope);
-			pixel = fit->pdata[BLAYER][j] - lo < 0 ? 0.0f : (float)(fit->pdata[BLAYER][j] - lo);
-			data[i + 2 - step] = (uint8_t) roundf_to_BYTE(pixel * slope);
+	uint8_t *data = malloc(n);
+	if (fit->orig_bitpix == BYTE_IMG) {
+		for (i = 0, j = 0; i < n; i += channel, j++) {
+			data[i + step] = (BYTE)fit->pdata[RLAYER][j];
+			if (channel > 1) {
+				data[i + 1] = (BYTE)fit->pdata[GLAYER][j];
+				data[i + 2 - step] = (BYTE)fit->pdata[BLAYER][j];
+			}
+		}
+	} else {
+		siril_debug_print("converting from ushort\n");
+		for (i = 0, j = 0; i < n; i += channel, j++) {
+			data[i + step] = (BYTE)(fit->pdata[RLAYER][j] >> 8);
+			if (channel > 1) {
+				data[i + 1] = (BYTE)(fit->pdata[GLAYER][j] >> 8);
+				data[i + 2 - step] = (BYTE)(fit->pdata[BLAYER][j] >> 8);
+			}
 		}
 	}
 	return data;
 }
 
 static gpointer export_sequence(gpointer ptr) {
-	int retval = 0, cur_nb = 0;
+	int retval = 0, cur_nb = 0, j = 0;
 	unsigned int out_width, out_height, in_width, in_height;
 	uint8_t *data;
 	fits *destfit = NULL;	// must be declared before any goto!
@@ -107,6 +110,7 @@ static gpointer export_sequence(gpointer ptr) {
 	char *filter_descr;
 	int nb_frames = 0;
 	GDateTime *strTime;
+	gboolean aborted = FALSE;
 #ifdef HAVE_FFMPEG
 	struct mp4_struct *mp4_file = NULL;
 #endif
@@ -267,6 +271,7 @@ static gpointer export_sequence(gpointer ptr) {
 		stackargs.normalize = ADDITIVE_SCALING;
 		stackargs.reglayer = reglayer;
 		stackargs.use_32bit_output = (output_bitpix == FLOAT_IMG);
+		stackargs.ref_image = args->seq->reference_image;
 
 		// build image indices used by normalization
 		if (stack_fill_list_of_unfiltered_images(&stackargs))
@@ -296,10 +301,11 @@ static gpointer export_sequence(gpointer ptr) {
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
+			aborted = TRUE;
 			goto free_and_reset_progress_bar;
 		}
 		if (!args->filtering_criterion(args->seq, i, args->filtering_parameter)) {
-			siril_log_message(_("image %d is excluded from export\n"), i);
+			siril_log_message(_("image %d is excluded from export\n"), i + 1);
 			skipped++;
 			continue;
 		}
@@ -351,7 +357,7 @@ static gpointer export_sequence(gpointer ptr) {
 				goto free_and_reset_progress_bar;
 			}
 			destfit->bitpix = output_bitpix;
-			destfit->orig_bitpix = output_bitpix;
+			destfit->orig_bitpix = fit.orig_bitpix;
 		}
 		else if (memcmp(naxes, fit.naxes, sizeof naxes)) {
 			fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
@@ -411,8 +417,8 @@ static gpointer export_sequence(gpointer ptr) {
 							if (args->normalize) {
 								double tmp = (double) pixel;
 								if (pixel > 0) { // do not offset null pixels
-									tmp *= coeff.pscale[layer][i];
-									tmp -= (coeff.poffset[layer][i]);
+									tmp *= coeff.pscale[layer][j];
+									tmp -= (coeff.poffset[layer][j]);
 									pixel = round_to_WORD(tmp);
 								}
 							}
@@ -422,8 +428,8 @@ static gpointer export_sequence(gpointer ptr) {
 							float pixel = fit.fpdata[layer][x + y * fit.rx];
 							if (args->normalize) {
 								if (pixel != 0.f) { // do not offset null pixels
-									pixel *= (float) coeff.pscale[layer][i];
-									pixel -= (float) coeff.poffset[layer][i];
+									pixel *= (float) coeff.pscale[layer][j];
+									pixel -= (float) coeff.poffset[layer][j];
 								}
 							}
 							if (destfit->type == DATA_FLOAT) {
@@ -442,6 +448,7 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
+		j++;
 		clearfits(&fit);
 
 		if (args->crop) {
@@ -521,7 +528,7 @@ free_and_reset_progress_bar:
 		case EXPORT_WEBM_VP9:
 #ifdef HAVE_FFMPEG
 			if (mp4_file) {
-				mp4_close(mp4_file);
+				mp4_close(mp4_file, aborted);
 				free(mp4_file);
 			}
 #endif
@@ -538,6 +545,27 @@ free_and_reset_progress_bar:
 		set_progress_bar_data(_("Sequence export succeeded."), PROGRESS_RESET);
 		siril_log_message(_("Sequence export succeeded.\n"));
 	}
+	if (aborted) { //disposing of the file if Stop button was hit
+		switch (args->output){
+			case EXPORT_FITSEQ:
+			case EXPORT_SER:
+			case EXPORT_AVI:
+			case EXPORT_MP4:
+			case EXPORT_MP4_H265:
+			case EXPORT_WEBM_VP9:
+				if (!(dest[0] == '\0')) {
+					GFile *file = g_file_new_build_filename(dest, NULL);
+					g_autoptr(GError) local_error = NULL;
+					if (!g_file_delete(file, NULL, &local_error)) {
+						g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
+					}
+					g_object_unref(file);
+				}
+				break;
+			default:
+				break;
+		}
+	}
 
 	free(args->basename);
 	free(args);
@@ -548,11 +576,15 @@ free_and_reset_progress_bar:
 
 void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	int selected = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboExport")));
-	const char *bname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryExportSeq")));
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("entryExportSeq"));
+	const char *bname = gtk_entry_get_text(entry);
 	gboolean normalize = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("exportNormalize")));
 	struct exportseq_args *args;
 
-	if (bname[0] == '\0') return;
+	if (bname[0] == '\0') {
+		widget_set_class(GTK_WIDGET(entry), "warning", "");
+		return;
+	}
 	if (selected == -1) return;
 
 	args = malloc(sizeof(struct exportseq_args));

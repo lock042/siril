@@ -94,6 +94,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjFlux">
+    <property name="lower">3</property>
+    <property name="upper">1000</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjGain">
     <property name="upper">100</property>
     <property name="value">2.2999999999999998</property>
@@ -132,7 +139,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="title" translatable="yes">Cosmetic Correction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox36">
@@ -1149,7 +1156,7 @@ artifacts may appear.</property>
     <property name="title" translatable="yes">Wavelets Layers Extraction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox32">
@@ -1301,7 +1308,7 @@ artifacts may appear.</property>
     <property name="title" translatable="yes">Banding Reduction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox31">
@@ -1606,7 +1613,7 @@ artifacts may appear.</property>
     <property name="title" translatable="yes">Median Filter</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox27">
@@ -1902,7 +1909,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="title" translatable="yes">Rotational Gradient</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="box_rgradient">
@@ -3218,7 +3225,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="title" translatable="yes">Background Extraction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_background_extraction_dialog_hide" swapped="no"/>
     <signal name="show" handler="on_background_extraction_dialog_show" swapped="no"/>
@@ -3383,6 +3390,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkScale">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
                         <property name="adjustment">adjustment_background_nb_samples</property>
                         <property name="round-digits">1</property>
                         <property name="draw-value">False</property>
@@ -3414,6 +3422,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                           <object class="GtkSpinButton">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                             <property name="input-purpose">digits</property>
                             <property name="adjustment">adj_background_nb_samples</property>
                             <property name="digits">2</property>
@@ -4832,7 +4841,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="title" translatable="yes">Subtractive Chromatic Green Noise Reduction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_SCNR_dialog_show" swapped="no"/>
     <child internal-child="vbox">
@@ -5013,14 +5022,14 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     </action-widgets>
   </object>
   <object class="GtkAdjustment" id="adjustment_shiftx">
-    <property name="lower">-300</property>
-    <property name="upper">300</property>
+    <property name="lower">-3000</property>
+    <property name="upper">3000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_shifty">
-    <property name="lower">-300</property>
-    <property name="upper">300</property>
+    <property name="lower">-3000</property>
+    <property name="upper">3000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -5178,7 +5187,7 @@ enter a visible wavelength in nm</property>
     <property name="title" translatable="yes">Crop sequence</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox33">
@@ -5289,7 +5298,7 @@ enter a visible wavelength in nm</property>
     <property name="title" translatable="yes">Channel Extraction</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox14">
@@ -5727,7 +5736,7 @@ enter a visible wavelength in nm</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Image compositing</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_composition_dialog_hide" swapped="no"/>
     <child internal-child="vbox">
@@ -6115,7 +6124,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Fourier Transform</property>
     <property name="resizable">False</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox20">
@@ -6364,7 +6373,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
     <property name="title" translatable="yes">Linear Match</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -7010,7 +7019,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <property name="title" translatable="yes">Image Plate Solver</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -7405,6 +7414,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                           <object class="GtkTreeView" id="GtkTreeViewIPS">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Several resolvers can be found and displayed in this list. However, it just about getting the coordinates of the center of the objec. Choosing one item or the others should not influence the plate-solving or the photometry data, which is based on the selected catalogue.</property>
                             <property name="model">liststoreIPS</property>
                             <property name="search-column">0</property>
                             <signal name="cursor-changed" handler="on_GtkTreeViewIPS_cursor_changed" swapped="no"/>
@@ -7448,6 +7458,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Flip image at the end of the platesolving if image is mirrored.</property>
                         <property name="halign">end</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
@@ -7480,6 +7491,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Only use the center of the image (or selection) if the field is too wide.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
@@ -7496,7 +7508,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Using catalogue in cache if available</property>
+                        <property name="tooltip-text" translatable="yes">When ticked, the catalogue data around this coordinate is stored locally and can be used again in subsequent solves around the same point, which is faster.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
@@ -7782,9 +7794,9 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can-focus">False</property>
-                        <property name="homogeneous">True</property>
+                        <property name="spacing">10</property>
                         <child>
-                          <!-- n-columns=3 n-rows=3 -->
+                          <!-- n-columns=2 n-rows=3 -->
                           <object class="GtkGrid" id="grid46">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -7870,15 +7882,6 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                                 <property name="top-attach">0</property>
                                 <property name="width">2</property>
                               </packing>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
                             </child>
                           </object>
                           <packing>
@@ -7996,7 +7999,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Statistics</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox30">
@@ -8226,7 +8229,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Dynamic PSF</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_stars_list_window_hide" swapped="no"/>
     <signal name="show" handler="on_stars_list_window_show" swapped="no"/>
@@ -8997,7 +9000,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
             <property name="receives-default">True</property>
             <property name="action-name">win.astrometry</property>
             <property name="text" translatable="yes">Image Plate Solver...</property>
-            <signal name="clicked" handler="on_info_menu_astrometry_clicked" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -10248,6 +10250,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Sequence List</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_pixel_math_dialog_show" swapped="no"/>
     <child>
@@ -11218,7 +11221,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="title" translatable="yes">Resample</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox15">
@@ -11437,7 +11440,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="title" translatable="yes">Rotation</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox22">
@@ -11652,7 +11655,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="action-name">win.clipboard</property>
-        <property name="label" translatable="yes">Copy to clipbloard</property>
+        <property name="label" translatable="yes">Copy to clipboard</property>
         <property name="use-underline">True</property>
       </object>
     </child>
@@ -11665,7 +11668,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="title" translatable="yes">Split CFA</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -15231,6 +15234,10 @@ To be enabled, the reference image must have been explicitly set and already dis
                                       <object class="GtkBox" id="GtkBoxPng">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
                                         <property name="spacing">5</property>
                                         <child>
                                           <object class="GtkButton" id="ButtonSaveCSV">
@@ -15245,7 +15252,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">False</property>
-                                            <property name="position">2</property>
+                                            <property name="position">0</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -15262,7 +15269,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">3</property>
+                                            <property name="position">1</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -15279,13 +15286,35 @@ To be enabled, the reference image must have been explicitly set and already dis
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">4</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
+                                            <property name="label" translatable="yes">legend</property>
+                                            <property name="single-line-mode">True</property>
+                                            <attributes>
+                                              <attribute name="style" value="italic"/>
+                                            </attributes>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">6</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">5</property>
                                           </packing>
                                         </child>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
-                                        <property name="fill">True</property>
+                                        <property name="fill">False</property>
                                         <property name="position">1</property>
                                       </packing>
                                     </child>
@@ -15293,6 +15322,10 @@ To be enabled, the reference image must have been explicitly set and already dis
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
                                         <property name="spacing">5</property>
                                         <child>
                                           <object class="GtkButton" id="varCurvePhotometry">
@@ -15438,7 +15471,7 @@ WARNING: gnuplot must be installed.</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
-                                        <property name="fill">True</property>
+                                        <property name="fill">False</property>
                                         <property name="position">2</property>
                                       </packing>
                                     </child>
@@ -16683,7 +16716,7 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Hide the control panel to show only the image panel (toggle).</property>
-                <signal name="clicked" handler="on_button_paned_clicked" object="main_panel" swapped="no"/>
+                <property name="action-name">win.panel</property>
                 <child>
                   <object class="GtkImage" id="right_panel_image">
                     <property name="visible">True</property>
@@ -17843,7 +17876,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
     <property name="height-request">300</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <property name="transient-for">control_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
@@ -17938,7 +17971,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
     <property name="title" translatable="yes">Color Calibration</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox23">
@@ -18644,7 +18677,7 @@ If the selection is empty, the whole image will be used as reference.</property>
     <property name="title" translatable="yes">Preferences</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
-    <property name="type-hint">normal</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -18779,7 +18812,8 @@ If the selection is empty, the whole image will be used as reference.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">If this box is checked, Siril will automatically apply the Bayer pattern found in the file's header as well as X and Y Bayer offsets. If the result looks wrong uncheck this box and choose manually your pattern in the Debayer box below.</property>
+                                    <property name="tooltip-text" translatable="yes">If this box is checked, Siril will automatically apply the Bayer pattern found in the file's header as well as X and Y Bayer offsets. If the result looks wrong uncheck this box and choose manually your pattern in the Debayer box below.
+If unchecked, the Bayer pattern given below will be used instead. Warning: to allow SER files converted from films to be demosaiced, monochrome SER will be forced as CFA with the configured pattern.</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
@@ -20986,6 +21020,98 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkFrame" id="frameflux">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignment40">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=2 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="row-spacing">10</property>
+                                <property name="column-homogeneous">True</property>
+                                <child>
+                                  <object class="GtkLabel" id="label111">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Aperture radius:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spinAperture">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
+                                    <property name="halign">start</property>
+                                    <property name="max-width-chars">7</property>
+                                    <property name="text">30,00</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="adjustment">adjFlux</property>
+                                    <property name="digits">2</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">20</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="photometry_force_radius_button">
+                                    <property name="label" translatable="yes">Automatically Calculated with PSF</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius. When unchecked, you can set the radius value in the box below.</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
+                                    <signal name="toggled" handler="on_photometry_force_radius_button_toggled" object="spinAperture" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="label112">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="label" translatable="yes">Flux Aperture</property>
+                            <property name="single-line-mode">True</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkFrame" id="framePhotRange">
                         <property name="name">framephotorange</property>
                         <property name="visible">True</property>
@@ -21085,7 +21211,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">2</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                     <child>
@@ -21160,7 +21286,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>

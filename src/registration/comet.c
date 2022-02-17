@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -114,7 +114,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, FALSE, TRUE);
 		if (result) {
 			pos_of_image1.x = result->x0 + com.selection.x;
 			pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
@@ -146,7 +146,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, FALSE, TRUE);
 		if (result) {
 			pos_of_image2.x = result->x0 + com.selection.x;
 			pos_of_image2.y = com.selection.y + com.selection.h - result->y0;

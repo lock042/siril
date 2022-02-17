@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@
 #include "core/undo.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
+#include "core/initfile.h"
 #include "algos/annotate.h"
 #include "algos/colors.h"
 #include "algos/noise.h"
@@ -46,6 +47,7 @@
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
 #include "livestacking/livestacking.h"
+#include "gui/registration_preview.h"
 #include "registration/registration.h"
 
 #include "siril_actions.h"
@@ -149,6 +151,26 @@ void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 		is_extended = is_control_box_visible;
 	}
 	gtk_widget_set_visible(toolbarbox, is_fullscreen);
+}
+
+void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
+	GtkWidget *widget = gtk_paned_get_child2(paned);
+
+	gboolean is_visible = gtk_widget_is_visible(widget);
+
+	gtk_widget_set_visible(widget, !is_visible);
+
+	if (!is_visible) {
+		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+	} else {
+		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
+	}
+	if (com.pref.remember_windows) {
+		com.pref.is_extended = !is_visible;
+		writeinitfile();
+	}
 }
 
 void keyboard_shortcuts_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -298,7 +320,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		return;
 	if (!(com.selection.h && com.selection.w))
 		return;
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, TRUE);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
 	if (!result)
 		return;
 

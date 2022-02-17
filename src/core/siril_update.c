@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -187,28 +187,33 @@ static gboolean siril_update_get_highest(JsonParser *parser,
 	return (*highest_version != NULL);
 }
 
-static void remove_alpha(gchar *str) {
+static gboolean remove_alpha(gchar *str) {
 	unsigned long i = 0;
 	unsigned long j = 0;
 	char c;
+	gboolean alpha = FALSE;
 
 	while ((c = str[i++]) != '\0') {
 		if (g_ascii_isdigit(c)) {
 			str[j++] = c;
+			alpha = TRUE;
 		}
 	}
 	str[j] = '\0';
+	return alpha;
 }
 
 /**
  * Check if the version is a patched version.
  * patched version are named like that x.y.z.patch where patch only contains digits.
- * if patch contains alpha char it is because that's an alpha or beta version. Not a patched one.
+ * if patch contains alpha char it is because that's a RC version. Not a patched one.
+ * WARNINGS: here we just allow RC versions in patch. Indeed, all beta versions have odd numbering
+ * and are dev versions.
  * @param version version to be tested
  * @return 0 if the version is not patched. The version of the patch is returned otherwise.
  */
-static guint check_for_patch(gchar *version) {
-	remove_alpha(version);
+static guint check_for_patch(gchar *version, gboolean *prerelease) {
+	*prerelease = remove_alpha(version);
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
@@ -220,7 +225,12 @@ static version_number get_current_version_number() {
 	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
 	version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
 	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
-	version.patched_version = (fullVersionNumber[3] == NULL) ? 0 : check_for_patch(fullVersionNumber[3]);
+	if (fullVersionNumber[3] == NULL) {
+		version.patched_version = 0;
+		version.rc_version = FALSE;
+	} else {
+		version.patched_version = check_for_patch(fullVersionNumber[3], &version.rc_version);
+	}
 
 	g_strfreev(fullVersionNumber);
 
@@ -240,7 +250,7 @@ static version_number get_last_version_number(gchar *version_str) {
 	if (v[0] && v[1] && v[2])
 		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
 	if (v[0] && v[1] && v[2] && v[3]) {
-		remove_alpha(v[3]);
+		version.rc_version = remove_alpha(v[3]);
 		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
 	}
 
@@ -270,10 +280,18 @@ static int compare_version(version_number v1, version_number v2) {
 			else if (v1.micro_version > v2.micro_version)
 				return 1;
 			else {
-				if (v1.patched_version < v2.patched_version)
-					return -1;
-				else if (v1.patched_version > v2.patched_version)
-					return 1;
+				if ((v1.rc_version && v2.rc_version) || (!v1.rc_version && !v2.rc_version)) {
+					if (v1.patched_version < v2.patched_version)
+						return -1;
+					else if (v1.patched_version > v2.patched_version)
+						return 1;
+				} else {
+					if (v1.rc_version && !v2.rc_version) {
+						return -1;
+					} else if (!v1.rc_version && v2.rc_version) {
+						return 1;
+					}
+				}
 			}
 		}
 	}

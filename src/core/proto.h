@@ -131,6 +131,7 @@ gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
 gchar *siril_truncate_str(gchar *str, gint size);
 char **glist_to_array(GList *list, int *arg_count);
 gchar* url_cleanup(const gchar *uri_string);
+void remove_spaces_from_str(gchar *s);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -164,16 +165,6 @@ sequence* readseqfile(const char *name);
 int writeseqfile(sequence *seq);
 gboolean existseq(const char *name);
 int buildseqfile(sequence *seq, int force_recompute);
-
-/****************** registration_preview.h ******************/
-void redraw_previews();
-void set_preview_area(int preview_area, int centerX, int centerY);
-void init_mouse();
-void adjust_reginfo();
-void on_spinbut_shift_value_change(GtkSpinButton *spinbutton,
-		gpointer user_data);
-void test_and_allocate_reference_image(int vport);
-void enable_view_reference_checkbox(gboolean status);
 
 /****************** statistics_list.h ******************/
 void computeStat();

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -476,6 +476,7 @@ void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 		gtk_editable_insert_text(editable, result, count, position);
 		g_signal_handlers_unblock_by_func(G_OBJECT (editable),
 				G_CALLBACK (insert_text_handler), data);
+		widget_set_class(GTK_WIDGET(entry), "", "warning");
 	}
 	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
 

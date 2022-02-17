@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
+#include "gui/registration_preview.h"
 #include "core/undo.h"
 
 #include "histogram.h"
@@ -863,7 +864,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")))
+	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq"));
+	if (gtk_toggle_button_get_active(seq_button)
 			&& sequence_is_loaded()) {
 		/* Apply to the whole sequence */
 		struct mtf_data *args = malloc(sizeof(struct mtf_data));
@@ -884,6 +886,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
+		gtk_toggle_button_set_active(seq_button, FALSE);
 		apply_mtf_to_sequence(args);
 
 	} else {

@@ -1,0 +1,77 @@
+FROM debian:oldstable
+RUN apt-get update -qyy \
+    && apt-get install -y --no-install-recommends \
+        at-spi2-core \
+        build-essential \
+        desktop-file-utils \
+        cmake \
+        unzip \
+        hicolor-icon-theme \
+        git \
+        intltool \
+        libexiv2-dev \
+        libgtk-3-dev \
+        libcfitsio-dev \
+        libfftw3-dev \
+        libgsl-dev \
+        libconfig-dev \
+        librsvg2-dev \
+        libffms2-dev \
+        libtiff-dev \
+        libjpeg-dev \
+        libheif-dev \
+        libpng-dev \
+        libavformat-dev \
+        libavutil-dev \
+        libavcodec-dev \
+        libswscale-dev \
+        libswresample-dev \
+        liblcms2-dev \
+        wget \
+        libtool \
+        libcurl4-gnutls-dev \
+        wcslib-dev \
+        python3 \
+        python3-pip \
+        libjson-glib-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* 
+RUN git clone https://github.com/LibRaw/LibRaw.git \
+    && cd LibRaw \
+    && autoreconf -fi \
+    && ./configure --disable-examples --disable-static --prefix /usr \
+    && make install \
+    && cd .. \
+    && rm -rf LibRaw \
+    && wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
+    && unzip opencv.zip && cd opencv-4.5.3 \
+    && mkdir -p build && cd build \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr \
+        -DOPENCV_GENERATE_PKGCONFIG=ON \
+        -DBUILD_DOCS=OFF \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_opencv_apps=OFF \
+        -DBUILD_opencv_python2=OFF \
+        -DBUILD_opencv_python3=OFF \
+        -DBUILD_PERF_TESTS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
+        -DBUILD_TESTS=OFF \
+        -DCMAKE_BUILD_TYPE=RELEASE \
+        -DENABLE_PRECOMPILED_HEADERS=OFF \
+        -DFORCE_VTK=OFF \
+        -DWITH_FFMPEG=OFF \
+        -DWITH_GDAL=OFF \
+        -DWITH_IPP=OFF \
+        -DWITH_OPENEXR=OFF \
+        -DWITH_OPENGL=OFF \
+        -DWITH_QT=OFF \
+        -DWITH_TBB=OFF \
+        -DWITH_XINE=OFF \
+        -DBUILD_JPEG=ON \
+        -DBUILD_TIFF=ON \
+        -DBUILD_PNG=ON ..\
+    && make install \
+    && cd ../.. \
+    && rm -rf opencv-4.5.3 opencv.zip \
+    && python3 -m pip install meson \
+    && python3 -m pip install ninja

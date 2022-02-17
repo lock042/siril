@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,11 +28,15 @@
 #include "core/OS_utils.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
+#include "gui/registration_preview.h"
+#include "gui/image_interactions.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
+#include "io/ser.h"
 
 #include "command_line_processor.h"
 
@@ -150,17 +154,26 @@ static void display_command_on_status_bar(int line, char *myline) {
 }
 
 static void clear_status_bar() {
-	if (!com.headless) {
-		GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
-		gtk_statusbar_remove_all(bar, 0);
-		update_log_icon(FALSE);
-	}
+	GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
+	gtk_statusbar_remove_all(bar, 0);
+	update_log_icon(FALSE);
 }
 
 static gboolean end_script(gpointer p) {
+	/* GTK+ code is ignored during scripts, this is a good place to redraw everything */
 	clear_status_bar();
 	set_GUI_CWD();
-	
+	update_MenuItem();
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	update_zoom_label();
+	update_display_fwhm();
+	display_filename();
+	new_selection_zone();
+	set_GUI_misc();
+	set_GUI_compression();
+	update_spinCPU(0);
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -243,11 +256,15 @@ gpointer execute_script(gpointer p) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
-	com.script = FALSE;
+
+	if (!com.headless) {
+		com.script = FALSE;
+		siril_add_idle(end_script, NULL);
+	}
+
 	/* Now we want to restore the saved cwd */
 	siril_change_dir(saved_cwd, NULL);
 	writeinitfile();
-	siril_add_idle(end_script, NULL);
 	if (!retval) {
 		siril_log_message(_("Script execution finished successfully.\n"));
 		gettimeofday(&t_end, NULL);
@@ -258,7 +275,12 @@ gpointer execute_script(gpointer p) {
 		set_progress_bar_data(msg, PROGRESS_DONE);
 	}
 	g_free(saved_cwd);
-	fprintf(stdout, "Script thread exiting\n");
+
+	if (com.script_thread) {
+		siril_debug_print("Script thread exiting\n");
+		g_thread_unref(com.script_thread);
+		com.script_thread = NULL;
+	}
 	return GINT_TO_POINTER(retval);
 }
 
@@ -398,12 +420,10 @@ int processcommand(const char *line) {
 	if (line[0] == '\0' || line[0] == '\n')
 		return 0;
 	if (line[0] == '@') { // case of files
-		if (get_thread_run()) {
+		if (get_thread_run() || get_script_thread_run()) {
 			PRINT_ANOTHER_THREAD_RUNNING;
 			return 1;
 		}
-		if (com.script_thread)
-			g_thread_join(com.script_thread);
 
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -462,7 +482,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
 		if (check_seq(FALSE)) {
-			siril_log_message(_("No sequence `%s' found.\n"), name);
+			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);
 			g_free(file);
 			g_free(altfile);
 			return NULL;
@@ -483,12 +503,14 @@ sequence *load_sequence(const char *name, char **get_filename) {
 		}
 	}
 	if (!seq)
-		siril_log_message(_("Loading sequence `%s' failed.\n"), name);
+		siril_log_color_message(_("Loading sequence `%s' failed.\n"), "red", name);
 	else {
 		if (seq_check_basic_data(seq, FALSE) == -1) {
 			free(seq);
 			seq = NULL;
 		}
+		else if (seq->type == SEQ_SER)
+			ser_display_info(seq->ser_file);
 	}
 	g_free(file);
 	g_free(altfile);

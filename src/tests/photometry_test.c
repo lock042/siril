@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -153,7 +153,7 @@ void test_photometry_float() {
 	double bg = BG;
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_FLOAT);
-	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, FALSE);
+	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, FALSE, FALSE);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
@@ -179,7 +179,7 @@ void test_photometry_ushort() {
 	double bg = BG;
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_USHORT);
-	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, FALSE);
+	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, FALSE, FALSE);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");

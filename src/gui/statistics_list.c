@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -263,7 +263,7 @@ void computeStat() {
 		name = g_strdup_printf("%s", com.uniq->filename);
 	else if (sequence_is_loaded())
 		name = g_strdup_printf(_("Image %d/%d from the sequence %s"),
-				com.seq.current, com.seq.number, com.seq.seqname);
+				com.seq.current, com.seq.number + 1, com.seq.seqname);
 	else
 		name = g_strdup_printf(_("unknown image"));
 

@@ -6,7 +6,6 @@
 typedef enum {
 	REDRAW_OVERLAY, // only overlays changed
 	REDRAW_IMAGE,   // the image changed, render it and overlays
-	REMAP_ONLY,     // the image render scaling changed, remap the cvport and render all
 	REMAP_ALL       // the image data changed, remap and render all
 } remap_type;
 

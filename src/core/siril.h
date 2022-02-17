@@ -66,7 +66,7 @@
 #define INV_USHRT_MAX_SINGLE .000015259022f	 // 1/65535
 #define INV_UCHAR_MAX_SINGLE .0039215686f	 // 1/255
 
-#define BYTES_IN_A_MB 1048576	// 1024
+#define BYTES_IN_A_MB 1048576	// 1024*1024
 
 #define SEQUENCE_DEFAULT_INCLUDE TRUE	// select images by default
 
@@ -404,6 +404,7 @@ struct ffit {
 	GDateTime *date, *date_obs;
 	double expstart, expend;
 	char filter[FLEN_VALUE];		// FILTER key
+	char image_type[FLEN_VALUE];	// IMAGETYP key
 	char object[FLEN_VALUE];		// OBJECT key
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
@@ -412,6 +413,8 @@ struct ffit {
 	int bayer_xoffset, bayer_yoffset;
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
+	double livetime; // total exposure
+	guint stacknt; // number of stacked frame
 	double cvf; // Conversion factor (e-/adu)
 	int key_gain, key_offset; // Gain, Offset values read in camera headers.
 
@@ -457,6 +460,8 @@ struct phot_config {
 	double gain;	// A/D converter gain in electrons per ADU
 	double inner;	// Inner radius of the annulus used to measure local background.
 	double outer;	// Outer radius of the annulus used to measure local background.
+	double aperture; // flux aperture
+	gboolean force_radius; // force the aperture radius value
 	int minval, maxval;
 };
 
@@ -539,6 +544,8 @@ struct pref_struct {
 	/* state of window */
 	gboolean remember_windows;
 	rectangle main_w_pos;
+	gint pan_position;
+	gboolean is_extended;
 	gboolean is_maximized;
 
 	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -107,6 +107,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 
 			/* open input images */
 			if (seq_open_image(args->seq, image_index)) {
+				siril_log_message(_("Opening image %s failed\n"), filename);
 				return ST_SEQUENCE_ERROR;
 			}
 
@@ -116,6 +117,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			status = 0;
 			fits_get_img_param(args->seq->fptr[image_index], 3, bitpix, naxis, naxes, &status);
 			if (status) {
+				siril_log_message(_("Opening image %s failed\n"), filename);
 				fits_report_error(stderr, status); /* print error message */
 				return ST_SEQUENCE_ERROR;
 			}
@@ -933,7 +935,7 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 		g_date_time_unref(corrected_last_date);
 
 		/* we address the computed values to the keywords */
-		fit->exposure = exposure;
+		fit->livetime = exposure;
 		fit->date_obs = date_obs;
 		fit->expstart = start;
 		fit->expend = end;
@@ -945,9 +947,12 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];
+	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+
+	guint64 size_of_result = naxes[0] * naxes[1] * naxes[2] * elem_size;
+	max_memory -= size_of_result / BYTES_IN_A_MB;
 
 	siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
-	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
 		((guint64)naxes[0] * nb_images_to_stack * elem_size);
 	// this is how many rows we can load in parallel from all images of the
@@ -1390,6 +1395,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 
 	compute_date_time_keywords(list_date, &gfit);
+	/* report he number of stacked image */
+	gfit.stacknt = args->nb_images_to_stack;
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);
