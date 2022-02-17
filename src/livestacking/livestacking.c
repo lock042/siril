@@ -603,7 +603,7 @@ static gpointer live_stacker(gpointer arg) {
 
 		index++;
 		number_of_images_stacked++;
-		livestacking_update_number_of_images(number_of_images_stacked, gfit.exposure);
+		livestacking_update_number_of_images(number_of_images_stacked, number_of_images_stacked * gfit.exposure);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");
