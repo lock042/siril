@@ -6,6 +6,7 @@
 
 /****************** image_format_fits.h ******************/
 void read_fits_header(fits *fit);
+int fits_parse_header_string(fits *fit, gchar *description);
 char *copy_header(fits *fit);
 data_type get_data_type(int bitpix);
 void fit_get_photometry_data(fits *fit);

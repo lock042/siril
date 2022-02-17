@@ -111,7 +111,15 @@ gboolean load_WCS_from_memory(fits *fit) {
 	fit->wcslib->latpole = fit->wcsdata.crval[1];
 
 	if ((status = wcsset(fit->wcslib)) != 0) {
-		free_wcs(fit);
+	/* here we do not want to use free_wcs because
+	 * we want to keep original header, just in case */
+#ifdef HAVE_WCSLIB
+	if (fit->wcslib) {
+		if (!wcsfree(fit->wcslib))
+			free(fit->wcslib);
+		fit->wcslib = NULL;
+	}
+#endif
 		siril_debug_print("wcsset error %d: %s.\n", status, wcs_errmsg[status]);
 		return FALSE;
 	}
