@@ -69,34 +69,37 @@ struct exportseq_args {
 };
 
 
-/* Used for avi exporter, creates buffer as BGRBGR, using GUI cursors lo and hi */
+/* Used for avi exporter, creates buffer as BGRBGR from ushort FITS */
 static uint8_t *fits_to_uint8(fits *fit) {
-	uint8_t *data;
-	int w, h, i, j, channel, step;
-	WORD lo, hi;
+	size_t i, j;
+	size_t n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	int channel = fit->naxes[2];
+	int step = (channel == 3 ? 2 : 0);
 
-	w = fit->rx;
-	h = fit->ry;
-	channel = fit->naxes[2];
-	step = (channel == 3 ? 2 : 0);
-	float slope = compute_slope(&lo, &hi);
-
-	data = malloc(w * h * channel * sizeof(uint8_t));
-	for (i = 0, j = 0; i < w * h * channel; i += channel, j++) {
-		float pixel = fit->pdata[RLAYER][j] - lo < 0 ? 0.0f : (float)(fit->pdata[RLAYER][j] - lo);
-		data[i + step] = (uint8_t) roundf_to_BYTE(pixel * slope);
-		if (channel > 1) {
-			pixel = fit->pdata[GLAYER][j] - lo < 0 ? 0.0f : (float)(fit->pdata[GLAYER][j] - lo);
-			data[i + 1] = (uint8_t) roundf_to_BYTE(pixel * slope);
-			pixel = fit->pdata[BLAYER][j] - lo < 0 ? 0.0f : (float)(fit->pdata[BLAYER][j] - lo);
-			data[i + 2 - step] = (uint8_t) roundf_to_BYTE(pixel * slope);
+	uint8_t *data = malloc(n);
+	if (fit->orig_bitpix == BYTE_IMG) {
+		for (i = 0, j = 0; i < n; i += channel, j++) {
+			data[i + step] = (BYTE)fit->pdata[RLAYER][j];
+			if (channel > 1) {
+				data[i + 1] = (BYTE)fit->pdata[GLAYER][j];
+				data[i + 2 - step] = (BYTE)fit->pdata[BLAYER][j];
+			}
+		}
+	} else {
+		siril_debug_print("converting from ushort\n");
+		for (i = 0, j = 0; i < n; i += channel, j++) {
+			data[i + step] = (BYTE)(fit->pdata[RLAYER][j] >> 8);
+			if (channel > 1) {
+				data[i + 1] = (BYTE)(fit->pdata[GLAYER][j] >> 8);
+				data[i + 2 - step] = (BYTE)(fit->pdata[BLAYER][j] >> 8);
+			}
 		}
 	}
 	return data;
 }
 
 static gpointer export_sequence(gpointer ptr) {
-	int retval = 0, cur_nb = 0;
+	int retval = 0, cur_nb = 0, j = 0;
 	unsigned int out_width, out_height, in_width, in_height;
 	uint8_t *data;
 	fits *destfit = NULL;	// must be declared before any goto!
@@ -354,7 +357,7 @@ static gpointer export_sequence(gpointer ptr) {
 				goto free_and_reset_progress_bar;
 			}
 			destfit->bitpix = output_bitpix;
-			destfit->orig_bitpix = output_bitpix;
+			destfit->orig_bitpix = fit.orig_bitpix;
 		}
 		else if (memcmp(naxes, fit.naxes, sizeof naxes)) {
 			fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
@@ -414,8 +417,8 @@ static gpointer export_sequence(gpointer ptr) {
 							if (args->normalize) {
 								double tmp = (double) pixel;
 								if (pixel > 0) { // do not offset null pixels
-									tmp *= coeff.pscale[layer][i];
-									tmp -= (coeff.poffset[layer][i]);
+									tmp *= coeff.pscale[layer][j];
+									tmp -= (coeff.poffset[layer][j]);
 									pixel = round_to_WORD(tmp);
 								}
 							}
@@ -425,8 +428,8 @@ static gpointer export_sequence(gpointer ptr) {
 							float pixel = fit.fpdata[layer][x + y * fit.rx];
 							if (args->normalize) {
 								if (pixel != 0.f) { // do not offset null pixels
-									pixel *= (float) coeff.pscale[layer][i];
-									pixel -= (float) coeff.poffset[layer][i];
+									pixel *= (float) coeff.pscale[layer][j];
+									pixel -= (float) coeff.poffset[layer][j];
 								}
 							}
 							if (destfit->type == DATA_FLOAT) {
@@ -445,6 +448,7 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
+		j++;
 		clearfits(&fit);
 
 		if (args->crop) {
