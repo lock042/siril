@@ -99,7 +99,7 @@ static uint8_t *fits_to_uint8(fits *fit) {
 }
 
 static gpointer export_sequence(gpointer ptr) {
-	int retval = 0, cur_nb = 0;
+	int retval = 0, cur_nb = 0, j = 0;
 	unsigned int out_width, out_height, in_width, in_height;
 	uint8_t *data;
 	fits *destfit = NULL;	// must be declared before any goto!
@@ -417,8 +417,8 @@ static gpointer export_sequence(gpointer ptr) {
 							if (args->normalize) {
 								double tmp = (double) pixel;
 								if (pixel > 0) { // do not offset null pixels
-									tmp *= coeff.pscale[layer][i];
-									tmp -= (coeff.poffset[layer][i]);
+									tmp *= coeff.pscale[layer][j];
+									tmp -= (coeff.poffset[layer][j]);
 									pixel = round_to_WORD(tmp);
 								}
 							}
@@ -428,8 +428,8 @@ static gpointer export_sequence(gpointer ptr) {
 							float pixel = fit.fpdata[layer][x + y * fit.rx];
 							if (args->normalize) {
 								if (pixel != 0.f) { // do not offset null pixels
-									pixel *= (float) coeff.pscale[layer][i];
-									pixel -= (float) coeff.poffset[layer][i];
+									pixel *= (float) coeff.pscale[layer][j];
+									pixel -= (float) coeff.poffset[layer][j];
 								}
 							}
 							if (destfit->type == DATA_FLOAT) {
@@ -448,6 +448,7 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
+		j++;
 		clearfits(&fit);
 
 		if (args->crop) {
