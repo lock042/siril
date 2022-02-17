@@ -270,10 +270,9 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 		return 1;
 
 	BYTE map[USHRT_MAX + 1];
-	WORD tmp_pixel_value, hi, lo;
 	int i;
 	
-	float slope = compute_slope(&lo, &hi);
+	float slope = (fit->orig_bitpix == BYTE_IMG) ? 1.0f : UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE;
 
 	for (i = 0; i <= USHRT_MAX; i++) {
 		map[i] = roundf_to_BYTE((float) i * slope);
@@ -296,11 +295,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 			int srcpixel = y * fit->rx;
 			int dstpixel = desty * fit->rx;
 			for (x = 0; x < fit->rx; x++, srcpixel++, dstpixel++) {
-				// linear scaling
-				if (src[srcpixel] - lo < 0)
-					tmp_pixel_value = 0;
-				else 	tmp_pixel_value = src[srcpixel] - lo;
-				dst[dstpixel] = map[tmp_pixel_value];
+				dst[dstpixel] = map[src[srcpixel]];
 			}
 		}
 	} else {
@@ -314,11 +309,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 				int srcpixel = y * fit->rx;
 				int dstpixel = (desty * fit->rx * 3) + channel;
 				for (x = 0; x < fit->rx; x++, srcpixel++, dstpixel+=3) {
-					// linear scaling
-					if (src[srcpixel] - lo < 0)
-						tmp_pixel_value = 0;
-					else 	tmp_pixel_value = src[srcpixel] - lo;
-					dst[dstpixel] = map[tmp_pixel_value];
+					dst[dstpixel] = map[src[srcpixel]];
 				}
 			}
 		}
