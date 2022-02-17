@@ -13,17 +13,19 @@ It is specially tailored for noise reduction and improving the signal/noise
 ratio of an image from multiple captures, as required in astronomy.
 SIRIL can align automatically or manually, stack and enhance pictures from various file formats,
 even image sequence files (films and SER files).
+It works well with limited system resources, like in embedded platforms, but is
+also very fast when run on more powerful computers.
 
 Contributors are welcome. Programming language is C, with parts in C++.
 Main development is done with most recent versions of libraries.
 
 Requirements
 ------------
-For compilation, these tools are needed:
+For compilation, these tools are needed in addition to the base development packages:
  * **meson**
  * **ninja**
  * **cmake**
- 
+
 Then, mandatory build dependencies:
  * **GTK+ 3**, (>= 3.20) as GUI toolkit
  * **json-glib-1.0**, (>= 1.2.6) as GUI toolkit
@@ -32,7 +34,7 @@ Then, mandatory build dependencies:
  * **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
  * **libconfig** (>= 1.4) for structured configuration files
  * **A C++ compiler** for opencv code and avi exporter
- * **libopencv** for various image transformation algorithms (>= 4.4.0)
+ * **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possbile without some shift-only registration)
  * **exiv2** to manage image metadata
 
 SIRIL works internally with FITS files, but other file formats can be used as
@@ -50,8 +52,8 @@ time, or their support won't be included.
  * **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
  * **libcurl** for web interaction. Useless on GNU-Linux MUST be installed on macOS and Windows platform as GIO is broken
  * **wcslib** for some astrometry utilities
- * **criterion** for unit testing
  * **gnuplot** for photometry graphs output
+ * **criterion** for unit testing (development)
 
 All these libraries and programs are available in most Linux distributions and
 free systems, maybe with the exception of ffms2 that is not as popular as

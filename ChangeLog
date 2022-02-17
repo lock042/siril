@@ -1,6 +1,14 @@
 siril 1.0.0
 xx/02/22
-* Fix memory consumption for all sequence operations
+* Fixed memory consumption for all sequence operations
+* Fixed settings for sequence export as webm film with VP9 codec
+* Removed use of lo/hi cursors and fixed normalization for export
+* Fixed load and close commands for scripts in GUI
+* Fixed Bayer pattern in SER after extraction
+* Fixed registration crash for small images
+* Improved main panel separator positioning and keeping it in memory
+* Improved speed of FITSEQ detection when scanning sequences
+* Reintroduced compatibility with OpenCV 4.2 with disabled features
 
 siril 1.0.0~RC2
 12/08/21
