@@ -498,7 +498,10 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 		char comment[FLEN_COMMENT] = { 0 };
 		int keytype;
 
-		fits_parse_template(token[i], card, &keytype, &status);
+		char *tok = token[i];
+		/* in case of CR + LF, we remove \r */
+		if (tok[strlen(tok) - 1] == '\r') tok[strlen(tok) - 1] = '\0';
+		fits_parse_template(tok, card, &keytype, &status);
 		if (status) return status;
 		fits_parse_value(card, value, comment, &status);
 
@@ -559,7 +562,7 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->iso_speed = g_ascii_strtod(value, NULL);
 		} else if (siril_str_has_prefix(card, CVF)) {
 			fit->cvf = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "GAIN   =")) {
+		} else if (g_str_has_prefix(card, "GAIN    =")) {
 			fit->key_gain = g_ascii_strtoull(value, NULL, 10);
 		} else if (siril_str_has_prefix(card, OFFSETLEVEL)) {
 			fit->key_offset = g_ascii_strtoull(value, NULL, 10);
