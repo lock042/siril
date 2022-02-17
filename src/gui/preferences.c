@@ -600,6 +600,8 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 	}
 }
 
+static gboolean from_prefs_init = FALSE;
+
 void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
 	GtkSpinButton *outer;
 	double in, out;
@@ -608,7 +610,7 @@ void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
 	in = gtk_spin_button_get_value(inner);
 	out = gtk_spin_button_get_value(outer);
 
-	if (in >= out) {
+	if (!from_prefs_init && in >= out) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
 				_("Inner radius value must be less than outer. Please change the value."));
 	}
@@ -622,7 +624,7 @@ void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
 	in = gtk_spin_button_get_value(inner);
 	out = gtk_spin_button_get_value(outer);
 
-	if (in >= out) {
+	if (!from_prefs_init && in >= out) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
 				_("Inner radius value must be less than outer. Please change the value."));
 	}
@@ -722,8 +724,10 @@ static void set_preferences_ui(preferences *pref) {
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_h")), tmp);
 
 	/* tab 6 */
+	from_prefs_init = TRUE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), pref->phot_set.inner);
+	from_prefs_init = FALSE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), pref->phot_set.aperture);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), !pref->phot_set.force_radius);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), pref->phot_set.gain);
