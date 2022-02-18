@@ -65,6 +65,7 @@ static char *FILTER[] = {"FILTER", "FILT-1", NULL };
 static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
+static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -344,9 +345,7 @@ void read_fits_header(fits *fit) {
 
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure);
-
-	status = 0;
-	fits_read_key(fit->fptr, TUINT, "STACKCNT", &(fit->stacknt), NULL, &status);
+	__tryToFindKeywords(fit->fptr, TUINT, NB_STACKED, &fit->stacknt);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
@@ -1500,10 +1499,14 @@ void save_fits_header(fits *fit) {
 
 /********************** public functions ************************************/
 
-void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure) {
+void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, unsigned int *stack_count) {
 	char date_obs[FLEN_VALUE];
 
+	*exposure = 0.0;
+	*stack_count = 1;
 	__tryToFindKeywords(fptr, TDOUBLE, EXPOSURE, exposure);
+	__tryToFindKeywords(fptr, TUINT, NB_STACKED, stack_count);
+
 	int status = 0;
 	fits_read_key(fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
 	if (!status) {
