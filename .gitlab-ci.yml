@@ -318,7 +318,7 @@ native-win64-nightly:
     - python3 build/windows/dll_link.py ${W64_OUT}/bin/glib-compile-schemas.exe ${W64_OUT}/ ${INSTALL_PREFIX}
     - python3 build/windows/dll_link.py ${W64_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll ${W64_OUT}/ ${INSTALL_PREFIX}
 
-  needs: [build-image-win64]
+  needs: ["build-image-win64:build-native-win64"]
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
