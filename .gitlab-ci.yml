@@ -80,9 +80,8 @@ build-native-win64:
     - build.log
   script:
     - choco install msys2 --params "/InstallDir:C:\msys64" -y
-    - Get-Location
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh" 2>&1 >deps.log
-    - powershell -File .\build\windows\native-gitlab-ci\siril-build.ps1 2>&1 >build.log
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh" >deps.log
+    - powershell -File .\build\windows\native-gitlab-ci\siril-build.ps1 >build.log
 
 ################################################################################
 # GNU/Linux 64-bit CIs
