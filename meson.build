@@ -224,9 +224,7 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 libconfig_dep = dependency('libconfig', required : true)
-if not platform_windows
-  m_dep = cc.find_library('m', required : true)
-endif
+m_dep = cc.find_library('m', required : true)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 fftw3f_dep = dependency('fftw3f', required : true)
 cfitsio_dep = dependency('cfitsio', required : true)
