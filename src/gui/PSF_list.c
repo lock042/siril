@@ -346,13 +346,13 @@ static int save_list(gchar *filename) {
 					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
 					i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
 					com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx_arcsec,
-					com.stars[i]->fwhmy_arcsec, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag, SIRIL_EOL);
+					com.stars[i]->fwhmy_arcsec, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag + com.magOffset, SIRIL_EOL);
 		} else {
 			buffer = g_strdup_printf(
 					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
 					i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
 					com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx,
-					com.stars[i]->fwhmy, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag, SIRIL_EOL);
+					com.stars[i]->fwhmy, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag + com.magOffset, SIRIL_EOL);
 		}
 
 		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
@@ -430,7 +430,7 @@ void add_star_to_list(psf_star *star) {
 			COLUMN_Y0, star->ypos,
 			COLUMN_FWHMX, fwhmx,
 			COLUMN_FWHMY, fwhmy,
-			COLUMN_MAG, star->mag,
+			COLUMN_MAG, star->mag + com.magOffset,
 			COLUMN_ROUNDNESS, fwhmy / fwhmx,
 			COLUMN_ANGLE, star->angle,
 			COLUMN_RMSE, star->rmse,
