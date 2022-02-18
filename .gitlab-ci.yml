@@ -80,6 +80,8 @@ build-native-win64:
     - build.log
   script:
     - choco install msys2 --params "/InstallDir:C:\msys64" -y
+    - $env:CHERE_INVOKING = 'yes'  # Preserve the current working directory
+    - $env:MSYSTEM = 'MINGW64'     # Start a 64 bit Mingw environment
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh" >deps.log
     - powershell -File .\build\windows\native-gitlab-ci\siril-build.ps1 >build.log
 
