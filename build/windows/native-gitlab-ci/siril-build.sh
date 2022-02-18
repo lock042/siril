@@ -17,3 +17,11 @@ mingw-w64-x86_64-libraw \
 mingw-w64-x86_64-libheif \
 mingw-w64-x86_64-ffms2 \
 mingw-w64-x86_64-curl
+
+
+git clone https://gitlab.com/free-astro/siril.git
+cd siril
+git submodule update --init
+
+meson _build
+ninja -C _build install

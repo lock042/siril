@@ -79,7 +79,8 @@ build-native-win64:
     - installer.log
   script:
     - choco install msys2 --params "/InstallDir:C:\msys64" -y
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh" >installer.log
+    - Get-Location
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh" 2>&1 >installer.log
 
 ################################################################################
 # GNU/Linux 64-bit CIs
