@@ -541,7 +541,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 
 		struct stacking_args stackparam = { 0 };
-		stackparam.method = stack_summing_generic; //stack_mean_with_rejection;
+		stackparam.method = stack_mean_with_rejection;
 		stackparam.seq = &r_seq;
 		stackparam.ref_image = 0;
 		// TODO Apply some filter on quality?

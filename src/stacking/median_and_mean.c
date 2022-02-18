@@ -39,6 +39,7 @@
 typedef struct {
 	GDateTime *date_obs;
 	gdouble exposure;
+	unsigned int stack_count;
 } DateEvent;
 
 static void free_list_date(gpointer data) {
@@ -48,12 +49,13 @@ static void free_list_date(gpointer data) {
 	g_slice_free(DateEvent, item);
 }
 
-static DateEvent* new_item(GDateTime *dt, gdouble exposure) {
+static DateEvent* new_item(GDateTime *dt, gdouble exposure, unsigned int count) {
 	DateEvent *item;
 
 	item = g_slice_new(DateEvent);
 	item->exposure = exposure;
 	item->date_obs = dt;
+	item->stack_count = count;
 
 	return item;
 }
@@ -154,11 +156,12 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			}
 
 			gdouble current_exp;
+			unsigned int stack_count;
 			GDateTime *dt = NULL;
 
-			get_date_data_from_fitsfile(args->seq->fptr[image_index], &dt, &current_exp);
+			get_date_data_from_fitsfile(args->seq->fptr[image_index], &dt, &current_exp, &stack_count);
 			if (dt)
-				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
+				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp, stack_count));
 
 			/* We copy metadata from reference to the final fit */
 			if (image_index == args->ref_image)
@@ -189,7 +192,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		for (int frame = 0; frame < args->seq->number; frame++) {
 			GDateTime *dt = ser_read_frame_date(args->seq->ser_file, frame);
 			if (dt)
-				*list_date = g_list_prepend(*list_date,	new_item(dt, 0.0));
+				*list_date = g_list_prepend(*list_date,	new_item(dt, 0.0, 1));
 		}
 	}
 	else if (args->seq->type == SEQ_FITSEQ) {
@@ -204,11 +207,12 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 				return ST_SEQUENCE_ERROR;
 			}
 			gdouble current_exp;
+			unsigned int stack_count;
 			GDateTime *dt = NULL;
 
-			get_date_data_from_fitsfile(args->seq->fitseq_file->fptr, &dt, &current_exp);
+			get_date_data_from_fitsfile(args->seq->fitseq_file->fptr, &dt, &current_exp, &stack_count);
 			if (dt)
-				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
+				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp, stack_count));
 
 			/* We copy metadata from reference to the final fit */
 			if (frame == args->ref_image)
@@ -906,6 +910,7 @@ static int compute_weights(struct stacking_args *args) {
 static void compute_date_time_keywords(GList *list_date, fits *fit) {
 	if (list_date) {
 		gdouble exposure = 0.0;
+		unsigned int nb_stacks = 0;
 		GDateTime *date_obs;
 		gdouble start, end;
 		GList *list;
@@ -914,6 +919,7 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 		/* Then we compute the sum of exposure */
 		for (list = list_date; list; list = list->next) {
 			exposure += ((DateEvent *)list->data)->exposure;
+			nb_stacks += ((DateEvent *)list->data)->stack_count;
 		}
 
 		/* go to the first stacked image and get needed values */
@@ -936,6 +942,7 @@ static void compute_date_time_keywords(GList *list_date, fits *fit) {
 
 		/* we address the computed values to the keywords */
 		fit->livetime = exposure;
+		fit->stacknt = nb_stacks;
 		fit->date_obs = date_obs;
 		fit->expstart = start;
 		fit->expend = end;
@@ -1395,8 +1402,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 
 	compute_date_time_keywords(list_date, &gfit);
-	/* report he number of stacked image */
-	gfit.stacknt = args->nb_images_to_stack;
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);
