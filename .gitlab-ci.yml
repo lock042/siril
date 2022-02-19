@@ -63,7 +63,8 @@ build-image-win64:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE:build-win64-latest --cache=true --cache-ttl=120h
 
-# Try building with msys2 in one step
+# Try building/packaging/installing with msys2 in one step
+# (otherwise win VM gets wiped)
 build-native-win64:
   stage: prepare
   cache: {}
@@ -281,52 +282,6 @@ win64-nightly:
     expire_in: 1 week
     paths:
       - ${INSTALL_DIR}
-
-# native-win64-nightly:
-#   stage: packaging
-#   image: $CI_REGISTRY_IMAGE:build-win64-latest
-#   dependencies:
-#     - build-native-win64
-#   script:
-#     # Package shared ressources
-#     - cp -fr ${W64_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
-#     - cp -fr ${W64_OUT}/share/icons/ ${INSTALL_PREFIX}/share
-#     - cp -fr ${W64_OUT}/share/locale/ ${INSTALL_PREFIX}/share
-
-#     # Package executable
-#     - cp -fr ${W64_OUT}/bin/gdbus.exe ${INSTALL_PREFIX}/bin/
-#     - cp -fr ${W64_OUT}/bin/glib-compile-schemas.exe ${INSTALL_PREFIX}/bin/
-#     - cp -fr ${W64_OUT}/bin/gdk-pixbuf-query-loaders.exe ${INSTALL_PREFIX}/bin/
-#     - cp -fr ${W64_OUT}/bin/gdk-pixbuf-pixdata.exe ${INSTALL_PREFIX}/bin/
-#     - cp -fr ${W64_OUT}/bin/gdk-pixbuf-thumbnailer.exe ${INSTALL_PREFIX}/bin/
-#     - cp -fr ${W64_OUT}/bin/gspawn-win64-helper.exe ${INSTALL_PREFIX}/bin/
-#     - cp -fr ${W64_OUT}/bin/gspawn-win64-helper-console.exe ${INSTALL_PREFIX}/bin/
-#     - cp build/windows/crossbuild-gitlab-ci/siril-wrapper.cmd ${INSTALL_PREFIX}/bin/
-
-#     # Package lib
-#     - mkdir ${INSTALL_PREFIX}/lib/
-#     - cp -fr ${W64_OUT}/lib/gdk-pixbuf-2.0 ${INSTALL_PREFIX}/lib/
-#     - cp build/windows/loaders.cache ${INSTALL_PREFIX}/lib/gdk-pixbuf-2.0/2.10.0/
-#     - glib-compile-schemas --targetdir=${INSTALL_PREFIX}/share/glib-2.0/schemas ${W64_OUT}/share/glib-2.0/schemas
-
-#     # Package dll with a Python script using objdump
-#     - python3 build/windows/dll_link.py ${INSTALL_PREFIX}/bin/siril.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${INSTALL_PREFIX}/bin/gdbus.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${W64_OUT}/bin/gdk-pixbuf-query-loaders.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${W64_OUT}/bin/gdk-pixbuf-pixdata.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${W64_OUT}/bin/gdk-pixbuf-thumbnailer.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${W64_OUT}/bin/gspawn-win64-helper.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${W64_OUT}/bin/gspawn-win64-helper-console.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${W64_OUT}/bin/glib-compile-schemas.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-#     - python3 build/windows/dll_link.py ${W64_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll ${W64_OUT}/ ${INSTALL_PREFIX}
-
-#   needs: ["build-native-win64"]
-#   artifacts:
-#     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-#     when: always
-#     expire_in: 1 week
-#     paths:
-#       - ${INSTALL_DIR}
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
