@@ -3,6 +3,8 @@ mingw-w64-x86_64-toolchain \
 mingw-w64-x86_64-cmake \
 git \
 automake \
+mingw-w64-x86_64-autotools \
+mingw-w64-x86_64-lcms2 \
 mingw-w64-x86_64-curl \
 mingw-w64-x86_64-json-glib \
 mingw-w64-x86_64-meson \
@@ -17,10 +19,12 @@ mingw-w64-x86_64-libheif \
 mingw-w64-x86_64-ffms2 \
 mingw-w64-x86_64-cfitsio \
 
-# Install LibRaw from _deps
-cd _deps/LibRaw
-# autoreconf -fi && \
-# ./configure --disable-examples --disable-static && \
+# Build LibRaw from github
+mkdir _deps && cd _deps
+git clone --depth 1 https://github.com/LibRaw/LibRaw.git
+cd LibRaw
+autoreconf -fi && \
+./configure --disable-examples --disable-static && \
 make install -j$(nproc) || exit 1
-cd ../..
+cd ..
 

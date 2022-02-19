@@ -63,6 +63,28 @@ build-image-win64:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE:build-win64-latest --cache=true --cache-ttl=120h
 
+# Try building/packaging with msys2 in one step
+# (otherwise win VM gets wiped)
+build-native-win64:
+  stage: prepare
+  cache: {}
+  variables:
+    CHERE_INVOKING: "yes"
+    MSYSTEM: "MINGW64"
+  tags:
+    - windows
+  stage: prepare
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    when: always
+    expire_in: 1 week
+    paths:
+    - ${INSTALL_DIR}
+  script:
+    - choco install msys2 --params "/InstallDir:C:\msys64" -y
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
 
 ################################################################################
 # GNU/Linux 64-bit CIs
@@ -196,8 +218,6 @@ siril-win64:
       - apt-cache
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
-    - echo $CC
-    - echo $CXX
     - mkdir _build && cd _build
     - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
@@ -354,38 +374,8 @@ cppcheck:
   needs: []
 
 ################################################################################
-# Native windows
-
-# Try building/packaging with msys2 in one step
-# (otherwise win VM gets wiped)
-siril-native-win64-nightly:
-  stage: siril
-  dependencies:
-    - deps-win64
-  cache:
-    paths:
-      - _deps/
-  variables:
-    CHERE_INVOKING: "yes"
-    MSYSTEM: "MINGW64"
-  tags:
-    - windows
-  artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    when: always
-    expire_in: 1 week
-    paths:
-    - ${INSTALL_DIR}
-  script:
-    - choco install msys2 --params "/InstallDir:C:\msys64" -y
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
-  needs: ["deps-win64"]
-
-
 # Distribution
-win64-installer-native:
+win-installer-native:
   only:
     variables:
       - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
@@ -395,7 +385,7 @@ win64-installer-native:
     - windows
   stage: distribution
   dependencies:
-    - siril-native-win64-nightly
+    - build-native-win64
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -406,4 +396,4 @@ win64-installer-native:
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: ["siril-native-win64-nightly"]
+  needs: ["build-native-win64"]
