@@ -22,7 +22,7 @@ mingw-w64-x86_64-cfitsio \
 mkdir _deps && cd _deps
 git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 cd LibRaw
-/c/mys64/usr/bin/autoreconf -fi && \
+/usr/bin/autoreconf -fi && \
 ./configure --disable-examples --disable-static && \
 make install || exit 1
 cd ..
