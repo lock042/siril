@@ -63,7 +63,7 @@ build-image-win64:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE:build-win64-latest --cache=true --cache-ttl=120h
 
-# Try building/packaging/installing with msys2 in one step
+# Try building/packaging with msys2 in one step
 # (otherwise win VM gets wiped)
 build-native-win64:
   stage: prepare
@@ -79,17 +79,12 @@ build-native-win64:
     when: always
     expire_in: 1 week
     paths:
-    # - deps.log
-    # - build.log
-    # - package.log
-    # - ${BUILD_DIR}
     - ${INSTALL_DIR}
-    # - ${W64_OUT}
   script:
     - choco install msys2 --params "/InstallDir:C:\msys64" -y
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh" #>deps.log
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh" #>build.log
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh" #>package.log
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
 
 ################################################################################
 # GNU/Linux 64-bit CIs
@@ -399,3 +394,26 @@ win-installer:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-nightly"]
+
+win-installer-native:
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
+  variables:
+    CHERE_INVOKING: "yes"
+  tags:
+    - windows
+  stage: distribution
+  dependencies:
+    - build-native-win64
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    when: always
+    expire_in: 1 week
+    paths:
+    - WinInstaller
+    - installer.log
+  script:
+    - choco install innosetup -y
+    - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
+  needs: ["build-native-win64"]
