@@ -73,7 +73,14 @@ build-native-win64:
     MSYSTEM: "MINGW64"
   tags:
     - windows
-  stage: prepare
+  rules:
+    # when tagged, or special win CI branch or with w64 keyword
+    - if: $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
+      when: always
+    # otherwise manual trigger
+    - if: $CI_COMMIT_MESSAGE != null
+      when: manual
+      allow_failure: true
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -376,9 +383,14 @@ cppcheck:
 ################################################################################
 # Distribution
 win-installer-native:
-  only:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
+  rules:
+    # when tagged, or special win CI branch or with w64 keyword
+    - if: $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
+      when: always
+    # otherwise manual trigger
+    - if: $CI_COMMIT_MESSAGE != null
+      when: manual
+      allow_failure: true
   variables:
     CHERE_INVOKING: "yes"
   tags:
