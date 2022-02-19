@@ -1,5 +1,6 @@
 siril 1.0.0
 xx/02/22
+* Added ASTRO-TIFF standard
 * Fixed memory consumption for all sequence operations
 * Fixed settings for sequence export as webm film with VP9 codec
 * Removed use of lo/hi cursors and fixed normalization for export
@@ -8,6 +9,7 @@ xx/02/22
 * Fixed registration crash for small images
 * Improved main panel separator positioning and keeping it in memory
 * Improved speed of FITSEQ detection when scanning sequences
+* Improve usability on MacOS
 * Reintroduced compatibility with OpenCV 4.2 with disabled features
 
 siril 1.0.0~RC2

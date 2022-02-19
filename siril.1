@@ -1,5 +1,5 @@
 .\" Manpage for Siril 1.0
-.TH SIRIL "1" "January 2020" "siril 1.0" "User Commands"
+.TH SIRIL "1" "February 2022" "siril 1.0" "User Commands"
 .SH NAME
 siril \- image processing tool for astronomy and others
 .SH SYNOPSIS
@@ -7,7 +7,7 @@ Siril GUI
  siril <file>             Start Siril with file.
   
 Siril CLI
- siril-cli [-i conf_file] [-f] [-v] [-h] [-p] [-d working_directory] [-s script_file] [image_file_to_open]
+ siril-cli [-i conf_file] [-f] [-v] [-c] [-h] [-p] [-d working_directory] [-s script_file] [image_file_to_open]
 .SH DESCRIPTION
 \fBSiril\fP is an image processing tool specially tailored for noise reduction and improving the signal/noise ratio of an image from multiple captures, as required in astronomy. \fBSiril\fP can align, stack and enhance pictures from various file formats, even image sequences (movies and SER files). It makes use of OpenMP, supports all the cameras supported by libraw, and carries out its calculations in a high precision 32-bit floating point engine.
 .SH OPTIONS
@@ -17,6 +17,8 @@ Starts \fBSiril\fP with configuration file which path is given in conf_file
 (or \fB\-\-format\fR) Prints all supported image input formats, depending on the libraries detected at compile-time
 .IP -v
 (or \fB\-\-version\fR) Prints program name and version and exits
+.IP -c
+(or \fB\-\-copyright\fR) Prints copyright and exits
 .IP -h
 (or \fB\-\-help\fR) Short usage help
 .IP -p
@@ -36,7 +38,7 @@ option.
 .RE
 .I ~/.siril/siril.css
 .RS
-The stylesheet used to change colours of the graphical user interface. This is useful for personalisation or if a GTK theme is incompatible with some coloured elements of \fBSiril\fP.
+The stylesheet used to change colors of the graphical user interface. This is useful for personalization or if a GTK theme is incompatible with some coloured elements of \fBSiril\fP.
 .SH LINKS
  Website: https://www.siril.org/
  Documentation: https://free-astro.org/siril_doc-en/
@@ -45,3 +47,4 @@ The stylesheet used to change colours of the graphical user interface. This is u
 .SH AUTHOR
  Vincent Hourdin <debian-siril at free-astro.org>
  Cyril Richard <cyril at free-astro.org>
+ Cécile Melis <cissou8 at gmail.com>
