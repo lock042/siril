@@ -279,6 +279,7 @@ win64-nightly:
     expire_in: 1 week
     paths:
       - ${INSTALL_DIR}
+  allow_failure: true
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
