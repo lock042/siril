@@ -52,6 +52,7 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "algos/geometry.h"
+#include "algos/siril_wcs.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "single_image.h"
@@ -61,7 +62,7 @@
 
 #ifdef HAVE_LIBTIFF
 
-static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, WORD **data) {
+static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, WORD **data) {
 	uint32_t rowsperstrip;
 	uint16_t config;
 	int retval = nsamples;
@@ -100,10 +101,20 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 				break;
 			}
 			for (size_t i = 0; i < width * nrow; i++) {
-				*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				if (color == PHOTOMETRIC_MINISWHITE) {
+					*gbuf[RLAYER]++ = USHRT_MAX - buf[i * nsamples + 0];
+				} else {
+					*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				}
+
 				if ((nsamples == 3) || (nsamples == 4)) {
-					*gbuf[GLAYER]++ = buf[i * nsamples + 1];
-					*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[GLAYER]++ = USHRT_MAX - buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = USHRT_MAX - buf[i * nsamples + 2];
+					} else {
+						*gbuf[GLAYER]++ = buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					}
 				}
 			}
 			break;
@@ -116,8 +127,13 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
-				for (size_t i = 0; i < width * nrow; i++)
-					*gbuf[j]++ = buf[i];
+				for (size_t i = 0; i < width * nrow; i++) {
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[j]++ = USHRT_MAX - buf[i];
+					} else {
+						*gbuf[j]++ = buf[i];
+					}
+				}
 			}
 			break;
 		default:
@@ -129,7 +145,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	return retval;
 }
 
-static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, float **data) {
+static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, float **data) {
 	uint32_t rowsperstrip;
 	uint16_t config;
 	int retval = nsamples;
@@ -168,10 +184,19 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 				break;
 			}
 			for (size_t i = 0; i < width * nrow; i++) {
-				*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				if (color == PHOTOMETRIC_MINISWHITE) {
+					*gbuf[RLAYER]++ = USHRT_MAX_SINGLE - buf[i * nsamples + 0];
+				} else {
+					*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				}
 				if ((nsamples == 3) || (nsamples == 4)) {
-					*gbuf[GLAYER]++ = buf[i * nsamples + 1];
-					*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[GLAYER]++ = USHRT_MAX_SINGLE - buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = USHRT_MAX_SINGLE - buf[i * nsamples + 2];
+					} else {
+						*gbuf[GLAYER]++ = buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					}
 				}
 			}
 			break;
@@ -185,8 +210,13 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
-				for (size_t i = 0; i < width * nrow; i++)
-					*gbuf[j]++ = buf[i];
+				for (size_t i = 0; i < width * nrow; i++) {
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[j]++ = USHRT_MAX_SINGLE - buf[i];
+					} else {
+						*gbuf[j]++ = buf[i];
+					}
+				}
 			}
 			break;
 		default:
@@ -198,7 +228,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	return retval;
 }
 
-static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, float **data) {
+static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, float **data) {
 	uint32_t rowsperstrip;
 	uint16_t config;
 	int retval = nsamples;
@@ -237,10 +267,19 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 				break;
 			}
 			for (size_t i = 0; i < width * nrow; i++) {
-				*gbuf[RLAYER]++ = buf[i * nsamples + 0] / (float) UINT32_MAX;
+				if (color == PHOTOMETRIC_MINISWHITE) {
+					*gbuf[RLAYER]++ = USHRT_MAX_SINGLE - (buf[i * nsamples + 0] / (float) UINT32_MAX);
+				} else {
+					*gbuf[RLAYER]++ = buf[i * nsamples + 0] / (float) UINT32_MAX;
+				}
 				if ((nsamples == 3) || (nsamples == 4)) {
-					*gbuf[GLAYER]++ = buf[i * nsamples + 1] / (float) UINT32_MAX;
-					*gbuf[BLAYER]++ = buf[i * nsamples + 2] / (float) UINT32_MAX;
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[GLAYER]++ = USHRT_MAX_SINGLE - (buf[i * nsamples + 1] / (float) UINT32_MAX);
+						*gbuf[BLAYER]++ = USHRT_MAX_SINGLE - (buf[i * nsamples + 2] / (float) UINT32_MAX);
+					} else {
+						*gbuf[GLAYER]++ = buf[i * nsamples + 1] / (float) UINT32_MAX;
+						*gbuf[BLAYER]++ = buf[i * nsamples + 2] / (float) UINT32_MAX;
+					}
 				}
 			}
 			break;
@@ -254,8 +293,13 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
-				for (size_t i = 0; i < width * nrow; i++)
-					*gbuf[j]++ = buf[i] / (float) UINT32_MAX;
+				for (size_t i = 0; i < width * nrow; i++) {
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[j]++ = USHRT_MAX_SINGLE - (buf[i] / (float) UINT32_MAX);
+					} else {
+						*gbuf[j]++ = buf[i] / (float) UINT32_MAX;
+					}
+				}
 			}
 			break;
 		default:
@@ -267,7 +311,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	return retval;
 }
 
-static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, WORD **data) {
+static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, WORD **data) {
 	int retval = nsamples;
 
 	size_t npixels = width * height;
@@ -292,10 +336,19 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 			for (int j = 0; j < height; j++) {
 				int istart = j * width;
 				for (int i = 0; i < width; i++) {
-					*gbuf[RLAYER]++ = (WORD)TIFFGetR(raster[istart + i]);
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[RLAYER]++ = UCHAR_MAX - (WORD)TIFFGetR(raster[istart + i]);
+					} else {
+						*gbuf[RLAYER]++ = (WORD)TIFFGetR(raster[istart + i]);
+					}
 					if ((nsamples == 3) || (nsamples == 4)) {
-						*gbuf[GLAYER]++ = (WORD)TIFFGetG(raster[istart + i]);
-						*gbuf[BLAYER]++ = (WORD)TIFFGetB(raster[istart + i]);
+						if (color == PHOTOMETRIC_MINISWHITE) {
+							*gbuf[GLAYER]++ = UCHAR_MAX - (WORD)TIFFGetG(raster[istart + i]);
+							*gbuf[BLAYER]++ = UCHAR_MAX - (WORD)TIFFGetB(raster[istart + i]);
+						} else {
+							*gbuf[GLAYER]++ = (WORD)TIFFGetG(raster[istart + i]);
+							*gbuf[BLAYER]++ = (WORD)TIFFGetB(raster[istart + i]);
+						}
 					}
 				}
 			}
@@ -342,10 +395,15 @@ static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
 int readtif(const char *name, fits *fit, gboolean force_float) {
 	int retval = 0;
 	uint32_t height, width;
-	uint16_t nbits, nsamples, color;
+	uint16_t nbits, nsamples, color, orientation;
 	WORD *data = NULL;
 	float *fdata = NULL;
 	uint16_t sampleformat = 0;
+	/* EXIFS */
+	gchar *description = NULL;
+	double exposure = 0.0;
+	double aperture = 0.0;
+	double focal_length = 0.0;
 
 	TIFF* tif = Siril_TIFFOpen(name, "r");
 	if (!tif) {
@@ -359,6 +417,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &nbits);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &color);
+	TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
 
 	// Retrieve the Date/Time as in the TIFF TAG
 	gchar *date_time = NULL;
@@ -368,23 +427,44 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 		sscanf(date_time, "%04d:%02d:%02d %02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
 	}
 
+	// Try to read EXIF data
+	toff_t ExifID;
+
+	if (TIFFGetField(tif, TIFFTAG_EXIFIFD, &ExifID)) {
+		uint16_t currentIFD = TIFFCurrentDirectory(tif);
+
+		if (TIFFReadEXIFDirectory(tif, ExifID)) {
+			TIFFGetField(tif, EXIFTAG_EXPOSURETIME, &exposure);
+			TIFFGetField(tif, EXIFTAG_FNUMBER, &aperture);
+			TIFFGetField(tif, EXIFTAG_FOCALLENGTH, &focal_length);
+		}
+		// Revert IFD to status quo ante TIFFReadEXIFDirectory
+		TIFFSetDirectory(tif, currentIFD);
+	}
+
+	// Retrieve Description field
+	char *desc = NULL;
+	if (TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &desc)) {
+		description = strdup(desc);
+	}
+
 	size_t npixels = width * height;
 
 	switch(nbits){
 		case 8:
 			/* High level functions in readtif8bits: should read every 8-bit TIFF file */
-			retval = readtif8bits(tif, width, height, nsamples, &data);
+			retval = readtif8bits(tif, width, height, nsamples, color, &data);
 			break;
 
 		case 16:
-			retval = readtifstrip(tif, width, height, nsamples, &data);
+			retval = readtifstrip(tif, width, height, nsamples, color, &data);
 			break;
 
 		case 32:
 			if (sampleformat == SAMPLEFORMAT_IEEEFP) {
-				retval = readtifstrip32(tif, width, height, nsamples, &fdata);
+				retval = readtifstrip32(tif, width, height, nsamples, color, &fdata);
 			} else if (sampleformat == SAMPLEFORMAT_UINT) {
-				retval = readtifstrip32uint(tif, width, height, nsamples, &fdata);
+				retval = readtifstrip32uint(tif, width, height, nsamples, color, &fdata);
 			} else {
 				siril_log_color_message(_("Siril cannot read this TIFF format.\n"), "red");
 				retval = OPEN_IMAGE_ERROR;
@@ -401,6 +481,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 		free(fdata);
 		return OPEN_IMAGE_ERROR;
 	}
+	/* We clear fits. Everything written above is erased */
 	clearfits(fit);
 	if (date_time) {
 		GTimeZone *tz = g_time_zone_new_utc();
@@ -455,15 +536,59 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 		}
-		mirrorx(fit, FALSE);
+
+		if (orientation == ORIENTATION_TOPLEFT) {
+			mirrorx(fit, FALSE);
+		} else if (orientation == ORIENTATION_TOPRIGHT) {
+			mirrorx(fit, FALSE);
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTRIGHT) {
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTLEFT) {
+			; // do nothing
+		} else {
+			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+		}
 		break;
 	case 32:
 		fit->bitpix = FLOAT_IMG;
 		fit->type = DATA_FLOAT;
-		mirrorx(fit, FALSE);
+		if (orientation == ORIENTATION_TOPLEFT) {
+			mirrorx(fit, FALSE);
+		} else if (orientation == ORIENTATION_TOPRIGHT) {
+			mirrorx(fit, FALSE);
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTRIGHT) {
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTLEFT) {
+			; // do nothing
+		} else {
+			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+		}
 	}
 	fit->orig_bitpix = fit->bitpix;
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+
+	/* fill exifs is exist */
+	if (exposure > 0.0)
+		fit->exposure = exposure;
+	if (aperture > 0.0)
+		fit->aperture = aperture;
+	if (focal_length > 0.0)
+		fit->focal_length = focal_length;
+	if (description) {
+		if (g_str_has_prefix(description, "SIMPLE  =")) {
+			// It is FITS header, copy it
+			siril_debug_print("ASTRO-TIFF detected.\n");
+			fit->header = description;
+			int ret = fits_parse_header_string(fit, description);
+			if (ret) {
+				siril_debug_print("ASTRO-TIFF is not well formed.\n");
+			}
+		} else {
+			free(description);
+		}
+	}
 
 	retval = nsamples;
 
