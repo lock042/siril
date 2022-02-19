@@ -3,7 +3,7 @@ mingw-w64-x86_64-toolchain \
 mingw-w64-x86_64-cmake \
 git \
 automake \
-mingw-w64-lcms2 \
+mingw-w64-x86_64-lcms2 \
 mingw-w64-x86_64-curl \
 mingw-w64-x86_64-json-glib \
 mingw-w64-x86_64-meson \
