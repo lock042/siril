@@ -383,14 +383,9 @@ cppcheck:
 ################################################################################
 # Distribution
 win-installer-native:
-  rules:
-    # when tagged, or special win CI branch or with w64 keyword
-    - if: $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
-      when: always
-    # otherwise manual trigger
-    - if: $CI_COMMIT_MESSAGE != null
-      when: manual
-      allow_failure: true
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
   variables:
     CHERE_INVOKING: "yes"
   tags:
