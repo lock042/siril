@@ -201,6 +201,7 @@ deps-win64:
       - .local/
       - _deps/
   needs: ["build-image-win64"]
+  allow_failure: true
 
 siril-win64:
   stage: siril
@@ -228,6 +229,7 @@ siril-win64:
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}
+  allow_failure: true
 
 ################################################################################
 # Packaging
@@ -372,29 +374,6 @@ cppcheck:
 
 ################################################################################
 # Distribution
-win-installer:
-  only:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
-  variables:
-    CHERE_INVOKING: "yes"
-  tags:
-    - windows
-  stage: distribution
-  dependencies:
-    - win64-nightly
-  artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    when: always
-    expire_in: 1 week
-    paths:
-    - WinInstaller
-    - installer.log
-  script:
-    - choco install innosetup -y
-    - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: ["win64-nightly"]
-
 win-installer-native:
   only:
     variables:
