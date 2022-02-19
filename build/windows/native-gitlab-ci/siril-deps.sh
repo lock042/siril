@@ -25,6 +25,6 @@ git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 cd LibRaw
 autoreconf -fi && \
 ./configure --disable-examples --disable-static && \
-make install || exit 1
+make install -j$(nproc) || exit 1
 cd ..
 
