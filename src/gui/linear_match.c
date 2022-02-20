@@ -36,6 +36,11 @@
 
 #include "linear_match.h"
 
+/* TODO: exclude 0 values as we do for stats for instance,
+both on ref AND target to avoid including in the fit pixels which
+lie on the black borders.
+*/
+
 static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, double low,
 		double high, double *a, double *b, gchar **error) {
 	int count = 0;
@@ -55,6 +60,7 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
+		count = 0;
 		for (size_t i = 0; i < ref_size; i++) {
 			if (inInterval(reference_fit->pdata[channel][i], low, high)) {
 				count ++;
@@ -100,6 +106,7 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
+		count = 0;
 		for (size_t i = 0; i < ref_size; i++) {
 			if (inInterval(reference_fit->fpdata[channel][i], low, high)) {
 				count ++;
