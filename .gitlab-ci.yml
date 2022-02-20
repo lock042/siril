@@ -22,6 +22,7 @@ variables:
   INSTALL_PREFIX: "${CI_PROJECT_DIR}/${INSTALL_DIR}"
   CROSSROAD_OUT: "crossroad-out"
   APT_CACHE: "$CI_PROJECT_DIR/apt-cache"
+  W64_OUT: "/c/msys64/mingw64"
 
 ################################################################################
 # Prepare Dockers images
@@ -61,6 +62,28 @@ build-image-win64:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE:build-win64-latest --cache=true --cache-ttl=120h
+
+# Try building/packaging with msys2 in one step
+# (otherwise win VM gets wiped)
+build-native-win64:
+  stage: prepare
+  cache: {}
+  variables:
+    CHERE_INVOKING: "yes"
+    MSYSTEM: "MINGW64"
+  tags:
+    - windows
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    when: always
+    expire_in: 1 week
+    paths:
+    - ${INSTALL_DIR}
+  script:
+    - choco install msys2 --params "/InstallDir:C:\msys64" -y
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
 
 ################################################################################
 # GNU/Linux 64-bit CIs
@@ -177,6 +200,7 @@ deps-win64:
       - .local/
       - _deps/
   needs: ["build-image-win64"]
+  allow_failure: true
 
 siril-win64:
   stage: siril
@@ -192,12 +216,7 @@ siril-win64:
       - .cache/crossroad/
       - apt-cache
   script:
-    - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
-    - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
-    - mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-    - echo 'crossroad cmake .. && make && make install' | crossroad w64 siril --run="-"
-    - cd ../../..
     - mkdir _build && cd _build
     - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
@@ -209,6 +228,7 @@ siril-win64:
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}
+  allow_failure: true
 
 ################################################################################
 # Packaging
@@ -258,7 +278,7 @@ win64-nightly:
     expire_in: 1 week
     paths:
       - ${INSTALL_DIR}
-
+  allow_failure: true
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
@@ -354,17 +374,17 @@ cppcheck:
 
 ################################################################################
 # Distribution
-win-installer:
+win-installer-native:
   only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /CI-distribution/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
+      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
   variables:
     CHERE_INVOKING: "yes"
   tags:
     - windows
   stage: distribution
   dependencies:
-    - win64-nightly
+    - build-native-win64
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -375,4 +395,4 @@ win-installer:
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: ["win64-nightly"]
+  needs: ["build-native-win64"]
