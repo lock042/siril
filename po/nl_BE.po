@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-19 21:10+0100\n"
+"POT-Creation-Date: 2022-02-21 10:06+0100\n"
 "PO-Revision-Date: 2021-11-17 15:19+0100\n"
 "Last-Translator: Antoine Hoeffelman <antoine.hoeffelman[-at-]gmail.com>\n"
 "Language-Team: Dutch <antoine.hoeffelman[-at-]gmail.com>\n"
@@ -1172,7 +1172,7 @@ msgstr "Kies Fase"
 msgid "Inverse Transform"
 msgstr "Inverse Transformatie"
 
-#: src/gui/siril3.glade:6373 src/gui/linear_match.c:210
+#: src/gui/siril3.glade:6373 src/gui/linear_match.c:217
 msgid "Linear Match"
 msgstr "Lineair Match"
 
@@ -6591,7 +6591,7 @@ msgid "Cannot divide by zero, aborting."
 msgstr "Kan niet delen door nul, afbreken."
 
 #: src/core/arithm.c:175 src/core/arithm.c:287 src/core/arithm.c:365
-#: src/filters/fft.c:496 src/gui/linear_match.c:46 src/gui/linear_match.c:94
+#: src/filters/fft.c:496 src/gui/linear_match.c:51 src/gui/linear_match.c:100
 msgid "Images must have same dimensions.\n"
 msgstr "Afbeeldingen moeten dezelfde afmetingen hebben.\n"
 
@@ -9994,11 +9994,11 @@ msgstr ""
 "Het tabblad RGB is alleen voor visualisatie. Bewerkingen moeten worden "
 "uitgevoerd op R-, G- en B-kanalen"
 
-#: src/gui/linear_match.c:56 src/gui/linear_match.c:101
+#: src/gui/linear_match.c:61 src/gui/linear_match.c:107
 msgid "Linear fit functions:\n"
 msgstr "Lineaire fit-functies:\n"
 
-#: src/gui/linear_match.c:218
+#: src/gui/linear_match.c:225
 msgid "Cannot compute linear coefficients."
 msgstr "Kan geen lineaire coëfficiënten berekenen."
 

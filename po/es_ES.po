@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-19 21:10+0100\n"
+"POT-Creation-Date: 2022-02-21 10:06+0100\n"
 "PO-Revision-Date: 2021-11-07 13:24+0000\n"
 "Last-Translator: David Vazquez Garcia <davidvazquezgijon@gmail.com>\n"
 "Language-Team: \n"
@@ -1184,7 +1184,7 @@ msgstr "Seleccione fase"
 msgid "Inverse Transform"
 msgstr "Transformada inversa"
 
-#: src/gui/siril3.glade:6373 src/gui/linear_match.c:210
+#: src/gui/siril3.glade:6373 src/gui/linear_match.c:217
 msgid "Linear Match"
 msgstr "Coincidencia Lineal"
 
@@ -6630,7 +6630,7 @@ msgid "Cannot divide by zero, aborting."
 msgstr "No se puede dividir por 0, anulando."
 
 #: src/core/arithm.c:175 src/core/arithm.c:287 src/core/arithm.c:365
-#: src/filters/fft.c:496 src/gui/linear_match.c:46 src/gui/linear_match.c:94
+#: src/filters/fft.c:496 src/gui/linear_match.c:51 src/gui/linear_match.c:100
 msgid "Images must have same dimensions.\n"
 msgstr "Las imágenes deben tener las mismas dimensiones\n"
 
@@ -10033,11 +10033,11 @@ msgstr ""
 "El canal RGB sólo se usa para visualización. Por favor trabaje en los "
 "canales Rojo, Verde o Azul"
 
-#: src/gui/linear_match.c:56 src/gui/linear_match.c:101
+#: src/gui/linear_match.c:61 src/gui/linear_match.c:107
 msgid "Linear fit functions:\n"
 msgstr "Funciones fit lineales.\n"
 
-#: src/gui/linear_match.c:218
+#: src/gui/linear_match.c:225
 msgid "Cannot compute linear coefficients."
 msgstr "No se pueden calcular coeficientes lineales."
 

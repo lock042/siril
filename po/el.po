@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-19 21:10+0100\n"
+"POT-Creation-Date: 2022-02-21 10:06+0100\n"
 "PO-Revision-Date: 2021-10-27 17:18+0300\n"
 "Last-Translator: Konstantinos Stavropoulos <kookoo_gr@yahoo.com>\n"
 "Language-Team: \n"
@@ -1188,7 +1188,7 @@ msgstr "Επιλέξτε Φάση"
 msgid "Inverse Transform"
 msgstr "Αντίστροφος Μετασχηματισμός"
 
-#: src/gui/siril3.glade:6373 src/gui/linear_match.c:210
+#: src/gui/siril3.glade:6373 src/gui/linear_match.c:217
 msgid "Linear Match"
 msgstr "Γραμμική Αντιστοίχιση"
 
@@ -6699,7 +6699,7 @@ msgid "Cannot divide by zero, aborting."
 msgstr "Δεν είναι δυνατή η διαίρεση με το μηδέν, ματαίωση."
 
 #: src/core/arithm.c:175 src/core/arithm.c:287 src/core/arithm.c:365
-#: src/filters/fft.c:496 src/gui/linear_match.c:46 src/gui/linear_match.c:94
+#: src/filters/fft.c:496 src/gui/linear_match.c:51 src/gui/linear_match.c:100
 msgid "Images must have same dimensions.\n"
 msgstr "Οι εικόνες πρέπει να έχουν τις ίδιες διαστάσεις\n"
 
@@ -10145,11 +10145,11 @@ msgstr ""
 "Η καρτέλα του RGB χρησιμοποιείται μόνο για απεικόνιση. Οι λειτουργίες πρέπει "
 "να γίνουν στα κανάλια R, G και Β"
 
-#: src/gui/linear_match.c:56 src/gui/linear_match.c:101
+#: src/gui/linear_match.c:61 src/gui/linear_match.c:107
 msgid "Linear fit functions:\n"
 msgstr "Συναρτήσεις γραμμικής προσαρμογής:\n"
 
-#: src/gui/linear_match.c:218
+#: src/gui/linear_match.c:225
 msgid "Cannot compute linear coefficients."
 msgstr "Δεν ήταν δυνατός ο υπολογισμός των γραμμικών συντελεστών."
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-19 21:10+0100\n"
+"POT-Creation-Date: 2022-02-21 10:06+0100\n"
 "PO-Revision-Date: 2022-01-23 13:14+0100\n"
 "Last-Translator: Stefan Beck <astro@cometchaser.de>\n"
 "Language-Team: \n"
@@ -1178,7 +1178,7 @@ msgstr "Phase auswählen"
 msgid "Inverse Transform"
 msgstr "Inverse Transformation"
 
-#: src/gui/siril3.glade:6373 src/gui/linear_match.c:210
+#: src/gui/siril3.glade:6373 src/gui/linear_match.c:217
 msgid "Linear Match"
 msgstr "Lineare Übereinstimmung"
 
@@ -6628,7 +6628,7 @@ msgid "Cannot divide by zero, aborting."
 msgstr "Division durch Null, Abbruch."
 
 #: src/core/arithm.c:175 src/core/arithm.c:287 src/core/arithm.c:365
-#: src/filters/fft.c:496 src/gui/linear_match.c:46 src/gui/linear_match.c:94
+#: src/filters/fft.c:496 src/gui/linear_match.c:51 src/gui/linear_match.c:100
 msgid "Images must have same dimensions.\n"
 msgstr "Bilder müssen die gleiche Größe haben.\n"
 
@@ -10056,11 +10056,11 @@ msgstr ""
 "Die RGB-Registerkarte ist nur zur Anzeige. Bearbeitung muss im Rot,Grün oder "
 "Blaukanal erfolgen"
 
-#: src/gui/linear_match.c:56 src/gui/linear_match.c:101
+#: src/gui/linear_match.c:61 src/gui/linear_match.c:107
 msgid "Linear fit functions:\n"
 msgstr "Lineares Anpassungs-Clipping:\n"
 
-#: src/gui/linear_match.c:218
+#: src/gui/linear_match.c:225
 msgid "Cannot compute linear coefficients."
 msgstr "Lineare Koeffizienten können nicht berechnet werden."
 

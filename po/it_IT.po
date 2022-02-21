@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-19 21:10+0100\n"
+"POT-Creation-Date: 2022-02-21 10:06+0100\n"
 "PO-Revision-Date: 2021-11-18 23:48+0100\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
 "Language-Team: Italian <sonia@zonia3000.net>\n"
@@ -1180,7 +1180,7 @@ msgstr "Seleziona la Fase"
 msgid "Inverse Transform"
 msgstr "Trasformazione inversa"
 
-#: src/gui/siril3.glade:6373 src/gui/linear_match.c:210
+#: src/gui/siril3.glade:6373 src/gui/linear_match.c:217
 msgid "Linear Match"
 msgstr "Corrispondenza lineare"
 
@@ -6622,7 +6622,7 @@ msgid "Cannot divide by zero, aborting."
 msgstr "Divisione per zero non permessa, interruzione."
 
 #: src/core/arithm.c:175 src/core/arithm.c:287 src/core/arithm.c:365
-#: src/filters/fft.c:496 src/gui/linear_match.c:46 src/gui/linear_match.c:94
+#: src/filters/fft.c:496 src/gui/linear_match.c:51 src/gui/linear_match.c:100
 msgid "Images must have same dimensions.\n"
 msgstr "Le immagini devono avere le stesse dimensioni.\n"
 
@@ -10012,11 +10012,11 @@ msgstr ""
 "Il tab RGB è usato solo per la visualizzazione. le operazioni devono essere "
 "effettuate sui canali Rosso, Verde e Blu"
 
-#: src/gui/linear_match.c:56 src/gui/linear_match.c:101
+#: src/gui/linear_match.c:61 src/gui/linear_match.c:107
 msgid "Linear fit functions:\n"
 msgstr "Funzioni di fit lineare:\n"
 
-#: src/gui/linear_match.c:218
+#: src/gui/linear_match.c:225
 msgid "Cannot compute linear coefficients."
 msgstr "Non riesco ad elaborare i coefficienti lineari."
 
