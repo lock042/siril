@@ -4,11 +4,13 @@
 #include <glib.h>
 #include "registration/registration.h"
 
-void livestacking_display(const char *str);
+void livestacking_display(gchar *str, gboolean free_after_display);
 void livestacking_display_config(gboolean use_dark, transformation_type regtype);
 void livestacking_update_number_of_images(int nb, double total_exposure);
 
 void update_debayer_button_status(gboolean new_state);
 gboolean livestacking_first_result_idle(gpointer p);
+
+void enable_debayer();
 
 #endif

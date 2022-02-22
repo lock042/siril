@@ -40,6 +40,7 @@
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "gui/image_display.h"
+#include "gui/callbacks.h"
 #include "gui.h"
 
 /* hard-coded configuration */
@@ -157,10 +158,10 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 					strncmp(filename, "result_live_stack", 17)) {
 				if (wait_for_file_to_be_written(filename)) {
 					gchar *str = g_strdup_printf(_("Could not open file: %s"), filename);
-					livestacking_display(str);
-					g_free(str);
+					livestacking_display(str, TRUE);
 					return;
 				}
+
 				if (!single_image_is_loaded())
 					open_single_image(filename);
 				g_async_queue_push(new_files_queue, filename);
@@ -172,8 +173,11 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 
 /* for fullscreen, see livestacking_action_activate() in core/siril_actions.c */
 void on_livestacking_start() {
-	livestacking_display(_("Starting live stacking"));
+	livestacking_display(_("Starting live stacking"), FALSE);
 	com.pref.force_to_16bit = TRUE;	// otherwise we'll register and stack different types of images
+	enable_debayer();
+	gui.rendering_mode = STF_DISPLAY;
+	set_display_mode();
 	/* start monitoring CWD */
 	GFile *cwd = g_file_new_for_path(com.wd);
 	GError *err = NULL;
@@ -189,7 +193,7 @@ void on_livestacking_start() {
 	livestacking_display_config(prepro != NULL, REGISTRATION_TYPE);
 
 	g_signal_connect(G_OBJECT(dirmon), "changed", G_CALLBACK(file_changed), NULL);
-	livestacking_display(_("Live stacking waiting for files"));
+	livestacking_display(_("Live stacking waiting for files"), FALSE);
 
 	do_links = test_if_symlink_is_ok();
 	reserve_thread();	// generic function fails otherwise
@@ -335,7 +339,7 @@ static void init_preprocessing() {
 			if (!readfits(filename, prepro->dark, NULL, FALSE)) {
 				prepro->use_dark = TRUE;
 			} else {
-				livestacking_display(_("NOT USING DARK: cannot open the file"));
+				livestacking_display(_("NOT USING DARK: cannot open the file"), FALSE);
 				free(prepro->dark);
 				gtk_entry_set_text(entry, "");
 				prepro->use_dark = FALSE;
@@ -376,10 +380,10 @@ static void init_preprocessing() {
 	}
 	if (prepro) {
 		char *msg = siril_log_message(_("Preprocessing is ready\n"));
-		livestacking_display(msg);
+		livestacking_display(msg, FALSE);
 	} else {
 		char *msg = siril_log_message(_("Preprocessing not used\n"));
-		livestacking_display(msg);
+		livestacking_display(msg, FALSE);
 	}
 }
 
@@ -398,7 +402,7 @@ static int preprocess_image(char *filename, char *target) {
 	clearfits(&fit);
 	if (ret) {
 		char *msg = siril_log_message(_("preprocessing failed\n"));
-		livestacking_display(msg);
+		livestacking_display(msg, FALSE);
 	}
 	return ret;
 }
@@ -418,7 +422,7 @@ static gpointer live_stacker(gpointer arg) {
 		if (use_demosaicing == BOOL_NOT_SET) {
 			fits fit = { 0 };
 			if (read_fits_metadata_from_path(filename, &fit)) {
-				livestacking_display(_("Failed to open the first image\n"));
+				livestacking_display(_("Failed to open the first image\n"), FALSE);
 				clearfits(&fit);
 				break;
 			}
@@ -458,7 +462,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 
 		if (target && symlink_uniq_file(filename, target, do_links)) {
-			livestacking_display(_("Failed to rename or make a symbolic link to the input file"));
+			livestacking_display(_("Failed to rename or make a symbolic link to the input file"), FALSE);
 			break;
 		}
 		g_free(filename);
@@ -477,7 +481,7 @@ static gpointer live_stacker(gpointer arg) {
 		if (first_loop) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
-				livestacking_display(_("Waiting for second image"));
+				livestacking_display(_("Waiting for second image"), FALSE);
 				livestacking_update_number_of_images(1, gfit.exposure);
 				continue;
 			}
@@ -496,7 +500,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		
 		if (seq_check_basic_data(&seq, FALSE) < 0) {
-			livestacking_display(_("Failed to read the sequence, aborting."));
+			livestacking_display(_("Failed to read the sequence, aborting."), FALSE);
 			break;
 		}
 		if (seq_rx <= 0) {
@@ -504,7 +508,7 @@ static gpointer live_stacker(gpointer arg) {
 			seq_ry = seq.ry;
 			if (prepro && prepro->dark && (prepro->dark->rx != seq_rx || prepro->dark->ry != seq_ry)) {
 				char *msg = siril_log_color_message(_("Dark image is not the same size, not using (%dx%d)\n"), "salmon", prepro->dark->rx, prepro->dark->ry);
-				livestacking_display(msg);
+				livestacking_display(msg, FALSE);
 				clearfits(prepro->dark);
 				free(prepro);
 				prepro = NULL;
@@ -512,7 +516,7 @@ static gpointer live_stacker(gpointer arg) {
 		} else {
 			if (seq_rx != seq.rx || seq_ry != seq.ry) {
 				char *msg = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
-				livestacking_display(msg);
+				livestacking_display(msg, FALSE);
 				break;
 			}
 		}
@@ -558,6 +562,7 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.output_norm = FALSE;
 		stackparam.use_32bit_output = FALSE;
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
+		stackparam.apply_nbstack_weights = TRUE;
 
 		main_stack(&stackparam);
 
@@ -570,8 +575,7 @@ static gpointer live_stacker(gpointer arg) {
 
 		if (retval) {
 			gchar *str = g_strdup_printf(_("Stacking failed for image %d"), index);
-			livestacking_display(str);
-			g_free(str);
+			livestacking_display(str, TRUE);
 			break;
 		}
 		//clear_stars_list();
@@ -581,7 +585,7 @@ static gpointer live_stacker(gpointer arg) {
 		if (savefits(result_filename, &gfit)) {
 			char *msg = siril_log_color_message(_("Could not save the stacking result %s, aborting\n"),
 					"red", result_filename);
-			livestacking_display(msg);
+			livestacking_display(msg, FALSE);
 			break;
 		}
 
@@ -598,8 +602,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		g_free(result_filename);
 		gchar *str = g_strdup_printf(_("Stacked image %d"), index);
-		livestacking_display(str);
-		g_free(str);
+		livestacking_display(str, TRUE);
 
 		index++;
 		number_of_images_stacked++;
