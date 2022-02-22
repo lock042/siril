@@ -113,6 +113,8 @@ src_files = [
   'io/single_image.c',
   
   'livestacking/livestacking.c',
+  'livestacking/gui.c',
+  'livestacking/noise.c',
   
   'opencv/opencv.cpp',
   'opencv/opencv.h',

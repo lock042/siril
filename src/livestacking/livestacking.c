@@ -39,9 +39,11 @@
 /* ******************* */
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
+#include "algos/noise.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui.h"
+#include "noise.h"
 
 /* hard-coded configuration */
 #define REGISTRATION_TYPE SIMILARITY_TRANSFORMATION
@@ -482,7 +484,7 @@ static gpointer live_stacker(gpointer arg) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
-				livestacking_update_number_of_images(1, gfit.exposure);
+				livestacking_update_number_of_images(1, gfit.exposure, -1.0);
 				continue;
 			}
 			first_loop = FALSE;
@@ -579,9 +581,8 @@ static gpointer live_stacker(gpointer arg) {
 			break;
 		}
 		//clear_stars_list();
+		bgnoise_async();
 
-		//struct noise_data noise_args = { .fit = &gfit, .verbose = FALSE, .use_idle = FALSE };
-		//noise(&noise_args);
 		if (savefits(result_filename, &gfit)) {
 			char *msg = siril_log_color_message(_("Could not save the stacking result %s, aborting\n"),
 					"red", result_filename);
@@ -606,7 +607,8 @@ static gpointer live_stacker(gpointer arg) {
 
 		index++;
 		number_of_images_stacked++;
-		livestacking_update_number_of_images(number_of_images_stacked, number_of_images_stacked * gfit.exposure);
+		double noise = bgnoise_await();
+		livestacking_update_number_of_images(number_of_images_stacked, number_of_images_stacked * gfit.exposure, noise);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");

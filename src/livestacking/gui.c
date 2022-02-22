@@ -31,7 +31,7 @@ void set_label(GtkLabel *label, gchar *text, gboolean free_after_display) {
 	gdk_threads_add_idle(label_update_idle, arg);
 }
 
-void livestacking_display(char *str, gboolean free_after_display) {
+void livestacking_display(gchar *str, gboolean free_after_display) {
 	static GtkLabel *label = NULL;
 	if (!label)
 		label = GTK_LABEL(lookup_widget("livest_label1"));
@@ -47,7 +47,7 @@ void livestacking_display_config(gboolean use_dark, transformation_type regtype)
 	g_free(txt);
 }
 
-void livestacking_update_number_of_images(int nb, double total_exposure) {
+void livestacking_update_number_of_images(int nb, double total_exposure, double noise) {
 	static GtkLabel *label = NULL;
 	if (!label)
 		label = GTK_LABEL(lookup_widget("ls_cumul_label"));
@@ -61,7 +61,10 @@ void livestacking_update_number_of_images(int nb, double total_exposure) {
 		time = secs;
 		unit = "seconds";
 	}
-	gchar *txt = g_strdup_printf("%d images stacked, %d %s of cumulated exposure", nb, time, unit);
+	gchar *txt;
+	if (noise > 0.0)
+		txt = g_strdup_printf("%d images stacked, %d %s of cumulated exposure, noise: %0.3f", nb, time, unit, noise);
+	else txt = g_strdup_printf("%d images stacked, %d %s of cumulated exposure", nb, time, unit);
 	set_label(label, txt, TRUE);
 }
 
