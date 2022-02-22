@@ -7731,7 +7731,6 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <property name="can-focus">True</property>
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
-                <property name="expanded">True</property>
                 <child>
                   <object class="GtkCheckButton" id="checkButton_IPS_manual">
                     <property name="label" translatable="yes">Manual detection</property>

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-19 21:10+0100\n"
+"POT-Creation-Date: 2022-02-21 10:06+0100\n"
 "PO-Revision-Date: 2021-09-26 15:27+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1089,7 +1089,7 @@ msgstr ""
 msgid "Inverse Transform"
 msgstr "逆変換"
 
-#: src/gui/siril3.glade:6373 src/gui/linear_match.c:210
+#: src/gui/siril3.glade:6373 src/gui/linear_match.c:217
 msgid "Linear Match"
 msgstr "Linear Match"
 
@@ -6018,7 +6018,7 @@ msgid "Cannot divide by zero, aborting."
 msgstr ""
 
 #: src/core/arithm.c:175 src/core/arithm.c:287 src/core/arithm.c:365
-#: src/filters/fft.c:496 src/gui/linear_match.c:46 src/gui/linear_match.c:94
+#: src/filters/fft.c:496 src/gui/linear_match.c:51 src/gui/linear_match.c:100
 msgid "Images must have same dimensions.\n"
 msgstr ""
 
@@ -8815,11 +8815,11 @@ msgstr ""
 "RGB チャンネルは可視化だけの為に用いられる. 操作は赤、緑、及び青チャンネル"
 "夫々に対し実行して下さい"
 
-#: src/gui/linear_match.c:56 src/gui/linear_match.c:101
+#: src/gui/linear_match.c:61 src/gui/linear_match.c:107
 msgid "Linear fit functions:\n"
 msgstr ""
 
-#: src/gui/linear_match.c:218
+#: src/gui/linear_match.c:225
 msgid "Cannot compute linear coefficients."
 msgstr ""
 
