@@ -70,28 +70,29 @@ struct normalization_coeff {
 struct stacking_args {
 	stack_method method;
 	sequence *seq;
-	int ref_image;	// takes precedences over seq->reference_image which may not be applicable
+	int ref_image; // takes precedence over seq->reference_image which may not be applicable
 	seq_image_filter filtering_criterion;
 	double filtering_parameter;
-	int nb_images_to_stack; // calculated from the above, for display purposes
-	int *image_indices;	// conversion between selected image indices and sequence image indices
-	char *description;	// description of the filtering
-	const char *output_filename;	// used in the idle function only
-	gboolean output_overwrite;	// used in the idle function only
+	int nb_images_to_stack; 	/* calculated from the above */
+	int *image_indices;		/* mapping between selected and sequence image indices */
+	char *description;		/* description of the filtering */
+	const char *output_filename;	/* used in the idle function only */
+	gboolean output_overwrite;	/* used in the idle function only */
 	struct timeval t_start;
 	int retval;
-	float sig[2];		/* low and high sigma rejection or GESTD parameters */
-	float *critical_value; /* index of critical_values for GESTD */
+	float sig[2];			/* low and high sigma rejection or GESTD parameters */
+	float *critical_value;		/* index of critical_values for GESTD */
 	rejection type_of_rejection;	/* type of rejection */
 	normalization normalize;	/* type of normalization */
 	norm_coeff coeff;		/* normalization data */
 	gboolean force_norm;		/* TRUE = force normalization */
 	gboolean output_norm;		/* normalize final image to the [0, 1] range */
 	gboolean use_32bit_output;	/* output to 32 bit float */
-	int reglayer;		/* layer used for registration data */
+	int reglayer;			/* layer used for registration data */
 
-	gboolean apply_weight;			/* enable weights */
-	double *weights; 				/* computed weights for each (layer,image)*/
+	gboolean apply_noise_weights;	/* enable weights */
+	gboolean apply_nbstack_weights;	/* enable weights */
+	double *weights; 		/* computed weights for each (layer, image)*/
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
 	float (*mad_calculator)(const WORD *, const size_t, const double, gboolean) ; // internal, for ushort
@@ -103,7 +104,7 @@ struct stacking_configuration {
 	gchar *seqfile;
 	gchar *result_file;
 	stack_method method;
-	rejection type_of_rejection;	/* type of rejection */
+	rejection type_of_rejection;
 	double sig[2];
 	gboolean force_no_norm;
 	gboolean output_norm;
@@ -111,7 +112,8 @@ struct stacking_configuration {
 	int number_of_loaded_sequences;
 	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p; // on if >0
 	gboolean filter_included;
-	gboolean apply_weight;
+	gboolean apply_noise_weights;
+	gboolean apply_nbstack_weights;
 };
 
 

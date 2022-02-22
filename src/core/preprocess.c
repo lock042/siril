@@ -453,7 +453,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	}
 }
 
-/********** SINGLE IMAGE ************/
+/********** SINGLE IMAGE (from com.uniq) ************/
 int preprocess_single_image(struct preprocessing_data *args) {
 	gchar *msg;
 	fits fit = { 0 };
@@ -500,6 +500,39 @@ int preprocess_single_image(struct preprocessing_data *args) {
 
 	return ret;
 }
+
+/* single image preprocess, headless */
+int preprocess_given_image(char *file, struct preprocessing_data *args) {
+	fits fit = { 0 };
+	int ret = 0;
+
+	siril_log_message(_("Pre-processing image %s\n"), file);
+	struct generic_seq_args generic = { .user = args };
+
+	if (readfits(file, &fit, NULL, !com.pref.force_to_16bit)) {
+		siril_log_message(_("Could not load the image, aborting.\n"));
+		return 1;
+	}
+
+	ret = prepro_prepare_hook(&generic);
+	if (!ret)
+		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+	clear_preprocessing_data(args);
+
+	if (!ret) {
+		gchar *filename = g_path_get_basename(file);
+		char *filename_noext = remove_ext_from_filename(filename);
+		g_free(filename);
+		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, com.pref.ext);
+		siril_log_message(_("Saving image %s\n"), filename_noext);
+		ret = savefits(dest_filename, &fit);
+		free(filename_noext);
+		g_free(dest_filename);
+	}
+	clearfits(&fit);
+	return ret;
+}
+
 
 int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// try to find an occurence of *

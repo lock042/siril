@@ -214,7 +214,7 @@ static void start_stacking() {
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
-	stackparam.apply_weight = gtk_toggle_button_get_active(weight_button) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_noise_weights = gtk_toggle_button_get_active(weight_button) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 
 	stackparam.use_32bit_output = evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);

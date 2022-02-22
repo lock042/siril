@@ -630,11 +630,11 @@ static int siril_config_write_file(config_t *config, const char *filename) {
  */
 
 int writeinitfile() {
+	if (!com.initfile)
+		return 1;
 	config_t config;
-	config_setting_t *root;
-
 	config_init(&config);
-	root = config_root_setting(&config);
+	config_setting_t *root = config_root_setting(&config);
 
 	_save_wd(&config, root);
 	_save_libraw(&config, root);
@@ -673,17 +673,22 @@ int checkinitfile() {
 	/* no file given on command line, set initfile to default location */
 	gchar *pathname = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
 	gchar *config_file = g_build_filename(pathname, CONFIG_FILE, NULL);
+	gboolean config_dir_failed = FALSE;
 	if (!g_file_test(config_file, G_FILE_TEST_EXISTS)) {
 		if (g_mkdir_with_parents(pathname, 0755) == 0) {
-			g_fprintf(stderr, "Created config dir %s\n", pathname);
+			g_fprintf(stdout, "Created config dir %s\n", pathname);
+			g_free(pathname);
 		} else {
-			g_fprintf(stderr, "Failed to create config dir %s!\n", pathname);
+			g_fprintf(stderr, "Failed to create config dir %s\n", pathname);
 			g_free(pathname);
 			g_free(config_file);
-			return 1;
+			config_file = NULL;
+			config_dir_failed = TRUE;
+			if (com.headless)
+				g_fprintf(stderr, "Continuing without configuration file\n");
+			else return 1;
 		}
 	}
-	g_free(pathname);
 
 	com.initfile = config_file;
 
@@ -691,7 +696,8 @@ int checkinitfile() {
 		/* init file does not exist, so we create it */
 		initialize_default_preferences();
 		com.wd = g_strdup(siril_get_startup_dir());
-		return writeinitfile();
+		if (!config_dir_failed)
+			return writeinitfile();
 	}
 	return 0;
 }
