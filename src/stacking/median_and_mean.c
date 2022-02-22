@@ -91,6 +91,12 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	int status, nb_frames = args->nb_images_to_stack;
 
 	if (args->seq->type == SEQ_REGULAR) {
+		if (args->apply_nbstack_weights) {
+			int nb_frames = args->nb_images_to_stack;
+			int nb_layers = args->seq->nb_layers;
+			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+		}
+
 		for (int i = 0; i < nb_frames; ++i) {
 			long oldnaxes[3] = { 0 };
 			int oldbitpix = 0, oldnaxis = -1;
@@ -166,6 +172,17 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			/* We copy metadata from reference to the final fit */
 			if (image_index == args->ref_image)
 				import_metadata_from_fitsfile(args->seq->fptr[image_index], fit);
+
+			if (args->apply_nbstack_weights) {
+				int nb_layers = args->seq->nb_layers;
+				double weight = (double)stack_count;
+				siril_debug_print("weight for image %d: %d\n", i, stack_count);
+				args->weights[i] = weight;
+				if (nb_layers > 1) {
+					args->weights[nb_frames + i] = weight;
+					args->weights[nb_frames * 2 + i] = weight;
+				}
+			}
 		}
 
 		if (naxes[2] == 0)
@@ -811,7 +828,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
-			if (args->apply_weight) {
+			if (args->apply_noise_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				WORD pmin = 65535, pmax = 0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -843,7 +860,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
-			if (args->apply_weight) {
+			if (args->apply_noise_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				float pmin = 10000.0, pmax = -10000.0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -881,7 +898,7 @@ int stack_median(struct stacking_args *args) {
 	return stack_mean_or_median(args, FALSE);
 }
 
-static int compute_weights(struct stacking_args *args) {
+static int compute_noise_weights(struct stacking_args *args) {
 	int nb_frames = args->nb_images_to_stack;
 	int nb_layers = args->seq->nb_layers;
 
@@ -1169,9 +1186,9 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		args->mad_calculator = siril_stats_ushort_mad;
 	}
 
-	if (args->apply_weight) {
-		siril_log_message(_("Computing weights...\n"));
-		retval = compute_weights(args);
+	if (args->apply_noise_weights) {
+		siril_log_message(_("Computing weights based on image noise...\n"));
+		retval = compute_noise_weights(args);
 		if(retval) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_close;

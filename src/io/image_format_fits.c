@@ -254,7 +254,7 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
 	if (!status && 1.0 != scale) {
 		siril_log_message(_("Loaded FITS file has "
-				"a BSCALE different than 1 (%f)\n"), scale);
+					"a BSCALE different than 1 (%f)\n"), scale);
 		status = 0;
 		/* We reset the scaling factors as we don't use it */
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
@@ -367,7 +367,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TUSHORT, "GAIN", &(fit->key_gain), NULL, &status);  // Gain setting from camera
 
-    __tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->key_offset); // Offset setting from camera
+	__tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->key_offset); // Offset setting from camera
 	/*******************************************************************
 	 * ******************* PLATE SOLVING KEYWORDS **********************
 	 * ****************************************************************/

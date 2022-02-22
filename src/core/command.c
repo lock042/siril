@@ -3371,14 +3371,27 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			arg->force_no_norm = TRUE;
 		else if (!strcmp(current, "-output_norm")) {
 			arg->output_norm = TRUE;
-		} else if (!strcmp(current, "-weighted")) {
+		} else if (!strcmp(current, "-weight_from_noise")) {
 			if (arg->method != stack_mean_with_rejection) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else{
-				arg->apply_weight = TRUE;
+			} else if (arg->apply_nbstack_weights) {
+				siril_log_message(_("Only one weighting method can be used\n"));
+			} else {
+				arg->apply_noise_weights = TRUE;
 			}
+		} else if (!strcmp(current, "-weight_from_nbstack")) {
+			if (arg->method != stack_mean_with_rejection) {
+				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
+			} else if (arg->apply_noise_weights) {
+				siril_log_message(_("Only one weighting method can be used\n"));
+			} else {
+				arg->apply_nbstack_weights = TRUE;
+			}
+
 		} else if (g_str_has_prefix(current, "-norm=")) {
 			if (!norm_allowed) {
 				siril_log_message(_("Normalization options are not allowed in this context, ignoring.\n"));
@@ -3529,7 +3542,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.force_norm = FALSE;
 		args.output_norm = arg->output_norm;
 		args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
-		args.apply_weight = arg->apply_weight;
+		args.apply_noise_weights = arg->apply_noise_weights;
+		args.apply_nbstack_weights = arg->apply_nbstack_weights;
 
 		// manage filters
 		if (convert_stack_data_to_filter(arg, &args) ||
@@ -3628,7 +3642,8 @@ int process_stackall(int nb) {
 	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
-	arg->apply_weight = FALSE;
+	arg->apply_noise_weights = FALSE;
+	arg->apply_noise_weights = FALSE;
 
 	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]]
 	// stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]
@@ -3741,16 +3756,17 @@ int process_stackone(int nb) {
 	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
-	arg->apply_weight = FALSE;
+	arg->apply_noise_weights = FALSE;
+	arg->apply_noise_weights = FALSE;
 
 	sequence *seq = load_sequence(word[1], &arg->seqfile);
 	if (!seq)
 		goto failure;
 	free_sequence(seq, TRUE);
 
-	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] -out=result_filename
-	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] -out=result_filename
-	// stack seqfilename { rej | mean } sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted] -out=result_filename
+	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-out=result_filename]
+	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] [-out=result_filename]
+	// stack seqfilename { rej | mean } [type_of_rejection] sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted] [-out=result_filename]
 	if (!word[2]) {
 		arg->method = stack_summing_generic;
 	} else {
@@ -3766,7 +3782,7 @@ int process_stackone(int nb) {
 			arg->method = stack_median;
 			allow_norm = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
-			int shift = 1;
+			int shift = 1, base_shift = 5;
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
 				arg->type_of_rejection = PERCENTILE;
 			} else if (!strcmp(word[3], "s") || !strcmp(word[3], "sigma")) {
@@ -3781,14 +3797,23 @@ int process_stackone(int nb) {
 				arg->type_of_rejection = WINSORIZED;
 			} else if (!strcmp(word[3], "g") || !strcmp(word[3], "generalized")) {
 				arg->type_of_rejection = GESDT;
+			} else if (!strcmp(word[3], "n") || !strcmp(word[3], "none")) {
+				arg->type_of_rejection = NO_REJEC;
 			} else {
 				arg->type_of_rejection = WINSORIZED;
 				shift = 0;
 			}
-			if (!word[3 + shift] || !word[4 + shift] || (arg->sig[0] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0
-					|| (arg->sig[1] = g_ascii_strtod(word[4 + shift], NULL)) < 0.0) {
-				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
-				goto failure;
+			if (!word[3 + shift] || !word[4 + shift] ||
+					!string_is_a_number(word[3 + shift]) ||
+					!string_is_a_number(word[4 + shift]) ||
+					(arg->sig[0] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0 ||
+					(arg->sig[1] = g_ascii_strtod(word[4 + shift], NULL)) < 0.0) {
+				if (arg->type_of_rejection != NO_REJEC) {
+					siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
+					goto failure;
+				} else {
+					base_shift = 3;
+				}
 			}
 			if (((arg->type_of_rejection == GESDT))
 					&& (arg->sig[0] > 1.0 || (arg->sig[1] > 1.0))) {
@@ -3801,7 +3826,7 @@ int process_stackone(int nb) {
 				goto failure;
 			}
 			arg->method = stack_mean_with_rejection;
-			start_arg_opt = 5 + shift;
+			start_arg_opt = base_shift + shift;
 			allow_norm = TRUE;
 		}
 		else {
