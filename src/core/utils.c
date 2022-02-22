@@ -1297,7 +1297,7 @@ void remove_spaces_from_str(gchar *s) {
 }
 
 gboolean string_is_a_number(char *str) {
-	if (str[0] != '-' && str[0] != '.' && str[0] < '0' || str[0] > '9')
+	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
 		return FALSE;
 	int i = 0;
 	gboolean had_a_dot = FALSE;
