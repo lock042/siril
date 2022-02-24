@@ -224,8 +224,8 @@ siril-win64:
     when: always
     expire_in: 2 hours
     paths:
-      - /builds/free-astro/
-      - subprojects/librtprocess/_build
+      - meson-logs/
+      - subprojects/librtprocess/
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}
