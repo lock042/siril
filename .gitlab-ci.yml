@@ -224,6 +224,7 @@ siril-win64:
     when: always
     expire_in: 2 hours
     paths:
+      - /builds/free-astro/
       - subprojects/librtprocess/_build
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
