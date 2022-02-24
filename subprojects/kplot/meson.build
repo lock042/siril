@@ -26,7 +26,7 @@ cc = meson.get_compiler('c')
 # Dependencies
 
 ## Core dependencies
-m_dep = cc.find_library('m', required : true)
+m_dep = cc.find_library('m', required : false)
 cairo_dep = dependency('cairo', required : true)
 
 ################################################################################
