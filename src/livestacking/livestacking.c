@@ -163,9 +163,6 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 					livestacking_display(str, TRUE);
 					return;
 				}
-
-				if (!single_image_is_loaded())
-					open_single_image(filename);
 				g_async_queue_push(new_files_queue, filename);
 			}
 			else g_free(filename);
@@ -175,9 +172,10 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 
 /* for fullscreen, see livestacking_action_activate() in core/siril_actions.c */
 void on_livestacking_start() {
+	if (live_stacker_thread)
+		return;
 	livestacking_display(_("Starting live stacking"), FALSE);
 	com.pref.force_to_16bit = TRUE;	// otherwise we'll register and stack different types of images
-	enable_debayer();
 	gui.rendering_mode = STF_DISPLAY;
 	set_display_mode();
 	/* start monitoring CWD */
@@ -198,7 +196,7 @@ void on_livestacking_start() {
 	livestacking_display(_("Live stacking waiting for files"), FALSE);
 
 	do_links = test_if_symlink_is_ok();
-	reserve_thread();	// generic function fails otherwise
+	reserve_thread();	// hack: generic function fails otherwise
 
 	new_files_queue = g_async_queue_new();
 	live_stacker_thread = g_thread_new("live stacker", live_stacker, NULL);
@@ -421,7 +419,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 
 		/* init demosaicing (check if the incoming file is CFA) */
-		if (use_demosaicing == BOOL_NOT_SET) {
+		if (use_demosaicing == BOOL_NOT_SET) {	// another kind of first_loop
 			fits fit = { 0 };
 			if (read_fits_metadata_from_path(filename, &fit)) {
 				livestacking_display(_("Failed to open the first image\n"), FALSE);
@@ -433,11 +431,23 @@ static gpointer live_stacker(gpointer arg) {
 			if (prepro)
 				prepro->debayer = is_CFA;
 
+			enable_debayer(is_CFA);
 			clearfits(&fit);
 			update_debayer_button_status(is_CFA);
 			if (is_CFA)
 				siril_log_message(_("live stacking will debayer images\n"));
 			else siril_log_message(_("live stacking will not debayer images\n"));
+
+			/* we want to load the image while avoiding GTK+ calls
+			 * from this thread, setting com.script is a hack to
+			 * avoid this, but this doesn't display the loaded
+			 * image, so we still need the extra idle in
+			 * complete_image_loading
+			 */
+			com.script = TRUE;
+			open_single_image(filename);
+			com.script = FALSE;
+			complete_image_loading();
 		}
 
 		siril_debug_print("Adding file to input sequence\n");

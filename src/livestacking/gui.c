@@ -3,6 +3,7 @@
 #include <gtk/gtk.h>
 #include "gui/utils.h"
 #include "gui/callbacks.h"
+#include "gui/image_display.h"
 #include "core/proto.h"
 
 /* for fullscreen and window management on activation,
@@ -42,7 +43,7 @@ void livestacking_display_config(gboolean use_dark, transformation_type regtype)
 	static GtkLabel *conf_label = NULL;
 	if (!conf_label)
 		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
-	gchar * txt = g_strdup_printf("%s dark and cosmetic correction, registering with %s transformation, stacking with sum", use_dark ? "Using" : "Not using", describe_transformation_type(regtype));
+	gchar * txt = g_strdup_printf("%s dark and cosmetic correction, registering with %s transformation, stacking with weighted mean", use_dark ? "Using" : "Not using", describe_transformation_type(regtype));
 	gtk_label_set_text(conf_label, txt);
 	g_free(txt);
 }
@@ -102,17 +103,25 @@ void update_debayer_button_status(gboolean new_state) {
 
 gboolean livestacking_first_result_idle(gpointer p) {
 	set_precision_switch(); // set precision on screen
-	close_tab();	// b&w to rgb gui
 	return FALSE;
 }
 
-static gboolean enable_debayer_idle(gpointer _) {
+static gboolean enable_debayer_idle(gpointer arg) {
 	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-	gtk_toggle_button_set_active(button, TRUE);
+	gtk_toggle_button_set_active(button, GPOINTER_TO_INT(arg));
 	return FALSE;
 }
 
-void enable_debayer() {
-	gdk_threads_add_idle(enable_debayer_idle, NULL);
+void enable_debayer(gboolean arg) {
+	gdk_threads_add_idle(enable_debayer_idle, GINT_TO_POINTER(arg));
+}
+
+static gboolean end_image_loading(gpointer arg) {
+	redraw(REMAP_ALL);
+	return FALSE;
+}
+
+void complete_image_loading() {
+	execute_idle_and_wait_for_it(end_image_loading, NULL);
 }
 

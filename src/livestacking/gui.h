@@ -11,6 +11,8 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 void update_debayer_button_status(gboolean new_state);
 gboolean livestacking_first_result_idle(gpointer p);
 
-void enable_debayer();
+void enable_debayer(gboolean arg);
+
+void complete_image_loading();
 
 #endif
