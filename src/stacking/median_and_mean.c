@@ -828,7 +828,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
-			if (args->apply_noise_weights) {
+			if (args->apply_noise_weights || args->apply_nbstack_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				WORD pmin = 65535, pmax = 0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -860,7 +860,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
-			if (args->apply_noise_weights) {
+			if (args->apply_noise_weights || args->apply_nbstack_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				float pmin = 10000.0, pmax = -10000.0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
