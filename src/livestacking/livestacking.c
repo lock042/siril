@@ -47,7 +47,7 @@
 
 /* hard-coded configuration */
 #define REGISTRATION_TYPE SIMILARITY_TRANSFORMATION
-#define REGISTRATION_INTERPOLATION OPENCV_CUBIC
+#define REGISTRATION_INTERPOLATION OPENCV_AREA
 /****************************/
 
 
@@ -120,7 +120,7 @@ static int wait_for_file_to_be_written(const gchar *filename) {
 	guint64 last_size = 0;
 	GFile *fd = g_file_new_for_path(filename);
 	for (iter = 1; iter < WAIT_FILE_WRITTEN_ITERS; iter++) {
-		usleep(WAIT_FILE_WRITTEN_US);
+		g_usleep(WAIT_FILE_WRITTEN_US);
 #ifdef _WIN32
 		GFileInputStream *stream;
 		if ((stream = g_file_read(fd, NULL, NULL))) {
