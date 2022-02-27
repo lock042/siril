@@ -71,7 +71,7 @@ static float evaluateNoiseOfCalibratedImage(fits *fit, fits *dark,
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		/* STATS_SIGMEAN computes mean and normvalue */
-		imstats *stat = statistics(NULL, -1, &fit_tmp, chan, &area, STATS_SIGMEAN, FALSE);
+		imstats *stat = statistics(NULL, -1, &fit_tmp, chan, &area, STATS_SIGMEAN, SINGLE_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return -1.0;
@@ -298,7 +298,7 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 
 			rectangle selection = { startx, starty, width - 1 - startx, height - 1 - starty };
 
-			imstats *stat = statistics(NULL, -1, prepro->flat, RLAYER, &selection, STATS_BASIC, FALSE);
+			imstats *stat = statistics(NULL, -1, prepro->flat, RLAYER, &selection, STATS_BASIC, MULTI_THREADED);
 			if (!stat) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
 				return 1;

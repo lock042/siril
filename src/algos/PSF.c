@@ -557,7 +557,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_ph
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, TRUE);
 	if (result == NULL) {
 		*roundness = 0.0;
 		return 0.0;
@@ -575,10 +575,10 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
  * Return value is a structure, type psf_star, that has to be freed after use.
  */
 psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
-		gboolean for_photometry, gboolean force_radius, gboolean verbose, gboolean multithread_stat) {
+		gboolean for_photometry, gboolean force_radius, gboolean verbose) {
 	int stridefrom, i, j;
 	psf_star *result;
-	double bg = background(fit, layer, area, multithread_stat);
+	double bg = background(fit, layer, area, SINGLE_THREADED);
 
 	// fprintf(stdout, "background: %g\n", bg);
 	gsl_matrix *z = gsl_matrix_alloc(area->h, area->w);

@@ -15,6 +15,5 @@ struct banding_data {
 
 void apply_banding_to_sequence(struct banding_data *banding_args);
 gpointer BandingEngineThreaded(gpointer p);
-int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation);
 
 #endif /* SRC_FILTERS_BANDING_H_ */

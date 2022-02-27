@@ -648,7 +648,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				if (args->type_of_rejection == SIGMA)
 					var = args->sd_calculator(stack, N);
 				else
-					var = args->mad_calculator(stack, N, median, FALSE);
+					var = args->mad_calculator(stack, N, median, SINGLE_THREADED);
 
 				if (!firstloop) {
 					median = quickmedian(stack, N);

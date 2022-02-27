@@ -40,6 +40,7 @@
 #include "opencv/opencv.h"
 
 #include "banding.h"
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
 
 /*****************************************************************************
  *      B A N D I N G      R E D U C T I O N      M A N A G E M E N T        *
@@ -48,7 +49,7 @@
 int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
 	struct banding_data *banding_args = (struct banding_data *)args->user;
 	return BandingEngine(fit, banding_args->sigma, banding_args->amount,
-			banding_args->protect_highlights, banding_args->applyRotation);
+			banding_args->protect_highlights, banding_args->applyRotation, SINGLE_THREADED);
 }
 
 static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
@@ -177,7 +178,7 @@ gpointer BandingEngineThreaded(gpointer p) {
 	siril_log_color_message(_("Banding Reducing: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
 
-	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->applyRotation);
+	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->applyRotation, MULTI_THREADED);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -186,7 +187,7 @@ gpointer BandingEngineThreaded(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation) {
+static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
 	int chan, row, i, ret = 0;
 	WORD *line, *fixline;
 	double minimum = DBL_MAX, globalsigma = 0.0;
@@ -202,7 +203,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 		return 1;
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
@@ -268,7 +269,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	return ret;
 }
 
-static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation) {
+static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
 	int chan, row, i, ret = 0;
 	float *line, *fixline;
 	double minimum = DBL_MAX, globalsigma = 0.0;
@@ -284,7 +285,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 		return 1;
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
@@ -349,11 +350,13 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	return ret;
 }
 
-int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation) {
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading) {
+	int threads = check_threading(&threading);
+
 	if (fit->type == DATA_FLOAT)
-		return BandingEngine_float(fit, sigma, amount, protect_highlights, applyRotation);
+		return BandingEngine_float(fit, sigma, amount, protect_highlights, applyRotation, threads);
 	if (fit->type == DATA_USHORT)
-		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, applyRotation);
+		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, applyRotation, threads);
 	return -1;
 }
 

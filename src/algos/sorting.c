@@ -3,6 +3,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 
 #include "rt/rt_algo.h"
 #include "sorting.h"
@@ -573,7 +574,7 @@ void sortnet (WORD *a, size_t n) {
  * @return median as a double (for n odd)
  * Use temp storage h to build the histogram. Complexity O(2*N)
  */
-double histogram_median(WORD *a, size_t n, gboolean mutlithread) {
+double histogram_median(WORD *a, size_t n, threading_type threading) {
 	// For arrays n < 10 histogram is use fast and simple sortnet_median
 	if (n < 10)
 		return sortnet_median(a, n);
@@ -586,7 +587,8 @@ double histogram_median(WORD *a, size_t n, gboolean mutlithread) {
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (mutlithread)
+	check_threading(&threading);
+#pragma omp parallel num_threads(threading) if (threading > 1)
 #endif
 	{
 		unsigned int *hthr = (unsigned int*) calloc(USHRT_MAX + 1, s);
@@ -631,9 +633,10 @@ double histogram_median(WORD *a, size_t n, gboolean mutlithread) {
 	return (n % 2 == 0) ? (double) (i + j - 2) / 2.0 : (double) (i - 1);
 }
 
-double histogram_median_float(float *a, size_t n, gboolean multithread) {
+double histogram_median_float(float *a, size_t n, threading_type threading) {
 	float median;
-	findMinMaxPercentile(a, n, 0.5f, &median, 0.5f, &median, multithread);
+	int threads = check_threading(&threading);
+	findMinMaxPercentile(a, n, 0.5f, &median, 0.5f, &median, threads);
 	return median;
 }
 

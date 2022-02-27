@@ -318,34 +318,13 @@ int image_find_minmax(fits *fit) {
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
 		// calling statistics() saves stats in the fit already, we don't need
 		// to use the returned handle
-		free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, TRUE));
+		free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, SINGLE_THREADED));
 		if (!fit->stats || !fit->stats[layer])
 			return -1;
 		fit->maxi = max(fit->maxi, fit->stats[layer]->max);
 		fit->mini = min(fit->mini, fit->stats[layer]->min);
 	}
 	return 0;
-}
-
-static int fit_get_minmax(fits *fit, int layer) {
-	// calling statistics() saves stats in the fit already, we don't need
-	// to use the returned handle
-	free_stats(statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, FALSE));
-	if (!fit->stats[layer])
-		return -1;
-	return 0;
-}
-
-double fit_get_max(fits *fit, int layer) {
-	if (fit_get_minmax(fit, layer))
-		return -1.0;
-	return fit->stats[layer]->max;
-}
-
-double fit_get_min(fits *fit, int layer) {
-	if (fit_get_minmax(fit, layer))
-		return -1.0;
-	return fit->stats[layer]->min;
 }
 
 static void fit_lohi_to_layers(fits *fit, double lo, double hi) {

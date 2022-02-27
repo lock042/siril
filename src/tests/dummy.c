@@ -169,6 +169,11 @@ void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
         fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
 }
 
+gboolean load_WCS_from_memory(fits *fit) {
+        fprintf(stderr, "ERROR: calling undefined function load_WCS_from_memory\n");
+	return FALSE;
+}
+
 #ifdef DUMMY_LOG
 char* siril_log_message(const char* format, ...) {
 	va_list args;

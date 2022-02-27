@@ -31,6 +31,7 @@
 
 #include "core/proto.h"
 #include "core/siril.h"
+#include "core/processing.h"
 #include "sorting.h"
 
 /* more than this many standard deviations from the mean is an outlier */
@@ -48,10 +49,10 @@ static int FnMeanSigma_int(int *array, long npix, int nullcheck, int nullvalue,
 		long *ngoodpix, double *mean, double *sigma, int *status);
 
 static int FnNoise1_ushort(WORD *array, long nx, long ny, int nullcheck,
-		WORD nullvalue, double *noise, gboolean multithread, int *status);
+		WORD nullvalue, double *noise, threading_type threads, int *status);
 
 static int FnNoise1_float(float *array, long nx, long ny, int nullcheck,
-		float nullvalue, double *noise, gboolean multithread, int *status);
+		float nullvalue, double *noise, threading_type threads, int *status);
 
 
 static int FnNoise5_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -83,7 +84,7 @@ double *noise1, /* 1st order estimate of noise in image background level */
 double *noise2, /* 2nd order estimate of noise in image background level */
 double *noise3, /* 3rd order estimate of noise in image background level */
 double *noise5, /* 5th order estimate of noise in image background level */
-gboolean multithread,
+threading_type threads,
 int *status) /* error status */
 
 /*
@@ -109,7 +110,7 @@ int *status) /* error status */
 	}
 
 	if (noise1) {
-		FnNoise1_ushort(array, nx, ny, nullcheck, nullvalue, &xnoise, multithread, status);
+		FnNoise1_ushort(array, nx, ny, nullcheck, nullvalue, &xnoise, threads, status);
 
 		*noise1 = xnoise;
 	}
@@ -153,7 +154,7 @@ double *noise1, /* 1st order estimate of noise in image background level */
 double *noise2, /* 2nd order estimate of noise in image background level */
 double *noise3, /* 3rd order estimate of noise in image background level */
 double *noise5, /* 5th order estimate of noise in image background level */
-gboolean multithread,
+threading_type threads,
 int *status) /* error status */
 
 /*
@@ -179,7 +180,7 @@ int *status) /* error status */
 	}
 
 	if (noise1) {
-		FnNoise1_float(array, nx, ny, nullcheck, nullvalue, &xnoise, multithread, status);
+		FnNoise1_float(array, nx, ny, nullcheck, nullvalue, &xnoise, threads, status);
 
 		*noise1 = xnoise;
 	}
@@ -1210,7 +1211,7 @@ int nullcheck, /* check for null values, if true */
 WORD nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 double *noise, /* returned R.M.S. value of all non-null pixels */
-gboolean multithread,
+threading_type threads,
 int *status) /* error status */
 /*
  Estimate the background noise in the input image using sigma of 1st order differences.
@@ -1238,7 +1239,8 @@ int *status) /* error status */
 
 	/* loop over each row of the image */
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (multithread)
+	check_threading(&threads);
+#pragma omp parallel num_threads(threads) if (threads>1)
 #endif
 	{
 		WORD *rowpix, v1;
@@ -1347,7 +1349,7 @@ int nullcheck, /* check for null values, if true */
 float nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 double *noise, /* returned R.M.S. value of all non-null pixels */
-gboolean multithread,
+threading_type threads,
 int *status)        /* error status */
 /*
 Estimate the background noise in the input image using sigma of 1st order differences.
@@ -1383,7 +1385,8 @@ row of the image.
 
 	/* loop over each row of the image */
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (multithread)
+	check_threading(&threads);
+#pragma omp parallel num_threads(threads) if (threads>1)
 #endif
 	{
 		float *rowpix, v1;
