@@ -190,6 +190,8 @@ deps-win64:
     - cd ..
     - pip3 install zstandard
   script:
+    - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+    - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
     
