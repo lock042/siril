@@ -80,7 +80,7 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 		return debayer_buffer_superpixel_ushort(buf, width, height, pattern);
 
 	unsigned int cfarray[2][2];
-	float rgb_cam[3][4] = { 1.0f };	// our white balance: we don't care
+	float rgb_cam[3][4] = { { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }; // our white balance: we don't care
 	int i, rx = *width, ry = *height;
 	long j, nbpixels = rx * ry;
 	long n = nbpixels * 3;
@@ -221,7 +221,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 		return debayer_buffer_superpixel_float(buf, width, height, pattern);
 
 	unsigned int cfarray[2][2];
-	float rgb_cam[3][4] = { 1.0f };	// our white balance: we don't care
+	float rgb_cam[3][4] = { { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }; // our white balance: we don't care
 	int i, rx = *width, ry = *height;
 	long j, nbpixels = rx * ry;
 	long n = nbpixels * 3;
