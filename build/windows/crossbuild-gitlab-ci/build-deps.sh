@@ -3,15 +3,15 @@ crossroad source msys2
 mkdir _deps && cd _deps
 
 # Build LibRaw from github
-crossroad install lcms2
+crossroad install lcms2 \
                   gtk3 \
 
-git clone --depth 1 https://github.com/LibRaw/LibRaw.git
-cd LibRaw
-autoreconf -fi && \
-crossroad ./configure --disable-examples --disable-static && \
-make install || exit 1
-cd ..
+# git clone --depth 1 https://github.com/LibRaw/LibRaw.git
+# cd LibRaw
+# autoreconf -fi && \
+# crossroad ./configure --disable-examples --disable-static && \
+# make install || exit 1
+# cd ..
 
 # Install librtprocess from here
 cd ..
