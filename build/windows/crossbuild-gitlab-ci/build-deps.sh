@@ -23,6 +23,7 @@ crossroad install fftw \
 
 # Install librtprocess from here
 cd ..
+pwd
 mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
 crossroad cmake -G Ninja .. && ninja && ninja install
 cd ../../..
