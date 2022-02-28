@@ -66,7 +66,6 @@ struct normalization_coeff {
 	double *pscale[3];
 };
 
-
 struct stacking_args {
 	stack_method method;
 	sequence *seq;
@@ -95,7 +94,7 @@ struct stacking_args {
 	double *weights; 		/* computed weights for each (layer, image)*/
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
-	float (*mad_calculator)(const WORD *, const size_t, const double, gboolean) ; // internal, for ushort
+	float (*mad_calculator)(const WORD *, const size_t, const double, threading_type) ; // internal, for ushort
 };
 
 /* configuration from the command line */
@@ -148,6 +147,7 @@ void update_stack_interface(gboolean dont_change_stack_type);
 	/* normalization functions, normalize.c */
 
 int do_normalization(struct stacking_args *args);
+int *compute_thread_distribution(int nb_workers, int max);
 
 
 	/* median and mean functions */

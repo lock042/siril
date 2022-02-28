@@ -69,17 +69,17 @@ gpointer generic_sequence_worker(gpointer p) {
 	args->retval = 0;
 
 #ifdef _OPENMP
-	if (args->max_thread < 1) {
+	if (args->max_parallel_images < 1) {
 		if (args->compute_mem_limits_hook)
-			args->max_thread = args->compute_mem_limits_hook(args, FALSE);
-		else args->max_thread = seq_compute_mem_limits(args, FALSE);
+			args->max_parallel_images = args->compute_mem_limits_hook(args, FALSE);
+		else args->max_parallel_images = seq_compute_mem_limits(args, FALSE);
 	}
-	if (args->max_thread < 1) {
+	if (args->max_parallel_images < 1) {
 		args->retval = 1;
 		goto the_end;
 	}
 	siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
-			args->description, args->max_thread);
+			args->description, args->max_parallel_images);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
@@ -144,11 +144,11 @@ gpointer generic_sequence_worker(gpointer p) {
 	else omp_set_schedule(omp_sched_guided, 0);
 #ifdef HAVE_FFMS2
 	// we don't want to enable parallel processing for films, as ffms2 is not thread-safe
-#pragma omp parallel for num_threads(args->max_thread) private(input_idx) schedule(runtime) \
-	if(args->seq->type != SEQ_AVI && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
+#pragma omp parallel for num_threads(args->max_parallel_images) private(input_idx) schedule(runtime) \
+	if(args->max_parallel_images > 1 && args->seq->type != SEQ_AVI && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
 #else
-#pragma omp parallel for num_threads(args->max_thread) private(input_idx) schedule(runtime) \
-	if(args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
+#pragma omp parallel for num_threads(args->max_parallel_images) private(input_idx) schedule(runtime) \
+	if(args->max_parallel_images > 1 && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
 #endif // HAVE_FFMS2
 #endif // _OPENMP
 	for (frame = 0; frame < nb_frames; frame++) {
@@ -618,4 +618,54 @@ struct generic_seq_args *create_default_seqargs(sequence *seq) {
 	args->upscale_ratio = 1.0;
 	args->parallel = TRUE;
 	return args;
+}
+
+/********** per-image threading **********/
+/* convention: call the variable threading if it can be MULTI_THREADED, call it
+ * threads if it contains the other values, so the number of threads.
+ * public functions should use threading, and use this function, private
+ * functions can use threads if their caller has done the job.
+ */
+int check_threading(threading_type *threads) {
+	if (*threads == MULTI_THREADED)
+		*threads = com.max_thread;
+	return *threads;
+}
+
+/* same as check_threading but also returns a number of threads adapted to a
+ * set size */
+int limit_threading(threading_type *threads, int min_iterations_per_thread, size_t total_iterations) {
+	if (*threads == MULTI_THREADED)
+		*threads = com.max_thread;
+	int max_chunks = total_iterations / min_iterations_per_thread;
+	if (max_chunks < 1)
+		max_chunks = 1;
+	if (max_chunks < *threads) {
+		siril_debug_print("limiting operation to %d threads (%d allowed)\n", max_chunks, *threads);
+		return max_chunks;
+	}
+	return *threads;
+}
+
+/* we could use several threads on a single image if there are less workers
+ * than available threads on the system, due to memory constraints.
+ * This computes the number of threads each worker can use, distributing
+ * max threads to all workers.
+ */
+int *compute_thread_distribution(int nb_workers, int max) {
+	int *threads = malloc(nb_workers * sizeof(int));
+	int base = max / nb_workers;
+	int rem = max % nb_workers;
+	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);
+	for (int i = 0; i < nb_workers; i++) {
+		threads[i] = base;
+		if (rem > 0) {
+			threads[i]++;
+			rem--;
+		}
+		if (threads[i] == 0)
+			threads[i] = 1;
+		siril_debug_print("thread %d has %d subthreads\n", i, threads[i]);
+	}
+	return threads;
 }

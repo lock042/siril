@@ -251,7 +251,7 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 		}
 
 		for (int chan = 0; chan < 3; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE, TRUE);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE);
 			if (!photometry || !photometry->phot_is_valid) {
 				no_phot = TRUE;
 				break;
@@ -333,7 +333,7 @@ static void get_background_coefficients(fits *fit, rectangle *area, coeff bg[], 
 
 	if (verbose) siril_log_message(_("Background reference:\n"));
 	for (int chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;

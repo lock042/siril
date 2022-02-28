@@ -113,7 +113,7 @@ float siril_stats_ushort_sd_32(const WORD data[], const int N) {
  *  MAD = median (| Xi − median(X) |)
  */
 float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m,
-		gboolean multithread) {
+		threading_type threads) {
 	float mad;
 	int median = round_to_int(m);	// we use it on integer data anyway
 	WORD *tmp = malloc(n * sizeof(WORD));
@@ -123,29 +123,30 @@ float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m,
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread && n > 10000) schedule(static)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) if(threads > 1) schedule(static)
 #endif
 	for (size_t i = 0; i < n; i++) {
 		tmp[i] = (WORD)abs(data[i] - median);
 	}
 
-	mad = (float) histogram_median(tmp, n, multithread);
+	mad = (float) histogram_median(tmp, n, threads);
 	free(tmp);
 	return mad;
 }
 
 static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
-		const double mad, const double median) {
+		const double mad, const double median, threading_type threads) {
 
 	double bwmv = 0.0;
 	double up = 0.0, down = 0.0;
-	size_t i;
 
 	if (mad > 0.0) {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static) reduction(+:up,down)
+	threads = limit_threading(&threads, 150000, n);
+#pragma omp parallel for num_threads(threads) schedule(static) reduction(+:up,down) if(threads>1)
 #endif
-		for (i = 0; i < n; i++) {
+		for (size_t i = 0; i < n; i++) {
 			double yi, ai, yi2;
 
 			yi = ((double) data[i] - median) / (9 * mad);
@@ -186,18 +187,18 @@ static WORD* reassign_to_non_null_data_ushort(WORD *data, size_t inputlen, size_
 }
 
 static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
-		const WORD data[], const size_t n, gboolean multithread) {
+		const WORD data[], const size_t n, threading_type threads) {
 	/* finds the smallest and largest members of a dataset */
 
 	if (n > 0 && data) {
 		WORD min = data[0];
 		WORD max = data[0];
-		size_t i;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithread && n > 10000) reduction(max:max) reduction(min:min)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) schedule(static) if(threads>1) reduction(max:max) reduction(min:min)
 #endif
-		for (i = 0; i < n; i++) {
+		for (size_t i = 0; i < n; i++) {
 			WORD xi = data[i];
 			if (xi < min)
 				min = xi;
@@ -213,7 +214,7 @@ static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
 /* this function tries to get the requested stats from the passed stats,
  * computes them and stores them in it if they have not already been */
 static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *selection,
-		int option, imstats *stats, int bitpix, gboolean multithread) {
+		int option, imstats *stats, int bitpix, threading_type threads) {
 	int nx, ny;
 	WORD *data = NULL;
 	int stat_is_local = 0, free_data = 0;
@@ -266,7 +267,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
-		siril_stats_ushort_minmax(&min, &max, data, stat->total, multithread);
+		siril_stats_ushort_minmax(&min, &max, data, stat->total, threads);
 		stat->min = (double) min;
 		stat->max = (double) max;
 	}
@@ -282,7 +283,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
 		siril_fits_img_stats_ushort(data, nx, ny, ACTIVATE_NULLCHECK, 0, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
-				NULL, NULL, NULL, multithread, &status);
+				NULL, NULL, NULL, threads, &status);
 		if (status) {
 			if (free_data) free(data);
 			if (stat_is_local) free(stat);
@@ -314,7 +315,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
-		stat->median = histogram_median(data, stat->ngoodpix, multithread);
+		stat->median = histogram_median(data, stat->ngoodpix, threads);
 	}
 
 	/* Calculation of average absolute deviation from the median */
@@ -334,7 +335,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
-		stat->mad = siril_stats_ushort_mad(data, stat->ngoodpix, stat->median, multithread);
+		stat->mad = siril_stats_ushort_mad(data, stat->ngoodpix, stat->median, threads);
 	}
 
 	/* Calculation of Bidweight Midvariance */
@@ -344,7 +345,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
-		double bwmv = siril_stats_ushort_bwmv(data, stat->ngoodpix, stat->mad, stat->median);
+		double bwmv = siril_stats_ushort_bwmv(data, stat->ngoodpix, stat->mad, stat->median, threads);
 		stat->sqrtbwmv = sqrt(bwmv);
 	}
 
@@ -356,7 +357,6 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
-		size_t i;
 		float *newdata = malloc(stat->ngoodpix * sizeof(float));
 		if (!newdata) {
 			if (stat_is_local) free(stat);
@@ -368,14 +368,16 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		/* we convert in the [0, 1] range */
 		float invertNormValue = (float)(1.0 / normValue);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if (multithread) private(i) schedule(static)
+		int loopthreads = limit_threading(&threads, 400000, stat->ngoodpix);
+#pragma omp parallel for num_threads(loopthreads) if (loopthreads>1) schedule(static)
 #endif
-		for (i = 0; i < stat->ngoodpix; i++) {
+		for (size_t i = 0; i < stat->ngoodpix; i++) {
 			newdata[i] = (float) data[i] * invertNormValue;
 		}
+
 		float med = (float)(stat->median) * invertNormValue;
 		float mad = (float)(stat->mad) * invertNormValue;
-		if (IKSSlite(newdata, stat->ngoodpix, med, mad, &stat->location, &stat->scale, multithread)) {
+		if (IKSSlite(newdata, stat->ngoodpix, med, mad, &stat->location, &stat->scale, threads)) {
 			if (stat_is_local) free(stat);
 			if (free_data) free(data);
 			free(newdata);
@@ -391,16 +393,16 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	return stat;
 }
 
-static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, gboolean multithread) {
+static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, threading_type threads) {
 	if (fit) {
 		if (fit->type == DATA_USHORT)
-			return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, multithread);
+			return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, threads);
 		if (fit->type == DATA_FLOAT)
-			return statistics_internal_float(fit, layer, selection, option, stats, bitpix, multithread);
+			return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
 	}
 	if (bitpix == FLOAT_IMG)
-		return statistics_internal_float(fit, layer, selection, option, stats, bitpix, multithread);
-	return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, multithread);
+		return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
+	return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, threads);
 }
 
 /* Computes statistics on the given layer of the given opened image.
@@ -417,18 +419,19 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
  * function because of the special rule of this object that has a reference
  * counter because it can be referenced in 3 different places.
  */
-imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectangle *selection, int option, gboolean multithread) {
+imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectangle *selection, int option, threading_type threads) {
 	imstats *oldstat = NULL, *stat;
+	check_threading(&threads);
 	if (selection && selection->h > 0 && selection->w > 0) {
 		// we have a selection, don't store anything
-		return statistics_internal(fit, layer, selection, option, NULL, fit->bitpix, multithread);
+		return statistics_internal(fit, layer, selection, option, NULL, fit->bitpix, threads);
 	} else if (!seq || image_index < 0) {
 		// we have a single image, store in the fits
 		if (fit->stats && fit->stats[layer]) {
 			oldstat = fit->stats[layer];
 			atomic_int_incref(oldstat->_nb_refs);
 		}
-		stat = statistics_internal(fit, layer, NULL, option, oldstat, fit->bitpix, multithread);
+		stat = statistics_internal(fit, layer, NULL, option, oldstat, fit->bitpix, threads);
 		if (!stat) {
 			fprintf(stderr, "- stats failed for fit %p (%d)\n", fit, layer);
 			if (oldstat) {
@@ -447,7 +450,7 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 			if (oldstat)	// can be NULL here
 				atomic_int_incref(oldstat->_nb_refs);
 		}
-		stat = statistics_internal(fit, layer, NULL, option, oldstat, seq->bitpix, multithread);
+		stat = statistics_internal(fit, layer, NULL, option, oldstat, seq->bitpix, threads);
 		if (!stat) {
 			if (fit)
 				fprintf(stderr, "- stats failed for %d in seq (%d)\n",
@@ -499,7 +502,7 @@ int compute_means_from_flat_cfa_ushort(fits *fit, double mean[36]) {
 	return 0;
 }
 
-/*  the mean is computed by adding data over and over in a long loop; 
+/*  the mean is computed by adding data over and over in a long loop;
     but if the mean variable is a single-precision float, this results in
     the accumulation of rounding errors. */
 int compute_means_from_flat_cfa(fits *fit, double mean[36]) {
@@ -686,10 +689,10 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 
 	for (int layer = 0; layer < fit->naxes[2]; layer++) {
 		/* we first check for data in cache */
-		imstats* stat = statistics(args->seq, i, NULL, layer, &s_args->selection, s_args->option, TRUE);
+		imstats* stat = statistics(args->seq, i, NULL, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
 		if (!stat) {
 			/* if no cache */
-			stat = statistics(args->seq, i, fit, layer, &s_args->selection, s_args->option, TRUE);
+			stat = statistics(args->seq, i, fit, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
 			if (!stat) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
 				return 1;
@@ -876,7 +879,7 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-/**** callbacks *****/
+/**** callbacks ****/
 
 void on_menu_gray_stat_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	set_cursor_waiting(TRUE);
@@ -884,3 +887,141 @@ void on_menu_gray_stat_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	siril_open_dialog("StatWindow");
 	set_cursor_waiting(FALSE);
 }
+
+/**** threading helpers ****/
+
+/* compute statistics for all channels of an image from a sequence, only on full image, make sure the result (stats) is allocated */
+int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fits *fit, int option,
+		threading_type threading, int image_thread_id, imstats **stats) {
+	int required_computations = 0;
+	int stats_to_compute[3];
+	int nb_layers = seq->nb_layers;
+	int retval = 0;
+	fits local_fit = { 0 };
+
+	// try from the cache first to see if image loading is required
+	for (int layer = 0; layer < nb_layers; ++layer) {
+		// try with no fit passed: fails if data is needed because data is not cached
+		stats[layer] = statistics(seq, image_index, NULL, layer, NULL, STATS_NORM, SINGLE_THREADED);
+		if (!stats[layer])
+			stats_to_compute[required_computations++] = layer;
+	}
+	siril_debug_print("%d stats to recompute for image %d\n", required_computations, image_index);
+
+	if (required_computations) {
+		if (!fit) {
+			if (seq_read_frame(seq, image_index, &local_fit, TRUE, image_thread_id)) {
+				return -1;
+			}
+
+			if (nb_layers != (int)local_fit.naxes[2]) {
+				siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "red");
+				clearfits(&local_fit);
+				return -1;
+			}
+			fit = &local_fit;
+		}
+
+#ifdef _OPENMP
+		/* we have 'threading' threads and 'required_computations' channels to
+		 * compute stats on. The most efficient approach is to process the
+		 * channels statistics in parallel, because the statistics of each channel
+		 * can be a small operation that would suffer from the threading overhead.
+		 * Consequently, if we have enough threads available, we parallelize first
+		 * the channels and if there are more than enough, we parallelize the
+		 * stats computation. The stats computation then decides if it will use
+		 * all the threads it was given or not, depending on data size.
+		 */
+		int threads = check_threading(&threading);
+		int channels_per_thread = required_computations;
+		int *threads_per_thread = NULL;
+		if (threads > 1) {
+			if (threads >= required_computations) {
+				channels_per_thread = 1;
+				threads_per_thread = compute_thread_distribution(required_computations, threading);
+				omp_set_nested(1);	// to be done at each level
+				if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
+					siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
+				else siril_log_message(_("threading statistics computation per channel (at most %d threads each)\n"), threads_per_thread[0]);
+			}
+			else {
+				threads_per_thread = compute_thread_distribution(1, threading);
+				siril_log_message(_("threading statistics computation of channels (%d threads)\n"), threads_per_thread[0]);
+			}
+		}
+
+#pragma omp parallel for num_threads(required_computations) schedule(static) if(required_computations > 1 && channels_per_thread == 1)
+#endif
+		for (int layer_index = 0; layer_index < required_computations; ++layer_index) {
+			threading_type subthreads = SINGLE_THREADED;
+			int layer = stats_to_compute[layer_index];
+#ifdef _OPENMP
+			//siril_debug_print("actual number of threads in channel thread: %d (level %d)\n", omp_get_num_threads(), omp_get_level());
+			if (threads_per_thread) {
+				int thread_id = omp_get_thread_num();
+				subthreads = threads_per_thread[thread_id];
+			}
+			siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
+#endif
+			stats[layer] = statistics(seq, image_index, fit, layer, NULL, STATS_NORM, subthreads);
+			if (!stats[layer]) {
+				retval = -1;
+				continue;
+			}
+		}
+
+		free(threads_per_thread);
+
+		if (seq->type != SEQ_INTERNAL && fit == &local_fit)
+			clearfits(&local_fit);
+	}
+	return retval;
+}
+
+#if 0
+/* compute statistics for all channels of a single image, only on full image, make sure the result (stats) is allocated */
+int compute_all_channels_statistics_single_image(fits *fit, int option,
+		threading_type threading, int image_thread_id, imstats **stats) {
+	int required_computations = (int)fit->naxes[2];
+	int retval = 0;
+
+	/* we have 'threading' threads to compute this, and 'required_computations'
+	 * channels to compute stats on. If we have as many threads as channels to
+	 * compute, if it is a multiple or if we have at least 4 threads per channel
+	 * to compute, we process channels in parallel. Otherwise, we process each
+	 * channel with internal parallelism. 4 threads makes no more than 20%
+	 * difference between each channel processing time (x/5 / x/4 = 4/5).
+	 */
+	check_threading(&threading);
+	int channels_per_thread = required_computations;
+	int remaining_threads = threading;
+	int *threads_per_thread;
+	if (threading % required_computations == 0 || threading / required_computations >= 4) {
+		channels_per_thread = 1;
+		threads_per_thread = compute_thread_distribution(required_computations, remaining_threads);
+	}
+	else threads_per_thread = compute_thread_distribution(1, remaining_threads);
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(required_computations) schedule(static) if(required_computations > 1 && channels_per_thread == 1)
+#endif
+	for (int layer = 0; layer < required_computations; ++layer) {
+		threading_type subthreads = SINGLE_THREADED;
+#ifdef _OPENMP
+		int thread_id = omp_get_thread_num();
+		subthreads = threads_per_thread[thread_id];
+		siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
+#endif
+		stats[layer] = statistics(NULL, -1, fit, layer, NULL, STATS_NORM, subthreads);
+		if (!stats[layer]) {
+			retval = -1;
+			continue;
+		}
+	}
+
+	free(threads_per_thread);
+
+	return retval;
+}
+
+#endif

@@ -1232,7 +1232,7 @@ int process_set_mag(int nb) {
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
@@ -1364,7 +1364,7 @@ int process_psf(int nb){
 		siril_log_message(_("Select an area first\n"));
 		return 1;
 	}
-	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
@@ -1481,7 +1481,7 @@ int process_bg(int nb){
 	WORD us_bg;
 
 	for (int layer = 0; layer < gfit.naxes[2]; layer++) {
-		double bg = background(&gfit, layer, &com.selection, TRUE);
+		double bg = background(&gfit, layer, &com.selection, MULTI_THREADED);
 		if (gfit.type == DATA_USHORT) {
 			us_bg = round_to_WORD(bg);
 			bg = bg / get_normalized_value(&gfit);
@@ -2290,7 +2290,7 @@ int process_findcosme(int nb) {
 
 	if (is_sequence) {
 		args->seqEntry = "cc_";
-		args->multithread = FALSE;
+		args->threading = SINGLE_THREADED;
 
 		int startoptargs = i + 3;
 		int nb_command_max = i + 4;
@@ -2311,7 +2311,7 @@ int process_findcosme(int nb) {
 		}
 		apply_cosmetic_to_sequence(args);
 	} else {
-		args->multithread = TRUE;
+		args->threading = MULTI_THREADED;
 		start_in_new_thread(autoDetectThreaded, args);
 	}
 
@@ -2823,7 +2823,7 @@ int process_stat(int nb){
 	nplane = gfit.naxes[2];
 
 	for (layer = 0; layer < nplane; layer++) {
-		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, TRUE);
+		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;

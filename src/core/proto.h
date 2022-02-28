@@ -138,12 +138,12 @@ gboolean string_is_a_number(char *str);
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
-		double *noise3, double *noise5, gboolean multithread, int *status);
+		double *noise3, double *noise5, threading_type threads, int *status);
 
 int siril_fits_img_stats_float(float *array, long nx, long ny, int nullcheck,
 		float nullvalue, long *ngoodpix, float *minvalue, float *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
-		double *noise3, double *noise5, gboolean multithread, int *status);
+		double *noise3, double *noise5, threading_type threads, int *status);
 
 /****************** siril.h ******************/
 
@@ -157,7 +157,7 @@ int ddp(fits *a, int lev, float coef, float sig);
 int visu(fits *fit, int low, int high);
 int fill(fits *fit, int level, rectangle *arearg);
 int off(fits *a, float level);
-double background(fits *fit, int reqlayer, rectangle *selection, gboolean multithread);
+double background(fits* fit, int reqlayer, rectangle *selection, threading_type threads);
 void show_FITS_header(fits*);
 void compute_grey_flat(fits *fit);
 

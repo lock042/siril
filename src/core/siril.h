@@ -268,6 +268,12 @@ typedef enum { SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
 	SEQ_INTERNAL
 } sequence_type;
 
+typedef enum {
+	MULTI_THREADED = 0,	// equivalent to com.max_threads
+	SINGLE_THREADED = 1
+	/* and higher values are the number of threads */
+} threading_type;
+
 /* image data, exists once for each image */
 struct imdata {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
