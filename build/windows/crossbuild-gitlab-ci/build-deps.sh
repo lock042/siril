@@ -2,7 +2,7 @@ crossroad source msys2
 
 # Install librtprocess from here
 mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-crossroad cmake -G Ninja .. && ninja && ninja install
+crossroad cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=OFF .. && ninja && ninja install
 cd ../../..
 
 mkdir _deps && cd _deps
