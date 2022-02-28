@@ -9,7 +9,8 @@ crossroad install lcms2 \
                   exiv2 \
                   libconfig \
                   gsl \
-                  openblas \
+                  opencv \
+crossroad uninstall crt-git
 
 # git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 # cd LibRaw
