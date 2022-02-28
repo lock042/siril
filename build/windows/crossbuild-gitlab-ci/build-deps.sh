@@ -1,4 +1,10 @@
 crossroad source msys2
+
+# Install librtprocess from here
+mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
+crossroad cmake -G Ninja .. && ninja && ninja install
+cd ../../..
+
 mkdir _deps && cd _deps
 
 # Build LibRaw from github
@@ -21,12 +27,6 @@ crossroad install fftw \
                   ffms2 \
                   cfitsio
 
-# Install librtprocess from here
-cd ..
-pwd
-mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-crossroad cmake -G Ninja .. && ninja && ninja install
-cd ../../..
 
 if [ $? -ne 0 ]; then
   echo "Installation of pre-built dependencies failed.";
