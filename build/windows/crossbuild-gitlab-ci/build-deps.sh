@@ -8,6 +8,7 @@ crossroad install lcms2 \
                   fftw \
                   exiv2 \
                   libconfig \
+                  gsl \
 
 # git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 # cd LibRaw
@@ -24,8 +25,7 @@ cd ../../..
 
 cd _deps
 # Install deps from crossroad
-crossroad install gsl \
-                  opencv \
+crossroad install opencv \
                   libheif \
                   ffms2 \
                   cfitsio \
