@@ -6,6 +6,7 @@ mkdir _deps && cd _deps
 crossroad install lcms2 \
                   gtk3 \
                   fftw \
+                  exiv2 \
 
 # git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 # cd LibRaw
@@ -22,8 +23,7 @@ cd ../../..
 
 cd _deps
 # Install deps from crossroad
-crossroad install exiv2 \
-                  libconfig \
+crossroad install libconfig \
                   gsl \
                   opencv \
                   libheif \
