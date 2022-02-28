@@ -176,6 +176,7 @@ deps-win64:
   stage: dependencies
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   variables:
+    GIT_SUBMODULE_STRATEGY: recursive
     XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
     XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
   cache:
