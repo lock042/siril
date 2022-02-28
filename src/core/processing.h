@@ -159,6 +159,7 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 struct generic_seq_args *create_default_seqargs();
 
 int check_threading(threading_type *threads);
+int limit_threading(threading_type *threads, int min_iterations_per_thread, size_t total_iterations);
 int *compute_thread_distribution(int nb_workers, int max);
 
 #endif

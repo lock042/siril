@@ -40,6 +40,7 @@
 #include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "gui/dialogs.h"
 #include "sorting.h"
 #include "statistics.h"
@@ -93,7 +94,8 @@ double siril_stats_float_mad(const float *data, const size_t n, const double m, 
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(threads) if(threads>1 && n > 10000) schedule(static)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) if(threads>1) schedule(static)
 #endif
 	for (size_t i = 0; i < n; i++) {
 		tmp[i] = fabsf(data[i] - median);
@@ -114,6 +116,7 @@ static double siril_stats_float_bwmv(const float* data, const size_t n,
 	if (mad > 0.f) {
         const float factor = 1.f / (9.f * mad);
 #ifdef _OPENMP
+	threads = limit_threading(&threads, 150000, n);
 #pragma omp parallel for num_threads(threads) if(threads>1) schedule(static) reduction(+:up,down)
 #endif
 		for (size_t i = 0; i < n; i++) {
@@ -265,7 +268,8 @@ static void siril_stats_float_minmax(float *min_out, float *max_out,
 		float min = data[0];
 		float max = data[0];
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(threads) schedule(static) if(threads>1 && n > 10000) reduction(max:max) reduction(min:min)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) schedule(static) if(threads>1) reduction(max:max) reduction(min:min)
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float xi = data[i];

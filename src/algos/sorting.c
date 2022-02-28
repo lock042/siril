@@ -587,7 +587,7 @@ double histogram_median(WORD *a, size_t n, threading_type threading) {
 	}
 
 #ifdef _OPENMP
-	check_threading(&threading);
+	threading = limit_threading(&threading, 400000, n);
 #pragma omp parallel num_threads(threading) if (threading > 1)
 #endif
 	{

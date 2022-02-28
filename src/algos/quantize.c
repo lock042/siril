@@ -1239,17 +1239,21 @@ int *status) /* error status */
 
 	/* loop over each row of the image */
 #ifdef _OPENMP
-	check_threading(&threads);
+	threads = limit_threading(&threads, 200000, nx*ny);
+	//if (threads > 1)
+	//	siril_debug_print("threading FnNoise1_ushort with %d threads\n", threads);
 #pragma omp parallel num_threads(threads) if (threads>1)
 #endif
 	{
+		if (threads > 1 && omp_get_num_threads() != threads)
+			siril_debug_print("actual number of threads: %d of %d requested (level %d)\n", omp_get_num_threads(), threads, omp_get_level());
 		WORD *rowpix, v1;
 		double mean, stdev;
 		int *differences;
 		differences = calloc(nx, sizeof(int)); // no check here at the moment, allocation is small, should be no problem
 
 #ifdef _OPENMP
-#pragma omp for schedule (dynamic, 16)
+#pragma omp for schedule(static)
 #endif
 			for (jj = 0; jj < ny; jj++) {
 				long ii, kk, nvals;
@@ -1378,23 +1382,26 @@ row of the image.
 
 	diffs = calloc(ny, sizeof(double));
 	if (!diffs) {
-//		free(differences);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
 	/* loop over each row of the image */
 #ifdef _OPENMP
-	check_threading(&threads);
+	threads = limit_threading(&threads, 200000, nx*ny);
+	//if (threads > 1)
+		//siril_debug_print("threading FnNoise1_float with %d threads\n", threads);
 #pragma omp parallel num_threads(threads) if (threads>1)
 #endif
 	{
+		if (threads > 1 && omp_get_num_threads() != threads)
+			siril_debug_print("actual number of threads: %d of %d requested (level %d)\n", omp_get_num_threads(), threads, omp_get_level());
 		float *rowpix, v1;
 		double mean, stdev;
 		float *differences;
 		differences = calloc(nx, sizeof(float)); // no check here at the moment, allocation is small, should be no problem
 #ifdef _OPENMP
-#pragma omp for schedule (dynamic, 16)
+#pragma omp for schedule(static)
 #endif
 		for (jj = 0; jj < ny; jj++) {
 			long ii, kk, nvals;

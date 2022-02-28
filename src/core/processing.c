@@ -632,6 +632,21 @@ int check_threading(threading_type *threads) {
 	return *threads;
 }
 
+/* same as check_threading but also returns a number of threads adapted to a
+ * set size */
+int limit_threading(threading_type *threads, int min_iterations_per_thread, size_t total_iterations) {
+	if (*threads == MULTI_THREADED)
+		*threads = com.max_thread;
+	int max_chunks = total_iterations / min_iterations_per_thread;
+	if (max_chunks < 1)
+		max_chunks = 1;
+	if (max_chunks < *threads) {
+		siril_debug_print("limiting operation to %d threads (%d allowed)\n", max_chunks, *threads);
+		return max_chunks;
+	}
+	return *threads;
+}
+
 /* we could use several threads on a single image if there are less workers
  * than available threads on the system, due to memory constraints.
  * This computes the number of threads each worker can use, distributing
