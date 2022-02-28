@@ -9,7 +9,7 @@ crossroad install lcms2 \
                   exiv2 \
                   libconfig \
                   gsl \
-                  opencv \
+                  opencv
 crossroad uninstall crt-git
 
 # git clone --depth 1 https://github.com/LibRaw/LibRaw.git
@@ -27,8 +27,7 @@ cd ../../..
 
 cd _deps
 # Install deps from crossroad
-crossroad install opencv \
-                  libheif \
+crossroad install libheif \
                   ffms2 \
                   cfitsio \
 
