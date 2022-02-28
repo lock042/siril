@@ -22,7 +22,7 @@ crossroad install lcms2 \
 unset CC CXX
 cd ..
 mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-crossroad cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=OFF --unset CC --unset CXX .. && ninja && ninja install
+crossroad cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=OFF .. && ninja && ninja install
 cd ../../..
 
 cd _deps
