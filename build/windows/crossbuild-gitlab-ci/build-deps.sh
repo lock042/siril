@@ -20,7 +20,12 @@ crossroad install fftw \
                   libheif \
                   ffms2 \
                   cfitsio
-                  
+
+# Install librtprocess from here
+mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
+crossroad cmake -G Ninja .. && ninja && ninja install
+cd ../../..
+
 if [ $? -ne 0 ]; then
   echo "Installation of pre-built dependencies failed.";
   exit 1;

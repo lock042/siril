@@ -217,9 +217,6 @@ siril-win64:
       - apt-cache
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
-    - mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-    - echo 'crossroad cmake -G Ninja .. && ninja && ninja install' | crossroad w64 siril --run="-"
-    - cd ../../..
     - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
   artifacts:
