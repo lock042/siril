@@ -218,9 +218,8 @@ siril-win64:
       - apt-cache
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
-    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" ..' | crossroad w64 siril --run="-"
-    - pwd
-    - echo 'ninja -C _build install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
+    - mkdir _build && cd _build
+    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
