@@ -587,6 +587,7 @@ void display_filename() {
 		nb_layers = com.uniq->nb_layers;
 	} else if (sequence_is_loaded()) {	// sequence
 		filename = malloc(256);
+		strcpy(filename, " ");
 		local_filename = TRUE;
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		nb_layers = com.seq.nb_layers;
