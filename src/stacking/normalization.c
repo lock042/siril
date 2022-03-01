@@ -45,13 +45,12 @@ int do_normalization(struct stacking_args *args) {
 static int _compute_normalization_for_image(struct stacking_args *args, int i, int ref_image,
 		double **poffset, double **pmul, double **pscale, normalization mode, double *scale0,
 		double *mul0, double *offset0, gboolean multithread, int thread_id) {
-	imstats *stat = NULL;
 	gboolean fit_is_open = FALSE;
 	fits fit = { 0 };
 
-
 	for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
 		// try with no fit passed: fails if data is needed because data is not cached
+		imstats *stat;
 		if (!(stat = statistics(args->seq, args->image_indices[i], NULL, layer, NULL, STATS_NORM, multithread))) {
 			if (!(fit_is_open)) {
 				// read frames as float, it's faster to compute stats
@@ -59,11 +58,12 @@ static int _compute_normalization_for_image(struct stacking_args *args, int i, i
 					return ST_SEQUENCE_ERROR;
 				}
 				fit_is_open = TRUE; // to avoid opening fit more than once if RGB
-			}
-			/* check if rgb images are mixed with monochrome images */
-			if (layer > RLAYER && !isrgb(&fit)) {
-				siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "red");
-				return ST_GENERIC_ERROR;
+				/* check if rgb images are mixed with monochrome images */
+				if (args->seq->nb_layers != (int)fit.naxes[2]) {
+					siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "red");
+					clearfits(&fit);
+					return ST_GENERIC_ERROR;
+				}
 			}
 			// retry with the fit to compute it
 			if (!(stat = statistics(args->seq, args->image_indices[i], &fit, layer, NULL, STATS_NORM, multithread)))
@@ -72,6 +72,7 @@ static int _compute_normalization_for_image(struct stacking_args *args, int i, i
 
 		double sc = stat->scale;
 		double loc = stat->location;
+		free_stats(stat);
 
 		switch (mode) {
 		default:
@@ -103,7 +104,6 @@ static int _compute_normalization_for_image(struct stacking_args *args, int i, i
 	}
 	if (fit_is_open && args->seq->type != SEQ_INTERNAL)
 		clearfits(&fit);
-	free_stats(stat);
 	return ST_OK;
 }
 

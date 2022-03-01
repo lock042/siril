@@ -1,5 +1,5 @@
 siril 1.0.0
-xx/02/22
+03/07/22
 * Added ASTRO-TIFF standard
 * Fixed memory consumption for all sequence operations
 * Fixed settings for sequence export as webm film with VP9 codec

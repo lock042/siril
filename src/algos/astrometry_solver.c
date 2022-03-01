@@ -80,7 +80,8 @@ typedef enum {
 	RESOLVER_NED,
 	RESOLVER_SIMBAD,
 	RESOLVER_VIZIER,
-	RESOLVER_NUMBER
+	RESOLVER_FALLBACK,
+	RESOLVER_NUMBER,
 } resolver;
 
 struct object {
@@ -161,9 +162,11 @@ static int parse_content_buffer(char *buffer, struct object *obj) {
 	char **token, **fields;
 	point center;
 	int nargs, i = 0, resolver = -1;
+	gboolean done = FALSE;
 
 	token = g_strsplit(buffer, "\n", -1);
 	nargs = g_strv_length(token);
+
 
 	while (i < nargs) {
 		if (g_strrstr (token[i], "=NED")) {
@@ -172,6 +175,8 @@ static int parse_content_buffer(char *buffer, struct object *obj) {
 			resolver = RESOLVER_SIMBAD;
 		} else if (g_strrstr(token[i], "=VizieR")) {
 			resolver = RESOLVER_VIZIER;
+		} else if (g_str_has_prefix (token[i], "oid")) {
+			resolver = RESOLVER_FALLBACK;
 		} else if (g_str_has_prefix (token[i], "%J ")) {
 			fields = g_strsplit(token[i], " ", -1);
 			sscanf(fields[1], "%lf", &center.x);
@@ -199,10 +204,24 @@ static int parse_content_buffer(char *buffer, struct object *obj) {
 				g_free(platedObject[resolver].name);
 				platedObject[resolver].name = realname;
 			}
+		} else if ((resolver == RESOLVER_FALLBACK) && (!done)) {
+			fields = g_strsplit(token[i], "\t", -1);
+			guint n = g_strv_length(token);
+			if (n > 2) {
+				sscanf(fields[1], "%lf", &center.x);
+				sscanf(fields[2], "%lf", &center.y);
+				gchar *realname = g_shell_unquote(fields[3], NULL);
+				g_free(platedObject[resolver].name);
+				platedObject[resolver].name = realname;
+				platedObject[resolver].world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
+				platedObject[resolver].imageCenter = center;
+				platedObject[resolver].south = (center.y < 0.0);
+				g_strfreev(fields);
+				done = TRUE;
+			}
 		}
 		i++;
 	}
-
 	g_strfreev(token);
 	return 0;
 }
@@ -697,6 +716,11 @@ static void add_object_to_list() {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "VizieR",
 				COLUMN_NAME, platedObject[RESOLVER_VIZIER].name, -1);
+	}
+	if (platedObject[RESOLVER_FALLBACK].name) {
+		gtk_list_store_append(list_IPS, &iter);
+		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "Simbad2",
+				COLUMN_NAME, platedObject[RESOLVER_FALLBACK].name, -1);
 	}
 }
 
@@ -1250,18 +1274,45 @@ static gboolean end_plate_solver(gpointer p) {
 	return FALSE;
 }
 
+static gboolean has_nonzero_coords() {
+	for (int i = 0; i < RESOLVER_NUMBER; i++){
+		if (fabs(platedObject[i].imageCenter.x) > 0.000001) return TRUE;
+		if (fabs(platedObject[i].imageCenter.y) > 0.000001) return TRUE;
+	}
+	return FALSE;
+}
+
 static void add_object_in_tree_view(const gchar *object) {
 	struct object obj;
 	GtkTreeView *GtkTreeViewIPS;
-
 	GtkTreeViewIPS = GTK_TREE_VIEW(lookup_widget("GtkTreeViewIPS"));
 
 	set_cursor_waiting(TRUE);
 
-	gchar *result = search_in_catalogs(object);
+	gchar *result = search_in_catalogs(object, FALSE);
 	if (result) {
 		free_Platedobject();
 		parse_content_buffer(result, &obj);
+		// trying a fallback if obj center is null for all resolvers
+		if (!has_nonzero_coords()) {
+			g_free(result);
+			result = search_in_catalogs(object, TRUE);
+			if (result){
+				free_Platedobject();
+				parse_content_buffer(result, &obj);
+				if (!has_nonzero_coords()) {
+					g_free(result);
+					set_cursor_waiting(FALSE);
+					siril_log_color_message(_("No catalog\n"),"red");
+					return;
+				}
+			} else {
+				g_free(result);
+				set_cursor_waiting(FALSE);
+				siril_log_color_message(_("No catalog\n"),"red");
+				return;
+			}
+		}
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		add_object_to_list();
 		g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
@@ -1418,6 +1469,8 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view,
 			selected_item = 1;
 		} else if (!g_strcmp0(res, "VizieR")) {
 			selected_item = 2;
+		} else if (!g_strcmp0(res, "Simbad2")) {
+			selected_item = 3;
 		} else {
 			selected_item = -1;
 		}
@@ -1874,17 +1927,24 @@ void open_astrometry_dialog() {
 	}
 }
 
-gchar *search_in_catalogs(const gchar *object) {
+gchar *search_in_catalogs(const gchar *object, gboolean is_fallback) {
 	GString *string_url;
 	gchar *url, *result, *name;
 
 	set_cursor_waiting(TRUE);
 
 	name = g_utf8_strup(object, -1);
+	remove_spaces_from_str(name);
 
-	string_url = g_string_new(CDSSESAME);
-	string_url = g_string_append(string_url, "/-oI/A?");
-	string_url = g_string_append(string_url, name);
+	if (!is_fallback){
+		string_url = g_string_new(CDSSESAME);
+		string_url = g_string_append(string_url, "/-oI/A?");
+		string_url = g_string_append(string_url, name);
+	} else {
+		string_url = g_string_new(SIMBADSESAME);
+		string_url = g_string_append(string_url, name);
+		string_url = g_string_append(string_url, "';");
+	}
 	url = g_string_free(string_url, FALSE);
 
 	gchar *cleaned_url = url_cleanup(url);
