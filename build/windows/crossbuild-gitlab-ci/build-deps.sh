@@ -18,13 +18,13 @@ crossroad install lcms2 \
 crossroad uninstall crt-git
 
 # disable LibRaw for now
-# # Build LibRaw from github
-# git clone --depth 1 https://github.com/LibRaw/LibRaw.git
-# cd LibRaw
-# autoreconf -fi && \
-# crossroad ./configure --disable-examples && \
-# make install || exit 1
-# cd ..
+# Build LibRaw from github
+git clone --depth 1 https://github.com/LibRaw/LibRaw.git
+cd LibRaw
+autoreconf -fi && \
+crossroad ./configure --disable-examples && \
+make install || exit 1
+cd ..
 
 
 if [ $? -ne 0 ]; then
