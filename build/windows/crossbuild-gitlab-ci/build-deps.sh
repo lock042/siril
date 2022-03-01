@@ -21,7 +21,7 @@ crossroad uninstall crt-git
 git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 cd LibRaw
 autoreconf -fi && \
-crossroad ./configure --disable-examples --disable-static && \
+crossroad ./configure --disable-examples && \
 make install || exit 1
 cd ..
 
