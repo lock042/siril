@@ -259,7 +259,7 @@ win64-nightly:
     - cp build/windows/crossbuild-gitlab-ci/siril-wrapper.cmd ${INSTALL_PREFIX}/bin/
 
     # Package lib
-    - mkdir ${INSTALL_PREFIX}/lib/
+#    - mkdir ${INSTALL_PREFIX}/lib/
     - cp -fr ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0 ${INSTALL_PREFIX}/lib/
     - cp build/windows/loaders.cache ${INSTALL_PREFIX}/lib/gdk-pixbuf-2.0/2.10.0/
     - glib-compile-schemas --targetdir=${INSTALL_PREFIX}/share/glib-2.0/schemas ${CROSSROAD_OUT}/share/glib-2.0/schemas
