@@ -3801,6 +3801,10 @@ int process_stackone(int nb) {
 			allow_norm = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
 			int shift = 1, base_shift = 5;
+			if (nb < 4) {
+				siril_log_color_message(_("Missing arguments for rejection stacking.\n"), "red");
+				goto failure;
+			}
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
 				arg->type_of_rejection = PERCENTILE;
 			} else if (!strcmp(word[3], "s") || !strcmp(word[3], "sigma")) {
@@ -3821,7 +3825,7 @@ int process_stackone(int nb) {
 				arg->type_of_rejection = WINSORIZED;
 				shift = 0;
 			}
-			if (!word[3 + shift] || !word[4 + shift] ||
+			if ((nb < 4 + shift + 1) || !word[3 + shift] || !word[4 + shift] ||
 					!string_is_a_number(word[3 + shift]) ||
 					!string_is_a_number(word[4 + shift]) ||
 					(arg->sig[0] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0 ||

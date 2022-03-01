@@ -286,6 +286,8 @@ static int refine_blocks_candidate(int nb_threads, int nb_channels, int minimum_
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
 		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
 	int candidate = nb_threads;	// candidate number of blocks
+	if (nb_threads < 1 || max_number_of_rows < 1)
+		return ST_GENERIC_ERROR;
 	while ((max_number_of_rows * candidate) / nb_threads < naxes[1] * naxes[2])
 		candidate++;
 	candidate = refine_blocks_candidate(nb_threads, (naxes[2] == 3L) ? 3 : 1, candidate);
@@ -975,6 +977,8 @@ static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_i
 
 	guint64 size_of_result = naxes[0] * naxes[1] * naxes[2] * elem_size;
 	max_memory -= size_of_result / BYTES_IN_A_MB;
+	if (max_memory < 0)
+		max_memory = 0;
 
 	siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
 	guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
@@ -997,7 +1001,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
 	gboolean use_regdata = is_mean;
-
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
