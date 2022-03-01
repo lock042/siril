@@ -3766,6 +3766,10 @@ int process_stackone(int nb) {
 			arg->method = stack_median;
 			allow_norm = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
+			if (nb < 5) {
+				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
+				goto failure;
+			}
 			int shift = 1;
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
 				arg->type_of_rejection = PERCENTILE;
