@@ -813,18 +813,14 @@ void on_histoSpinZoom_value_changed(GtkRange *range, gpointer user_data) {
 }
 
 void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) {
-	float m, shadows = 0.f, highlights = 0.f;
-
 	set_cursor_waiting(TRUE);
 	/* we always apply this function on original data */
-	m = find_linked_midtones_balance(get_preview_gfit_backup(), &shadows, &highlights);
-	_params.shadows = shadows;
-	_params.midtones = m;
-	_params.highlights = 1.f;
-
-	_update_entry_text();
-	update_histo_mtf();
-	histo_recompute();
+	if (!find_linked_midtones_balance(get_preview_gfit_backup(), &_params)) {
+		_params.highlights = 1.f;
+		_update_entry_text();
+		update_histo_mtf();
+		histo_recompute();
+	}
 	set_cursor_waiting(FALSE);
 }
 

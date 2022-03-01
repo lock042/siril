@@ -69,7 +69,7 @@ float MTFp(float x, struct mtf_params params) {
 	return MTF(x, params.midtones, params.shadows, params.highlights);
 }
 
-float find_linked_midtones_balance(fits *fit, float *shadows, float *highlights) {
+int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 	float c0 = 0.0, c1 = 0.0;
 	float m = 0.0;
 	int i, n, invertedChannels = 0;
@@ -85,7 +85,7 @@ float find_linked_midtones_balance(fits *fit, float *shadows, float *highlights)
 			++invertedChannels;
 	}
 	if (retval)
-		return 0.5f;
+		return -1;
 
 	if (invertedChannels < n) {
 		for (i = 0; i < n; ++i) {
@@ -103,9 +103,9 @@ float find_linked_midtones_balance(fits *fit, float *shadows, float *highlights)
 		c0 /= (float) n;
 		if (c0 < 0.f) c0 = 0.f;
 		float m2 = m / (float) n - c0;
-		m = MTF(m2, targetBackground, 0.f, 1.f);
-		*shadows = c0;
-		*highlights = 1.0;
+		result->midtones = MTF(m2, targetBackground, 0.f, 1.f);
+		result->shadows = c0;
+		result->highlights = 1.0;
 	} else {
 		for (i = 0; i < n; ++i) {
 			float median, mad, normValue;
@@ -122,13 +122,13 @@ float find_linked_midtones_balance(fits *fit, float *shadows, float *highlights)
 		c1 /= (float) n;
 		if (c1 > 1.f) c1 = 1.f;
 		float m2 = c1 - m / (float) n;
-		m = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
-		*shadows = 0.f;
-		*highlights = c1;
+		result->midtones = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
+		result->shadows = 0.f;
+		result->highlights = c1;
 
 	}
 	for (i = 0; i < n; ++i)
 		free_stats(stat[i]);
-	return m;
+	return 0;
 }
 

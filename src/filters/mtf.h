@@ -15,6 +15,6 @@ float MTF(float x, float m, float lo, float hi);
 float MTFp(float x, struct mtf_params params);
 
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params);
-float find_linked_midtones_balance(fits *fit, float *shadows, float *highlights);
+int find_linked_midtones_balance(fits *fit, struct mtf_params *result);
 
 #endif
