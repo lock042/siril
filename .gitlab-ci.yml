@@ -176,7 +176,6 @@ deps-win64:
   stage: dependencies
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
     XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
     XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
   cache:
@@ -190,10 +189,7 @@ deps-win64:
     - cd ..
     - pip3 install zstandard
   script:
-    - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
-    - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
-    - crossroad -h w64
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
@@ -222,6 +218,9 @@ siril-win64:
     - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
     - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
+    - mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
+    - echo 'crossroad cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=OFF .. && ninja && ninja install' | crossroad w64 siril --run="-"
+    - cd ../../..
     - mkdir _build && cd _build
     - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
@@ -230,7 +229,6 @@ siril-win64:
     when: always
     expire_in: 2 hours
     paths:
-      - subprojects/librtprocess/
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}

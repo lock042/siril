@@ -3,34 +3,28 @@ crossroad source msys2
 mkdir _deps && cd _deps
 
 # Build LibRaw from github
+git clone --depth 1 https://github.com/LibRaw/LibRaw.git
+cd LibRaw
+autoreconf -fi && \
+crossroad ./configure --disable-examples --disable-static && \
+make install || exit 1
+cd ..
+
+
 crossroad install lcms2 \
                   gtk3 \
                   fftw \
                   exiv2 \
                   libconfig \
                   gsl \
-                  opencv
-crossroad uninstall crt-git
-
-# git clone --depth 1 https://github.com/LibRaw/LibRaw.git
-# cd LibRaw
-# autoreconf -fi && \
-# crossroad ./configure --disable-examples --disable-static && \
-# make install || exit 1
-# cd ..
-
-# Install librtprocess from here
-cd ..
-mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-crossroad cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=OFF .. && ninja && ninja install
-cd ../../..
-
-cd _deps
-# Install deps from crossroad
-crossroad install libheif \
+                  opencv\
+                  libheif \
                   ffms2 \
                   cfitsio \
-
+# need to uninstall crt-git
+# probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
+# otherwise, it's messing up all the subsequent builds 
+crossroad uninstall crt-git
 
 
 if [ $? -ne 0 ]; then
