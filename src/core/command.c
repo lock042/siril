@@ -68,6 +68,7 @@
 #include "filters/cosmetic_correction.h"
 #include "filters/deconv.h"
 #include "filters/median.h"
+#include "filters/mtf.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
@@ -1099,11 +1100,12 @@ int process_mtf(int nb) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
-	float lo = g_ascii_strtod(word[1], NULL);
-	float mid = g_ascii_strtod(word[2], NULL);
-	float hi = g_ascii_strtod(word[3], NULL);
+	struct mtf_params params;
+	params.shadows = g_ascii_strtod(word[1], NULL);
+	params.midtones = g_ascii_strtod(word[2], NULL);
+	params.highlights = g_ascii_strtod(word[3], NULL);
 
-	mtf_with_parameters(&gfit, lo, mid, hi);
+	apply_linked_mtf_to_fits(&gfit, &gfit, params);
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -2637,9 +2639,9 @@ int process_seq_mtf(int nb) {
 	args->seq = seq;
 	args->fit = &gfit;
 	args->seqEntry = "mtf_";
-	args->lo = g_ascii_strtod(word[2], NULL);
-	args->mid = g_ascii_strtod(word[3], NULL);
-	args->hi = g_ascii_strtod(word[4], NULL);
+	args->params.shadows = g_ascii_strtod(word[2], NULL);
+	args->params.midtones = g_ascii_strtod(word[3], NULL);
+	args->params.highlights = g_ascii_strtod(word[4], NULL);
 
 	int startoptargs = 5;
 	if (nb > startoptargs) {

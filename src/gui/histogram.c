@@ -36,11 +36,8 @@
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
 #include "core/undo.h"
-
 #include "histogram.h"
 
-#define shadowsClipping -2.80f /* Shadows clipping point measured in sigma units from the main histogram peak. */
-#define targetBackground 0.25f /* final "luminance" of the image for autostretch in the [0,1] range */
 #define GRADIENT_HEIGHT 12
 
 #undef HISTO_DEBUG
@@ -65,12 +62,11 @@ static GtkToggleToolButton *toggleGrid = NULL, *toggleCurve = NULL;
 /* the original histogram, used as starting point of each computation */
 static gsl_histogram *hist_backup[MAXVPORT] = { NULL, NULL, NULL, NULL };
 
-static float _midtones, _shadows, _highlights;
+static struct mtf_params _params;
 
 static gboolean _click_on_histo = FALSE;
 static ScaleType _type_of_scale;
 
-static void apply_mtf_to_fits(fits *from, fits *to);
 static void set_histogram(gsl_histogram *histo, int layer);
 
 static int get_width_of_histo() {
@@ -122,7 +118,7 @@ static void histo_recompute() {
 	set_cursor("progress");
 	copy_backup_to_gfit();
 
-	apply_mtf_to_fits(get_preview_gfit_backup(), &gfit);
+	apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, _params);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 
 	adjust_cutoff_from_updated_gfit();
@@ -152,13 +148,13 @@ static void _update_entry_text() {
 	GtkEntry *histoHighEntry = GTK_ENTRY(lookup_widget("histoHighEntry"));
 	gchar *buffer;
 
-	buffer = g_strdup_printf("%.7f", _shadows);
+	buffer = g_strdup_printf("%.7f", _params.shadows);
 	gtk_entry_set_text(histoShadEntry, buffer);
 	g_free(buffer);
-	buffer = g_strdup_printf("%.7f", _highlights);
+	buffer = g_strdup_printf("%.7f", _params.highlights);
 	gtk_entry_set_text(histoHighEntry, buffer);
 	g_free(buffer);
-	buffer = g_strdup_printf("%.7f", _midtones);
+	buffer = g_strdup_printf("%.7f", _params.midtones);
 	gtk_entry_set_text(histoMidEntry, buffer);
 	g_free(buffer);
 }
@@ -345,7 +341,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 
 	for (k = 0; k < width + 1; k++) {
 		float x = k / (float) width;
-		float y = MTF(x, _midtones, _shadows, _highlights);
+		float y = MTF(x, _params.midtones, _params.shadows, _params.highlights);
 		cairo_line_to(cr, k, height * (1 - y));
 	}
 	cairo_stroke(cr);
@@ -454,10 +450,10 @@ static void draw_slider(cairo_t *cr, int width, int height, int xpos) {
 
 static void display_scale(cairo_t *cr, int width, int height) {
 	draw_gradient(cr, width, height);
-	float delta = ((_highlights - _shadows) * _midtones) + _shadows;
-	draw_slider(cr, width, height, _shadows * width);
+	float delta = ((_params.highlights - _params.shadows) * _params.midtones) + _params.shadows;
+	draw_slider(cr, width, height, _params.shadows * width);
 	draw_slider(cr, width, height, (delta) * width);
-	draw_slider(cr, width, height, _highlights * width);
+	draw_slider(cr, width, height, _params.highlights * width);
 }
 
 static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
@@ -524,36 +520,6 @@ static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int widt
 	cairo_stroke(cr);
 }
 
-static void apply_mtf_to_fits(fits *from, fits *to) {
-
-	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
-	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
-	g_assert(from->type == to->type);
-
-	if (from->type == DATA_USHORT) {
-		float norm = (float)get_normalized_value(from);
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0; i < ndata; i++) {
-			float pxl = (float)from->data[i] / norm;
-			float mtf = MTF(pxl, _midtones, _shadows, _highlights);
-			to->data[i] = round_to_WORD(mtf * norm);
-		}
-	}
-	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0; i < ndata; i++) {
-			to->fdata[i] = MTF(from->fdata[i], _midtones, _shadows, _highlights);
-		}
-	}
-	else return;
-
-	invalidate_stats_from_fit(to);
-}
-
 static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 		float m, float lo, float hi) {
 
@@ -591,9 +557,9 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 }
 
 static void reset_cursors_and_values() {
-	_shadows = 0.f;
-	_midtones = 0.5f;
-	_highlights = 1.0f;
+	_params.shadows = 0.f;
+	_params.midtones = 0.5f;
+	_params.highlights = 1.0f;
 	graph_height = 0.f;
 
 	_init_clipped_pixels();
@@ -615,7 +581,7 @@ static void update_histo_mtf() {
 	_init_clipped_pixels();
 	for (long i = 0; i < gfit.naxes[2]; i++) {
 		gsl_histogram_memcpy(com.layers_hist[i], hist_backup[i]);
-		apply_mtf_to_histo(com.layers_hist[i], norm, _midtones, _shadows, _highlights);
+		apply_mtf_to_histo(com.layers_hist[i], norm, _params.midtones, _params.shadows, _params.highlights);
 	}
 	size_t data = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
 	_update_clipped_pixels(data);
@@ -639,13 +605,6 @@ static gboolean on_gradient(GdkEvent *event, int width, int height) {
 /*
  * Public functions
  */
-
-void mtf_with_parameters(fits *fit, float lo, float mid, float hi) {
-	_shadows = lo;
-	_midtones = mid;
-	_highlights = hi;
-	apply_mtf_to_fits(fit, fit);
-}
 
 gsl_histogram* computeHisto_Selection(fits* fit, int layer,
 		rectangle *selection) {
@@ -712,86 +671,11 @@ void clear_histograms() {
 	// TODO: call histo_close? should it be done by the caller?
 }
 
-float MTF(float x, float m, float lo, float hi) {
-	if (x <= lo)
-		return 0.f;
-	if (x >= hi)
-		return 1.f;
-
-	float xp = (x - lo) / (hi - lo);
-
-	return ((m - 1.f) * xp) / (((2.f * m - 1.f) * xp) - m);
-}
-
-float findMidtonesBalance(fits *fit, float *shadows, float *highlights) {
-	float c0 = 0.0, c1 = 0.0;
-	float m = 0.0;
-	int i, n, invertedChannels = 0;
-	imstats *stat[3];
-
-	n = fit->naxes[2];
-
-	for (i = 0; i < n; ++i) {
-		stat[i] = statistics(NULL, -1, fit, i, NULL, STATS_BASIC | STATS_MAD, MULTI_THREADED);
-		if (!stat[i]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 0.f;
-		}
-
-		if (stat[i]->median / stat[i]->normValue > 0.5)
-			++invertedChannels;
-	}
-
-	if (invertedChannels < n) {
-		for (i = 0; i < n; ++i) {
-			float median, mad, normValue;
-
-			normValue = (float)stat[i]->normValue;
-			median = (float) stat[i]->median / normValue;
-			mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
-			/* this is a guard to avoid breakdown point */
-			if (mad == 0.f) mad = 0.001f;
-
-			c0 += median + shadowsClipping * mad;
-			m += median;
-		}
-		c0 /= (float) n;
-		if (c0 < 0.f) c0 = 0.f;
-		float m2 = m / (float) n - c0;
-		m = MTF(m2, targetBackground, 0.f, 1.f);
-		*shadows = c0;
-		*highlights = 1.0;
-	} else {
-		for (i = 0; i < n; ++i) {
-			float median, mad, normValue;
-
-			normValue = (float) stat[i]->normValue;
-			median = (float) stat[i]->median / normValue;
-			mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
-			/* this is a guard to avoid breakdown point */
-			if (mad == 0.f) mad = 0.001f;
-
-			m += median;
-			c1 += median - shadowsClipping * mad;
-		}
-		c1 /= (float) n;
-		if (c1 > 1.f) c1 = 1.f;
-		float m2 = c1 - m / (float) n;
-		m = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
-		*shadows = 0.f;
-		*highlights = c1;
-
-	}
-	for (i = 0; i < n; ++i)
-		free_stats(stat[i]);
-	return m;
-}
-
 static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_) {
 	struct mtf_data *m_args = (struct mtf_data*) args->user;
 
-	mtf_with_parameters(fit, m_args->lo, m_args->mid, m_args->hi);
+	apply_linked_mtf_to_fits(fit, fit, m_args->params);
 	return 0;
 }
 
@@ -860,7 +744,7 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 }
 
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
-	if ((_midtones == 0.5f) && (_shadows == 0.f) && (_highlights == 1.f)) {
+	if ((_params.midtones == 0.5f) && (_params.shadows == 0.f) && (_params.highlights == 1.f)) {
 		return;
 	}
 
@@ -869,10 +753,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			&& sequence_is_loaded()) {
 		/* Apply to the whole sequence */
 		struct mtf_data *args = malloc(sizeof(struct mtf_data));
-
-		args->lo = _shadows;
-		args->mid = _midtones;
-		args->hi = _highlights;
+		args->params = _params;
 		args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "mtf_";
@@ -894,10 +775,10 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		histo_recompute();
 		// partial cleanup
 		siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
-				_midtones, _shadows, _highlights);
+				_params.midtones, _params.shadows, _params.highlights);
 		undo_save_state(get_preview_gfit_backup(),
-				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"), _midtones, _shadows,
-				_highlights);
+				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
+				_params.midtones, _params.shadows, _params.highlights);
 
 		clear_backup();
 		clear_hist_backup();
@@ -936,10 +817,10 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 
 	set_cursor_waiting(TRUE);
 	/* we always apply this function on original data */
-	m = findMidtonesBalance(get_preview_gfit_backup(), &shadows, &highlights);
-	_shadows = shadows;
-	_midtones = m;
-	_highlights = 1.f;
+	m = find_linked_midtones_balance(get_preview_gfit_backup(), &shadows, &highlights);
+	_params.shadows = shadows;
+	_params.midtones = m;
+	_params.highlights = 1.f;
 
 	_update_entry_text();
 	update_histo_mtf();
@@ -984,34 +865,34 @@ gboolean on_drawingarea_histograms_motion_notify_event(GtkWidget *widget, GdkEve
 
 		switch (_type_of_scale) {
 		case SCALE_LOW:
-			if ((float)xpos > _highlights) {
-				_shadows = _highlights;
+			if ((float)xpos > _params.highlights) {
+				_params.shadows = _params.highlights;
 			} else {
-				_shadows = (float)xpos;
+				_params.shadows = (float)xpos;
 			}
-			buffer = g_strdup_printf("%.7f", _shadows);
+			buffer = g_strdup_printf("%.7f", _params.shadows);
 			gtk_entry_set_text(histoShadEntry, buffer);
 			break;
 
 		case SCALE_MID:
-			if (_highlights == _shadows) {
-				_midtones = _highlights;
+			if (_params.highlights == _params.shadows) {
+				_params.midtones = _params.highlights;
 			} else {
-				_midtones = ((float)xpos - _shadows) / (_highlights - _shadows);
+				_params.midtones = ((float)xpos - _params.shadows) / (_params.highlights - _params.shadows);
 			}
-			if (_midtones > 1.f) _midtones = 1.f;
-			if (_midtones < 0.f) _midtones = 0.f;
-			buffer = g_strdup_printf("%.7f", _midtones);
+			if (_params.midtones > 1.f) _params.midtones = 1.f;
+			if (_params.midtones < 0.f) _params.midtones = 0.f;
+			buffer = g_strdup_printf("%.7f", _params.midtones);
 			gtk_entry_set_text(histoMidEntry, buffer);
 			break;
 
 		case SCALE_HI:
-			if ((float)xpos < _shadows) {
-				_shadows =_highlights;
+			if ((float)xpos < _params.shadows) {
+				_params.shadows =_params.highlights;
 			} else {
-				_highlights = (float)xpos;
+				_params.highlights = (float)xpos;
 			}
-			buffer = g_strdup_printf("%.7f", _highlights);
+			buffer = g_strdup_printf("%.7f", _params.highlights);
 			gtk_entry_set_text(histoHighEntry, buffer);
 			break;
 		}
@@ -1033,17 +914,17 @@ gboolean on_drawingarea_histograms_button_press_event(GtkWidget *widget,
 	int height = get_height_of_histo();
 
 	if (on_gradient((GdkEvent *) event, width, height)) {
-		float delta = ((_highlights - _shadows) * _midtones) + _shadows;
+		float delta = ((_params.highlights - _params.shadows) * _params.midtones) + _params.shadows;
 
 		_click_on_histo = TRUE;
 		gdouble xpos = ((GdkEventButton*) event)->x / (gdouble) width;
-		if (fabsf((float)xpos - _highlights) < fabsf((float)xpos - _shadows) && fabsf((float)xpos - _highlights) < fabsf((float)xpos - delta)) {
+		if (fabsf((float)xpos - _params.highlights) < fabsf((float)xpos - _params.shadows) && fabsf((float)xpos - _params.highlights) < fabsf((float)xpos - delta)) {
 			_type_of_scale = SCALE_HI;
-		} else if (fabsf((float)xpos - _shadows) < fabsf((float)xpos - delta) && fabsf((float)xpos - _shadows) < fabsf((float)xpos - _highlights)) {
+		} else if (fabsf((float)xpos - _params.shadows) < fabsf((float)xpos - delta) && fabsf((float)xpos - _params.shadows) < fabsf((float)xpos - _params.highlights)) {
 			_type_of_scale = SCALE_LOW;
-		} else if ((_shadows == _highlights) && (_shadows > 0.f)) {
+		} else if ((_params.shadows == _params.highlights) && (_params.shadows > 0.f)) {
 			_type_of_scale = SCALE_LOW;
-		} else if ((_shadows == _highlights) && (_shadows == 0.f)) {
+		} else if ((_params.shadows == _params.highlights) && (_params.shadows == 0.f)) {
 			_type_of_scale = SCALE_HI;
 		} else {
 			_type_of_scale = SCALE_MID;
@@ -1069,9 +950,9 @@ gboolean on_drawingarea_histograms_button_release_event(GtkWidget *widget,
 
 void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (mid <= _shadows) mid = _shadows;
-	if (mid >= _highlights) mid = _highlights;
-	_midtones = mid;
+	if (mid <= _params.shadows) mid = _params.shadows;
+	if (mid >= _params.highlights) mid = _params.highlights;
+	_params.midtones = mid;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
 	histo_recompute();
@@ -1084,8 +965,8 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
-	if (lo >= _highlights) lo = _highlights;
-	_shadows = lo;
+	if (lo >= _params.highlights) lo = _params.highlights;
+	_params.shadows = lo;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
 	histo_recompute();
@@ -1097,9 +978,9 @@ void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 
 void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (hi <= _shadows) hi = _shadows;
+	if (hi <= _params.shadows) hi = _params.shadows;
 	if (hi >= 1.f) hi = 1.f;
-	_highlights = hi;
+	_params.highlights = hi;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
 	histo_recompute();

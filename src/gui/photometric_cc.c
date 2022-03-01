@@ -223,7 +223,6 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 		return 1;
 	}
 
-	/* initialize to DBL_MAX */
 	for (int k = 0; k < nb_stars; k++) {
 		data[RED][k] = FLT_MAX;
 		data[GREEN][k] = FLT_MAX;
@@ -302,7 +301,7 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 	quicksort_f(data[GREEN], nb_stars);
 	quicksort_f(data[BLUE], nb_stars);
 
-	/* we do not take into account DBL_MAX values */
+	/* we do not take into account FLT_MAX values */
 	kw[RED] = siril_stats_robust_mean(data[RED], 1, ngood);
 	kw[GREEN] = siril_stats_robust_mean(data[GREEN], 1, ngood);
 	kw[BLUE] = siril_stats_robust_mean(data[BLUE], 1, ngood);

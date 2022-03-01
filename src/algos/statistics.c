@@ -902,7 +902,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 	// try from the cache first to see if image loading is required
 	for (int layer = 0; layer < nb_layers; ++layer) {
 		// try with no fit passed: fails if data is needed because data is not cached
-		stats[layer] = statistics(seq, image_index, NULL, layer, NULL, STATS_NORM, SINGLE_THREADED);
+		stats[layer] = statistics(seq, image_index, NULL, layer, NULL, option, SINGLE_THREADED);
 		if (!stats[layer])
 			stats_to_compute[required_computations++] = layer;
 	}
@@ -963,7 +963,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 			}
 			siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
 #endif
-			stats[layer] = statistics(seq, image_index, fit, layer, NULL, STATS_NORM, subthreads);
+			stats[layer] = statistics(seq, image_index, fit, layer, NULL, option, subthreads);
 			if (!stats[layer]) {
 				retval = -1;
 				continue;
@@ -978,41 +978,53 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 	return retval;
 }
 
-#if 0
 /* compute statistics for all channels of a single image, only on full image, make sure the result (stats) is allocated */
 int compute_all_channels_statistics_single_image(fits *fit, int option,
 		threading_type threading, int image_thread_id, imstats **stats) {
 	int required_computations = (int)fit->naxes[2];
 	int retval = 0;
 
-	/* we have 'threading' threads to compute this, and 'required_computations'
-	 * channels to compute stats on. If we have as many threads as channels to
-	 * compute, if it is a multiple or if we have at least 4 threads per channel
-	 * to compute, we process channels in parallel. Otherwise, we process each
-	 * channel with internal parallelism. 4 threads makes no more than 20%
-	 * difference between each channel processing time (x/5 / x/4 = 4/5).
-	 */
-	check_threading(&threading);
-	int channels_per_thread = required_computations;
-	int remaining_threads = threading;
-	int *threads_per_thread;
-	if (threading % required_computations == 0 || threading / required_computations >= 4) {
-		channels_per_thread = 1;
-		threads_per_thread = compute_thread_distribution(required_computations, remaining_threads);
-	}
-	else threads_per_thread = compute_thread_distribution(1, remaining_threads);
-
 #ifdef _OPENMP
+	/* we have 'threading' threads and 'required_computations' channels to
+	 * compute stats on. The most efficient approach is to process the
+	 * channels statistics in parallel, because the statistics of each channel
+	 * can be a small operation that would suffer from the threading overhead.
+	 * Consequently, if we have enough threads available, we parallelize first
+	 * the channels and if there are more than enough, we parallelize the
+	 * stats computation. The stats computation then decides if it will use
+	 * all the threads it was given or not, depending on data size.
+	 */
+	int threads = check_threading(&threading);
+	int channels_per_thread = required_computations;
+	int *threads_per_thread = NULL;
+	if (threads > 1) {
+		if (threads >= required_computations) {
+			channels_per_thread = 1;
+			threads_per_thread = compute_thread_distribution(required_computations, threading);
+			omp_set_nested(1);	// to be done at each level
+			if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
+				siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
+			else siril_log_message(_("threading statistics computation per channel (at most %d threads each)\n"), threads_per_thread[0]);
+		}
+		else {
+			threads_per_thread = compute_thread_distribution(1, threading);
+			siril_log_message(_("threading statistics computation of channels (%d threads)\n"), threads_per_thread[0]);
+		}
+	}
+
 #pragma omp parallel for num_threads(required_computations) schedule(static) if(required_computations > 1 && channels_per_thread == 1)
 #endif
 	for (int layer = 0; layer < required_computations; ++layer) {
 		threading_type subthreads = SINGLE_THREADED;
 #ifdef _OPENMP
-		int thread_id = omp_get_thread_num();
-		subthreads = threads_per_thread[thread_id];
+		//siril_debug_print("actual number of threads in channel thread: %d (level %d)\n", omp_get_num_threads(), omp_get_level());
+		if (threads_per_thread) {
+			int thread_id = omp_get_thread_num();
+			subthreads = threads_per_thread[thread_id];
+		}
 		siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
 #endif
-		stats[layer] = statistics(NULL, -1, fit, layer, NULL, STATS_NORM, subthreads);
+		stats[layer] = statistics(NULL, -1, fit, layer, NULL, option, subthreads);
 		if (!stats[layer]) {
 			retval = -1;
 			continue;
@@ -1024,4 +1036,3 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 	return retval;
 }
 
-#endif
