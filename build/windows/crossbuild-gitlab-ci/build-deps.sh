@@ -2,13 +2,13 @@ crossroad source msys2
 mkdir _deps && cd _deps
 
 # Build LibRaw from github
-crossroad install lcms2
-git clone --depth 1 https://github.com/LibRaw/LibRaw.git
-cd LibRaw
-autoreconf -fi && \
-crossroad ./configure --disable-examples --disable-static && \
-make install || exit 1
-cd ..
+# crossroad install lcms2
+# git clone --depth 1 https://github.com/LibRaw/LibRaw.git
+# cd LibRaw
+# autoreconf -fi && \
+# crossroad ./configure --disable-examples --disable-static && \
+# make install || exit 1
+# cd ..
 
 # Install deps from crossroad
 crossroad install fftw \
