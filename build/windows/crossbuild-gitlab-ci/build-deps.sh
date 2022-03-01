@@ -20,6 +20,7 @@ crossroad uninstall crt-git
 # Build LibRaw from github
 git clone --depth 1 https://github.com/LibRaw/LibRaw.git
 cd LibRaw
+patch --binary -p1 < ../build/windows/libraw.patch
 autoreconf -fi && \
 crossroad ./configure --disable-examples --disable-static && \
 make install || exit 1
