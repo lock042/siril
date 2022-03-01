@@ -66,6 +66,9 @@ build-image-win64:
 # Try building/packaging with msys2 in one step
 # (otherwise win VM gets wiped)
 build-native-win64:
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
   stage: prepare
   cache: {}
   variables:
@@ -381,7 +384,7 @@ cppcheck:
 win-installer-native:
   only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
+      - $CI_COMMIT_MESSAGE =~ /w64i/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
   variables:
     CHERE_INVOKING: "yes"
   tags:
