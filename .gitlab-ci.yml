@@ -65,7 +65,7 @@ build-image-win64:
 
 # Try building/packaging with msys2 in one step
 # (otherwise win VM gets wiped)
-build-native-win64:
+win64-native-nightly:
   only:
     variables:
       - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
@@ -391,7 +391,7 @@ win-installer-native:
     - windows
   stage: distribution
   dependencies:
-    - build-native-win64
+    - win64-native-nightly
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -402,4 +402,4 @@ win-installer-native:
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: ["build-native-win64"]
+  needs: ["win64-native-nightly"]
