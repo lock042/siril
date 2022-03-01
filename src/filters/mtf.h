@@ -17,4 +17,7 @@ float MTFp(float x, struct mtf_params params);
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params);
 int find_linked_midtones_balance(fits *fit, struct mtf_params *result);
 
+void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params);
+int find_unlinked_midtones_balance(fits *fit, struct mtf_params *results);
+
 #endif

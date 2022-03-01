@@ -72,13 +72,13 @@ float MTFp(float x, struct mtf_params params) {
 int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 	float c0 = 0.0, c1 = 0.0;
 	float m = 0.0;
-	int i, n, invertedChannels = 0;
+	int i, invertedChannels = 0;
 	imstats *stat[3];
 
-	n = fit->naxes[2];
+	int nb_channels = (int)fit->naxes[2];
 
 	int retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_MAD, MULTI_THREADED, -1, stat);
-	for (i = 0; i < n; ++i) {
+	for (i = 0; i < nb_channels; ++i) {
 		if (retval && stat[i])
 			free_stats(stat[i]);
 		else if (stat[i]->median / stat[i]->normValue > 0.5)
@@ -87,8 +87,8 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 	if (retval)
 		return -1;
 
-	if (invertedChannels < n) {
-		for (i = 0; i < n; ++i) {
+	if (invertedChannels < nb_channels) {
+		for (i = 0; i < nb_channels; ++i) {
 			float median, mad, normValue;
 
 			normValue = (float)stat[i]->normValue;
@@ -100,14 +100,17 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 			c0 += median + shadowsClipping * mad;
 			m += median;
 		}
-		c0 /= (float) n;
+		c0 /= (float) nb_channels;
 		if (c0 < 0.f) c0 = 0.f;
-		float m2 = m / (float) n - c0;
+		float m2 = m / (float) nb_channels - c0;
 		result->midtones = MTF(m2, targetBackground, 0.f, 1.f);
 		result->shadows = c0;
 		result->highlights = 1.0;
+
+		siril_debug_print("autostretch: (%f, %f, %f)\n",
+				result->shadows, result->midtones, result->highlights);
 	} else {
-		for (i = 0; i < n; ++i) {
+		for (i = 0; i < nb_channels; ++i) {
 			float median, mad, normValue;
 
 			normValue = (float) stat[i]->normValue;
@@ -119,15 +122,106 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 			m += median;
 			c1 += median - shadowsClipping * mad;
 		}
-		c1 /= (float) n;
+		c1 /= (float) nb_channels;
 		if (c1 > 1.f) c1 = 1.f;
-		float m2 = c1 - m / (float) n;
+		float m2 = c1 - m / (float) nb_channels;
 		result->midtones = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
 		result->shadows = 0.f;
 		result->highlights = c1;
 
 	}
-	for (i = 0; i < n; ++i)
+	for (i = 0; i < nb_channels; ++i)
+		free_stats(stat[i]);
+	return 0;
+}
+
+void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params) {
+	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
+	const size_t ndata = from->naxes[0] * from->naxes[1];
+	g_assert(from->type == to->type);
+
+	if (from->type == DATA_USHORT) {
+		float norm = (float)get_normalized_value(from);
+#ifdef _OPENMP
+		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads> 1)
+#endif
+		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
+			for (size_t i = 0; i < ndata; i++) {
+				float pxl = (float)from->pdata[chan][i] / norm;
+				float mtf = MTFp(pxl, params[chan]);
+				to->pdata[chan][i] = round_to_WORD(mtf * norm);
+			}
+		}
+	}
+	else if (from->type == DATA_FLOAT) {
+#ifdef _OPENMP
+		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads> 1)
+#endif
+		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
+			for (size_t i = 0; i < ndata; i++) {
+				to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
+			}
+		}
+	}
+	else return;
+
+	invalidate_stats_from_fit(to);
+}
+
+
+int find_unlinked_midtones_balance(fits *fit, struct mtf_params *results) {
+	int i, invertedChannels = 0;
+	imstats *stat[3];
+
+	int nb_channels = (int)fit->naxes[2];
+
+	int retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_MAD, MULTI_THREADED, -1, stat);
+	for (i = 0; i < nb_channels; ++i) {
+		if (retval && stat[i])
+			free_stats(stat[i]);
+		else if (stat[i]->median / stat[i]->normValue > 0.5)
+			++invertedChannels;
+	}
+	if (retval)
+		return -1;
+
+	if (invertedChannels < nb_channels) {
+		for (i = 0; i < nb_channels; ++i) {
+			float normValue = (float)stat[i]->normValue;
+			float median = (float) stat[i]->median / normValue;
+			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
+			/* this is a guard to avoid breakdown point */
+			if (mad == 0.f) mad = 0.001f;
+
+			float c0 = median + shadowsClipping * mad;
+			if (c0 < 0.f) c0 = 0.f;
+			float m2 = median - c0;
+			results[i].midtones = MTF(m2, targetBackground, 0.f, 1.f);
+			results[i].shadows = c0;
+			results[i].highlights = 1.0;
+			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n",
+					i, results[i].shadows, results[i].midtones, results[i].highlights);
+		}
+	} else {
+		for (i = 0; i < nb_channels; ++i) {
+			float normValue = (float) stat[i]->normValue;
+			float median = (float) stat[i]->median / normValue;
+			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
+			/* this is a guard to avoid breakdown point */
+			if (mad == 0.f) mad = 0.001f;
+
+			float c1 = median - shadowsClipping * mad;
+			if (c1 > 1.f) c1 = 1.f;
+			float m2 = c1 - median;
+			results[i].midtones = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
+			results[i].shadows = 0.f;
+			results[i].highlights = c1;
+		}
+
+	}
+	for (i = 0; i < nb_channels; ++i)
 		free_stats(stat[i]);
 	return 0;
 }

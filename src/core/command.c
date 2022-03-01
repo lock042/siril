@@ -1113,6 +1113,22 @@ int process_mtf(int nb) {
 	return 0;
 }
 
+int process_autostretch(int nb) {
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
+
+	struct mtf_params params[3];
+	find_unlinked_midtones_balance(&gfit, params);
+	apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
+
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	return 0;
+}
+
 int process_resample(int nb) {
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;

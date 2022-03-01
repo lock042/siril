@@ -4,6 +4,7 @@
 #define STR_NONE ""
 
 #define STR_ADDMAX N_("Computes a new image combining the image in memory with the image <b>filename</b>. At each pixel location, the new value is determined as the max of value in current image and in <b>filename</b>")
+#define STR_AUTOSTRETCH N_("Unlinked-channels auto-stretch for current loaded image")
 #define STR_ASINH N_("Stretches the image to show faint objects, while simultaneously, preserves the structure of bright objects of the field")
 
 #define STR_BG N_("Returns the background level of the image loaded in memory")
