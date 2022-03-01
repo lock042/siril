@@ -4087,6 +4087,7 @@ int process_set_mem(int nb){
 		siril_log_message(_("Setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which can be very slow and is unrecommended (%g requested)\n"), ratio);
 	}
 	com.pref.stack.memory_ratio = ratio;
+	com.pref.stack.mem_mode = RATIO;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
 	if (!com.script)
