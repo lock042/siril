@@ -65,7 +65,10 @@ build-image-win64:
 
 # Try building/packaging with msys2 in one step
 # (otherwise win VM gets wiped)
-build-native-win64:
+win64-native-nightly:
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/ || $CI_PIPELINE_SOURCE == "schedule"
   stage: prepare
   cache: {}
   variables:
@@ -191,7 +194,6 @@ deps-win64:
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
-    
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -219,9 +221,6 @@ siril-win64:
     - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
     - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
-    - mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-    - echo 'crossroad cmake .. && make && make install' | crossroad w64 siril --run="-"
-    - cd ../../..
     - mkdir _build && cd _build
     - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
@@ -260,7 +259,7 @@ win64-nightly:
     - cp build/windows/crossbuild-gitlab-ci/siril-wrapper.cmd ${INSTALL_PREFIX}/bin/
 
     # Package lib
-    - mkdir ${INSTALL_PREFIX}/lib/
+#    - mkdir ${INSTALL_PREFIX}/lib/
     - cp -fr ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0 ${INSTALL_PREFIX}/lib/
     - cp build/windows/loaders.cache ${INSTALL_PREFIX}/lib/gdk-pixbuf-2.0/2.10.0/
     - glib-compile-schemas --targetdir=${INSTALL_PREFIX}/share/glib-2.0/schemas ${CROSSROAD_OUT}/share/glib-2.0/schemas
@@ -382,14 +381,14 @@ cppcheck:
 win-installer-native:
   only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/
+      - $CI_COMMIT_MESSAGE =~ /w64i/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/ || $CI_PIPELINE_SOURCE == "schedule"
   variables:
     CHERE_INVOKING: "yes"
   tags:
     - windows
   stage: distribution
   dependencies:
-    - build-native-win64
+    - win64-native-nightly
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -400,4 +399,4 @@ win-installer-native:
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: ["build-native-win64"]
+  needs: ["win64-native-nightly"]
