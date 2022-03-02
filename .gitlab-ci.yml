@@ -202,7 +202,6 @@ deps-win64:
       - .local/
       - _deps/
   needs: ["build-image-win64"]
-  allow_failure: true
 
 siril-win64:
   stage: siril
@@ -232,7 +231,6 @@ siril-win64:
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}
-  allow_failure: true
 
 ################################################################################
 # Packaging
@@ -282,7 +280,6 @@ win64-nightly:
     expire_in: 1 week
     paths:
       - ${INSTALL_DIR}
-  allow_failure: true
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
