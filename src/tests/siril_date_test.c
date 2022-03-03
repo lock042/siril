@@ -19,6 +19,7 @@
  */
 
 #include <criterion/criterion.h>
+#include "core/siril.h"
 #include "core/siril_date.h"
 
 #define UNDER_US      G_GUINT64_CONSTANT(7)
