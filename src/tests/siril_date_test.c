@@ -19,7 +19,6 @@
  */
 
 #include <criterion/criterion.h>
-#include "core/siril.h"
 #include "core/siril_date.h"
 
 #define UNDER_US      G_GUINT64_CONSTANT(7)
@@ -27,6 +26,7 @@
 #define SER_TIME_1970 G_GUINT64_CONSTANT(621355968000000000) // 621.355.968.000.000.000 ticks between 1st Jan 0001 and 1st Jan 1970.
 
 #ifdef WITH_MAIN
+#include <stdio.h>
 #define CHECK(cond, ...) \
 	if (!(cond)) { \
 		fprintf(stderr, __VA_ARGS__); \
@@ -34,10 +34,6 @@
 	}
 #else
 #define CHECK cr_expect
-
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
 #endif
 
 
