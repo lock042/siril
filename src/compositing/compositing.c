@@ -1109,6 +1109,8 @@ void reset_compositing_module() {
 	}
 	layers[i] = NULL;
 
+	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), FALSE);
+
 	gtk_widget_hide(GTK_WIDGET(color_dialog));
 	current_layer_color_choosing = 0;
 
