@@ -174,6 +174,16 @@ gboolean load_WCS_from_memory(fits *fit) {
 	return FALSE;
 }
 
+int check_threading(threading_type *t) {
+	if (*t != SINGLE_THREADED)
+		return 2;
+	return 1;
+}
+
+int limit_threading(threading_type *t, int set, int max) {
+	return check_threading(t);
+}
+
 #ifdef DUMMY_LOG
 char* siril_log_message(const char* format, ...) {
 	va_list args;

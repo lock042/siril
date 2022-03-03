@@ -1,14 +1,3 @@
-#include <string.h>
-#include <math.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-
-#include "rt/rt_algo.h"
-#include "sorting.h"
-
-
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
@@ -32,6 +21,15 @@
 /* This files contains all sorting algorithms of siril.
  * See src/test/sorting.c for testing and metrics.
  */
+
+#include <string.h>
+#include <math.h>
+
+#include "core/siril.h"
+#include "core/proto.h"
+
+#include "rt/rt_algo.h"
+#include "sorting.h"
 
 /**
  * In-place insertion sort of array of double a of size n
