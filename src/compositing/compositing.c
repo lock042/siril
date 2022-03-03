@@ -477,7 +477,6 @@ static void check_gfit_is_ours() {
 	set_precision_switch();
 	sliders_mode_set_state(gui.sliders);
 
-	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	init_layers_hi_and_lo_values(MIPSLOHI);
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
@@ -575,6 +574,8 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		return;
 	}
 
+	// enable the color balance finalization button
+	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
 	update_MenuItem();
 }
