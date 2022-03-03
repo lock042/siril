@@ -2101,7 +2101,7 @@ int process_offset(int nb){
 	}
 
 	int level = g_ascii_strtod(word[1], NULL);
-	off(&gfit, level);
+	off(&gfit, (float)level);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();

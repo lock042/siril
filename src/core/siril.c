@@ -298,10 +298,10 @@ static int off_uchar(fits *fit, float level) {
 	g_assert(fit->naxes[2] <= 3);
 	if (level == 0)
 		return 0;
-	if (level < -UCHAR_MAX)
-		level = -UCHAR_MAX;
-	else if (level > UCHAR_MAX)
-		level = UCHAR_MAX;
+	if (level < -UCHAR_MAX_SINGLE)
+		level = -UCHAR_MAX_SINGLE;
+	else if (level > UCHAR_MAX_SINGLE)
+		level = UCHAR_MAX_SINGLE;
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	for (i = 0; i < n; ++i) {
 		for (int layer = 0; layer < fit->naxes[2]; ++layer) {
@@ -319,10 +319,10 @@ static int off_ushort(fits *fit, float level) {
 	g_assert(fit->naxes[2] <= 3);
 	if (level == 0)
 		return 0;
-	if (level < -USHRT_MAX)
-		level = -USHRT_MAX;
-	else if (level > USHRT_MAX)
-		level = USHRT_MAX;
+	if (level < -USHRT_MAX_SINGLE)
+		level = -USHRT_MAX_SINGLE;
+	else if (level > USHRT_MAX_SINGLE)
+		level = USHRT_MAX_SINGLE;
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	for (i = 0; i < n; ++i) {
 		for (int layer = 0; layer < fit->naxes[2]; ++layer) {
