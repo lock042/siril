@@ -1118,9 +1118,19 @@ int process_autostretch(int nb) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
+	float shadows_clipping = SHADOWS_CLIPPING;
+	if (nb > 1)
+		shadows_clipping = g_ascii_strtod(word[1], NULL);
+	float target_bg = TARGET_BACKGROUND;
+	if (nb > 2)
+		target_bg = g_ascii_strtod(word[2], NULL);
+	if (target_bg < 0.0f || target_bg > 1.0f) {
+		siril_log_message(_("The target background value must be in the [0, 1] range\n"));
+		return 1;
+	}
 
 	struct mtf_params params[3];
-	find_unlinked_midtones_balance(&gfit, params);
+	find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
 	apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 
 	adjust_cutoff_from_updated_gfit();

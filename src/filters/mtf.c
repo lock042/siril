@@ -97,13 +97,13 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 			/* this is a guard to avoid breakdown point */
 			if (mad == 0.f) mad = 0.001f;
 
-			c0 += median + shadowsClipping * mad;
+			c0 += median + SHADOWS_CLIPPING * mad;
 			m += median;
 		}
 		c0 /= (float) nb_channels;
 		if (c0 < 0.f) c0 = 0.f;
 		float m2 = m / (float) nb_channels - c0;
-		result->midtones = MTF(m2, targetBackground, 0.f, 1.f);
+		result->midtones = MTF(m2, TARGET_BACKGROUND, 0.f, 1.f);
 		result->shadows = c0;
 		result->highlights = 1.0;
 
@@ -120,12 +120,12 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 			if (mad == 0.f) mad = 0.001f;
 
 			m += median;
-			c1 += median - shadowsClipping * mad;
+			c1 += median - SHADOWS_CLIPPING * mad;
 		}
 		c1 /= (float) nb_channels;
 		if (c1 > 1.f) c1 = 1.f;
 		float m2 = c1 - m / (float) nb_channels;
-		result->midtones = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
+		result->midtones = 1.f - MTF(m2, TARGET_BACKGROUND, 0.f, 1.f);
 		result->shadows = 0.f;
 		result->highlights = c1;
 
@@ -171,7 +171,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 }
 
 
-int find_unlinked_midtones_balance(fits *fit, struct mtf_params *results) {
+int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float target_bg, struct mtf_params *results) {
 	int i, invertedChannels = 0;
 	imstats *stat[3];
 
@@ -195,10 +195,10 @@ int find_unlinked_midtones_balance(fits *fit, struct mtf_params *results) {
 			/* this is a guard to avoid breakdown point */
 			if (mad == 0.f) mad = 0.001f;
 
-			float c0 = median + shadowsClipping * mad;
+			float c0 = median + shadows_clipping * mad;
 			if (c0 < 0.f) c0 = 0.f;
 			float m2 = median - c0;
-			results[i].midtones = MTF(m2, targetBackground, 0.f, 1.f);
+			results[i].midtones = MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = c0;
 			results[i].highlights = 1.0;
 			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n",
@@ -212,12 +212,14 @@ int find_unlinked_midtones_balance(fits *fit, struct mtf_params *results) {
 			/* this is a guard to avoid breakdown point */
 			if (mad == 0.f) mad = 0.001f;
 
-			float c1 = median - shadowsClipping * mad;
+			float c1 = median - shadows_clipping * mad;
 			if (c1 > 1.f) c1 = 1.f;
 			float m2 = c1 - median;
-			results[i].midtones = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
+			results[i].midtones = 1.f - MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = 0.f;
 			results[i].highlights = c1;
+			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n",
+					i, results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 
 	}
