@@ -322,7 +322,7 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 		fix_xtrans_ac(prepro->dark);
 	}
 
-	if (prepro->fix_xtrans && prepro->use_bias) {
+	if (prepro->fix_xtrans && prepro->use_bias && prepro->bias) { // check for existence of bias in case of synth offset
 		fix_xtrans_ac(prepro->bias);
 	}
 
