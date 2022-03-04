@@ -90,8 +90,6 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 		scale0[layer] = pscale[layer][ref_index];
 
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
-			if (i == ref_index)
-				continue;
 			switch (args->normalize) {
 				default:
 				case ADDITIVE_SCALING:
