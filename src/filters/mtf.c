@@ -79,10 +79,12 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 
 	int retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_MAD, MULTI_THREADED, -1, stat);
 	for (i = 0; i < nb_channels; ++i) {
-		if (retval && stat[i])
-			free_stats(stat[i]);
-		else if (stat[i]->median / stat[i]->normValue > 0.5)
-			++invertedChannels;
+		if (stat[i]) {
+			if (retval)
+				free_stats(stat[i]);
+			else if (stat[i]->median / stat[i]->normValue > 0.5)
+				++invertedChannels;
+		}
 	}
 	if (retval)
 		return -1;
@@ -179,10 +181,12 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 
 	int retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_MAD, MULTI_THREADED, -1, stat);
 	for (i = 0; i < nb_channels; ++i) {
-		if (retval && stat[i])
-			free_stats(stat[i]);
-		else if (stat[i]->median / stat[i]->normValue > 0.5)
-			++invertedChannels;
+		if (stat[i]) {
+			if (retval)
+				free_stats(stat[i]);
+			else if (stat[i]->median / stat[i]->normValue > 0.5)
+				++invertedChannels;
+		}
 	}
 	if (retval)
 		return -1;

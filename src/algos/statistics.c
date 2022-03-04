@@ -1025,10 +1025,8 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 		siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
 #endif
 		stats[layer] = statistics(NULL, -1, fit, layer, NULL, option, subthreads);
-		if (!stats[layer]) {
+		if (!stats[layer])
 			retval = -1;
-			continue;
-		}
 	}
 
 	free(threads_per_thread);

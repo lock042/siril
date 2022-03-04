@@ -53,6 +53,10 @@ static int _compute_estimators_for_image(struct stacking_args *args, int i,
 
 	for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
 		imstats *stat = stats[layer];
+		if (!stat) {
+			retval = ST_GENERIC_ERROR;
+			continue;
+		}
 		switch (args->normalize) {
 		default:
 		case ADDITIVE_SCALING:
