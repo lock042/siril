@@ -309,8 +309,15 @@ static int prepro_prepare_hook(struct generic_seq_args *args) {
 			// special cases for division factor, caused by how imoper works with many cases
 			if (DATA_USHORT == prepro->flat->type && prepro->allow_32bit_output)
 				prepro->normalisation *= INV_USHRT_MAX_SINGLE;
-			else if (DATA_FLOAT == prepro->flat->type && !prepro->allow_32bit_output)
-				prepro->normalisation *= USHRT_MAX_SINGLE;
+			else if (DATA_FLOAT == prepro->flat->type && !prepro->allow_32bit_output) {
+				if (prepro->seq) { // sequence case
+					printf("normalizing for seq\n");
+					prepro->normalisation *= (prepro->seq->bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE; // imoper deals with bitdepth through norm value
+				} else { // single-image case
+					printf("normalizing for single image\n");
+					prepro->normalisation *= (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE; // imoper deals with bitdepth through norm value
+				}
+			}
 
 			siril_log_message(_("Normalisation value auto evaluated: %.3f\n"),
 					prepro->normalisation);
@@ -691,10 +698,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					error = _("NOT USING FLAT: image dimensions are different");
 				} else {
 					args->use_flat = TRUE;
-					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->flat->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
-						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
-					}
+					// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 				}
 
 			} else error = _("NOT USING FLAT: cannot open the file");
