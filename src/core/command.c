@@ -2129,7 +2129,7 @@ int process_offset(int nb){
 	}
 
 	int level = g_ascii_strtod(word[1], NULL);
-	off(&gfit, level);
+	off(&gfit, (float)level);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -4183,6 +4183,7 @@ int process_set_mem(int nb){
 		siril_log_message(_("Setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which can be very slow and is unrecommended (%g requested)\n"), ratio);
 	}
 	com.pref.stack.memory_ratio = ratio;
+	com.pref.stack.mem_mode = RATIO;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
 	if (!com.script)

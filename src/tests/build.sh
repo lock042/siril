@@ -1,7 +1,7 @@
 #!/bin/sh
-CC=cc
-CXX=c++
-LD=c++
+CC=clang
+CXX=clang++
+LD=clang++
 CFLAGS="-DHAVE_WCSLIB -Wall -g -I.. -fopenmp `pkg-config --cflags gtk+-3.0` `pkg-config --cflags cfitsio` `pkg-config --cflags gsl`"
 LDFLAGS="-fopenmp `pkg-config --libs gtk+-3.0` `pkg-config --libs cfitsio` `pkg-config --libs gsl` -lm"
 
@@ -26,6 +26,11 @@ $LD -o stacking_blocks_test stacking_blocks_test.o ../stacking/median_and_mean.o
 $CC $CFLAGS -DWITH_MAIN -c -o ser_test.o ser_test.c &&
 $CC $CFLAGS -DDUMMY_LOG -c -o dummy.o dummy.c &&
 $LD -o ser_test ser_test.o ../io/ser.o ../core/siril_date.o ../algos/demosaicing.o ../io/seqwriter.o ../io/image_format_fits.o ../algos/demosaicing_rtp.o ../core/utils.o dummy.o -Wl,--unresolved-symbols=ignore-all $LDFLAGS
+
+# compile the date tests
+$CC $CFLAGS -DWITH_MAIN -c -o siril_date_test.o siril_date_test.c &&
+#$CC $CFLAGS -DDUMMY_LOG -c -o dummy.o dummy.c &&
+$LD -o date_test siril_date_test.o ../core/siril_date.o -Wl,--unresolved-symbols=ignore-all $LDFLAGS
 
 
 # in mpp, a libsiril.a was created to not require the endless dummy list of functions:

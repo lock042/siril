@@ -129,6 +129,11 @@ gboolean load_WCS_from_file(fits* fit) {
 	return FALSE;
 }
 
+gboolean load_WCS_from_memory(fits* fit) {
+        fprintf(stderr, "ERROR: calling undefined function load_WCS_from_memory\n");
+	return FALSE;
+}
+
 void free_wcs(fits *fit) {
         fprintf(stderr, "ERROR: calling undefined function free_wcs\n");
 }
