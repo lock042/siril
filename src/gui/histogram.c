@@ -735,7 +735,9 @@ float findMidtonesBalance(fits *fit, float *shadows, float *highlights) {
 		stat[i] = statistics(NULL, -1, fit, i, NULL, STATS_BASIC | STATS_MAD, TRUE);
 		if (!stat[i]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 0.f;
+			*shadows = 0.0f;
+			*highlights = 1.0f;
+			return 0.2f;	// better than linear, but not too risky
 		}
 
 		if (stat[i]->median / stat[i]->normValue > 0.5)
