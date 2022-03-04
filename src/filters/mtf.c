@@ -86,8 +86,12 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 				++invertedChannels;
 		}
 	}
-	if (retval)
+	if (retval) {
+		result->shadows = 0.0f;
+		result->midtones = 0.2f;
+		result->highlights = 1.0f;
 		return -1;
+	}
 
 	if (invertedChannels < nb_channels) {
 		for (i = 0; i < nb_channels; ++i) {
@@ -107,7 +111,7 @@ int find_linked_midtones_balance(fits *fit, struct mtf_params *result) {
 		float m2 = m / (float) nb_channels - c0;
 		result->midtones = MTF(m2, TARGET_BACKGROUND, 0.f, 1.f);
 		result->shadows = c0;
-		result->highlights = 1.0;
+		result->highlights = 1.0f;
 
 		siril_debug_print("autostretch: (%f, %f, %f)\n",
 				result->shadows, result->midtones, result->highlights);
@@ -181,12 +185,15 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 
 	int retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_MAD, MULTI_THREADED, -1, stat);
 	for (i = 0; i < nb_channels; ++i) {
-		if (stat[i]) {
-			if (retval)
+		if (retval) {
+			results[i].shadows = 0.0f;
+			results[i].midtones = 0.2f;
+			results[i].highlights = 1.0f;
+			if (stat[i])
 				free_stats(stat[i]);
-			else if (stat[i]->median / stat[i]->normValue > 0.5)
-				++invertedChannels;
 		}
+		else if (stat[i]->median / stat[i]->normValue > 0.5)
+				++invertedChannels;
 	}
 	if (retval)
 		return -1;

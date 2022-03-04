@@ -27,6 +27,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 
 #include "rt/rt_algo.h"
 #include "sorting.h"
