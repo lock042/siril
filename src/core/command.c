@@ -3680,7 +3680,7 @@ int process_stackall(int nb) {
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
-	arg->apply_noise_weights = FALSE;
+	arg->apply_nbstack_weights = FALSE;
 
 	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]]
 	// stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]
@@ -3794,7 +3794,7 @@ int process_stackone(int nb) {
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE; arg->equalizeRGB = FALSE;
 	arg->apply_noise_weights = FALSE;
-	arg->apply_noise_weights = FALSE;
+	arg->apply_nbstack_weights = FALSE;
 
 	sequence *seq = load_sequence(word[1], &arg->seqfile);
 	if (!seq)
