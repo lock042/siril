@@ -119,6 +119,9 @@ static void histo_recompute() {
 	copy_backup_to_gfit();
 
 	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
+	int retval = find_linked_midtones_balance(&gfit, &params);
+	if (retval)
+		siril_log_color_message(_("Could not compute autostrectch parameters, using default values\n"), "salmon");
 	apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 
