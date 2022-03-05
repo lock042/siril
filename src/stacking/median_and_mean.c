@@ -437,8 +437,8 @@ static void normalize_to16bit(int bitpix, double *mean) {
 }
 
 static void norm_to_0_1_range(fits *fit) {
-	float mini = fit->fdata[0];
-	float maxi = fit->fdata[0];
+	float mini = FLT_MAX;
+	float maxi = -1.f * FLT_MAX;
 	long n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
 	/* search for min / max */
@@ -1355,7 +1355,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				if (args->use_32bit_output) {
 					if (itype == DATA_USHORT)
 						fit.fpdata[my_block->channel][pdata_idx] = min(double_ushort_to_float_range(result), 1.f);
-					else	fit.fpdata[my_block->channel][pdata_idx] = min((float)result, 1.f);
+					else	fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ? (float)result : min((float)result, 1.f); // no clipping if 32b output with output_norm activated
 				} else {
 					/* in case of 8bit data we may want to normalize to 16bits */
 					if (args->output_norm) {

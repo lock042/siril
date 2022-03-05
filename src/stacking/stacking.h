@@ -92,6 +92,7 @@ struct stacking_args {
 	gboolean apply_noise_weights;	/* enable weights */
 	gboolean apply_nbstack_weights;	/* enable weights */
 	double *weights; 		/* computed weights for each (layer, image)*/
+	gboolean equalizeRGB;	/* enable RGB equalization through normalization */
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
 	float (*mad_calculator)(const WORD *, const size_t, const double, threading_type) ; // internal, for ushort
@@ -107,6 +108,7 @@ struct stacking_configuration {
 	double sig[2];
 	gboolean force_no_norm;
 	gboolean output_norm;
+	gboolean equalizeRGB;
 	normalization norm;
 	int number_of_loaded_sequences;
 	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p; // on if >0
