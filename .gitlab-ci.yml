@@ -375,7 +375,7 @@ cppcheck:
 
 ################################################################################
 # Distribution
-win-installer-native:
+win64-native-installer:
   only:
     variables:
       - $CI_COMMIT_MESSAGE =~ /w64i/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/ || $CI_PIPELINE_SOURCE == "schedule"
