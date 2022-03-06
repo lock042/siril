@@ -283,11 +283,9 @@ win64-nightly:
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
-  rules:
-    # On releases.
-    - if: '$CI_COMMIT_TAG != null'
-    # When commit message has the trigger CI-flatpak.
-    - if: '$CI_COMMIT_MESSAGE =~ /CI-flatpak/'
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /CI-flatpak/ || $CI_COMMIT_TAG != null || $CI_PIPELINE_SOURCE == "schedule"
   image: 'registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:master'
   stage: packaging
   variables:
