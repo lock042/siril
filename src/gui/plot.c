@@ -897,6 +897,12 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 }
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
+	/* TODO: probably need to set export CSV button sensitivity
+	but this avoids a crash for now */
+	if(!plot_data) {
+		fprintf(stderr, "exportCSV: Nothing to export\n");
+		return;
+	}
 	set_cursor_waiting(TRUE);
 	save_dialog(".csv", exportCSV);
 	set_cursor_waiting(FALSE);
