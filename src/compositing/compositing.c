@@ -713,6 +713,12 @@ static void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA 
  * particular layer. GdkRGBA values are stored in the [0, 1] interval. */
 static void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRGBA *rgbpixel, float layer_pixel_value) {
 	GdkRGBA *layer_color = &layers[fits_index]->saturated_color;
+	if (layer_pixel_value > 1.0f) {
+		/* images could have pixel values above 1, especially when
+		 * demosaicing is used, we shouldn't count them as overflow
+		 * here */
+		layer_pixel_value = 1.0f;
+	}
 	rgbpixel->red += layer_color->red * layer_pixel_value;
 	rgbpixel->green += layer_color->green * layer_pixel_value;
 	rgbpixel->blue += layer_color->blue * layer_pixel_value;
