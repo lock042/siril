@@ -618,7 +618,7 @@ static gpointer live_stacker(gpointer arg) {
 		index++;
 		number_of_images_stacked++;
 		double noise = bgnoise_await();
-		livestacking_update_number_of_images(number_of_images_stacked, number_of_images_stacked * gfit.exposure, noise);
+		livestacking_update_number_of_images(number_of_images_stacked, gfit.livetime, noise);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");
