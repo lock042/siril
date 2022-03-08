@@ -21,7 +21,7 @@ In order to try the last development version we recommend to compile the sources
  * [GNU/Linux (x86_64)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=appimage-nightly)
  * [Windows (64bits) cross-build](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-nightly)
 
-You can also get weekly native Windows builds (portable and installer versions) and well as flatpak bundle from there:
+You can also get weekly native Windows builds (portable and installer versions) as well as flatpak bundle from there:
  * [Windows (64bits) native portable](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-nightly)
  * [Windows (64bits) native with installer](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-installer)
  * [Flatpak](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=flatpak-nightly)
