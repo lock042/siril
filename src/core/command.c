@@ -3980,10 +3980,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->flat = calloc(1, sizeof(fits));
 				if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
 					args->use_flat = TRUE;
-					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->flat->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
-						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
-					}
+					// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 				} else {
 					retvalue = 1;
 					free(args->flat);

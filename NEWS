@@ -1,4 +1,4 @@
-v1.0.0 March 7, 2022
+v1.0.0 March 9, 2022
 * Added ASTRO-TIFF standard
 * Fixed memory consumption for all sequence operations
 * Fixed settings for sequence export as webm film with VP9 codec
