@@ -85,6 +85,13 @@ static gboolean _print_version_and_exit(const gchar *option_name,
 	return TRUE;
 }
 
+static gboolean _print_copyright_and_exit(const gchar *option_name,
+		const gchar *value, gpointer data, GError **error) {
+	g_print("Copyright © 2012-%s team free-astro\n", SIRIL_GIT_LAST_COMMIT_YEAR);
+	exit(EXIT_SUCCESS);
+	return TRUE;
+}
+
 static gboolean _print_list_of_formats_and_exit(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
 	list_format_available();
@@ -99,6 +106,7 @@ static GOptionEntry main_option[] = {
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
+	{ "copyright", 'c', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_copyright_and_exit, N_("print the copyright"), NULL},
 	{ NULL },
 };
 
@@ -161,12 +169,16 @@ static void init_num_procs() {
 					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
 				ngettext("processor", "processors", omp_num_proc));
 	}
+	omp_set_nested(1);
+	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
 	siril_log_message(
-			_("Parallel processing %s: Using %d logical %s.\n"),
+			_("Parallel processing %s: using %d logical %s%s.\n"),
 			_("enabled"), com.max_thread = num_proc,
-			ngettext("processor", "processors", num_proc));
+			ngettext("processor", "processors", num_proc),
+			supports_nesting ? "" : _(", nesting not supported"));
 #else
-	siril_log_message(_("Parallel processing %s: Using %d logical processor.\n"), _("disabled"), com.max_thread = 1);
+	com.max_thread = 1;
+	siril_log_message(_("Parallel processing disabled: using 1 logical processor.\n"));
 #endif
 }
 

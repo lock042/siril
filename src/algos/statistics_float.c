@@ -40,6 +40,7 @@
 #include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "gui/dialogs.h"
 #include "sorting.h"
 #include "statistics.h"
@@ -83,7 +84,7 @@ float siril_stats_float_sd(const float data[], const int N, float *m) {
  * of the absolute deviations from the data's median:
  *  MAD = median (| Xi − median(X) |)
  */
-double siril_stats_float_mad(const float *data, const size_t n, const double m, gboolean multithread, float *buffer) {
+double siril_stats_float_mad(const float *data, const size_t n, const double m, threading_type threads, float *buffer) {
 	double mad;
 	const float median = (float)m;
 	float *tmp = buffer ? buffer : malloc(n * sizeof(float));
@@ -93,13 +94,14 @@ double siril_stats_float_mad(const float *data, const size_t n, const double m, 
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread && n > 10000) schedule(static)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) if(threads>1) schedule(static)
 #endif
 	for (size_t i = 0; i < n; i++) {
 		tmp[i] = fabsf(data[i] - median);
 	}
 
-	mad = histogram_median_float(tmp, n, multithread);
+	mad = histogram_median_float(tmp, n, threads);
 	if (!buffer) {
 	    free(tmp);
 	}
@@ -107,15 +109,15 @@ double siril_stats_float_mad(const float *data, const size_t n, const double m, 
 }
 
 static double siril_stats_float_bwmv(const float* data, const size_t n,
-		const float mad, const float median, gboolean multithread) {
-
+		const float mad, const float median, threading_type threads) {
 	double bwmv = 0.0;
 	double up = 0.0, down = 0.0;
 
 	if (mad > 0.f) {
         const float factor = 1.f / (9.f * mad);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread) schedule(static) reduction(+:up,down)
+	threads = limit_threading(&threads, 150000, n);
+#pragma omp parallel for num_threads(threads) if(threads>1) schedule(static) reduction(+:up,down)
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float i_med = data[i] - median;
@@ -203,7 +205,7 @@ int IKSS(float *data, size_t n, double *location, double *scale, gboolean multit
 }
 #endif
 
-int IKSSlite(float *data, size_t n, const float median, float mad, double *location, double *scale, gboolean multithread) {
+int IKSSlite(float *data, size_t n, const float median, float mad, double *location, double *scale, threading_type threads) {
 	size_t i, kept;
 	float xlow, xhigh;
 
@@ -223,14 +225,14 @@ int IKSSlite(float *data, size_t n, const float median, float mad, double *locat
 	if (kept == 0)
 		return 1;
 
-	*location = histogram_median_float(data, kept, multithread);
-	mad = siril_stats_float_mad(data, kept, *location, multithread, NULL);
+	*location = histogram_median_float(data, kept, threads);
+	mad = siril_stats_float_mad(data, kept, *location, threads, NULL);
 	if (mad == 0.0f) {
 		siril_log_color_message(_("MAD is null. Statistics cannot be computed.\n"), "red");
 		return 1;
 	}
 
-	*scale = sqrt(siril_stats_float_bwmv(data, kept, mad, *location, multithread)) *.991;
+	*scale = sqrt(siril_stats_float_bwmv(data, kept, mad, *location, threads)) *.991;
 	/* 0.991 factor is to keep consistency with IKSS scale */
 	return 0;
 }
@@ -259,14 +261,15 @@ static float* reassign_to_non_null_data_float(float *data, size_t inputlen, size
 }
 
 static void siril_stats_float_minmax(float *min_out, float *max_out,
-		const float data[], const size_t n, gboolean multithread) {
+		const float data[], const size_t n, threading_type threads) {
 	/* finds the smallest and largest members of a dataset */
 
 	if (n > 0 && data) {
 		float min = data[0];
 		float max = data[0];
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithread && n > 10000) reduction(max:max) reduction(min:min)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) schedule(static) if(threads>1) reduction(max:max) reduction(min:min)
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float xi = data[i];
@@ -282,7 +285,7 @@ static void siril_stats_float_minmax(float *min_out, float *max_out,
 
 /* this function tries to get the requested stats from the passed stats,
  * computes them and stores them in it if they have not already been */
-imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, gboolean multithread) {
+imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, threading_type threads) {
 	int nx, ny;
 	float *data = NULL;
 	int stat_is_local = 0, free_data = 0;
@@ -344,7 +347,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
-		siril_stats_float_minmax(&min, &max, data, stat->total, multithread);
+		siril_stats_float_minmax(&min, &max, data, stat->total, threads);
 		stat->min = (double)min * stat->normValue;
 		stat->max = (double)max * stat->normValue;
 	}
@@ -360,7 +363,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
 		siril_fits_img_stats_float(data, nx, ny, ACTIVATE_NULLCHECK_FLOAT, 0.0f, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
-				NULL, NULL, NULL, multithread, &status);
+				NULL, NULL, NULL, threads, &status);
 		if (status) {
 			if (free_data) free(data);
 			if (stat_is_local) free(stat);
@@ -397,7 +400,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
-		stat->median = histogram_median_float(data, stat->ngoodpix, multithread) * stat->normValue;
+		stat->median = histogram_median_float(data, stat->ngoodpix, threads) * stat->normValue;
 	}
 
 	/* Calculation of average absolute deviation from the median */
@@ -417,7 +420,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
-		stat->mad = siril_stats_float_mad(data, stat->ngoodpix, stat->median / stat->normValue, multithread, NULL) * stat->normValue;
+		stat->mad = siril_stats_float_mad(data, stat->ngoodpix, stat->median / stat->normValue, threads, NULL) * stat->normValue;
 	}
 
 	/* Calculation of Bidweight Midvariance */
@@ -427,7 +430,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
-		double bwmv = siril_stats_float_bwmv(data, stat->ngoodpix, stat->mad / stat->normValue, stat->median / stat->normValue, multithread);
+		double bwmv = siril_stats_float_bwmv(data, stat->ngoodpix, stat->mad / stat->normValue, stat->median / stat->normValue, threads);
 		stat->sqrtbwmv = sqrt(bwmv) * stat->normValue;
 	}
 
@@ -438,7 +441,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
-		if (IKSSlite(data, stat->ngoodpix, stat->median / stat->normValue, stat->mad / stat->normValue, &stat->location, &stat->scale, multithread)) {
+		if (IKSSlite(data, stat->ngoodpix, stat->median / stat->normValue, stat->mad / stat->normValue, &stat->location, &stat->scale, threads)) {
 			if (stat_is_local) free(stat);
 			if (free_data) free(data);
 			return

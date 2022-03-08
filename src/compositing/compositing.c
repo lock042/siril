@@ -477,7 +477,6 @@ static void check_gfit_is_ours() {
 	set_precision_switch();
 	sliders_mode_set_state(gui.sliders);
 
-	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	init_layers_hi_and_lo_values(MIPSLOHI);
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
@@ -575,6 +574,8 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		return;
 	}
 
+	// enable the color balance finalization button
+	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
 	update_MenuItem();
 }
@@ -712,6 +713,12 @@ static void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA 
  * particular layer. GdkRGBA values are stored in the [0, 1] interval. */
 static void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRGBA *rgbpixel, float layer_pixel_value) {
 	GdkRGBA *layer_color = &layers[fits_index]->saturated_color;
+	if (layer_pixel_value > 1.0f) {
+		/* images could have pixel values above 1, especially when
+		 * demosaicing is used, we shouldn't count them as overflow
+		 * here */
+		layer_pixel_value = 1.0f;
+	}
 	rgbpixel->red += layer_color->red * layer_pixel_value;
 	rgbpixel->green += layer_color->green * layer_pixel_value;
 	rgbpixel->blue += layer_color->blue * layer_pixel_value;
@@ -1107,6 +1114,8 @@ void reset_compositing_module() {
 		on_layer_add(NULL, NULL);
 	}
 	layers[i] = NULL;
+
+	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), FALSE);
 
 	gtk_widget_hide(GTK_WIDGET(color_dialog));
 	current_layer_color_choosing = 0;

@@ -7731,7 +7731,6 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <property name="can-focus">True</property>
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
-                <property name="expanded">True</property>
                 <child>
                   <object class="GtkCheckButton" id="checkButton_IPS_manual">
                     <property name="label" translatable="yes">Manual detection</property>
@@ -8106,6 +8105,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn19">
+                    <property name="resizable">True</property>
                     <property name="fixed-width">100</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext8"/>
@@ -8118,6 +8118,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn20">
+                    <property name="resizable">True</property>
                     <property name="fixed-width">100</property>
                     <property name="title" translatable="yes">Red</property>
                     <child>
@@ -8131,6 +8132,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn21">
+                    <property name="resizable">True</property>
                     <property name="fixed-width">100</property>
                     <property name="title" translatable="yes">Green</property>
                     <child>
@@ -8144,6 +8146,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn22">
+                    <property name="resizable">True</property>
                     <property name="fixed-width">100</property>
                     <property name="title" translatable="yes">Blue</property>
                     <child>

@@ -19,17 +19,17 @@
  */
 
 #include "../core/siril.h"
-
-#define USE_ALL_SORTING_ALGOS
 #include "../algos/sorting.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-#define USE_MULTITHREADING TRUE
+#define THREADING_TYPE MULTI_THREADED
 
-cominfo com;	// the main data struct
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
+fits gfit;	// currently loaded image
 
 double median_from_sorted_array(WORD *arr, int size)
 {
@@ -47,7 +47,7 @@ double _siril_qsort(WORD *data, size_t datasize)
 
 double _histogram_sort(WORD *data, size_t datasize)
 {
-	return histogram_median(data, datasize, USE_MULTITHREADING);
+	return histogram_median(data, datasize, THREADING_TYPE);
 }
 
 clock_t perf_test(double (*function)(WORD *data, size_t datasize),

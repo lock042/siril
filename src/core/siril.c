@@ -164,7 +164,7 @@ static int loglut_ushort(fits *fit) {
 	double norm = USHRT_MAX_DOUBLE / log(USHRT_MAX_DOUBLE);
 
 	for (int layer = 0; layer < fit->naxes[2]; ++layer) {
-		imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, MULTI_THREADED);
 		double min = stat->min;
 		double wd = stat->max - stat->min;
 		size_t i, n = fit->naxes[0] * fit->naxes[1];
@@ -184,7 +184,7 @@ static int loglut_float(fits *fit) {
 			fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
 	for (int layer = 0; layer < fit->naxes[2]; ++layer) {
-		imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_MINMAX, MULTI_THREADED);
 		double min = stat->min;
 		double wd = stat->max - stat->min;
 		size_t i, n = fit->naxes[0] * fit->naxes[1];
@@ -298,10 +298,10 @@ static int off_uchar(fits *fit, float level) {
 	g_assert(fit->naxes[2] <= 3);
 	if (level == 0)
 		return 0;
-	if (level < -UCHAR_MAX)
-		level = -UCHAR_MAX;
-	else if (level > UCHAR_MAX)
-		level = UCHAR_MAX;
+	if (level < -UCHAR_MAX_SINGLE)
+		level = -UCHAR_MAX_SINGLE;
+	else if (level > UCHAR_MAX_SINGLE)
+		level = UCHAR_MAX_SINGLE;
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	for (i = 0; i < n; ++i) {
 		for (int layer = 0; layer < fit->naxes[2]; ++layer) {
@@ -319,10 +319,10 @@ static int off_ushort(fits *fit, float level) {
 	g_assert(fit->naxes[2] <= 3);
 	if (level == 0)
 		return 0;
-	if (level < -USHRT_MAX)
-		level = -USHRT_MAX;
-	else if (level > USHRT_MAX)
-		level = USHRT_MAX;
+	if (level < -USHRT_MAX_SINGLE)
+		level = -USHRT_MAX_SINGLE;
+	else if (level > USHRT_MAX_SINGLE)
+		level = USHRT_MAX_SINGLE;
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	for (i = 0; i < n; ++i) {
 		for (int layer = 0; layer < fit->naxes[2]; ++layer) {
@@ -368,7 +368,7 @@ int off(fits *fit, float level) {
 
 /* computes the background value using the histogram and/or median value.
  * The argument layer can be -1 for automatic setting (= green for RGB) */
-double background(fits* fit, int reqlayer, rectangle *selection, gboolean multithread) {
+double background(fits* fit, int reqlayer, rectangle *selection, threading_type threading) {
 	int layer = RLAYER;
 
 	if (reqlayer >= 0)
@@ -376,7 +376,7 @@ double background(fits* fit, int reqlayer, rectangle *selection, gboolean multit
 	else if (isrgb(&gfit))
 		layer = GLAYER;		//GLAYER is better to evaluate background
 
-	imstats* stat = statistics(NULL, -1, fit, layer, selection, STATS_BASIC, multithread);
+	imstats* stat = statistics(NULL, -1, fit, layer, selection, STATS_BASIC, threading);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 0.0;

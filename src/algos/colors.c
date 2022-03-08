@@ -735,7 +735,7 @@ static void background_neutralize(fits* fit, rectangle black_selection) {
 	assert(fit->naxes[2] == 3);
 
 	for (chan = 0; chan < 3; chan++) {
-		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, TRUE);
+		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;
@@ -892,7 +892,7 @@ static void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 
 	siril_log_message(_("Background reference:\n"));
 	for (chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;

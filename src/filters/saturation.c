@@ -149,7 +149,7 @@ gpointer enhance_saturation_ushort(gpointer p) {
 	args->h_min /= 360.0;
 	args->h_max /= 360.0;
 	if (args->background_factor > 0.00) {
-		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, TRUE);
+		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			siril_add_idle(end_generic, args);
@@ -212,7 +212,7 @@ static gpointer enhance_saturation_float(gpointer p) {
 	args->h_min /= 60.0;
 	args->h_max /= 60.0;
 	if (args->background_factor > 0.00) {
-		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, TRUE);
+		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			siril_add_idle(end_generic, args);

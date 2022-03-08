@@ -71,7 +71,7 @@ static float evaluateNoiseOfCalibratedImage(fits *fit, fits *dark,
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		/* STATS_SIGMEAN computes mean and normvalue */
-		imstats *stat = statistics(NULL, -1, &fit_tmp, chan, &area, STATS_SIGMEAN, FALSE);
+		imstats *stat = statistics(NULL, -1, &fit_tmp, chan, &area, STATS_SIGMEAN, SINGLE_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return -1.0;
@@ -298,7 +298,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 
 			rectangle selection = { startx, starty, width - 1 - startx, height - 1 - starty };
 
-			imstats *stat = statistics(NULL, -1, prepro->flat, RLAYER, &selection, STATS_BASIC, FALSE);
+			imstats *stat = statistics(NULL, -1, prepro->flat, RLAYER, &selection, STATS_BASIC, MULTI_THREADED);
 			if (!stat) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
 				return 1;
@@ -309,8 +309,15 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 			// special cases for division factor, caused by how imoper works with many cases
 			if (DATA_USHORT == prepro->flat->type && prepro->allow_32bit_output)
 				prepro->normalisation *= INV_USHRT_MAX_SINGLE;
-			else if (DATA_FLOAT == prepro->flat->type && !prepro->allow_32bit_output)
-				prepro->normalisation *= USHRT_MAX_SINGLE;
+			else if (DATA_FLOAT == prepro->flat->type && !prepro->allow_32bit_output) {
+				if (prepro->seq) { // sequence case
+					printf("normalizing for seq\n");
+					prepro->normalisation *= (prepro->seq->bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE; // imoper deals with bitdepth through norm value
+				} else { // single-image case
+					printf("normalizing for single image\n");
+					prepro->normalisation *= (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE; // imoper deals with bitdepth through norm value
+				}
+			}
 
 			siril_log_message(_("Normalisation value auto evaluated: %.3f\n"),
 					prepro->normalisation);
@@ -322,7 +329,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 		fix_xtrans_ac(prepro->dark);
 	}
 
-	if (prepro->fix_xtrans && prepro->use_bias) {
+	if (prepro->fix_xtrans && prepro->use_bias && prepro->bias) { // check for existence of bias in case of synth offset
 		fix_xtrans_ac(prepro->bias);
 	}
 
@@ -724,10 +731,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					error = _("NOT USING FLAT: image dimensions are different");
 				} else {
 					args->use_flat = TRUE;
-					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->flat->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
-						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
-					}
+					// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 				}
 
 			} else error = _("NOT USING FLAT: cannot open the file");

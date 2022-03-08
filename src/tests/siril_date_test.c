@@ -25,6 +25,18 @@
 #define INPUT_TIME    G_GUINT64_CONSTANT(637232717926133380) + UNDER_US
 #define SER_TIME_1970 G_GUINT64_CONSTANT(621355968000000000) // 621.355.968.000.000.000 ticks between 1st Jan 0001 and 1st Jan 1970.
 
+#ifdef WITH_MAIN
+#include <stdio.h>
+#define CHECK(cond, ...) \
+	if (!(cond)) { \
+		fprintf(stderr, __VA_ARGS__); \
+		return 1; \
+	}
+#else
+#define CHECK cr_expect
+#endif
+
+
 /**
  *  Test consistency of siril_date_time functions
  *   */
@@ -41,19 +53,19 @@ int test_consistency() {
 	 *  structure is accurate down to 1 microsecond
 	 */
 	diff = INPUT_TIME - ts;
-	cr_expect(diff == UNDER_US, "Failed with retval=%lu", diff);
+	CHECK(diff == UNDER_US, "Failed with retval=%lu", diff);
 
-	dt2 = g_date_time_new_from_iso8601 ("2016-11-31T22:10:42Z", NULL);
+	dt2 = g_date_time_new_from_iso8601 ("2016-11-30T22:10:42Z", NULL);
 	ts = date_time_to_ser_timestamp(dt2);
 	dt3 = ser_timestamp_to_date_time(ts);
-	cr_expect(g_date_time_equal(dt2, dt3), "date_time from ser are not equal");
+	CHECK(g_date_time_equal(dt2, dt3), "date_time from ser are not equal");
 
 	/**
 	 *  Test FITS date time consistency
 	 */
 	date_str = date_time_to_FITS_date(dt2);
 	dt4 = FITS_date_to_date_time(date_str);
-	cr_expect(g_date_time_equal(dt2, dt4), "date_time from FITS are not equal");
+	CHECK(g_date_time_equal(dt2, dt4), "date_time from FITS are not equal");
 
 	g_date_time_unref(dt1);
 	g_date_time_unref(dt2);
@@ -62,4 +74,14 @@ int test_consistency() {
 	return 0;
 }
 
+#ifdef WITH_MAIN
+int main() {
+	int retval = test_consistency();
+	if (retval)
+		fprintf(stderr, "TESTS FAILED\n");
+	else fprintf(stderr, "ALL TESTS PASSED\n");
+	return retval;
+}
+#else // with criterion
 Test(check_date, test1) { cr_assert(!test_consistency()); }
+#endif

@@ -281,7 +281,7 @@ void computeStat() {
 	g_free(selection);
 
 	for (channel = 0; channel < gfit.naxes[2]; channel++) {
-		stat[channel] = statistics(NULL, -1, &gfit, channel, &com.selection, STATS_MAIN, TRUE);
+		stat[channel] = statistics(NULL, -1, &gfit, channel, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat[channel]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 		}

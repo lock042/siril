@@ -77,6 +77,18 @@ static void remove_trailing_cr(char *str) {
 		str[length - 1] = '\0';
 }
 
+static void remove_leading_spaces(char *str) {
+	if (str == NULL || str[0] == '\0')
+		return;
+
+	int i = 0;
+	while (g_ascii_isspace(str[i]))
+		i++;
+	if (i > 0)
+		for (int j = 0; str[j+i-1] != '\0'; j++)
+			str[j] = str[j+i];
+}
+
 static int execute_command(int wordnb) {
 	// search for the command in the list
 	if (word[0] == NULL) return 1;
@@ -216,12 +228,12 @@ gpointer execute_script(gpointer p) {
 
 		/* in Windows case, remove trailing CR */
 		remove_trailing_cr(buffer);
+		remove_leading_spaces(buffer);
 
 		if (buffer[0] == '\0') {
 			g_free (buffer);
 			continue;
 		}
-
 
 		display_command_on_status_bar(line, buffer);
 		parse_line(buffer, length, &wordnb);

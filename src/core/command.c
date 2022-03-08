@@ -68,6 +68,7 @@
 #include "filters/cosmetic_correction.h"
 #include "filters/deconv.h"
 #include "filters/median.h"
+#include "filters/mtf.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
@@ -1099,11 +1100,38 @@ int process_mtf(int nb) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
-	float lo = g_ascii_strtod(word[1], NULL);
-	float mid = g_ascii_strtod(word[2], NULL);
-	float hi = g_ascii_strtod(word[3], NULL);
+	struct mtf_params params;
+	params.shadows = g_ascii_strtod(word[1], NULL);
+	params.midtones = g_ascii_strtod(word[2], NULL);
+	params.highlights = g_ascii_strtod(word[3], NULL);
 
-	mtf_with_parameters(&gfit, lo, mid, hi);
+	apply_linked_mtf_to_fits(&gfit, &gfit, params);
+
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	return 0;
+}
+
+int process_autostretch(int nb) {
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
+	float shadows_clipping = SHADOWS_CLIPPING;
+	if (nb > 1)
+		shadows_clipping = g_ascii_strtod(word[1], NULL);
+	float target_bg = TARGET_BACKGROUND;
+	if (nb > 2)
+		target_bg = g_ascii_strtod(word[2], NULL);
+	if (target_bg < 0.0f || target_bg > 1.0f) {
+		siril_log_message(_("The target background value must be in the [0, 1] range\n"));
+		return 1;
+	}
+
+	struct mtf_params params[3];
+	find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
+	apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -1232,7 +1260,7 @@ int process_set_mag(int nb) {
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
@@ -1364,7 +1392,7 @@ int process_psf(int nb){
 		siril_log_message(_("Select an area first\n"));
 		return 1;
 	}
-	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
@@ -1481,7 +1509,7 @@ int process_bg(int nb){
 	WORD us_bg;
 
 	for (int layer = 0; layer < gfit.naxes[2]; layer++) {
-		double bg = background(&gfit, layer, &com.selection, TRUE);
+		double bg = background(&gfit, layer, &com.selection, MULTI_THREADED);
 		if (gfit.type == DATA_USHORT) {
 			us_bg = round_to_WORD(bg);
 			bg = bg / get_normalized_value(&gfit);
@@ -2101,7 +2129,7 @@ int process_offset(int nb){
 	}
 
 	int level = g_ascii_strtod(word[1], NULL);
-	off(&gfit, level);
+	off(&gfit, (float)level);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -2290,7 +2318,7 @@ int process_findcosme(int nb) {
 
 	if (is_sequence) {
 		args->seqEntry = "cc_";
-		args->multithread = FALSE;
+		args->threading = SINGLE_THREADED;
 
 		int startoptargs = i + 3;
 		int nb_command_max = i + 4;
@@ -2311,7 +2339,7 @@ int process_findcosme(int nb) {
 		}
 		apply_cosmetic_to_sequence(args);
 	} else {
-		args->multithread = TRUE;
+		args->threading = MULTI_THREADED;
 		start_in_new_thread(autoDetectThreaded, args);
 	}
 
@@ -2637,9 +2665,9 @@ int process_seq_mtf(int nb) {
 	args->seq = seq;
 	args->fit = &gfit;
 	args->seqEntry = "mtf_";
-	args->lo = g_ascii_strtod(word[2], NULL);
-	args->mid = g_ascii_strtod(word[3], NULL);
-	args->hi = g_ascii_strtod(word[4], NULL);
+	args->params.shadows = g_ascii_strtod(word[2], NULL);
+	args->params.midtones = g_ascii_strtod(word[3], NULL);
+	args->params.highlights = g_ascii_strtod(word[4], NULL);
 
 	int startoptargs = 5;
 	if (nb > startoptargs) {
@@ -2823,7 +2851,7 @@ int process_stat(int nb){
 	nplane = gfit.naxes[2];
 
 	for (layer = 0; layer < nplane; layer++) {
-		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, TRUE);
+		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
@@ -3783,6 +3811,10 @@ int process_stackone(int nb) {
 			allow_norm = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
 			int shift = 1, base_shift = 5;
+			if (nb < 4) {
+				siril_log_color_message(_("Missing arguments for rejection stacking.\n"), "red");
+				goto failure;
+			}
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
 				arg->type_of_rejection = PERCENTILE;
 			} else if (!strcmp(word[3], "s") || !strcmp(word[3], "sigma")) {
@@ -3803,7 +3835,7 @@ int process_stackone(int nb) {
 				arg->type_of_rejection = WINSORIZED;
 				shift = 0;
 			}
-			if (!word[3 + shift] || !word[4 + shift] ||
+			if ((nb < 4 + shift + 1) || !word[3 + shift] || !word[4 + shift] ||
 					!string_is_a_number(word[3 + shift]) ||
 					!string_is_a_number(word[4 + shift]) ||
 					(arg->sig[0] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0 ||
@@ -3948,10 +3980,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->flat = calloc(1, sizeof(fits));
 				if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
 					args->use_flat = TRUE;
-					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->flat->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
-						soper(args->flat, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
-					}
+					// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 				} else {
 					retvalue = 1;
 					free(args->flat);
@@ -4151,6 +4180,7 @@ int process_set_mem(int nb){
 		siril_log_message(_("Setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which can be very slow and is unrecommended (%g requested)\n"), ratio);
 	}
 	com.pref.stack.memory_ratio = ratio;
+	com.pref.stack.mem_mode = RATIO;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
 	if (!com.script)

@@ -133,6 +133,14 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	size_t i, nbdata;
 	int layer;
 
+	if (args->retval) {
+		if (ssdata->sum[0]) free(ssdata->sum[0]);
+		if (ssdata->fsum[0]) free(ssdata->fsum[0]);
+		free(ssdata);
+		args->user = NULL;
+		return args->retval;
+	}
+
 	nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
 	// find the max first
 	if (ssdata->input_32bits) {
@@ -232,7 +240,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->description = _("Sum stacking");
 	args->already_in_a_thread = TRUE;
 
-	struct sum_stacking_data *ssdata = malloc(sizeof(struct sum_stacking_data));
+	struct sum_stacking_data *ssdata = calloc(1, sizeof(struct sum_stacking_data));
 	ssdata->reglayer = stackargs->reglayer;
 	ssdata->ref_image = stackargs->ref_image;
 	assert(ssdata->ref_image >= 0 && ssdata->ref_image < args->seq->number);

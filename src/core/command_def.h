@@ -4,6 +4,7 @@
 #define STR_NONE ""
 
 #define STR_ADDMAX N_("Computes a new image combining the image in memory with the image <b>filename</b>. At each pixel location, the new value is determined as the max of value in current image and in <b>filename</b>")
+#define STR_AUTOSTRETCH N_("Unlinked-channels auto-stretch for current loaded image. The first argument is the shadows clipping point, measured in sigma units from the main histogram peak, default is -2.8. The second argument is the target background value, giving a final brightness to the image, range [0, 1], default is 0.25")
 #define STR_ASINH N_("Stretches the image to show faint objects, while simultaneously, preserves the structure of bright objects of the field")
 
 #define STR_BG N_("Returns the background level of the image loaded in memory")
