@@ -12323,8 +12323,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="vscrollbar-policy">never</property>
                     <property name="shadow-type">in</property>
+                    <property name="min-content-width">400</property>
+                    <property name="min-content-height">400</property>
                     <child>
                       <object class="GtkViewport">
                         <property name="visible">True</property>
@@ -12386,9 +12387,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                                 <property name="search-column">0</property>
                                                 <signal name="drag-data-received" handler="on_treeview_convert_drag_data_received" swapped="no"/>
                                                 <signal name="key-release-event" handler="on_treeview_convert_key_release_event" swapped="no"/>
-                                                <child internal-child="selection">
-                                                  <object class="GtkTreeSelection"/>
-                                                </child>
                                                 <child>
                                                   <object class="GtkTreeViewColumn" id="treeviewcolumn17">
                                                     <property name="resizable">True</property>
@@ -19310,9 +19308,6 @@ The technique gives very good compression for astronomical images and is relativ
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
-                </child>
-                <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -19607,7 +19602,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p9</property>
                     <property name="title" translatable="yes">Astrometry</property>
-                    <property name="position">3</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
@@ -20203,7 +20198,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">page0</property>
                     <property name="title" translatable="yes">Pre-processing</property>
-                    <property name="position">4</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
                 <child>
@@ -20608,7 +20603,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p3</property>
                     <property name="title" translatable="yes">Photometry</property>
-                    <property name="position">5</property>
+                    <property name="position">4</property>
                   </packing>
                 </child>
                 <child>
@@ -20782,7 +20777,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p4</property>
                     <property name="title" translatable="yes">Scripts</property>
-                    <property name="position">6</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
                 <child>
@@ -21101,7 +21096,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p5</property>
                     <property name="title" translatable="yes">User Interface</property>
-                    <property name="position">7</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
                 <child>
@@ -21250,7 +21245,7 @@ Configuring a memory amount larger than what is available on your system may res
                   <packing>
                     <property name="name">preferences_p6</property>
                     <property name="title" translatable="yes">Performances</property>
-                    <property name="position">8</property>
+                    <property name="position">7</property>
                   </packing>
                 </child>
                 <child>
@@ -21534,7 +21529,7 @@ Configuring a memory amount larger than what is available on your system may res
                   <packing>
                     <property name="name">preferences_p7</property>
                     <property name="title" translatable="yes">Miscellaneous</property>
-                    <property name="position">9</property>
+                    <property name="position">8</property>
                   </packing>
                 </child>
               </object>
