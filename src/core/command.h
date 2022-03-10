@@ -116,6 +116,7 @@ int	process_seq_mtf(int nb);
 int	process_seq_psf(int nb);
 int	process_seq_split_cfa(int nb);
 int	process_seq_stat(int nb);
+int process_seq_tilt(int nb);
 int	process_subsky(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
