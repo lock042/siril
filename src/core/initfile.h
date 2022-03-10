@@ -23,15 +23,14 @@
 
 enum token_index {
 	WD = 0,		/* Working Directory */
-	RAW = 1,	/* Raw settings */
-	BAY = 2,	/* Bayer settings */
-	PRE = 3,	/* Preprocessing settings */
-	REG = 4,	/* Registration settings */
-	STK = 5,	/* Stacking settings */
-	AST = 6,	/* Astrometry settings */
-	PTM = 7,	/* Photometry settings */
-	MISC = 8,	/* Miscellaneous settings */
-	CMP = 9,	/* Compression settings */
+	BAY = 1,	/* Bayer settings */
+	PRE = 2,	/* Preprocessing settings */
+	REG = 3,	/* Registration settings */
+	STK = 4,	/* Stacking settings */
+	AST = 5,	/* Astrometry settings */
+	PTM = 6,	/* Photometry settings */
+	MISC = 7,	/* Miscellaneous settings */
+	CMP = 8,	/* Compression settings */
 	NOTOK
 };
 

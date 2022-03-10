@@ -1153,11 +1153,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
 
 	init_peaker_GUI();
-#ifdef HAVE_LIBRAW
-	set_libraw_settings_menu_available(TRUE);	// enable libraw settings
-#else
-	set_libraw_settings_menu_available(FALSE);	// disable libraw settings
-#endif
+
 	update_spinCPU(com.max_thread);
 
 	if (com.pref.first_start) {
@@ -1656,4 +1652,10 @@ void on_rgb_align_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
 
 void on_gotoStacking_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(STACKING);
+}
+
+void on_checkbutton_auto_evaluate_toggled(GtkToggleButton *button,
+		gpointer user_data) {
+	GtkWidget *entry = (GtkWidget *)user_data;
+	gtk_widget_set_sensitive(entry, !gtk_toggle_button_get_active(button));
 }
