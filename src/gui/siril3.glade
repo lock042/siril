@@ -7406,7 +7406,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                     </child>
                     <child>
                       <object class="GtkScrolledWindow" id="GtkScrollIPS">
-                        <property name="height-request">140</property>
+                        <property name="height-request">100</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="shadow-type">in</property>
@@ -7516,7 +7516,36 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">4</property>
-                        <property name="width">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_server_ips">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the server that searches for the entered object.</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item translatable="yes">CDS</item>
+                          <item translatable="yes">VizieR</item>
+                          <item translatable="yes">SIMBAD</item>
+                        </items>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">4</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Server:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">4</property>
                       </packing>
                     </child>
                     <child>
@@ -12387,6 +12416,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                                                 <property name="search-column">0</property>
                                                 <signal name="drag-data-received" handler="on_treeview_convert_drag_data_received" swapped="no"/>
                                                 <signal name="key-release-event" handler="on_treeview_convert_key_release_event" swapped="no"/>
+                                                <child internal-child="selection">
+                                                  <object class="GtkTreeSelection"/>
+                                                </child>
                                                 <child>
                                                   <object class="GtkTreeViewColumn" id="treeviewcolumn17">
                                                     <property name="resizable">True</property>

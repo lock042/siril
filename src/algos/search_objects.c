@@ -65,7 +65,7 @@ static gboolean parse_buffer(char *buffer) {
 
 void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
 	if (!has_wcs(&gfit)) return;
-	gchar *result = search_in_catalogs(gtk_entry_get_text(GTK_ENTRY(entry)), FALSE);
+	gchar *result = search_in_catalogs(gtk_entry_get_text(GTK_ENTRY(entry)));
 	if (result) {
 		if (parse_buffer(result)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
