@@ -18,6 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <sys/time.h>
 
 #include "core/siril.h"
