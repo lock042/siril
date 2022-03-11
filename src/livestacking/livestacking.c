@@ -40,6 +40,7 @@
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "algos/noise.h"
+#include "algos/statistics.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui.h"
@@ -68,6 +69,7 @@ static int seq_rx = -1, seq_ry = -1;
 static struct star_align_data *sadata = NULL;
 static struct preprocessing_data *prepro = NULL;
 static gboolean first_stacking_result = TRUE;
+static imstats *refimage_stats[3] = { NULL };
 
 typedef enum {
 	BOOL_NOT_SET,
@@ -112,6 +114,13 @@ void stop_live_stacking_engine() {
 	}
 	if (prepro) {
 		clear_preprocessing_data(prepro);
+	}
+
+	for (int i = 0; i < 3; i++) {
+		if (refimage_stats[i]) {
+			free_stats(refimage_stats[i]);
+			refimage_stats[i] = NULL;
+		}
 	}
 }
 
@@ -555,6 +564,9 @@ static gpointer live_stacker(gpointer arg) {
 			//free(r_seq);
 			continue;
 		}
+		if (refimage_stats[0])
+			for (int i = 0; i < r_seq.nb_layers; i++)
+				add_stats_to_seq(&r_seq, 0, i, refimage_stats[i]);
 
 		struct stacking_args stackparam = { 0 };
 		stackparam.method = stack_mean_with_rejection;
@@ -570,6 +582,7 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.output_overwrite = TRUE;
 		gettimeofday(&stackparam.t_start, NULL);
 
+		stackparam.normalize = ADDITIVE_SCALING;	// TODO: toggle switch
 		stackparam.force_norm = FALSE;
 		stackparam.output_norm = FALSE;
 		stackparam.use_32bit_output = FALSE;
@@ -580,10 +593,18 @@ static gpointer live_stacker(gpointer arg) {
 
 		/* doing things similar to end_stacking */
 		int retval = stackparam.retval;
+		/* and hacking the stats for good normalization: the reference is the first image stacked */
+		if (!retval && !refimage_stats[0]) {
+			if (copy_cached_stats_for_image(&r_seq, 0, refimage_stats)) {
+				siril_log_color_message(_("Reference image statistics not found\n"), "red");
+				stackparam.normalize = NO_NORM;
+			}
+			else siril_debug_print("saved statistics of reference image, using normalization\n");
+		}
 		clean_end_stacking(&stackparam);
-		free_sequence(&r_seq, FALSE);
 		free(stackparam.image_indices);
 		free(stackparam.description);
+		free_sequence(&r_seq, FALSE);
 
 		if (retval) {
 			gchar *str = g_strdup_printf(_("Stacking failed for image %d"), index);

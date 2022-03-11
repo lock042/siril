@@ -1034,3 +1034,29 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 	return retval;
 }
 
+/* get a reference to stats of an image, only if already computed
+ * make sure channels is allocated to the number of channels
+ * use free_stats() to release the returned stats
+ */
+int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels) {
+	if (!seq->stats)
+		return 1;
+	int all_copied = 1;
+	for (int i = 0; i < seq->nb_layers; i++) {
+		if (all_copied && seq->stats[i] && seq->stats[i][image]) {
+			imstats *stats = seq->stats[i][image];
+			atomic_int_incref(stats->_nb_refs);
+			channels[i] = stats;
+		} else {
+			all_copied = 0;
+		}
+	}
+	if (!all_copied) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (channels[i])
+				free_stats(channels[i]);
+			channels[i] = NULL;
+		}
+	}
+	return !all_copied;
+}

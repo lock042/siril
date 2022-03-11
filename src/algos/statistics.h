@@ -59,4 +59,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 		threading_type threading, int image_thread_id, imstats **stats);
 int compute_all_channels_statistics_single_image(fits *fit, int option,
 		threading_type threading, int image_thread_id, imstats **stats);
+
+int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels);
+
 #endif
