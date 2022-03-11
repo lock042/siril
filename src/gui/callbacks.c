@@ -901,8 +901,10 @@ static void load_accels() {
 
 		"win.search-object",          "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
+		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
+		"win.clipboard",              "<Primary><Shift>c", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,
