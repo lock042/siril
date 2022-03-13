@@ -336,7 +336,7 @@ endforeach
 
 ## Dependencies configuration
 if opencv4_dep.version().version_compare('>=4.4.0')
-  conf_data.set('HAVE_OPENCV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
+  conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
 else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
 endif
