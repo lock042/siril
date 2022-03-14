@@ -180,7 +180,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	}
 
 	gfit.livetime = ssdata->livetime;
-	gfit.stacknt = args->nb_filtered_images;
+	gfit.stackcnt = args->nb_filtered_images;
 	nbdata = args->seq->ry * args->seq->rx;
 
 	if (ssdata->output_32bits) {

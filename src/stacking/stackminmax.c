@@ -225,7 +225,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		import_metadata_from_serfile(args->seq->ser_file, result);
 		result->orig_bitpix = result->bitpix = (args->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	}
-	gfit.stacknt = args->nb_images_to_stack;
+	gfit.stackcnt = args->nb_images_to_stack;
 
 free_and_reset_progress_bar:
 	if (retval) {
