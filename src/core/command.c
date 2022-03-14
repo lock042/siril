@@ -1400,6 +1400,35 @@ int process_psf(int nb){
 	return 0;
 }
 
+int process_seq_tilt(int nb) {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	gboolean draw_polygon = FALSE;
+
+	sequence *seq;
+
+	if (word[1] && word[1][0] != '\0') {
+		seq = load_sequence(word[1], NULL);
+	} else {
+		if (!sequence_is_loaded()) {
+			PRINT_NOT_FOR_SINGLE;
+			return 1;
+		}
+		seq = &com.seq;
+		draw_polygon = TRUE;
+	}
+
+	struct tilt_data *args = calloc(sizeof(struct tilt_data), 1);
+	args->seq = seq;
+	args->draw_polygon = draw_polygon;
+
+	apply_tilt_to_sequence(args);
+	return 0;
+}
+
 int process_seq_psf(int nb) {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;

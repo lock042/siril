@@ -167,7 +167,6 @@ typedef struct single_image single;
 typedef struct wcs_struct wcs_info;
 typedef struct dft_struct dft_info;
 typedef struct ffit fits;
-typedef struct libraw_config libraw;
 typedef struct phot_config phot;
 typedef struct stack_config stackconf;
 typedef struct comp_config compconf;
@@ -587,7 +586,6 @@ struct pref_struct {
 	gdouble focal;		// focal length saved in config file
 	gdouble pitch;		// pixel pitch saved in config file
 
-	libraw raw_set;		// the libraw settings
 	struct debayer_config debayer;	// debayer settings
 	phot phot_set;		// photometry settings
 	gboolean catalog[7];	// Yet 6 catalogs and 1 user catalog

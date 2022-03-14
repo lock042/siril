@@ -53,6 +53,7 @@
 #include "core/icc_profile.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
+#include "algos/demosaicing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "single_image.h"
@@ -1386,178 +1387,6 @@ static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 #endif
 }
 
-static int readraw(const char *name, fits *fit) {
-	libraw_data_t *raw = libraw_init(0);
-
-	int ret = siril_libraw_open_file(raw, name);
-	if (ret) {
-		siril_log_color_message(_("Error in libraw %s.\n"), "red", libraw_strerror(ret));
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-	
-	if (raw->other.shutter > 1.0)
-		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=%gs)\n"),
-				raw->idata.make, raw->idata.model, raw->other.iso_speed, raw->other.shutter);
-	else
-		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=1/%gs)\n"),
-				raw->idata.make, raw->idata.model, raw->other.iso_speed, 1/raw->other.shutter);
-		
-	raw->params.output_bps = 16;						/* 16-bits files                           */
-	raw->params.four_color_rgb = 0;						/* If == 1, interpolate RGB as four colors.*/
-	raw->params.no_auto_bright = 1;						/* no auto_bright                          */
-	raw->params.gamm[0] = 1.0 / com.pref.raw_set.gamm[0];    /* Gamma curve set by the user             */
-	raw->params.gamm[1] = com.pref.raw_set.gamm[1];
-	raw->params.bright = com.pref.raw_set.bright;			/* Brightness                              */
-	raw->params.user_flip = 0;							/* no flip                                 */
-	raw->params.use_camera_wb = com.pref.raw_set.use_camera_wb;
-	raw->params.use_auto_wb = com.pref.raw_set.use_auto_wb;
-	if (com.pref.raw_set.user_black == 1)
-		raw->params.user_black = 0;						/* user black level equivalent to dcraw -k 0 */
-	raw->params.output_color = 0;						/* output colorspace, 0=raw, 1=sRGB, 2=Adobe, 3=Wide, 4=ProPhoto, 5=XYZ*/
-		
-	if (!(com.pref.raw_set.auto_mul)) { /* 4 multipliers (r,g,b,g) of the user's white balance.    */
-		raw->params.user_mul[0] = (float) com.pref.raw_set.mul[0];
-		raw->params.user_mul[1] = raw->params.user_mul[3] = 1.0f;
-		raw->params.user_mul[2] = (float) com.pref.raw_set.mul[2];
-		siril_log_message(_("Daylight multipliers: %f, %f, %f\n"),
-				raw->params.user_mul[0], raw->params.user_mul[1],
-				raw->params.user_mul[2]);
-	} else {
-		float mul[4]; /* 3 multipliers (r,g,b) from the camera white balance.  */
-		mul[0] = raw->color.pre_mul[0] / raw->color.pre_mul[1];
-		mul[1] = 1.0; /* raw->color.pre_mul[1]/raw->color.pre_mul[1]; */
-		mul[2] = raw->color.pre_mul[2] / raw->color.pre_mul[1];
-		mul[3] = raw->color.pre_mul[3] / raw->color.pre_mul[1];
-		siril_log_message(_("Daylight multipliers: %f, %f, %f\n"), mul[0],
-				mul[1], mul[2]);
-	}
-
-	if (raw->idata.filters == 9) {
-		siril_log_color_message(_("XTRANS Sensor detected.\n"), "salmon");
-	}
-
-	switch (com.pref.raw_set.user_qual) { /* Set interpolation                                        */
-	case 0: /* bilinear interpolaton */
-		raw->params.user_qual = 0;
-		siril_log_message(_("Bilinear interpolation...\n"));
-		break;
-	case 2: /* VNG interpolaton */
-		raw->params.user_qual = 1;
-		siril_log_message(_("VNG interpolation...\n"));
-		break;
-	case 3: /* PPG interpolaton */
-		raw->params.user_qual = 2;
-		siril_log_message(_("PPG interpolation...\n"));
-		break;
-	default:
-	case 1: /* AHD interpolaton */
-		raw->params.user_qual = 3;
-		siril_log_message(_("AHD interpolation...\n"));
-		break;
-	}
-	
-	const ushort width = raw->sizes.iwidth;
-	const ushort height = raw->sizes.iheight;
-	const float pitch = estimate_pixel_pitch(raw);
-	size_t npixels = width * height;
-
-	WORD *data = malloc(npixels * sizeof(WORD) * 3);
-	if (!data) {
-		PRINT_ALLOC_ERR;
-		return OPEN_IMAGE_ERROR;
-	}
-	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
-	ret = libraw_unpack(raw);
-	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
-		free(data);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-
-	ret = libraw_dcraw_process(raw);
-	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
-		free(data);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-
-	libraw_processed_image_t *image = libraw_dcraw_make_mem_image(raw, &ret);
-	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
-		free(data);
-		libraw_dcraw_clear_mem(image);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-
-	int nbplanes = image->colors;
-	if (nbplanes != 3) {
-		free(data);
-		libraw_dcraw_clear_mem(image);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-	// only for 16-bits because of endianness. Are there 8-bits RAW ???
-
-	for (unsigned int i = 0; i < image->data_size; i += 6) {
-		*buf[RLAYER]++ = (image->data[i + 0]) + (image->data[i + 1] << 8);
-		*buf[GLAYER]++ = (image->data[i + 2]) + (image->data[i + 3] << 8);
-		*buf[BLAYER]++ = (image->data[i + 4]) + (image->data[i + 5] << 8);
-	}
-
-	/*  Here we compute the correct size of the output image (imgdata.sizes.iwidth and imgdata.sizes.iheight) for the following cases:
-    	- Files from Fuji cameras (with a 45-degree rotation)
-    	- Files from cameras with non-square pixels
-    	- Images shot by a rotated camera.
-	 */
-	libraw_adjust_sizes_info_only(raw);
-	
-	if (data != NULL) {
-		clearfits(fit);
-		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
-		fit->type = DATA_USHORT;
-		fit->rx = (unsigned int) width;
-		fit->ry = (unsigned int) height;
-		fit->naxes[0] = (long) width;
-		fit->naxes[1] = (long) height;
-		fit->naxes[2] = nbplanes;
-		fit->naxis = 3;
-		fit->data = data;
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + npixels;
-		fit->pdata[BLAYER] = fit->data + npixels * 2;
-		fit->binning_x = fit->binning_y = 1;
-		if (pitch > 0.f)
-			fit->pixel_size_x = fit->pixel_size_y = pitch;
-		if (raw->other.focal_len > 0.f)
-			fit->focal_length = raw->other.focal_len;
-		if (raw->other.iso_speed > 0.f)
-			fit->iso_speed = raw->other.iso_speed;
-		if (raw->other.shutter > 0.f)
-			fit->exposure = raw->other.shutter;
-		if (raw->other.aperture > 0.f)
-			fit->aperture = raw->other.aperture;
-		g_snprintf(fit->instrume, FLEN_VALUE, "%s %s", raw->idata.make,
-				raw->idata.model);
-		fit->date_obs = g_date_time_new_from_unix_utc(raw->other.timestamp);
-		mirrorx(fit, FALSE);
-	}
-
-	libraw_dcraw_clear_mem(image);
-	libraw_recycle(raw);
-	libraw_close(raw);
-
-	return nbplanes;
-}
-
 #define FC(filters, row, col) \
 	(filters >> ((((row) << 1 & 14) + ((col) & 1)) << 1) & 3)
 
@@ -1608,8 +1437,8 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	 * the case for DNG built from lightroom for example */
 	if (raw->rawdata.raw_image == NULL
 			&& (raw->rawdata.color3_image || raw->rawdata.color4_image)) {
-		siril_log_color_message(_("Siril cannot open this file in CFA mode (no data available). "
-				"Try to switch into RGB.\n"), "red");
+		siril_log_color_message(_("Siril cannot open this file in CFA mode: "
+				"no RAW data available.\n"), "red");
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -1723,11 +1552,13 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 }
 
 int open_raw_files(const char *name, fits *fit, gboolean debayer) {
-	int retval = 1;
-	if (debayer)
-		retval = readraw(name, fit);
-	else retval = readraw_in_cfa(name, fit);
+	int retval = readraw_in_cfa(name, fit);
+
 	if (retval >= 0) {
+		if (debayer) {
+			debayer_if_needed(TYPEFITS, fit, TRUE);
+		}
+
 		gchar *basename = g_path_get_basename(name);
 		siril_log_message(_("Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"),
 				basename, fit->naxes[2], fit->rx, fit->ry);

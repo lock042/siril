@@ -26,6 +26,7 @@
 /*
  * 2021/10/19: add trunc function
  * 2021/10/26: add log2 function and ~ operator as the inverse operator (~X = 1 - X)
+ * 2022/03/11: add min and max function
  */
 
 /* COMPILE TIME OPTIONS */
@@ -40,13 +41,14 @@ For log = base 10 log do nothing
 For log = natural log uncomment the next line. */
 /* #define TE_NAT_LOG */
 
-#include "tinyexpr.h"
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <limits.h>
+#include "tinyexpr.h"
+
 
 #ifndef NAN
 #define NAN (0.0/0.0)
@@ -55,6 +57,20 @@ For log = natural log uncomment the next line. */
 #ifndef INFINITY
 #define INFINITY (1.0/0.0)
 #endif
+
+
+/* Already defined in siril.h but we do not call this header here */
+#undef max
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#undef min
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
 
 
 typedef double (*te_fun2)(double, double);
@@ -140,6 +156,7 @@ static double fac(double a) {/* simplest version of fac */
     }
     return (double)result;
 }
+
 static double ncr(double n, double r) {
     if (n < 0.0 || r < 0.0 || n < r) return NAN;
     if (n > UINT_MAX || r > UINT_MAX) return INFINITY;
@@ -155,6 +172,9 @@ static double ncr(double n, double r) {
     return result;
 }
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
+
+static double maximum(double a, double b) {return max(a, b);}
+static double minimum(double a, double b) {return min(a, b);}
 
 #ifdef _MSC_VER
 #pragma function (ceil)
@@ -183,6 +203,8 @@ static const te_variable functions[] = {
 #endif
     {"log10", log10,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"log2", log2,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"max", maximum,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"min", minimum,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"ncr", ncr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"npr", npr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0},

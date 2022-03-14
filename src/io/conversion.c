@@ -131,27 +131,6 @@ void list_format_available() {
 #endif
 }
 
-/* This function sets all default values of libraw settings in the com.raw_set
- * struct, as defined in the glade file.
- * When the ini file is read, the values of com.raw_set are overwritten, but if the
- * file is missing, like the first time Siril is launched, we don't want to have the
- * GUI states reset to zero by set_GUI_LIBRAW() because the data in com.raw_set had
- * not been initialized with the default GUI values (= initialized to 0).
- */
-static void initialize_libraw_settings() {
-	com.pref.raw_set.bright = 1.0;		// brightness
-	com.pref.raw_set.mul[0] = 1.0;		// multipliers: red
-	com.pref.raw_set.mul[1] = 1.0;		// multipliers: green, not used because always equal to 1
-	com.pref.raw_set.mul[2] = 1.0;		// multipliers: blue
-	com.pref.raw_set.auto_mul = 1;		// multipliers are Either read from file, or calculated on the basis of file data, or taken from hardcoded constants
-	com.pref.raw_set.user_black = 0;		// black point correction
-	com.pref.raw_set.use_camera_wb = 0;	// if possible, use the white balance from the camera.
-	com.pref.raw_set.use_auto_wb = 0;		// use automatic white balance obtained after averaging over the entire image
-	com.pref.raw_set.user_qual = 2;		// type of interpolation. VNG by default
-	com.pref.raw_set.gamm[0] = 1.0;		// gamma curve: linear by default
-	com.pref.raw_set.gamm[1] = 1.0;
-}
-
 static void initialize_ser_debayer_settings() {
 	com.pref.debayer.open_debayer = FALSE;
 	com.pref.debayer.use_bayer_header = TRUE;
@@ -197,7 +176,6 @@ gchar *initialize_converters() {
 	supported_filetypes |= TYPERAW;
 	string = g_string_append(string, ", ");
 	string = g_string_append(string, _("RAW images"));
-	initialize_libraw_settings();	// below in the file
 
 	nb_raw = get_nb_raw_supported();
 	for (i = 0; i < nb_raw; i++) {

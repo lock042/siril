@@ -1,4 +1,5 @@
 v1.0.0 March 9, 2022
+
 * Added ASTRO-TIFF standard
 * Fixed memory consumption for all sequence operations
 * Fixed settings for sequence export as webm film with VP9 codec
@@ -13,6 +14,7 @@ v1.0.0 March 9, 2022
 
 v1.0.0~RC2 December 08, 2021
 Second Release candidate version for 1.0.0
+
 * Fixes many crashes
 * Minor improvements in plot feature
 * Restore HD for macOS application

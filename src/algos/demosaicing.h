@@ -15,6 +15,7 @@ extern "C" {
 int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern);
 WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, sensor_pattern pattern);
 float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sensor_pattern pattern);
+int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer);
 #ifdef __cplusplus
 }
 #endif

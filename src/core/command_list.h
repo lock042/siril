@@ -145,6 +145,7 @@ static command commands[] = {
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE},
 	{"seqstat", 2, "seqstat sequencename output [option]", process_seq_stat, STR_SEQSTAT, TRUE},
 	{"seqsubsky", 2, "seqsubsky sequencename degree [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE},
+	{"seqtilt", 0, "seqtilt [sequencename]", process_seq_tilt, STR_SEQTILT, TRUE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE},
 	{"set32bits", 0, "set32bits", process_set_32bits, STR_SET32, TRUE},
 	{"setcompress", 1, "setcompress 0/1 [-type=] [q]", process_set_compress, STR_SETCOMPRESS, TRUE},

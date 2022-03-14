@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command.h"
+#include "core/processing.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
@@ -30,6 +31,7 @@
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
+#include "io/image_format_fits.h"
 
 #include "ccd-inspector.h"
 
@@ -73,18 +75,14 @@ void clear_sensor_tilt() {
 	com.tilt = NULL;
 }
 
-int draw_sensor_tilt(fits *fit) {
+static int compute_tilt_values(fits *fit, int nbstars, psf_star **stars, float *m, float *m1, float *m2, float *m3, float *m4, float *mr1, float *mr2) {
+	int ret = 1;
 	int i1 = 0, i2 = 0, i3 = 0, i4 = 0, ir1 = 0, ir2 = 0;
-	int nbstars = 0;
 	pointf center = {fit->rx / 2.f, fit->ry / 2.f };
+
 	float r = sqrtf(center.x * center.x + center.y * center.y);
 	float r1 = 0.25f * r;
 	float r2 = 0.75f * r;
-	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
-
-	delete_selected_area();
-
-	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE);
 
 	float *f = malloc(nbstars * sizeof(float));
 
@@ -129,23 +127,16 @@ int draw_sensor_tilt(fits *fit) {
 		quicksort_f(fr1, ir1);
 		quicksort_f(fr2, ir2);
 
-		float m = siril_stats_trmean_from_sorted_data(0.25, f, 1, nbstars);
-		float m1 = siril_stats_trmean_from_sorted_data(0.25, f1, 1, i1);
-		float m2 = siril_stats_trmean_from_sorted_data(0.25, f2, 1, i2);
-		float m3 = siril_stats_trmean_from_sorted_data(0.25, f3, 1, i3);
-		float m4 = siril_stats_trmean_from_sorted_data(0.25, f4, 1, i4);
+		*m = siril_stats_trmean_from_sorted_data(0.25, f, 1, nbstars);
+		*m1 = siril_stats_trmean_from_sorted_data(0.25, f1, 1, i1);
+		*m2 = siril_stats_trmean_from_sorted_data(0.25, f2, 1, i2);
+		*m3 = siril_stats_trmean_from_sorted_data(0.25, f3, 1, i3);
+		*m4 = siril_stats_trmean_from_sorted_data(0.25, f4, 1, i4);
 
-		float mr1 = siril_stats_trmean_from_sorted_data(0.25, fr1, 1, ir1);
-		float mr2 = siril_stats_trmean_from_sorted_data(0.25, fr2, 1, ir2);
+		*mr1 = siril_stats_trmean_from_sorted_data(0.25, fr1, 1, ir1);
+		*mr2 = siril_stats_trmean_from_sorted_data(0.25, fr2, 1, ir2);
 
-		float best = min(min(m1, m2), min(m3, m4));
-		float worst = max(max(m1, m2), max(m3, m4));
-
-		float ref = (m1 + m2 + m3 + m4) / 4.f;
-
-		draw_polygon((float) fit->rx, (float) fit->ry, m1, m2, m3, m4, mr1);
-		siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
-				nbstars, m, worst - best, roundf(((worst - best) / ref) * 100.f), mr2 - mr1);
+		ret = 0;
 	}
 
 	free(f);
@@ -158,7 +149,76 @@ int draw_sensor_tilt(fits *fit) {
 	free(fr1);
 	free(fr2);
 
+	return ret;
+}
+
+int draw_sensor_tilt(fits *fit) {
+	int nbstars = 0;
+	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+
+	float m = 0;
+	float m1 = 0;
+	float m2 = 0;
+	float m3 = 0;
+	float m4 = 0;
+	float mr1 = 0;
+	float mr2 = 0;
+
+	delete_selected_area();
+
+	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE);
+
+
+	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
+		float best = min(min(m1, m2), min(m3, m4));
+		float worst = max(max(m1, m2), max(m3, m4));
+
+		float ref = (m1 + m2 + m3 + m4) / 4.f;
+
+		draw_polygon((float) fit->rx, (float) fit->ry, m1, m2, m3, m4, mr1);
+
+		siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
+				nbstars, m, worst - best, roundf(((worst - best) / ref) * 100.f), mr2 - mr1);
+
+}
+
 	free_fitted_stars(stars);
+
+	return 0;
+}
+
+static int compute_tilt_to_image(fits *fit, struct tilt_data *t_args) {
+	int nbstars = 0;
+	int layer = fit->naxes[2] > 1 ? GLAYER : RLAYER;
+
+	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE);
+
+	float m = 0;
+	float m1 = 0;
+	float m2 = 0;
+	float m3 = 0;
+	float m4 = 0;
+	float mr1 = 0;
+	float mr2 = 0;
+
+	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
+
+#pragma omp critical
+		{
+			t_args->m += m;
+			t_args->m1 += m1;
+			t_args->m2 += m2;
+			t_args->m3 += m3;
+			t_args->m4 += m4;
+			t_args->mr1 += mr1;
+			t_args->mr2 += mr2;
+
+			t_args->nbstars += nbstars;
+		}
+
+	free_fitted_stars(stars);
+
+	}
 
 	return 0;
 }
@@ -168,4 +228,63 @@ void on_tilt_button_clicked(GtkButton *button, gpointer user_data) {
 	confirm_peaker_GUI();
 	draw_sensor_tilt(&gfit);
 	set_cursor_waiting(FALSE);
+}
+
+/** Tilt on sequence **/
+
+static int tilt_finalize_hook(struct generic_seq_args *args) {
+	struct tilt_data *t_args = (struct tilt_data*) args->user;
+
+	t_args->m /= args->seq->selnum;
+	t_args->m1 /= args->seq->selnum;
+	t_args->m2 /= args->seq->selnum;
+	t_args->m3 /= args->seq->selnum;
+	t_args->m4 /= args->seq->selnum;
+	t_args->mr1 /= args->seq->selnum;
+	t_args->mr2 /= args->seq->selnum;
+
+	t_args->nbstars /= args->seq->selnum;
+
+	float best = min(min(t_args->m1, t_args->m2), min(t_args->m3, t_args->m4));
+	float worst = max(max(t_args->m1, t_args->m2), max(t_args->m3, t_args->m4));
+
+	float ref = (t_args->m1 + t_args->m2 + t_args->m3 + t_args->m4) / 4.f;
+
+	if (t_args->draw_polygon) {
+		draw_polygon((float) gfit.rx, (float) gfit.ry, t_args->m1, t_args->m2, t_args->m3, t_args->m4, t_args->mr1);
+	}
+
+	siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
+			t_args->nbstars, t_args->m, worst - best, roundf(((worst - best) / ref) * 100.f), t_args->mr2 - t_args->mr1);
+
+	free(t_args);
+
+	return 0;
+}
+
+static int tilt_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_) {
+	struct tilt_data *t_args = (struct tilt_data*) args->user;
+
+	return compute_tilt_to_image(fit, t_args);
+}
+
+void apply_tilt_to_sequence(struct tilt_data *tilt_args) {
+	struct generic_seq_args *args = create_default_seqargs(tilt_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = tilt_args->seq->selnum;
+	args->prepare_hook = NULL;
+	args->finalize_hook = tilt_finalize_hook;
+	args->image_hook = tilt_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Tilt evaluation");
+	args->has_output = FALSE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = NULL;
+	args->load_new_sequence = FALSE;
+	args->user = tilt_args;
+
+	tilt_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
 }

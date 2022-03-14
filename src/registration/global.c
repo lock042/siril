@@ -148,16 +148,16 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	siril_log_color_message(_("Reference Image:\n"), "green");
 
 	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		com.stars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
+		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
 	}
 	else {
-		com.stars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
 
 
-	if (!com.stars || nb_stars < get_min_requires_stars(regargs->type)) {
+	if (!sadata->refstars || nb_stars < get_min_requires_stars(regargs->type)) {
 		siril_log_message(
 				_("There are not enough stars in reference image to perform alignment\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -187,26 +187,22 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		}
 	}
 
-	/* we copy com.stars to refstars in case user take a look to another image of the sequence
-	 * that would destroy com.stars
-	 */
-	i = 0;
-	sadata->refstars = new_fitted_stars(MAX_STARS);
-	if (!sadata->refstars) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-	while (i < MAX_STARS && com.stars[i]) {
-		psf_star *tmp = new_psf_star();
-		if (!tmp) {
-			PRINT_ALLOC_ERR;
-			sadata->refstars[i] = NULL;
-			return 1;
+	/* copying refstars to com.stars for display */
+	com.stars = new_fitted_stars(MAX_STARS);
+	if (com.stars) {
+		i = 0;
+		while (i < MAX_STARS && sadata->refstars[i]) {
+			psf_star *tmp = new_psf_star();
+			if (!tmp) {
+				PRINT_ALLOC_ERR;
+				com.stars[i] = NULL;
+				break;
+			}
+			memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
+			com.stars[i] = tmp;
+			com.stars[i+1] = NULL;
+			i++;
 		}
-		memcpy(tmp, com.stars[i], sizeof(psf_star));
-		sadata->refstars[i] = tmp;
-		sadata->refstars[i+1] = NULL;
-		i++;
 	}
 
 	if (nb_stars >= MAX_STARS_FITTED) {

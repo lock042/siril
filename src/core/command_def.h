@@ -111,6 +111,7 @@
 #define STR_SEQSPLIT_CFA N_("Same command as SPLIT_CFA but for the sequence <b>sequencename</b>.\n\nThe output sequences names start with the prefix \"CFA_\" and a number unless otherwise specified with <b>-prefix=</b> option")
 #define STR_SEQSTAT N_("Same command as STAT for sequence <b>sequencename</b>.\n\nThe <b>output</b> is saved as a csv file given in second argument.\nThe optional parameter defines the number of statistical values computed: <b>basic</b> or <b>main</b> (more detailed but longer to compute)")
 #define STR_SEQSUBSKY N_("Same command as SUBSKY but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"bkg_\" unless otherwise specified with <b>-prefix=</b> option")
+#define STR_SEQTILT N_("Same command as TILT but for the loaded sequence or the sequence <b>sequencename</b>.\n\nIt generally gives better result")
 #define STR_SET16 N_("Disables images to be saved with 32 bits per channel on processing. It uses 16 bits instead")
 #define STR_SET32 N_("Allows images to be saved with 32 bits per channel on processing")
 #define STR_SETCOMPRESS N_("Defines if images are compressed or not.\n\n<b>0</b> means no compression while <b>1</b> enables compression.\nIf compression is enabled, the type must be explicitly written in the option <b>-type=</b> (\"rice\", \"gzip1\", \"gzip2\").\nAssociated to the compression, the quantization value must be within [0, 256] range. For example, \"setcompress 1 -type=rice 16\" sets the rice compression with a quantization of 16")

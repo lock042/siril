@@ -35,7 +35,7 @@
 
 #define CONFIG_FILE "siril.config"
 
-static const char *keywords[] = { "working-directory", "libraw-settings",
+static const char *keywords[] = { "working-directory",
 		"debayer-settings", "prepro-settings", "registration-settings",
 		"stacking-settings", "astrometry-settings", "photometry-settings",
 		"misc-settings", "compression-settings" };
@@ -75,21 +75,6 @@ static int readinitfile() {
 	if (config_lookup_string(&config, keywords[WD], &dir)) {
 		free(com.wd);
 		com.wd = g_strdup(dir);
-	}
-
-	/* Libraw setting */
-	config_setting_t *raw_setting = config_lookup(&config, keywords[RAW]);
-	if (raw_setting) {
-		config_setting_lookup_float(raw_setting, "mul_0", &com.pref.raw_set.mul[0]);
-		config_setting_lookup_float(raw_setting, "mul_2", &com.pref.raw_set.mul[2]);
-		config_setting_lookup_float(raw_setting, "bright", &com.pref.raw_set.bright);
-		config_setting_lookup_int(raw_setting, "auto", &com.pref.raw_set.auto_mul);
-		config_setting_lookup_int(raw_setting, "cam_wb", &com.pref.raw_set.use_camera_wb);
-		config_setting_lookup_int(raw_setting, "auto_wb", &com.pref.raw_set.use_auto_wb);
-		config_setting_lookup_int(raw_setting, "user_qual", &com.pref.raw_set.user_qual);
-		config_setting_lookup_float(raw_setting, "gamm_0", &com.pref.raw_set.gamm[0]);
-		config_setting_lookup_float(raw_setting, "gamm_1", &com.pref.raw_set.gamm[1]);
-		config_setting_lookup_int(raw_setting, "user_black", &com.pref.raw_set.user_black);
 	}
 
 	/* Debayer setting */
@@ -309,42 +294,6 @@ static void _save_wd(config_t *config, config_setting_t *root) {
 
 	directory = config_setting_add(root, keywords[WD], CONFIG_TYPE_STRING);
 	config_setting_set_string(directory, com.wd);
-}
-
-static void _save_libraw(config_t *config, config_setting_t *root) {
-	config_setting_t *libraw_group, *raw_setting;
-
-	libraw_group = config_setting_add(root, keywords[RAW], CONFIG_TYPE_GROUP);
-
-	raw_setting = config_setting_add(libraw_group, "mul_0", CONFIG_TYPE_FLOAT);
-	config_setting_set_float(raw_setting, com.pref.raw_set.mul[0]);
-
-	raw_setting = config_setting_add(libraw_group, "mul_2", CONFIG_TYPE_FLOAT);
-	config_setting_set_float(raw_setting, com.pref.raw_set.mul[2]);
-
-	raw_setting = config_setting_add(libraw_group, "bright", CONFIG_TYPE_FLOAT);
-	config_setting_set_float(raw_setting, com.pref.raw_set.bright);
-
-	raw_setting = config_setting_add(libraw_group, "auto", CONFIG_TYPE_INT);
-	config_setting_set_int(raw_setting, com.pref.raw_set.auto_mul);
-
-	raw_setting = config_setting_add(libraw_group, "cam_wb", CONFIG_TYPE_INT);
-	config_setting_set_int(raw_setting, com.pref.raw_set.use_camera_wb);
-
-	raw_setting = config_setting_add(libraw_group, "auto_wb", CONFIG_TYPE_INT);
-	config_setting_set_int(raw_setting, com.pref.raw_set.use_auto_wb);
-
-	raw_setting = config_setting_add(libraw_group, "user_qual",	CONFIG_TYPE_INT);
-	config_setting_set_int(raw_setting, com.pref.raw_set.user_qual);
-
-	raw_setting = config_setting_add(libraw_group, "gamm_0", CONFIG_TYPE_FLOAT);
-	config_setting_set_float(raw_setting, com.pref.raw_set.gamm[0]);
-
-	raw_setting = config_setting_add(libraw_group, "gamm_1", CONFIG_TYPE_FLOAT);
-	config_setting_set_float(raw_setting, com.pref.raw_set.gamm[1]);
-
-	raw_setting = config_setting_add(libraw_group, "user_black", CONFIG_TYPE_INT);
-	config_setting_set_int(raw_setting, com.pref.raw_set.user_black);
 }
 
 static void _save_debayer(config_t *config, config_setting_t *root) {
@@ -637,7 +586,6 @@ int writeinitfile() {
 	config_setting_t *root = config_root_setting(&config);
 
 	_save_wd(&config, root);
-	_save_libraw(&config, root);
 	_save_debayer(&config, root);
 	_save_preprocessing(&config, root);
 	_save_registration(&config, root);

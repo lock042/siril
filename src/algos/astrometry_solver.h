@@ -13,7 +13,7 @@
 
 #define CDSSESAME "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame"
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
-#define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='" 
+#define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
 
 typedef struct image_solved_struct image_solved;
 
@@ -56,7 +56,7 @@ struct astrometry_data {
 };
 
 void open_astrometry_dialog();
-gchar *search_in_catalogs(const gchar *object, gboolean is_fallback);
+gchar *search_in_catalogs(const gchar *object);
 int fill_plate_solver_structure(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], double cdelt[2], double cd[][2]);

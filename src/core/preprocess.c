@@ -35,7 +35,7 @@
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
-#include "io/conversion.h"
+#include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
 #include "io/ser.h"
 
