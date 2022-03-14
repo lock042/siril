@@ -23,6 +23,7 @@ struct {
 static command commands[] = {
 	/* name,	nbarg,	usage,		function pointer, definition, scriptable */
 	{"addmax", 1,	"addmax filename", process_addmax, STR_ADDMAX, FALSE},
+	{"autostretch", 0, "autostretch [shadowsclip] [targetbg]", process_autostretch, STR_AUTOSTRETCH, TRUE},
 	{"asinh", 1,	"asinh stretch", process_asinh, STR_ASINH, TRUE},
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE},
@@ -101,7 +102,8 @@ static command commands[] = {
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE},
 
-	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess, STR_PREPROCESS, TRUE},
+	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE},
+	{"preprocess_single", 1, "preprocess imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE},
 	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
 
 	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=]", process_register, STR_REGISTER, TRUE},
@@ -158,7 +160,7 @@ static command commands[] = {
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE},
 	{"split", 3, "split fileR fileG fileB", process_split, STR_SPLIT, TRUE},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE},
-	{"stack", 1, "stack sequencename [type] [rejection type] [sigma low] [sigma high] [-nonorm, norm=] [-output_norm] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]", process_stackone, STR_STACK, TRUE},
+	{"stack", 1, "stack sequencename [type] [rejection type] [sigma low] [sigma high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]", process_stackone, STR_STACK, TRUE},
 	{"stackall", 0, "stackall [type] [rejection type] [sigma low] [sigma high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]", process_stackall, STR_STACKALL, TRUE},
 	{"stat", 0, "stat", process_stat, STR_STAT, TRUE},
 	{"subsky", 1, "subsky degree", process_subsky, STR_SUBSKY, TRUE},

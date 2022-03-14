@@ -85,7 +85,7 @@ static float compute_threshold(fits *fit, double ksigma, int layer, rectangle *a
 
 	assert(layer <= 3);
 
-	stat = statistics(NULL, -1, fit, layer, area, STATS_BASIC, FALSE);
+	stat = statistics(NULL, -1, fit, layer, area, STATS_BASIC, SINGLE_THREADED);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		*norm = 0;
@@ -601,7 +601,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	gboolean already_found = FALSE;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE);
 	if (!result)
 		return NULL;
 	/* We do not check if it's matching with the "is_star()" criteria.

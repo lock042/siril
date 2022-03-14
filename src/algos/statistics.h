@@ -29,7 +29,7 @@ struct stat_data {
 #include "core/siril.h"
 
 imstats* statistics(sequence *seq, int image_index, fits *fit, int layer,
-		rectangle *selection, int option, gboolean multithread);
+		rectangle *selection, int option, threading_type threads);
 
 int compute_means_from_flat_cfa(fits *fit, double mean[36]);
 
@@ -50,9 +50,13 @@ void apply_stats_to_sequence(struct stat_data *stat_args);
 
 float siril_stats_ushort_sd_64(const WORD data[], const int N);
 float siril_stats_ushort_sd_32(const WORD data[], const int N);
-float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m, gboolean multithread);
+float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m, threading_type threads);
 float siril_stats_float_sd(const float data[], const int N, float *mean);
-double siril_stats_float_mad(const float *data, const size_t n, const double m, gboolean multithread, float *buffer);
+double siril_stats_float_mad(const float *data, const size_t n, const double m, threading_type threads, float *buffer);
 float siril_stats_trmean_from_sorted_data(const float trim, const float sorted_data[], const size_t stride, const size_t size);
 
+int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fits *fit, int option,
+		threading_type threading, int image_thread_id, imstats **stats);
+int compute_all_channels_statistics_single_image(fits *fit, int option,
+		threading_type threading, int image_thread_id, imstats **stats);
 #endif

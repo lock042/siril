@@ -13,7 +13,7 @@ $LD -o compare_fits compare_fits.o dummy.o ../io/image_format_fits.o ../core/uti
 
 # compile the sorting algorithm test (broken, use meson tests)
 # $CC $CFLAGS -c -o sorting.o sorting.c &&
-# $CC $CFLAGS -DUSE_ALL_SORTING_ALGOS -c -o ../algos/sorting.o ../algos/sorting.c &&
+# $CC $CFLAGS -c -o ../algos/sorting.o ../algos/sorting.c &&
 # $CXX $CFLAGS -c -o ../rt/rt_algo.o ../rt/rt_algo.cc
 # $LD $LDFLAGS -o sorting sorting.o ../algos/sorting.o ../rt/rt_algo.o `pkg-config --libs criterion` `pkg-config --libs glib-2.0`
 

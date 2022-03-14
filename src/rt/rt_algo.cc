@@ -163,9 +163,9 @@ float calcContrastThreshold(const float* const * luminance, int tileY, int tileX
 namespace rtengine
 {
 
-extern "C" void findMinMaxPercentile(const float* data, size_t size, float minPrct, float* minOut, float maxPrct, float* maxOut, int multithread);
+extern "C" void findMinMaxPercentile(const float* data, size_t size, float minPrct, float* minOut, float maxPrct, float* maxOut, int threads);
 
-void findMinMaxPercentile(const float* data, size_t size, float minPrct, float* minOut, float maxPrct, float* maxOut, int multithread)
+void findMinMaxPercentile(const float* data, size_t size, float minPrct, float* minOut, float maxPrct, float* maxOut, int threads)
 {
     // Copyright (c) 2017 Ingo Weyrich <heckflosse67@gmx.de>
     // We need to find the (minPrct*size) smallest value and the (maxPrct*size) smallest value in data.
@@ -187,8 +187,8 @@ void findMinMaxPercentile(const float* data, size_t size, float minPrct, float* 
     // Because we have an overhead in the critical region of the main loop for each thread
     // we make a rough calculation to reduce the number of threads for small data size.
     // This also works fine for the minmax loop.
-    if (multithread) {
-        const size_t maxThreads = omp_get_max_threads();
+    if (threads > 1) {
+        const size_t maxThreads = threads;
         while (size > numThreads * numThreads * 16384 && numThreads < maxThreads) {
             ++numThreads;
         }

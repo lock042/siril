@@ -153,7 +153,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		stackargs->seq->upscale_at_stacking = 1.0;
 		return 0;
 	}
-	args->max_thread = nb_threads;
+	args->max_parallel_images = nb_threads;
 
 	remove_tmp_drizzle_files(stackargs);
 

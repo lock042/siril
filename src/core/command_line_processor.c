@@ -216,12 +216,12 @@ gpointer execute_script(gpointer p) {
 
 		/* in Windows case, remove trailing CR */
 		remove_trailing_cr(buffer);
+		g_strstrip(buffer);
 
 		if (buffer[0] == '\0') {
 			g_free (buffer);
 			continue;
 		}
-
 
 		display_command_on_status_bar(line, buffer);
 		parse_line(buffer, length, &wordnb);

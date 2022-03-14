@@ -68,6 +68,7 @@
 #include "filters/cosmetic_correction.h"
 #include "filters/deconv.h"
 #include "filters/median.h"
+#include "filters/mtf.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
@@ -1099,11 +1100,38 @@ int process_mtf(int nb) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
-	float lo = g_ascii_strtod(word[1], NULL);
-	float mid = g_ascii_strtod(word[2], NULL);
-	float hi = g_ascii_strtod(word[3], NULL);
+	struct mtf_params params;
+	params.shadows = g_ascii_strtod(word[1], NULL);
+	params.midtones = g_ascii_strtod(word[2], NULL);
+	params.highlights = g_ascii_strtod(word[3], NULL);
 
-	mtf_with_parameters(&gfit, lo, mid, hi);
+	apply_linked_mtf_to_fits(&gfit, &gfit, params);
+
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	return 0;
+}
+
+int process_autostretch(int nb) {
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		PRINT_LOAD_IMAGE_FIRST;
+		return 1;
+	}
+	float shadows_clipping = SHADOWS_CLIPPING;
+	if (nb > 1)
+		shadows_clipping = g_ascii_strtod(word[1], NULL);
+	float target_bg = TARGET_BACKGROUND;
+	if (nb > 2)
+		target_bg = g_ascii_strtod(word[2], NULL);
+	if (target_bg < 0.0f || target_bg > 1.0f) {
+		siril_log_message(_("The target background value must be in the [0, 1] range\n"));
+		return 1;
+	}
+
+	struct mtf_params params[3];
+	find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
+	apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -1232,7 +1260,7 @@ int process_set_mag(int nb) {
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
@@ -1364,7 +1392,7 @@ int process_psf(int nb){
 		siril_log_message(_("Select an area first\n"));
 		return 1;
 	}
-	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
@@ -1510,7 +1538,7 @@ int process_bg(int nb){
 	WORD us_bg;
 
 	for (int layer = 0; layer < gfit.naxes[2]; layer++) {
-		double bg = background(&gfit, layer, &com.selection, TRUE);
+		double bg = background(&gfit, layer, &com.selection, MULTI_THREADED);
 		if (gfit.type == DATA_USHORT) {
 			us_bg = round_to_WORD(bg);
 			bg = bg / get_normalized_value(&gfit);
@@ -2319,7 +2347,7 @@ int process_findcosme(int nb) {
 
 	if (is_sequence) {
 		args->seqEntry = "cc_";
-		args->multithread = FALSE;
+		args->threading = SINGLE_THREADED;
 
 		int startoptargs = i + 3;
 		int nb_command_max = i + 4;
@@ -2340,7 +2368,7 @@ int process_findcosme(int nb) {
 		}
 		apply_cosmetic_to_sequence(args);
 	} else {
-		args->multithread = TRUE;
+		args->threading = MULTI_THREADED;
 		start_in_new_thread(autoDetectThreaded, args);
 	}
 
@@ -2666,9 +2694,9 @@ int process_seq_mtf(int nb) {
 	args->seq = seq;
 	args->fit = &gfit;
 	args->seqEntry = "mtf_";
-	args->lo = g_ascii_strtod(word[2], NULL);
-	args->mid = g_ascii_strtod(word[3], NULL);
-	args->hi = g_ascii_strtod(word[4], NULL);
+	args->params.shadows = g_ascii_strtod(word[2], NULL);
+	args->params.midtones = g_ascii_strtod(word[3], NULL);
+	args->params.highlights = g_ascii_strtod(word[4], NULL);
 
 	int startoptargs = 5;
 	if (nb > startoptargs) {
@@ -2852,7 +2880,7 @@ int process_stat(int nb){
 	nplane = gfit.naxes[2];
 
 	for (layer = 0; layer < nplane; layer++) {
-		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, TRUE);
+		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
@@ -3400,14 +3428,35 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			arg->force_no_norm = TRUE;
 		else if (!strcmp(current, "-output_norm")) {
 			arg->output_norm = TRUE;
-		} else if (!strcmp(current, "-weighted")) {
+		} else if (!strcmp(current, "-weight_from_noise")) {
 			if (arg->method != stack_mean_with_rejection) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else{
-				arg->apply_weight = TRUE;
+			} else if (arg->apply_nbstack_weights) {
+				siril_log_message(_("Only one weighting method can be used\n"));
+			} else {
+				arg->apply_noise_weights = TRUE;
 			}
+		} else if (!strcmp(current, "-rgb_equal")) {
+			if (arg->method != stack_mean_with_rejection) {
+				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->equalizeRGB = TRUE;
+			}
+		} else if (!strcmp(current, "-weight_from_nbstack")) {
+			if (arg->method != stack_mean_with_rejection) {
+				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
+			} else if (arg->apply_noise_weights) {
+				siril_log_message(_("Only one weighting method can be used\n"));
+			} else {
+				arg->apply_nbstack_weights = TRUE;
+			}
+
 		} else if (g_str_has_prefix(current, "-norm=")) {
 			if (!norm_allowed) {
 				siril_log_message(_("Normalization options are not allowed in this context, ignoring.\n"));
@@ -3558,7 +3607,9 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.force_norm = FALSE;
 		args.output_norm = arg->output_norm;
 		args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
-		args.apply_weight = arg->apply_weight;
+		args.apply_noise_weights = arg->apply_noise_weights;
+		args.apply_nbstack_weights = arg->apply_nbstack_weights;
+		args.equalizeRGB = arg->equalizeRGB;
 
 		// manage filters
 		if (convert_stack_data_to_filter(arg, &args) ||
@@ -3657,7 +3708,8 @@ int process_stackall(int nb) {
 	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
-	arg->apply_weight = FALSE;
+	arg->apply_noise_weights = FALSE;
+	arg->apply_nbstack_weights = FALSE;
 
 	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]]
 	// stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]
@@ -3769,17 +3821,18 @@ int process_stackone(int nb) {
 	arg = calloc(1, sizeof(struct stacking_configuration));
 	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
-	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
-	arg->apply_weight = FALSE;
+	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE; arg->equalizeRGB = FALSE;
+	arg->apply_noise_weights = FALSE;
+	arg->apply_nbstack_weights = FALSE;
 
 	sequence *seq = load_sequence(word[1], &arg->seqfile);
 	if (!seq)
 		goto failure;
 	free_sequence(seq, TRUE);
 
-	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] -out=result_filename
-	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] -out=result_filename
-	// stack seqfilename { rej | mean } sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted] -out=result_filename
+	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-out=result_filename]
+	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] [-out=result_filename]
+	// stack seqfilename { rej | mean } [type_of_rejection] sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted] [-out=result_filename]
 	if (!word[2]) {
 		arg->method = stack_summing_generic;
 	} else {
@@ -3795,11 +3848,11 @@ int process_stackone(int nb) {
 			arg->method = stack_median;
 			allow_norm = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
-			if (nb < 5) {
-				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
+			int shift = 1, base_shift = 5;
+			if (nb < 4) {
+				siril_log_color_message(_("Missing arguments for rejection stacking.\n"), "red");
 				goto failure;
 			}
-			int shift = 1;
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
 				arg->type_of_rejection = PERCENTILE;
 			} else if (!strcmp(word[3], "s") || !strcmp(word[3], "sigma")) {
@@ -3814,14 +3867,23 @@ int process_stackone(int nb) {
 				arg->type_of_rejection = WINSORIZED;
 			} else if (!strcmp(word[3], "g") || !strcmp(word[3], "generalized")) {
 				arg->type_of_rejection = GESDT;
+			} else if (!strcmp(word[3], "n") || !strcmp(word[3], "none")) {
+				arg->type_of_rejection = NO_REJEC;
 			} else {
 				arg->type_of_rejection = WINSORIZED;
 				shift = 0;
 			}
-			if (!word[3 + shift] || !word[4 + shift] || (arg->sig[0] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0
-					|| (arg->sig[1] = g_ascii_strtod(word[4 + shift], NULL)) < 0.0) {
-				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
-				goto failure;
+			if ((nb < 4 + shift + 1) || !word[3 + shift] || !word[4 + shift] ||
+					!string_is_a_number(word[3 + shift]) ||
+					!string_is_a_number(word[4 + shift]) ||
+					(arg->sig[0] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0 ||
+					(arg->sig[1] = g_ascii_strtod(word[4 + shift], NULL)) < 0.0) {
+				if (arg->type_of_rejection != NO_REJEC) {
+					siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
+					goto failure;
+				} else {
+					base_shift = 3;
+				}
 			}
 			if (((arg->type_of_rejection == GESDT))
 					&& (arg->sig[0] > 1.0 || (arg->sig[1] > 1.0))) {
@@ -3834,7 +3896,7 @@ int process_stackone(int nb) {
 				goto failure;
 			}
 			arg->method = stack_mean_with_rejection;
-			start_arg_opt = 5 + shift;
+			start_arg_opt = base_shift + shift;
 			allow_norm = TRUE;
 		}
 		else {
@@ -3857,43 +3919,53 @@ failure:
 	return 1;
 }
 
-int process_preprocess(int nb) {
-	struct preprocessing_data *args;
-	int i, retvalue = 0;
-
-	if (word[1][0] == '\0') {
-		return -1;
+/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]
+ * preprocess_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
+ */
+struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
+	int retvalue = 0;
+	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
+	fits reffit = { 0 };
+	int bitpix;
+	if (seq) {
+		if (seq->type == SEQ_SER) {
+			// to be able to check allow_32bit_output. Overridden by -fitseq if required
+			args->output_seqtype = SEQ_SER;
+		}
+		args->seq = seq;
+		args->is_sequence = TRUE;
+		bitpix = seq->bitpix;
 	}
-
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq)
-		return 1;
-
-	args = calloc(1, sizeof(struct preprocessing_data));
+	else {
+		if (read_fits_metadata_from_path(word[1], &reffit)) {
+			siril_log_message(_("Could not load the image, aborting.\n"));
+			clearfits(&reffit);
+			retvalue = 1;
+			goto prepro_parse_end;
+		}
+		bitpix = reffit.bitpix;
+	}
 	args->ppprefix = "pp_";
 	args->bias_level = FLT_MAX;
-	if (seq->type == SEQ_SER)  args->output_seqtype = SEQ_SER; // to be able to check allow_32bit_output. Overiden by -fitseq if required
-	
+
 	/* checking for options */
-	for (i = 2; i < nb; i++) {
+	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
 				if (expression[0] == '=') {
-					// loading the sequence first image metadata in case $OFFSET is passed in the expression
-					int image_to_load = sequence_find_refimage(seq);
-					fits reffit = { 0 };
-					memset(&reffit, 0, sizeof(fits));
-					if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-						siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-						clearfits(&reffit);
-						g_free(expression);
-						retvalue = 1;
-						break;
+					if (seq) {
+						// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
+						int image_to_load = sequence_find_refimage(seq);
+						if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+							siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+							g_free(expression);
+							retvalue = 1;
+							break;
+						}
 					}
 					// parsing offset level
 					int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
-					clearfits(&reffit);
 					if (!offsetlevel) {
 						siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
 						retvalue = 1;
@@ -3902,14 +3974,14 @@ int process_preprocess(int nb) {
 					} else {
 						g_free(expression);
 						siril_log_message(_("Synthetic offset: Level = %d\n"), offsetlevel);
-						int maxlevel = (seq->bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+						int maxlevel = (bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 						if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
 							siril_log_message(_("The offset value is out of allowable bounds [-%d,%d], aborting.\n"), maxlevel, maxlevel);
 							retvalue = 1;
 							break;
 						} else {
-								args->bias_level = (float)offsetlevel;
-								args->bias_level *= (seq->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+							args->bias_level = (float)offsetlevel;
+							args->bias_level *= (bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 							args->use_bias = TRUE;
 						}
 					}
@@ -3919,7 +3991,7 @@ int process_preprocess(int nb) {
 					if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_to_16bit)) {
 						args->use_bias = TRUE;
 						// if input is 8b, we assume 32b master needs to be rescaled
-						if ((args->bias->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+						if ((args->bias->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 						}
 					} else {
@@ -3934,7 +4006,7 @@ int process_preprocess(int nb) {
 					args->use_dark = TRUE;
 					args->use_cosmetic_correction = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->dark->type == DATA_FLOAT) && (seq->bitpix == BYTE_IMG)) {
+					if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 					}
 				} else {
@@ -3962,7 +4034,7 @@ int process_preprocess(int nb) {
 				}
 				args->ppprefix = strdup(value);
 			} else if (!strcmp(word[i], "-opt")) {
-				if (seq->bitpix == BYTE_IMG) {
+				if (bitpix == BYTE_IMG) {
 					siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
 					retvalue = 1;
 					break;
@@ -3976,21 +4048,35 @@ int process_preprocess(int nb) {
 				args->debayer = TRUE;
 			} else if (!strcmp(word[i], "-equalize_cfa")) {
 				args->equalize_cfa = TRUE;
-			} else if (!strcmp(word[i], "-fitseq")) {
+			} else if (seq && !strcmp(word[i], "-fitseq")) {
 				args->output_seqtype = SEQ_FITSEQ;
 			}
 		}
 	}
 
+prepro_parse_end:
+	clearfits(&reffit);
 	if (retvalue) {
 		free(args);
-		return -1;
+		return NULL;
 	}
+	return args;
+}
+
+int process_preprocess(int nb) {
+	if (word[1][0] == '\0')
+		return -1;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return 1;
+
+	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
+	if (!args)
+		return 1;
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 	gettimeofday(&args->t_start, NULL);
-	args->seq = seq;
-	args->is_sequence = TRUE;
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
@@ -4000,6 +4086,25 @@ int process_preprocess(int nb) {
 
 	start_sequence_preprocessing(args);
 	return 0;
+}
+
+int process_preprocess_single(int nb) {
+	if (word[1][0] == '\0')
+		return -1;
+
+	struct preprocessing_data *args = parse_preprocess_args(nb, NULL);
+	if (!args)
+		return 1;
+
+	siril_log_color_message(_("Preprocessing...\n"), "green");
+	gettimeofday(&args->t_start, NULL);
+	args->autolevel = TRUE;
+	args->normalisation = 1.0f;	// will be updated anyway
+	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
+	args->sigma[1] =  3.00; /* hot pixels */
+	args->allow_32bit_output = !com.pref.force_to_16bit;
+
+	return preprocess_given_image(word[1], args);
 }
 
 int process_set_32bits(int nb) {

@@ -36,11 +36,8 @@
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
 #include "core/undo.h"
-
 #include "histogram.h"
 
-#define shadowsClipping -2.80f /* Shadows clipping point measured in sigma units from the main histogram peak. */
-#define targetBackground 0.25f /* final "luminance" of the image for autostretch in the [0,1] range */
 #define GRADIENT_HEIGHT 12
 
 #undef HISTO_DEBUG
@@ -70,7 +67,6 @@ static float _midtones, _shadows, _highlights;
 static gboolean _click_on_histo = FALSE;
 static ScaleType _type_of_scale;
 
-static void apply_mtf_to_fits(fits *from, fits *to);
 static void set_histogram(gsl_histogram *histo, int layer);
 
 static int get_width_of_histo() {
@@ -122,7 +118,8 @@ static void histo_recompute() {
 	set_cursor("progress");
 	copy_backup_to_gfit();
 
-	apply_mtf_to_fits(get_preview_gfit_backup(), &gfit);
+	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
+	apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 
 	adjust_cutoff_from_updated_gfit();
@@ -524,36 +521,6 @@ static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int widt
 	cairo_stroke(cr);
 }
 
-static void apply_mtf_to_fits(fits *from, fits *to) {
-
-	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
-	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
-	g_assert(from->type == to->type);
-
-	if (from->type == DATA_USHORT) {
-		float norm = (float)get_normalized_value(from);
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0; i < ndata; i++) {
-			float pxl = (float)from->data[i] / norm;
-			float mtf = MTF(pxl, _midtones, _shadows, _highlights);
-			to->data[i] = round_to_WORD(mtf * norm);
-		}
-	}
-	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0; i < ndata; i++) {
-			to->fdata[i] = MTF(from->fdata[i], _midtones, _shadows, _highlights);
-		}
-	}
-	else return;
-
-	invalidate_stats_from_fit(to);
-}
-
 static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 		float m, float lo, float hi) {
 
@@ -640,13 +607,6 @@ static gboolean on_gradient(GdkEvent *event, int width, int height) {
  * Public functions
  */
 
-void mtf_with_parameters(fits *fit, float lo, float mid, float hi) {
-	_shadows = lo;
-	_midtones = mid;
-	_highlights = hi;
-	apply_mtf_to_fits(fit, fit);
-}
-
 gsl_histogram* computeHisto_Selection(fits* fit, int layer,
 		rectangle *selection) {
 	g_assert(layer < 3);
@@ -712,88 +672,10 @@ void clear_histograms() {
 	// TODO: call histo_close? should it be done by the caller?
 }
 
-float MTF(float x, float m, float lo, float hi) {
-	if (x <= lo)
-		return 0.f;
-	if (x >= hi)
-		return 1.f;
-
-	float xp = (x - lo) / (hi - lo);
-
-	return ((m - 1.f) * xp) / (((2.f * m - 1.f) * xp) - m);
-}
-
-float findMidtonesBalance(fits *fit, float *shadows, float *highlights) {
-	float c0 = 0.0, c1 = 0.0;
-	float m = 0.0;
-	int i, n, invertedChannels = 0;
-	imstats *stat[3];
-
-	n = fit->naxes[2];
-
-	for (i = 0; i < n; ++i) {
-		stat[i] = statistics(NULL, -1, fit, i, NULL, STATS_BASIC | STATS_MAD, TRUE);
-		if (!stat[i]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			*shadows = 0.0f;
-			*highlights = 1.0f;
-			return 0.2f;	// better than linear, but not too risky
-		}
-
-		if (stat[i]->median / stat[i]->normValue > 0.5)
-			++invertedChannels;
-	}
-
-	if (invertedChannels < n) {
-		for (i = 0; i < n; ++i) {
-			float median, mad, normValue;
-
-			normValue = (float)stat[i]->normValue;
-			median = (float) stat[i]->median / normValue;
-			mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
-			/* this is a guard to avoid breakdown point */
-			if (mad == 0.f) mad = 0.001f;
-
-			c0 += median + shadowsClipping * mad;
-			m += median;
-		}
-		c0 /= (float) n;
-		if (c0 < 0.f) c0 = 0.f;
-		float m2 = m / (float) n - c0;
-		m = MTF(m2, targetBackground, 0.f, 1.f);
-		*shadows = c0;
-		*highlights = 1.0;
-	} else {
-		for (i = 0; i < n; ++i) {
-			float median, mad, normValue;
-
-			normValue = (float) stat[i]->normValue;
-			median = (float) stat[i]->median / normValue;
-			mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
-			/* this is a guard to avoid breakdown point */
-			if (mad == 0.f) mad = 0.001f;
-
-			m += median;
-			c1 += median - shadowsClipping * mad;
-		}
-		c1 /= (float) n;
-		if (c1 > 1.f) c1 = 1.f;
-		float m2 = c1 - m / (float) n;
-		m = 1.f - MTF(m2, targetBackground, 0.f, 1.f);
-		*shadows = 0.f;
-		*highlights = c1;
-
-	}
-	for (i = 0; i < n; ++i)
-		free_stats(stat[i]);
-	return m;
-}
-
 static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_) {
 	struct mtf_data *m_args = (struct mtf_data*) args->user;
-
-	mtf_with_parameters(fit, m_args->lo, m_args->mid, m_args->hi);
+	apply_linked_mtf_to_fits(fit, fit, m_args->params);
 	return 0;
 }
 
@@ -871,10 +753,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			&& sequence_is_loaded()) {
 		/* Apply to the whole sequence */
 		struct mtf_data *args = malloc(sizeof(struct mtf_data));
-
-		args->lo = _shadows;
-		args->mid = _midtones;
-		args->hi = _highlights;
+		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
+		args->params = params;
 		args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "mtf_";
@@ -898,8 +778,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
 				_midtones, _shadows, _highlights);
 		undo_save_state(get_preview_gfit_backup(),
-				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"), _midtones, _shadows,
-				_highlights);
+				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
+				_midtones, _shadows, _highlights);
 
 		clear_backup();
 		clear_hist_backup();
@@ -934,18 +814,19 @@ void on_histoSpinZoom_value_changed(GtkRange *range, gpointer user_data) {
 }
 
 void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) {
-	float m, shadows = 0.f, highlights = 0.f;
-
 	set_cursor_waiting(TRUE);
 	/* we always apply this function on original data */
-	m = findMidtonesBalance(get_preview_gfit_backup(), &shadows, &highlights);
-	_shadows = shadows;
-	_midtones = m;
-	_highlights = 1.f;
-
-	_update_entry_text();
-	update_histo_mtf();
-	histo_recompute();
+	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
+	if (!find_linked_midtones_balance(get_preview_gfit_backup(), &params)) {
+		_shadows = params.shadows;
+		_midtones = params.midtones;
+		_highlights = 1.f;
+		_update_entry_text();
+		update_histo_mtf();
+		histo_recompute();
+	} else {
+		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
+	}
 	set_cursor_waiting(FALSE);
 }
 

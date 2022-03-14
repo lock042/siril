@@ -481,9 +481,9 @@ uint64_t change_endianness64(uint64_t x) {
  */
 uint64_t cpu_to_le64(uint64_t x) {
 #ifdef __BIG_ENDIAN__
-    return change_endianness64(x);
+	return change_endianness64(x);
 #else
-    return x;
+	return x;
 #endif
 }
 
@@ -494,9 +494,9 @@ uint64_t cpu_to_le64(uint64_t x) {
  */
 uint64_t cpu_to_be64(uint64_t x) {
 #ifdef __BIG_ENDIAN__
-    return x;
+	return x;
 #else
-    return change_endianness64(x);
+	return change_endianness64(x);
 #endif
 }
 
@@ -506,7 +506,7 @@ uint64_t cpu_to_be64(uint64_t x) {
  * @return value
  */
 uint64_t le64_to_cpu(uint64_t x) {
-    return cpu_to_le64(x);
+	return cpu_to_le64(x);
 }
 
 /**
@@ -515,7 +515,7 @@ uint64_t le64_to_cpu(uint64_t x) {
  * @return value
  */
 uint64_t be64_to_cpu(uint64_t x) {
-    return cpu_to_be64(x);
+	return cpu_to_be64(x);
 }
 
 /**
@@ -1295,3 +1295,23 @@ void remove_spaces_from_str(gchar *s) {
 		}
 	} while((*s++ = *d++));
 }
+
+gboolean string_is_a_number(char *str) {
+	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
+		return FALSE;
+	int i = 0;
+	gboolean had_a_dot = FALSE;
+	while (str[i] != '\0') {
+		if (str[i] == '.') {
+			if (had_a_dot)
+				return FALSE;
+			had_a_dot = TRUE;
+			i++;
+		}
+		else if (str[i] >= '0' && str[i] <= '9')
+			i++;
+		else return FALSE;
+	}
+	return TRUE;
+}
+

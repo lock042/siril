@@ -166,7 +166,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 			if (args->type_of_rejection == SIGMA)
 				var = siril_stats_float_sd(stack, N, NULL);
 			else
-				var = siril_stats_float_mad(stack, N, median, FALSE, NULL);
+				var = siril_stats_float_mad(stack, N, median, SINGLE_THREADED, NULL);
 
 			if (!firstloop)
 				median = quickmedian_float(stack, N);

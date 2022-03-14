@@ -6,6 +6,7 @@
 #endif
 
 int	process_addmax(int nb);
+int	process_autostretch(int nb);
 int	process_asinh(int nb);
 
 int	process_bg(int nb);
@@ -70,6 +71,7 @@ int	process_nozero(int nb);
 int	process_offset(int nb);
 
 int	process_preprocess(int nb);
+int	process_preprocess_single(int nb);
 int	process_psf(int nb);
 
 int	process_register(int nb);

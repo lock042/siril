@@ -20,8 +20,6 @@
 
 #include <criterion/criterion.h>
 #include "../core/siril.h"
-
-#define USE_ALL_SORTING_ALGOS
 #include "../algos/sorting.h"
 
 #include <stdlib.h>
@@ -32,9 +30,10 @@
  * It compares the results with the quicksort*/
 
 #define NBTRIES 200	// for result checking, unit test of implementations
-#define USE_MULTITHREADING TRUE
 
-cominfo com;	// the main data struct
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
+fits gfit;	// currently loaded image
 
 double median_from_sorted_array(WORD *arr, int size)
 {
@@ -44,7 +43,7 @@ double median_from_sorted_array(WORD *arr, int size)
 	return (double)sum/2.0;
 }
 
-int compare_median_algos(int datasize)
+int compare_median_algos(int datasize, int threads)
 {
 	WORD *data, *data_backup;
 	double result_qsel1, result_qsel2, result_qsort;
@@ -65,7 +64,7 @@ int compare_median_algos(int datasize)
 	result_qsel1 = quickmedian(data, datasize);
 	memcpy(data_backup, data, datasize * sizeof(WORD));
 
-	result_qsel2 = histogram_median(data, datasize, USE_MULTITHREADING);
+	result_qsel2 = histogram_median(data, datasize, threads);
 	memcpy(data_backup, data, datasize * sizeof(WORD));
 
 	if (result_qsel1 != result_qsort || result_qsel2 != result_qsort) {
@@ -91,6 +90,10 @@ Test(Sorting, Median)
 {
 	int size = 1;
 	for (int i = 0; i < NBTRIES; i++, size++) {
-		cr_assert(compare_median_algos(size) == 0, "Failed at size=%u", size);
+		cr_assert(compare_median_algos(size, 1) == 0, "Failed at size=%u", size);
+	}
+
+	for (int i = 0; i < NBTRIES; i++, size++) {
+		cr_assert(compare_median_algos(size, 2) == 0, "Failed at size=%u", size);
 	}
 }

@@ -44,6 +44,8 @@
 #include "opencv/opencv.h"
 
 #include "cosmetic_correction.h"
+static int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
+		double amount, gboolean is_cfa, threading_type threads);
 
 /* see also getMedian3x3 in algos/PSF.c */
 static float getMedian5x5_float(float *buf, const int xx, const int yy, const int w,
@@ -194,7 +196,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 	if (sig[0] == -1.0 && sig[1] == -1.0)
 		return NULL;
 
-	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC, FALSE);
+	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC, SINGLE_THREADED);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		return NULL;
@@ -346,7 +348,7 @@ int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	icold = ihot = 0L;
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		int retval = autoDetect(fit, chan, c_args->sigma, &icold, &ihot,
-				c_args->amount, c_args->is_cfa, c_args->multithread);
+				c_args->amount, c_args->is_cfa, c_args->threading);
 		if (retval)
 			return retval;
 	}
@@ -453,7 +455,7 @@ gpointer autoDetectThreaded(gpointer p) {
 	icold = ihot = 0L;
 	for (chan = 0; chan < args->fit->naxes[2]; chan++) {
 		retval = autoDetect(args->fit, chan, args->sigma, &icold, &ihot,
-				args->amount, args->is_cfa, args->multithread);
+				args->amount, args->is_cfa, args->threading);
 		if (retval)
 			break;
 	}
@@ -599,18 +601,17 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 /* this is an autodetect algorithm. Cold and hot pixels
  *  are corrected in the same time */
-int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
-		double amount, gboolean is_cfa, gboolean multithread) {
+static int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
+		double amount, gboolean is_cfa, threading_type threading) {
 
 	/* XXX: if cfa, stats are irrelevant. We should compute them taking
 	 * into account the Bayer pattern */
-	imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC | STATS_AVGDEV,
-			multithread);
-
+	imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC | STATS_AVGDEV, threading);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 1;
 	}
+	int threads = check_threading(&threading);
 	const float bkg = stat->median;
 	const float avgDev = stat->avgDev;
 	free_stats(stat);
@@ -638,21 +639,14 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 		return 1;
 	}
 
-#ifndef _OPENMP
-	multithread = FALSE;
-#endif
-	if (com.max_thread == 1)
-		multithread = FALSE;
-
 	if (isFloat) {
-		if (multithread) {
+		if (threads > 1) {
+			size_t n = fit->naxes[0] * fit->naxes[1];
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread)
+#pragma omp parallel for num_threads(threads)
 #endif
-			for (int y = 0; y < height; y++) {
-				for (int x = 0; x < width; x++) {
-					temp[y * width + x] = fbuf[y * width + x];
-				}
+			for (size_t i = 0; i < n; i++) {
+				temp[i] = fbuf[i];
 			}
 		} else {
 			// this should be faster in a single-threaded case
@@ -660,12 +654,10 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 		}
 	} else {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread)
+#pragma omp parallel for num_threads(threads) if(threads > 1)
 #endif
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				temp[y * width + x] = (float) buf[y * width + x];
-			}
+		for (size_t i = 0; i < n; i++) {
+			temp[i] = (float)fbuf[i];
 		}
 	}
 	const int step = is_cfa ? 2 : 1;
@@ -674,7 +666,7 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 	long icoldL = *icold;
 	long ihotL = *ihot;
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if(multithread)
+#pragma omp parallel num_threads(threads) if(threads > 1)
 #endif
 	{
 		float medianin[24];
@@ -791,11 +783,11 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "cc_";
 		args->seq = &com.seq;
-		args->multithread = FALSE;
+		args->threading = SINGLE_THREADED;
 		gtk_toggle_button_set_active(seq, FALSE);
 		apply_cosmetic_to_sequence(args);
 	} else {
-		args->multithread = TRUE;
+		args->threading = MULTI_THREADED;
 		undo_save_state(&gfit, _("Cosmetic Correction"));
 		start_in_new_thread(autoDetectThreaded, args);
 	}

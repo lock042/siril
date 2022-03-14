@@ -1,13 +1,3 @@
-#include <string.h>
-#include <math.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-
-#include "rt/rt_algo.h"
-#include "sorting.h"
-
-
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
@@ -31,6 +21,16 @@
 /* This files contains all sorting algorithms of siril.
  * See src/test/sorting.c for testing and metrics.
  */
+
+#include <string.h>
+#include <math.h>
+
+#include "core/siril.h"
+#include "core/proto.h"
+#include "core/processing.h"
+
+#include "rt/rt_algo.h"
+#include "sorting.h"
 
 /**
  * In-place insertion sort of array of double a of size n
@@ -571,13 +571,18 @@ void sortnet (WORD *a, size_t n) {
  * @param a array of unsigned short to search
  * @param n size of the array
  * @return median as a double (for n odd)
- * Use temp storage h to build the histogram. Complexity O(2*N)
+ * Use temp storage h to build the histogram. Complexity O(2*N) in time and
+ * O(N) in memory if single threaded or O(N+N*nb_threads) if multi-threaded
  */
-double histogram_median(WORD *a, size_t n, gboolean mutlithread) {
+double histogram_median(WORD *a, size_t n, threading_type threading) {
 	// For arrays n < 10 histogram is use fast and simple sortnet_median
 	if (n < 10)
 		return sortnet_median(a, n);
 
+	threading = limit_threading(&threading, 2000000, n);
+#ifndef _OPENMP
+	threading = SINGLE_THREADED;
+#endif
 	const size_t s = sizeof(unsigned int);
 	unsigned int *h = (unsigned int*) calloc(USHRT_MAX + 1, s);
 	if (!h) {
@@ -585,38 +590,43 @@ double histogram_median(WORD *a, size_t n, gboolean mutlithread) {
 		return -1.0;
 	}
 
-#ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (mutlithread)
-#endif
-	{
-		unsigned int *hthr = (unsigned int*) calloc(USHRT_MAX + 1, s);
-		if (!hthr) {
-			PRINT_ALLOC_ERR;
-		}
-		else {
-#ifdef _OPENMP
-#pragma omp for nowait
-#endif
-			for (size_t i = 0; i < n; i++) {
-				hthr[a[i]]++;
-			}
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-			{
-				// add per thread histogram to main histogram
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-				for (int ii = 0; ii <= USHRT_MAX; ++ii) {
-					h[ii] += hthr[ii];
-				}
-			}
-			free(hthr);
+	if (threading == SINGLE_THREADED) {
+		for (size_t i = 0; i < n; i++) {
+			h[a[i]]++;
 		}
 	}
-	unsigned int i= 0, j = 0, k = n / 2;
+#ifdef _OPENMP
+	else {
+		/* parallel version */
+#pragma omp parallel num_threads(threading) if (threading > 1)
+		{
+			unsigned int *hthr = (unsigned int*) calloc(USHRT_MAX + 1, s);
+			if (!hthr) {
+				PRINT_ALLOC_ERR;
+			}
+			else {
+#pragma omp for schedule(static) nowait
+				for (size_t i = 0; i < n; i++) {
+					hthr[a[i]]++;
+				}
+				/* this critical block doesn't only apply to this parallel group,
+				 * but to the callers as well, so it prevents this function from
+				 * running in parallel with one thread for each call */
+#pragma omp critical
+				{
+					// add per-thread histogram to main histogram
+#pragma omp simd
+					for (int ii = 0; ii <= USHRT_MAX; ++ii) {
+						h[ii] += hthr[ii];
+					}
+				}
+				free(hthr);
+			}
+		}
+	}
+#endif
 
+	unsigned int i = 0, j = 0, k = n / 2;
 	unsigned int sum = 0;
 	if (n % 2 == 0) {
 		for (; sum <= k - 1; j++)
@@ -631,9 +641,10 @@ double histogram_median(WORD *a, size_t n, gboolean mutlithread) {
 	return (n % 2 == 0) ? (double) (i + j - 2) / 2.0 : (double) (i - 1);
 }
 
-double histogram_median_float(float *a, size_t n, gboolean multithread) {
+double histogram_median_float(float *a, size_t n, threading_type threading) {
 	float median;
-	findMinMaxPercentile(a, n, 0.5f, &median, 0.5f, &median, multithread);
+	int threads = check_threading(&threading);
+	findMinMaxPercentile(a, n, 0.5f, &median, 0.5f, &median, threads);
 	return median;
 }
 

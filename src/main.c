@@ -169,12 +169,16 @@ static void init_num_procs() {
 					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
 				ngettext("processor", "processors", omp_num_proc));
 	}
+	omp_set_nested(1);
+	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
 	siril_log_message(
-			_("Parallel processing %s: Using %d logical %s.\n"),
+			_("Parallel processing %s: using %d logical %s%s.\n"),
 			_("enabled"), com.max_thread = num_proc,
-			ngettext("processor", "processors", num_proc));
+			ngettext("processor", "processors", num_proc),
+			supports_nesting ? "" : _(", nesting not supported"));
 #else
-	siril_log_message(_("Parallel processing %s: Using %d logical processor.\n"), _("disabled"), com.max_thread = 1);
+	com.max_thread = 1;
+	siril_log_message(_("Parallel processing disabled: using 1 logical processor.\n"));
 #endif
 }
 

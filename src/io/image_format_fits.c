@@ -65,6 +65,7 @@ static char *FILTER[] = {"FILTER", "FILT-1", NULL };
 static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
+static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -253,7 +254,7 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
 	if (!status && 1.0 != scale) {
 		siril_log_message(_("Loaded FITS file has "
-				"a BSCALE different than 1 (%f)\n"), scale);
+					"a BSCALE different than 1 (%f)\n"), scale);
 		status = 0;
 		/* We reset the scaling factors as we don't use it */
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
@@ -344,9 +345,7 @@ void read_fits_header(fits *fit) {
 
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure);
-
-	status = 0;
-	fits_read_key(fit->fptr, TUINT, "STACKCNT", &(fit->stacknt), NULL, &status);
+	__tryToFindKeywords(fit->fptr, TUINT, NB_STACKED, &fit->stackcnt);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
@@ -368,7 +367,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TUSHORT, "GAIN", &(fit->key_gain), NULL, &status);  // Gain setting from camera
 
-    __tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->key_offset); // Offset setting from camera
+	__tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->key_offset); // Offset setting from camera
 	/*******************************************************************
 	 * ******************* PLATE SOLVING KEYWORDS **********************
 	 * ****************************************************************/
@@ -547,7 +546,7 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 		} else if (siril_str_has_prefix(card, EXPOSURE)) {
 			fit->exposure = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "STACKCNT=")) {
-			fit->stacknt = g_ascii_strtoull(value, NULL, 10);
+			fit->stackcnt = g_ascii_strtoull(value, NULL, 10);
 		} else if (g_str_has_prefix(card, "LIVETIME=")) {
 			fit->livetime = g_ascii_strtod(value, NULL);
 		} else if (siril_str_has_prefix(card, FILTER)) {
@@ -1315,8 +1314,8 @@ void save_fits_header(fits *fit) {
 	}
 
 	status = 0;
-	if (fit->stacknt > 0)
-		fits_update_key(fit->fptr, TUINT, "STACKCNT", &(fit->stacknt),
+	if (fit->stackcnt > 0)
+		fits_update_key(fit->fptr, TUINT, "STACKCNT", &(fit->stackcnt),
 				"Stack frames", &status);
 
 	status = 0;
@@ -1500,15 +1499,25 @@ void save_fits_header(fits *fit) {
 
 /********************** public functions ************************************/
 
-void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure) {
-	char date_obs[FLEN_VALUE];
-
+/* gets specific data from the header (for stacking).
+ * if exposure is not found, it defaults to 0
+ * if livetime is not found, exposure is assigned to it
+ * if stack_count is not found, it defaults to 1
+ */
+void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count) {
+	*exposure = 0.0;
+	*stack_count = 1;
+	*dt = NULL;
 	__tryToFindKeywords(fptr, TDOUBLE, EXPOSURE, exposure);
+	__tryToFindKeywords(fptr, TUINT, NB_STACKED, stack_count);
 	int status = 0;
-	fits_read_key(fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
-	if (!status) {
+	if (fits_read_key(fptr, TDOUBLE, "LIVETIME", livetime, NULL, &status))
+		*livetime = *exposure;
+
+	char date_obs[FLEN_VALUE];
+	status = 0;
+	if (!fits_read_key(fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status))
 		*dt = FITS_date_to_date_time(date_obs);
-	}
 }
 
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
@@ -1516,6 +1525,7 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	from.fptr = fptr;
 	read_fits_header(&from);
 	copy_fits_metadata(&from, to);
+	clearfits(&from);
 	return 0;
 }
 
@@ -2319,8 +2329,6 @@ int copy_fits_metadata(fits *from, fits *to) {
 	strncpy(to->instrume, from->instrume, FLEN_VALUE);
 	strncpy(to->telescop, from->telescop, FLEN_VALUE);
 	strncpy(to->observer, from->observer, FLEN_VALUE);
-	strncpy(to->dft.type, from->dft.type, FLEN_VALUE);
-	strncpy(to->dft.ord, from->dft.ord, FLEN_VALUE);
 	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE);
 	strncpy(to->row_order, from->row_order, FLEN_VALUE);
 
@@ -2332,16 +2340,19 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->expstart = from->expstart;
 	to->expend = from->expend;
 	to->livetime = from->livetime;
+	to->stackcnt = from->stackcnt;
 	to->aperture = from->aperture;
 	to->ccd_temp = from->ccd_temp;
 	to->cvf = from->cvf;
 	to->key_gain = from->key_gain;
 	to->key_offset = from->key_offset;	
-	to->dft.norm[0] = from->dft.norm[0];
-	to->dft.norm[1] = from->dft.norm[1];
-	to->dft.norm[2] = from->dft.norm[2];
 
+	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
+#ifdef HAVE_WCSLIB
+	//wcssub()?
+#endif
+	// copy from->history?
 
 	return 0;
 }

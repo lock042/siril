@@ -33,6 +33,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
 #include "algos/annotate.h"
+#include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/image_interactions.h"
@@ -222,8 +223,18 @@ static void remap(int vport) {
 	} else {
 		// for all other modes and ushort data, the index can be reused
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
-			stf_m = findMidtonesBalance(&gfit, &stf_shadows, &stf_highlights);
-			stf_computed = TRUE;
+			struct mtf_params params;
+			if (!find_linked_midtones_balance(&gfit, &params)) {
+				stf_shadows = params.shadows;
+				stf_m = params.midtones;
+				stf_highlights = params.highlights;
+				stf_computed = TRUE;
+			} else {
+				stf_shadows = 0.0f;
+				stf_m = 0.2f;
+				stf_highlights = 1.0f;
+				stf_computed = TRUE;
+			}
 		}
 		make_index_for_current_display();
 		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
