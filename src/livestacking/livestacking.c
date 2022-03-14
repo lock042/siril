@@ -29,7 +29,7 @@
 #include "core/processing.h"
 #include "core/preprocess.h"
 #include "gui/utils.h"
-//#include "gui/PSF_list.h"	// clear_stars_list
+#include "gui/PSF_list.h"	// clear_stars_list
 #include "io/conversion.h"
 #include "io/FITS_symlink.h"
 #include "io/image_format_fits.h"
@@ -46,6 +46,7 @@
 #include "stacking/sum.h"
 #include "algos/noise.h"
 #include "algos/statistics.h"
+#include "algos/demosaicing.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui.h"
@@ -673,7 +674,7 @@ static gpointer live_stacker(gpointer arg) {
 			livestacking_display(str, TRUE);
 			break;
 		}
-		//clear_stars_list();
+		clear_stars_list();
 		bgnoise_async();
 
 		if (savefits(result_filename, &gfit)) {
