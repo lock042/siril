@@ -109,7 +109,6 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 	return 0;
 }
 
-
 static int star_align_prepare_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
@@ -134,16 +133,16 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 	siril_log_color_message(_("Reference Image:\n"), "green");
 
 	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		com.stars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
+		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
 	}
 	else {
-		com.stars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
 
 
-	if (!com.stars || nb_stars < get_min_requires_stars(regargs->type)) {
+	if (!sadata->refstars || nb_stars < get_min_requires_stars(regargs->type)) {
 		siril_log_message(
 				_("There are not enough stars in reference image to perform alignment\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -173,26 +172,22 @@ static int star_align_prepare_hook(struct generic_seq_args *args) {
 		}
 	}
 
-	/* we copy com.stars to refstars in case user take a look to another image of the sequence
-	 * that would destroy com.stars
-	 */
-	i = 0;
-	sadata->refstars = new_fitted_stars(MAX_STARS);
-	if (!sadata->refstars) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-	while (i < MAX_STARS && com.stars[i]) {
-		psf_star *tmp = new_psf_star();
-		if (!tmp) {
-			PRINT_ALLOC_ERR;
-			sadata->refstars[i] = NULL;
-			return 1;
+	/* copying refstars to com.stars for display */
+	com.stars = new_fitted_stars(MAX_STARS);
+	if (com.stars) {
+		i = 0;
+		while (i < MAX_STARS && sadata->refstars[i]) {
+			psf_star *tmp = new_psf_star();
+			if (!tmp) {
+				PRINT_ALLOC_ERR;
+				com.stars[i] = NULL;
+				break;
+			}
+			memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
+			com.stars[i] = tmp;
+			com.stars[i+1] = NULL;
+			i++;
 		}
-		memcpy(tmp, com.stars[i], sizeof(psf_star));
-		sadata->refstars[i] = tmp;
-		sadata->refstars[i+1] = NULL;
-		i++;
 	}
 
 	if (nb_stars >= MAX_STARS_FITTED) {
@@ -279,7 +274,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		double scale_max = 1.1;
 		retvalue = 1;
 		s_star star_list_A, star_list_B;
-		while (retvalue && attempt < NB_OF_MATCHING_TRY){
+		while (retvalue && attempt < NB_OF_MATCHING_TRY) {
 			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj,
 					scale_min, scale_max, &H, FALSE, regargs->type,
 					&star_list_A, &star_list_B);
@@ -322,18 +317,18 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 					"red", MIN_RATIO_INLIERS, filenum);
 				free_fitted_stars(stars);
 				return 1;
-			break;
 			case HOMOGRAPHY_TRANSFORMATION:
 				siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
 					"salmon", MIN_RATIO_INLIERS, filenum);
-			break;
+				break;
 			default:
-			printf("Should not happen\n");
+				printf("Should not happen\n");
 			}
 		}
 
 
 		FWHM_average(stars, nbpoints, &FWHMx, &FWHMy, &units);
+		free_fitted_stars(stars);
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -347,12 +342,9 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 
 		if (!regargs->translation_only) {
 			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
-				free_fitted_stars(stars);
 				return 1;
 			}
 		}
-
-		free_fitted_stars(stars);
 	}
 	else {
 		if (regargs->x2upscale && !regargs->translation_only) {
