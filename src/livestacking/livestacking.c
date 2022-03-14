@@ -29,6 +29,7 @@
 #include "core/processing.h"
 #include "core/preprocess.h"
 #include "gui/utils.h"
+//#include "gui/PSF_list.h"	// clear_stars_list
 #include "io/conversion.h"
 #include "io/FITS_symlink.h"
 #include "io/image_format_fits.h"
@@ -337,8 +338,12 @@ static int start_global_registration(sequence *seq) {
 static void init_preprocessing() {
 	/* copied from core/preprocess.c test_for_master_files() but modified to not check
 	 * for some options and not check for image properties against gfit, which is not
-	 * already loaded here. Error management is different too */
+	 * already loaded here. Error management is different too.
+	 * Some options also come from on_prepro_button_clicked()
+	 */
 	prepro = calloc(1, sizeof(struct preprocessing_data));
+
+	/* checking for dark master and associated options */
 	GtkToggleButton *tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
 	if (gtk_toggle_button_get_active(tbutton)) {
 		const char *filename;
@@ -377,10 +382,53 @@ static void init_preprocessing() {
 					prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
 				} else prepro->sigma[1] = -1.0;
 			}
+
+			GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
+			prepro->fix_xtrans = gtk_toggle_button_get_active(fix_xtrans);
 		}
 	}
 
-	if (prepro->use_dark) {
+	/* checking for flat master and associated options */
+	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
+	if (gtk_toggle_button_get_active(tbutton)) {
+		const char *filename;
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
+		filename = gtk_entry_get_text(entry);
+		if (filename[0] == '\0') {
+			gtk_toggle_button_set_active(tbutton, FALSE);
+		} else {
+			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+			prepro->flat = calloc(1, sizeof(fits));
+			if (!readfits(filename, prepro->flat, NULL, !com.pref.force_to_16bit)) {
+				prepro->use_flat = TRUE;
+			} else {
+				livestacking_display(_("NOT USING FLAT: cannot open the file"), FALSE);
+				free(prepro->flat);
+				gtk_entry_set_text(entry, "");
+				prepro->use_flat = FALSE;
+			}
+
+			if (prepro->use_flat) {
+				GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
+				prepro->autolevel = gtk_toggle_button_get_active(autobutton);
+				if (!prepro->autolevel) {
+					GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
+					prepro->normalisation = g_ascii_strtod(gtk_entry_get_text(norm_entry), NULL);
+				}
+
+
+				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
+				prepro->is_cfa = gtk_toggle_button_get_active(CFA);
+
+				GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
+				prepro->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);
+			}
+		}
+	}
+	prepro->is_sequence = FALSE;
+	prepro->allow_32bit_output = !com.pref.force_to_16bit;
+
+	if (prepro->use_dark || prepro->use_flat) {
 		struct generic_seq_args generic = { .user = prepro };
 		if (prepro_prepare_hook(&generic)) {
 			clear_preprocessing_data(prepro);
@@ -401,7 +449,7 @@ static void init_preprocessing() {
 }
 
 static int preprocess_image(char *filename, char *target) {
-	if (!prepro || !prepro->use_dark) return 1;
+	if (!prepro || (!prepro->use_dark && !prepro->use_flat)) return 1;
 
 	int ret = 0;
 	fits fit = { 0 };
@@ -535,6 +583,15 @@ static gpointer live_stacker(gpointer arg) {
 				char *msg = siril_log_color_message(_("Dark image is not the same size, not using (%dx%d)\n"), "salmon", prepro->dark->rx, prepro->dark->ry);
 				livestacking_display(msg, FALSE);
 				clearfits(prepro->dark);
+				prepro->use_dark = FALSE;
+			}
+			if (prepro && prepro->flat && (prepro->flat->rx != seq_rx || prepro->flat->ry != seq_ry)) {
+				char *msg = siril_log_color_message(_("Flat image is not the same size, not using (%dx%d)\n"), "salmon", prepro->flat->rx, prepro->flat->ry);
+				livestacking_display(msg, FALSE);
+				clearfits(prepro->flat);
+				prepro->use_flat = FALSE;
+			}
+			if (prepro && !prepro->dark && !prepro->flat) {
 				free(prepro);
 				prepro = NULL;
 			}
@@ -589,6 +646,7 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.normalize = ADDITIVE_SCALING;	// TODO: toggle switch
 		stackparam.force_norm = FALSE;
 		stackparam.output_norm = FALSE;
+		stackparam.equalizeRGB = FALSE;		// not possible currently
 		stackparam.use_32bit_output = FALSE;
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.apply_nbstack_weights = TRUE;

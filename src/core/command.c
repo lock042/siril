@@ -3787,12 +3787,13 @@ static gpointer stackone_worker(gpointer garg) {
 }
 
 int process_stackone(int nb) {
-	struct stacking_configuration *arg;
-
-	arg = calloc(1, sizeof(struct stacking_configuration));
+	struct stacking_configuration *arg = calloc(1, sizeof(struct stacking_configuration));
 	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
-	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE; arg->equalizeRGB = FALSE;
+	arg->filter_included = FALSE;
+	arg->norm = NO_NORM;
+	arg->force_no_norm = FALSE;
+	arg->equalizeRGB = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
