@@ -88,21 +88,24 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 		offset0[layer] = poffset[layer][ref_index];
 		mul0[layer] = pmul[layer][ref_index];
 		scale0[layer] = pscale[layer][ref_index];
-
+	}
+	int reflayer;
+	for (int layer = 0; layer < nb_layers; ++layer) {
+		reflayer = (args->equalizeRGB) ? args->reglayer : layer;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			switch (args->normalize) {
 				default:
 				case ADDITIVE_SCALING:
-					pscale[layer][i] = (pscale[layer][i] == 0) ? 1 : scale0[layer] / pscale[layer][i];
+					pscale[layer][i] = (pscale[layer][i] == 0) ? 1 : scale0[reflayer] / pscale[layer][i];
 					/* no break */
 				case ADDITIVE:
-					poffset[layer][i] = pscale[layer][i] * poffset[layer][i] - offset0[layer];
+					poffset[layer][i] = pscale[layer][i] * poffset[layer][i] - offset0[reflayer];
 					break;
 				case MULTIPLICATIVE_SCALING:
-					pscale[layer][i] = (pscale[layer][i] == 0) ? 1 : scale0[layer]  / pscale[layer][i];
+					pscale[layer][i] = (pscale[layer][i] == 0) ? 1 : scale0[reflayer]  / pscale[layer][i];
 					/* no break */
 				case MULTIPLICATIVE:
-					pmul[layer][i] = (pmul[layer][i] == 0) ? 1 : mul0[layer] / pmul[layer][i];
+					pmul[layer][i] = (pmul[layer][i] == 0) ? 1 : mul0[reflayer] / pmul[layer][i];
 					break;
 			}
 		}

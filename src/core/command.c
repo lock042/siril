@@ -3409,6 +3409,14 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->apply_noise_weights = TRUE;
 			}
+		} else if (!strcmp(current, "-rgb_equal")) {
+			if (arg->method != stack_mean_with_rejection) {
+				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->equalizeRGB = TRUE;
+			}
 		} else if (!strcmp(current, "-weight_from_nbstack")) {
 			if (arg->method != stack_mean_with_rejection) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
@@ -3572,6 +3580,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
 		args.apply_noise_weights = arg->apply_noise_weights;
 		args.apply_nbstack_weights = arg->apply_nbstack_weights;
+		args.equalizeRGB = arg->equalizeRGB;
 
 		// manage filters
 		if (convert_stack_data_to_filter(arg, &args) ||
@@ -3671,7 +3680,7 @@ int process_stackall(int nb) {
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
-	arg->apply_noise_weights = FALSE;
+	arg->apply_nbstack_weights = FALSE;
 
 	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]]
 	// stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]
@@ -3783,9 +3792,9 @@ int process_stackone(int nb) {
 	arg = calloc(1, sizeof(struct stacking_configuration));
 	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
-	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
+	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE; arg->equalizeRGB = FALSE;
 	arg->apply_noise_weights = FALSE;
-	arg->apply_noise_weights = FALSE;
+	arg->apply_nbstack_weights = FALSE;
 
 	sequence *seq = load_sequence(word[1], &arg->seqfile);
 	if (!seq)

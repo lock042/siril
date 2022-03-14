@@ -1275,6 +1275,8 @@ int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to) {
 	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE);
 	strncpy(to->observer, ser_file->observer, FLEN_VALUE);
 	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE);
+	if (ser_file->fps > 0.0)
+		to->exposure = 1.0 / ser_file->fps;
 	return 0;
 }
 
