@@ -818,10 +818,14 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 	/* we always apply this function on original data */
 	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
 	if (!find_linked_midtones_balance(get_preview_gfit_backup(), &params)) {
+		_shadows = params.shadows;
+		_midtones = params.midtones;
 		_highlights = 1.f;
 		_update_entry_text();
 		update_histo_mtf();
 		histo_recompute();
+	} else {
+		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
 	}
 	set_cursor_waiting(FALSE);
 }

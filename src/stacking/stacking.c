@@ -184,7 +184,7 @@ static void start_stacking() {
 	static GtkEntry *output_file = NULL;
 	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *weight_button = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
-	static GtkWidget *norm_to_max = NULL;
+	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -196,6 +196,7 @@ static void start_stacking() {
 		norm_combo = GTK_COMBO_BOX(lookup_widget("combonormalize"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
+		RGB_equal = lookup_widget("check_RGBequal");
 		weight_button = GTK_TOGGLE_BUTTON(lookup_widget("stack_weight_button"));
 	}
 
@@ -215,6 +216,7 @@ static void start_stacking() {
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
 	stackparam.apply_noise_weights = gtk_toggle_button_get_active(weight_button) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 
 	stackparam.use_32bit_output = evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);
@@ -813,7 +815,7 @@ static void update_filter_label() {
  */
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
-			NULL, *output_norm = NULL;
+			NULL, *output_norm = NULL, *RGB_equal = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	gchar *labelbuffer;
@@ -826,6 +828,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		force_norm = lookup_widget("checkforcenorm");
 		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
 		output_norm = lookup_widget("check_normalise_to_max");
+		RGB_equal = lookup_widget("check_RGBequal");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
@@ -847,6 +850,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(widgetnormalize, FALSE);
 		gtk_widget_set_sensitive(force_norm, FALSE);
 		gtk_widget_set_visible(output_norm, FALSE);
+		gtk_widget_set_visible(RGB_equal, FALSE);
 		break;
 	case STACK_MEAN:
 	case STACK_MEDIAN:
@@ -854,6 +858,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(force_norm,
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
+		gtk_widget_set_visible(RGB_equal, TRUE);
 	}
 
 	if (com.seq.reference_image == -1)
