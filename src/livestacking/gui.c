@@ -39,11 +39,14 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 	set_label(label, str, free_after_display);
 }
 
-void livestacking_display_config(gboolean use_dark, transformation_type regtype) {
+void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {
 	static GtkLabel *conf_label = NULL;
 	if (!conf_label)
 		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
-	gchar * txt = g_strdup_printf("%s dark and cosmetic correction, registering with %s transformation, stacking with weighted mean", use_dark ? "Using" : "Not using", describe_transformation_type(regtype));
+	gchar * txt = g_strdup_printf("%s dark and cosmetic correction, %s flat, registering with %s transformation, stacking with weighted mean",
+			use_dark ? "Using" : "Not using",
+			use_flat ? "Using" : "Not using",
+			describe_transformation_type(regtype));
 	gtk_label_set_text(conf_label, txt);
 	g_free(txt);
 }

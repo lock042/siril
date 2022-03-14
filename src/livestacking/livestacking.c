@@ -204,7 +204,7 @@ void on_livestacking_start() {
 	}
 
 	init_preprocessing();
-	livestacking_display_config(prepro != NULL, REGISTRATION_TYPE);
+	livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, REGISTRATION_TYPE);
 
 	g_signal_connect(G_OBJECT(dirmon), "changed", G_CALLBACK(file_changed), NULL);
 	livestacking_display(_("Live stacking waiting for files"), FALSE);
