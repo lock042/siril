@@ -12573,7 +12573,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="control_center_box">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="shadow-type">in</property>
