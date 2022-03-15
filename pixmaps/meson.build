@@ -9,6 +9,7 @@ siril_icons = [
   'astrometry.svg',
   'astrometry_dark.svg',
   'b.svg',
+  'chain.svg',
   'cm.svg',
   'curve.svg',
   'export_dark.svg',

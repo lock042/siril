@@ -6646,6 +6646,11 @@ Modifying parameters in this windows afterward will void the colour balance, and
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/wcs-grid_dark.svg</property>
   </object>
+  <object class="GtkImage" id="image4">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">pixmaps/chain.svg</property>
+  </object>
   <object class="GtkImage" id="imageHelp">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -16378,6 +16383,12 @@ WARNING: This option should not be checked for master stacking.</property>
                                             <property name="top-attach">1</property>
                                           </packing>
                                         </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -17074,47 +17085,74 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                     <property name="can-focus">False</property>
                     <property name="valign">center</property>
                     <child>
-                      <object class="GtkMenuButton" id="menu_display_button">
+                      <object class="GtkBox">
                         <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-markup" translatable="yes">Display mode: this list presents all the vizual modes available in Siril.
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkMenuButton" id="menu_display_button">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-markup" translatable="yes">Display mode: this list presents all the vizual modes available in Siril.
 
 &lt;b&gt;WARNING: only Linear mode shows the real pixel values (when vizualisation sliders are at min and max positions). Other modes are only conveniant way to display your data. Stretch your histogram before to work on an external tool.&lt;/b&gt;</property>
-                        <property name="popup">menu_display</property>
-                        <property name="use-popover">False</property>
-                        <child>
-                          <object class="GtkBox" id="display_box">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
+                            <property name="popup">menu_display</property>
+                            <property name="use-popover">False</property>
                             <child>
-                              <object class="GtkLabel" id="display_button_name">
+                              <object class="GtkBox" id="display_box">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="valign">baseline</property>
-                                <property name="label" translatable="yes">Linear</property>
-                                <property name="use-underline">True</property>
+                                <child>
+                                  <object class="GtkLabel" id="display_button_name">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="valign">baseline</property>
+                                    <property name="label" translatable="yes">Linear</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">False</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkImage" id="display_button_arrow">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="valign">baseline</property>
+                                    <property name="icon-name">pan-down-symbolic</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
                               </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkImage" id="display_button_arrow">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="valign">baseline</property>
-                                <property name="icon-name">pan-down-symbolic</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
                             </child>
                           </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkToggleButton">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="action-name">win.chain-chan</property>
+                            <property name="image">image4</property>
+                            <property name="relief">none</property>
+                            <property name="active">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
                         </child>
                       </object>
                     </child>
