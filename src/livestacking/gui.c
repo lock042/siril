@@ -6,6 +6,8 @@
 #include "gui/image_display.h"
 #include "core/proto.h"
 
+static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
+
 /* for fullscreen and window management on activation,
  * see livestacking_action_activate() in core/siril_actions.c */
 
@@ -83,8 +85,9 @@ void on_livestacking_stop_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("livestacking_player"));
 }
 
-void on_livestacking_pause_clicked(GtkButton *button, gpointer user_data) {
+void on_livestacking_pause_clicked(GtkToolButton *button, gpointer user_data) {
 	pause_live_stacking_engine();
+	gtk_tool_button_set_icon_name(button, pause_play_button[get_paused_status()]);
 }
 
 gboolean update_debayer_button_status_idle(gpointer new_state) {

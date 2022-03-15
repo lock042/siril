@@ -730,3 +730,7 @@ static gpointer live_stacker(gpointer arg) {
 	return NULL;
 }
 
+int get_paused_status() {
+	return paused ? 1 : 0;
+}
+
