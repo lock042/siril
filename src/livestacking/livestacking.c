@@ -107,12 +107,6 @@ static void create_seq_of_2(sequence *seq, char *name, int index) {
 	seq->imgparam[1].date_obs = NULL;
 }
 
-static void show_hide_toolbox() {
-	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	GAction *action_toolbar = g_action_map_lookup_action(G_ACTION_MAP(app_win), "hide-show-toolbar");
-	g_action_activate(action_toolbar, NULL);
-}
-
 void pause_live_stacking_engine() {
 	paused = !paused;
 }

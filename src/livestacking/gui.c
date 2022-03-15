@@ -24,6 +24,12 @@ static gboolean label_update_idle(gpointer ptr) {
 	return FALSE;
 }
 
+void show_hide_toolbox() {
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	GAction *action_toolbar = g_action_map_lookup_action(G_ACTION_MAP(app_win), "hide-show-toolbar");
+	g_action_activate(action_toolbar, NULL);
+}
+
 void set_label(GtkLabel *label, gchar *text, gboolean free_after_display) {
 	struct _label_struct *arg = malloc(sizeof(struct _label_struct));
 	arg->label = label;

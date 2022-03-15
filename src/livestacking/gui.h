@@ -4,6 +4,7 @@
 #include <glib.h>
 #include "registration/registration.h"
 
+void show_hide_toolbox();
 void livestacking_display(gchar *str, gboolean free_after_display);
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype);
 void livestacking_update_number_of_images(int nb, double total_exposure, double noise);
