@@ -76,6 +76,10 @@ void on_livestacking_stop_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide((GtkWidget *)user_data);
 }
 
+void on_livestacking_pause_clicked(GtkButton *button, gpointer user_data) {
+	pause_live_stacking_engine();
+}
+
 void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
 	GtkWindow *window;
 	GtkWidget *toolbarbox = lookup_widget("toolbarbox");

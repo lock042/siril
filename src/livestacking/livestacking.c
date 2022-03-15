@@ -67,6 +67,8 @@ static gboolean do_links = FALSE;
 static GThread *live_stacker_thread = NULL;
 static GAsyncQueue *new_files_queue = NULL;
 
+static gboolean paused = FALSE;
+
 //static int registration_layer = 0;
 //static fitted_PSF **ref_stars = NULL;
 //static int nb_ref_stars = 0;
@@ -105,6 +107,10 @@ static void create_seq_of_2(sequence *seq, char *name, int index) {
 	seq->imgparam[1].date_obs = NULL;
 }
 
+void pause_live_stacking_engine() {
+	paused = !paused;
+}
+
 void stop_live_stacking_engine() {
 	if (dirmon) {
 		g_object_unref(dirmon);
@@ -120,6 +126,13 @@ void stop_live_stacking_engine() {
 	}
 	if (prepro) {
 		clear_preprocessing_data(prepro);
+		free(prepro);
+		prepro = NULL;
+	}
+	if (sadata) {
+		free_fitted_stars(sadata->refstars);
+		free(sadata);
+		sadata = NULL;
 	}
 
 	for (int i = 0; i < 3; i++) {
@@ -163,6 +176,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 	if (evtype == G_FILE_MONITOR_EVENT_CREATED) {
 		gchar *filename = g_file_get_basename(file);
 		siril_debug_print("File %s created\n", filename);
+		if (paused) return;	// manage in https://gitlab.com/free-astro/siril/-/issues/786
 
 		image_type type;
 		stat_file(filename, &type, NULL);
