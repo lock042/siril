@@ -73,29 +73,12 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 }
 
 void on_livestacking_stop_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide((GtkWidget *)user_data);
+	stop_live_stacking_engine();
+	gtk_widget_hide(lookup_widget("livestacking_player"));
 }
 
 void on_livestacking_pause_clicked(GtkButton *button, gpointer user_data) {
 	pause_live_stacking_engine();
-}
-
-void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
-	GtkWindow *window;
-	GtkWidget *toolbarbox = lookup_widget("toolbarbox");
-	gboolean is_fullscreen;
-
-	window = GTK_WINDOW(lookup_widget("control_window"));
-
-	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
-	is_fullscreen = gdk_window_get_state(gdk_window) & GDK_WINDOW_STATE_FULLSCREEN;
-
-	if (is_fullscreen) {
-		gtk_window_unfullscreen(window);
-	}
-	gtk_widget_set_visible(toolbarbox, is_fullscreen);
-
-	stop_live_stacking_engine();
 }
 
 gboolean update_debayer_button_status_idle(gpointer new_state) {

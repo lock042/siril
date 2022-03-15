@@ -8855,7 +8855,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="title" translatable="yes">Live Stacking</property>
     <property name="icon">pixmaps/siril.svg</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <signal name="hide" handler="on_livestacking_player_hide" swapped="no"/>
     <child>
       <object class="GtkBox">
         <property name="name">livestacking-blinking</property>
