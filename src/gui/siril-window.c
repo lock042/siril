@@ -51,7 +51,7 @@ static GActionEntry image_entries[] = {
 		{ "zoom-one", zoom_one_activate },
 		{ "negative-view", negative_view_activate, NULL, "false", negative_view_state },
 		{ "color-map", color_map_activate, NULL, "false", color_map_state },
-		{ "chain-chan", NULL, NULL, "true", chain_channels_state_change },
+		{ "chain-chan", chain_channels_activate, NULL, "true", chain_channels_state_change },
 		{ "snapshot", snapshot_action_activate },
 		{ "clipboard", clipboard_action_activate },
 		{ "fits-header", image_fits_header_activate },
