@@ -291,7 +291,7 @@ static int get_image_index_from_path(GtkTreePath *path) {
 	return index;
 }
 
-static gint get_real_index_from_index_in_list(GtkTreeModel *model, GtkTreeIter *iter, int index_in_list) {
+static gint get_real_index_from_index_in_list(GtkTreeModel *model, GtkTreeIter *iter) {
 	gint real_index;
 	gtk_tree_model_get(model, iter, COLUMN_INDEX, &real_index, -1);
 	return real_index - 1;
@@ -317,7 +317,7 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 			gint *new_index = gtk_tree_path_get_indices(path);
 			GtkTreeIter iter;
 			gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, path);
-			gint real_index = get_real_index_from_index_in_list(model, &iter, new_index[0]);
+			gint real_index = get_real_index_from_index_in_list(model, &iter);
 			if (isfirst) { // replicate behavior of first selected row for the subsequent rows
 				initvalue = com.seq.imgparam[real_index].incl;
 				isfirst = FALSE;
