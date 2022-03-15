@@ -111,7 +111,8 @@ enum {
 };
 
 enum {
-	COLUMN_NAME		 // string
+	COLUMN_NAME,		 // string
+	COLUMN_INDEX
 };
 
 static fits var_fit[MAX_IMAGES] = { 0 };
@@ -548,6 +549,12 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	}
 }
 
+static gint get_real_index_from_index_in_list(GtkTreeModel *model, GtkTreeIter *iter) {
+	gint real_index;
+	gtk_tree_model_get(model, iter, COLUMN_INDEX, &real_index, -1);
+	return real_index;
+}
+
 gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 		gboolean keyboard_tip, GtkTooltip *tooltip, gpointer data) {
 	GtkTreeIter iter;
@@ -561,9 +568,9 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 			&model, &path, &iter))
 		return FALSE;
 
-	gint *i = gtk_tree_path_get_indices(path);
+	gint real_index = get_real_index_from_index_in_list(model, &iter);
 
-	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[i[0]].prototype, _(functions[i[0]].definition));
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[real_index].prototype, _(functions[real_index].definition));
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
@@ -586,9 +593,9 @@ gboolean query_tooltip_op_tree_view_cb(GtkWidget *widget, gint x, gint y,
 			&model, &path, &iter))
 		return FALSE;
 
-	gint *i = gtk_tree_path_get_indices(path);
+	gint real_index = get_real_index_from_index_in_list(model, &iter);
 
-	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", operators[i[0]].prototype, _(operators[i[0]].definition));
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", operators[real_index].prototype, _(operators[real_index].definition));
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
@@ -605,7 +612,7 @@ static void add_functions_to_list() {
 	for (int i = 0; i < MAX_FUNCTIONS; i++) {
 		gtk_list_store_append(pixel_math_list_store_functions, &iter);
 		gtk_list_store_set(pixel_math_list_store_functions, &iter,
-				COLUMN_NAME, functions[i].name,
+				COLUMN_NAME, functions[i].name, COLUMN_INDEX, i,
 				-1);
 	}
 }
@@ -617,7 +624,7 @@ static void add_operators_to_list() {
 	for (int i = 0; i < MAX_OPERATORS; i++) {
 		gtk_list_store_append(pixel_math_list_store_operators, &iter);
 		gtk_list_store_set(pixel_math_list_store_operators, &iter,
-				COLUMN_NAME, operators[i].name,
+				COLUMN_NAME, operators[i].name, COLUMN_INDEX, i,
 				-1);
 	}
 }
