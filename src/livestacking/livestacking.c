@@ -107,6 +107,12 @@ static void create_seq_of_2(sequence *seq, char *name, int index) {
 	seq->imgparam[1].date_obs = NULL;
 }
 
+static void show_hide_toolbox() {
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	GAction *action_toolbar = g_action_map_lookup_action(G_ACTION_MAP(app_win), "hide-show-toolbar");
+	g_action_activate(action_toolbar, NULL);
+}
+
 void pause_live_stacking_engine() {
 	paused = !paused;
 }
@@ -141,6 +147,8 @@ void stop_live_stacking_engine() {
 			refimage_stats[i] = NULL;
 		}
 	}
+
+	show_hide_toolbox();
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {
@@ -217,6 +225,8 @@ void on_livestacking_start() {
 		g_error_free(err);
 		return;
 	}
+
+	show_hide_toolbox();
 
 	init_preprocessing();
 	livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, REGISTRATION_TYPE);
