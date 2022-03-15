@@ -10280,6 +10280,16 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <columns>
       <!-- column-name pixel_math_function -->
       <column type="gchararray"/>
+      <!-- column-name pixel_math_f_index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_operators">
+    <columns>
+      <!-- column-name pixel_math_operator -->
+      <column type="gchararray"/>
+      <!-- column-name pixel_math_o_index -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
@@ -10434,6 +10444,21 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         </child>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="f_index">
+                        <property name="visible">False</property>
+                        <property name="title" translatable="yes">index</property>
+                        <property name="sort-column-id">1</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderer_f_index">
+                            <property name="visible">False</property>
+                          </object>
+                          <attributes>
+                            <attribute name="text">1</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -10441,6 +10466,64 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="pixel_math_scrolled_operators">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
+                <child>
+                  <object class="GtkTreeView" id="pixel_math_treeview_operators">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="has-tooltip">True</property>
+                    <property name="model">pixel_math_liststore_operators</property>
+                    <property name="headers-clickable">False</property>
+                    <property name="reorderable">True</property>
+                    <property name="search-column">0</property>
+                    <property name="enable-grid-lines">both</property>
+                    <signal name="query-tooltip" handler="query_tooltip_op_tree_view_cb" swapped="no"/>
+                    <signal name="row-activated" handler="on_pixel_math_treeview_operators_row_activated" swapped="no"/>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection"/>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn27">
+                        <property name="title" translatable="yes">Operator</property>
+                        <property name="clickable">True</property>
+                        <property name="sort-indicator">True</property>
+                        <property name="sort-column-id">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderer_operators"/>
+                          <attributes>
+                            <attribute name="text">0</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="c_index">
+                        <property name="visible">False</property>
+                        <property name="title" translatable="yes">column</property>
+                        <property name="sort-column-id">1</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderer_o_index">
+                            <property name="visible">False</property>
+                          </object>
+                          <attributes>
+                            <attribute name="text">1</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>

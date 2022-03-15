@@ -43,40 +43,65 @@ typedef struct {
 	const gchar *name;
 	const gchar *prototype;
 	const gchar *definition;
-} _pm_functions;
+} _pm_op_func;
 
-static const _pm_functions functions[] = { // TODO: should we use tabular in tinyexpr.c?
-    { "abs",   "abs ( x )",      N_("Absolute value of x.")                    },
-    { "acos",  "acos ( x )",     N_("Arc cosine of x.")                        },
-    { "asin",  "asin ( x )",     N_("Arc sine of x.")                          },
-    { "atan",  "atan ( x )",     N_("Arc tangent of x.")                       },
-    { "atan2", "atan2 ( y, x )", N_("Arc tangent of y/x.")                     },
-    { "ceil",  "ceil ( x )",     N_("Round x upwards to the nearest integer.") },
-    { "cos",   "cos ( x )",      N_("Cosine of x.")                            },
-    { "cosh",  "cosh ( x )",     N_("Hyperbolic cosine of x.")                 },
-    { "e",     "e",              N_("The constant e=2.718282...")              },
-    { "exp",   "exp ( x )",      N_("Exponential function.")                   },
-    { "fac",   "fac( x )",       N_("Factorial function.")                     },
-    { "floor", "floor ( x )",    N_("Highest integer less than or equal to x.")},
-    { "ln",    "ln ( x )",       N_("Natural logarithm of x.")                 },
-    { "log",   "log ( x )",      N_("Base-10 logarithm of x.")                 },
-    { "log10", "log10 ( x )",    N_("Base-10 logarithm of x.")                 },
-    { "log2",  "log2 ( x )",     N_("Base-2 logarithm of x.")                  },
-    { "max",   "max ( x, y )",   N_("Maximum function.")                       },
-    { "min",   "min ( x, y )",   N_("Minimum function.")                       },
-    { "ncr",   "ncr ( x, y )",   N_("Combinations function.")                  },
-    { "npr",   "npr ( x, y )",   N_("Permutations function.")                  },
-    { "pi",    "pi",             N_("The constant \u03c0=3.141592...")         },
-    { "pow",   "pow ( x, y )",   N_("Exponentiation function.")                },
-    { "sin",   "sin ( x )",      N_("Sine of x.")                              },
-    { "sinh",  "sinh ( x )",     N_("Hyperbolic sine of x.")                   },
-    { "sqrt",  "sqrt ( x )",     N_("Square root of x.")                       },
-    { "tan",   "tan ( x )",      N_("Tangent of x.")                           },
-    { "tanh",  "tanh ( x )",     N_("Hyperbolic tangent of x.")                },
-    { "trunc", "trunc ( x )",    N_("Truncated integer part of x.")            }
+static const _pm_op_func functions[] = {
+    { "abs",   "abs ( x )",                             N_("Absolute value of x.")                    },
+    { "acos",  "acos ( x )",                            N_("Arc cosine of x.")                        },
+    { "asin",  "asin ( x )",                            N_("Arc sine of x.")                          },
+    { "atan",  "atan ( x )",                            N_("Arc tangent of x.")                       },
+    { "atan2", "atan2 ( y, x )",                        N_("Arc tangent of y/x.")                     },
+    { "ceil",  "ceil ( x )",                            N_("Round x upwards to the nearest integer.") },
+    { "cos",   "cos ( x )",                             N_("Cosine of x.")                            },
+    { "cosh",  "cosh ( x )",                            N_("Hyperbolic cosine of x.")                 },
+    { "e",     "e",                                     N_("The constant e=2.718282...")              },
+    { "exp",   "exp ( x )",                             N_("Exponential function.")                   },
+    { "fac",   "fac( x )",                              N_("Factorial function.")                     },
+    { "iif",   "iif( cond, expr_true, expr_false )",    N_("Conditional function (or inline if function).\n"
+										"\nReturns <i>expr_true</i> if <i>cond</i> evaluates to nonzero."
+										"\nReturns <i>expr_false</i> if <i>cond</i> evaluates to zero.") },
+    { "floor", "floor ( x )",                           N_("Highest integer less than or equal to x.")},
+    { "ln",    "ln ( x )",                              N_("Natural logarithm of x.")                 },
+    { "log",   "log ( x )",                             N_("Base-10 logarithm of x.")                 },
+    { "log10", "log10 ( x )",                           N_("Base-10 logarithm of x.")                 },
+    { "log2",  "log2 ( x )",                            N_("Base-2 logarithm of x.")                  },
+    { "max",   "max ( x, y )",                          N_("Maximum function.")                       },
+    { "min",   "min ( x, y )",                          N_("Minimum function.")                       },
+    { "ncr",   "ncr ( x, y )",                          N_("Combinations function.")                  },
+    { "npr",   "npr ( x, y )",                          N_("Permutations function.")                  },
+    { "pi",    "pi",                                    N_("The constant \u03c0=3.141592...")         },
+    { "pow",   "pow ( x, y )",                          N_("Exponentiation function.")                },
+    { "sin",   "sin ( x )",                             N_("Sine of x.")                              },
+    { "sinh",  "sinh ( x )",                            N_("Hyperbolic sine of x.")                   },
+    { "sqrt",  "sqrt ( x )",                            N_("Square root of x.")                       },
+    { "tan",   "tan ( x )",                             N_("Tangent of x.")                           },
+    { "tanh",  "tanh ( x )",                            N_("Hyperbolic tangent of x.")                },
+    { "trunc", "trunc ( x )",                           N_("Truncated integer part of x.")            }
+};
+
+static const _pm_op_func operators[] = {
+    { "~",   "~x",                             N_("Pixel Inversion operator.")                        },
+    { "-",   "-x",                             N_("Unary Minus operator (sign change).")              },
+    { "+",   "+x",                             N_("Unary Plus operator.")                             },
+    { "!",   "!x",                             N_("Logical NOT operator.")                            },
+    { "^",   "x ^ y",                          N_("Exponentiation operator.")                         },
+    { "*",   "x * y",                          N_("Multiplication operator.")                         },
+    { "/",   "x / y",                          N_("Division operator.")                               },
+    { "%",   "x % y",                          N_("Modulus operator.")                                },
+    { "+",   "x + y",                          N_("Addition operator.")                               },
+    { "-",   "x - y",                          N_("Subtraction operator.")                            },
+    { "<",   "x &lt; y",                       N_("Less Than relational operator.")                   },
+    { "<=",  "x &lt;= y",                      N_("Less Than Or Equal relational operator.")          },
+    { ">",   "x > y",                          N_("Greater Than relational operator.")                },
+    { ">=",  "x >= y",                         N_("Greater Than Or Equal relational operator.")       },
+    { "==",  "x == y",                         N_("Equal To relational operator.")                    },
+    { "!=",  "x != y",                         N_("Not Equal To relational operator.")                },
+    { "&&",  "x &amp;&amp; y",                 N_("Logical AND operator.")                            },
+    { "||",  "x || y",                         N_("Logical OR operator.")                             }
 };
 
 #define MAX_FUNCTIONS G_N_ELEMENTS(functions)
+#define MAX_OPERATORS G_N_ELEMENTS(operators)
 
 
 enum {
@@ -86,17 +111,21 @@ enum {
 };
 
 enum {
-	COLUMN_FUNCTION		 // string
+	COLUMN_NAME,		 // string
+	COLUMN_INDEX
 };
 
 static fits var_fit[MAX_IMAGES] = { 0 };
 
 static GtkListStore *pixel_math_list_store = NULL;
 static GtkListStore *pixel_math_list_store_functions = NULL;
+static GtkListStore *pixel_math_list_store_operators = NULL;
 static GtkTreeView *pixel_math_tree_view = NULL;
 static GtkTreeView *pixel_math_treeview_functions = NULL;
+static GtkTreeView *pixel_math_treeview_operators = NULL;
 static GtkTreeModel *pixel_math_tree_model = NULL;
 static GtkTreeModel *pixel_math_tree_model_functions = NULL;
+static GtkTreeModel *pixel_math_tree_model_operators = NULL;
 static GtkLabel *pixel_math_status_bar = NULL;
 static GtkTextView *pixel_math_text_view = NULL;
 
@@ -108,11 +137,15 @@ static void init_widgets() {
 		pixel_math_status_bar = GTK_LABEL(lookup_widget("pixel_math_status"));
 		pixel_math_text_view = GTK_TEXT_VIEW(lookup_widget("pixel_math_textview"));
 		pixel_math_treeview_functions = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_functions"));
+		pixel_math_treeview_operators = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_operators"));
 		pixel_math_tree_model_functions = gtk_tree_view_get_model(pixel_math_treeview_functions);
+		pixel_math_tree_model_operators = gtk_tree_view_get_model(pixel_math_treeview_operators);
 		pixel_math_list_store_functions = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore_functions"));
+		pixel_math_list_store_operators = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore_operators"));
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_functions")), TRUE);
+		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_operators")), TRUE);
 #endif
 
 	}
@@ -120,11 +153,13 @@ static void init_widgets() {
 	g_assert(pixel_math_tree_model);
 	g_assert(pixel_math_list_store);
 	g_assert(pixel_math_list_store_functions);
+	g_assert(pixel_math_list_store_operators);
 	g_assert(pixel_math_status_bar);
 	g_assert(pixel_math_text_view);
 	g_assert(pixel_math_treeview_functions);
 	g_assert(pixel_math_tree_model_functions);
-	g_assert(pixel_math_list_store_functions);
+	g_assert(pixel_math_treeview_operators);
+	g_assert(pixel_math_tree_model_operators);
 
 }
 
@@ -199,6 +234,12 @@ static int get_pixel_math_functions_number_of_rows(){
 	else return 0;
 }
 
+static int get_pixel_math_operators_number_of_rows(){
+	if (GTK_IS_TREE_MODEL(pixel_math_list_store_operators))
+		return gtk_tree_model_iter_n_children(GTK_TREE_MODEL(pixel_math_list_store_operators), NULL);
+	else return 0;
+}
+
 static const gchar *get_pixel_math_var_name(int i) {
 	GtkTreeIter iter;
 	GValue value = G_VALUE_INIT;
@@ -222,7 +263,22 @@ static const gchar *get_function_name(int i) {
 
 	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
 	if (gtk_tree_model_get_iter(pixel_math_tree_model_functions, &iter, path)) {
-		gtk_tree_model_get_value(pixel_math_tree_model_functions, &iter, COLUMN_FUNCTION, &value);
+		gtk_tree_model_get_value(pixel_math_tree_model_functions, &iter, COLUMN_NAME, &value);
+		return g_value_get_string(&value);
+	}
+
+	return NULL;
+}
+
+static const gchar *get_operator_name(int i) {
+	GtkTreeIter iter;
+	GValue value = G_VALUE_INIT;
+
+	init_widgets();
+
+	GtkTreePath *path = gtk_tree_path_new_from_indices(i, -1);
+	if (gtk_tree_model_get_iter(pixel_math_tree_model_operators, &iter, path)) {
+		gtk_tree_model_get_value(pixel_math_tree_model_operators, &iter, COLUMN_NAME, &value);
 		return g_value_get_string(&value);
 	}
 
@@ -493,6 +549,12 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	}
 }
 
+static gint get_real_index_from_index_in_list(GtkTreeModel *model, GtkTreeIter *iter) {
+	gint real_index;
+	gtk_tree_model_get(model, iter, COLUMN_INDEX, &real_index, -1);
+	return real_index;
+}
+
 gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 		gboolean keyboard_tip, GtkTooltip *tooltip, gpointer data) {
 	GtkTreeIter iter;
@@ -506,9 +568,9 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 			&model, &path, &iter))
 		return FALSE;
 
-	gint *i = gtk_tree_path_get_indices(path);
+	gint real_index = get_real_index_from_index_in_list(model, &iter);
 
-	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[i[0]].prototype, _(functions[i[0]].definition));
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[real_index].prototype, _(functions[real_index].definition));
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
@@ -518,7 +580,31 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	return TRUE;
 }
 
-/* Add an image to the list. */
+gboolean query_tooltip_op_tree_view_cb(GtkWidget *widget, gint x, gint y,
+		gboolean keyboard_tip, GtkTooltip *tooltip, gpointer data) {
+	GtkTreeIter iter;
+	GtkTreeView *tree_view = GTK_TREE_VIEW(widget);
+	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
+	GtkTreePath *path = NULL;
+
+	char buffer[512];
+
+	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
+			&model, &path, &iter))
+		return FALSE;
+
+	gint real_index = get_real_index_from_index_in_list(model, &iter);
+
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", operators[real_index].prototype, _(operators[real_index].definition));
+	gtk_tooltip_set_markup(tooltip, buffer);
+
+	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
+
+	gtk_tree_path_free(path);
+
+	return TRUE;
+}
+
 static void add_functions_to_list() {
 	GtkTreeIter iter;
 
@@ -526,7 +612,19 @@ static void add_functions_to_list() {
 	for (int i = 0; i < MAX_FUNCTIONS; i++) {
 		gtk_list_store_append(pixel_math_list_store_functions, &iter);
 		gtk_list_store_set(pixel_math_list_store_functions, &iter,
-				COLUMN_FUNCTION, functions[i].name,
+				COLUMN_NAME, functions[i].name, COLUMN_INDEX, i,
+				-1);
+	}
+}
+
+static void add_operators_to_list() {
+	GtkTreeIter iter;
+
+	init_widgets();
+	for (int i = 0; i < MAX_OPERATORS; i++) {
+		gtk_list_store_append(pixel_math_list_store_operators, &iter);
+		gtk_list_store_set(pixel_math_list_store_operators, &iter,
+				COLUMN_NAME, operators[i].name, COLUMN_INDEX, i,
 				-1);
 	}
 }
@@ -534,6 +632,8 @@ static void add_functions_to_list() {
 void on_pixel_math_dialog_show(GtkWidget *w, gpointer user_data) {
 	if (!get_pixel_math_functions_number_of_rows())
 		add_functions_to_list();
+	if (!get_pixel_math_operators_number_of_rows())
+		add_operators_to_list();
 }
 
 void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
@@ -545,6 +645,26 @@ void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(pixel_math_text_view);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_function_name(i[0]);
+
+	if (str) {
+		gtk_text_buffer_delete_selection(tbuf, TRUE, TRUE);
+
+		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
+
+		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
+		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+	}
+}
+
+void on_pixel_math_treeview_operators_row_activated(GtkTreeView *tree_view,
+		GtkTreePath *path, GtkTreeViewColumn *column) {
+	GtkTextIter iter;
+
+	init_widgets();
+
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(pixel_math_text_view);
+	gint *i = gtk_tree_path_get_indices(path);
+	const gchar *str = get_operator_name(i[0]);
 
 	if (str) {
 		gtk_text_buffer_delete_selection(tbuf, TRUE, TRUE);
