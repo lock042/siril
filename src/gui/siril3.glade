@@ -10140,6 +10140,12 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="pixel_math_liststore_operators">
+    <columns>
+      <!-- column-name pixel_math_operator -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
     <property name="width-request">800</property>
     <property name="height-request">500</property>
@@ -10275,9 +10281,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="enable-grid-lines">both</property>
                     <signal name="query-tooltip" handler="query_tooltip_tree_view_cb" swapped="no"/>
                     <signal name="row-activated" handler="on_pixel_math_treeview_functions_row_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
-                    </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn26">
                         <property name="title" translatable="yes">Function</property>
@@ -10299,6 +10302,49 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="pixel_math_scrolled_operators">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
+                <child>
+                  <object class="GtkTreeView" id="pixel_math_treeview_operators">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="has-tooltip">True</property>
+                    <property name="model">pixel_math_liststore_operators</property>
+                    <property name="headers-clickable">False</property>
+                    <property name="reorderable">True</property>
+                    <property name="search-column">0</property>
+                    <property name="enable-grid-lines">both</property>
+                    <signal name="query-tooltip" handler="query_tooltip_op_tree_view_cb" swapped="no"/>
+                    <signal name="row-activated" handler="on_pixel_math_treeview_operators_row_activated" swapped="no"/>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection"/>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn27">
+                        <property name="title" translatable="yes">Operator</property>
+                        <property name="clickable">True</property>
+                        <property name="sort-indicator">True</property>
+                        <property name="sort-column-id">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderer_operators"/>
+                          <attributes>
+                            <attribute name="text">0</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
