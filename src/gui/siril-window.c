@@ -51,6 +51,7 @@ static GActionEntry image_entries[] = {
 		{ "zoom-one", zoom_one_activate },
 		{ "negative-view", negative_view_activate, NULL, "false", negative_view_state },
 		{ "color-map", color_map_activate, NULL, "false", color_map_state },
+		{ "chain-chan", NULL, NULL, "true", chain_channels_state_change },
 		{ "snapshot", snapshot_action_activate },
 		{ "clipboard", clipboard_action_activate },
 		{ "fits-header", image_fits_header_activate },
@@ -149,9 +150,17 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"astrometry",
 		"photometry",
 		"image-information",
-	    "dyn-psf",
+		"dyn-psf",
 		"seq-list",
 		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
+}
+
+void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *image_actions[] = {
+		"chain-chan",
+		NULL
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
 }

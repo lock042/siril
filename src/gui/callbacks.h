@@ -13,6 +13,7 @@ void set_sliders_value_to_gfit();
 void set_accel_map(const gchar * const *accelmap);
 void initialize_display_mode();
 void set_display_mode();
+void set_unlink_channels(gboolean unlinked);
 void adjust_exclude(int n, gboolean changed);
 void adjust_sellabel();
 void set_GUI_CWD();

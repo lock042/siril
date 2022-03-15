@@ -236,6 +236,8 @@ void on_menu_display_selection_done(GtkMenuShell *menushell, gpointer user_data)
 
 	gtk_label_set_text((GtkLabel *)user_data, text);
 	gui.rendering_mode = get_display_mode_from_menu();
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -251,6 +253,13 @@ void set_display_mode() {
 	g_signal_handlers_block_by_func(display_menu, on_menu_display_selection_done, NULL);
 	gtk_menu_set_active(display_menu, gui.rendering_mode);
 	g_signal_handlers_unblock_by_func(display_menu, on_menu_display_selection_done, NULL);
+}
+
+void set_unlink_channels(gboolean unlinked) {
+	siril_debug_print("channels unlinked: %d\n", unlinked);
+	gui.unlink_channels = unlinked;
+	redraw(REMAP_ALL);
+	redraw_previews();
 }
 
 /* fill the label indicating how many images are selected in the gray and
@@ -380,6 +389,9 @@ void update_MenuItem() {
 
 	/* Image information menu */
 	siril_window_enable_image_actions(app_win, any_image_is_loaded);
+
+	/* auto-stretch actions */
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {

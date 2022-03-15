@@ -649,6 +649,7 @@ struct guiinf {
 	gboolean cut_over;		// display values over hi as negative
 	sliders_mode sliders;		// lo/hi, minmax, user
 	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY
+	gboolean unlink_channels;	// only for autostretch
 
 	gboolean show_excluded;		// show excluded images in sequences
 

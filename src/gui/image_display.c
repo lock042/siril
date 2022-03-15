@@ -52,13 +52,13 @@
 #include "image_display.h"
 
 /* remap index data, an index for each layer */
-static BYTE *remap_index;
+static BYTE remap_index[3][USHRT_MAX + 1];
 static float last_pente;
 static display_mode last_mode;
 
 /* STF (auto-stretch) data */
 static gboolean stf_computed = FALSE; // Flag to know if STF parameters are available
-static float stf_shadows, stf_highlights, stf_m;
+struct mtf_params stf[3];
 
 static void invalidate_image_render_cache(int vport);
 
@@ -133,7 +133,7 @@ static void remaprgb(void) {
 	invalidate_image_render_cache(RGB_VPORT);
 }
 
-static int make_index_for_current_display();
+static int make_index_for_current_display(int vport);
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
@@ -171,72 +171,37 @@ static void remap(int vport) {
 	g_variant_unref(state);
 
 	if (gui.rendering_mode == HISTEQ_DISPLAY) {
-		if (gfit.type == DATA_USHORT) {
-			double hist_sum, nb_pixels;
-			size_t i, hist_nb_bins;
-			gsl_histogram *histo;
+		double hist_sum, nb_pixels;
+		size_t i, hist_nb_bins;
+		gsl_histogram *histo;
 
-			compute_histo_for_gfit();
-			histo = com.layers_hist[vport];
-			hist_nb_bins = gsl_histogram_bins(histo);
-			nb_pixels = (double)(gfit.rx * gfit.ry);
+		compute_histo_for_gfit();
+		histo = com.layers_hist[vport];
+		hist_nb_bins = gsl_histogram_bins(histo);
+		nb_pixels = (double)(gfit.rx * gfit.ry);
 
-			// build the remap_index
-			if (!remap_index)
-				remap_index = malloc(USHRT_MAX + 1);
-
-			remap_index[0] = 0;
-			hist_sum = gsl_histogram_get(histo, 0);
-			for (i = 1; i < hist_nb_bins; i++) {
-				hist_sum += gsl_histogram_get(histo, i);
-				remap_index[i] = round_to_BYTE(
-						(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
-			}
-
-			last_mode = gui.rendering_mode;
+		// build the remap_index
+		index = remap_index[0];
+		index[0] = 0;
+		hist_sum = gsl_histogram_get(histo, 0);
+		for (i = 1; i < hist_nb_bins; i++) {
+			hist_sum += gsl_histogram_get(histo, i);
+			index[i] = round_to_BYTE(
+					(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
 		}
-		else if (gfit.type == DATA_FLOAT) {
-			double hist_sum, nb_pixels;
-			size_t i, hist_nb_bins;
-			gsl_histogram *histo;
 
-			compute_histo_for_gfit();
-			histo = com.layers_hist[vport];
-			hist_nb_bins = gsl_histogram_bins(histo);
-			nb_pixels = (double)(gfit.rx * gfit.ry);
-
-			// build the remap_index
-			if (!remap_index)
-				remap_index = malloc(USHRT_MAX + 1);
-
-			remap_index[0] = 0;
-			hist_sum = gsl_histogram_get(histo, 0);
-			for (i = 1; i < hist_nb_bins; i++) {
-				hist_sum += gsl_histogram_get(histo, i);
-				remap_index[i] = round_to_BYTE(
-						(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
-			}
-
-			last_mode = gui.rendering_mode;
-		}
+		last_mode = gui.rendering_mode;
+		histo = com.layers_hist[vport];
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
 		// for all other modes and ushort data, the index can be reused
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
-			struct mtf_params params;
-			if (!find_linked_midtones_balance(&gfit, &params)) {
-				stf_shadows = params.shadows;
-				stf_m = params.midtones;
-				stf_highlights = params.highlights;
-				stf_computed = TRUE;
-			} else {
-				stf_shadows = 0.0f;
-				stf_m = 0.2f;
-				stf_highlights = 1.0f;
-				stf_computed = TRUE;
-			}
+			if (gui.unlink_channels)
+				find_unlinked_midtones_balance(&gfit, SHADOWS_CLIPPING, TARGET_BACKGROUND, stf);
+			else find_linked_midtones_balance(&gfit, stf);
+			stf_computed = TRUE;
 		}
-		make_index_for_current_display();
+		make_index_for_current_display(vport);
 		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 	}
 
@@ -251,7 +216,8 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	index = remap_index;
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	index = remap_index[target_index];
 
 	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY);
 #ifdef _OPENMP
@@ -307,7 +273,7 @@ static void remap(int vport) {
 	test_and_allocate_reference_image(vport);
 }
 
-static int make_index_for_current_display() {
+static int make_index_for_current_display(int vport) {
 	float slope, delta = gui.hi - gui.lo;
 	int i;
 	BYTE *index;
@@ -340,17 +306,11 @@ static int make_index_for_current_display() {
 		siril_debug_print("Re-using previous remap_index\n");
 		return 0;
 	}
-	siril_debug_print("Rebuilding remap_index\n");
 
 	/************* Building the remap_index **************/
-	if (!remap_index) {
-		remap_index = malloc(USHRT_MAX + 1);
-		if (!remap_index) {
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-	}
-	index = remap_index;
+	siril_debug_print("Rebuilding remap_index\n");
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	index = remap_index[target_index];
 
 	for (i = 0; i <= USHRT_MAX; i++) {
 		switch (gui.rendering_mode) {
@@ -380,7 +340,7 @@ static int make_index_for_current_display() {
 				pxl = (gfit.orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
-				index[i] = roundf_to_BYTE((MTF(pxl, stf_m, stf_shadows, stf_highlights)) * slope);
+				index[i] = roundf_to_BYTE((MTFp(pxl, stf[target_index])) * slope);
 				break;
 			default:
 				return 1;
@@ -1255,7 +1215,7 @@ static void draw_analysis(const draw_data_t* dd) {
 void initialize_image_display() {
 	int i;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
-		remap_index = NULL;
+		memset(remap_index[i], 0, sizeof(remap_index[i]));
 		last_pente = 0.f;
 		last_mode = HISTEQ_DISPLAY;
 		// only HISTEQ mode always computes the index, it's a good initializer here

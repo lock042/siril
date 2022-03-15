@@ -293,11 +293,14 @@ void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 }
 
 void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GVariant *state;
-
-	state = g_action_get_state(G_ACTION(action));
+	GVariant *state = g_action_get_state(G_ACTION(action));
 	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
 	g_variant_unref(state);
+}
+
+void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	g_simple_action_set_state(action, state);
+	set_unlink_channels(g_variant_get_boolean(state));
 }
 
 void astrometry_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {

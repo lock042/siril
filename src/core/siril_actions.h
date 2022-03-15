@@ -60,6 +60,7 @@ void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data
 void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data);
 void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void astrometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

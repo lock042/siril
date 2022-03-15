@@ -21,6 +21,7 @@
 #define SRC_GUI_SIRIL_WINDOW_H_
 
 void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean enable);
+void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gboolean enable);
