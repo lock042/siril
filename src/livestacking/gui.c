@@ -65,9 +65,9 @@ void livestacking_display_config(gboolean use_dark, gboolean use_flat, transform
 	static GtkLabel *conf_label = NULL;
 	if (!conf_label)
 		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
-	gchar * txt = g_strdup_printf("%s dark and cosmetic correction, %s flat, registering with %s transformation, stacking with weighted mean",
-			use_dark ? "Using" : "Not using",
-			use_flat ? "using" : "not using",
+	gchar * txt = g_strdup_printf(_("%s dark and cosmetic correction, %s flat, registering with %s transformation, stacking with weighted mean"),
+			use_dark ? _("Using") : _("Not using"),
+			use_flat ? _("using") : _("not using"),
 			describe_transformation_type(regtype));
 	gtk_label_set_text(conf_label, txt);
 	g_free(txt);
@@ -82,15 +82,15 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 	const char *unit;
 	if (secs >= 180) {
 		time = secs / 60;
-		unit = "minutes";
+		unit = _("minutes");
 	} else {
 		time = secs;
-		unit = "seconds";
+		unit = _("seconds");
 	}
 	gchar *txt;
 	if (noise > 0.0)
-		txt = g_strdup_printf("%d images stacked, %d %s of cumulated exposure, noise: %0.3f", nb, time, unit, noise);
-	else txt = g_strdup_printf("%d images stacked, %d %s of cumulated exposure", nb, time, unit);
+		txt = g_strdup_printf(_("%d images stacked, %d %s of cumulated exposure, noise: %0.3f"), nb, time, unit, noise);
+	else txt = g_strdup_printf(_("%d images stacked, %d %s of cumulated exposure"), nb, time, unit);
 	set_label(label, txt, TRUE);
 }
 
