@@ -53,7 +53,7 @@ void livestacking_display_config(gboolean use_dark, gboolean use_flat, transform
 		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
 	gchar * txt = g_strdup_printf("%s dark and cosmetic correction, %s flat, registering with %s transformation, stacking with weighted mean",
 			use_dark ? "Using" : "Not using",
-			use_flat ? "Using" : "Not using",
+			use_flat ? "using" : "not using",
 			describe_transformation_type(regtype));
 	gtk_label_set_text(conf_label, txt);
 	g_free(txt);

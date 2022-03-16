@@ -75,6 +75,7 @@ static gboolean paused = FALSE;
 //static sequence *registered_seq = NULL;
 static int seq_rx = -1, seq_ry = -1;
 static struct star_align_data *sadata = NULL;
+static regdata *regparam_bkp = NULL;
 static struct preprocessing_data *prepro = NULL;
 static gboolean first_stacking_result = TRUE;
 static imstats *refimage_stats[3] = { NULL };
@@ -301,6 +302,7 @@ static int live_stacking_star_align_prepare(struct generic_seq_args *args) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
+	args->seq->regparam[regargs->layer] = regparam_bkp;
 	return 0;
 }
 
@@ -351,7 +353,16 @@ static int start_global_registration(sequence *seq) {
 	}
 	args->user = sadata;
 
-	return GPOINTER_TO_INT(generic_sequence_worker(args));
+	int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
+
+	// hack to not free the regparam, because it's referenced by
+	// sadata->current_regdata because of the first call to the prepare,
+	// and used for reference frame params in the registration
+	regparam_bkp = seq->regparam[reg_args.layer];
+	seq->regparam[reg_args.layer] = NULL;
+	free_sequence(seq, FALSE);
+
+	return retval;
 }
 
 static void init_preprocessing() {
@@ -551,6 +562,7 @@ static gpointer live_stacker(gpointer arg) {
 				filename = target;
 				target = NULL;
 			}
+			clearfits(&fit);
 		}
 
 		if (target && symlink_uniq_file(filename, target, do_links)) {
@@ -627,8 +639,6 @@ static gpointer live_stacker(gpointer arg) {
 
 		gchar *result_filename = g_strdup_printf("live_stack_00001%s", com.pref.ext);
 
-		free_sequence(&seq, FALSE);
-
 		/* Stack the sequence */
 		siril_debug_print("Stacking image %d\n", index);
 
@@ -641,7 +651,6 @@ static gpointer live_stacker(gpointer arg) {
 		initialize_sequence(&r_seq, FALSE);
 		create_seq_of_2(&r_seq, "r_live_stack_", index);
 		if (seq_check_basic_data(&r_seq, FALSE) < 0) {
-			//free(r_seq);
 			continue;
 		}
 		if (refimage_stats[0])
