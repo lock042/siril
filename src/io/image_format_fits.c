@@ -296,9 +296,14 @@ void read_fits_header(fits *fit) {
 
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEX, &fit->pixel_size_x);
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEY, &fit->pixel_size_y);
+#ifdef _WIN32 //TODO: remove after cfitsio is fixed
+	__tryToFindKeywords(fit->fptr, TINT, BINX, &fit->binning_x);
+	__tryToFindKeywords(fit->fptr, TINT, BINY, &fit->binning_y);
+#else
 	__tryToFindKeywords(fit->fptr, TUINT, BINX, &fit->binning_x);
-	if (fit->binning_x <= 0) fit->binning_x = 1;
 	__tryToFindKeywords(fit->fptr, TUINT, BINY, &fit->binning_y);
+#endif
+	if (fit->binning_x <= 0) fit->binning_x = 1;
 	if (fit->binning_y <= 0) fit->binning_y = 1;
 
 	status = 0;
@@ -345,7 +350,11 @@ void read_fits_header(fits *fit) {
 
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure);
+#ifdef _WIN32
+	__tryToFindKeywords(fit->fptr, TINT, NB_STACKED, &fit->stackcnt);
+#else
 	__tryToFindKeywords(fit->fptr, TUINT, NB_STACKED, &fit->stackcnt);
+#endif
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
@@ -1509,7 +1518,11 @@ void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposur
 	*stack_count = 1;
 	*dt = NULL;
 	__tryToFindKeywords(fptr, TDOUBLE, EXPOSURE, exposure);
+#ifdef _WIN32 //TODO: remove after cfitsio is fixed
+	__tryToFindKeywords(fptr, TINT, NB_STACKED, stack_count);
+#else
 	__tryToFindKeywords(fptr, TUINT, NB_STACKED, stack_count);
+#endif
 	int status = 0;
 	if (fits_read_key(fptr, TDOUBLE, "LIVETIME", livetime, NULL, &status))
 		*livetime = *exposure;
