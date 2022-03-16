@@ -62,6 +62,8 @@
 #include "siril-window.h"
 #include "registration_preview.h"
 
+static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
+
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
 	GtkWidget *scalemin = lookup_widget("scalemin");
@@ -252,37 +254,37 @@ void set_display_mode() {
 	switch (gui.rendering_mode) {
 	default:
 	case LINEAR_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget("linear_item"));
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[LINEAR_DISPLAY]));
 		gtk_label_set_text(label_display_menu, _("Linear"));
 		break;
 	case LOG_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget("log_item"));
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[LOG_DISPLAY]));
 		gtk_label_set_text(label_display_menu, _("Logarithm"));
 	break;
 	case SQRT_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget("square_root_item"));
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[SQRT_DISPLAY]));
 		gtk_label_set_text(label_display_menu, _("Square root"));
 	break;
 	case SQUARED_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget("squared_item"));
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[SQUARED_DISPLAY]));
 		gtk_label_set_text(label_display_menu, _("Squared"));
 		break;
 	case ASINH_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget("asinh_item"));
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[ASINH_DISPLAY]));
 		gtk_label_set_text(label_display_menu, _("Asinh"));
 		break;
 	case STF_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget("auto_item"));
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[STF_DISPLAY]));
 		gtk_label_set_text(label_display_menu, _("AutoStretch"));
 	break;
 	case HISTEQ_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget("histo_item"));
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[HISTEQ_DISPLAY]));
 		gtk_label_set_text(label_display_menu, _("Histogram"));
 		break;
 	}
 	g_signal_handlers_block_by_func(button, on_display_item_toggled, NULL);
 	gtk_check_menu_item_set_active(button, TRUE);
-	g_signal_handlers_block_by_func(button, on_display_item_toggled, NULL);
+	g_signal_handlers_unblock_by_func(button, on_display_item_toggled, NULL);
 
 }
 
@@ -441,21 +443,11 @@ display_mode get_display_mode_from_menu() {
 	static GtkWidget *menu = NULL;
 	if (!menu)
 		menu = lookup_widget("menu_display");
-	GtkWidget *w = gtk_menu_get_active(GTK_MENU(menu));
-	if (w == lookup_widget("log_item"))
-		return LOG_DISPLAY;
-	else if (w == lookup_widget("square_root_item"))
-		return SQRT_DISPLAY;
-	else if (w == lookup_widget("squared_item"))
-		return SQUARED_DISPLAY;
-	else if (w == lookup_widget("asinh_item"))
-		return ASINH_DISPLAY;
-	else if (w == lookup_widget("auto_item"))
-		return STF_DISPLAY;
-	else if (w == lookup_widget("histo_item"))
-		return HISTEQ_DISPLAY;
-	else
-		return LINEAR_DISPLAY;
+	for (int i = 0; i < G_N_ELEMENTS(display_item_name); i++) {
+		gboolean is_active = gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[i])));
+		if (is_active) return (display_mode) i;
+	}
+	return LINEAR_DISPLAY;
 }
 
 void update_prepro_interface(gboolean allow_debayer) {
