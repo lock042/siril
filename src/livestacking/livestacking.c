@@ -153,6 +153,7 @@ void stop_live_stacking_engine() {
 	show_hide_toolbox();
 	livestacking_update_number_of_images(0, 0.0, -1.0);
 	set_cursor_waiting(FALSE);
+	unreserve_thread();
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {
