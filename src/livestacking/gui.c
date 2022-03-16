@@ -94,8 +94,11 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 	set_label(label, txt, TRUE);
 }
 
-void on_livestacking_stop_clicked(GtkButton *button, gpointer user_data) {
+void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
 	stop_live_stacking_engine();
+}
+
+void on_livestacking_stop_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("livestacking_player"));
 }
 

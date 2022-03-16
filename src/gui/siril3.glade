@@ -8853,8 +8853,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
     <property name="width-request">500</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Live Stacking</property>
+    <property name="resizable">False</property>
     <property name="icon">pixmaps/siril.svg</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_livestacking_player_hide" swapped="no"/>
     <child>
       <object class="GtkBox">
         <property name="name">livestacking-blinking</property>
@@ -9240,7 +9242,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
   <object class="GtkMenu" id="menu_display">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <signal name="selection-done" handler="on_menu_display_selection_done" object="display_button_name" swapped="no"/>
     <child>
       <object class="GtkRadioMenuItem" id="linear_item">
         <property name="visible">True</property>
@@ -9249,6 +9250,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
         <property name="active">True</property>
         <property name="draw-as-radio">True</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
     <child>
@@ -9259,6 +9261,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
         <property name="draw-as-radio">True</property>
         <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
     <child>
@@ -9269,6 +9272,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
         <property name="draw-as-radio">True</property>
         <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
     <child>
@@ -9279,6 +9283,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
         <property name="draw-as-radio">True</property>
         <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
     <child>
@@ -9289,6 +9294,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
         <property name="draw-as-radio">True</property>
         <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
     <child>
@@ -9299,6 +9305,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
         <property name="draw-as-radio">True</property>
         <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
     <child>
@@ -9309,6 +9316,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
         <property name="draw-as-radio">True</property>
         <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
   </object>

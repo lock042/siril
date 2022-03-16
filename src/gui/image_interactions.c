@@ -718,7 +718,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	}
 
 	/* don't change cursor if thread is running */
-	if (com.run_thread) return FALSE;
+	if (get_thread_run()) return FALSE;
 
 	if (inside && gui.cvport < RGB_VPORT) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {

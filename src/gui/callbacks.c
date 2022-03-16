@@ -229,12 +229,7 @@ void set_cutoff_sliders_values() {
 	gtk_toggle_button_set_active(cutmax, gui.cut_over);
 }
 
-void on_menu_display_selection_done(GtkMenuShell *menushell, gpointer user_data) {
-	GtkWidget *w = gtk_menu_get_active(GTK_MENU(menushell));
-	const GtkWidget *const lbl = gtk_bin_get_child(GTK_BIN(w));
-	const char *const text = gtk_label_get_text(GTK_LABEL(lbl));
-
-	gtk_label_set_text((GtkLabel *)user_data, text);
+void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	gui.rendering_mode = get_display_mode_from_menu();
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
@@ -246,13 +241,49 @@ void on_menu_display_selection_done(GtkMenuShell *menushell, gpointer user_data)
 /* Sets the display mode combo box to the value stored in the relevant struct.
  * The operation is purely graphical. */
 void set_display_mode() {
+	GtkCheckMenuItem *button;
 	static GtkMenu *display_menu = NULL;
-	if (!display_menu)
+	static GtkLabel *label_display_menu = NULL;
+	if (!display_menu) {
 		display_menu = GTK_MENU(lookup_widget("menu_display"));
+		label_display_menu = GTK_LABEL(lookup_widget("display_button_name"));
+	}
 
-	g_signal_handlers_block_by_func(display_menu, on_menu_display_selection_done, NULL);
-	gtk_menu_set_active(display_menu, gui.rendering_mode);
-	g_signal_handlers_unblock_by_func(display_menu, on_menu_display_selection_done, NULL);
+	switch (gui.rendering_mode) {
+	default:
+	case LINEAR_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget("linear_item"));
+		gtk_label_set_text(label_display_menu, _("Linear"));
+		break;
+	case LOG_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget("log_item"));
+		gtk_label_set_text(label_display_menu, _("Logarithm"));
+	break;
+	case SQRT_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget("square_root_item"));
+		gtk_label_set_text(label_display_menu, _("Square root"));
+	break;
+	case SQUARED_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget("squared_item"));
+		gtk_label_set_text(label_display_menu, _("Squared"));
+		break;
+	case ASINH_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget("asinh_item"));
+		gtk_label_set_text(label_display_menu, _("Asinh"));
+		break;
+	case STF_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget("auto_item"));
+		gtk_label_set_text(label_display_menu, _("AutoStretch"));
+	break;
+	case HISTEQ_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget("histo_item"));
+		gtk_label_set_text(label_display_menu, _("Histogram"));
+		break;
+	}
+	g_signal_handlers_block_by_func(button, on_display_item_toggled, NULL);
+	gtk_check_menu_item_set_active(button, TRUE);
+	g_signal_handlers_block_by_func(button, on_display_item_toggled, NULL);
+
 }
 
 void set_unlink_channels(gboolean unlinked) {
