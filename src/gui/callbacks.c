@@ -232,7 +232,13 @@ void set_cutoff_sliders_values() {
 }
 
 void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
+	static GtkLabel *label_display_menu = NULL;
+	if (!label_display_menu) {
+		label_display_menu = GTK_LABEL(lookup_widget("display_button_name"));
+	}
 	gui.rendering_mode = get_display_mode_from_menu();
+	gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
+
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
@@ -245,41 +251,32 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 void set_display_mode() {
 	GtkCheckMenuItem *button;
 	static GtkMenu *display_menu = NULL;
-	static GtkLabel *label_display_menu = NULL;
 	if (!display_menu) {
 		display_menu = GTK_MENU(lookup_widget("menu_display"));
-		label_display_menu = GTK_LABEL(lookup_widget("display_button_name"));
 	}
 
 	switch (gui.rendering_mode) {
 	default:
 	case LINEAR_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[LINEAR_DISPLAY]));
-		gtk_label_set_text(label_display_menu, _("Linear"));
 		break;
 	case LOG_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[LOG_DISPLAY]));
-		gtk_label_set_text(label_display_menu, _("Logarithm"));
 	break;
 	case SQRT_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[SQRT_DISPLAY]));
-		gtk_label_set_text(label_display_menu, _("Square root"));
 	break;
 	case SQUARED_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[SQUARED_DISPLAY]));
-		gtk_label_set_text(label_display_menu, _("Squared"));
 		break;
 	case ASINH_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[ASINH_DISPLAY]));
-		gtk_label_set_text(label_display_menu, _("Asinh"));
 		break;
 	case STF_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[STF_DISPLAY]));
-		gtk_label_set_text(label_display_menu, _("AutoStretch"));
 	break;
 	case HISTEQ_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[HISTEQ_DISPLAY]));
-		gtk_label_set_text(label_display_menu, _("Histogram"));
 		break;
 	}
 	g_signal_handlers_block_by_func(button, on_display_item_toggled, NULL);
