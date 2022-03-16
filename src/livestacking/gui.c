@@ -4,6 +4,7 @@
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
+#include "core/siril_actions.h"
 #include "core/proto.h"
 
 static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
@@ -30,6 +31,19 @@ void show_hide_toolbox() {
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	GAction *action_toolbar = g_action_map_lookup_action(G_ACTION_MAP(app_win), "hide-show-toolbar");
 	g_action_activate(action_toolbar, NULL);
+}
+
+void force_unlinked_channels() {
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	GAction *action_chain = g_action_map_lookup_action(G_ACTION_MAP(app_win), "chain-chan");
+
+	GVariant *state = g_action_get_state(G_ACTION(action_chain));
+	gboolean need_to_enable = g_variant_get_boolean(state);
+
+	if (need_to_enable)
+		chain_channels_state_change(G_SIMPLE_ACTION(action_chain), g_variant_new_boolean(!need_to_enable), NULL);
+
+	g_variant_unref(state);
 }
 
 void set_label(GtkLabel *label, gchar *text, gboolean free_after_display) {

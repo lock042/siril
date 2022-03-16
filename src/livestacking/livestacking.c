@@ -210,6 +210,9 @@ void on_livestacking_start() {
 	com.pref.force_to_16bit = TRUE;	// otherwise we'll register and stack different types of images
 	gui.rendering_mode = STF_DISPLAY;
 	set_display_mode();
+	force_unlinked_channels();
+	show_hide_toolbox();
+
 	/* start monitoring CWD */
 	GFile *cwd = g_file_new_for_path(com.wd);
 	GError *err = NULL;
@@ -220,8 +223,6 @@ void on_livestacking_start() {
 		g_error_free(err);
 		return;
 	}
-
-	show_hide_toolbox();
 
 	init_preprocessing();
 	livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, REGISTRATION_TYPE);
