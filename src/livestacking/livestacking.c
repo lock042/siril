@@ -135,6 +135,10 @@ void stop_live_stacking_engine() {
 		free(sadata);
 		sadata = NULL;
 	}
+	if (regparam_bkp) {
+		free(regparam_bkp);
+		regparam_bkp = NULL;
+	}
 
 	for (int i = 0; i < 3; i++) {
 		if (refimage_stats[i]) {
@@ -142,8 +146,12 @@ void stop_live_stacking_engine() {
 			refimage_stats[i] = NULL;
 		}
 	}
+	seq_rx = -1; seq_ry = -1;
+	use_demosaicing = BOOL_NOT_SET;
+	paused = FALSE;
 
 	show_hide_toolbox();
+	livestacking_update_number_of_images(0, 0.0, -1.0);
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {
