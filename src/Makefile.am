@@ -228,12 +228,13 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
-	livestacking/livestacking.c \
-	livestacking/livestacking.h \
 	livestacking/gui.c \
 	livestacking/gui.h \
+	livestacking/livestacking.c \
+	livestacking/livestacking.h \
 	livestacking/noise.c \
 	livestacking/noise.h \
+	livestacking/ls_plot.c \
 	pixelMath/pixel_math_runner.c \
 	pixelMath/pixel_math_runner.h \
 	pixelMath/tinyexpr.c \

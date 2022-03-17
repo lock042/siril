@@ -8924,6 +8924,24 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="position">1</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_linearbkg">
+                <property name="label" translatable="yes">Linear Background Extraction</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">for now only detected in files and automatically enabled</property>
+                <property name="margin-right">6</property>
+                <property name="margin-end">6</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -8947,14 +8965,45 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <object class="GtkLabel" id="ls_stats_label">
+                  <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="halign">end</property>
-                    <property name="margin-start">6</property>
-                    <property name="margin-end">6</property>
-                    <property name="wrap">True</property>
-                    <property name="track-visited-links">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkViewport">
+                        <property name="height-request">100</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkDrawingArea" id="ls_plot">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <signal name="draw" handler="on_ls_plot_draw" swapped="no"/>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="ls_stats_label">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="margin-start">6</property>
+                        <property name="margin-end">6</property>
+                        <property name="wrap">True</property>
+                        <property name="track-visited-links">False</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </object>
                 </child>
                 <child type="label">
