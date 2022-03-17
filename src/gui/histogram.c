@@ -673,7 +673,7 @@ void clear_histograms() {
 }
 
 static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct mtf_data *m_args = (struct mtf_data*) args->user;
 	apply_linked_mtf_to_fits(fit, fit, m_args->params);
 	return 0;

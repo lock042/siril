@@ -651,7 +651,7 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean 
 /** Apply for sequence **/
 
 static int background_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct background_data *b_args = (struct background_data*) args->user;
 
 	gchar *error;

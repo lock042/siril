@@ -684,7 +684,7 @@ static int stat_prepare_hook(struct generic_seq_args *args) {
 }
 
 static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
 	for (int layer = 0; layer < fit->naxes[2]; layer++) {

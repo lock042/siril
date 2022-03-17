@@ -111,7 +111,7 @@ struct star_align_data {
 
 regdata *star_align_get_current_regdata(struct registration_args *regargs);
 int star_align_prepare_results(struct generic_seq_args *args);
-int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_);
+int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 int star_align_finalize_hook(struct generic_seq_args *args);
 
 const char *describe_transformation_type(transformation_type type);

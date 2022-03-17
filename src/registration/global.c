@@ -224,7 +224,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 /* reads the image, searches for stars in it, tries to match them with
  * reference stars, computes the homography matrix, applies it on the image,
  * possibly up-scales the image and stores registration data */
-int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int nbpoints, nb_stars = 0;
@@ -235,6 +235,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	char *units;
 	Homography H = { 0 };
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
+	siril_debug_print("registration of image %d using %d threads\n", in_index, threads);
 
 	if (regargs->translation_only) {
 		/* if "translation only", we choose to initialize all frames

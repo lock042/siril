@@ -102,7 +102,7 @@ struct upscale_args {
 	double factor;
 };
 
-static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	double factor = ((struct upscale_args *)args->user)->factor;
 	/* updating pixel size if exist */
 	fit->pixel_size_x /= factor;

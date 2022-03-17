@@ -155,7 +155,7 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 	return tmp_pattern;
 }
 
-int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
@@ -289,7 +289,7 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 	return 0;
 }
 
-int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
@@ -449,7 +449,7 @@ struct _double_split {
 	fits *oiii;
 };
 
-int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
@@ -709,7 +709,7 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	return 0;
 }
 
-int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 

@@ -72,7 +72,7 @@ struct generic_seq_args {
 	int (*prepare_hook)(struct generic_seq_args *);
 	/** function called for each image with image index in sequence, number
 	 *  of image currently processed and the image, area if partial */
-	int (*image_hook)(struct generic_seq_args *, int, int, fits *, rectangle *);
+	int (*image_hook)(struct generic_seq_args *, int, int, fits *, rectangle *, int);
 	/** saving the processed image, the one passed to the image_hook, so
 	 * in-place editing, if the image_hook succeeded. Only used if
 	 * has_output, set to NULL to get default behaviour */

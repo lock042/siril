@@ -499,7 +499,7 @@ static int preprocess_image(char *filename, char *target) {
 		return 1;
 	}
 	struct generic_seq_args generic = { .user = prepro };
-	ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+	ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
 	if (!ret)
 		ret = savefits(target, &fit);
 	clearfits(&fit);

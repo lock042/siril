@@ -354,7 +354,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct preprocessing_data *prepro = args->user;
 
 	/******/
@@ -476,7 +476,7 @@ int preprocess_single_image(struct preprocessing_data *args) {
 
 	ret = prepro_prepare_hook(&generic);
 	if (!ret)
-		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
 	clear_preprocessing_data(args);
 
 	if (!ret) {
@@ -523,7 +523,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 
 	ret = prepro_prepare_hook(&generic);
 	if (!ret)
-		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
 	clear_preprocessing_data(args);
 
 	if (!ret) {

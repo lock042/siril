@@ -263,7 +263,7 @@ static int tilt_finalize_hook(struct generic_seq_args *args) {
 }
 
 static int tilt_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct tilt_data *t_args = (struct tilt_data*) args->user;
 
 	return compute_tilt_to_image(fit, t_args);
