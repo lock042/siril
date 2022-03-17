@@ -59,15 +59,18 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 	if (!label)
 		label = GTK_LABEL(lookup_widget("livest_label1"));
 	set_label(label, str, free_after_display);
+	livestacking_update_number_of_images(0, 0.0, -1.0);
 }
 
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {
 	static GtkLabel *conf_label = NULL;
 	if (!conf_label)
 		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
-	gchar * txt = g_strdup_printf(_("%s dark and cosmetic correction, %s flat, registering with %s transformation, stacking with weighted mean"),
+	gchar * txt = g_strdup_printf(_("%s dark and cosmetic correction\n\n%s flat\n\n"
+			"Registering with %s transformation\n\n"
+			"Stacking with weighted mean"),
 			use_dark ? _("Using") : _("Not using"),
-			use_flat ? _("using") : _("not using"),
+			use_flat ? _("Using") : _("Not using"),
 			describe_transformation_type(regtype));
 	gtk_label_set_text(conf_label, txt);
 	g_free(txt);

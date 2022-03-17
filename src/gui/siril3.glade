@@ -8862,6 +8862,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
@@ -8930,37 +8931,146 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="ls_config_label">
+          <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="wrap">True</property>
-            <property name="max-width-chars">40</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkExpander">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="expanded">True</property>
+                <child>
+                  <object class="GtkLabel" id="ls_config_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-end">6</property>
+                    <property name="wrap">True</property>
+                    <property name="max-width-chars">40</property>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Configuration</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="expanded">True</property>
+                <child>
+                  <object class="GtkLabel" id="ls_cumul_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">end</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-end">6</property>
+                    <property name="label" translatable="yes">waiting for input files</property>
+                    <property name="single-line-mode">True</property>
+                    <property name="track-visited-links">False</property>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Stacking</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="expanded">True</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">label</property>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Statistics</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="padding">6</property>
             <property name="position">1</property>
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="ls_cumul_label">
+          <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="halign">end</property>
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="label" translatable="yes">waiting for input files</property>
-            <property name="single-line-mode">True</property>
-            <property name="track-visited-links">False</property>
+            <property name="label" translatable="yes">label</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="padding">6</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes">label</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes">label</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -8980,7 +9090,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="padding">6</property>
-            <property name="position">3</property>
+            <property name="pack-type">end</property>
+            <property name="position">5</property>
           </packing>
         </child>
       </object>
@@ -17232,6 +17343,8 @@ Siril uses a 32-bit internal image to process the stacking, which is then saved 
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Chain/unchain channels in autostretch viewer mode.
+</property>
                             <property name="action-name">win.chain-chan</property>
                             <property name="image">image4</property>
                             <property name="relief">none</property>

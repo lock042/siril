@@ -151,7 +151,6 @@ void stop_live_stacking_engine() {
 	paused = FALSE;
 
 	show_hide_toolbox();
-	livestacking_update_number_of_images(0, 0.0, -1.0);
 	set_cursor_waiting(FALSE);
 	unreserve_thread();
 }
