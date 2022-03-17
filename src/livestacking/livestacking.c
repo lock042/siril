@@ -314,6 +314,8 @@ static int live_stacking_star_align_prepare(struct generic_seq_args *args) {
 		return 1;
 	}
 	args->seq->regparam[regargs->layer] = regparam_bkp;
+	sadata->success[0] = 0;
+	sadata->success[1] = 0;
 	return 0;
 }
 
@@ -373,7 +375,7 @@ static int start_global_registration(sequence *seq) {
 	seq->regparam[reg_args.layer] = NULL;
 	free_sequence(seq, FALSE);
 
-	return retval;
+	return retval || !sadata->success[1];
 }
 
 static void init_preprocessing() {
