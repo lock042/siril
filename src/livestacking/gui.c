@@ -77,9 +77,11 @@ void livestacking_display_config(gboolean use_dark, gboolean use_flat, transform
 }
 
 void livestacking_update_number_of_images(int nb, double total_exposure, double noise) {
-	static GtkLabel *label = NULL;
-	if (!label)
-		label = GTK_LABEL(lookup_widget("ls_cumul_label"));
+	static GtkLabel *label_cumul = NULL, *label_stats = NULL;
+	if (!label_cumul) {
+		label_cumul = GTK_LABEL(lookup_widget("ls_cumul_label"));
+		label_stats = GTK_LABEL(lookup_widget("ls_stats_label"));
+	}
 	int secs = round_to_int(total_exposure);
 	int time;
 	const char *unit;
@@ -91,10 +93,13 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 		unit = _("seconds");
 	}
 	gchar *txt;
-	if (noise > 0.0)
-		txt = g_strdup_printf(_("%d images stacked, %d %s of cumulated exposure, noise: %0.3f"), nb, time, unit, noise);
-	else txt = g_strdup_printf(_("%d images stacked, %d %s of cumulated exposure"), nb, time, unit);
-	set_label(label, txt, TRUE);
+	if (noise > 0.0) {
+		txt = g_strdup_printf(_("noise: %0.3f"), noise);
+		set_label(label_stats, txt, TRUE);
+	}
+
+	txt = g_strdup_printf(_("%d images stacked\n\n%d %s of cumulated exposure"), nb, time, unit);
+	set_label(label_cumul, txt, TRUE);
 }
 
 void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {

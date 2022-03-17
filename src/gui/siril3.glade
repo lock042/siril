@@ -8948,6 +8948,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="margin-end">6</property>
                     <property name="wrap">True</property>
                     <property name="max-width-chars">40</property>
+                    <property name="track-visited-links">False</property>
                   </object>
                 </child>
                 <child type="label">
@@ -8976,11 +8977,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <object class="GtkLabel" id="ls_cumul_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="halign">end</property>
                     <property name="margin-start">6</property>
                     <property name="margin-end">6</property>
+                    <property name="wrap">True</property>
                     <property name="label" translatable="yes">waiting for input files</property>
-                    <property name="single-line-mode">True</property>
                     <property name="track-visited-links">False</property>
                   </object>
                 </child>
@@ -9007,10 +9007,14 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 <property name="can-focus">True</property>
                 <property name="expanded">True</property>
                 <child>
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="ls_stats_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">label</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-end">6</property>
+                    <property name="wrap">True</property>
+                    <property name="label" translatable="yes"></property>
+                    <property name="track-visited-links">False</property>
                   </object>
                 </child>
                 <child type="label">
@@ -9041,7 +9045,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">label</property>
+            <property name="label" translatable="yes"></property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -9053,7 +9057,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">label</property>
+            <property name="label" translatable="yes"></property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -9065,7 +9069,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">label</property>
+            <property name="label" translatable="yes"></property>
           </object>
           <packing>
             <property name="expand">False</property>
