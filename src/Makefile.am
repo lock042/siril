@@ -232,9 +232,10 @@ siril_common_SOURCES = \
 	livestacking/gui.h \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
+	livestacking/ls_plot.c \
+	livestacking/ls_plot.h \
 	livestacking/noise.c \
 	livestacking/noise.h \
-	livestacking/ls_plot.c \
 	pixelMath/pixel_math_runner.c \
 	pixelMath/pixel_math_runner.h \
 	pixelMath/tinyexpr.c \

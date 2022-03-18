@@ -27,6 +27,9 @@ static void format(double v, char *buf, size_t bufsz) {
 	snprintf(buf, bufsz, "%0.1lf", v);
 }
 
+static void format_void(double v, char *buf, size_t bufsz) {
+	snprintf(buf, bufsz, "%s", "");
+}
 
 gboolean on_ls_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	struct kplotcfg cfgplot;
@@ -38,6 +41,7 @@ gboolean on_ls_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	kplotcfg_defaults(&cfgplot);
 
 	cfgplot.yticlabelfmt = format;
+	cfgplot.xticlabelfmt = format_void;
 
 	for (i = 0; i < 50; i++) {
 		points1[i].x = points2[i].x = i;
