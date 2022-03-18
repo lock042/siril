@@ -106,10 +106,11 @@ static void histo_close(gboolean revert) {
 			set_histogram(hist_backup[i], i);
 			hist_backup[i] = NULL;
 		}
-		copy_backup_to_gfit();
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		redraw_previews();
+		if (!copy_backup_to_gfit()) {
+			adjust_cutoff_from_updated_gfit();
+			redraw(REMAP_ALL);
+			redraw_previews();
+		}
 		set_cursor_waiting(FALSE);
 	}
 
