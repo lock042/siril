@@ -127,7 +127,9 @@ static GtkTreeModel *pixel_math_tree_model = NULL;
 static GtkTreeModel *pixel_math_tree_model_functions = NULL;
 static GtkTreeModel *pixel_math_tree_model_operators = NULL;
 static GtkLabel *pixel_math_status_bar = NULL;
-static GtkTextView *pixel_math_text_view = NULL;
+static GtkEntry *pixel_math_entry_r = NULL;
+static GtkEntry *pixel_math_entry_g = NULL;
+static GtkEntry *pixel_math_entry_b = NULL;
 
 static void init_widgets() {
 	if (!pixel_math_tree_view) {
@@ -135,7 +137,9 @@ static void init_widgets() {
 		pixel_math_tree_model = gtk_tree_view_get_model(pixel_math_tree_view);
 		pixel_math_list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore"));
 		pixel_math_status_bar = GTK_LABEL(lookup_widget("pixel_math_status"));
-		pixel_math_text_view = GTK_TEXT_VIEW(lookup_widget("pixel_math_textview"));
+		pixel_math_entry_r = GTK_ENTRY(lookup_widget("pixel_math_entry_r"));
+		pixel_math_entry_g = GTK_ENTRY(lookup_widget("pixel_math_entry_g"));
+		pixel_math_entry_b = GTK_ENTRY(lookup_widget("pixel_math_entry_b"));
 		pixel_math_treeview_functions = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_functions"));
 		pixel_math_treeview_operators = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_operators"));
 		pixel_math_tree_model_functions = gtk_tree_view_get_model(pixel_math_treeview_functions);
@@ -155,7 +159,9 @@ static void init_widgets() {
 	g_assert(pixel_math_list_store_functions);
 	g_assert(pixel_math_list_store_operators);
 	g_assert(pixel_math_status_bar);
-	g_assert(pixel_math_text_view);
+	g_assert(pixel_math_entry_r);
+	g_assert(pixel_math_entry_g);
+	g_assert(pixel_math_entry_b);
 	g_assert(pixel_math_treeview_functions);
 	g_assert(pixel_math_tree_model_functions);
 	g_assert(pixel_math_treeview_operators);
@@ -164,14 +170,22 @@ static void init_widgets() {
 }
 
 
-static gchar* get_pixel_math_expression() {
-	GtkTextIter start, end;
+static gchar* get_pixel_math_expression1() {
 	init_widgets();
 
-	GtkTextBuffer *buf = gtk_text_view_get_buffer(pixel_math_text_view);
+	return g_strdup(gtk_entry_get_text(pixel_math_entry_r));
+}
 
-	gtk_text_buffer_get_bounds(buf, &start, &end);
-	return gtk_text_buffer_get_text(buf, &start, &end, FALSE);
+static gchar* get_pixel_math_expression2() {
+	init_widgets();
+
+	return g_strdup(gtk_entry_get_text(pixel_math_entry_g));
+}
+
+static gchar* get_pixel_math_expression3() {
+	init_widgets();
+
+	return g_strdup(gtk_entry_get_text(pixel_math_entry_b));
 }
 
 static void output_status_bar(int status) {
@@ -202,11 +216,20 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		open_single_image_from_gfit();
 	}
 	set_cursor_waiting(FALSE);
-	g_free(args->expression);
+	g_free(args->expression1);
+	if (args->single_rgb) {
+		g_free(args->expression2);
+		g_free(args->expression3);
+	}
 	output_status_bar(args->ret);
 
 	free(args);
 	return FALSE;
+}
+
+void on_pm_use_rgb_button_toggled(GtkToggleButton *button, gpointer user_data) {
+	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_g"), !gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_b"), !gtk_toggle_button_get_active(button));
 }
 
 static const gchar *get_pixel_math_var_paths(int i) {
@@ -285,17 +308,21 @@ static const gchar *get_operator_name(int i) {
 	return NULL;
 }
 
+static gboolean is_pm_use_rgb_button_checked() {
+	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pm_use_rgb_button")));
+}
+
 static gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
 	fits *fit = args->fit;
 	int nb_rows = args->nb_rows;
-	const gchar *expression = args->expression;
+	const gchar *expression1 = args->expression1;
+	const gchar *expression2 = args->expression2;
+	const gchar *expression3 = args->expression3;
 
 	int err;
 	gboolean failed = FALSE;
-
-	size_t nbdata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread)
@@ -310,15 +337,20 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 			vars[i].context = NULL;
 			vars[i].type = 0;
 		}
-		te_expr *n = te_compile(expression, vars, nb_rows, &err);
-		if (!n) {
+		te_expr *n1, *n2, *n3;
+		n1 = te_compile(expression1, vars, nb_rows, &err);
+		if (!args->single_rgb) {
+			n2 = te_compile(expression2, vars, nb_rows, &err);
+			n3 = te_compile(expression3, vars, nb_rows, &err);
+		}
+		if (!n1 && (!args->single_rgb && !n2 && !n3)) {
 			failed = TRUE;
 		} else {
 			size_t px;
 #ifdef _OPENMP
 #pragma omp for private(px) schedule(static)
 #endif
-			for (px = 0; px < nbdata; px++) {
+			for (px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
 				/* The variables can be changed here, and eval can be called as many
 				 * times as you like. This is fairly efficient because the parsing has
 				 * already been done. */
@@ -326,19 +358,26 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = var_fit[i].fdata[px];
 				}
 
-				fit->fdata[px] = (float) te_eval(n);
+				if (args->single_rgb) {
+					fit->fdata[px] = (float) te_eval(n1);
+				} else {
+					fit->fpdata[RLAYER][px] = (float) te_eval(n1);
+					fit->fpdata[GLAYER][px] = (float) te_eval(n2);
+					fit->fpdata[BLAYER][px] = (float) te_eval(n3);
+				}
 			}
 
-			te_free(n);
+			te_free(n1);
+			if (!args->single_rgb) {
+				te_free(n2);
+				te_free(n3);
+			}
 			args->ret = 0;
 		}
 		free(vars);
 		free(x);
 	}
 	if (failed) {
-		/* Show the user where the error is at. */
-		printf("%s\n", expression);
-		printf("\t%*s^\nError near here\n", err - 1, "");
 		args->ret = err;
 	}
 
@@ -347,12 +386,13 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 }
 
 
-static int pixel_math_evaluate(gchar *expression) {
+static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {
 	int nb_rows = 0;
 
 	int width = -1;
 	int height = -1;
 	int channel = -1;
+	gboolean single_rgb;
 
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
@@ -380,13 +420,20 @@ static int pixel_math_evaluate(gchar *expression) {
 		return 1;
 	}
 
+	single_rgb = is_pm_use_rgb_button_checked();
+
+	channel = single_rgb ? channel : 3;
+
 	fits *fit = NULL;
 	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT))
 		return 1;
 
 	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
 
-	args->expression = expression;
+	args->expression1 = expression1;
+	args->expression2 = single_rgb ? NULL : expression2;
+	args->expression3 = single_rgb ? NULL : expression3;
+	args->single_rgb = single_rgb;
 	args->fit = fit;
 	args->nb_rows = nb_rows;
 	args->ret = 0;
@@ -523,29 +570,34 @@ void on_pixel_math_remove_var_button_clicked(GtkButton *button, gpointer user_da
 }
 
 void on_apply_pixel_math_clicked(GtkButton *button, gpointer user_data) {
-	gchar *expression = get_pixel_math_expression();
-	remove_spaces_from_str(expression);
+	gchar *expression1 = get_pixel_math_expression1();
+	remove_spaces_from_str(expression1);
 
-	pixel_math_evaluate(expression);
+	gchar *expression2 = get_pixel_math_expression2();
+	remove_spaces_from_str(expression2);
+
+	gchar *expression3 = get_pixel_math_expression3();
+	remove_spaces_from_str(expression3);
+
+	pixel_math_evaluate(expression1, expression2, expression3);
 }
 
 void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
-	GtkTextIter iter;
 
 	init_widgets();
 
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(pixel_math_text_view);
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(pixel_math_entry_r);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_pixel_math_var_name(i[0]);
 
 	if (str) {
-		gtk_text_buffer_delete_selection(tbuf, TRUE, TRUE);
+		guint position = gtk_editable_get_position(GTK_EDITABLE(pixel_math_entry_r));
+		gtk_editable_delete_selection (GTK_EDITABLE(pixel_math_entry_r));
 
-		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
-
-		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
-		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+		gtk_entry_buffer_insert_text(buffer, position, str, -1);
+		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_entry_r));
+		gtk_editable_set_position(GTK_EDITABLE(pixel_math_entry_r), position + strlen(str));
 	}
 }
 
@@ -638,41 +690,33 @@ void on_pixel_math_dialog_show(GtkWidget *w, gpointer user_data) {
 
 void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
-	GtkTextIter iter;
-
-	init_widgets();
-
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(pixel_math_text_view);
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(pixel_math_entry_r);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_function_name(i[0]);
 
 	if (str) {
-		gtk_text_buffer_delete_selection(tbuf, TRUE, TRUE);
+		guint position = gtk_editable_get_position(GTK_EDITABLE(pixel_math_entry_r));
+		gtk_editable_delete_selection (GTK_EDITABLE(pixel_math_entry_r));
 
-		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
-
-		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
-		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+		gtk_entry_buffer_insert_text(buffer, position, str, -1);
+		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_entry_r));
+		gtk_editable_set_position(GTK_EDITABLE(pixel_math_entry_r), position + strlen(str));
 	}
 }
 
 void on_pixel_math_treeview_operators_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
-	GtkTextIter iter;
-
-	init_widgets();
-
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(pixel_math_text_view);
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(pixel_math_entry_r);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_operator_name(i[0]);
 
 	if (str) {
-		gtk_text_buffer_delete_selection(tbuf, TRUE, TRUE);
+		guint position = gtk_editable_get_position(GTK_EDITABLE(pixel_math_entry_r));
+		gtk_editable_delete_selection (GTK_EDITABLE(pixel_math_entry_r));
 
-		gtk_text_buffer_get_iter_at_mark(tbuf, &iter, gtk_text_buffer_get_insert(tbuf));
-
-		gtk_text_buffer_insert(tbuf, &iter, str, strlen(str));
-		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_text_view));
+		gtk_entry_buffer_insert_text(buffer, position, str, -1);
+		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_entry_r));
+		gtk_editable_set_position(GTK_EDITABLE(pixel_math_entry_r), position + strlen(str));
 	}
 }
 
