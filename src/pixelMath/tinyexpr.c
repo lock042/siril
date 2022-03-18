@@ -177,7 +177,7 @@ static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 static double maximum(double a, double b) {return max(a, b);}
 static double minimum(double a, double b) {return min(a, b);}
 
-static double iif(double a, double b, double c) {return a > 0.0 ? c : b;}
+static double iif(double a, double b, double c) {return a > 0.0 ? b : c;}
 
 static const te_variable functions[] = {
     /* must be in alphabetical order */
