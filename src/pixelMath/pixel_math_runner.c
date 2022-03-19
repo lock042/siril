@@ -31,6 +31,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
 #include "io/image_format_fits.h"
 
 #include "tinyexpr.h"
@@ -204,6 +205,9 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	stop_processing_thread();// can it be done here in case there is no thread?
 
 	if (!args->ret) {
+		close_single_image();
+		close_sequence(FALSE);
+
 		//	/* Create new image */
 		com.seq.current = UNRELATED_IMAGE;
 		com.uniq = calloc(1, sizeof(single));
