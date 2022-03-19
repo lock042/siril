@@ -10513,6 +10513,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <object class="GtkEntry" id="pixel_math_entry_r">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <signal name="focus-in-event" handler="on_pixel_math_entry_r_focus_in_event" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -10550,6 +10551,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <signal name="focus-in-event" handler="on_pixel_math_entry_g_focus_in_event" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -10587,6 +10589,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <signal name="focus-in-event" handler="on_pixel_math_entry_b_focus_in_event" swapped="no"/>
                   </object>
                 </child>
               </object>

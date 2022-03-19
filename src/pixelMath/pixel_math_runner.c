@@ -37,6 +37,7 @@
 #include "pixel_math_runner.h"
 
 static const gchar *variables[] = {"I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9", "I10"};
+static int entry_has_focus = 0;
 #define MAX_IMAGES G_N_ELEMENTS(variables)
 
 typedef struct {
@@ -230,6 +231,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 void on_pm_use_rgb_button_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_g"), !gtk_toggle_button_get_active(button));
 	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_b"), !gtk_toggle_button_get_active(button));
+	if (gtk_toggle_button_get_active(button)) entry_has_focus = 0;
 }
 
 static const gchar *get_pixel_math_var_paths(int i) {
@@ -532,6 +534,39 @@ static void select_image(int nb) {
 	gtk_widget_destroy(dialog);
 }
 
+gboolean on_pixel_math_entry_r_focus_in_event(GtkWidget *widget,
+		GdkEvent *event, gpointer user_data) {
+	entry_has_focus = 0;
+
+	return FALSE;
+}
+
+gboolean on_pixel_math_entry_g_focus_in_event(GtkWidget *widget,
+		GdkEvent *event, gpointer user_data) {
+	entry_has_focus = 1;
+
+	return FALSE;
+}
+
+gboolean on_pixel_math_entry_b_focus_in_event(GtkWidget *widget,
+		GdkEvent *event, gpointer user_data) {
+	entry_has_focus = 2;
+
+	return FALSE;
+}
+
+static GtkEntry *get_entry_with_focus() {
+	switch(entry_has_focus) {
+	default:
+	case 0:
+		return pixel_math_entry_r;
+	case 1:
+		return pixel_math_entry_g;
+	case 2:
+		return pixel_math_entry_b;
+	}
+}
+
 void on_pixel_math_add_var_button_clicked(GtkButton *button, gpointer user_data) {
 	init_widgets();
 
@@ -587,17 +622,19 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 
 	init_widgets();
 
-	GtkEntryBuffer *buffer = gtk_entry_get_buffer(pixel_math_entry_r);
+	GtkEntry *entry = get_entry_with_focus();
+
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_pixel_math_var_name(i[0]);
 
 	if (str) {
-		guint position = gtk_editable_get_position(GTK_EDITABLE(pixel_math_entry_r));
-		gtk_editable_delete_selection (GTK_EDITABLE(pixel_math_entry_r));
+		guint position = gtk_editable_get_position(GTK_EDITABLE(entry));
+		gtk_editable_delete_selection (GTK_EDITABLE(entry));
 
 		gtk_entry_buffer_insert_text(buffer, position, str, -1);
-		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_entry_r));
-		gtk_editable_set_position(GTK_EDITABLE(pixel_math_entry_r), position + strlen(str));
+		gtk_widget_grab_focus(GTK_WIDGET(entry));
+		gtk_editable_set_position(GTK_EDITABLE(entry), position + strlen(str));
 	}
 }
 
@@ -690,33 +727,35 @@ void on_pixel_math_dialog_show(GtkWidget *w, gpointer user_data) {
 
 void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
-	GtkEntryBuffer *buffer = gtk_entry_get_buffer(pixel_math_entry_r);
+	GtkEntry *entry = get_entry_with_focus();
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_function_name(i[0]);
 
 	if (str) {
-		guint position = gtk_editable_get_position(GTK_EDITABLE(pixel_math_entry_r));
-		gtk_editable_delete_selection (GTK_EDITABLE(pixel_math_entry_r));
+		guint position = gtk_editable_get_position(GTK_EDITABLE(entry));
+		gtk_editable_delete_selection (GTK_EDITABLE(entry));
 
 		gtk_entry_buffer_insert_text(buffer, position, str, -1);
-		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_entry_r));
-		gtk_editable_set_position(GTK_EDITABLE(pixel_math_entry_r), position + strlen(str));
+		gtk_widget_grab_focus(GTK_WIDGET(entry));
+		gtk_editable_set_position(GTK_EDITABLE(entry), position + strlen(str));
 	}
 }
 
 void on_pixel_math_treeview_operators_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
-	GtkEntryBuffer *buffer = gtk_entry_get_buffer(pixel_math_entry_r);
+	GtkEntry *entry = get_entry_with_focus();
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
 	gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_operator_name(i[0]);
 
 	if (str) {
-		guint position = gtk_editable_get_position(GTK_EDITABLE(pixel_math_entry_r));
-		gtk_editable_delete_selection (GTK_EDITABLE(pixel_math_entry_r));
+		guint position = gtk_editable_get_position(GTK_EDITABLE(entry));
+		gtk_editable_delete_selection (GTK_EDITABLE(entry));
 
 		gtk_entry_buffer_insert_text(buffer, position, str, -1);
-		gtk_widget_grab_focus(GTK_WIDGET(pixel_math_entry_r));
-		gtk_editable_set_position(GTK_EDITABLE(pixel_math_entry_r), position + strlen(str));
+		gtk_widget_grab_focus(GTK_WIDGET(entry));
+		gtk_editable_set_position(GTK_EDITABLE(entry), position + strlen(str));
 	}
 }
 
