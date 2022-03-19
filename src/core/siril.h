@@ -157,6 +157,7 @@ typedef enum {
 
 #define MAX_STARS 200000		// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
+#define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
 
 #define INDEX_MAX 65535		// maximum index for images
 

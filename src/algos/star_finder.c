@@ -224,9 +224,9 @@ void confirm_peaker_GUI() {
  Original algorithm come from:
  Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
  */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars);
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars);
 
-psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars) {
+psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	int areaX0 = 0;
@@ -496,7 +496,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars);
+	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars, maxstars);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars(results, nbstars);
@@ -512,7 +512,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
@@ -576,7 +576,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 			}
 			else free_psf(cur_star);
-			if ((nbstars >= MAX_STARS_FITTED) && limit_nbstars) break;
+			if ((nbstars >= maxstars) && limit_nbstars) break;
 		}
 	}
 	results[nbstars] = NULL;
@@ -736,7 +736,7 @@ gpointer findstar(gpointer p) {
 
 	int nbstars = 0;
 
-	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
+	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE, MAX_STARS_FITTED);
 	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
 
 	siril_add_idle(end_findstar, args);
