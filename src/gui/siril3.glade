@@ -14323,7 +14323,7 @@ When processing images, registration data is taken from the default layer if ava
                                               </packing>
                                             </child>
                                             <child>
-                                              <!-- n-columns=3 n-rows=2 -->
+                                              <!-- n-columns=3 n-rows=3 -->
                                               <object class="GtkGrid">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
@@ -14395,7 +14395,7 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                   <object class="GtkLabel" id="label_minpairs">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="halign">start</property>
+                                                    <property name="halign">end</property>
                                                     <property name="label" translatable="yes">Minimum Star Pairs:</property>
                                                   </object>
                                                   <packing>
@@ -14426,6 +14426,41 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                     <property name="left-attach">2</property>
                                                     <property name="top-attach">1</property>
                                                   </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel" id="label_maxstars">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="halign">end</property>
+                                                    <property name="label" translatable="yes">Maximum Stars Fitted:</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">1</property>
+                                                    <property name="top-attach">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkComboBoxText" id="comboreg_maxstars">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="tooltip-markup" translatable="yes">The maximum number of stars to be searched for in each frame (default 2000). The larger this value, the more stars will potentially be detected, resulting in a longer detection but more accurate registration.</property>
+                                                    <property name="halign">start</property>
+                                                    <property name="active">4</property>
+                                                    <items>
+                                                      <item>100</item>
+                                                      <item>200</item>
+                                                      <item>500</item>
+                                                      <item>1000</item>
+                                                      <item>2000</item>
+                                                    </items>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">2</property>
+                                                    <property name="top-attach">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
                                                 </child>
                                                 <child>
                                                   <placeholder/>
