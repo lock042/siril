@@ -314,7 +314,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
 		for (int x = r + areaX0; x < areaX1 - r; x++) {
 			float pixel = smooth_image[y][x];
-			if (pixel > threshold && pixel < norm) {
+			if (pixel > threshold) {
 				gboolean bingo = TRUE;
 				float neighbor;
 				double mean = 0., meanhigh = 0.;
