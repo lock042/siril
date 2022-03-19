@@ -1,3 +1,22 @@
+siril 1.2.x
+xx/xx/22
+
+* Added livestacking mode with darks/CC/flats support, registration and stacking
+* Added unlinking channels in autostretch preview
+* Added RGB equalization in stacking options
+* Added commands: seqtilt
+* Added chosing server to query object in astrometry
+* Added shortcuts for astrometry (regular and photometric correction)
+* Replaced Libraw with RT debayering
+
+siril 1.0.1
+xx/xx/22
+
+* Added min,max, iif and logical operators in pixelmath
+* Added support for 3 channels for direct preview of resulting composition in pixelmath
+* Fixed using shift transform for global registration
+* Fixed crash when changing image with preview opened
+
 siril 1.0.0
 03/09/22
 
