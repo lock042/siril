@@ -299,6 +299,19 @@ sequence * readseqfile(const char *name){
 					}
 				} else if (version == 3) {
 					// version 3 with weighted_fwhm
+					if (sscanf(line+3, "%f %f %g %g %g %lg",
+								&(regparam[i].shiftx),
+								&(regparam[i].shifty),
+								&(regparam[i].fwhm),
+								&(regparam[i].weighted_fwhm),
+								&(regparam[i].roundness),
+								&(regparam[i].quality)) != 6) {
+						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
+						goto error;
+					}
+				}
+				else {
+					// version 4 with homography matrix
 					if (sscanf(line+3, "%f %f %g %g %g %lg H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
 								&(regparam[i].shiftx),
 								&(regparam[i].shifty),
@@ -318,9 +331,6 @@ sequence * readseqfile(const char *name){
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
-				}
-				else {
-					// version 4 with homography matrix
 				}
 				++i;
 				break;
