@@ -26,7 +26,10 @@ struct pixel_math_data {
 	fits *fit;
 	int nb_rows;
 	int ret;
-	gchar *expression;
+	gchar *expression1;
+	gchar *expression2;
+	gchar *expression3;
+	gboolean  single_rgb;
 };
 
 #endif /* SRC_PIXELMATH_PIXEL_MATH_RUNNER_H_ */
