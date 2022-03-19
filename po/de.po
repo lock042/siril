@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-03-08 14:59+0100\n"
-"PO-Revision-Date: 2022-03-12 20:20+0100\n"
+"PO-Revision-Date: 2022-03-19 17:39+0100\n"
 "Last-Translator: Stefan Beck <astro@cometchaser.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1032,7 +1032,7 @@ msgid ""
 "colour information to luminance data."
 msgstr ""
 "Verfahren zur Luminanz-basierten Farbzusammensetzung. Sie stellen die Art und "
-"Weise dar, wie die Farbinformation zu den Luminanz-Daten hinzu-addiert wird."
+"Weise dar, wie die Farbinformation zu den Luminanzdaten hinzu-addiert wird."
 
 #: src/gui/siril3.glade:5958
 msgid "HSL composition"
@@ -1056,7 +1056,7 @@ msgstr "Ausrichten"
 
 #: src/gui/siril3.glade:6016
 msgid "Automatic alignment using the selected registration method."
-msgstr "Automatisches Ausrichten mit gewählter Registierungs-Methode."
+msgstr "Automatisches Ausrichten mit gewählter Registierungsmethode."
 
 #: src/gui/siril3.glade:6027
 msgid "Crop image to common area after align"
@@ -1077,7 +1077,7 @@ msgstr "Ausrichtung an Mustern und Strukturen (Planeten/Deep Sky)"
 #: src/gui/siril3.glade:6058 src/gui/siril3.glade:9558
 #: src/compositing/align_rgb.c:46 src/compositing/compositing.c:362
 msgid "One star registration (deep-sky)"
-msgstr "Einzelstern-Registrierung (Deep-Sky)"
+msgstr "Einzel-Stern-Registrierung (Deep-Sky)"
 
 #: src/gui/siril3.glade:6084
 msgid "For LRGB composition, the reference layer should be luminance."
@@ -1180,7 +1180,7 @@ msgstr "Refernzbild wählen. Die Bilder müssen die gleiche Bildgröße haben."
 
 #: src/gui/siril3.glade:6456
 msgid "Choose Reference Image"
-msgstr "Referenz-Bild wählen"
+msgstr "Referenzbild wählen"
 
 #: src/gui/siril3.glade:6480
 msgid "Reject low"
@@ -1203,7 +1203,7 @@ msgstr "Ausschluss High"
 msgid ""
 "Detect stars in the current loaded image (not sequence image) and compute PSF"
 msgstr ""
-"Erkenne Sterne im aktuell geladenen Bild (nicht im Sequenz-Bild) und berechne "
+"Erkenne Sterne im aktuell geladenen Bild (nicht im Sequenzbild) und berechne "
 "PSF"
 
 #: src/gui/siril3.glade:6699 src/gui/siril3.glade:8721
@@ -1225,7 +1225,7 @@ msgstr ""
 "entspricht dabei dem FWHM-Wert, je niedriger die FWHM, desto besser. Für die "
 "Ausrichtung von Planetenoberflächen wird die Qualität anhand einer Gradienten-"
 "Erkennung eingeschätzt. Hier gilt, je höher, je besser. Die Spalten X und Y "
-"geben die relative Verschiebung zum Referenz-Bild an."
+"geben die relative Verschiebung zum Referenzbild an."
 
 #: src/gui/siril3.glade:6785
 msgid "File"
@@ -1386,7 +1386,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:7379
 msgid "Get Metadata From Image"
-msgstr "Lade Meta-Daten des Bildes"
+msgstr "Lade Metadaten des Bildes"
 
 #: src/gui/siril3.glade:7383
 msgid ""
@@ -1520,7 +1520,7 @@ msgstr ""
 "liefert astrometrische Daten in 5 Parametern, Position am Himmel (α, δ), "
 "Parallaxen, und Eigenbewegung für über 1,3 Milliarden Punktquellen mit einer "
 "Grenz-Magnitude bis G = 21.\n"
-"* PPMXL ist ein Katalog über Positionen, Eigenbewegungs-Daten, 2MASS- und "
+"* PPMXL ist ein Katalog über Positionen, Eigenbewegungsdaten, 2MASS- und "
 "optische Photometrie mit über 900 Millionen Sternen und Galaxien.\n"
 "* Der Bright Star Catalogue enthält 9.110 helle Sterne bis Mag 6,5 und "
 "entspricht damit etwa dem mit freiem Auge sichtbaren Sternenhimmel von der "
@@ -1916,7 +1916,7 @@ msgid ""
 "otherwise if the checkbox 'follow star movement' is checked in the "
 "registration tab, it will run with this option."
 msgstr ""
-"Es werden Registrierungs-Daten benutzt, sofern welche im Registrierungs-Layer "
+"Es werden Registrierungsdaten benutzt, sofern welche im Registrierungs-Layer "
 "verfügbar sind. Wenn die Checkbox \"folge Sternbewegung\" im Registrierungs-"
 "Tab gesetzt ist, wird diese Einstellung verwendet."
 
@@ -2503,11 +2503,11 @@ msgstr "FITS Bilder"
 
 #: src/gui/siril3.glade:12638 src/gui/siril3.glade:13923
 msgid "SER sequence"
-msgstr "SER Sequenze"
+msgstr "SER Sequenz"
 
 #: src/gui/siril3.glade:12639 src/gui/siril3.glade:13924
 msgid "FITS sequence"
-msgstr "FITS Sequenze"
+msgstr "FITS Sequenz"
 
 #: src/gui/siril3.glade:12654
 msgid "Multiple sequences"
@@ -2645,11 +2645,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:12908
 msgid "Open Frame List"
-msgstr "Öffnen Sie zuerst ein Bild"
+msgstr "Bilderliste öffnen"
 
 #: src/gui/siril3.glade:12912 src/gui/siril3.glade:17211
 msgid "Show/Hide list of images in the sequence with registration data"
-msgstr "Zeige/Verberge Liste der Bilder in der Sequenz mit Registrierungs-Daten"
+msgstr "Zeige/Verberge Liste der Bilder in der Sequenz mit Registrierungsdaten"
 
 #: src/gui/siril3.glade:12956
 msgid "Sequence export"
@@ -2689,7 +2689,7 @@ msgstr "FITS 3D-Würfel"
 
 #: src/gui/siril3.glade:13049
 msgid "Export sequence"
-msgstr "Export-Sequenz"
+msgstr "Sequenz exportieren"
 
 #: src/gui/siril3.glade:13053
 msgid ""
@@ -2809,7 +2809,7 @@ msgid ""
 "The single file is often called the master file, which is the result of the "
 "processing of several frames, for each type of master image."
 msgstr ""
-"Das jeweilige Master-Bild ist immer das Ergebnis eines Stacking-Prozesses "
+"Das jeweilige Masterbild ist immer das Ergebnis eines Stacking-Prozesses "
 "mehrerer zugeordneter Bilder."
 
 #: src/gui/siril3.glade:13331
@@ -3068,7 +3068,7 @@ msgstr "Pre-Processing"
 
 #: src/gui/siril3.glade:13973
 msgid "Image registration"
-msgstr "Bild Registrierung"
+msgstr "Bildregistrierung"
 
 #: src/gui/siril3.glade:13991
 msgid "Register all images from sequence"
@@ -3080,13 +3080,13 @@ msgstr "Registriere nur die ausgewählten Bilder der Sequenz"
 
 #: src/gui/siril3.glade:14045
 msgid "Registration method:"
-msgstr "Wählen Sie eine Registrierungs-Methode:"
+msgstr "Registrierungs-Methode:"
 
 # l'original utilise "reference" et non "registration"
 # Comment choisir?
 #: src/gui/siril3.glade:14069
 msgid "Registration layer: "
-msgstr "Wählen Sie eine Registrierungsebene: "
+msgstr "Registrierungsebene: "
 
 #: src/gui/siril3.glade:14080
 msgid ""
@@ -3098,10 +3098,10 @@ msgid ""
 "available (for RGB images: Green, else fallback to Blue then Red)."
 msgstr ""
 "Layer, auf dem die Registrierung durchgeführt wird. Sie kann nur auf einem "
-"Layer auf's Mal durchgeführt werden, also nur auf monochrom-Bilder.\n"
+"Layer auf's Mal durchgeführt werden, also nur auf Monochrom-Bilder.\n"
 "Ein (*) zeigt an, daß in diesem Layer die Registrierungsdaten bereits "
 "verfügbar sind.\n"
-"Für die Bearbeitung werden die Registrierungs-Daten aus dem Default-Layer "
+"Für die Bearbeitung werden die Registrierungsdaten aus dem Standardlayer "
 "entnommen (Grün, wenn verfügbar, sonst Blau, dann Rot)."
 
 #: src/gui/siril3.glade:14118
@@ -3110,7 +3110,7 @@ msgstr "Präfix:"
 
 #: src/gui/siril3.glade:14132
 msgid "Prefix of the image names resulting from the registration."
-msgstr "Präfix für die Ergebnis-Bilder aus der Registrierung."
+msgstr "Präfix für die Ergebnisbilder aus der Registrierung."
 
 #: src/gui/siril3.glade:14148
 msgid "Algorithm: "
@@ -3161,14 +3161,14 @@ msgid ""
 "<b>WARNING</b>: no new sequence is built, registration data is stored in the "
 "original sequence."
 msgstr ""
-"Dies ist die einzige Form der Registrierung, die einen Winkelversatz erkennen "
-"und ausgleichen kann. Eine Drehung bedeutet gleichsam eine geringfügige "
-"Degradation der Bildqualität. Wird diese Option aktiviert, kommt derselbe "
-"Algorithmus zur Anwendung, aber nur auf 1 Pixel genau. Dies ist sinnvoll für "
-"Bilder mit sehr geringer Winkelabweichung.\n"
+"Die Allgemeine Stern-Ausrichtung ist die einzige Form der Registrierung, die "
+"einen Winkelversatz erkennen und ausgleichen kann. Eine Drehung bedeutet "
+"gleichsam eine geringfügige Verschlechterung der Bildqualität. Wird diese "
+"Option aktiviert, kommt derselbe Algorithmus zur Anwendung, aber nur auf 1 "
+"Pixel genau. Dies ist sinnvoll für Bilder mit sehr geringer Winkelabweichung.\n"
 "\n"
-"ACHTUNG: es wird keine neue Sequenz erzeugt. Die Registrierungs-Daten werden "
-"auf die Original-Sequenz angewandt."
+"<b>ACHTUNG</b>: es wird keine neue Sequenz erzeugt. Die Registrierungsdaten "
+"werden auf die Originalsequenz angewandt."
 
 #: src/gui/siril3.glade:14254
 msgid ""
@@ -3412,9 +3412,9 @@ msgid ""
 "that does not build a new sequence, but it should be unchecked when the comet/"
 "asteroid algorithm is applied several times."
 msgstr ""
-"Setzen Sie dieses Häkchen, wenn die neuen Registrierungs-Daten den bereits "
-"vorhandenen hizugefügt werden sollen.\n"
-"Dies ist nützlich, wenn die zuvor benutzte Registrierung-Methode keine neue "
+"Setzen Sie dieses Häkchen, wenn die neuen Registrierungsdaten den bereits "
+"vorhandenen hinzugefügt werden sollen.\n"
+"Dies ist nützlich, wenn die zuvor benutzte Registrierungmethode keine neue "
 "Sequenz erzeugt. Allerdings sollte es ungesetzt bleiben, wenn der Kometen-/"
 "Asteroiden-Algorithmus mehrfach angewandt werden soll."
 
@@ -3424,7 +3424,7 @@ msgstr "Manuelle Registrierung"
 
 #: src/gui/siril3.glade:14825
 msgid "Display reference image"
-msgstr "Zeige Referenz-Bild"
+msgstr "Zeige Referenzbild"
 
 #: src/gui/siril3.glade:14830
 msgid ""
@@ -3432,9 +3432,9 @@ msgid ""
 "To be enabled, the reference image must have been explicitly set and already "
 "displayed once on the selected registration layer."
 msgstr ""
-"Lege das Referenz-Bild mit 50% Transparenz über das aktuelle Bild.\n"
-"Um dies anwenden zu können, muß das Ref-Bild explizit ausgewählt worden sein "
-"und mindestens bereits 1x im Registrierungs-Layer aufgerufen worden sein."
+"Lege das Referenzbild mit 50% Transparenz über das aktuelle Bild.\n"
+"Um dies anwenden zu können, muß das Referenzbild explizit ausgewählt worden "
+"sein und mindestens bereits 1x im Registrierunglayer aufgerufen worden sein."
 
 #: src/gui/siril3.glade:14845
 msgid "Set reference image first"
@@ -3445,24 +3445,24 @@ msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the image "
 "with the reference image on the X axis."
 msgstr ""
-"Für das Ausrichten des Bildes zum Referenz-Bild in X, verwenden Sie das "
-"Mausrad oder die Hoch-/Runter-Tasten."
+"Für das Ausrichten des Bildes zum Referenzbild in X, verwenden Sie das Mausrad "
+"oder die Hoch-/Runter-Tasten."
 
 #: src/gui/siril3.glade:14875
 msgid "X translation:"
-msgstr "X-Translation:"
+msgstr "X-Verschiebung:"
 
 #: src/gui/siril3.glade:14909
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the image "
 "with the reference image on the Y axis."
 msgstr ""
-"Für das Ausrichten des Bildes zum Referenz-Bild in Y, verwenden Sie das "
-"Mausrad oder die Hoch-/Runter-Tasten."
+"Für das Ausrichten des Bildes zum Referenzbild in Y, verwenden Sie das Mausrad "
+"oder die Hoch-/Runter-Tasten."
 
 #: src/gui/siril3.glade:14910
 msgid "Y translation:"
-msgstr "Y-Translation:"
+msgstr "Y-Verschiebung:"
 
 #: src/gui/siril3.glade:14966
 msgid "Set first preview"
@@ -3549,8 +3549,10 @@ msgid ""
 "WARNING: gnuplot must be installed."
 msgstr ""
 "Zeichne eine Kurve des Veränderlichen Sterns. Der Veränderliche muß natürlich "
-"zunächst analysiert werden, erst danach werden weitere PSF auf Referenz-Bilder "
-"angewandt."
+"zunächst analysiert werden, erst danach werden weitere PSF auf Referenzsterne "
+"angewandt. Es sind maximal 6 Referenzsterne erlaubt.  Wählen Sie 'Magnitude' "
+"in der angzeigten Grafik um diese Funktion zu aktivieren.\n"
+"ACHTUNG: Gnuplot muß installiert sein."
 
 #: src/gui/siril3.glade:15215
 msgid "Select the source of graph information."
@@ -3563,7 +3565,7 @@ msgstr "Photometrie"
 
 #: src/gui/siril3.glade:15235
 msgid "Select which information to display from photometry data."
-msgstr "Wählen Sie die angezeigten Photometrie-Daten aus."
+msgstr "Wählen Sie die angezeigten Photometriedaten aus."
 
 #: src/gui/siril3.glade:15238 src/gui/siril3.glade:15273
 #: src/gui/siril3.glade:15859 src/gui/siril3.glade:15964
@@ -7037,7 +7039,7 @@ msgstr "Konvertierung: kein Arbeitsverzeichnis festgelegt.\n"
 
 #: src/core/command.c:3227 src/registration/registration.c:111
 msgid "Global Star Alignment (deep-sky)"
-msgstr "Allgemeine Stern Ausrichtung (Deep Sky)"
+msgstr "Allgemeine Stern-Ausrichtung (Deep Sky)"
 
 #: src/core/command.c:3268 src/registration/registration.c:958
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
@@ -9206,7 +9208,7 @@ msgid ""
 "The reference image is not in the selected set of images. To avoid issues, "
 "please change it or change the filtering parameters.\n"
 msgstr ""
-"Das Referenz-Bild ist nicht Bestandteil das ausgewählten Bildersatzes. Bitte "
+"Das Referenzbild ist nicht Bestandteil das ausgewählten Bildersatzes. Bitte "
 "wählen Sie eines aus oder ändern Sie die Filterparameter.\n"
 
 #: src/core/sequence_filtering.c:315
@@ -9862,7 +9864,7 @@ msgstr ""
 
 #: src/gui/conversion.c:172
 msgid "Convert to FITS Sequence"
-msgstr "In FITS Sequenze konvertieren"
+msgstr "In FITS Sequenz konvertieren"
 
 #: src/gui/conversion.c:184
 msgid ""
@@ -11033,7 +11035,7 @@ msgstr ""
 #: src/io/fits_sequence.c:376
 #, c-format
 msgid "Removing failed FITS sequence file: %s\n"
-msgstr "Fehlerhafte FITS Sequenze Datei konnte nicht entfernt werden: %s\n"
+msgstr "Fehlerhafte FITS Sequenz. Datei konnte nicht entfernt werden: %s\n"
 
 #: src/io/FITS_symlink.c:78
 msgid ""
@@ -11147,7 +11149,7 @@ msgstr "Speichere FITS: Datei %s, %ld Layer, %ux%u Pixel\n"
 #, c-format
 msgid "ERROR: trying to save a FITS image with an unsupported format (%d).\n"
 msgstr ""
-"Fehler: Sie versuchen ein FITS-Bild in einem nicht unetrstützten Format zu "
+"Fehler: Sie versuchen ein FITS-Bild in einem nicht unterstützten Format zu "
 "speichern (%d).\n"
 
 #: src/io/image_format_fits.c:2801 src/io/ser.c:1345
@@ -11463,7 +11465,7 @@ msgstr "Die Sequenz-Datei %s scheint beschädigt zu sein\n"
 #, c-format
 msgid "%s: Copying registration data from non-demosaiced layer to green layer\n"
 msgstr ""
-"%s: kopiere Registrierungs-Daten des nicht-de-Bayer-ten Layers als Grün-Layer\n"
+"%s: kopiere Registrierungsdaten des nicht-de-Bayer-ten Layers als Grün-Layer\n"
 
 #: src/io/seqfile.c:528
 #, c-format
@@ -11596,7 +11598,7 @@ msgid ""
 "Do you want to save the psf data as registration data for this layer?"
 msgstr ""
 "Es wurden einige Registrierungsdaten für eine andere Ebene gefunden.\n"
-"Möchten Sie die psf-Daten als Registrierungsdaten für diese Ebene speichern?"
+"Möchten Sie die Psf-Daten als Registrierungsdaten für diese Ebene speichern?"
 
 #: src/io/sequence.c:1628
 msgid ""
@@ -12185,7 +12187,7 @@ msgstr ""
 #: src/registration/comet.c:223 src/registration/global.c:126
 #: src/registration/registration.c:555
 msgid "Could not load reference image\n"
-msgstr "Konnte Referenz-Bild nicht laden\n"
+msgstr "Konnte Referenzbild nicht laden\n"
 
 #: src/registration/comet.c:288
 msgid "Moving object registration"
@@ -12207,11 +12209,11 @@ msgstr "Referenz-Bild:\n"
 #: src/registration/global.c:143
 #, c-format
 msgid "Found %d stars in reference, channel #%d\n"
-msgstr "%d Sterne im Referenz-Bild gefunden, Kanal #%d\n"
+msgstr "%d Sterne im Referenzbild gefunden, Kanal #%d\n"
 
 #: src/registration/global.c:148
 msgid "There are not enough stars in reference image to perform alignment\n"
-msgstr "Es gibt nicht genügend Sterne im Referenz-Bild für eine Ausrichtung\n"
+msgstr "Es gibt nicht genügend Sterne im Referenzbild für eine Ausrichtung\n"
 
 #: src/registration/global.c:200
 #, c-format
@@ -12253,7 +12255,7 @@ msgstr "Nicht genügend Sterne. Bild %d übersprungen\n"
 #: src/registration/global.c:269
 #, c-format
 msgid "Target Image: Limiting to %d brightest stars\n"
-msgstr "Ziel-Bild: begrenze auf %d hellste Sterne\n"
+msgstr "Zielbild: begrenze auf %d hellste Sterne\n"
 
 #: src/registration/global.c:295
 #, c-format
@@ -12380,10 +12382,10 @@ msgid ""
 "using shifting (at a fraction of pixel). No rotation or scaling are performed. "
 "Shifts at pixel precision are saved in seq file."
 msgstr ""
-"Einzel-Stern Registrierung: dies ist die einfachste Form einer Registrierung "
-"von Deep-Sky-Bildern. Da nur ein einzelner Stern verwendet wird, wird das "
-"Ausrichten ausschließlich durch Verschiebung (auch im Sub-Pixel-Bereich) "
-"erreicht. Es erfolgt kein Drehlagenausgleich und keine Streckung. "
+"<b>Einzel-Stern Registrierung</b>: dies ist die einfachste Form einer "
+"Registrierung von Deep-Sky-Bildern. Da nur ein einzelner Stern verwendet wird, "
+"wird das Ausrichten ausschließlich durch Verschiebung (auch im Sub-Pixel-"
+"Bereich) erreicht. Es erfolgt kein Drehlagenausgleich und keine Streckung. "
 "Verschiebungen werden mit Pixel-Genauigkeit in der seq-Datei gespeichert."
 
 #: src/registration/registration.c:64
@@ -12404,11 +12406,11 @@ msgid ""
 "image. A new sequence is created with the prefix of your choice (r_ by "
 "default)."
 msgstr ""
-"Globale Stern Ausrichtung: dies ist ein leistungsfähigerer und genauerer "
-"Algorithmus (aber auch langsamer). Die globale Ausrichtung basiert auf der "
-"Dreiecksähnlichkleitsmethode und identifiziert automatisch herkömmliche Sterne "
-"in jedem Bild.Eine neue Sequenz wird mit einem Präfix Ihrer Wahl erstellt (r_ "
-"standardmäßig)."
+"<b>Allgemeine Stern-Ausrichtung</b>: Ausrichtung: dies ist ein "
+"leistungsfähigerer und genauerer Algorithmus (aber auch langsamer). Die "
+"globale Ausrichtung basiert auf der Dreiecksähnlichkleitsmethode und "
+"identifiziert automatisch herkömmliche Sterne in jedem Bild.Eine neue Sequenz "
+"wird mit einem Präfix Ihrer Wahl erstellt (r_ standardmäßig)."
 
 #: src/registration/registration.c:70
 msgid ""
@@ -12417,11 +12419,12 @@ msgid ""
 "is used to register planetary movies. It can also be used for some deep-sky "
 "images registration. Shifts at pixel precision are saved in seq file."
 msgstr ""
-"Bildmusterausrichtung: dies ist eine einfache Registrierung mittels "
-"Translations-Methode, die Kreuzkorrelation innerhalb eines räumlichen Bereichs "
-"verwendet. Diese Methode ist schnell und wird verwendet, um Planetenvideos zu "
-"registrieren. Es kann auch für einige Deep-Sky-Bilder verwendet werden. "
-"Verschiebungen mit Pixelgenauigkeit werden in der seq-Datei gespeichert."
+"<b>Bildmusterausrichtung</b>: dies ist eine einfache Registrierung mittels "
+"Verschiebungs-Methode, die Kreuzkorrelation innerhalb eines räumlichen "
+"Bereichs verwendet. Diese Methode ist schnell und wird verwendet, um "
+"Planetenvideos zu registrieren. Es kann auch für einige Deep-Sky-Bilder "
+"verwendet werden. Verschiebungen mit Pixelgenauigkeit werden in der seq-Datei "
+"gespeichert."
 
 #: src/registration/registration.c:74
 msgid ""
@@ -12431,11 +12434,11 @@ msgid ""
 "It is good for moon surface images registration. Only translation is taken "
 "into account yet."
 msgstr ""
-"Verbesserte Korrelations-Koeffizienten Maximierung: sie basiert auf dem "
+"<b>Verbesserte Korrelations-Koeffizienten Maximierung</b>: sie basiert auf dem "
 "erweiterten Korrelations-Koeffizienten Maximierungsalgorithmus. Diese Methode "
 "ist komplexer und langsamer als die Bildmuster-Ausrichtung, aber es ist keine "
 "Auswahl erforderlich. Sie ist gut für die Registrierung von Mondoberflächen. "
-"Es wird noch nur die Translation berücksichtigt."
+"Es wird noch nur die Verschiebung berücksichtigt."
 
 #: src/registration/registration.c:78
 msgid ""
@@ -12448,7 +12451,7 @@ msgstr ""
 "<b>Kometen-/Asteroiden-Registrierung</b>: Ddieser Algorithmus ist der Kometen-"
 "und Asteroidenregistrierung gewidmet. Dazu ist es notwendig, Zeitstempel im "
 "FITS-Header zu speichern und eine Sequenz von auf Sterne registrierten Bildern "
-"zu laden. Diese Methode erstellt eine Translation einer bestimmten Anzahl von "
+"zu laden. Diese Methode erstellt eine Verschiebung einer bestimmten Anzahl von "
 "Pixeln, abhängig vom Zeitstempel der einzelnen Bilder und der globalen "
 "Verschiebung des Objekts zwischen dem ersten und dem letzten Bild."
 
@@ -12521,7 +12524,7 @@ msgstr[1] "%d Dateien wurde ignoriert und ausgeschlossen\n"
 
 #: src/registration/registration.c:777
 msgid "Debayer the sequence for registration"
-msgstr "Debayer die Reihenfolge für die Registrierung"
+msgstr "Debayer die Sequenz für die Registrierung"
 
 #: src/registration/registration.c:786 src/registration/registration.c:795
 msgid "Select images in the sequence"
@@ -12778,7 +12781,7 @@ msgstr "Stackingergebnis wird als 32-Bit Bild gespeichert\n"
 #, c-format
 msgid "Stacking will use registration data of layer %d if some exist.\n"
 msgstr ""
-"Der Stacking-Prozess wird Registrierungsdaten des Layers %d benutzen, sofern "
+"Der Stackingprozess wird Registrierungsdaten des Layers %d benutzen, sofern "
 "vorhanden.\n"
 
 #: src/stacking/stacking.c:237
