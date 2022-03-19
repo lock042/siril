@@ -53,6 +53,7 @@ struct registration_args {
 	gboolean x2upscale;		// apply an x2 upscale for pseudo drizzle
 	gboolean cumul;			// cumul reg data with previous one
 	int min_pairs;			// Minimum number of star pairs for success
+	int max_stars_candidates;	// Max candidates after psf fitting for global reg
 	transformation_type type;   // Use affine transform  or homography
 
 	/* data for generated sequence, for star alignment registration */

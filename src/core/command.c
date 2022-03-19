@@ -3299,6 +3299,7 @@ int process_register(int nb) {
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
+	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
 
@@ -3381,6 +3382,19 @@ int process_register(int nb) {
 					return 1;
 				}
 				reg_args->min_pairs = g_ascii_strtoull(value, NULL, 10);
+			} else if (g_str_has_prefix(word[i], "-maxstars=")) {
+				char *current = word[i], *value;
+				value = current + 10;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if ((g_ascii_strtoull(value, NULL, 10) > MAX_STARS_FITTED) || (g_ascii_strtoull(value, NULL, 10) < MIN_STARS_FITTED)) { // limiting values to avoid too long computation or too low number of candidates
+					siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
+					return 1;
+				}
+				reg_args->max_stars_candidates = g_ascii_strtoull(value, NULL, 10);
+				
 			}
 		}
 	}
