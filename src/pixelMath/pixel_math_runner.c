@@ -109,6 +109,7 @@ static const _pm_op_func operators[] = {
 enum {
 	COLUMN_IMAGE_NUM,		// string
 	COLUMN_IMAGE_PATH,		// string
+	COLUMN_IMAGE_CHAN,      // uint
 	N_COLUMNS
 };
 
@@ -205,8 +206,8 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	stop_processing_thread();// can it be done here in case there is no thread?
 
 	if (!args->ret) {
-		close_single_image();
-		close_sequence(FALSE);
+		if (sequence_is_loaded())
+			close_sequence(FALSE);
 
 		//	/* Create new image */
 		com.seq.current = UNRELATED_IMAGE;
@@ -415,10 +416,11 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 			if ((width != w) || (height != h) || (channel != c)) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Image size must be identical"),
-						_("The images used in the Pixel Math tool must have the same size."));
+						_("Images loaded in the Pixel Math tool must have same size. You may remove images that are not used in the expressions."));
 				return 1;
 			}
 		}
+
 		if (channel == 3 && !single_rgb) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
 					_("3 channel images are incompatible with the \"Use single RGB/K expression\" unchecked."));
@@ -453,14 +455,56 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	return 0;
 }
 
+static gboolean check_for_variable_sanity(char *new_text) {
+	gboolean abort = TRUE;
+	const char *p = new_text;
+
+	if (*p == '\0') return FALSE;
+	/* Exclude if non alphanum variable */
+	while (*p) {
+		if (!g_ascii_isalnum(*p++)) return FALSE;
+	}
+
+	/* no we exclude name that contain only digit */
+	p = new_text;
+
+	while (*p) {
+		if (g_ascii_isalpha(*p++)) {
+			/* at least one char is alphanum */
+			abort = FALSE;
+		}
+	}
+
+	if (abort) return FALSE;
+
+	init_widgets();
+
+	/* Exclude duplicate names */
+	int nb_rows = 0;
+	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
+		const gchar *var = get_pixel_math_var_name(nb_rows);
+		if (!g_strcmp0(var, new_text)) return FALSE;
+		nb_rows++;
+	}
+	return TRUE;
+}
+
 /* Add an image to the list. */
-static void add_image_to_variable_list(const gchar *path, int id) {
+static void add_image_to_variable_list(const gchar *path, const gchar *var, gchar *filter, guint chan) {
 	GtkTreeIter iter;
+
+	const char *name;
+	if (filter[0] != '\0' && check_for_variable_sanity(filter)) {
+		 name = filter;
+	} else {
+		name = var;
+	}
 
 	gtk_list_store_append(pixel_math_list_store, &iter);
 	gtk_list_store_set(pixel_math_list_store, &iter,
-			COLUMN_IMAGE_NUM, variables[id],
+			COLUMN_IMAGE_NUM, name,
 			COLUMN_IMAGE_PATH, path,
+			COLUMN_IMAGE_CHAN, chan,
 			-1);
 
 }
@@ -527,8 +571,19 @@ static void select_image(int nb) {
 
 			filename = (char *) l->data;
 			if (filename) {
+				gchar filter[FLEN_VALUE] = { 0 };
+				fits f = { 0 };
+				read_fits_metadata_from_path(filename, &f);
+
+				int channel = f.naxes[2];
+
+				if (f.filter[0] != '\0') {
+					memcpy(filter, f.filter, FLEN_VALUE);
+				}
+				clearfits(&f);
+
 				int idx = search_for_free_index();
-				add_image_to_variable_list(filename, idx);
+				add_image_to_variable_list(filename, variables[idx], filter, channel);
 				g_free(filename);
 				pos++;
 				if (pos == MAX_IMAGES) {
@@ -786,49 +841,20 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 
 	g_signal_handlers_unblock_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
 
-	gboolean abort = TRUE;
-	const char *p = new_text;
+	if (check_for_variable_sanity(new_text)) {
+		/* Value looks fine, we copy it */
+		GtkTreeIter iter;
+		GValue value = G_VALUE_INIT;
 
-	if (*p == '\0') return;
-	/* Exclude if non alphanum variable */
-	while (*p) {
-		if (!g_ascii_isalnum(*p++)) return;
+		g_value_init(&value, G_TYPE_STRING);
+		g_assert(G_VALUE_HOLDS_STRING(&value));
+
+		gtk_tree_model_get_iter_from_string(pixel_math_tree_model, &iter, path);
+		g_value_set_string(&value, new_text);
+
+		gtk_list_store_set_value(pixel_math_list_store, &iter, COLUMN_IMAGE_NUM, &value);
+		g_value_unset (&value);
 	}
-
-	/* no we exclude name that contain only digit */
-	p = new_text;
-
-	while (*p) {
-		if (g_ascii_isalpha(*p++)) {
-			/* at least one char is alphanum */
-			abort = FALSE;
-		}
-	}
-
-	if (abort) return;
-
-	init_widgets();
-
-	/* Exclude duplicate names */
-	int nb_rows = 0;
-	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
-		const gchar *var = get_pixel_math_var_name(nb_rows);
-		if (!g_strcmp0(var, new_text)) return;
-		nb_rows++;
-	}
-
-	/* Value looks fine, we copy it */
-	GtkTreeIter iter;
-	GValue value = G_VALUE_INIT;
-
-	g_value_init(&value, G_TYPE_STRING);
-	g_assert(G_VALUE_HOLDS_STRING(&value));
-
-	gtk_tree_model_get_iter_from_string(pixel_math_tree_model, &iter, path);
-	g_value_set_string(&value, new_text);
-
-	gtk_list_store_set_value(pixel_math_list_store, &iter, COLUMN_IMAGE_NUM, &value);
-	g_value_unset (&value);
 
 }
 
