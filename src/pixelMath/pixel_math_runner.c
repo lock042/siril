@@ -349,7 +349,7 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 			n2 = te_compile(expression2, vars, nb_rows, &err);
 			n3 = te_compile(expression3, vars, nb_rows, &err);
 		}
-		if (!n1 && (!args->single_rgb && !n2 && !n3)) {
+		if (!n1 || (!args->single_rgb && (!n2 || !n3))) {
 			failed = TRUE;
 		} else {
 			size_t px;
@@ -398,7 +398,8 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	int width = -1;
 	int height = -1;
 	int channel = -1;
-	gboolean single_rgb;
+
+	gboolean single_rgb = is_pm_use_rgb_button_checked();
 
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
@@ -418,6 +419,11 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 				return 1;
 			}
 		}
+		if (channel == 3 && !single_rgb) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
+					_("3 channel images are incompatible with the \"Use single RGB/K expression\" unchecked."));
+			return 1;
+		}
 		nb_rows++;
 	}
 
@@ -425,8 +431,6 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
 		return 1;
 	}
-
-	single_rgb = is_pm_use_rgb_button_checked();
 
 	channel = single_rgb ? channel : 3;
 
