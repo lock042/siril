@@ -7,6 +7,7 @@ xx/xx/22
 * Added commands: seqtilt
 * Added chosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)
+* Added option "full" to export all possible stats in seqstat command
 * Replaced Libraw with RT debayering
 
 siril 1.0.1

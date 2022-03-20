@@ -6,6 +6,7 @@ v1.2.0 mmm dd, 2022
 * Added commands: seqtilt
 * Added chosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)
+* Added option "full" to export all possible stats in seqstat command
 * Replaced Libraw with RT debayering
 
 v1.0.1 mmm dd, 2022

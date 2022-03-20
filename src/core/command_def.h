@@ -109,7 +109,7 @@
 #define STR_SEQMTF N_("Same command as MTF but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"mtf_\" unless otherwise specified with <b>-prefix=</b> option")
 #define STR_SEQPSF N_("Same command as PSF but works for sequences.\n\nResults are dumped in the console in a form that can be used to produce brightness variation curves")
 #define STR_SEQSPLIT_CFA N_("Same command as SPLIT_CFA but for the sequence <b>sequencename</b>.\n\nThe output sequences names start with the prefix \"CFA_\" and a number unless otherwise specified with <b>-prefix=</b> option")
-#define STR_SEQSTAT N_("Same command as STAT for sequence <b>sequencename</b>.\n\nThe <b>output</b> is saved as a csv file given in second argument.\nThe optional parameter defines the number of statistical values computed: <b>basic</b> or <b>main</b> (more detailed but longer to compute)")
+#define STR_SEQSTAT N_("Same command as STAT for sequence <b>sequencename</b>.\n\nThe <b>output</b> is saved as a csv file given in second argument.\nThe optional parameter defines the number of statistical values computed: <b>basic</b>, <b>main</b> or <b>full</b> (more detailed but longer to compute)")
 #define STR_SEQSUBSKY N_("Same command as SUBSKY but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"bkg_\" unless otherwise specified with <b>-prefix=</b> option")
 #define STR_SEQTILT N_("Same command as TILT but for the loaded sequence or the sequence <b>sequencename</b>.\n\nIt generally gives better result")
 #define STR_SET16 N_("Disables images to be saved with 32 bits per channel on processing. It uses 16 bits instead")

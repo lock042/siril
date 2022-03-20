@@ -2940,6 +2940,8 @@ int process_seq_stat(int nb) {
 
 	if (word[3] && !g_strcmp0(word[3], "main")) {
 		args->option = STATS_MAIN;
+	} else if (word[3] && !g_strcmp0(word[3], "full")) {
+		args->option = STATS_NORM | STATS_MAIN; // adding STATS_MAIN to include also AVGDEV and SQRTBWMV
 	} else {
 		args->option = STATS_BASIC;
 	}
