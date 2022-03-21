@@ -61,7 +61,7 @@ static int display_date(guint64 timestamp, char *txt) {
 	return 0;
 }
 
-static char *convert_color_id_to_char(ser_color color_id) {
+static const char *convert_color_id_to_char(ser_color color_id) {
 	switch (color_id) {
 	case SER_MONO:
 		return "MONO";
@@ -485,7 +485,7 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 }
 
 void ser_display_info(struct ser_struct *ser_file) {
-	char *color = convert_color_id_to_char(ser_file->color_id);
+	const char *color = convert_color_id_to_char(ser_file->color_id);
 
 	siril_log_message("=========== SER file info ==============\n");
 	if (ser_file->filename)
@@ -509,9 +509,13 @@ void ser_display_info(struct ser_struct *ser_file) {
 	if (ser_file->fps > 0.0)
 		siril_log_message("fps: %.3lf\n", ser_file->fps);
 	if (ser_file->timestamps_in_order) {
-		if (ser_file->ts_min == ser_file->ts_max)
-			siril_log_color_message(_("Warning: timestamps in the SER file are all identical.\n"), "salmon");
-		else siril_log_message(_("Timestamps in the SER file are correctly ordered.\n"));
+		if (ser_file->ts_min == ser_file->ts_max) {
+			if (ser_file->ts_min == 0) {
+				siril_log_color_message(_("Warning: no timestamps stored in the SER file.\n"), "salmon");
+			} else {
+				siril_log_color_message(_("Warning: timestamps in the SER file are all identical.\n"), "salmon");
+			}
+		} else siril_log_message(_("Timestamps in the SER file are correctly ordered.\n"));
 	} else {
 		siril_log_color_message(_("Warning: timestamps in the SER file are not in the correct order.\n"), "salmon");
 	}
