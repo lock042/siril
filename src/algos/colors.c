@@ -41,7 +41,9 @@
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
+#include "algos/extraction.h"
 
+static gchar *add_filter_str[] = { "R", "G", "B"};
 /*
  * A Fast HSL-to-RGB Transform
  * by Ken Fishkin
@@ -549,9 +551,14 @@ static gpointer extract_channels_ushort(gpointer p) {
 		}
 
 	}
-	for (int i = 0; i < 3; i++)
+	gchar *fitfilter = g_strdup(args->fit->filter);
+	for (int i = 0; i < 3; i++) {
+		update_filter_information(args->fit, add_filter_str[i], TRUE);
 		save1fits16(args->channel[i], args->fit, i);
+		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+	}
 	clearfits(args->fit);
+	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
@@ -632,9 +639,14 @@ static gpointer extract_channels_float(gpointer p) {
 		}
 
 	}
-	for (int i = 0; i < 3; i++)
+	gchar *fitfilter = g_strdup(args->fit->filter);
+	for (int i = 0; i < 3; i++) {
+		update_filter_information(args->fit, add_filter_str[i], TRUE);
 		save1fits32(args->channel[i], args->fit, i);
+		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+	}
 	clearfits(args->fit);
+	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
