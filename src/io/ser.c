@@ -149,16 +149,9 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 			ts_ptr++;
 		}
 
-		if (timestamps_in_order) {
-			if (min_ts == max_ts)
-				fprintf(stdout, _("Warning: timestamps in the SER sequence are all identical.\n"));
-			else fprintf(stdout, _("Timestamps in the SER sequence are correctly ordered.\n"));
-		} else {
-			fprintf(stdout, _("Warning: timestamps in the SER sequence are not in the correct order.\n"));
-		}
-
 		ser_file->ts_min = min_ts;
 		ser_file->ts_max = max_ts;
+		ser_file->timestamps_in_order = timestamps_in_order;
 		double diff_ts = (ser_file->ts_max - ser_file->ts_min) / 1000.0;
 		// diff_ts now in units of 100 us or ten thousandths of a second
 		if (diff_ts > 0.0) {
@@ -515,6 +508,13 @@ void ser_display_info(struct ser_struct *ser_file) {
 	display_date(ser_file->date_utc, "UTC time: ");
 	if (ser_file->fps > 0.0)
 		siril_log_message("fps: %.3lf\n", ser_file->fps);
+	if (ser_file->timestamps_in_order) {
+		if (ser_file->ts_min == ser_file->ts_max)
+			siril_log_color_message(_("Warning: timestamps in the SER file are all identical.\n"), "salmon");
+		else siril_log_message(_("Timestamps in the SER file are correctly ordered.\n"));
+	} else {
+		siril_log_color_message(_("Warning: timestamps in the SER file are not in the correct order.\n"), "salmon");
+	}
 	siril_log_message("========================================\n");
 }
 
