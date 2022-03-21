@@ -172,8 +172,9 @@ struct _data_block {
 	int layer;	// to identify layer for normalization
 };
 
-int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes, GList **date_time, fits *fit);
 int find_refimage_in_indices(int *indices, int nb, int ref);
+
+int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
 
 	/* up-scaling functions */
 

@@ -393,35 +393,35 @@ struct ffit {
 	 * */
 
 	/* data obtained from the FITS file */
-	char *header;	// entire header of the FITS file. NULL for non-FITS file.
-	WORD lo;	// MIPS-LO key in FITS file, which is "Lower visualization cutoff"
-	WORD hi;	// MIPS-HI key in FITS file, which is "Upper visualization cutoff"
-	double data_max; // used to check if 32b float is in the [0, 1] range
+	char *header;		// entire header of the FITS file. NULL for non-FITS file.
+	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
+	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
+	double data_max;	// used to check if 32b float is in the [0, 1] range
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
-	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
+	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
 	gboolean unbinned;
 	char row_order[FLEN_VALUE];
 	GDateTime *date, *date_obs;
 	double expstart, expend;
 	char filter[FLEN_VALUE];		// FILTER key
-	char image_type[FLEN_VALUE];	// IMAGETYP key
+	char image_type[FLEN_VALUE];		// IMAGETYP key
 	char object[FLEN_VALUE];		// OBJECT key
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
-	char bayer_pattern[FLEN_VALUE];	// BAYERPAT key Bayer Pattern if available
+	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
-	double livetime; // total exposure
-	guint stacknt; // number of stacked frame
-	double cvf; // Conversion factor (e-/adu)
-	int key_gain, key_offset; // Gain, Offset values read in camera headers.
+	double livetime;		// total exposure
+	guint stackcnt;			// number of stacked frame
+	double cvf;			// Conversion factor (e-/adu)
+	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
 
 	/* Plate Solving data */
-	wcs_info wcsdata;	// data from the header
+	wcs_info wcsdata;		// data from the header
 #ifdef HAVE_WCSLIB
-	struct wcsprm *wcslib;	// struct of the lib
+	struct wcsprm *wcslib;		// struct of the lib
 #endif
 
 	/* data used in the Fourier space */
@@ -570,18 +570,18 @@ struct pref_struct {
 
 	gint combo_theme;	// value of the combobox theme
 	gdouble font_scale;	// font scale
-	gboolean icon_symbolic;		// icon style
+	gboolean icon_symbolic;	// icon style
 	gchar *combo_lang;	// string value of the combobox lang
 
 	gchar *ext;		// FITS extension used in SIRIL
 
-	gchar *swap_dir;		// swap directory
+	gchar *swap_dir;	// swap directory
 	GSList *script_path;	// script path directories
 
-	gdouble focal;			// focal length saved in config file
-	gdouble pitch;			// pixel pitch saved in config file
+	gdouble focal;		// focal length saved in config file
+	gdouble pitch;		// pixel pitch saved in config file
 
-	libraw raw_set;			// the libraw settings
+	libraw raw_set;		// the libraw settings
 	struct debayer_config debayer;	// debayer settings
 	phot phot_set;		// photometry settings
 	gboolean catalog[7];	// Yet 6 catalogs and 1 user catalog
@@ -677,16 +677,16 @@ struct guiinf {
 
 /* The global data structure of siril core */
 struct cominf {
-	preferences pref; // saved variable in preferences
+	preferences pref;		// saved variable in preferences
 	gchar *wd;			// working directory, where images and sequences are
-	gchar *initfile;	// the path of the init file
+	gchar *initfile;		// the path of the init file
 
 	int reg_settings;		// Use to save registration method in the init file
 
 	gboolean cache_upscaled;	// keep up-scaled files for 'drizzle' (only used by developers)
 
 	/* history of operations */
-	historic *history;			// the history of all operations
+	historic *history;		// the history of all operations
 	int hist_size;			// allocated size
 	int hist_current;		// current index
 	int hist_display;		// displayed index

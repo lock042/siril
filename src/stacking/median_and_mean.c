@@ -42,19 +42,15 @@ typedef struct {
 } DateEvent;
 
 static void free_list_date(gpointer data) {
-	DateEvent *item = data;
-
+	DateEvent *item = (DateEvent *)data;
 	g_date_time_unref(item->date_obs);
 	g_slice_free(DateEvent, item);
 }
 
-static DateEvent* new_item(GDateTime *dt, gdouble exposure) {
-	DateEvent *item;
-
-	item = g_slice_new(DateEvent);
+static DateEvent* new_date_item(GDateTime *dt, gdouble exposure) {
+	DateEvent *item = g_slice_new(DateEvent);
 	item->exposure = exposure;
 	item->date_obs = dt;
-
 	return item;
 }
 
@@ -68,7 +64,7 @@ static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
 
 /*************************** MEDIAN AND MEAN STACKING **************************
- * Median and mean stacking requires all images to be in memory, so we don't
+ * Median and mean stacking require all images to be in memory, so we don't
  * use the generic readfits() but directly the cfitsio routines to open them
  * and seq_opened_read_region() to read data randomly from them.
  * Since all data of all images cannot fit in memory, a divide and conqueer
@@ -85,85 +81,88 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
  * remaining ones is used.
  * ****************************************************************************/
 
-int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes, GList **list_date, fits *fit) {
-	int status, nb_frames = args->nb_images_to_stack;
+int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes,
+		GList **list_date, fits *fit) {
+	int nb_frames = args->nb_images_to_stack;
+	guint stackcnt = 0;
+	double livetime = 0.0;
+	*bitpix = 0;
+	*naxis = 0;
+	*naxes = 0;
+	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
 
-	if (args->seq->type == SEQ_REGULAR) {
+	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
+		if (args->apply_weight) {
+			int nb_frames = args->nb_images_to_stack;
+			int nb_layers = args->seq->nb_layers;
+			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+		}
+		if (args->seq->type == SEQ_FITSEQ) {
+			g_assert(args->seq->fitseq_file);
+			/* we assume that all images have the same dimensions and bitpix */
+			memcpy(naxes, args->seq->fitseq_file->naxes, sizeof args->seq->fitseq_file->naxes);
+			*naxis = naxes[2] == 3 ? 3 : 2;
+			*bitpix = args->seq->fitseq_file->bitpix;
+		}
+
 		for (int i = 0; i < nb_frames; ++i) {
-			long oldnaxes[3] = { 0 };
-			int oldbitpix = 0, oldnaxis = -1;
-			char msg[256], filename[256];
-
-			int image_index = args->image_indices[i];	// image index in sequence
-			if (!get_thread_run()) {
+			int image_index = args->image_indices[i]; // image index in sequence
+			if (!get_thread_run())
 				return ST_GENERIC_ERROR;
-			}
-			if (!fit_sequence_get_image_filename(args->seq, image_index, filename, TRUE))
-				continue;
+			if (i % 20 == 0)
+				set_progress_bar_data(NULL, PROGRESS_PULSATE);
 
-			snprintf(msg, 255, _("Opening image %s for stacking"), filename);
-			msg[255] = '\0';
-			set_progress_bar_data(msg, PROGRESS_NONE);
+			fitsfile *fptr;
+			if (args->seq->type == SEQ_REGULAR) {
+				if (seq_open_image(args->seq, image_index)) {
+					siril_log_message(_("Opening image %d failed\n"), image_index);
+					return ST_SEQUENCE_ERROR;
+				}
 
-			/* open input images */
-			if (seq_open_image(args->seq, image_index)) {
-				siril_log_message(_("Opening image %s failed\n"), filename);
-				return ST_SEQUENCE_ERROR;
-			}
-
-			/* here we use the internal data of sequences, it's quite ugly, we should
-			 * consider moving these tests in seq_open_image() or wrapping them in a
-			 * sequence function */
-			status = 0;
-			fits_get_img_param(args->seq->fptr[image_index], 3, bitpix, naxis, naxes, &status);
-			if (status) {
-				siril_log_message(_("Opening image %s failed\n"), filename);
-				fits_report_error(stderr, status); /* print error message */
-				return ST_SEQUENCE_ERROR;
-			}
-			if (*naxis > 3) {
-				siril_log_message(_("Stacking error: images with > 3 dimensions "
-						"are not supported\n"));
-				return ST_SEQUENCE_ERROR;
-			}
-
-			if (oldnaxis > 0) {
-				if (*naxis != oldnaxis ||
-						oldnaxes[0] != naxes[0] ||
-						oldnaxes[1] != naxes[1] ||
-						oldnaxes[2] != naxes[2]) {
-					siril_log_message(_("Stacking error: input images have "
-							"different sizes\n"));
+				fptr = args->seq->fptr[image_index];
+				if (check_fits_params(fptr, bitpix, naxis, naxes)) {
+					siril_log_message(_("Opening image %d failed\n"), image_index);
 					return ST_SEQUENCE_ERROR;
 				}
 			} else {
-				oldnaxis = *naxis;
-				oldnaxes[0] = naxes[0];
-				oldnaxes[1] = naxes[1];
-				oldnaxes[2] = naxes[2];
-			}
-
-			if (oldbitpix > 0) {
-				if (*bitpix != oldbitpix) {
-					siril_log_message(_("Stacking error: input images have "
-							"different precision\n"));
+				if (fitseq_set_current_frame(args->seq->fitseq_file, image_index)) {
+					siril_log_color_message(_("There was an error opening frame %d for stacking\n"), "red", image_index);
 					return ST_SEQUENCE_ERROR;
 				}
-			} else {
-				oldbitpix = *bitpix;
+				fptr = args->seq->fitseq_file->fptr;
 			}
 
-			gdouble current_exp;
+			/* we get some metadata at the same time: date, exposure ... */
+			gdouble current_exp, current_livetime;
+			unsigned int stack_count;
 			GDateTime *dt = NULL;
 
-			get_date_data_from_fitsfile(args->seq->fptr[image_index], &dt, &current_exp);
+			get_date_data_from_fitsfile(fptr, &dt, &current_exp, &current_livetime, &stack_count);
 			if (dt)
-				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
+				*list_date = g_list_prepend(*list_date, new_date_item(dt, current_exp));
+			livetime += current_livetime;
+			stackcnt += stack_count;
 
 			/* We copy metadata from reference to the final fit */
 			if (image_index == args->ref_image)
-				import_metadata_from_fitsfile(args->seq->fptr[image_index], fit);
+				import_metadata_from_fitsfile(fptr, fit);
+
+			if (args->apply_weight) {
+				int nb_layers = args->seq->nb_layers;
+				double weight = (double)stack_count;
+				siril_debug_print("weight for image %d: %d\n", i, stack_count);
+				args->weights[i] = weight;
+				if (nb_layers > 1) {
+					args->weights[nb_frames + i] = weight;
+					args->weights[nb_frames * 2 + i] = weight;
+				}
+			}
 		}
+		if (stackcnt <= 0)
+			stackcnt = nb_frames;
+		fit->stackcnt = stackcnt;
+		fit->livetime = livetime;
+		// keeping exposure of the reference frame
 
 		if (naxes[2] == 0)
 			naxes[2] = 1;
@@ -186,39 +185,22 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		}
 
 		import_metadata_from_serfile(args->seq->ser_file, fit);
-		for (int frame = 0; frame < args->seq->number; frame++) {
-			GDateTime *dt = ser_read_frame_date(args->seq->ser_file, frame);
+		for (int i = 0; i < nb_frames; ++i) {
+			int image_index = args->image_indices[i]; // image index in sequence
+			GDateTime *dt = ser_read_frame_date(args->seq->ser_file, image_index);
 			if (dt)
-				*list_date = g_list_prepend(*list_date,	new_item(dt, 0.0));
+				*list_date = g_list_prepend(*list_date,	new_date_item(dt, 0.0));
 		}
-	}
-	else if (args->seq->type == SEQ_FITSEQ) {
-		g_assert(args->seq->fitseq_file);
-		memcpy(naxes, args->seq->fitseq_file->naxes, sizeof args->seq->fitseq_file->naxes);
-		*naxis = naxes[2] == 3 ? 3 : 2;
-		*bitpix = args->seq->fitseq_file->bitpix;
-
-		for (int frame = 0; frame < args->seq->number; frame++) {
-			if (fitseq_set_current_frame(args->seq->fitseq_file, frame)) {
-				siril_log_color_message(_("There was an error opening frame %d for stacking\n"), "red", frame);
-				return ST_SEQUENCE_ERROR;
-			}
-			gdouble current_exp;
-			GDateTime *dt = NULL;
-
-			get_date_data_from_fitsfile(args->seq->fitseq_file->fptr, &dt, &current_exp);
-			if (dt)
-				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
-
-			/* We copy metadata from reference to the final fit */
-			if (frame == args->ref_image)
-				import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, fit);
-		}
+		fit->stackcnt = nb_frames;
+		fit->livetime = fit->exposure * nb_frames;
+		// keeping the fallacious exposure based on fps from the header
 	} else {
 		siril_log_message(_("Rejection stacking is only supported for FITS images/sequences and SER sequences.\nUse \"Sum Stacking\" instead.\n"));
 		return ST_SEQUENCE_ERROR;
 	}
 
+	set_progress_bar_data(NULL, PROGRESS_DONE);
+	siril_debug_print("stack count: %u, livetime: %f\n", fit->stackcnt, fit->livetime);
 	return ST_OK;
 }
 
@@ -638,7 +620,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				}
 				for (int frame = 0; frame < N; frame++) {
 					if (N - r <= 4) {
-					// no more rejections
+						// no more rejections
 						rejected[frame] = 0;
 					} else {
 						rejected[frame] = sigma_clipping(stack[frame], args->sig, var, median, crej);
@@ -685,7 +667,8 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				else firstloop = 0;
 				memcpy(w_stack, stack, N * sizeof(WORD));
 				do {
-					Winsorize(w_stack, roundf_to_WORD(median - 1.5f * sigma), roundf_to_WORD(median + 1.5f * sigma), N);
+					Winsorize(w_stack, roundf_to_WORD(median - 1.5f * sigma),
+							roundf_to_WORD(median + 1.5f * sigma), N);
 					sigma0 = sigma;
 					sigma = 1.134f * args->sd_calculator(w_stack, N);
 				} while (fabs(sigma - sigma0) > sigma0 * 0.0005f);
@@ -694,7 +677,8 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 						// no more rejections
 						rejected[frame] = 0;
 					} else {
-						rejected[frame] = sigma_clipping(stack[frame], args->sig, sigma, median, crej);
+						rejected[frame] = sigma_clipping(stack[frame],
+								args->sig, sigma, median, crej);
 						if (rejected[frame] != 0)
 							r++;
 					}
@@ -905,43 +889,39 @@ static int compute_weights(struct stacking_args *args) {
 	return ST_OK;
 }
 
+/* computes the observation date (beginning) and the start of exposure (same
+ * but in julian date) and end of exposure (start of last shot + exposure time)
+ */
 static void compute_date_time_keywords(GList *list_date, fits *fit) {
-	if (list_date) {
-		gdouble exposure = 0.0;
-		GDateTime *date_obs;
-		gdouble start, end;
-		GList *list;
-		/* First we want to sort the list */
-		list_date = g_list_sort(list_date, (GCompareFunc) list_date_compare);
-		/* Then we compute the sum of exposure */
-		for (list = list_date; list; list = list->next) {
-			exposure += ((DateEvent *)list->data)->exposure;
-		}
+	if (!list_date)
+		return;
+	GDateTime *date_obs;
+	gdouble start, end;
+	/* First we want to sort the list */
+	list_date = g_list_sort(list_date, (GCompareFunc) list_date_compare);
 
-		/* go to the first stacked image and get needed values */
-		list_date = g_list_first(list_date);
-		date_obs = g_date_time_ref(((DateEvent *)list_date->data)->date_obs);
-		start = date_time_to_Julian(((DateEvent *)list_date->data)->date_obs);
+	/* go to the first stacked image and get needed values */
+	list_date = g_list_first(list_date);
+	date_obs = g_date_time_ref(((DateEvent *)list_date->data)->date_obs);
+	start = date_time_to_Julian(((DateEvent *)list_date->data)->date_obs);
 
-		/* go to the last stacked image and get needed values
-		 * This time we need to add the exposure to the date_obs
-		 * to exactly retrieve the end of the exposure
-		 */
-		list_date = g_list_last(list_date);
-		gdouble last_exp = ((DateEvent *)list_date->data)->exposure;
-		GDateTime *last_date = ((DateEvent *)list_date->data)->date_obs;
-		GDateTime *corrected_last_date = g_date_time_add_seconds(last_date, (gdouble) last_exp);
+	/* go to the last stacked image and get needed values
+	 * This time we need to add the exposure to the date_obs
+	 * to exactly retrieve the end of the exposure
+	 */
+	list_date = g_list_last(list_date);
+	gdouble last_exp = ((DateEvent *)list_date->data)->exposure;
+	GDateTime *last_date = ((DateEvent *)list_date->data)->date_obs;
+	GDateTime *corrected_last_date = g_date_time_add_seconds(last_date, (gdouble) last_exp);
 
-		end = date_time_to_Julian(corrected_last_date);
+	end = date_time_to_Julian(corrected_last_date);
 
-		g_date_time_unref(corrected_last_date);
+	g_date_time_unref(corrected_last_date);
 
-		/* we address the computed values to the keywords */
-		fit->livetime = exposure;
-		fit->date_obs = date_obs;
-		fit->expstart = start;
-		fit->expend = end;
-	}
+	/* we address the computed values to the keywords */
+	fit->date_obs = date_obs;
+	fit->expstart = start;
+	fit->expend = end;
 }
 
 /* How many rows fit in memory, based on image size, number and available memory.
@@ -1147,7 +1127,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					const float dx = j - data_pool[i].m_x;
 					data_pool[i].xf[j] = 1.f / (j + 1);
 					data_pool[i].m_dx2 += (dx * dx - data_pool[i].m_dx2)
-							* data_pool[i].xf[j];
+						* data_pool[i].xf[j];
 				}
 				data_pool[i].m_dx2 = 1.f / data_pool[i].m_dx2;
 			}
@@ -1398,8 +1378,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 
 	compute_date_time_keywords(list_date, &gfit);
-	/* report he number of stacked image */
-	gfit.stacknt = args->nb_images_to_stack;
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);
