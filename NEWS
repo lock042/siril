@@ -14,8 +14,10 @@ v1.0.1 mmm dd, 2022
 * Added min,max, iif and logical operators in pixelmath
 * Added support for 3 channels for direct preview of resulting composition in pixelmath
 * Added reporting channel name in FILTER header key during split operation
+* Using FILTER keyword value for Pixel Math tool variable name
 * Fixed using shift transform for global registration
 * Fixed crash when changing image with preview opened
+* Fixed date wrongly reported in the FITS header in SER/FITSEQ stacking when filtering out images
 
 v1.0.0 March 9, 2022
 
