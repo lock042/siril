@@ -4,7 +4,6 @@ RUN apt-get update -qyy \
         at-spi2-core \
         build-essential \
         desktop-file-utils \
-        cmake \
         unzip \
         hicolor-icon-theme \
         git \
@@ -34,6 +33,7 @@ RUN apt-get update -qyy \
         python3 \
         python3-pip \
         libjson-glib-dev \
+    && python3 -m pip install cmake \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* 
 RUN git clone https://github.com/LibRaw/LibRaw.git \
