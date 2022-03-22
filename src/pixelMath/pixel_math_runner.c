@@ -344,7 +344,7 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 			vars[i].context = NULL;
 			vars[i].type = 0;
 		}
-		te_expr *n1, *n2, *n3;
+		te_expr *n1 = NULL, *n2 = NULL, *n3 = NULL;
 		n1 = te_compile(expression1, vars, nb_rows, &err);
 		if (!args->single_rgb) {
 			n2 = te_compile(expression2, vars, nb_rows, &err);
