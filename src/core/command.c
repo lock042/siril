@@ -3710,6 +3710,7 @@ int process_stackall(int nb) {
 	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
+	arg->equalizeRGB = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
