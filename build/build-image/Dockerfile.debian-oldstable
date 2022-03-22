@@ -34,7 +34,7 @@ RUN apt-get update -qyy \
         python3 \
         python3-pip \
         libjson-glib-dev \
-    && pip install -m cmake \
+    && python3 -m pip install cmake \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* 
 RUN git clone https://github.com/LibRaw/LibRaw.git \
