@@ -801,7 +801,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	}
 	if (pattern) {
 		strcpy(fit->bayer_pattern, pattern);
-		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE);
+		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE - 1);
 	}
 
 	switch (type_ser) {
@@ -1276,9 +1276,9 @@ gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
 }
 
 int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to) {
-	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE);
-	strncpy(to->observer, ser_file->observer, FLEN_VALUE);
-	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE);
+	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE - 1);
+	strncpy(to->observer, ser_file->observer, FLEN_VALUE - 1);
+	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE - 1);
 	if (ser_file->fps > 0.0)
 		to->exposure = 1.0 / ser_file->fps;
 	return 0;
