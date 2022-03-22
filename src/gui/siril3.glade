@@ -16921,8 +16921,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                 <property name="sensitive">False</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">True</property>
-                                                <property name="tooltip-text" translatable="yes">Start stacking the current sequence of images, using the method and other information provided above.
-Siril uses a 32-bit internal image to process the stacking, which is then saved to a 16-bit image whose name is given below.</property>
+                                                <property name="tooltip-text" translatable="yes">Start stacking the current sequence of images, using the method and other information provided above.</property>
                                                 <property name="margin-top">3</property>
                                                 <property name="use-underline">True</property>
                                                 <signal name="clicked" handler="on_seqstack_button_clicked" swapped="no"/>
