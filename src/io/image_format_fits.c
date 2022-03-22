@@ -2336,14 +2336,14 @@ int copy_fits_metadata(fits *from, fits *to) {
 		to->date = g_date_time_ref(from->date);
 	if (from->date_obs)
 		to->date_obs = g_date_time_ref(from->date_obs);
-	strncpy(to->filter, from->filter, FLEN_VALUE - 1);
-	strncpy(to->image_type, from->image_type, FLEN_VALUE - 1);
-	strncpy(to->object, from->object, FLEN_VALUE - 1);
-	strncpy(to->instrume, from->instrume, FLEN_VALUE - 1);
-	strncpy(to->telescop, from->telescop, FLEN_VALUE - 1);
-	strncpy(to->observer, from->observer, FLEN_VALUE - 1);
-	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE - 1);
-	strncpy(to->row_order, from->row_order, FLEN_VALUE - 1);
+	strncpy(to->filter, from->filter, FLEN_VALUE);
+	strncpy(to->image_type, from->image_type, FLEN_VALUE);
+	strncpy(to->object, from->object, FLEN_VALUE);
+	strncpy(to->instrume, from->instrume, FLEN_VALUE);
+	strncpy(to->telescop, from->telescop, FLEN_VALUE);
+	strncpy(to->observer, from->observer, FLEN_VALUE);
+	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE);
+	strncpy(to->row_order, from->row_order, FLEN_VALUE);
 
 	to->bayer_xoffset = from->bayer_xoffset;
 	to->bayer_yoffset = from->bayer_yoffset;
