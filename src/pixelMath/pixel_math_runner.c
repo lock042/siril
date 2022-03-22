@@ -392,6 +392,59 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 	return GINT_TO_POINTER(args->ret);
 }
 
+static int parse_parameters(gchar **expression1, gchar **expression2, gchar **expression3) {
+	GtkEntry *entry_param = GTK_ENTRY(lookup_widget("pixel_math_entry_param"));
+
+	char *entry_text = g_strdup(gtk_entry_get_text(entry_param));
+
+	if (entry_text == NULL) return 0;
+	/* first we remove spaces */
+	remove_spaces_from_str(entry_text);
+
+	/* all parameters are comma separated expressions */
+	gchar **token = g_strsplit(entry_text, ",", -1);
+	int nargs = g_strv_length(token);
+
+	/* now we pare equality */
+	for (int i = 0; i < nargs; i++) {
+		gchar **expr = g_strsplit(token[i], "=", -1);
+		int n = g_strv_length(expr);
+		/* we want something like "expr[0]=expr[1]"
+		 * so we need two tokens */
+		if (n != 2) {
+			g_strfreev(token);
+			g_strfreev(expr);
+			g_free(entry_text);
+			return -1;
+		}
+
+		/* We copy original char* in a string structure */
+		GString *string1 = g_string_new(*expression1);
+		GString *string2 = g_string_new(*expression2);
+		GString *string3 = g_string_new(*expression3);
+
+		/* we replace old expression by new ones */
+		g_string_replace(string1, expr[0], expr[1], 0);
+		g_string_replace(string2, expr[0], expr[1], 0);
+		g_string_replace(string3, expr[0], expr[1], 0);
+
+		/* copy string into char */
+		g_free(*expression1);
+		g_free(*expression2);
+		g_free(*expression3);
+
+		*expression1 = g_string_free(string1, FALSE);
+		*expression2 = g_string_free(string2, FALSE);
+		*expression3 = g_string_free(string3, FALSE);
+
+		g_strfreev(expr);
+	}
+
+	g_strfreev(token);
+	g_free(entry_text);
+
+	return 0;
+}
 
 static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {
 	int nb_rows = 0;
@@ -441,6 +494,12 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		return 1;
 
 	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
+
+	if (parse_parameters(&expression1, &expression2, &expression3)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
+				_("Parameter symbols could not be parsed."));
+		return 1;
+	}
 
 	args->expression1 = expression1;
 	args->expression2 = single_rgb ? NULL : expression2;
@@ -855,7 +914,6 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 		gtk_list_store_set_value(pixel_math_list_store, &iter, COLUMN_IMAGE_NUM, &value);
 		g_value_unset (&value);
 	}
-
 }
 
 void on_cellrenderer_variables_editing_started(GtkCellRenderer *renderer,
