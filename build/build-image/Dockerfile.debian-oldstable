@@ -4,7 +4,6 @@ RUN apt-get update -qyy \
         at-spi2-core \
         build-essential \
         desktop-file-utils \
-        cmake \
         unzip \
         hicolor-icon-theme \
         git \
