@@ -3458,7 +3458,14 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->apply_nbstack_weights = TRUE;
 			}
-
+		} else if (!strcmp(current, "-fastnorm")) {
+			if (arg->method != stack_mean_with_rejection) {
+				siril_log_message(_("Fast normalization is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("Fast normalization is allowed only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->lite_norm = TRUE;
+			}
 		} else if (g_str_has_prefix(current, "-norm=")) {
 			if (!norm_allowed) {
 				siril_log_message(_("Normalization options are not allowed in this context, ignoring.\n"));
@@ -3612,6 +3619,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.apply_noise_weights = arg->apply_noise_weights;
 		args.apply_nbstack_weights = arg->apply_nbstack_weights;
 		args.equalizeRGB = arg->equalizeRGB;
+		args.lite_norm = arg->lite_norm;
 
 		// manage filters
 		if (convert_stack_data_to_filter(arg, &args) ||
@@ -3711,6 +3719,7 @@ int process_stackall(int nb) {
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
 	arg->equalizeRGB = FALSE;
+	arg->lite_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
@@ -3826,6 +3835,7 @@ int process_stackone(int nb) {
 	arg->norm = NO_NORM;
 	arg->force_no_norm = FALSE;
 	arg->equalizeRGB = FALSE;
+	arg->lite_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
