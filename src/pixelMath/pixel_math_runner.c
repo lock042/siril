@@ -37,7 +37,19 @@
 #include "tinyexpr.h"
 #include "pixel_math_runner.h"
 
-static const gchar *variables[] = {"I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9", "I10"};
+static const gchar *variables[] = {
+		"I1",
+		"I2",
+		"I3",
+		"I4",
+		"I5",
+		"I6",
+		"I7",
+		"I8",
+		"I9",
+		"I10"
+};
+
 static int entry_has_focus = 0;
 #define MAX_IMAGES G_N_ELEMENTS(variables)
 
@@ -110,6 +122,8 @@ enum {
 	COLUMN_IMAGE_NUM,		// string
 	COLUMN_IMAGE_PATH,		// string
 	COLUMN_IMAGE_CHAN,      // uint
+	COLUMN_IMAGE_WIDTH,      // uint
+	COLUMN_IMAGE_HEIGHT,      // uint
 	N_COLUMNS
 };
 
@@ -130,6 +144,7 @@ static GtkTreeModel *pixel_math_tree_model = NULL;
 static GtkTreeModel *pixel_math_tree_model_functions = NULL;
 static GtkTreeModel *pixel_math_tree_model_operators = NULL;
 static GtkLabel *pixel_math_status_bar = NULL;
+static GtkLabel *pixel_math_status_bar2 = NULL;
 static GtkEntry *pixel_math_entry_r = NULL;
 static GtkEntry *pixel_math_entry_g = NULL;
 static GtkEntry *pixel_math_entry_b = NULL;
@@ -140,6 +155,7 @@ static void init_widgets() {
 		pixel_math_tree_model = gtk_tree_view_get_model(pixel_math_tree_view);
 		pixel_math_list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore"));
 		pixel_math_status_bar = GTK_LABEL(lookup_widget("pixel_math_status"));
+		pixel_math_status_bar2 = GTK_LABEL(lookup_widget("pixel_math_status2"));
 		pixel_math_entry_r = GTK_ENTRY(lookup_widget("pixel_math_entry_r"));
 		pixel_math_entry_g = GTK_ENTRY(lookup_widget("pixel_math_entry_g"));
 		pixel_math_entry_b = GTK_ENTRY(lookup_widget("pixel_math_entry_b"));
@@ -162,6 +178,7 @@ static void init_widgets() {
 	g_assert(pixel_math_list_store_functions);
 	g_assert(pixel_math_list_store_operators);
 	g_assert(pixel_math_status_bar);
+	g_assert(pixel_math_status_bar2);
 	g_assert(pixel_math_entry_r);
 	g_assert(pixel_math_entry_g);
 	g_assert(pixel_math_entry_b);
@@ -199,6 +216,43 @@ static void output_status_bar(int status) {
 	default:
 		gtk_label_set_text(pixel_math_status_bar, _("Syntax error"));
 	}
+}
+
+static void output_status_bar2(int width, int height, int channel) {
+	if (width != 0 && height != 0) {
+		gchar *out = ngettext("%d x %d pixels (%d channel)", "%d x %d pixels (%d channels)", channel);
+		out = g_strdup_printf(out, width, height, channel);
+			gtk_label_set_text(pixel_math_status_bar2, out);
+		g_free(out);
+	} else {
+		gtk_label_set_text(pixel_math_status_bar2, "");
+	}
+}
+
+static gboolean check_files_dimensions(guint *width, guint* height, guint *channel) {
+	init_widgets();
+	GtkTreeIter iter;
+	*channel = 0;
+	*width = 0;
+	*height = 0;
+	gboolean valid = gtk_tree_model_get_iter_first(pixel_math_tree_model, &iter);
+
+	while (valid) {
+		guint c, w, h;
+		gtk_tree_model_get(pixel_math_tree_model, &iter, COLUMN_IMAGE_CHAN, &c, COLUMN_IMAGE_WIDTH, &w, COLUMN_IMAGE_HEIGHT, &h, -1);
+		if (*width == 0) {
+			*channel = c;
+			*width = w;
+			*height = h;
+		} else {
+			if (w != *width || h != *height || c != *channel) {
+				return FALSE;
+			}
+		}
+		valid = gtk_tree_model_iter_next (pixel_math_tree_model, &iter);
+
+	}
+	return TRUE;
 }
 
 static gboolean end_pixel_math_operation(gpointer p) {
@@ -458,20 +512,10 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
 		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) return -1;
-		if (width == - 1) {
+		if (channel == - 1) {
 			width = var_fit[nb_rows].rx;
 			height = var_fit[nb_rows].ry;
 			channel = var_fit[nb_rows].naxes[2];
-		} else {
-			int w = var_fit[nb_rows].rx;
-			int h = var_fit[nb_rows].ry;
-			int c = var_fit[nb_rows].naxes[2];
-
-			if ((width != w) || (height != h) || (channel != c)) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Image size must be identical"),
-						_("Images loaded in the Pixel Math tool must have same size. You may remove images that are not used in the expressions."));
-				return 1;
-			}
 		}
 
 		if (channel == 3 && !single_rgb) {
@@ -549,7 +593,7 @@ static gboolean check_for_variable_sanity(char *new_text) {
 }
 
 /* Add an image to the list. */
-static void add_image_to_variable_list(const gchar *path, const gchar *var, gchar *filter, guint chan) {
+static void add_image_to_variable_list(const gchar *path, const gchar *var, gchar *filter, guint chan, guint width, guint height) {
 	GtkTreeIter iter;
 
 	const char *name;
@@ -564,6 +608,8 @@ static void add_image_to_variable_list(const gchar *path, const gchar *var, gcha
 			COLUMN_IMAGE_NUM, name,
 			COLUMN_IMAGE_PATH, path,
 			COLUMN_IMAGE_CHAN, chan,
+			COLUMN_IMAGE_WIDTH, width,
+			COLUMN_IMAGE_HEIGHT, height,
 			-1);
 
 }
@@ -621,6 +667,9 @@ static void select_image(int nb) {
 	if (res == GTK_RESPONSE_ACCEPT) {
 		GSList *l;
 		int pos = nb;
+		guint width = 0;
+		guint height = 0;
+		guint channel = 0;
 
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 		GSList *filenames = gtk_file_chooser_get_filenames(chooser);
@@ -633,27 +682,42 @@ static void select_image(int nb) {
 				gchar filter[FLEN_VALUE] = { 0 };
 				fits f = { 0 };
 				read_fits_metadata_from_path(filename, &f);
+				if (check_files_dimensions(&width, &height, &channel)) {
+					if (width != 0 && (channel != f.naxes[2] ||
+							width != f.naxes[0] ||
+							height != f.naxes[1])) {
+						gchar *f = g_path_get_basename(filename);
+						gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
+								" (width, height or number of channels).", f);
+						siril_message_dialog(GTK_MESSAGE_ERROR, _("Image must have same dimension"), str);
+						g_free(f);
+						g_free(str);
 
-				int channel = f.naxes[2];
+					} else {
+						if (f.filter[0] != '\0') {
+							memcpy(filter, f.filter, FLEN_VALUE);
+						}
 
-				if (f.filter[0] != '\0') {
-					memcpy(filter, f.filter, FLEN_VALUE);
+						int idx = search_for_free_index();
+						add_image_to_variable_list(filename, variables[idx], filter, f.naxes[2], f.naxes[0], f.naxes[1]);
+
+						pos++;
+						if (pos == MAX_IMAGES) {
+							g_free(filename);
+							clearfits(&f);
+							break;
+						}
+					}
 				}
-				clearfits(&f);
-
-				int idx = search_for_free_index();
-				add_image_to_variable_list(filename, variables[idx], filter, channel);
 				g_free(filename);
-				pos++;
-				if (pos == MAX_IMAGES) {
-					break;
-				}
+				clearfits(&f);
 			}
 		}
 	}
 
 	siril_preview_free(preview);
 	gtk_widget_destroy(dialog);
+
 }
 
 gboolean on_pixel_math_entry_r_focus_in_event(GtkWidget *widget,
@@ -924,4 +988,19 @@ void on_cellrenderer_variables_editing_started(GtkCellRenderer *renderer,
 void on_cellrenderer_variables_editing_canceled(GtkCellRenderer *renderer,
 		gpointer user_data) {
 	g_signal_handlers_unblock_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
+}
+
+void on_pixel_math_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
+	GList *list;
+	guint width = 0, height = 0, channel = 0;
+
+	list = gtk_tree_selection_get_selected_rows(selection, &pixel_math_tree_model);
+	if (g_list_length(list) == 1) {
+		GtkTreeIter iter;
+		gtk_tree_model_get_iter(pixel_math_tree_model, &iter, (GtkTreePath*) list->data);
+
+		gtk_tree_model_get(pixel_math_tree_model, &iter, COLUMN_IMAGE_CHAN, &channel, COLUMN_IMAGE_WIDTH, &width, COLUMN_IMAGE_HEIGHT, &height, -1);
+	}
+	g_list_free_full(list, (GDestroyNotify) gtk_tree_path_free);
+	output_status_bar2(width, height, channel);
 }
