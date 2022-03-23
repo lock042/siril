@@ -10467,6 +10467,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
       <column type="gchararray"/>
       <!-- column-name Pixel_math_chan -->
       <column type="guint"/>
+      <!-- column-name Pixel_math_width -->
+      <column type="guint"/>
+      <!-- column-name Pixel_math_height -->
+      <column type="guint"/>
     </columns>
   </object>
   <object class="GtkListStore" id="pixel_math_liststore_functions">
@@ -10678,8 +10682,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <signal name="key-release-event" handler="on_pixel_math_treeview_key_release_event" swapped="no"/>
                     <signal name="row-activated" handler="on_pixel_math_treeview_row_activated" swapped="no"/>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection">
+                      <object class="GtkTreeSelection" id="pixel_math_selection">
                         <property name="mode">multiple</property>
+                        <signal name="changed" handler="on_pixel_math_selection_changed" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -10703,6 +10708,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn">
+                        <property name="visible">False</property>
                         <property name="title" translatable="yes">Chan.</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrender_chan"/>
@@ -10722,6 +10728,34 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           <object class="GtkCellRendererText" id="cellrenderer_paths"/>
                           <attributes>
                             <attribute name="text">1</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="visible">False</property>
+                        <property name="title" translatable="yes">Width</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderer_width">
+                            <property name="visible">False</property>
+                          </object>
+                          <attributes>
+                            <attribute name="text">3</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="visible">False</property>
+                        <property name="title" translatable="yes">Height</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderer_height">
+                            <property name="visible">False</property>
+                          </object>
+                          <attributes>
+                            <attribute name="text">4</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -10859,6 +10893,18 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           </packing>
         </child>
         <child>
+          <object class="GtkLabel" id="pixel_math_status2">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="halign">end</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkFrame">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -10895,7 +10941,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -10940,7 +10986,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
       </object>
@@ -12995,7 +13041,10 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                     <signal name="drag-data-received" handler="on_treeview_convert_drag_data_received" swapped="no"/>
                                                     <signal name="key-release-event" handler="on_treeview_convert_key_release_event" swapped="no"/>
                                                     <child internal-child="selection">
-                                                      <object class="GtkTreeSelection"/>
+                                                      <object class="GtkTreeSelection">
+                                                        <property name="mode">multiple</property>
+                                                        <signal name="changed" handler="on_treeview_selection_convert_changed" swapped="no"/>
+                                                      </object>
                                                     </child>
                                                     <child>
                                                       <object class="GtkTreeViewColumn" id="treeviewcolumn17">
