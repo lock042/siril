@@ -41,6 +41,7 @@
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "opencv/opencv.h"
+#include "rt/gauss.h"
 
 int threshlo(fits *fit, WORD level) {
 	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
@@ -102,9 +103,66 @@ int nozero(fits *fit, WORD level) {
 	return 0;
 }
 
-/**********************************************************
- *
- */
+// in-place Gaussian blur with RawTherapee's implementation (SSE+vectorization+OpenMP)
+int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
+	if (fit->type == DATA_FLOAT) {
+		fprintf(stdout, "Using RawTherapee in-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		// RawTherapee gaussianBlur (mono only)
+		int rx = (int)fit->naxes[0];
+		int ry = (int)fit->naxes[1];
+		float **src = malloc(ry * sizeof(float *));
+		if (!src) { PRINT_ALLOC_ERR; return 1; }
+		for (int k = 0; k < ry; k++) {
+			src[k] = fit->fdata + k * rx;
+		}
+
+		gaussianBlurC(src, src, rx, ry, sigma, threads);
+		return 0;
+	}
+	else {
+		// OpenCV GaussianBlur
+		return cvUnsharpFilter(fit, sigma, 1.0);
+	}
+}
+
+// using a temporary buffer
+int gaussian_blur_RT(fits *fit, double sigma, int threads) {
+	if (fit->type == DATA_FLOAT) {
+		fprintf(stdout, "Using RawTherapee out-of-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		// RawTherapee gaussianBlur (mono only)
+		size_t n = fit->naxes[0] * fit->naxes[1];
+		int rx = (int)fit->naxes[0];
+		int ry = (int)fit->naxes[1];
+		float *result = malloc(n * sizeof(float));
+		if (!result) { PRINT_ALLOC_ERR; return 1; }
+		float **src = malloc(ry * sizeof(float *));
+		float **dst = malloc(ry * sizeof(float *));
+		if (!src) { PRINT_ALLOC_ERR; return 1; }
+		if (!dst) { PRINT_ALLOC_ERR; return 1; }
+		for (int k = 0; k < ry; k++) {
+			src[k] = fit->fdata + k * rx;
+			dst[k] = result + k * rx;
+		}
+
+		gaussianBlurC(src, dst, rx, ry, sigma, threads);
+		float *olddata = gfit.fdata;
+		gfit.fdata = result;
+		gfit.fpdata[RLAYER] = gfit.fdata;
+		if (gfit.naxis == 3) {
+			gfit.fpdata[GLAYER] = gfit.fdata + n;
+			gfit.fpdata[BLAYER] = gfit.fdata + n * 2;
+		} else {
+			gfit.fpdata[GLAYER] = gfit.fdata;
+			gfit.fpdata[BLAYER] = gfit.fdata;
+		}
+		free(olddata);
+		return 0;
+	}
+	else {
+		// OpenCV GaussianBlur
+		return cvUnsharpFilter(fit, sigma, 1.0);
+	}
+}
 
 int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
 	struct timeval t_start, t_end;
@@ -115,6 +173,7 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
 		siril_log_color_message(_("Unsharp: processing...\n"), "green");
 		gettimeofday(&t_start, NULL);
 	}
+
 	cvUnsharpFilter(fit, sigma, amount);
 
 	if (verbose) {

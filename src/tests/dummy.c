@@ -174,11 +174,6 @@ void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
         fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
 }
 
-gboolean load_WCS_from_memory(fits *fit) {
-        fprintf(stderr, "ERROR: calling undefined function load_WCS_from_memory\n");
-	return FALSE;
-}
-
 int check_threading(threading_type *t) {
 	if (*t != SINGLE_THREADED)
 		return 2;

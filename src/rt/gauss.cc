@@ -1355,11 +1355,11 @@ template<class T> void gaussVerticalmult (T** src, T** dst, const int W, const i
 
 template<class T> void gaussianBlurImpl(T** src, T** dst, const int W, const int H, const double sigma, bool useBoxBlur, eGaussType gausstype = GAUSS_STANDARD, T** buffer2 = nullptr)
 {
-    static constexpr auto GAUSS_SKIP = 0.25;
     static constexpr auto GAUSS_3X3_LIMIT = 0.6;
     static constexpr auto GAUSS_5X5_LIMIT = 0.84;
     static constexpr auto GAUSS_7X7_LIMIT = 1.15;
     static constexpr auto GAUSS_DOUBLE = 25.0;
+    static constexpr auto GAUSS_SKIP = 0.25;
 
     if (useBoxBlur) {
         // special variant for very large sigma, currently only used by retinex algorithm
@@ -1405,6 +1405,9 @@ template<class T> void gaussianBlurImpl(T** src, T** dst, const int W, const int
     } else {
         if (sigma < GAUSS_SKIP) {
             // don't perform filtering
+#ifdef _OPENMP
+#pragma omp single
+#endif
             if (src != dst) {
                 for(int i = 0; i < H; ++i) {
                     memcpy(dst[i], src[i], W * sizeof(T));
@@ -1536,8 +1539,16 @@ template<class T> void gaussianBlurImpl(T** src, T** dst, const int W, const int
 }
 }
 
-void gaussianBlur(float** src, float** dst, const int W, const int H, const double sigma, bool useBoxBlur, eGaussType gausstype, float** buffer2)
+void gaussianBlur(float** src, float** dst, const int W, const int H, const double sigma, int max_threads, bool useBoxBlur, eGaussType gausstype, float** buffer2)
 {
+#ifdef _OPENMP
+#pragma omp parallel num_threads(max_threads)
+#endif
     gaussianBlurImpl<float>(src, dst, W, H, sigma, useBoxBlur, gausstype, buffer2);
+}
+
+// C interface
+void gaussianBlurC(float** src, float** dst, const int W, const int H, const double sigma, int threads) {
+	gaussianBlur(src, dst, W, H, sigma, threads, false);
 }
 

@@ -400,6 +400,7 @@ int process_gauss(int nb){
 	}
 
 	unsharp(&gfit, g_ascii_strtod(word[1], NULL), 0.0, TRUE);
+	//gaussian_blur_RT(&gfit, g_ascii_strtod(word[1], NULL), com.max_thread);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
