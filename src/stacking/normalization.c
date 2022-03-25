@@ -49,7 +49,7 @@ static int _compute_estimators_for_image(struct stacking_args *args, int i,
 	g_assert(nb_layers <= 3);
 	g_assert(threading > 0);
 
-	retval = compute_all_channels_statistics_seqimage(args->seq, args->image_indices[i], NULL, STATS_NORM, threading, image_thread_id, stats);
+	retval = compute_all_channels_statistics_seqimage(args->seq, args->image_indices[i], NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, threading, image_thread_id, stats);
 
 	for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
 		imstats *stat = stats[layer];
@@ -59,17 +59,24 @@ static int _compute_estimators_for_image(struct stacking_args *args, int i,
 		}
 		switch (args->normalize) {
 		default:
+		/* In order to compute quick loc and  scale estimates
+		 * if lite_norm is true
+		 * location is replaced by median
+		 * scale is replaced by 1.5*mad which is a good approximation of
+		 * sqrt(bwmv) for a gaussian distribution (tested of large gaussian samples of 10M values)
+		 * sqrt(bwmv) itself being a good enough fit for IKSS scale estimator
+		 */
 		case ADDITIVE_SCALING:
-			args->coeff.pscale[layer][i] = stat->scale;
+			args->coeff.pscale[layer][i] = (args->lite_norm) ? 1.5 * stat->mad : stat->scale;
 			/* no break */
 		case ADDITIVE:
-			args->coeff.poffset[layer][i] = stat->location;
+			args->coeff.poffset[layer][i] = (args->lite_norm) ? stat->median : stat->location;
 			break;
 		case MULTIPLICATIVE_SCALING:
-			args->coeff.pscale[layer][i] = stat->scale;
+			args->coeff.pscale[layer][i] = (args->lite_norm) ? 1.5 * stat->mad : stat->scale;
 			/* no break */
 		case MULTIPLICATIVE:
-			args->coeff.pmul[layer][i] = stat->location;
+			args->coeff.pmul[layer][i] = (args->lite_norm) ? stat->median : stat->location;
 			break;
 		}
 		free_stats(stat);

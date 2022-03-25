@@ -14676,7 +14676,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                               </packing>
                                             </child>
                                             <child>
-                                              <!-- n-columns=2 n-rows=2 -->
+                                              <!-- n-columns=2 n-rows=3 -->
                                               <object class="GtkGrid">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
@@ -14732,6 +14732,12 @@ When processing images, registration data is taken from the default layer if ava
                                                     <property name="left-attach">1</property>
                                                     <property name="top-attach">1</property>
                                                   </packing>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
                                                 </child>
                                               </object>
                                               <packing>
@@ -14851,7 +14857,7 @@ When processing images, registration data is taken from the default layer if ava
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <!-- n-columns=3 n-rows=2 -->
+                                                      <!-- n-columns=3 n-rows=3 -->
                                                       <object class="GtkGrid">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
@@ -14923,7 +14929,7 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                           <object class="GtkLabel" id="label_minpairs">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
+                                                            <property name="halign">end</property>
                                                             <property name="label" translatable="yes">Minimum Star Pairs:</property>
                                                           </object>
                                                           <packing>
@@ -14954,6 +14960,40 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <property name="left-attach">2</property>
                                                             <property name="top-attach">1</property>
                                                           </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkLabel" id="label_maxstars">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="label" translatable="yes">Maximum Stars Fitted:</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">2</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkComboBoxText" id="comboreg_maxstars">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">The maximum number of stars to be searched for in each frame (default 2000). The larger this value, the more stars will potentially be detected, resulting in a longer detection but more accurate registration.</property>
+                                                            <property name="active">4</property>
+                                                            <items>
+                                                            <item translatable="yes">100</item>
+                                                            <item translatable="yes">200</item>
+                                                            <item translatable="yes">500</item>
+                                                            <item translatable="yes">1000</item>
+                                                            <item translatable="yes">2000</item>
+                                                            </items>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">2</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <placeholder/>
                                                         </child>
                                                         <child>
                                                           <placeholder/>
@@ -16100,6 +16140,22 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                         <property name="position">1</property>
                                                       </packing>
                                                     </child>
+                                                    <child>
+                                                      <object class="GtkCheckButton" id="checkfastnorm">
+                                                        <property name="label" translatable="yes">Faster normalisation</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median aboslute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
+                                                        <property name="valign">center</property>
+                                                        <property name="draw-indicator">True</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
                                                   </object>
                                                   <packing>
                                                     <property name="left-attach">1</property>
@@ -16823,49 +16879,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkBox">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="check_normalise_to_max">
-                                                        <property name="label" translatable="yes">Output
-Normalisation</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
-
-WARNING: This option should not be checked for master stacking.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">0</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="check_RGBequal">
-                                                        <property name="label" translatable="yes">RGB equalization</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">If you check this button, the channels in the final image will be equalized (color images only).
-
-WARNING: This option should not be checked for master stacking.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">1</property>
-                                                      </packing>
-                                                    </child>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">2</property>
-                                                    <property name="top-attach">1</property>
-                                                  </packing>
+                                                  <placeholder/>
                                                 </child>
                                                 <child>
                                                   <placeholder/>
@@ -16910,10 +16924,29 @@ WARNING: This option should not be checked for master stacking.</property>
                                             <property name="can-focus">False</property>
                                             <property name="orientation">vertical</property>
                                             <child>
-                                              <object class="GtkBox">
+                                              <!-- n-columns=3 n-rows=4 -->
+                                              <object class="GtkGrid">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="spacing">10</property>
+                                                <property name="row-spacing">10</property>
+                                                <property name="column-spacing">10</property>
+                                                <child>
+                                                  <object class="GtkCheckButton" id="check_normalise_to_max">
+                                                    <property name="label" translatable="yes">Output Normalisation</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">False</property>
+                                                    <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
+
+WARNING: This option should not be checked for master stacking.</property>
+                                                    <property name="halign">start</property>
+                                                    <property name="draw-indicator">True</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">1</property>
+                                                    <property name="top-attach">0</property>
+                                                    <property name="width">2</property>
+                                                  </packing>
+                                                </child>
                                                 <child>
                                                   <object class="GtkLabel" id="label30">
                                                     <property name="visible">True</property>
@@ -16922,21 +16955,41 @@ WARNING: This option should not be checked for master stacking.</property>
                                                     <property name="label" translatable="yes" comments="Must be short">Save in:</property>
                                                   </object>
                                                   <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">0</property>
+                                                    <property name="left-attach">0</property>
+                                                    <property name="top-attach">2</property>
                                                   </packing>
                                                 </child>
                                                 <child>
                                                   <object class="GtkEntry" id="entryresultfile">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
+                                                    <property name="hexpand">True</property>
                                                     <property name="invisible-char">●</property>
                                                   </object>
                                                   <packing>
-                                                    <property name="expand">True</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">1</property>
+                                                    <property name="left-attach">1</property>
+                                                    <property name="top-attach">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="gostack_button">
+                                                    <property name="label" translatable="yes">Start stacking</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Start stacking the current sequence of images, using the method and other information provided above.</property>
+                                                    <property name="margin-top">3</property>
+                                                    <property name="use-underline">True</property>
+                                                    <signal name="clicked" handler="on_seqstack_button_clicked" swapped="no"/>
+                                                    <style>
+                                                      <class name="suggested-action"/>
+                                                    </style>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">0</property>
+                                                    <property name="top-attach">3</property>
+                                                    <property name="width">3</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -16951,37 +17004,38 @@ WARNING: This option should not be checked for master stacking.</property>
                                                     <property name="draw-indicator">True</property>
                                                   </object>
                                                   <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">2</property>
+                                                    <property name="left-attach">2</property>
+                                                    <property name="top-attach">2</property>
                                                   </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkCheckButton" id="check_RGBequal">
+                                                    <property name="label" translatable="yes">RGB equalization</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">False</property>
+                                                    <property name="tooltip-text" translatable="yes">If you check this button, the channels in the final image will be equalized (color images only).
+
+WARNING: This option should not be checked for master stacking.</property>
+                                                    <property name="halign">start</property>
+                                                    <property name="draw-indicator">True</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">1</property>
+                                                    <property name="top-attach">1</property>
+                                                    <property name="width">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
                                                 </child>
                                               </object>
                                               <packing>
-                                                <property name="expand">False</property>
+                                                <property name="expand">True</property>
                                                 <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkButton" id="gostack_button">
-                                                <property name="label" translatable="yes">Start stacking</property>
-                                                <property name="visible">True</property>
-                                                <property name="sensitive">False</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="receives-default">True</property>
-                                                <property name="tooltip-text" translatable="yes">Start stacking the current sequence of images, using the method and other information provided above.</property>
-                                                <property name="margin-top">3</property>
-                                                <property name="use-underline">True</property>
-                                                <signal name="clicked" handler="on_seqstack_button_clicked" swapped="no"/>
-                                                <style>
-                                                  <class name="suggested-action"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">1</property>
+                                                <property name="position">3</property>
                                               </packing>
                                             </child>
                                           </object>

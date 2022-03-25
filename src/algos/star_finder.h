@@ -4,6 +4,7 @@
 struct starfinder_data {
 	fits *fit;
 	int layer;
+	int max_stars_fitted;
 };
 
 struct star_candidate_struct {
@@ -19,7 +20,7 @@ void init_peaker_GUI();
 void init_peaker_default();
 void update_peaker_GUI();
 void confirm_peaker_GUI();
-psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int threads);
+psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads);
 psf_star *add_star(fits *fit, int layer, int *index);
 int remove_star(int index);
 void sort_stars(psf_star **stars, int total);

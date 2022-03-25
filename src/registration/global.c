@@ -148,10 +148,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	siril_log_color_message(_("Reference Image:\n"), "green");
 
 	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, com.max_thread);
+		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
 	}
 	else {
-		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, com.max_thread);
+		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -260,10 +260,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, threads);
+			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, threads);
 		}
 		else {
-			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, threads);
+			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, threads);
 		}
 
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);

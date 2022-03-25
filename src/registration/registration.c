@@ -79,6 +79,11 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		"stored in FITS header and to load a sequence of star aligned images. This methods makes a translation of a certain number of pixels depending on "
 		"the timestamp of each images and the global shift of the object between the first and the last image.")
 };
+
+/*Possible values for max stars combo box
+Needs to be consistent with list in comboreg_maxstars*/
+static int maxstars_values[] = {100, 200, 500, 1000, 2000};
+
 /* callback for the selected area event */
 void _reg_selected_area_callback() {
 	if (!com.headless)
@@ -898,7 +903,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *regall, *follow, *matchSel, *no_translate, *x2upscale,
 			*cumul;
 	GtkComboBox *cbbt_layers;
-	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo;
+	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
 	GtkSpinButton *minpairs;
 
 	if (!reserve_thread()) {	// reentrant from here
@@ -939,6 +944,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
 	cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
 	minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
+	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 
 	reg_args->func = method->method_ptr;
@@ -952,6 +958,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
+	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
+	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION) {

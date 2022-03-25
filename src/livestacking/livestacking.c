@@ -686,6 +686,7 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.force_norm = FALSE;
 		stackparam.output_norm = FALSE;
 		stackparam.equalizeRGB = FALSE;		// not possible currently
+		stackparam.lite_norm = FALSE;
 		stackparam.use_32bit_output = FALSE;
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.apply_nbstack_weights = TRUE;

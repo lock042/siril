@@ -224,9 +224,10 @@ void confirm_peaker_GUI() {
  Original algorithm come from:
  Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
  */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int threads);
 
-psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int threads) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads);
+
+psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	int areaX0 = 0;
@@ -314,7 +315,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
 		for (int x = r + areaX0; x < areaX1 - r; x++) {
 			float pixel = smooth_image[y][x];
-			if (pixel > threshold && pixel < norm) {
+			if (pixel > threshold) {
 				gboolean bingo = TRUE;
 				float neighbor;
 				double mean = 0., meanhigh = 0.;
@@ -496,7 +497,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars, threads);
+	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars, maxstars, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars(results, nbstars);
@@ -512,7 +513,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int threads) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
@@ -544,7 +545,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 #pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1)
 #endif
 	for (int candidate = 0; candidate < nb_candidates; candidate++) {
-		if ((nbstars >= MAX_STARS_FITTED) && limit_nbstars)
+		if ((nbstars >= maxstars) && limit_nbstars)
 			continue;
 		int x = candidates[candidate].x, y = candidates[candidate].y;
 		int ii, jj, i, j, R;
@@ -740,7 +741,7 @@ gpointer findstar(gpointer p) {
 
 	int nbstars = 0;
 
-	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE, com.max_thread);
+	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
 	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
 
 	siril_add_idle(end_findstar, args);
