@@ -38,7 +38,6 @@
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
-#include "filters/wavelets.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -255,8 +254,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 	siril_debug_print("Threshold: %f (background: %f, norm: %f)\n", threshold, bg, norm);
 
-	/* Removing wavelets and applying a Gaussian filter to select candidates
-	 */
+	/* Applying a Gaussian filter to select candidates */
 	if (extract_fits(fit, &smooth_fit, layer, TRUE)) {
 		siril_log_color_message(_("Failed to copy the image for processing\n"), "red");
 		return NULL;
