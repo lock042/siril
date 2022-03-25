@@ -53,7 +53,7 @@ static int _compute_estimators_for_image(struct stacking_args *args, int i,
 	g_assert(nb_layers <= 3);
 	g_assert(threading > 0);
 
-	siril_debug_print(stdout, "computing stats for image %d, %d threads, lite: %d\n", i, threading, args->lite_norm);
+	siril_debug_print("computing stats for image %d, %d threads, lite: %d\n", i, threading, args->lite_norm);
 	retval = compute_all_channels_statistics_seqimage(args->seq, args->image_indices[i], NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, threading, image_thread_id, stats);
 
 	for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
