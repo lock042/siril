@@ -262,7 +262,8 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 		return NULL;
 	}
 
-	if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
+	//if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
+	if (gaussian_blur_RT(&smooth_fit, 3.0, threads)) {
 		siril_log_color_message(_("Could not apply Gaussian filter, aborting\n"), "red");
 		clearfits(&smooth_fit);
 		return NULL;

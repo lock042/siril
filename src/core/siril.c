@@ -103,10 +103,12 @@ int nozero(fits *fit, WORD level) {
 	return 0;
 }
 
-// in-place Gaussian blur with RawTherapee's implementation (SSE+vectorization+OpenMP)
-int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
+// in-place Gaussian blur with RawTherapee's implementation (SSE/vectorization and OpenMP)
+// only implemented for float and monochrome images, as support for other one-channel algorithms
+int gaussian_blur_RT(fits *fit, double sigma, int threads) {
+	g_assert(fit->naxes[2] == 1);
 	if (fit->type == DATA_FLOAT) {
-		fprintf(stdout, "Using RawTherapee in-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		siril_debug_print("Using RawTherapee in-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
 		// RawTherapee gaussianBlur (mono only)
 		int rx = (int)fit->naxes[0];
 		int ry = (int)fit->naxes[1];
@@ -126,9 +128,9 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 }
 
 // using a temporary buffer
-int gaussian_blur_RT(fits *fit, double sigma, int threads) {
+int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 	if (fit->type == DATA_FLOAT) {
-		fprintf(stdout, "Using RawTherapee out-of-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		siril_debug_print("Using RawTherapee out-of-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
 		// RawTherapee gaussianBlur (mono only)
 		size_t n = fit->naxes[0] * fit->naxes[1];
 		int rx = (int)fit->naxes[0];
