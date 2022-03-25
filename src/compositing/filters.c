@@ -28,7 +28,8 @@ narrow_filter narrow_band_filters[] = {
 	{ "H-beta", 486.1 },
 	{ "O III", 500.7 },
 	{ "S II", 671.7 },
-	{ "N II", 658.35 }
+	{ "N II", 658.35 },
+	{ "Ca II", 393.37 }
 };
 
 int get_nb_narrow_filters() {
