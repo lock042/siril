@@ -80,7 +80,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		goto the_end;
 	}
 	/* if there are less images in the sequence than threads, we still
-	 * distributed them */
+	 * distribute them */
 	if (args->max_parallel_images > nb_frames - 1)
 		args->max_parallel_images = nb_frames - 1;
 

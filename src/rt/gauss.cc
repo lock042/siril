@@ -1355,11 +1355,11 @@ template<class T> void gaussVerticalmult (T** src, T** dst, const int W, const i
 
 template<class T> void gaussianBlurImpl(T** src, T** dst, const int W, const int H, const double sigma, bool useBoxBlur, eGaussType gausstype = GAUSS_STANDARD, T** buffer2 = nullptr)
 {
+    static constexpr auto GAUSS_SKIP = 0.25;
     static constexpr auto GAUSS_3X3_LIMIT = 0.6;
     static constexpr auto GAUSS_5X5_LIMIT = 0.84;
     static constexpr auto GAUSS_7X7_LIMIT = 1.15;
     static constexpr auto GAUSS_DOUBLE = 25.0;
-    static constexpr auto GAUSS_SKIP = 0.25;
 
     if (useBoxBlur) {
         // special variant for very large sigma, currently only used by retinex algorithm

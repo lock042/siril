@@ -2167,7 +2167,7 @@ int process_offset(int nb){
 }
 
 /* The version in command line is a minimal version
- * Only neutral type are available (no amount needed), 
+ * Only neutral type are available (no amount needed),
  * then we always preserve the lightness */
 int process_scnr(int nb){
 	if (get_thread_run()) {
@@ -3321,7 +3321,7 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) { 
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
 #ifdef HAVE_CV44
 					reg_args->type = SHIFT_TRANSFORMATION;
 					continue;
@@ -3341,7 +3341,7 @@ int process_register(int nb) {
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"homography")) {
 					reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 					continue;
-				} 
+				}
 				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 				return 1;
 			} else if (g_str_has_prefix(word[i], "-layer=")) {
@@ -3355,7 +3355,7 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) { 
+				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) {
 					siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
 					continue;
 				}
@@ -3397,7 +3397,6 @@ int process_register(int nb) {
 					return 1;
 				}
 				reg_args->max_stars_candidates = g_ascii_strtoull(value, NULL, 10);
-				
 			}
 		}
 	}

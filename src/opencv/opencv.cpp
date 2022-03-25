@@ -517,7 +517,7 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	/* 3rd argument: Gaussian kernel size. When width and height are zeros
 	 * they are computed from sigma.
 	 */
-	std::cout << "using opencv GaussianBlur (CPU)" << std::endl;
+	siril_debug_print("using opencv GaussianBlur (CPU)\n");
 	GaussianBlur(in, out, Size(), sigma);
 	if (fabs(amount) > 0.0) {
 		out = in * (1 + amount) + out * (-amount);
