@@ -61,7 +61,7 @@ static int display_date(guint64 timestamp, char *txt) {
 	return 0;
 }
 
-static char *convert_color_id_to_char(ser_color color_id) {
+static const char *convert_color_id_to_char(ser_color color_id) {
 	switch (color_id) {
 	case SER_MONO:
 		return "MONO";
@@ -149,16 +149,9 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 			ts_ptr++;
 		}
 
-		if (timestamps_in_order) {
-			if (min_ts == max_ts)
-				fprintf(stdout, _("Warning: timestamps in the SER sequence are all identical.\n"));
-			else fprintf(stdout, _("Timestamps in the SER sequence are correctly ordered.\n"));
-		} else {
-			fprintf(stdout, _("Warning: timestamps in the SER sequence are not in the correct order.\n"));
-		}
-
 		ser_file->ts_min = min_ts;
 		ser_file->ts_max = max_ts;
+		ser_file->timestamps_in_order = timestamps_in_order;
 		double diff_ts = (ser_file->ts_max - ser_file->ts_min) / 1000.0;
 		// diff_ts now in units of 100 us or ten thousandths of a second
 		if (diff_ts > 0.0) {
@@ -492,7 +485,7 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 }
 
 void ser_display_info(struct ser_struct *ser_file) {
-	char *color = convert_color_id_to_char(ser_file->color_id);
+	const char *color = convert_color_id_to_char(ser_file->color_id);
 
 	siril_log_message("=========== SER file info ==============\n");
 	if (ser_file->filename)
@@ -515,6 +508,17 @@ void ser_display_info(struct ser_struct *ser_file) {
 	display_date(ser_file->date_utc, "UTC time: ");
 	if (ser_file->fps > 0.0)
 		siril_log_message("fps: %.3lf\n", ser_file->fps);
+	if (ser_file->timestamps_in_order) {
+		if (ser_file->ts_min == ser_file->ts_max) {
+			if (ser_file->ts_min == 0) {
+				siril_log_color_message(_("Warning: no timestamps stored in the SER file.\n"), "salmon");
+			} else {
+				siril_log_color_message(_("Warning: timestamps in the SER file are all identical.\n"), "salmon");
+			}
+		} else siril_log_message(_("Timestamps in the SER file are correctly ordered.\n"));
+	} else {
+		siril_log_color_message(_("Warning: timestamps in the SER file are not in the correct order.\n"), "salmon");
+	}
 	siril_log_message("========================================\n");
 }
 
@@ -797,7 +801,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	}
 	if (pattern) {
 		strcpy(fit->bayer_pattern, pattern);
-		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE);
+		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE - 1);
 	}
 
 	switch (type_ser) {
@@ -1272,9 +1276,9 @@ gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
 }
 
 int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to) {
-	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE);
-	strncpy(to->observer, ser_file->observer, FLEN_VALUE);
-	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE);
+	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE - 1);
+	strncpy(to->observer, ser_file->observer, FLEN_VALUE - 1);
+	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE - 1);
 	if (ser_file->fps > 0.0)
 		to->exposure = 1.0 / ser_file->fps;
 	return 0;

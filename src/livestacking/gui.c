@@ -62,18 +62,27 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 	livestacking_update_number_of_images(0, 0.0, -1.0);
 }
 
+static void update_icon(const gchar *name, gboolean is_loaded) {
+	GtkImage *image = GTK_IMAGE(lookup_widget(name));
+	if (is_loaded)
+		gtk_image_set_from_icon_name(image, "gtk-yes", GTK_ICON_SIZE_LARGE_TOOLBAR);
+	else
+		gtk_image_set_from_icon_name(image, "gtk-no", GTK_ICON_SIZE_LARGE_TOOLBAR);
+}
+
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {
 	static GtkLabel *conf_label = NULL;
 	if (!conf_label)
 		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
-	gchar * txt = g_strdup_printf(_("%s dark and cosmetic correction\n\n%s flat\n\n"
-			"Registering with %s transformation\n\n"
-			"Stacking with weighted mean"),
-			use_dark ? _("Using") : _("Not using"),
-			use_flat ? _("Using") : _("Not using"),
-			describe_transformation_type(regtype));
+
+	const char *desc = describe_transformation_type(regtype);
+	update_icon("ls_config", g_strcmp0(desc, "INVALID"));
+
+	gchar *txt = g_strdup_printf(_("Registering with %s transformation"), desc);
 	gtk_label_set_text(conf_label, txt);
 	g_free(txt);
+	update_icon("ls_masterdark", use_dark);
+	update_icon("ls_masterflat", use_flat);
 }
 
 void livestacking_update_number_of_images(int nb, double total_exposure, double noise) {
@@ -94,11 +103,13 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 	}
 	gchar *txt;
 	if (noise > 0.0) {
-		txt = g_strdup_printf(_("noise: %0.3f"), noise);
+		txt = g_strdup_printf(_("Noise: %0.3f"), noise);
 		set_label(label_stats, txt, TRUE);
+	} else {
+		set_label(label_stats, _("Noise: N/A"), FALSE);
 	}
 
-	txt = g_strdup_printf(_("%d images stacked\n\n%d %s of cumulated exposure"), nb, time, unit);
+	txt = g_strdup_printf(_("%d images stacked\n\n%d %s of cumulative exposure"), nb, time, unit);
 	set_label(label_cumul, txt, TRUE);
 }
 

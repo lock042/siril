@@ -216,7 +216,6 @@ void on_livestacking_start() {
 	if (live_stacker_thread)
 		return;
 	livestacking_display(_("Starting live stacking"), FALSE);
-	com.pref.force_to_16bit = TRUE;	// otherwise we'll register and stack different types of images
 	gui.rendering_mode = STF_DISPLAY;
 	set_display_mode();
 	force_unlinked_channels();
