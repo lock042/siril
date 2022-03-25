@@ -17,6 +17,8 @@ static int compute_normalization(struct stacking_args *args);
 int do_normalization(struct stacking_args *args) {
 	if (args->normalize == NO_NORM) return ST_OK;
 
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	int nb_frames = args->nb_images_to_stack;
 	int nb_layers = args->seq->nb_layers;
 
@@ -38,6 +40,8 @@ int do_normalization(struct stacking_args *args) {
 	if (args->seq->needs_saving)	// if we had to compute new stats
 		writeseqfile(args->seq);
 
+	gettimeofday(&t_end, NULL);
+	show_time_msg(t_start, t_end, "Normalization computation time");
 	return ST_OK;
 }
 
@@ -49,6 +53,7 @@ static int _compute_estimators_for_image(struct stacking_args *args, int i,
 	g_assert(nb_layers <= 3);
 	g_assert(threading > 0);
 
+	siril_debug_print(stdout, "computing stats for image %d, %d threads, lite: %d\n", i, threading, args->lite_norm);
 	retval = compute_all_channels_statistics_seqimage(args->seq, args->image_indices[i], NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, threading, image_thread_id, stats);
 
 	for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
@@ -199,6 +204,8 @@ static int compute_normalization(struct stacking_args *args) {
 		set_progress_bar_data(error_msg, PROGRESS_NONE);
 		return ST_GENERIC_ERROR;
 	}
+	if (nb_threads > args->nb_images_to_stack)
+		nb_threads = args->nb_images_to_stack;
 	int *threads_per_thread = compute_thread_distribution(nb_threads, com.max_thread);
 
 	set_progress_bar_data(NULL, 1.0 / (double)args->nb_images_to_stack);
