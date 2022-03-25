@@ -703,21 +703,32 @@ void initialize_default_preferences() {
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 }
 
-void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	free_preferences(&com.pref);
-	dump_ui_to_global_var();
+static int type_of_closure = 0;
 
-	initialize_FITS_name_entries(); // To update UI with new preferences
-	refresh_star_list(com.stars); // To update star list with new preferences
-	if (com.found_object)
-		force_to_refresh_catalogue_list();
-	save_main_window_state();
+void on_settings_window_hide(GtkWidget *widget, gpointer user_data) {
+	if (type_of_closure == 1) {
+		free_preferences(&com.pref);
+		dump_ui_to_global_var();
+
+		initialize_FITS_name_entries(); // To update UI with new preferences
+		refresh_star_list(com.stars); // To update star list with new preferences
+		if (com.found_object)
+			force_to_refresh_catalogue_list();
+		save_main_window_state();
+		writeinitfile();
+	} else {
+		set_preferences_ui(&com.pref);
+	}
+	type_of_closure = 0;
+}
+
+void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	type_of_closure = 1;
+
 	siril_close_dialog("settings_window");
-	writeinitfile();
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	set_preferences_ui(&com.pref);
 	siril_close_dialog("settings_window");
 }
 

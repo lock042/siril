@@ -105,6 +105,7 @@ struct ser_struct {			// size and offset from header
 	guint64 *ts;			// total timestamps
 	int ts_alloc;			// allocated number of elements in ts
 	guint64 ts_min, ts_max;		// min and max timestamp
+	gboolean timestamps_in_order;
 	double fps;			// frame rate
 
 	gint64 filesize;		// size of the file

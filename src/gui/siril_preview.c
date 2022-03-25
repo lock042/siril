@@ -75,9 +75,15 @@ void copy_gfit_to_backup() {
 	preview_is_active = TRUE;
 }
 
-void copy_backup_to_gfit() {
-	if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1))
+int copy_backup_to_gfit() {
+	int retval = 0;
+	if (!gfit.data && !gfit.fdata)
+		retval = 1;
+	else if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1)) {
 		siril_log_message(_("Image copy error in previews\n"));
+		retval = 1;
+	}
+	return retval;
 }
 
 fits *get_preview_gfit_backup() {

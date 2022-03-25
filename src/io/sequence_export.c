@@ -272,6 +272,7 @@ static gpointer export_sequence(gpointer ptr) {
 		stackargs.reglayer = reglayer;
 		stackargs.use_32bit_output = (output_bitpix == FLOAT_IMG);
 		stackargs.ref_image = args->seq->reference_image;
+		stackargs.equalizeRGB = FALSE;
 
 		// build image indices used by normalization
 		if (stack_fill_list_of_unfiltered_images(&stackargs))

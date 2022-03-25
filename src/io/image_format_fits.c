@@ -488,7 +488,7 @@ static gboolean siril_str_has_prefix(char *card, char **key) {
 
 /* remove leading and trailing ' and whitespaces */
 static void copy_string_key(char *to, char *from) {
-	strncpy(to, from + 1, FLEN_VALUE);
+	strncpy(to, from + 1, FLEN_VALUE - 1);
 	to[strlen(to) - 1] = '\0';
 	to = g_strstrip(to);
 }

@@ -20,8 +20,17 @@ static void update_sampling_information(fits *fit) {
 	fit->pixel_size_y *= 2;
 }
 
-static void update_filter_information(fits *fit, char *filter) {
-	strncpy(fit->filter, filter, FLEN_VALUE);
+void update_filter_information(fits *fit, char *filter, gboolean append) {
+	gchar *filtername = NULL;
+	if (append && (fit->filter)){
+		gchar *currfilter = g_strstrip(fit->filter);
+		if (g_strcmp0(currfilter, filter) && !(currfilter[0] == '\0')) { // to deal with case of Ha filter (avoids Ha_Ha) or empty filter name
+			filtername = g_strconcat(currfilter, "_", filter, NULL);
+		} else filtername = g_strdup(filter);
+	} else {
+		filtername = g_strdup(filter);
+	}
+	strncpy(fit->filter, filtername, FLEN_VALUE - 1);
 }
 
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
@@ -68,7 +77,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
-	update_filter_information(Ha, "Ha");
+	update_filter_information(Ha, "Ha", TRUE);
 
 	return 0;
 }
@@ -117,7 +126,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
-	update_filter_information(Ha, "Ha");
+	update_filter_information(Ha, "Ha", TRUE);
 
 	return 0;
 }
@@ -240,7 +249,7 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
 	update_sampling_information(green);
-	update_filter_information(green, "G");
+	update_filter_information(green, "G", TRUE);
 
 	return 0;
 }
@@ -284,7 +293,7 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
 	update_sampling_information(green);
-	update_filter_information(green, "G");
+	update_filter_information(green, "G", TRUE);
 
 	return 0;
 }
@@ -376,11 +385,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
-	update_filter_information(Ha, "Ha");
+	update_filter_information(Ha, "Ha", TRUE);
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII);
-	update_filter_information(OIII, "OIII");
+	update_filter_information(OIII, "OIII", TRUE);
 
 	return 0;
 }
@@ -434,11 +443,11 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
-	update_filter_information(Ha, "Ha");
+	update_filter_information(Ha, "Ha", TRUE);
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII);
-	update_filter_information(OIII, "OIII");
+	update_filter_information(OIII, "OIII", TRUE);
 
 	return 0;
 }
