@@ -149,6 +149,7 @@ void stop_live_stacking_engine() {
 	seq_rx = -1; seq_ry = -1;
 	use_demosaicing = BOOL_NOT_SET;
 	paused = FALSE;
+	first_stacking_result = TRUE;
 
 	show_hide_toolbox();
 	set_cursor_waiting(FALSE);
