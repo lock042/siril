@@ -13034,6 +13034,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                   <object class="GtkTreeView" id="treeview_convert">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
+                                                    <property name="margin-top">10</property>
                                                     <property name="model">liststore_convert</property>
                                                     <property name="headers-clickable">False</property>
                                                     <property name="reorderable">True</property>
@@ -13224,19 +13225,9 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                               <object class="GtkGrid" id="grid16">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
+                                                <property name="margin-top">10</property>
                                                 <property name="row-spacing">10</property>
                                                 <property name="column-spacing">10</property>
-                                                <child>
-                                                  <object class="GtkLabel" id="label62">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">Sequence name:</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">0</property>
-                                                    <property name="top-attach">0</property>
-                                                  </packing>
-                                                </child>
                                                 <child>
                                                   <object class="GtkEntry" id="startIndiceEntry">
                                                     <property name="visible">True</property>
@@ -13379,6 +13370,17 @@ Colour image target also applies to the debayer result for conversion.</property
                                                     <property name="top-attach">0</property>
                                                   </packing>
                                                 </child>
+                                                <child>
+                                                  <object class="GtkLabel" id="label62">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label" translatable="yes">Sequence name:</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">0</property>
+                                                    <property name="top-attach">0</property>
+                                                  </packing>
+                                                </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -13484,6 +13486,7 @@ SER files are directly handled as a sequence, and are not yet available for conv
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">10</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
@@ -13619,6 +13622,7 @@ WARNING: it will erase all registration and statistics data.</property>
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">10</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
@@ -14008,6 +14012,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                           <object class="GtkGrid" id="grid18">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">10</property>
                                             <property name="row-spacing">10</property>
                                             <property name="column-spacing">10</property>
                                             <child>
@@ -14294,6 +14299,7 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                             <property name="visible">True</property>
                                             <property name="sensitive">False</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">10</property>
                                             <property name="row-spacing">10</property>
                                             <property name="column-spacing">10</property>
                                             <child>
@@ -14624,6 +14630,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">10</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
@@ -15642,6 +15649,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                               <object class="GtkBox" id="box16">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
+                                                <property name="margin-top">10</property>
                                                 <property name="spacing">2</property>
                                                 <child>
                                                   <object class="GtkBox">
@@ -16080,88 +16088,13 @@ WARNING: gnuplot must be installed.</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
-                                              <!-- n-columns=3 n-rows=4 -->
+                                              <!-- n-columns=2 n-rows=4 -->
                                               <object class="GtkGrid" id="grid13">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
+                                                <property name="margin-top">10</property>
                                                 <property name="row-spacing">5</property>
                                                 <property name="column-spacing">5</property>
-                                                <child>
-                                                  <object class="GtkBox" id="box21">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <child>
-                                                      <object class="GtkComboBoxText" id="combonormalize">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="tooltip-markup" translatable="yes">If one of these items is selected, a normalisation process will be applied to all input
-images before stacking.
-- Normalisation matches the mean background of all input images, then, the
-normalisation is processed by multiplication or addition. Keep in mind that both
-processes generally lead to similar results but multiplicative normalisation is
-prefered for image which will be used for multiplication or division as flat-field.
-- Scale matches dispersion by weighting all input images. This tends to improve
-the signal-to-noise ratio and therefore this is the option used by default with
-the additive normalisation.
-
-&lt;b&gt;The offset and dark masters should not be processed with normalisation.
-However, multiplicative normalisation must be used with flat-field frames.&lt;/b&gt;</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="valign">center</property>
-                                                        <property name="active">3</property>
-                                                        <items>
-                                                          <item translatable="yes">No normalisation</item>
-                                                          <item translatable="yes">Additive</item>
-                                                          <item translatable="yes">Multiplicative</item>
-                                                          <item translatable="yes">Additive with scaling</item>
-                                                          <item translatable="yes">Multiplicative with scaling</item>
-                                                        </items>
-                                                        <signal name="changed" handler="on_combonormalize_changed" swapped="no"/>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">0</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="checkforcenorm">
-                                                        <property name="label" translatable="yes">Recompute</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">By default, Siril takes the normalisation coefficients from seq file if already computed. However you can force Siril to recompute it before stacking.</property>
-                                                        <property name="valign">center</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="checkfastnorm">
-                                                        <property name="label" translatable="yes">Faster normalisation</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median aboslute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
-                                                        <property name="valign">center</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">2</property>
-                                                      </packing>
-                                                    </child>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">1</property>
-                                                    <property name="top-attach">1</property>
-                                                  </packing>
-                                                </child>
                                                 <child>
                                                   <object class="GtkNotebook" id="notebook4">
                                                     <property name="visible">True</property>
@@ -16360,7 +16293,6 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                         </child>
                                                       </object>
                                                       <packing>
-                                                        <property name="position">1</property>
                                                         <property name="tab-expand">True</property>
                                                       </packing>
                                                     </child>
@@ -16452,78 +16384,9 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                     </child>
                                                   </object>
                                                   <packing>
-                                                    <property name="left-attach">1</property>
+                                                    <property name="left-attach">0</property>
                                                     <property name="top-attach">2</property>
                                                     <property name="width">2</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkLabel" id="label146">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="halign">end</property>
-                                                    <property name="label" translatable="yes">Normalisation:</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">0</property>
-                                                    <property name="top-attach">1</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkComboBoxText" id="comboboxstack_methods">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="tooltip-markup" translatable="yes">&lt;b&gt;Sum&lt;/b&gt;: This is the simplest method.
-Pixel values are added in an image normalized to 32-bit values.
-It increases signal/noise ratio (SNR) as square root of number of images.
-
-&lt;b&gt;Average with rejection&lt;/b&gt;: This method is used to reject deviant pixels iteratively.
-Six methods have been implemented:
-- Percentile Clipping
-- Sigma Clipping
-- Median Sigma Clipping
-- Winsorized Sigma Clipping
-- Linear Fit Clipping
-- Generalized Extreme Studentized Deviate Test
-After pixel rejection, the mean of the stack is computed.
-
-&lt;b&gt;Median&lt;/b&gt;: This method was mostly used for dark/flat/offset stacking although now we recommend the use of average with rejection stacking.
-The median value of the pixels in the stack is computed for each pixel.
-As this method should only be used for dark/flat/offset stacking, it does not take
-into account shifts computed during registration.
-
-&lt;b&gt;Pixel maximum&lt;/b&gt;: This case is mainly used to construct long exposure star-trails images.
-Pixels of the image are replaced by pixels at the same coordinates if intensity is greater.
-
-&lt;b&gt;Pixel minimum&lt;/b&gt;: This case could be useful to select the area to be cropped after the stack operation.
-Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.</property>
-                                                    <property name="valign">center</property>
-                                                    <property name="active">0</property>
-                                                    <items>
-                                                      <item translatable="yes">Sum stacking</item>
-                                                      <item translatable="yes">Average stacking with rejection</item>
-                                                      <item translatable="yes">Median stacking</item>
-                                                      <item translatable="yes">Pixel maximum stacking</item>
-                                                      <item translatable="yes">Pixel minimum stacking</item>
-                                                    </items>
-                                                    <signal name="changed" handler="on_comboboxstack_methods_changed" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">1</property>
-                                                    <property name="top-attach">0</property>
-                                                    <property name="width">2</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkLabel" id="label71">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="halign">end</property>
-                                                    <property name="label" translatable="yes">Methods:</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">0</property>
-                                                    <property name="top-attach">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -16873,19 +16736,186 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                     </child>
                                                   </object>
                                                   <packing>
-                                                    <property name="left-attach">1</property>
+                                                    <property name="left-attach">0</property>
                                                     <property name="top-attach">3</property>
                                                     <property name="width">2</property>
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <placeholder/>
+                                                  <object class="GtkFrame">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label-xalign">0</property>
+                                                    <property name="shadow-type">none</property>
+                                                    <child>
+                                                      <object class="GtkAlignment">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="left-padding">12</property>
+                                                        <child>
+                                                          <object class="GtkBox" id="box21">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <property name="spacing">10</property>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="combonormalize">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">If one of these items is selected, a normalisation process will be applied to all input
+images before stacking.
+- Normalisation matches the mean background of all input images, then, the
+normalisation is processed by multiplication or addition. Keep in mind that both
+processes generally lead to similar results but multiplicative normalisation is
+prefered for image which will be used for multiplication or division as flat-field.
+- Scale matches dispersion by weighting all input images. This tends to improve
+the signal-to-noise ratio and therefore this is the option used by default with
+the additive normalisation.
+
+&lt;b&gt;The offset and dark masters should not be processed with normalisation.
+However, multiplicative normalisation must be used with flat-field frames.&lt;/b&gt;</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="active">3</property>
+                                                            <items>
+                                                            <item translatable="yes">No normalisation</item>
+                                                            <item translatable="yes">Additive</item>
+                                                            <item translatable="yes">Multiplicative</item>
+                                                            <item translatable="yes">Additive with scaling</item>
+                                                            <item translatable="yes">Multiplicative with scaling</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_combonormalize_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="checkforcenorm">
+                                                            <property name="label" translatable="yes">Recompute</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">By default, Siril takes the normalisation coefficients from seq file if already computed. However you can force Siril to recompute it before stacking.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="checkfastnorm">
+                                                            <property name="label" translatable="yes">Faster normalisation</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median aboslute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                          </object>
+                                                        </child>
+                                                      </object>
+                                                    </child>
+                                                    <child type="label">
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">Normalisation:</property>
+                                                        <attributes>
+                                                          <attribute name="weight" value="bold"/>
+                                                        </attributes>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">0</property>
+                                                    <property name="top-attach">1</property>
+                                                    <property name="width">2</property>
+                                                  </packing>
                                                 </child>
                                                 <child>
-                                                  <placeholder/>
-                                                </child>
-                                                <child>
-                                                  <placeholder/>
+                                                  <object class="GtkFrame">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label-xalign">0</property>
+                                                    <property name="shadow-type">none</property>
+                                                    <child>
+                                                      <object class="GtkAlignment">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="left-padding">12</property>
+                                                        <child>
+                                                          <object class="GtkComboBoxText" id="comboboxstack_methods">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;Sum&lt;/b&gt;: This is the simplest method.
+Pixel values are added in an image normalized to 32-bit values.
+It increases signal/noise ratio (SNR) as square root of number of images.
+
+&lt;b&gt;Average with rejection&lt;/b&gt;: This method is used to reject deviant pixels iteratively.
+Six methods have been implemented:
+- Percentile Clipping
+- Sigma Clipping
+- Median Sigma Clipping
+- Winsorized Sigma Clipping
+- Linear Fit Clipping
+- Generalized Extreme Studentized Deviate Test
+After pixel rejection, the mean of the stack is computed.
+
+&lt;b&gt;Median&lt;/b&gt;: This method was mostly used for dark/flat/offset stacking although now we recommend the use of average with rejection stacking.
+The median value of the pixels in the stack is computed for each pixel.
+As this method should only be used for dark/flat/offset stacking, it does not take
+into account shifts computed during registration.
+
+&lt;b&gt;Pixel maximum&lt;/b&gt;: This case is mainly used to construct long exposure star-trails images.
+Pixels of the image are replaced by pixels at the same coordinates if intensity is greater.
+
+&lt;b&gt;Pixel minimum&lt;/b&gt;: This case could be useful to select the area to be cropped after the stack operation.
+Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">Sum stacking</item>
+                                                            <item translatable="yes">Average stacking with rejection</item>
+                                                            <item translatable="yes">Median stacking</item>
+                                                            <item translatable="yes">Pixel maximum stacking</item>
+                                                            <item translatable="yes">Pixel minimum stacking</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_comboboxstack_methods_changed" swapped="no"/>
+                                                          </object>
+                                                        </child>
+                                                      </object>
+                                                    </child>
+                                                    <child type="label">
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">Method:</property>
+                                                        <attributes>
+                                                          <attribute name="weight" value="bold"/>
+                                                        </attributes>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="left-attach">0</property>
+                                                    <property name="top-attach">0</property>
+                                                    <property name="width">2</property>
+                                                  </packing>
                                                 </child>
                                               </object>
                                               <packing>
@@ -16928,6 +16958,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                               <object class="GtkGrid">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
+                                                <property name="margin-top">10</property>
                                                 <property name="row-spacing">10</property>
                                                 <property name="column-spacing">10</property>
                                                 <child>
