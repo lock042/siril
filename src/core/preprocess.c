@@ -241,7 +241,7 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
                          * plus how many images can be stored in what remains
                          * unused by the main processing */
                         limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
-			siril_debug_print("%d MB avail for writer\n", MB_avail - required * thread_limit);
+			siril_debug_print("%u MB avail for writer\n", MB_avail - required * thread_limit);
                 } else limit = thread_limit;
 	}
 	if (limit == 0) {
@@ -669,6 +669,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
 				free(args->dark);
+				args->dark = NULL;
 				gtk_entry_set_text(entry, "");
 				args->use_dark = FALSE;
 				has_error = TRUE;
@@ -686,7 +687,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				free(args->dark);
+				if (args->dark)
+					free(args->dark);
 				gtk_entry_set_text(entry, "");
 				args->use_dark_optim = FALSE;
 				has_error = TRUE;

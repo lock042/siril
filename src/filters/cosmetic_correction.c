@@ -44,11 +44,11 @@
 #include "opencv/opencv.h"
 
 #include "cosmetic_correction.h"
-static int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
+static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
 		double amount, gboolean is_cfa, threading_type threads);
 
 /* see also getMedian3x3 in algos/PSF.c */
-static float getMedian5x5_float(float *buf, const int xx, const int yy, const int w,
+static float getMedian5x5_float(const float *buf, const int xx, const int yy, const int w,
 		const int h, gboolean is_cfa) {
 
 	const int step = is_cfa ? 2 : 1;
@@ -101,7 +101,7 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 	return cpyline;
 }
 
-static float* getAverage3x3Line_float(float *buf, const int yy, const int w,
+static float* getAverage3x3Line_float(const float *buf, const int yy, const int w,
 		const int h, gboolean is_cfa) {
 	int step, radius, x, xx, y;
 	float *cpyline;
@@ -130,7 +130,7 @@ static float* getAverage3x3Line_float(float *buf, const int yy, const int w,
 	return cpyline;
 }
 
-static float getAverage3x3_float(float *buf, const int xx, const int yy,
+static float getAverage3x3_float(const float *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
 
     const int step = is_cfa ? 2 : 1;
@@ -183,7 +183,7 @@ static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
  * returns NULL. It also returns NULL when no deviant pixel is found.
  * If cold == -1 or hot == -1, this is a flag to not compute cold or hot
  */
-deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
+deviant_pixel* find_deviant_pixels(fits *fit, const double sig[2], long *icold,
 		long *ihot, gboolean eval_only) {
 	int x, y;
 	WORD *buf;
@@ -601,7 +601,7 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 /* this is an autodetect algorithm. Cold and hot pixels
  *  are corrected in the same time */
-static int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
+static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
 		double amount, gboolean is_cfa, threading_type threading) {
 
 	/* XXX: if cfa, stats are irrelevant. We should compute them taking

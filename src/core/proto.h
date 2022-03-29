@@ -132,7 +132,7 @@ gchar *siril_truncate_str(gchar *str, gint size);
 char **glist_to_array(GList *list, int *arg_count);
 gchar* url_cleanup(const gchar *uri_string);
 void remove_spaces_from_str(gchar *s);
-gboolean string_is_a_number(char *str);
+gboolean string_is_a_number(const char *str);
 #if !GLIB_CHECK_VERSION(2,68,0)
 guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 		guint limit);

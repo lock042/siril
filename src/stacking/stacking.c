@@ -104,7 +104,7 @@ void initialize_stacking_methods() {
 
 }
 
-gboolean evaluate_stacking_should_output_32bits(stack_method method,
+gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err) {
 	gchar *error = NULL;
 	if (com.pref.force_to_16bit) {
@@ -634,7 +634,7 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	writeinitfile();
 }
 
-int find_refimage_in_indices(int *indices, int nb, int ref) {
+int find_refimage_in_indices(const int *indices, int nb, int ref) {
 	int i;
 	for (i = 0; i < nb; i++) {
 		if (indices[i] == ref)

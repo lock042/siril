@@ -569,7 +569,7 @@ static gpointer live_stacker(gpointer arg) {
 			if (!retval)
 				retval = debayer_if_needed(TYPEFITS, &fit, TRUE);
 			if (!retval)
-				savefits(target, &fit);
+				retval = savefits(target, &fit);
 			if (!retval) {
 				g_free(filename);
 				filename = target;

@@ -60,7 +60,7 @@ static void fft_to_spectra(fftwf_complex *frequency_repr, float *as, float *ps,
 	}
 }
 
-static void fft_to_freq(fftwf_complex *frequency_repr, float *as, float *ps,
+static void fft_to_freq(fftwf_complex *frequency_repr, const float *as, const float *ps,
 		size_t nbdata) {
 	for (size_t i = 0; i < nbdata; i++) {
 		frequency_repr[i] = as[i] * (cosf(ps[i]) + I * sinf(ps[i]));
@@ -139,7 +139,7 @@ static void centered_float(float *buf, unsigned int width, unsigned int height,
 	free(temp);
 }
 
-static void normalisation_spectra_ushort(unsigned int w, unsigned int h, float *modul, float *phase,
+static void normalisation_spectra_ushort(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		WORD *abuf, WORD *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
 		pbuf[i] = roundf_to_WORD(((phase[i] + (float)M_PI) * USHRT_MAX_SINGLE / (2.f * (float)M_PI)));
@@ -147,7 +147,7 @@ static void normalisation_spectra_ushort(unsigned int w, unsigned int h, float *
 	}
 }
 
-static void normalisation_spectra_float(unsigned int w, unsigned int h, float *modul, float *phase,
+static void normalisation_spectra_float(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		float *abuf, float *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
 		pbuf[i] = (phase[i] + (float)M_PI) / (2.f * (float)M_PI);

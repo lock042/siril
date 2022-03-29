@@ -132,7 +132,7 @@ struct outliers {
 
 void initialize_stacking_default();
 void initialize_stacking_methods();
-gboolean evaluate_stacking_should_output_32bits(stack_method method,
+gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err);
 
 int stack_median(struct stacking_args *args);
@@ -164,7 +164,7 @@ struct _image_block {
 };
 
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
 
 /* pool of memory blocks for parallel processing */
 struct _data_block {
@@ -178,7 +178,7 @@ struct _data_block {
 	int layer;	// to identify layer for normalization
 };
 
-int find_refimage_in_indices(int *indices, int nb, int ref);
+int find_refimage_in_indices(const int *indices, int nb, int ref);
 
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
 

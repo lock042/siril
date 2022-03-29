@@ -34,7 +34,7 @@ struct deviant_struct {
 	typeOfDeviant type;
 };
 
-deviant_pixel *find_deviant_pixels(fits *fit, double sig[2], long *icold, long *ihot, gboolean eval_only);
+deviant_pixel *find_deviant_pixels(fits *fit, const double sig[2], long *icold, long *ihot, gboolean eval_only);
 void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args);
 int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa);
 void apply_cosme_to_sequence(struct cosme_data *cosme_args);

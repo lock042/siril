@@ -28,7 +28,7 @@
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 
-static int percentile_clipping(float pixel, float sig[], float median,
+static int percentile_clipping(float pixel, const float sig[], float median,
 		guint64 rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
@@ -59,7 +59,7 @@ static int sigma_clipping_float(float pixel, float sigma, float sigmalow,
 	return 0;
 }
 
-static int line_clipping(float pixel, float sig[], float sigma, int i, float a,
+static int line_clipping(float pixel, const float sig[], float sigma, int i, float a,
 		float b, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];

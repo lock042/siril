@@ -1464,7 +1464,7 @@ fits *internal_sequence_get(sequence *seq, int index) {
 }
 
 // find index of the fit argument in the sequence
-int internal_sequence_find_index(sequence *seq, fits *fit) {
+int internal_sequence_find_index(sequence *seq, const fits *fit) {
 	int i;
 	assert(seq);
 	assert(seq->internal_fits);

@@ -462,9 +462,12 @@ static void crop_float(fits *fit, rectangle *bounds) {
 }
 
 int crop(fits *fit, rectangle *bounds) {
+#ifdef HAVE_WCSLIB
 	point shift; //need to be computed before fit rx/ry are altered by crop
 	shift.x = (double)(bounds->x);
 	shift.y = fit->ry - (double)(bounds->h) - (double)(bounds->y) - 1; // for top-bottom flip
+#endif
+
 	if (fit->type == DATA_USHORT) {
 		crop_ushort(fit, bounds);
 	} else if (fit->type == DATA_FLOAT) {

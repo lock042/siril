@@ -567,7 +567,7 @@ const gchar *layer_name_for_gfit(int layer) {
 	}
 }
 
-int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb) {
+int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb) {
 	/* could be done with a for i=0 loop, to get rid of these defines */
 	if (drawing_area == gui.view[RED_VPORT].drawarea)
 		return RED_VPORT;

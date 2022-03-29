@@ -1607,7 +1607,7 @@ void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]) {
 	pc[1][1] = cd[1][1] / cdelt[1];
 }
 
-void wcs_pc_to_cd(double pc[][2], double cdelt[2], double cd[][2]) {
+void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 	cd[0][0] = pc[0][0] * cdelt[0];
 	cd[0][1] = pc[0][1] * cdelt[0];
 	cd[1][0] = pc[1][0] * cdelt[1];

@@ -390,9 +390,10 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	std::vector<Point2f> ref;
 	std::vector<Point2f> img;
 	// needed for shift transform which uses estimateTranslation3D
+#ifdef HAVE_CV44
 	std::vector<Point3f> ref3;
 	std::vector<Point3f> img3;
-
+#endif
 	Mat H, a, mask, s;
 	unsigned char *ret = NULL;
 

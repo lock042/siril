@@ -296,7 +296,6 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 			ref[star].y = results[refimage].stars[2]->ypos;
 			cur[star].x = results[in_index].stars[2]->xpos;
 			cur[star].y = results[in_index].stars[2]->ypos;
-			star++;
 		}
 
 		if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation))

@@ -9,7 +9,7 @@ gboolean update_zoom(gdouble x, gdouble y, double scale);
 void update_zoom_fit_button();
 
 void register_selection_update_callback(selection_update_callback f);
-void unregister_selection_update_callback(selection_update_callback f);
+void unregister_selection_update_callback(const selection_update_callback f);
 
 void new_selection_zone();
 void delete_selected_area();

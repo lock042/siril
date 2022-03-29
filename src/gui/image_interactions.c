@@ -137,7 +137,7 @@ void register_selection_update_callback(selection_update_callback f) {
 	}
 }
 
-void unregister_selection_update_callback(selection_update_callback f) {
+void unregister_selection_update_callback(const selection_update_callback f) {
 	int i;
 	for (i = 0; i < _nb_selection_callbacks; ++i) {
 		if (_registered_selection_callbacks[i] == f) {

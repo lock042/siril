@@ -736,11 +736,11 @@ static void select_image(int nb) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] ||
 							height != f.naxes[1])) {
-						gchar *f = g_path_get_basename(filename);
+						gchar *name = g_path_get_basename(filename);
 						gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
-								" (width, height or number of channels).", f);
+								" (width, height or number of channels).", name);
 						siril_message_dialog(GTK_MESSAGE_ERROR, _("Image must have same dimension"), str);
-						g_free(f);
+						g_free(name);
 						g_free(str);
 
 					} else {

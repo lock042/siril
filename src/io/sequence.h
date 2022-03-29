@@ -59,7 +59,7 @@ void	check_or_allocate_regparam(sequence *seq, int layer);
 void	set_shifts(sequence *seq, int frame, int layer, float shiftx, float shifty, gboolean data_is_top_down);
 sequence *create_internal_sequence(int size);
 void	internal_sequence_set(sequence *seq, int index, fits *fit);
-int	internal_sequence_find_index(sequence *seq, fits *fit);
+int	internal_sequence_find_index(sequence *seq, const fits *fit);
 fits	*internal_sequence_get(sequence *seq, int index);
 gboolean sequence_is_rgb(sequence *seq);
 void	enforce_area_in_image(rectangle *area, sequence *seq);

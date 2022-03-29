@@ -100,7 +100,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
  * include_self is TRUE. radius is 1 for a 3x3, 2 for a 5x5 and so on.
  * w and h are the size of the image passed in buf.
  */
-double get_median_ushort(WORD *buf, const int xx, const int yy, const int w,
+double get_median_ushort(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self) {
 	int n = 0, step = 1, x, y, ksize;
 	WORD *values;
@@ -129,7 +129,7 @@ double get_median_ushort(WORD *buf, const int xx, const int yy, const int w,
 	return median;
 }
 
-double get_median_float(float *buf, const int xx, const int yy, const int w,
+double get_median_float(const float *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self) {
 	int n = 0, step = 1, x, y, ksize;
 	float *values;
@@ -158,7 +158,7 @@ double get_median_float(float *buf, const int xx, const int yy, const int w,
 	return median;
 }
 
-float get_median_float_fast(float *buf, const int xx, const int yy, const int w,
+static float get_median_float_fast(const float *buf, const int xx, const int yy, const int w,
 		const int h, int radius) {
 
 	int ksize = radius * 2 + 1;
@@ -178,7 +178,7 @@ float get_median_float_fast(float *buf, const int xx, const int yy, const int w,
 	return quickmedian_float(values, n);
 }
 
-float get_median_ushort_fast(WORD *buf, const int xx, const int yy, const int w,
+static float get_median_ushort_fast(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius) {
 
 	int ksize = radius * 2 + 1;

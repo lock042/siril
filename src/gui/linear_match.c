@@ -146,7 +146,7 @@ int find_linear_coeff(fits *target_fit, fits *reference_fit, double low,
 	return 1;
 }
 
-static void apply_linear_to_fits_ushort(fits *fit, double *a, double *b) {
+static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
 	invalidate_stats_from_fit(&gfit);
@@ -157,7 +157,7 @@ static void apply_linear_to_fits_ushort(fits *fit, double *a, double *b) {
 	}
 }
 
-static void apply_linear_to_fits_float(fits *fit, double *a, double *b) {
+static void apply_linear_to_fits_float(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
 	invalidate_stats_from_fit(&gfit);

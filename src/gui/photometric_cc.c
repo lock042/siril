@@ -344,7 +344,7 @@ static void get_background_coefficients(fits *fit, rectangle *area, coeff bg[], 
 	}
 }
 
-static int apply_white_balance(fits *fit, float kw[]) {
+static int apply_white_balance(fits *fit, const float kw[]) {
 	for (int chan = 0; chan < 3; chan++) {
 		float scale = kw[chan];
 		if (scale == 1.0) continue;
