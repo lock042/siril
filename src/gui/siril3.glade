@@ -12873,6 +12873,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                   <object class="GtkBox" id="box74">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
+                                                    <property name="margin-top">10</property>
                                                     <property name="orientation">vertical</property>
                                                     <property name="spacing">10</property>
                                                     <child>
@@ -13038,6 +13039,51 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                         <property name="position">1</property>
                                                       </packing>
                                                     </child>
+                                                    <child>
+                                                      <object class="GtkFrame">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label-xalign">0</property>
+                                                        <property name="shadow-type">none</property>
+                                                        <child>
+                                                          <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <object class="GtkLabel" id="label_supported_types">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Supported types depend on compile-time libraries availability. See documentation.
+RAW images are raw images from digital cameras, like CR2 files for Canon or NEF for Nikon.
+Films of any type can be converted as FITS or SER.
+SER files are directly handled as a sequence, and are not yet available for conversion.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-top">10</property>
+                                                            <property name="label">- list is filled at runtime -</property>
+                                                            <property name="wrap">True</property>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                        </child>
+                                                        <child type="label">
+                                                          <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Supported file types:</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                          </object>
+                                                        </child>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
                                                   </object>
                                                 </child>
                                                 <child type="label">
@@ -13063,102 +13109,96 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
                                                 <child>
-                                                  <object class="GtkBox">
+                                                  <!-- n-columns=4 n-rows=2 -->
+                                                  <object class="GtkGrid" id="grid16">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="orientation">vertical</property>
-                                                    <property name="spacing">10</property>
+                                                    <property name="margin-top">10</property>
+                                                    <property name="row-spacing">10</property>
+                                                    <property name="column-spacing">10</property>
                                                     <child>
-                                                      <!-- n-columns=4 n-rows=2 -->
-                                                      <object class="GtkGrid" id="grid16">
+                                                      <object class="GtkEntry" id="startIndiceEntry">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="tooltip-text" translatable="yes">Indicates the start indice of your converted files. This value must be included in the [1, 65535] range.</property>
+                                                        <property name="valign">center</property>
+                                                        <property name="max-length">5</property>
+                                                        <property name="width-chars">5</property>
+                                                        <property name="max-width-chars">5</property>
+                                                        <property name="text">00001</property>
+                                                        <property name="input-purpose">digits</property>
+                                                        <signal name="activate" handler="on_startIndiceEntry_activate" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="left-attach">2</property>
+                                                        <property name="top-attach">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkButton" id="convert_button">
+                                                        <property name="label" translatable="yes">Convert</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="sensitive">False</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="receives-default">True</property>
+                                                        <property name="tooltip-text" translatable="yes">Start conversion of all source files into the configured output files, FITS or SER, with colour processing or not.</property>
+                                                        <property name="always-show-image">True</property>
+                                                        <signal name="clicked" handler="on_convert_button_clicked" swapped="no"/>
+                                                        <style>
+                                                          <class name="suggested-action"/>
+                                                        </style>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="left-attach">0</property>
+                                                        <property name="top-attach">1</property>
+                                                        <property name="width">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkComboBoxText" id="prepro_output_type_combo1">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="margin-top">10</property>
-                                                        <property name="row-spacing">10</property>
-                                                        <property name="column-spacing">10</property>
-                                                        <child>
-                                                          <object class="GtkEntry" id="startIndiceEntry">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Indicates the start indice of your converted files. This value must be included in the [1, 65535] range.</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="max-length">5</property>
-                                                            <property name="width-chars">5</property>
-                                                            <property name="max-width-chars">5</property>
-                                                            <property name="text">00001</property>
-                                                            <property name="input-purpose">digits</property>
-                                                            <signal name="activate" handler="on_startIndiceEntry_activate" swapped="no"/>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="left-attach">2</property>
-                                                            <property name="top-attach">0</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <object class="GtkButton" id="convert_button">
-                                                            <property name="label" translatable="yes">Convert</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="sensitive">False</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Start conversion of all source files into the configured output files, FITS or SER, with colour processing or not.</property>
-                                                            <property name="always-show-image">True</property>
-                                                            <signal name="clicked" handler="on_convert_button_clicked" swapped="no"/>
-                                                            <style>
-                                                            <class name="suggested-action"/>
-                                                            </style>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">1</property>
-                                                            <property name="width">2</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <object class="GtkComboBoxText" id="prepro_output_type_combo1">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">This sets the destination sequence type.
+                                                        <property name="tooltip-text" translatable="yes">This sets the destination sequence type.
 FITS images: one FITS file per image.
 SER sequence: one SER file for the whole sequence (limited to 16 bits per channel).
 FITS sequence: one FITS file for the whole sequence.
 
 Note: FITS images will have no effect when the pre-processed sequence is SER or FITS sequence file.</property>
-                                                            <property name="active">0</property>
-                                                            <property name="active-id">0</property>
-                                                            <items>
-                                                            <item translatable="yes">FITS images</item>
-                                                            <item translatable="yes">SER sequence</item>
-                                                            <item translatable="yes">FITS sequence</item>
-                                                            </items>
-                                                            <signal name="changed" handler="on_prepro_output_type_combo1_changed" swapped="no"/>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="left-attach">3</property>
-                                                            <property name="top-attach">0</property>
-                                                          </packing>
-                                                        </child>
+                                                        <property name="active">0</property>
+                                                        <property name="active-id">0</property>
+                                                        <items>
+                                                          <item translatable="yes">FITS images</item>
+                                                          <item translatable="yes">SER sequence</item>
+                                                          <item translatable="yes">FITS sequence</item>
+                                                        </items>
+                                                        <signal name="changed" handler="on_prepro_output_type_combo1_changed" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="left-attach">3</property>
+                                                        <property name="top-attach">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkBox">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
                                                         <child>
-                                                          <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="multiple_seq">
+                                                          <object class="GtkCheckButton" id="multiple_seq">
                                                             <property name="label" translatable="yes">Multiple sequences</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Tick this to create several sequence files instead of a single SER or FITS file for all input elements. Use this if input elements (sequence files such as films, SER or FITS cubes) don't share the same image size or must not be processed together.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
+                                                          </object>
+                                                          <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="convert_symlink">
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="convert_symlink">
                                                             <property name="label" translatable="yes">Symbolic Link</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
@@ -13169,15 +13209,15 @@ Note: FITS images will have no effect when the pre-processed sequence is SER or 
                                                             <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
+                                                          </object>
+                                                          <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="demosaicingButton">
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="demosaicingButton">
                                                             <property name="label" translatable="yes">Debayer</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
@@ -13188,98 +13228,45 @@ Colour image target also applies to the debayer result for conversion.</property
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_demosaicing_toggled" swapped="no"/>
-                                                            </object>
-                                                            <packing>
+                                                          </object>
+                                                          <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="left-attach">2</property>
-                                                            <property name="top-attach">1</property>
-                                                            <property name="width">2</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <object class="GtkEntry" id="convroot_entry">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Enter the base name of the sequence, for example NGC_6822-L. It will create images in the form NGC_6822-L_00001.fit.</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="hexpand">True</property>
-                                                            <signal name="activate" handler="on_convroot_entry_activate" swapped="no"/>
-                                                            <signal name="changed" handler="on_convtoroot_changed" swapped="no"/>
-                                                            <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">0</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <object class="GtkLabel" id="label62">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="label" translatable="yes">Sequence name:</property>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">0</property>
                                                           </packing>
                                                         </child>
                                                       </object>
                                                       <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">0</property>
+                                                        <property name="left-attach">2</property>
+                                                        <property name="top-attach">1</property>
+                                                        <property name="width">2</property>
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkBox" id="box69">
+                                                      <object class="GtkEntry" id="convroot_entry">
                                                         <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="spacing">10</property>
-                                                        <child>
-                                                          <object class="GtkLabel" id="label72">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Supported file types:</property>
-                                                            <property name="single-line-mode">True</property>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">0</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <object class="GtkLabel" id="label_supported_types">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Supported types depend on compile-time libraries availability. See documentation.
-RAW images are raw images from digital cameras, like CR2 files for Canon or NEF for Nikon.
-Films of any type can be converted as FITS or SER.
-SER files are directly handled as a sequence, and are not yet available for conversion.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="valign">start</property>
-                                                            <property name="label">- list is filled at runtime -</property>
-                                                            <property name="wrap">True</property>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">5</property>
-                                                            <property name="position">1</property>
-                                                          </packing>
-                                                        </child>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="tooltip-text" translatable="yes">Enter the base name of the sequence, for example NGC_6822-L. It will create images in the form NGC_6822-L_00001.fit.</property>
+                                                        <property name="valign">center</property>
+                                                        <property name="hexpand">True</property>
+                                                        <signal name="activate" handler="on_convroot_entry_activate" swapped="no"/>
+                                                        <signal name="changed" handler="on_convtoroot_changed" swapped="no"/>
+                                                        <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
                                                       </object>
                                                       <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">1</property>
+                                                        <property name="left-attach">1</property>
+                                                        <property name="top-attach">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel" id="label62">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">Sequence name:</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="left-attach">0</property>
+                                                        <property name="top-attach">0</property>
                                                       </packing>
                                                     </child>
                                                   </object>
@@ -14823,7 +14810,7 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             </child>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">False</property>
+                                                            <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">1</property>
                                                             </packing>
@@ -15559,6 +15546,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
+                                                            <property name="spacing">10</property>
                                                             <child>
                                                             <object class="GtkToggleButton" id="togglebutton2">
                                                             <property name="label" translatable="yes">Set first preview</property>
@@ -15600,6 +15588,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
+                                                            <property name="spacing">10</property>
                                                             <child>
                                                             <object class="GtkToggleButton" id="togglebutton3">
                                                             <property name="label" translatable="yes">Set second preview</property>
@@ -16134,10 +16123,12 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-markup" translatable="yes">If one of these items is selected, a normalisation process will be applied to all input
 images before stacking.
+
 - Normalisation matches the mean background of all input images, then, the
 normalisation is processed by multiplication or addition. Keep in mind that both
 processes generally lead to similar results but multiplicative normalisation is
 prefered for image which will be used for multiplication or division as flat-field.
+
 - Scale matches dispersion by weighting all input images. This tends to improve
 the signal-to-noise ratio and therefore this is the option used by default with
 the additive normalisation.
@@ -16270,7 +16261,6 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <object class="GtkSpinButton" id="stack_siglow_button">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="halign">start</property>
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
                                                             <property name="text">4,000</property>
@@ -16293,7 +16283,6 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <object class="GtkLabel" id="label_low">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
                                                             <property name="label" translatable="yes">Sigma low: </property>
                                                             </object>
                                                             <packing>
@@ -16305,7 +16294,6 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <object class="GtkSpinButton" id="stack_sighigh_button">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="halign">start</property>
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
                                                             <property name="text">3,000</property>
@@ -16328,7 +16316,6 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <object class="GtkLabel" id="label_high">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
                                                             <property name="label" translatable="yes">Sigma high: </property>
                                                             </object>
                                                             <packing>
