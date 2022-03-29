@@ -14515,13 +14515,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
-                                                            <child>
-                                                            <!-- n-columns=2 n-rows=2 -->
-                                                            <object class="GtkGrid">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="row-spacing">10</property>
-                                                            <property name="column-spacing">10</property>
+                                                            <property name="spacing">10</property>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="comboboxregmethod">
                                                             <property name="visible">True</property>
@@ -14529,11 +14523,15 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                             <signal name="changed" handler="on_comboboxregmethod_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">0</property>
-                                                            <property name="width">2</property>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
                                                             </packing>
                                                             </child>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
                                                             <child>
                                                             <object class="GtkLabel" id="label14">
                                                             <property name="visible">True</property>
@@ -14542,8 +14540,9 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                             <property name="label" translatable="yes">Registration channel: </property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -14556,15 +14555,16 @@ When processing images, registration data is taken from the default layer if ava
                                                             <signal name="changed" handler="on_comboboxreglayer_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
                                                             </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">0</property>
+                                                            <property name="position">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15201,7 +15201,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -15255,7 +15255,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                           <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="label" translatable="yes">Frame selection:</property>
+                                                            <property name="label" translatable="yes">Image selection:</property>
                                                             <attributes>
                                                             <attribute name="weight" value="bold"/>
                                                             </attributes>
