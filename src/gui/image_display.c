@@ -524,8 +524,8 @@ static void draw_vport(const draw_data_t* dd) {
 		cairo_paint(cached_cr);
 		cairo_destroy(cached_cr);
 
-		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
-				view->view_width, view->view_height);
+//		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
+//				view->view_width, view->view_height);
 	}
 	cairo_set_source_surface(dd->cr, view->disp_surface, 0, 0);
 	cairo_paint(dd->cr);

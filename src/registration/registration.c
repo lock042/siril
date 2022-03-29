@@ -731,7 +731,7 @@ int get_registration_layer(sequence *seq) {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL;
 	static GtkLabel *labelreginfo = NULL;
-	static GtkToggleButton *reg_all = NULL, *reg_sel = NULL;
+	static GtkComboBox *reg_all_sel_box = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
@@ -740,8 +740,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
 		follow = lookup_widget("followStarCheckButton");
-		reg_all = GTK_TOGGLE_BUTTON(lookup_widget("regallbutton"));
-		reg_sel = GTK_TOGGLE_BUTTON(lookup_widget("regselbutton"));
+		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
 		cumul_data = lookup_widget("check_button_comet");
@@ -749,9 +748,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	if (!dont_change_reg_radio) {
 		if (com.seq.selnum < com.seq.number)
-			gtk_toggle_button_set_active(reg_sel, TRUE);
+			gtk_combo_box_set_active(reg_all_sel_box, 1);
 		else
-			gtk_toggle_button_set_active(reg_all, TRUE);
+			gtk_combo_box_set_active(reg_all_sel_box, 0);
 	}
 
 	selection_is_done = (com.selection.w > 0 && com.selection.h > 0);
@@ -764,7 +763,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	method = get_selected_registration_method();
 
 	/* number of registered image */
-	nb_images_reg = gtk_toggle_button_get_active(reg_all) ? com.seq.number : com.seq.selnum;
+	nb_images_reg = gtk_combo_box_get_active(reg_all_sel_box) == 0 ? com.seq.number : com.seq.selnum;
 
 	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION)) {
 		if (method->method_ptr == &register_star_alignment) {
