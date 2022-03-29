@@ -10519,6 +10519,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <object class="GtkEntry" id="pixel_math_entry_r">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_r_focus_in_event" swapped="no"/>
                   </object>
                 </child>
@@ -10557,6 +10558,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_g_focus_in_event" swapped="no"/>
                   </object>
                 </child>
@@ -10595,6 +10597,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_b_focus_in_event" swapped="no"/>
                   </object>
                 </child>
@@ -15867,6 +15870,23 @@ Cross marker: the value for the currently loaded frame.</property>
                                           </packing>
                                         </child>
                                         <child>
+                                          <object class="GtkButton" id="ButtonSavePlot">
+                                            <property name="label" translatable="yes">Save Plot</property>
+                                            <property name="visible">True</property>
+                                            <property name="sensitive">False</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+                                            <property name="halign">center</property>
+                                            <signal name="clicked" handler="on_ButtonSavePlot_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
                                           <object class="GtkLabel">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
@@ -15885,7 +15905,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                             <property name="fill">True</property>
                                             <property name="padding">6</property>
                                             <property name="pack-type">end</property>
-                                            <property name="position">5</property>
+                                            <property name="position">6</property>
                                           </packing>
                                         </child>
                                       </object>
