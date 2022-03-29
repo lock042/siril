@@ -101,7 +101,7 @@ int static test_ind(int ind, int N) {
 
 /****************************************************************************/
 
-int pave_2d_linear_smooth(float *Imag, float *Smooth, int Nl, int Nc,
+int pave_2d_linear_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 		int Num_Plan) {
 	int i, j, Step;
 	int indi1, indj1, indi2, indj2;
@@ -180,7 +180,7 @@ int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 /***************************************************************************/
 
 int pave_2d_build(float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan,
-		float *coef) {
+		const float *coef) {
 	int Num_Plan;
 
 	memset(Imag, 0.0, Nl * Nc * sizeof(float));
@@ -212,7 +212,7 @@ int pave_2d_extract_plan(float *Pave, float *Imag, int Nl, int Nc, int Num_Plan)
 
 /***************************************************************************/
 
-int pave_2d_bspline_smooth(float *Imag, float *Smooth, int Nl, int Nc,
+int pave_2d_bspline_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 		int Num_Plan) {
 	int i, j, Step;
 	

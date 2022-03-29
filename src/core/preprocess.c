@@ -241,7 +241,7 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
                          * plus how many images can be stored in what remains
                          * unused by the main processing */
                         limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
-			siril_debug_print("%d MB avail for writer\n", MB_avail - required * thread_limit);
+			siril_debug_print("%u MB avail for writer\n", MB_avail - required * thread_limit);
                 } else limit = thread_limit;
 	}
 	if (limit == 0) {

@@ -34,7 +34,7 @@
 
 static float SubSample(float *ptr, int img_wid, int x_size, int y_size);
 static void _smooth_image_float(float *buf, int width, int height);
-static double Gradient(float *buf, int width, int height);
+static double Gradient(const float *buf, int width, int height);
 
 // -------------------------------------------------------
 // Method to estimate quality.
@@ -165,7 +165,7 @@ static float SubSample(float *ptr, int img_wid, int x_size, int y_size) {
 	return val / (float)(x_size * y_size);
 }
 
-static double Gradient(float *buf, int width, int height) {
+static double Gradient(const float *buf, int width, int height) {
 	int pixels;
 	int x, y;
 	int yborder = (int) ((double) height * QMARGIN) + 1;

@@ -1296,7 +1296,7 @@ void remove_spaces_from_str(gchar *s) {
 	} while((*s++ = *d++));
 }
 
-gboolean string_is_a_number(char *str) {
+gboolean string_is_a_number(const char *str) {
 	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
 		return FALSE;
 	int i = 0;

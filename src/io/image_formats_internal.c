@@ -699,7 +699,7 @@ int saveNetPBM(const char *name, fits *fit) {
 }
 
 
-static int pictofit(WORD *buf, fits *fit) {
+static int pictofit(const WORD *buf, fits *fit) {
 	WORD *data, *olddata = fit->data;
 
 	size_t i, nbdata = fit->rx * fit->ry;
@@ -725,7 +725,7 @@ static int pictofit(WORD *buf, fits *fit) {
 	return 0;
 }
 
-static int pictofitrgb(WORD *buf, fits *fit) {
+static int pictofitrgb(const WORD *buf, fits *fit) {
 	WORD *data[3], *olddata = fit->data;
 
 	size_t i, nbdata = fit->rx * fit->ry;

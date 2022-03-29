@@ -136,9 +136,9 @@ static void populate_filter_lists();
 static void coeff_clear();
 
 /* callbacks for programatic GTK */
-void on_layer_remove(GtkButton *button, gpointer user_data);
-gboolean on_color_button_press_event(GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data);
-gboolean on_color_button_release_event(GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data);
+void on_layer_remove(const GtkButton *button, gpointer user_data);
+gboolean on_color_button_press_event(const GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_color_button_motion_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data);
 gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data);
 void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data);
@@ -245,7 +245,7 @@ static void add_the_layer_add_button() {
 }
 
 /* callback of the '-' button that is clicked to remove a layer in the list */
-void on_layer_remove(GtkButton *button, gpointer user_data) {
+void on_layer_remove(const GtkButton *button, gpointer user_data) {
 	int layer, refresh = 0;
 	for (layer = 1; layers[layer]; layer++)
 		if (layers[layer]->remove_button == button)
@@ -992,7 +992,7 @@ gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data) {
 
 /* click on the colored area: button press, only configure for quick color edit with
  * right button */
-gboolean on_color_button_press_event(GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data) {
+gboolean on_color_button_press_event(const GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data) {
 	int layer;
 	for (layer = 0; layers[layer]; layer++)
 		if (layers[layer]->color_w == widget)
@@ -1008,7 +1008,7 @@ gboolean on_color_button_press_event(GtkDrawingArea *widget, GdkEventButton *eve
 }
 
 /* click on the colored area: open the color chooser dialog */
-gboolean on_color_button_release_event(GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data) {
+gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventButton *event, gpointer user_data) {
 	int layer;
 	for (layer = 0; layers[layer]; layer++)
 		if (layers[layer]->color_w == widget)

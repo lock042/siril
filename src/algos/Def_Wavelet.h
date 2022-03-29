@@ -136,11 +136,11 @@ int wavelet_transform_file_float (float *Imag, int Nl, int Nc, char *File_Name_T
 int wavelet_transform(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data);
 int wavelet_transform_float(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
 int wavelet_transform_data (float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
-int pave_2d_linear_smooth (float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
+int pave_2d_linear_smooth (const float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
 int pave_2d_tfo (float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan, int Type_To);
-int pave_2d_build (float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan, float *coef);
+int pave_2d_build (float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan, const float *coef);
 int pave_2d_extract_plan (float *Pave, float *Imag, int Nl, int Nc, int Num_Plan);
-int pave_2d_bspline_smooth (float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
+int pave_2d_bspline_smooth (const float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
 int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *data);
 int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef);
 int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, WORD *data);

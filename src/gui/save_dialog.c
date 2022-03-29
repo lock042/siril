@@ -786,8 +786,8 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 			gtk_clipboard_set_image(cb, pixbuf);
 			gtk_clipboard_store(cb);
 
-			GtkWidget *widget = lookup_widget("header_snapshot_button");
-			GtkWidget *popover = snapshot_notification(widget, NULL, pixbuf);
+			GtkWidget *w = lookup_widget("header_snapshot_button");
+			GtkWidget *popover = snapshot_notification(w, NULL, pixbuf);
 			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
 		} else {
 			GFile *file = g_file_new_build_filename(com.wd, filename, NULL);

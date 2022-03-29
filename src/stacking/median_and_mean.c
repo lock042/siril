@@ -93,7 +93,6 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
 		if (args->apply_nbstack_weights) {
-			int nb_frames = args->nb_images_to_stack;
 			int nb_layers = args->seq->nb_layers;
 			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 		}
@@ -245,7 +244,7 @@ static int refine_blocks_candidate(int nb_threads, int nb_channels, int minimum_
  * threads to work but as big as possible for the available memory.
  */
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
 	int candidate = nb_threads;	// candidate number of blocks
 	if (nb_threads < 1 || max_number_of_rows < 1)
 		return ST_GENERIC_ERROR;
@@ -428,7 +427,7 @@ static void norm_to_0_1_range(fits *fit) {
  * does a different operation to keep the final pixel values.
  *********************************************************************************/
 
-static int percentile_clipping(WORD pixel, float sig[], float median, guint64 rej[]) {
+static int percentile_clipping(WORD pixel, const float sig[], float median, guint64 rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
 
@@ -446,7 +445,7 @@ static int percentile_clipping(WORD pixel, float sig[], float median, guint64 re
 /* Rejection of pixels, following sigma_(high/low) * sigma.
  * The function returns 0 if no rejections are required, 1 if it's a high
  * rejection and -1 for a low-rejection */
-static int sigma_clipping(WORD pixel, float sig[], float sigma, float median, guint64 rej[]) {
+static int sigma_clipping(WORD pixel, const float sig[], float sigma, float median, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -468,7 +467,7 @@ static void Winsorize(WORD *pixel, WORD m0, WORD m1, int N) {
 	}
 }
 
-static int line_clipping(WORD pixel, float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
+static int line_clipping(WORD pixel, const float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 

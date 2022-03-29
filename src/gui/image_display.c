@@ -804,7 +804,7 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_restore(cr); // restore the original transform
 }
 
-static label_point *new_label_point(double height, double *pix1, double *pix2, double *world, gboolean isRA, int border) {
+static label_point *new_label_point(double height, const double *pix1, const double *pix2, const double *world, gboolean isRA, int border) {
 	label_point *pt = g_new(label_point, 1);
 
 	pt->x = pix1[0];
@@ -890,7 +890,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 
 	/* Compute borders in pixel for tags*/
 	double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
-	double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
+	const double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
 	int pixtype[4] = { 1, 0, 1, 0 }; // y, x, y, x
 	int polesign = has_pole(fit, width, height);
 

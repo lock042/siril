@@ -953,7 +953,7 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 
 
 void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint width, height, i, j;
+	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
 	cairo_surface_t *surface;
@@ -1035,8 +1035,7 @@ void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			} else {
 				struct kpair *avg;
 				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
-				j = min_data;
-				for (i = 0; i < (max_data - min_data) + 1; i++) {
+				for (int i = 0, j = min_data; i < (max_data - min_data) + 1; i++) {
 					avg[i].x = plot_data->data[j].x;
 					avg[i].y = mean;
 					++j;
@@ -1092,7 +1091,7 @@ void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint width, height, i, j;
+	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
 	////cairo_surface_t *surface;
@@ -1169,8 +1168,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			} else {
 				struct kpair *avg;
 				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
-				j = min_data;
-				for (i = 0; i < (max_data - min_data) + 1; i++) {
+				for (int i = 0, j = min_data; i < (max_data - min_data) + 1; i++) {
 					avg[i].x = plot_data->data[j].x;
 					avg[i].y = mean;
 					++j;

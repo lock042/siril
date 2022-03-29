@@ -116,7 +116,7 @@ struct log_message {
 static gboolean scroll_to_end(gpointer data) {
 	GtkTextIter iter;
 	GtkTextView *text = (GtkTextView *) data;
-	GtkTextBuffer *tbuf = tbuf = gtk_text_view_get_buffer(text);
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
 
 	gtk_text_buffer_get_end_iter(tbuf, &iter);
 	GtkTextMark *insert_mark = gtk_text_buffer_get_insert(tbuf);
