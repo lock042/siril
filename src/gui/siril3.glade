@@ -10639,6 +10639,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="title" translatable="yes">Pixel Math</property>
+        <property name="show-close-button">True</property>
         <child>
           <object class="GtkButtonBox" id="pixel_math_buttonbar">
             <property name="visible">True</property>
