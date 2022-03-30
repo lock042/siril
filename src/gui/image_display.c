@@ -454,10 +454,13 @@ static void draw_empty_image(const draw_data_t* dd) {
 #ifdef SIRIL_UNSTABLE
 
 	msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
+			    "<small>%c%s</small>\n"
 				"<small>commit <tt>%s</tt></small>\n"
 				"<small>Please test bugs against "
 				"latest git master branch\n"
 				"before reporting them.</small>"),
+			toupper(PACKAGE_STRING[0]),
+			(char *)PACKAGE_STRING + 1,
 			SIRIL_GIT_VERSION_ABBREV);
 	pango_layout_set_markup(layout, msg, -1);
 	g_free(msg);
