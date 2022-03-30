@@ -16338,7 +16338,7 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median aboslute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
+                                                            <property name="tooltip-text" translatable="yes">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median absolute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
                                                             <property name="halign">start</property>
                                                             <property name="valign">center</property>
                                                             <property name="draw-indicator">True</property>
