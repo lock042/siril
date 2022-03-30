@@ -16077,9 +16077,10 @@ Pixel values are added in an image normalized to 32-bit values.
 It increases signal/noise ratio (SNR) as square root of number of images.
 
 &lt;b&gt;Average with rejection&lt;/b&gt;: This method is used to reject deviant pixels iteratively.
-Six methods have been implemented:
+Seven methods have been implemented:
 - Percentile Clipping
 - Sigma Clipping
+- MAD Clipping
 - Median Sigma Clipping
 - Winsorized Sigma Clipping
 - Linear Fit Clipping
