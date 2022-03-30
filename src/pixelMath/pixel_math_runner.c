@@ -290,6 +290,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 void on_pm_use_rgb_button_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_g"), !gtk_toggle_button_get_active(button));
 	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_b"), !gtk_toggle_button_get_active(button));
+	gtk_label_set_text(GTK_LABEL(lookup_widget("label_RGBK")), gtk_toggle_button_get_active(button) ? _("RGB/K") : _("R"));
 	if (gtk_toggle_button_get_active(button)) entry_has_focus = 0;
 }
 
