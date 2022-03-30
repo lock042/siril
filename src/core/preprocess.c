@@ -491,9 +491,7 @@ int preprocess_single_image(struct preprocessing_data *args) {
 		if (!ret) {
 			// open the new image?
 			copyfits(&fit, com.uniq->fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
-			if (com.uniq->nb_layers != fit.naxes[2]) {
-				com.uniq->nb_layers = fit.naxes[2];
-			}
+			com.uniq->nb_layers = fit.naxes[2];
 			if (com.uniq->filename)
 				free(com.uniq->filename);
 			com.uniq->filename = strdup(dest_filename);
@@ -668,8 +666,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				free(args->dark);
-				args->dark = NULL;
+				clearfits(args->dark);
+				args->dark = NULL; // in order to be sure it is freed
 				gtk_entry_set_text(entry, "");
 				args->use_dark = FALSE;
 				has_error = TRUE;
@@ -687,8 +685,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				if (args->dark)
-					free(args->dark);
+				clearfits(args->dark);
 				gtk_entry_set_text(entry, "");
 				args->use_dark_optim = FALSE;
 				has_error = TRUE;
