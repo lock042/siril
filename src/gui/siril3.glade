@@ -14669,9 +14669,9 @@ When processing images, registration data is taken from the default layer if ava
                                                             <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="margin-top">10</property>
                                                             <property name="row-spacing">10</property>
                                                             <property name="column-spacing">10</property>
-                                                            <property name="row-homogeneous">True</property>
                                                             <child>
                                                             <object class="GtkCheckButton" id="checkStarSelect">
                                                             <property name="label" translatable="yes">Match stars in selection</property>
@@ -17462,7 +17462,6 @@ WARNING: This option should not be checked for master stacking.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
-                <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkBox" id="box13">
                     <property name="visible">True</property>
