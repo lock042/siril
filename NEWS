@@ -19,6 +19,7 @@ v1.0.1 mmm dd, 2022
 * Fixed using shift transform for global registration
 * Fixed crash when changing image with preview opened
 * Fixed date wrongly reported in the FITS header in SER/FITSEQ stacking when filtering out images
+* Fixed excluding null pixels of both ref and target in linear match
 
 v1.0.0 March 9, 2022
 
