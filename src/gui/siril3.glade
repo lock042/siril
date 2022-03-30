@@ -14953,11 +14953,11 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <property name="tooltip-text" translatable="yes">The maximum number of stars to be searched for in each frame (default 2000). The larger this value, the more stars will potentially be detected, resulting in a longer detection but more accurate registration.</property>
                                                             <property name="active">4</property>
                                                             <items>
-                                                            <item translatable="yes">100</item>
-                                                            <item translatable="yes">200</item>
+                                                            <item>100</item>
+                                                            <item>200</item>
                                                             <item translatable="yes">500</item>
-                                                            <item translatable="yes">1000</item>
-                                                            <item translatable="yes">2000</item>
+                                                            <item>1000</item>
+                                                            <item>2000</item>
                                                             </items>
                                                             </object>
                                                             <packing>
