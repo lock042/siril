@@ -22,6 +22,7 @@ xx/xx/22
 * Fixed using shift transform for global registration
 * Fixed crash when changing image with preview opened
 * Fixed date wrongly reported in the FITS header in SER/FITSEQ stacking when filtering out images
+* Fixed excluding null pixels of both ref and target in linear match
 
 siril 1.0.0
 03/09/22
