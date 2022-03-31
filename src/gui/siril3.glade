@@ -13036,9 +13036,9 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                   <object class="GtkBox" id="box74">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="orientation">vertical</property>
-                                                    <property name="spacing">10</property>
+                                                    <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkScrolledWindow" id="scrolledwindow8">
                                                         <property name="height-request">400</property>
@@ -13214,6 +13214,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                           <object class="GtkAlignment">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="margin-top">5</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
                                                             <object class="GtkLabel" id="label_supported_types">
@@ -13278,9 +13279,9 @@ SER files are directly handled as a sequence, and are not yet available for conv
                                                   <object class="GtkGrid" id="grid16">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="row-spacing">10</property>
-                                                    <property name="column-spacing">10</property>
+                                                    <property name="column-spacing">5</property>
                                                     <child>
                                                       <object class="GtkEntry" id="startIndiceEntry">
                                                         <property name="visible">True</property>
@@ -13500,9 +13501,9 @@ Colour image target also applies to the debayer result for conversion.</property
                                                   <object class="GtkBox">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="orientation">vertical</property>
-                                                    <property name="spacing">10</property>
+                                                    <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkComboBoxText" id="sequence_list_combobox">
                                                         <property name="visible">True</property>
@@ -13610,14 +13611,14 @@ WARNING: it will erase all registration and statistics data.</property>
                                                   <object class="GtkBox">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="orientation">vertical</property>
-                                                    <property name="spacing">10</property>
+                                                    <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkBox" id="box12">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="spacing">10</property>
+                                                        <property name="spacing">5</property>
                                                         <child>
                                                           <object class="GtkLabel" id="label97">
                                                             <property name="visible">True</property>
@@ -13686,7 +13687,7 @@ For SER and TIFF, if input images are 32 bits, they are converted to 16, with a 
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="orientation">vertical</property>
-                                                        <property name="spacing">10</property>
+                                                        <property name="spacing">5</property>
                                                         <child>
                                                           <object class="GtkBox">
                                                             <property name="visible">True</property>
@@ -14014,9 +14015,9 @@ A first computation pass will be done on all images before exporting, it may tak
                                                   <object class="GtkGrid" id="grid18">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
-                                                    <property name="row-spacing">10</property>
-                                                    <property name="column-spacing">10</property>
+                                                    <property name="margin-top">5</property>
+                                                    <property name="row-spacing">5</property>
+                                                    <property name="column-spacing">5</property>
                                                     <child>
                                                       <object class="GtkCheckButton" id="useflat_button">
                                                         <property name="label" translatable="yes" comments="Flat is the kind of the picture used here. In french I've decided to not translate the word.">Use flat</property>
@@ -14301,9 +14302,9 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                     <property name="visible">True</property>
                                                     <property name="sensitive">False</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
-                                                    <property name="row-spacing">10</property>
-                                                    <property name="column-spacing">10</property>
+                                                    <property name="margin-top">5</property>
+                                                    <property name="row-spacing">5</property>
+                                                    <property name="column-spacing">5</property>
                                                     <child>
                                                       <object class="GtkCheckButton" id="cosmCFACheck">
                                                         <property name="label" translatable="yes">CFA</property>
@@ -14488,9 +14489,9 @@ Hot pixels are located on the master-dark.</property>
                                                   <object class="GtkGrid">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
-                                                    <property name="row-spacing">10</property>
-                                                    <property name="column-spacing">10</property>
+                                                    <property name="margin-top">5</property>
+                                                    <property name="row-spacing">5</property>
+                                                    <property name="column-spacing">5</property>
                                                     <child>
                                                       <object class="GtkLabel" id="preproseqname_label">
                                                         <property name="visible">True</property>
@@ -14647,9 +14648,9 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                   <object class="GtkBox">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="orientation">vertical</property>
-                                                    <property name="spacing">10</property>
+                                                    <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkFrame">
                                                         <property name="visible">True</property>
@@ -14660,14 +14661,14 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                           <object class="GtkAlignment">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">10</property>
+                                                            <property name="margin-top">5</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
-                                                            <property name="spacing">10</property>
+                                                            <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="comboboxregmethod">
                                                             <property name="visible">True</property>
@@ -14834,9 +14835,9 @@ When processing images, registration data is taken from the default layer if ava
                                                             <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">10</property>
-                                                            <property name="row-spacing">10</property>
-                                                            <property name="column-spacing">10</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
                                                             <child>
                                                             <object class="GtkCheckButton" id="checkStarSelect">
                                                             <property name="label" translatable="yes">Match stars in selection</property>
@@ -15164,7 +15165,7 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="spacing">10</property>
+                                                            <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkButton" id="pickstar1">
                                                             <property name="label" translatable="yes">Pick 1st star</property>
@@ -15219,7 +15220,7 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="row-spacing">5</property>
-                                                            <property name="column-spacing">10</property>
+                                                            <property name="column-spacing">5</property>
                                                             <child>
                                                             <object class="GtkLabel">
                                                             <property name="visible">True</property>
@@ -15391,7 +15392,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <object class="GtkComboBoxText" id="reg_sel_all_combobox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">10</property>
+                                                            <property name="margin-top">5</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">Register all images from sequence</item>
@@ -15433,8 +15434,8 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <object class="GtkBox" id="box4">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">10</property>
-                                                            <property name="spacing">10</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkButton" id="goregister_button">
                                                             <property name="label" translatable="yes">Go register</property>
@@ -15704,14 +15705,14 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                       <object class="GtkBox" id="box16">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="margin-top">10</property>
+                                                        <property name="margin-top">5</property>
                                                         <property name="spacing">2</property>
                                                         <child>
                                                           <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
-                                                            <property name="spacing">10</property>
+                                                            <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkToggleButton" id="togglebutton2">
                                                             <property name="label" translatable="yes">Set first preview</property>
@@ -15753,7 +15754,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
-                                                            <property name="spacing">10</property>
+                                                            <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkToggleButton" id="togglebutton3">
                                                             <property name="label" translatable="yes">Set second preview</property>
@@ -15889,7 +15890,7 @@ To be enabled, the reference image must have been explicitly set and already dis
 Green curve: sorted values by order of decreasing quality.
 Circle marker: the value for the reference frame.
 Cross marker: the value for the currently loaded frame.</property>
-                                                <property name="spacing">10</property>
+                                                <property name="spacing">5</property>
                                                 <child>
                                                   <object class="GtkButton" id="ButtonSaveCSV">
                                                     <property name="label" translatable="yes">Export to CSV</property>
@@ -15994,7 +15995,7 @@ Cross marker: the value for the currently loaded frame.</property>
 Green curve: sorted values by order of decreasing quality.
 Circle marker: the value for the reference frame.
 Cross marker: the value for the currently loaded frame.</property>
-                                                <property name="spacing">10</property>
+                                                <property name="spacing">5</property>
                                                 <child>
                                                   <object class="GtkButton" id="varCurvePhotometry">
                                                     <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
@@ -16196,7 +16197,7 @@ WARNING: gnuplot must be installed.</property>
                                                       <object class="GtkFrame">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="margin-top">10</property>
+                                                        <property name="margin-top">5</property>
                                                         <property name="label-xalign">0</property>
                                                         <property name="shadow-type">none</property>
                                                         <child>
@@ -16275,14 +16276,14 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                           <object class="GtkAlignment">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">10</property>
+                                                            <property name="margin-top">5</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
                                                             <object class="GtkBox" id="box21">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
-                                                            <property name="spacing">10</property>
+                                                            <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="combonormalize">
                                                             <property name="visible">True</property>
@@ -16421,8 +16422,8 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <object class="GtkGrid" id="grid34">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="row-spacing">10</property>
-                                                            <property name="column-spacing">10</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
                                                             <child>
                                                             <object class="GtkSpinButton" id="stack_siglow_button">
                                                             <property name="visible">True</property>
@@ -16679,9 +16680,9 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">10</property>
+                                                            <property name="margin-top">5</property>
                                                             <property name="orientation">vertical</property>
-                                                            <property name="spacing">10</property>
+                                                            <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkLabel" id="stackfilter_label">
                                                             <property name="visible">True</property>
@@ -17070,9 +17071,9 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                   <object class="GtkBox">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">10</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="orientation">vertical</property>
-                                                    <property name="spacing">10</property>
+                                                    <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkCheckButton" id="check_normalise_to_max">
                                                         <property name="label" translatable="yes">Output Normalisation</property>
@@ -17111,7 +17112,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                       <object class="GtkBox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="spacing">10</property>
+                                                        <property name="spacing">5</property>
                                                         <child>
                                                           <object class="GtkLabel" id="label30">
                                                             <property name="visible">True</property>
