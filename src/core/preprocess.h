@@ -36,7 +36,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro);
 
 /* used in live stacking */
 int prepro_prepare_hook(struct generic_seq_args *args);
-int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_);
+int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 void clear_preprocessing_data(struct preprocessing_data *prepro);
 
 #endif

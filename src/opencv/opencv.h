@@ -28,7 +28,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation);
 
-int cvUnsharpFilter(fits*, double, double);
+int cvUnsharpFilter(fits* image, double sigma, double amount);
 
 int cvClahe(fits *image, double clip_limit, int size);
 

@@ -400,6 +400,7 @@ int process_gauss(int nb){
 	}
 
 	unsharp(&gfit, g_ascii_strtod(word[1], NULL), 0.0, TRUE);
+	//gaussian_blur_RT(&gfit, g_ascii_strtod(word[1], NULL), com.max_thread);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -2166,7 +2167,7 @@ int process_offset(int nb){
 }
 
 /* The version in command line is a minimal version
- * Only neutral type are available (no amount needed), 
+ * Only neutral type are available (no amount needed),
  * then we always preserve the lightness */
 int process_scnr(int nb){
 	if (get_thread_run()) {
@@ -3301,6 +3302,7 @@ int process_register(int nb) {
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
+	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
 
@@ -3319,7 +3321,7 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) { 
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
 #ifdef HAVE_CV44
 					reg_args->type = SHIFT_TRANSFORMATION;
 					continue;
@@ -3339,7 +3341,7 @@ int process_register(int nb) {
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"homography")) {
 					reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 					continue;
-				} 
+				}
 				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 				return 1;
 			} else if (g_str_has_prefix(word[i], "-layer=")) {
@@ -3353,7 +3355,7 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) { 
+				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) {
 					siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
 					continue;
 				}
@@ -3383,6 +3385,18 @@ int process_register(int nb) {
 					return 1;
 				}
 				reg_args->min_pairs = g_ascii_strtoull(value, NULL, 10);
+			} else if (g_str_has_prefix(word[i], "-maxstars=")) {
+				char *current = word[i], *value;
+				value = current + 10;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if ((g_ascii_strtoull(value, NULL, 10) > MAX_STARS_FITTED) || (g_ascii_strtoull(value, NULL, 10) < MIN_STARS_FITTED)) { // limiting values to avoid too long computation or too low number of candidates
+					siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
+					return 1;
+				}
+				reg_args->max_stars_candidates = g_ascii_strtoull(value, NULL, 10);
 			}
 		}
 	}
@@ -3423,7 +3437,7 @@ int process_register(int nb) {
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'
-static int parse_stack_command_line(struct stacking_configuration *arg, int first, gboolean norm_allowed, gboolean out_allowed) {
+static int parse_stack_command_line(struct stacking_configuration *arg, int first, gboolean rej_options_allowed, gboolean out_allowed) {
 	while (word[first]) {
 		char *current = word[first], *value;
 		if (!strcmp(current, "-nonorm") || !strcmp(current, "-no_norm"))
@@ -3431,7 +3445,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 		else if (!strcmp(current, "-output_norm")) {
 			arg->output_norm = TRUE;
 		} else if (!strcmp(current, "-weight_from_noise")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
@@ -3441,7 +3455,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->apply_noise_weights = TRUE;
 			}
 		} else if (!strcmp(current, "-rgb_equal")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
@@ -3449,7 +3463,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->equalizeRGB = TRUE;
 			}
 		} else if (!strcmp(current, "-weight_from_nbstack")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
@@ -3458,9 +3472,16 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->apply_nbstack_weights = TRUE;
 			}
-
+		} else if (!strcmp(current, "-fastnorm")) {
+			if (!rej_options_allowed) {
+				siril_log_message(_("Fast normalization is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("Fast normalization is allowed only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->lite_norm = TRUE;
+			}
 		} else if (g_str_has_prefix(current, "-norm=")) {
-			if (!norm_allowed) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Normalization options are not allowed in this context, ignoring.\n"));
 			} else {
 				value = current + 6;
@@ -3612,6 +3633,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.apply_noise_weights = arg->apply_noise_weights;
 		args.apply_nbstack_weights = arg->apply_nbstack_weights;
 		args.equalizeRGB = arg->equalizeRGB;
+		args.lite_norm = arg->lite_norm;
 
 		// manage filters
 		if (convert_stack_data_to_filter(arg, &args) ||
@@ -3711,6 +3733,7 @@ int process_stackall(int nb) {
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
 	arg->equalizeRGB = FALSE;
+	arg->lite_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
@@ -3721,7 +3744,7 @@ int process_stackall(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 2;
-		gboolean allow_norm = FALSE;
+		gboolean allow_rej_options = FALSE;
 		if (!strcmp(word[1], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[1], "max")) {
@@ -3730,7 +3753,7 @@ int process_stackall(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[1], "med") || !strcmp(word[1], "median")) {
 			arg->method = stack_median;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		} else if (!strcmp(word[1], "rej") || !strcmp(word[1], "mean")) {
 			int shift = 1;
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
@@ -3768,13 +3791,13 @@ int process_stackall(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = 4 + shift;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, FALSE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, FALSE))
 			goto failure;
 	}
 
@@ -3826,6 +3849,7 @@ int process_stackone(int nb) {
 	arg->norm = NO_NORM;
 	arg->force_no_norm = FALSE;
 	arg->equalizeRGB = FALSE;
+	arg->lite_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
@@ -3841,7 +3865,7 @@ int process_stackone(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 3;
-		gboolean allow_norm = FALSE;
+		gboolean allow_rej_options = FALSE;
 		if (!strcmp(word[2], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[2], "max")) {
@@ -3850,7 +3874,7 @@ int process_stackone(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[2], "med") || !strcmp(word[2], "median")) {
 			arg->method = stack_median;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
 			int shift = 1, base_shift = 5;
 			if (nb < 4) {
@@ -3901,13 +3925,13 @@ int process_stackone(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = base_shift + shift;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, TRUE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, TRUE))
 			goto failure;
 	}
 

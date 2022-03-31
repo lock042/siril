@@ -339,7 +339,7 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa)
 
 /**** Autodetect *****/
 int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct cosmetic_data *c_args = (struct cosmetic_data*) args->user;
 	int chan;
 	/* Count variables, icold and ihot, need to be local in order to be parallelized */
@@ -563,7 +563,7 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 }
 
 int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 
 	return apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);

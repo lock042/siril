@@ -616,7 +616,7 @@ gint64 crop_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
 }
 
 int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
 	return crop(fit, &(c_args->area));

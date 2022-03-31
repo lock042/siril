@@ -38,7 +38,6 @@
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
-#include "filters/wavelets.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -79,13 +78,13 @@ static double guess_resolution(fits *fit) {
 	return res;
 }
 
-static float compute_threshold(fits *fit, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise) {
+static float compute_threshold(fits *fit, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise, int threads) {
 	float threshold;
 	imstats *stat;
 
 	assert(layer <= 3);
 
-	stat = statistics(NULL, -1, fit, layer, area, STATS_BASIC, SINGLE_THREADED);
+	stat = statistics(NULL, -1, fit, layer, area, STATS_BASIC, threads);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		*norm = 0;
@@ -224,9 +223,10 @@ void confirm_peaker_GUI() {
  Original algorithm come from:
  Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
  */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars);
 
-psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads);
+
+psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	int areaX0 = 0;
@@ -248,20 +248,20 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	gettimeofday(&t_start, NULL);
 
 	/* running statistics on the input image is best as it caches them */
-	threshold = compute_threshold(fit, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise);
+	threshold = compute_threshold(fit, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise, threads);
 	if (norm == 0.0f)
 		return NULL;
 
 	siril_debug_print("Threshold: %f (background: %f, norm: %f)\n", threshold, bg, norm);
 
-	/* Removing wavelets and applying a Gaussian filter to select candidates
-	 */
+	/* Applying a Gaussian filter to select candidates */
 	if (extract_fits(fit, &smooth_fit, layer, TRUE)) {
 		siril_log_color_message(_("Failed to copy the image for processing\n"), "red");
 		return NULL;
 	}
 
-	if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
+	//if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
+	if (gaussian_blur_RT(&smooth_fit, 3.0, threads)) {
 		siril_log_color_message(_("Could not apply Gaussian filter, aborting\n"), "red");
 		clearfits(&smooth_fit);
 		return NULL;
@@ -314,7 +314,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
 		for (int x = r + areaX0; x < areaX1 - r; x++) {
 			float pixel = smooth_image[y][x];
-			if (pixel > threshold && pixel < norm) {
+			if (pixel > threshold) {
 				gboolean bingo = TRUE;
 				float neighbor;
 				double mean = 0., meanhigh = 0.;
@@ -496,7 +496,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars);
+	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars, maxstars, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars(results, nbstars);
@@ -512,7 +512,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
@@ -540,7 +540,12 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	//sorting candidates by starc.mean values as an estimator of mag
 	qsort(candidates, nb_candidates, sizeof(starc), star_cmp);
 
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1)
+#endif
 	for (int candidate = 0; candidate < nb_candidates; candidate++) {
+		if ((nbstars >= maxstars) && limit_nbstars)
+			continue;
 		int x = candidates[candidate].x, y = candidates[candidate].y;
 		int ii, jj, i, j, R;
 		R = candidates[candidate].R;
@@ -568,15 +573,14 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			if (is_star(cur_star, sf, &candidates[candidate])) {
 				//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 				cur_star->layer = layer;
-				int result_index = g_atomic_int_add(&nbstars, 1);
 				cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
 				cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
+				int result_index = g_atomic_int_add(&nbstars, 1);
 				results[result_index] = cur_star;
 				//fprintf(stdout, "%03d: %11f %11f %f\n",
 				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 			}
 			else free_psf(cur_star);
-			if ((nbstars >= MAX_STARS_FITTED) && limit_nbstars) break;
 		}
 	}
 	results[nbstars] = NULL;
@@ -736,7 +740,7 @@ gpointer findstar(gpointer p) {
 
 	int nbstars = 0;
 
-	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
+	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
 	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
 
 	siril_add_idle(end_findstar, args);

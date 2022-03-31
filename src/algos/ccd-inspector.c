@@ -166,8 +166,7 @@ int draw_sensor_tilt(fits *fit) {
 
 	delete_selected_area();
 
-	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE);
-
+	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
 
 	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
 		float best = min(min(m1, m2), min(m3, m4));
@@ -191,7 +190,7 @@ static int compute_tilt_to_image(fits *fit, struct tilt_data *t_args) {
 	int nbstars = 0;
 	int layer = fit->naxes[2] > 1 ? GLAYER : RLAYER;
 
-	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE);
+	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
 
 	float m = 0;
 	float m1 = 0;
@@ -263,7 +262,7 @@ static int tilt_finalize_hook(struct generic_seq_args *args) {
 }
 
 static int tilt_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct tilt_data *t_args = (struct tilt_data*) args->user;
 
 	return compute_tilt_to_image(fit, t_args);

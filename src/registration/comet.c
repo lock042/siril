@@ -234,7 +234,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-static int comet_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+static int comet_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct comet_align_data *cadata = args->user;
 	struct registration_args *regargs = cadata->regargs;
 	pointf reg = { 0.f, 0.f };
