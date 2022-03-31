@@ -12696,9 +12696,8 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                 <signal name="drag-data-received" handler="on_treeview_convert_drag_data_received" swapped="no"/>
                                                 <signal name="key-release-event" handler="on_treeview_convert_key_release_event" swapped="no"/>
                                                 <child internal-child="selection">
-                                                  <object class="GtkTreeSelection">
+                                                  <object class="GtkTreeSelection" id="treeview_selection_convert">
                                                     <property name="mode">multiple</property>
-                                                    <signal name="changed" handler="on_treeview_selection_convert_changed" swapped="no"/>
                                                   </object>
                                                 </child>
                                                 <child>

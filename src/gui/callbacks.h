@@ -48,6 +48,7 @@ void activate_tab(int vport);
 
 void update_prepro_interface();
 
+void on_treeview_selection_convert_changed(GtkTreeSelection *treeselection, gpointer user_data);
 void update_statusbar_convert();
 
 void update_spinCPU(int max);
