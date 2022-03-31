@@ -609,14 +609,18 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	return 0;
 }
 
+static gboolean allowed_char(char c) {
+	return (g_ascii_isalnum(c) || c == '_');
+}
+
 static gboolean check_for_variable_sanity(char *new_text) {
 	gboolean abort = TRUE;
 	const char *p = new_text;
 
 	if (*p == '\0') return FALSE;
-	/* Exclude if non alphanum variable */
+	/* Exclude if non alphanum  (or _) variable */
 	while (*p) {
-		if (!g_ascii_isalnum(*p++)) return FALSE;
+		if (!allowed_char(*p++)) return FALSE;
 	}
 
 	/* no we exclude name that contain only digit */
