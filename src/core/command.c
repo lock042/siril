@@ -3445,7 +3445,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 		else if (!strcmp(current, "-output_norm")) {
 			arg->output_norm = TRUE;
 		} else if (!strcmp(current, "-weight_from_noise")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!norm_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
@@ -3455,7 +3455,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->apply_noise_weights = TRUE;
 			}
 		} else if (!strcmp(current, "-rgb_equal")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!norm_allowed) {
 				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
@@ -3463,7 +3463,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->equalizeRGB = TRUE;
 			}
 		} else if (!strcmp(current, "-weight_from_nbstack")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!norm_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
@@ -3473,7 +3473,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->apply_nbstack_weights = TRUE;
 			}
 		} else if (!strcmp(current, "-fastnorm")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!norm_allowed) {
 				siril_log_message(_("Fast normalization is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Fast normalization is allowed only if normalization has been activated, ignoring.\n"));
