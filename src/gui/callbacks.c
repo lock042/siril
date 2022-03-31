@@ -1188,6 +1188,11 @@ void initialize_all_GUI(gchar *supported_files) {
 			GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_HIGHLIGHT, drop_types, G_N_ELEMENTS(drop_types),
 			GDK_ACTION_COPY);
 
+	/* Due to a glade bug, this property is often removed, lets code it */
+	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview_selection_convert"));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+	g_signal_connect(selection, "changed", G_CALLBACK(on_treeview_selection_convert_changed), NULL);
+
 	siril_drag_single_image_set_dest();
 
 	set_GUI_CWD();
