@@ -149,6 +149,7 @@ void stop_live_stacking_engine() {
 	seq_rx = -1; seq_ry = -1;
 	use_demosaicing = BOOL_NOT_SET;
 	paused = FALSE;
+	first_stacking_result = TRUE;
 
 	show_hide_toolbox();
 	set_cursor_waiting(FALSE);
@@ -193,7 +194,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		image_type type;
 		stat_file(filename, &type, NULL);
 		if (type != TYPEFITS) {
-			siril_log_message(_("File not supported for live stacking: %s"), filename);
+			siril_log_message(_("File not supported for live stacking: %s\n"), filename);
 			g_free(filename);
 		} else {
 			if (strncmp(filename, "live_stack", 10) &&
@@ -337,6 +338,7 @@ static int start_global_registration(sequence *seq) {
 	reg_args.load_new_sequence = FALSE;
 	reg_args.interpolation = REGISTRATION_INTERPOLATION;
 	reg_args.type = REGISTRATION_TYPE;
+	reg_args.max_stars_candidates = 444;
 	/*reg_args.func(&reg_args);
 	if (reg_args.retval)
 		return 1;*/
@@ -498,7 +500,7 @@ static int preprocess_image(char *filename, char *target) {
 		return 1;
 	}
 	struct generic_seq_args generic = { .user = prepro };
-	ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+	ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
 	if (!ret)
 		ret = savefits(target, &fit);
 	clearfits(&fit);
@@ -563,7 +565,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		else if (use_demosaicing == BOOL_TRUE) {
 			fits fit = { 0 };
-			int retval = readfits(filename, &fit, NULL, FALSE);
+			int retval = readfits(filename, &fit, NULL, !com.pref.force_to_16bit);
 			if (!retval)
 				retval = debayer_if_needed(TYPEFITS, &fit, TRUE);
 			if (!retval)
@@ -686,7 +688,8 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.force_norm = FALSE;
 		stackparam.output_norm = FALSE;
 		stackparam.equalizeRGB = FALSE;		// not possible currently
-		stackparam.use_32bit_output = FALSE;
+		stackparam.lite_norm = TRUE;
+		stackparam.use_32bit_output = !com.pref.force_to_16bit;
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.apply_nbstack_weights = TRUE;
 

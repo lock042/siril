@@ -46,7 +46,7 @@ static int BandingEngine(fits *fit, double sigma, double amount, gboolean protec
  *      B A N D I N G      R E D U C T I O N      M A N A G E M E N T        *
  ****************************************************************************/
 
-int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct banding_data *banding_args = (struct banding_data *)args->user;
 	return BandingEngine(fit, banding_args->sigma, banding_args->amount,
 			banding_args->protect_highlights, banding_args->applyRotation, SINGLE_THREADED);

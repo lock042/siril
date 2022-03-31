@@ -68,6 +68,8 @@ double bgnoise_await() {
 		return -1.0;
 	double value = ((struct _noise_data *)retval)->noise;
 	free(retval);
+	if (gfit.type == DATA_FLOAT)
+		value *= USHRT_MAX_DOUBLE;
 	return value;
 }
 

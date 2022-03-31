@@ -66,7 +66,7 @@ void	enforce_area_in_image(rectangle *area, sequence *seq);
 
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		framing_mode framing, gboolean run_in_thread);
-int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area);
+int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads);
 void free_reference_image();
 
 /* in export.c now */

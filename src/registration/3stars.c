@@ -234,7 +234,7 @@ int register_3stars(struct registration_args *regargs) {
 }
 
 /* image rotation sequence processing */
-static int affine_transform_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *area) {
+static int affine_transform_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *area, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int refimage = regargs->reference_image;

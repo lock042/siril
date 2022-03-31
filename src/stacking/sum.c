@@ -78,7 +78,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	return ST_OK;
 }
 
-static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct sum_stacking_data *ssdata = args->user;
 	int shiftx, shifty, nx, ny, x, y, layer;
 	size_t ii, pixel = 0;	// index in sum[0]
