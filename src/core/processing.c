@@ -607,9 +607,10 @@ gboolean get_script_thread_run() {
 }
 
 void wait_for_script_thread() {
-	if (com.script_thread)
+	if (com.script_thread) {
 		g_thread_join(com.script_thread);
-	com.script_thread = NULL;
+		com.script_thread = NULL;
+	}
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
