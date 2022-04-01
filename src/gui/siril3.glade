@@ -17243,129 +17243,116 @@ WARNING: This option should not be checked for master stacking.</property>
                                           <object class="GtkBox" id="vboxconsole">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
-                                            <property name="border-width">12</property>
                                             <property name="orientation">vertical</property>
                                             <child>
-                                              <object class="GtkBox" id="box_toolbar">
+                                              <object class="GtkScrolledWindow" id="scrolledconsolewindow">
                                                 <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="orientation">vertical</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="resize-mode">queue</property>
+                                                <property name="vscrollbar-policy">always</property>
+                                                <property name="shadow-type">in</property>
                                                 <child>
-                                                  <object class="GtkScrolledWindow" id="scrolledconsolewindow">
+                                                  <object class="GtkTextView" id="output">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
-                                                    <property name="resize-mode">queue</property>
-                                                    <property name="vscrollbar-policy">always</property>
-                                                    <property name="shadow-type">in</property>
-                                                    <child>
-                                                      <object class="GtkTextView" id="output">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="events"/>
-                                                        <property name="tooltip-text" translatable="yes">Siril output window, displays messages about what has been done and in response to command inputs.</property>
-                                                        <property name="pixels-above-lines">2</property>
-                                                        <property name="editable">False</property>
-                                                        <property name="wrap-mode">word</property>
-                                                        <property name="cursor-visible">False</property>
-                                                        <property name="accepts-tab">False</property>
-                                                        <property name="monospace">True</property>
-                                                        <style>
-                                                          <class name="monospace"/>
-                                                        </style>
-                                                      </object>
-                                                    </child>
+                                                    <property name="events"/>
+                                                    <property name="tooltip-text" translatable="yes">Siril output window, displays messages about what has been done and in response to command inputs.</property>
+                                                    <property name="pixels-above-lines">2</property>
+                                                    <property name="editable">False</property>
+                                                    <property name="wrap-mode">word</property>
+                                                    <property name="cursor-visible">False</property>
+                                                    <property name="accepts-tab">False</property>
+                                                    <property name="monospace">True</property>
+                                                    <style>
+                                                      <class name="monospace"/>
+                                                    </style>
                                                   </object>
-                                                  <packing>
-                                                    <property name="expand">True</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkBox" id="box_log">
-                                                    <property name="name">box_console_bar</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <child>
-                                                      <object class="GtkImage" id="image_log">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="icon-name">gtk-no</property>
-                                                        <property name="icon_size">2</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">0</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkStatusbar" id="statusbar_script">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="orientation">vertical</property>
-                                                        <property name="spacing">2</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">True</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkToolbar" id="toolbar_log">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="halign">end</property>
-                                                        <property name="valign">center</property>
-                                                        <property name="icon_size">2</property>
-                                                        <child>
-                                                          <object class="GtkToolButton" id="export_log_button">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Export the log</property>
-                                                            <property name="use-underline">True</property>
-                                                            <property name="icon-name">document-save-as</property>
-                                                            <signal name="clicked" handler="on_export_log_button_clicked" swapped="no"/>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="homogeneous">True</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <object class="GtkToolButton" id="clear_log_button">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Clear the log</property>
-                                                            <property name="use-underline">True</property>
-                                                            <property name="icon-name">edit-clear</property>
-                                                            <signal name="clicked" handler="on_clear_log_button_clicked" swapped="no"/>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="homogeneous">True</property>
-                                                          </packing>
-                                                        </child>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">2</property>
-                                                      </packing>
-                                                    </child>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">1</property>
-                                                  </packing>
                                                 </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkBox" id="box_log">
+                                                <property name="name">box_console_bar</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <child>
+                                                  <object class="GtkImage" id="image_log">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="icon-name">gtk-no</property>
+                                                    <property name="icon_size">2</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">0</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkStatusbar" id="statusbar_script">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="orientation">vertical</property>
+                                                    <property name="spacing">2</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">True</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkToolbar" id="toolbar_log">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="halign">end</property>
+                                                    <property name="valign">center</property>
+                                                    <property name="icon_size">2</property>
+                                                    <child>
+                                                      <object class="GtkToolButton" id="export_log_button">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Export the log</property>
+                                                        <property name="use-underline">True</property>
+                                                        <property name="icon-name">document-save-as</property>
+                                                        <signal name="clicked" handler="on_export_log_button_clicked" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="homogeneous">True</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkToolButton" id="clear_log_button">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Clear the log</property>
+                                                        <property name="use-underline">True</property>
+                                                        <property name="icon-name">edit-clear</property>
+                                                        <signal name="clicked" handler="on_clear_log_button_clicked" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="homogeneous">True</property>
+                                                      </packing>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">2</property>
+                                                  </packing>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
                                               </packing>
                                             </child>
                                           </object>
