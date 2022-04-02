@@ -95,6 +95,7 @@ struct stacking_args {
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
 	float (*mad_calculator)(const WORD *, const size_t, const double, gboolean) ; // internal, for ushort
+	fits result;
 };
 
 /* configuration from the command line */

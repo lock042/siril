@@ -249,7 +249,7 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 			pointf ref[3] = {
 				{ results[refimage].stars[0]->xpos, results[refimage].stars[0]->ypos },
 				{ results[refimage].stars[1]->xpos, results[refimage].stars[1]->ypos },
-				{ 0 }
+				{ 0, 0 }
 			};
 			if (nb_stars == 3) {
 				ref[2].x = results[refimage].stars[2]->xpos;
@@ -258,7 +258,7 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 			pointf cur[3] = {
 				{ results[in_index].stars[0]->xpos, results[in_index].stars[0]->ypos },
 				{ results[in_index].stars[1]->xpos, results[in_index].stars[1]->ypos },
-				{ 0 }
+				{ 0, 0 }
 			};
 			if (nb_stars == 3) {
 				cur[2].x = results[in_index].stars[2]->xpos;

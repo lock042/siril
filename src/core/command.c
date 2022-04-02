@@ -1494,24 +1494,12 @@ int process_bg(int nb){
 }
 
 int process_bgnoise(int nb){
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return 1;
-	}
-
 	if (!(single_image_is_loaded() || sequence_is_loaded())) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
 
-	struct noise_data *args = malloc(sizeof(struct noise_data));
-
-	args->fit = &gfit;
-	args->verbose = TRUE;
-	args->use_idle = TRUE;
-	memset(args->bgnoise, 0.0, sizeof(double[3]));
-
-	start_in_new_thread(noise, args);
+	evaluate_noise_in_image();
 	return 0;
 }
 
@@ -3564,14 +3552,15 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		free(args.description);
 
 		if (!retval) {
-			struct noise_data noise_args = { .fit = &gfit, .verbose = FALSE, .use_idle = FALSE };
-			noise(&noise_args);
-			if (savefits(arg->result_file, &gfit))
+			bgnoise_async(&args.result, TRUE);
+			if (savefits(arg->result_file, &args.result))
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", arg->result_file);
 			++arg->number_of_loaded_sequences;
+			retval = 1;
+			bgnoise_await();
 		}
-		else if (!get_thread_run()) return -1;
+		clearfits(&args.result);
 
 	} else {
 		siril_log_message(_("No sequence `%s' found.\n"), arg->seqfile);

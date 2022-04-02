@@ -32,15 +32,14 @@
 
 #include "noise.h"
 
-#define MAX_ITER 15
-#define EPSILON 1E-4
+static GThread *thread;
 
 static gboolean end_noise(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
 	stop_processing_thread();
 	set_cursor_waiting(FALSE);
 
-	if (args->verbose) {
+	if (args->display_start_end) {
 		struct timeval t_end;
 		gettimeofday(&t_end, NULL);
 		show_time(args->t_start, t_end);
@@ -49,19 +48,19 @@ static gboolean end_noise(gpointer p) {
 	return FALSE;
 }
 
-gpointer noise(gpointer p) {
+// returns the argument if not freed
+gpointer noise_worker(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
-	int chan;
-	double norm = 1.0;
+	args->mean_noise = 0.0;
 	args->retval = 0;
 
-	if (args->verbose) {
+	if (args->display_start_end) {
 		siril_log_color_message(_("Noise standard deviation: calculating...\n"),
 				"green");
 		gettimeofday(&args->t_start, NULL);
 	}
 
-	for (chan = 0; chan < args->fit->naxes[2]; chan++) {
+	for (int chan = 0; chan < args->fit->naxes[2]; chan++) {
 		imstats *stat = statistics(NULL, -1, args->fit, chan, NULL, STATS_SIGMEAN, TRUE);
 		if (!stat) {
 			args->retval = 1;
@@ -69,30 +68,40 @@ gpointer noise(gpointer p) {
 			break;
 		}
 		args->bgnoise[chan] = stat->bgnoise;
-		norm = stat->normValue;
+		args->mean_noise += stat->bgnoise;
+		double norm = stat->normValue;
 		free_stats(stat);
-	}
 
-	if (!args->retval) {
-		for (chan = 0; chan < args->fit->naxes[2]; chan++)
+		if (args->display_results) {
 			if (args->fit->type == DATA_USHORT)
 				siril_log_message(
 						_("Background noise value (channel: #%d): %0.3f (%.3e)\n"),
 						chan, args->bgnoise[chan], args->bgnoise[chan] / norm);
-			else 
+			else
 				siril_log_message(
 						_("Background noise value (channel: #%d): %0.3f (%.3e)\n"),
 						chan, args->bgnoise[chan] * USHRT_MAX_DOUBLE, args->bgnoise[chan]);
+		}
 	}
 
-	int retval = args->retval;
-	if (args->use_idle)
-		siril_add_idle(end_noise, args);
+	if (args->retval) {
+		siril_log_message(_("Error: statistics computation failed.\n"));
+		args->mean_noise = -1.0;
+	} else {
+		args->mean_noise = args->mean_noise / (double)args->fit->naxes[2];
+		if (args->fit->type == DATA_FLOAT)
+			args->mean_noise *= USHRT_MAX_DOUBLE;
+	}
 
-	return GINT_TO_POINTER(retval);
+	if (args->use_idle) {
+		siril_add_idle(end_noise, args);
+		args = NULL;
+	}
+
+	return args;
 }
 
-
+// called by the GUI or the command, uses the processing thread
 void evaluate_noise_in_image() {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -106,9 +115,39 @@ void evaluate_noise_in_image() {
 
 	struct noise_data *args = malloc(sizeof(struct noise_data));
 	args->fit = &gfit;
-	args->verbose = TRUE;
 	args->use_idle = TRUE;
+	args->display_results = TRUE;
+	args->display_start_end = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
-	start_in_new_thread(noise, args);
+	start_in_new_thread(noise_worker, args);
+}
+
+// called in general from another function like stacking,
+// bgnoise_await() has to be called to free resources
+void bgnoise_async(fits *fit, gboolean display_values) {
+	if (thread) {
+		siril_debug_print("bgnoise request ignored, still running\n");
+		return;
+	}
+	struct noise_data *args = malloc(sizeof(struct noise_data));
+	args->fit = fit;
+	args->use_idle = FALSE;
+	args->display_start_end = FALSE;
+	args->display_results = display_values;
+	memset(args->bgnoise, 0.0, sizeof(double[3]));
+
+	thread = g_thread_new("bgnoise", noise_worker, args);
+}
+
+double bgnoise_await() {
+	if (!thread)
+		return -1.0;
+	struct noise_data *args = g_thread_join(thread);
+	thread = NULL;
+	if (!args)
+		return -1.0;
+	double value = args->mean_noise;
+	free(args);
+	return value;
 }
 

@@ -48,7 +48,8 @@
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
-	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { NULL, NULL, NULL}, FALSE, -1
+	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
+	FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
 
 #define MAX_FILTERS 5
@@ -337,22 +338,6 @@ static void _show_summary(struct stacking_args *args) {
 	}
 }
 
-static void _show_bgnoise(gpointer p) {
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-	set_cursor_waiting(TRUE);
-
-	struct noise_data *args = malloc(sizeof(struct noise_data));
-	args->fit = com.uniq->fit;
-	args->verbose = FALSE;
-	args->use_idle = TRUE;
-	memset(args->bgnoise, 0.0, sizeof(double[3]));
-
-	start_in_new_thread(noise, args);
-}
-
 void clean_end_stacking(struct stacking_args *args) {
 	if (!args->retval)
 		_show_summary(args);
@@ -365,10 +350,14 @@ void clean_end_stacking(struct stacking_args *args) {
 static gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
-	fprintf(stdout, "Ending stacking idle function, retval=%d\n", args->retval);
-	stop_processing_thread();	// can it be done here in case there is no thread?
+	siril_debug_print("Ending stacking idle function, retval=%d\n", args->retval);
+	stop_processing_thread();
 
 	if (args->retval == ST_OK) {
+		/* copy result to gfit if success */
+		clearfits(&gfit);
+		memcpy(&gfit, &args->result, sizeof(fits));
+
 		clear_stars_list();
 		/* check in com.seq, because args->seq may have been replaced */
 		if (com.seq.upscale_at_stacking > 1.05)
@@ -384,7 +373,7 @@ static gboolean end_stacking(gpointer p) {
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);
 		/* Giving noise estimation (new thread) */
-		_show_bgnoise(com.uniq->fit);
+		bgnoise_async(&gfit, TRUE);
 
 		/* save stacking result */
 		if (args->output_filename != NULL && args->output_filename[0] != '\0') {
@@ -426,7 +415,6 @@ static gboolean end_stacking(gpointer p) {
 		/* remove tmp files if exist (Drizzle) */
 		remove_tmp_drizzle_files(args);
 
-		waiting_for_thread();		// bgnoise
 		initialize_display_mode();
 
 		sliders_mode_set_state(gui.sliders);
@@ -443,13 +431,16 @@ static gboolean end_stacking(gpointer p) {
 		redraw_previews();
 		sequence_list_change_current();
 		update_stack_interface(TRUE);
+		bgnoise_await();
 	} else {
+		clearfits(&args->result);
 		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
 		if (args->retval == ST_ALLOC_ERROR) {
 			siril_log_message(_("It looks like there is a memory allocation error, change memory settings and try to fix it.\n"));
 		}
 	}
 
+	memset(&args->result, 0, sizeof(fits));
 	set_cursor_waiting(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already

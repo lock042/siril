@@ -38,6 +38,7 @@ struct sum_stacking_data {
 	int ref_image;		// reference image index in the stacked sequence
 	gboolean input_32bits;	// input is a sequence of 32-bit float images
 	gboolean output_32bits;	// output a 32-bit float image instead of the default ushort
+	fits result;
 };
 
 static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
@@ -125,7 +126,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	return ST_OK;
 }
 
-// convert the result and store it into gfit
+// convert the result and store it
 static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
 	guint64 max = 0L;	// max value of the image's channels
@@ -160,8 +161,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 				max = ssdata->sum[0][i];
 	}
 
-	clearfits(&gfit);
-	fits *fit = &gfit;
+	fits *fit = &ssdata->result;
 	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, ssdata->output_32bits ? DATA_FLOAT : DATA_USHORT))
 		return ST_GENERIC_ERROR;
 
@@ -169,18 +169,18 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	int ref = ssdata->ref_image;
 	if (args->seq->type == SEQ_REGULAR) {
 		if (!seq_open_image(args->seq, ref)) {
-			import_metadata_from_fitsfile(args->seq->fptr[ref], &gfit);
+			import_metadata_from_fitsfile(args->seq->fptr[ref], fit);
 			seq_close_image(args->seq, ref);
 		}
 	} else if (args->seq->type == SEQ_FITSEQ) {
 		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref))
-			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, &gfit);
+			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, fit);
 	} else if (args->seq->type == SEQ_SER) {
-		import_metadata_from_serfile(args->seq->ser_file, &gfit);
+		import_metadata_from_serfile(args->seq->ser_file, fit);
 	}
 
-	gfit.livetime = ssdata->livetime;
-	gfit.stackcnt = args->nb_filtered_images;
+	fit->livetime = ssdata->livetime;
+	fit->stackcnt = args->nb_filtered_images;
 	nbdata = args->seq->ry * args->seq->rx;
 
 	if (ssdata->output_32bits) {
@@ -188,7 +188,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			double ratio = 1.0 / fmax;
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				double *from = ssdata->fsum[layer];
-				float *to = gfit.fpdata[layer];
+				float *to = fit->fpdata[layer];
 				for (i=0; i < nbdata; ++i) {
 					*to++ = (float)((double)(*from++) * ratio);
 				}
@@ -197,7 +197,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			double ratio = 1.0 / (double)max;
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				guint64 *from = ssdata->sum[layer];
-				float *to = gfit.fpdata[layer];
+				float *to = fit->fpdata[layer];
 				for (i=0; i < nbdata; ++i) {
 					*to++ = (float)((double)(*from++) * ratio);
 				}
@@ -212,7 +212,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 
 		for (layer=0; layer<args->seq->nb_layers; ++layer){
 			guint64 *from = ssdata->sum[layer];
-			WORD *to = gfit.pdata[layer];
+			WORD *to = fit->pdata[layer];
 			for (i=0; i < nbdata; ++i) {
 				if (ratio == 1.0)
 					*to++ = round_to_WORD(*from++);
@@ -223,7 +223,6 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 
 	if (ssdata->sum[0]) free(ssdata->sum[0]);
 	if (ssdata->fsum[0]) free(ssdata->fsum[0]);
-	free(ssdata);
 	args->user = NULL;
 
 	return ST_OK;
@@ -251,6 +250,8 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->user = ssdata;
 
 	generic_sequence_worker(args);
+	memcpy(&stackargs->result, &ssdata->result, sizeof(fits));
+	free(ssdata);
 	return args->retval;
 }
 

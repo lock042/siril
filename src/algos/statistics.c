@@ -884,3 +884,4 @@ void on_menu_gray_stat_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	siril_open_dialog("StatWindow");
 	set_cursor_waiting(FALSE);
 }
+
