@@ -967,7 +967,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 
 /* compute statistics for all channels of a single image, only on full image, make sure the result (stats) is allocated */
 int compute_all_channels_statistics_single_image(fits *fit, int option,
-		threading_type threading, int image_thread_id, imstats **stats) {
+		threading_type threading, imstats **stats) {
 	int required_computations = (int)fit->naxes[2];
 	int retval = 0;
 

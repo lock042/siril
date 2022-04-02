@@ -129,8 +129,7 @@ int star_cmp(const void *a, const void *b)
         return -1;
     else if ((*a1).mag_est < (*a2).mag_est)
         return 1;
-    else
-        return 0;
+    return 0;
 }
 
 static void get_structure(star_finder_params *sf) {
@@ -286,6 +285,8 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 		if (areaX1 > nx || areaY1 > ny) {
 			siril_log_color_message(_("Selection is larger than image\n"), "red");
+			clearfits(&smooth_fit);
+			free(smooth_image);
 			return NULL;
 		}
 	}
@@ -491,6 +492,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 		}
 		if (nbstars == MAX_STARS) break;
 	}
+	free(smooth_image);
 	clearfits(&smooth_fit);
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
 
@@ -500,7 +502,6 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars(results, nbstars);
-	free(smooth_image);
 	free(candidates);
 
 	gettimeofday(&t_end, NULL);
@@ -537,18 +538,18 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 		return 0;
 	}
 
-	//sorting candidates by starc.mean values as an estimator of mag
+	//sorting candidates by starc.mag_est values
 	qsort(candidates, nb_candidates, sizeof(starc), star_cmp);
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1)
 #endif
 	for (int candidate = 0; candidate < nb_candidates; candidate++) {
-		if ((nbstars >= maxstars) && limit_nbstars)
+		if (limit_nbstars && nbstars >= maxstars)
 			continue;
 		int x = candidates[candidate].x, y = candidates[candidate].y;
-		int ii, jj, i, j, R;
-		R = candidates[candidate].R;
+		int R = candidates[candidate].R;
+		int ii, jj, i, j;
 		gsl_matrix *z = gsl_matrix_alloc(R * 2 + 1, R * 2 + 1);
 		/* FILL z */
 		if (image->type == DATA_USHORT) {
@@ -575,12 +576,27 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				cur_star->layer = layer;
 				cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
 				cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
-				int result_index = g_atomic_int_add(&nbstars, 1);
-				results[result_index] = cur_star;
+				if (threads > 1)
+					results[candidate] = cur_star;
+				else results[nbstars++] = cur_star;
 				//fprintf(stdout, "%03d: %11f %11f %f\n",
 				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
+			} else {
+				free_psf(cur_star);
+				if (threads > 1)
+					results[candidate] = NULL;
 			}
-			else free_psf(cur_star);
+		}
+		else if (threads > 1)
+			results[candidate] = NULL;
+	}
+	if (threads > 1) {
+		// we kept the candidates at the same indices to keep the list ordered, now we compact it
+		for (int candidate = 0; candidate < nb_candidates; candidate++) {
+			if (limit_nbstars && nbstars >= maxstars)
+				break;
+			if (results[candidate] && candidate != nbstars)
+				results[nbstars++] = results[candidate];
 		}
 	}
 	results[nbstars] = NULL;
