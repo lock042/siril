@@ -1,5 +1,5 @@
 siril 1.0.1
-xx/xx/22
+04/06/22
 
 * Added min,max, iif and logical operators in pixelmath
 * Added support for 3 channels for direct preview of resulting composition in pixelmath

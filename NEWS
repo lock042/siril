@@ -1,4 +1,4 @@
-v1.0.1 mmm dd, 2022
+v1.0.1 April 6, 2022
 
 * Added min,max, iif and logical operators in pixelmath
 * Added support for 3 channels for direct preview of resulting composition in pixelmath
