@@ -93,10 +93,11 @@ struct stacking_args {
 	gboolean apply_nbstack_weights;	/* enable weights */
 	double *weights; 		/* computed weights for each (layer, image)*/
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
-	gboolean lite_norm;			/* enable lightweight (med,mad) normalization */
+	gboolean lite_norm;		/* enable lightweight (med,mad) normalization */
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
 	float (*mad_calculator)(const WORD *, const size_t, const double, threading_type) ; // internal, for ushort
+	fits result;
 };
 
 /* configuration from the command line */

@@ -632,8 +632,8 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 	const gboolean doCold = sig[0] != -1.0;
 	const float coldVal = doCold ? bkg - k : 0.0;
 	const float hotVal = doHot ? bkg + k1 : isFloat ? 1.f : 65535.f;
-	size_t n = fit->naxes[0] * fit->naxes[1] * sizeof(float); 
-	float *temp = malloc(n);
+	size_t n = fit->naxes[0] * fit->naxes[1];
+	float *temp = malloc(n * sizeof(float));
 	if (!temp) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -641,7 +641,6 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 
 	if (isFloat) {
 		if (threads > 1) {
-			size_t n = fit->naxes[0] * fit->naxes[1];
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads)
 #endif
