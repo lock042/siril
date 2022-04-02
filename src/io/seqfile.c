@@ -49,7 +49,7 @@
  * version 2 allowed regdata to be stored for CFA SER sequences, 0.9.11
  * version 3 introduced new weighted fwhm criteria, 0.99.0
  */
-#define CURRENT_SEQFILE_VERSION 3	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 4	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -297,7 +297,7 @@ sequence * readseqfile(const char *name){
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
-				} else {
+				} else if (version == 3) {
 					// version 3 with weighted_fwhm
 					if (sscanf(line+3, "%f %f %g %g %g %lg",
 								&(regparam[i].shiftx),
@@ -306,6 +306,28 @@ sequence * readseqfile(const char *name){
 								&(regparam[i].weighted_fwhm),
 								&(regparam[i].roundness),
 								&(regparam[i].quality)) != 6) {
+						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
+						goto error;
+					}
+				}
+				else {
+					// version 4 with homography matrix
+					if (sscanf(line+3, "%f %f %g %g %g %lg H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
+								&(regparam[i].shiftx),
+								&(regparam[i].shifty),
+								&(regparam[i].fwhm),
+								&(regparam[i].weighted_fwhm),
+								&(regparam[i].roundness),
+								&(regparam[i].quality),
+								&(regparam[i].H.h00),
+								&(regparam[i].H.h01),
+								&(regparam[i].H.h02),
+								&(regparam[i].H.h10),
+								&(regparam[i].H.h11),
+								&(regparam[i].H.h12),
+								&(regparam[i].H.h20),
+								&(regparam[i].H.h21),
+								&(regparam[i].H.h22)) != 15) {
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
@@ -584,14 +606,23 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %f %f %g %g %g %g\n",
+				fprintf(seqfile, "R%c %f %f %g %g %g %g H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
 						seq->regparam[layer][i].shiftx,
 						seq->regparam[layer][i].shifty,
 						seq->regparam[layer][i].fwhm,
 						seq->regparam[layer][i].weighted_fwhm,
 						seq->regparam[layer][i].roundness,
-						seq->regparam[layer][i].quality
+						seq->regparam[layer][i].quality,
+						seq->regparam[layer][i].H.h00,
+						seq->regparam[layer][i].H.h01,
+						seq->regparam[layer][i].H.h02,
+						seq->regparam[layer][i].H.h10,
+						seq->regparam[layer][i].H.h11,
+						seq->regparam[layer][i].H.h12,
+						seq->regparam[layer][i].H.h20,
+						seq->regparam[layer][i].H.h21,
+						seq->regparam[layer][i].H.h22
 				       );
 			}
 		}
@@ -622,14 +653,23 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %f %f %g %g %g %g\n",
+				fprintf(seqfile, "R%c %f %f %g %g %g %g H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
 						seq->regparam_bkp[layer][i].shiftx,
 						seq->regparam_bkp[layer][i].shifty,
 						seq->regparam_bkp[layer][i].fwhm,
 						seq->regparam_bkp[layer][i].weighted_fwhm,
 						seq->regparam_bkp[layer][i].roundness,
-						seq->regparam_bkp[layer][i].quality
+						seq->regparam_bkp[layer][i].quality,
+						seq->regparam_bkp[layer][i].H.h00,
+						seq->regparam_bkp[layer][i].H.h01,
+						seq->regparam_bkp[layer][i].H.h02,
+						seq->regparam_bkp[layer][i].H.h10,
+						seq->regparam_bkp[layer][i].H.h11,
+						seq->regparam_bkp[layer][i].H.h12,
+						seq->regparam_bkp[layer][i].H.h20,
+						seq->regparam_bkp[layer][i].H.h21,
+						seq->regparam_bkp[layer][i].H.h22
 				       );
 			}
 		}

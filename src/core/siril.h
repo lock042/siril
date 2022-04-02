@@ -283,14 +283,23 @@ struct imdata {
 	GDateTime *date_obs;/* date of the observation, processed and copied from the header */
 };
 
+typedef struct Homo {
+	double h00, h01, h02;
+	double h10, h11, h12;
+	double h20, h21, h22;
+	int pair_matched;
+	int Inliers;
+} Homography;
+
 /* registration data, exists once for each image and each layer */
 struct registration_data {
 	float shiftx, shifty;	// we could have a subpixel precision, but is it needed? saved
 	psf_star *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
-	float weighted_fwhm; // used to exclude spurious images.
+	float weighted_fwhm;	// used to exclude spurious images.
 	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
 	double quality;
+	Homography H;
 };
 
 /* see explanation about sequence and single image management in io/sequence.c */
@@ -739,14 +748,6 @@ struct image_stats {
 
 	atomic_int* _nb_refs;	// reference counting for data management
 };
-
-typedef struct Homo {
-	double h00, h01, h02;
-	double h10, h11, h12;
-	double h20, h21, h22;
-	int pair_matched;
-	int Inliers;
-} Homography;
 
 #ifndef MAIN
 extern guiinfo gui;

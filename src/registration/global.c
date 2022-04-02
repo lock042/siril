@@ -355,6 +355,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].weighted_fwhm = 2 * FWHMx
 				* (((double) sadata->fitted_stars) - (double) H.Inliers)
 				/ (double) sadata->fitted_stars + FWHMx;
+		sadata->current_regdata[in_index].H = H;
 
 		if (!regargs->translation_only) {
 			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
