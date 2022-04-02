@@ -198,8 +198,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	}
 	set_progress_bar_data(_("Finalizing stacking..."), (double) nb_frames / ((double) nb_frames + 1.));
 
-	clearfits(&gfit);
-	fits *result = &gfit;
+	fits *result = &args->result;
 	if (is_float) {
 		if (new_fit_image_with_data(&result, args->seq->rx, args->seq->ry, args->seq->nb_layers, DATA_FLOAT, ffinal_pixel[0]))
 			return ST_GENERIC_ERROR;
@@ -237,3 +236,4 @@ free_and_reset_progress_bar:
 
 	return retval;
 }
+
