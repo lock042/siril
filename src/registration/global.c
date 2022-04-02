@@ -364,6 +364,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 	}
 	else {
+		cvGetEye(&H);
+		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->translation_only) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;

@@ -384,6 +384,11 @@ static void convert_MatH_to_H(Mat from, Homography *to) {
 	to->h22 = from.at<double>(2, 2);
 }
 
+void cvGetEye(Homography *Hom) {
+	Mat M = Mat::eye(3, 3, CV_64FC1);
+	convert_MatH_to_H(M, Hom);
+}
+
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type) {
 
