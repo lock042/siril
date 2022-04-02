@@ -312,13 +312,15 @@ sequence * readseqfile(const char *name){
 				}
 				else {
 					// version 4 with homography matrix
-					if (sscanf(line+3, "%f %f %g %g %g %lg H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
+					if (sscanf(line+3, "%f %f %g %g %g %lg %g %d H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
 								&(regparam[i].shiftx),
 								&(regparam[i].shifty),
 								&(regparam[i].fwhm),
 								&(regparam[i].weighted_fwhm),
 								&(regparam[i].roundness),
 								&(regparam[i].quality),
+								&(regparam[i].background_lvl),
+								&(regparam[i].number_of_stars),
 								&(regparam[i].H.h00),
 								&(regparam[i].H.h01),
 								&(regparam[i].H.h02),
@@ -327,7 +329,7 @@ sequence * readseqfile(const char *name){
 								&(regparam[i].H.h12),
 								&(regparam[i].H.h20),
 								&(regparam[i].H.h21),
-								&(regparam[i].H.h22)) != 15) {
+								&(regparam[i].H.h22)) != 17) {
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
@@ -606,7 +608,7 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %f %f %g %g %g %g H %g %g %g %g %g %g %g %g %g\n",
+				fprintf(seqfile, "R%c %f %f %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
 						seq->regparam[layer][i].shiftx,
 						seq->regparam[layer][i].shifty,
@@ -614,6 +616,8 @@ int writeseqfile(sequence *seq){
 						seq->regparam[layer][i].weighted_fwhm,
 						seq->regparam[layer][i].roundness,
 						seq->regparam[layer][i].quality,
+						seq->regparam[layer][i].background_lvl,
+						seq->regparam[layer][i].number_of_stars,
 						seq->regparam[layer][i].H.h00,
 						seq->regparam[layer][i].H.h01,
 						seq->regparam[layer][i].H.h02,

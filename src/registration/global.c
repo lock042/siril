@@ -127,7 +127,7 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 int star_align_prepare_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
-	float FWHMx, FWHMy;
+	float FWHMx, FWHMy, B;
 	char *units;
 	fits fit = { 0 };
 	int i, nb_stars = 0;
@@ -211,12 +211,14 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	} else {
 		sadata->fitted_stars = nb_stars;
 	}
-	FWHM_average(sadata->refstars, sadata->fitted_stars, &FWHMx, &FWHMy, &units);
+	FWHM_average(sadata->refstars, sadata->fitted_stars, &FWHMx, &FWHMy, &units, &B);
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
 	sadata->current_regdata[regargs->reference_image].fwhm = FWHMx;
 	sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
+	sadata->current_regdata[regargs->reference_image].background_lvl = B;
+	sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
 
 	return star_align_prepare_results(args);
 }
@@ -231,7 +233,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	int retvalue;
 	int nobj = 0;
 	int attempt = 1;
-	float FWHMx, FWHMy;
+	float FWHMx, FWHMy, B;
 	char *units;
 	Homography H = { 0 };
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
@@ -343,7 +345,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 
 
-		FWHM_average(stars, nbpoints, &FWHMx, &FWHMy, &units);
+		FWHM_average(stars, nbpoints, &FWHMx, &FWHMy, &units, &B);
 		free_fitted_stars(stars);
 #ifdef _OPENMP
 #pragma omp critical
@@ -351,10 +353,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		print_alignment_results(H, filenum, FWHMx, FWHMy, units);
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
-		sadata->current_regdata[in_index].fwhm =  FWHMx;
+		sadata->current_regdata[in_index].fwhm = FWHMx;
 		sadata->current_regdata[in_index].weighted_fwhm = 2 * FWHMx
 				* (((double) sadata->fitted_stars) - (double) H.Inliers)
 				/ (double) sadata->fitted_stars + FWHMx;
+		sadata->current_regdata[in_index].background_lvl = B;
+		sadata->current_regdata[in_index].number_of_stars = nb_stars;
 		sadata->current_regdata[in_index].H = H;
 
 		if (!regargs->translation_only) {
@@ -364,6 +368,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 	}
 	else {
+		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->translation_only) {
@@ -375,9 +380,11 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	if (!regargs->translation_only) {
 		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;	// not FWHMx because of the ref frame
+		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 
 		if (regargs->x2upscale) {
 			fit->pixel_size_x /= 2;

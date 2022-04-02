@@ -299,6 +299,9 @@ struct registration_data {
 	float weighted_fwhm;	// used to exclude spurious images.
 	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
 	double quality;
+	float background_lvl;
+	int number_of_stars;
+
 	Homography H;
 };
 
