@@ -115,7 +115,6 @@ src_files = [
   
   'livestacking/livestacking.c',
   'livestacking/gui.c',
-  'livestacking/noise.c',
   
   'opencv/opencv.cpp',
   'opencv/opencv.h',

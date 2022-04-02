@@ -951,7 +951,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	struct _data_block *data_pool = NULL;
 	struct _image_block *blocks = NULL;
 	fits fit = { 0 }; // output result
-	fits ref = { 0 }; // reference image, used to get metadata back
+	fits ref = { 0 }; // reference image, used to propagate metadata
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
@@ -1357,26 +1357,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					(double) irej[channel][1] / nb_tot * 100.0);
 		}
 	}
-
-	/* copy result to gfit if success */
-	clearfits(&gfit);
-	copyfits(&fit, &gfit, CP_FORMAT, -1);
-
-	if (args->use_32bit_output) {
-		gfit.fdata = fit.fdata;
-		for (i = 0; i < fit.naxes[2]; i++)
-			gfit.fpdata[i] = fit.fpdata[i];
-
-		if (args->output_norm) {
-			norm_to_0_1_range(&gfit);
-		}
-	} else {
-		gfit.data = fit.data;
-		for (i = 0; i < fit.naxes[2]; i++)
-			gfit.pdata[i] = fit.pdata[i];
-	}
-
-	compute_date_time_keywords(list_date, &gfit);
+	if (args->use_32bit_output && args->output_norm)
+		norm_to_0_1_range(&fit);
+	memcpy(&args->result, &fit, sizeof(fits));
+	compute_date_time_keywords(list_date, &fit);
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);

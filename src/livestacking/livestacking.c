@@ -50,7 +50,6 @@
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui.h"
-#include "noise.h"
 
 /* hard-coded configuration */
 #define REGISTRATION_TYPE SIMILARITY_TRANSFORMATION
@@ -304,7 +303,6 @@ static int live_stacking_star_align_prepare(struct generic_seq_args *args) {
 	if (!sadata || !sadata->refstars) {
 		return star_align_prepare_hook(args);
 	}
-	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
 	regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
@@ -716,7 +714,7 @@ static gpointer live_stacker(gpointer arg) {
 			break;
 		}
 		clear_stars_list();
-		bgnoise_async();
+		bgnoise_async(&gfit, FALSE);
 
 		if (savefits(result_filename, &gfit)) {
 			char *msg = siril_log_color_message(_("Could not save the stacking result %s, aborting\n"),
