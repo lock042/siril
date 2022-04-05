@@ -3553,11 +3553,11 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 		if (!retval) {
 			bgnoise_async(&args.result, TRUE);
-			if (savefits(arg->result_file, &args.result))
+			if (savefits(arg->result_file, &args.result)) {
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", arg->result_file);
-			++arg->number_of_loaded_sequences;
-			retval = 1;
+				retval = 1;
+			} else ++arg->number_of_loaded_sequences;
 			bgnoise_await();
 		}
 		clearfits(&args.result);
