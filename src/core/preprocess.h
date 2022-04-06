@@ -12,7 +12,8 @@ struct preprocessing_data {
 	fits *bias, *dark, *flat;
 	float bias_level;
 	gboolean fix_xtrans;
-	gboolean use_dark_optim, use_cosmetic_correction;
+	gboolean use_dark_optim, use_cosmetic_correction, cc_from_dark;
+	GFile *bad_pixel_map_file;
 	gboolean is_sequence;
 	sequence *seq;
 	sequence_type output_seqtype;

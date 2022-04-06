@@ -334,7 +334,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	// proceed to cosmetic correction
-	if (prepro->use_cosmetic_correction && prepro->use_dark) {
+	if (prepro->use_cosmetic_correction && prepro->use_dark && prepro->cc_from_dark) {
 		if (strlen(prepro->dark->bayer_pattern) > 4) {
 			siril_log_color_message(_("Cosmetic correction cannot be applied on X-Trans files.\n"), "red");
 			prepro->use_cosmetic_correction = FALSE;
@@ -367,7 +367,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 		return 1;
 
 	if (prepro->use_cosmetic_correction && prepro->use_dark
-			&& prepro->dark->naxes[2] == 1) {
+			&& prepro->dark->naxes[2] == 1 && prepro->cc_from_dark) {
 		cosmeticCorrection(fit, prepro->dev, prepro->icold + prepro->ihot, prepro->is_cfa);
 #ifdef SIRIL_OUTPUT_DEBUG
 		image_find_minmax(fit);
@@ -375,6 +375,10 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 				fit->mini, fit->maxi);
 		invalidate_stats_from_fit(fit);
 #endif
+	}
+
+	if (!prepro->cc_from_dark && prepro->bad_pixel_map_file) {
+		apply_cosme_to_image(fit, prepro->bad_pixel_map_file, prepro->is_cfa);
 	}
 
 	if (prepro->debayer) {
@@ -575,11 +579,41 @@ free_on_error:
 	return 0;
 }
 
+static gboolean check_for_cosme_file_sanity(GFile *file) {
+	GError *error = NULL;
+	gchar *line;
+
+	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, &error);
+
+	if (input_stream == NULL) {
+		if (error != NULL) {
+			g_clear_error(&error);
+			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
+		}
+		g_object_unref(file);
+		return FALSE;
+	}
+
+	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
+				NULL, NULL))) {
+		if (!g_str_has_prefix(line, "P ") && !g_str_has_prefix(line, "C ")
+				&& !g_str_has_prefix(line, "C ")
+				&& !g_str_has_prefix(line, "#")) {
+			g_free(line);
+			return FALSE;
+		}
+		g_free(line);
+	}
+	return TRUE;
+}
+
 static gboolean test_for_master_files(struct preprocessing_data *args) {
 	GtkToggleButton *tbutton;
 	GtkEntry *entry;
 	gboolean has_error = FALSE;
 	args->bias_level = FLT_MAX;
+	args->bad_pixel_map_file = NULL;
 
 	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
 	if (gtk_toggle_button_get_active(tbutton)) {
@@ -709,6 +743,35 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				} else args->sigma[1] = -1.0;
 			}
 		}
+	}
+
+	/* Using Bad Pixel Map ? */
+	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usebadpixelmap_button"));
+	if (gtk_toggle_button_get_active(tbutton)) {
+		const gchar *bad_pixel_f;
+		entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
+		bad_pixel_f = gtk_entry_get_text(entry);
+		/* test for file */
+		if (bad_pixel_f[0] != '\0') {
+			args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
+			if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+				g_object_unref(args->bad_pixel_map_file);
+				args->bad_pixel_map_file = NULL;
+			}
+		}
+	}
+
+	/* now we want to know which cosmetic correction we choose */
+	GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
+	GtkWidget *w = gtk_stack_get_visible_child(stack);
+	args->cc_from_dark = TRUE; // default value
+	if (w) {
+		GValue value = G_VALUE_INIT;
+		g_value_init(&value, G_TYPE_INT);
+		gtk_container_child_get_property(GTK_CONTAINER(stack), w, "position", &value);
+		gint position = g_value_get_int(&value);
+		args->cc_from_dark = position == 0 ? TRUE : FALSE;
+		g_value_unset(&value);
 	}
 
 	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));

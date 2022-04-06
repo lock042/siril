@@ -62,6 +62,10 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 		gtk_file_chooser_set_filter(file_chooser, f);
 }
 
+static void set_single_filter_dialog(GtkFileChooser *chooser, const gchar *name, const gchar *filter) {
+	gtk_filter_add(chooser, name, filter, TRUE);
+}
+
 static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	GString *all_filter = NULL;
 	gchar *fits_filter = FITS_EXTENSIONS;
@@ -265,6 +269,13 @@ static void opendial(int whichdial) {
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, TRUE);
 		set_filters_dialog(dialog, whichdial);
+		break;
+	case OD_BADPIXEL:
+		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
+		dialog = GTK_FILE_CHOOSER(widgetdialog);
+		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_select_multiple(dialog, FALSE);
+		set_single_filter_dialog(dialog, _("Cosmetic correction file (*.lst)"), "*.lst;*.LST");
 	}
 
 	if (!dialog)
@@ -278,8 +289,8 @@ static void opendial(int whichdial) {
 		gchar *filename, *err;
 		gboolean anything_loaded;
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		GtkEntry *flat_entry, *dark_entry, *bias_entry;
-		GtkToggleButton *flat_button, *dark_button, *bias_button;
+		GtkEntry *flat_entry, *dark_entry, *bias_entry, *bad_pixel_entry;
+		GtkToggleButton *flat_button, *dark_button, *bias_button, *bad_pixel_button;
 		GtkWidget *pbutton;
 
 		filename = gtk_file_chooser_get_filename(chooser);
@@ -297,10 +308,12 @@ static void opendial(int whichdial) {
 		flat_entry = GTK_ENTRY(lookup_widget("flatname_entry"));
 		dark_entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 		bias_entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
+		bad_pixel_entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
 
 		flat_button = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
 		dark_button = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
 		bias_button = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
+		bad_pixel_button = GTK_TOGGLE_BUTTON(lookup_widget("usebadpixelmap_button"));
 
 		anything_loaded = sequence_is_loaded() || single_image_is_loaded();
 
@@ -345,6 +358,12 @@ static void opendial(int whichdial) {
 			fill_convert_list(list);
 			g_slist_free(list);
 			break;
+
+		case OD_BADPIXEL:
+			gtk_entry_set_text(bad_pixel_entry, filename);
+			gtk_toggle_button_set_active(bad_pixel_button, TRUE);
+			break;
+
 		}
 		g_free(filename);
 	}
@@ -374,6 +393,10 @@ void header_open_button_clicked() {
 
 void on_select_convert_button_clicked(GtkToolButton *button, gpointer user_data) {
 	opendial(OD_CONVERT);
+}
+
+void on_pixelmap_button_clicked(GtkToggleButton *button, gpointer user_data) {
+	opendial(OD_BADPIXEL);
 }
 
 /** callback function for recent document opened

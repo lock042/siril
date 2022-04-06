@@ -462,16 +462,11 @@ void update_prepro_interface(gboolean allow_debayer) {
        	static GtkWidget *debayer = NULL, *fix_xtrans = NULL;
 	static GtkComboBox *output_type = NULL;
 	if (udark == NULL) {
-		udark = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "usedark_button"));
-		uoffset = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "useoffset_button"));
-		uflat = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "useflat_button"));
-		checkAutoEvaluate = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "checkbutton_auto_evaluate"));
-		output_type = GTK_COMBO_BOX(
-				gtk_builder_get_object(gui.builder, "prepro_output_type_combo"));
+		udark = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
+		uoffset = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
+		uflat = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
+		checkAutoEvaluate = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
+		output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 		prepro_button = lookup_widget("prepro_button");
 		cosme_grid = lookup_widget("grid24");
 		dark_optim = lookup_widget("checkDarkOptimize");

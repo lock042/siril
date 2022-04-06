@@ -14299,167 +14299,329 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
                                                 <child>
-                                                  <!-- n-columns=5 n-rows=3 -->
-                                                  <object class="GtkGrid" id="grid24">
+                                                  <object class="GtkBox">
                                                     <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">5</property>
-                                                    <property name="row-spacing">5</property>
-                                                    <property name="column-spacing">5</property>
+                                                    <property name="orientation">vertical</property>
+                                                    <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkCheckButton" id="cosmCFACheck">
-                                                        <property name="label" translatable="yes">CFA</property>
+                                                        <property name="label" translatable="yes">CFA data</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
                                                         <property name="tooltip-text" translatable="yes">Check if the target frames are CFA images.
 Uncheck if images come from a monochrome sensor.</property>
                                                         <property name="halign">start</property>
+                                                        <property name="margin-top">5</property>
                                                         <property name="draw-indicator">True</property>
                                                         <signal name="toggled" handler="on_cosmCFACheck_toggled" swapped="no"/>
                                                       </object>
                                                       <packing>
-                                                        <property name="left-attach">4</property>
-                                                        <property name="top-attach">1</property>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">0</property>
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkSpinButton" id="spinSigCosmeHot">
+                                                      <object class="GtkStackSwitcher">
                                                         <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                        <property name="can-focus">False</property>
                                                         <property name="halign">start</property>
-                                                        <property name="width-chars">7</property>
-                                                        <property name="max-width-chars">6</property>
-                                                        <property name="text">3,000</property>
-                                                        <property name="input-purpose">number</property>
-                                                        <property name="adjustment">adjSigCosmeHot</property>
-                                                        <property name="digits">3</property>
-                                                        <property name="numeric">True</property>
-                                                        <property name="value">3</property>
-                                                        <style>
-                                                          <class name="small-spinbutton"/>
-                                                        </style>
+                                                        <property name="margin-top">5</property>
+                                                        <property name="stack">stack_cc</property>
                                                       </object>
                                                       <packing>
-                                                        <property name="left-attach">3</property>
-                                                        <property name="top-attach">1</property>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">1</property>
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkCheckButton" id="cosmEnabledCheck">
-                                                        <property name="label" translatable="yes">Enable Cosmectic Correction</property>
+                                                      <object class="GtkStack" id="stack_cc">
                                                         <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Check if you want to apply a hot pixel removal.
+                                                        <property name="can-focus">False</property>
+                                                        <property name="transition-type">slide-left-right</property>
+                                                        <child>
+                                                          <object class="GtkFrame" id="cc_frame_dark">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="label-xalign">0</property>
+                                                            <property name="shadow-type">none</property>
+                                                            <child>
+                                                            <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <!-- n-columns=5 n-rows=3 -->
+                                                            <object class="GtkGrid" id="grid24">
+                                                            <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spinSigCosmeHot">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="width-chars">7</property>
+                                                            <property name="max-width-chars">6</property>
+                                                            <property name="text">3,000</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="adjustment">adjSigCosmeHot</property>
+                                                            <property name="digits">3</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">3</property>
+                                                            <style>
+                                                            <class name="small-spinbutton"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="cosmEnabledCheck">
+                                                            <property name="label" translatable="yes">Enable Cosmectic Correction</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Check if you want to apply a hot pixel removal.
 Hot pixels are located on the master-dark.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="active">True</property>
-                                                        <property name="draw-indicator">True</property>
-                                                        <signal name="toggled" handler="on_cosmEnabledCheck_toggled" swapped="no"/>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_cosmEnabledCheck_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            <property name="width">5</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spinSigCosmeCold">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="width-chars">7</property>
+                                                            <property name="max-width-chars">5</property>
+                                                            <property name="text">3,000</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="adjustment">adjSigCosmeCold</property>
+                                                            <property name="digits">3</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">3</property>
+                                                            <style>
+                                                            <class name="small-spinbutton"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="checkSigCold">
+                                                            <property name="label" translatable="yes">Cold Sigma:</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="checkSigHot">
+                                                            <property name="label" translatable="yes">Hot Sigma:</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="GtkButtonEvaluateCC">
+                                                            <property name="label" translatable="yes">Estimate</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Click on this button to evaluate the number of deviant pixels. If values are higher than 1% of the total of pixels, you will be encouraged to change sigma values.</property>
+                                                            <property name="halign">center</property>
+                                                            <signal name="clicked" handler="on_GtkButtonEvaluateCC_clicked" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="GtkLabelColdCC">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Cold: 0 px</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">2</property>
+                                                            <property name="width">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="GtkLabelHotCC">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Hot: 0 px</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">2</property>
+                                                            <property name="width">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            <child type="label">
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Master-dark</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="name">cc_page0</property>
+                                                            <property name="title" translatable="yes">Using Master-Dark</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkFrame" id="cc_frame_bad_pixel_map">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="label-xalign">0</property>
+                                                            <property name="shadow-type">none</property>
+                                                            <child>
+                                                            <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="usebadpixelmap_button">
+                                                            <property name="label" translatable="yes" comments="Offset is the kind of the picture used here. In french I've decided to not translate the word.">Use bad pixel map</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="use-underline">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkEntry" id="pixelmap_entry">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="width-chars">40</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="pixelmap_button">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="use-underline">True</property>
+                                                            <signal name="clicked" handler="on_pixelmap_button_clicked" swapped="no"/>
+                                                            <child>
+                                                            <object class="GtkImage">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="icon-name">document-open-symbolic</property>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            <child type="label">
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Bad Pixel Map</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="name">cc_page1</property>
+                                                            <property name="title" translatable="yes">Using Bad Pixel Map</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
                                                       </object>
                                                       <packing>
-                                                        <property name="left-attach">0</property>
-                                                        <property name="top-attach">0</property>
-                                                        <property name="width">5</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkSpinButton" id="spinSigCosmeCold">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="width-chars">7</property>
-                                                        <property name="max-width-chars">5</property>
-                                                        <property name="text">3,000</property>
-                                                        <property name="input-purpose">number</property>
-                                                        <property name="adjustment">adjSigCosmeCold</property>
-                                                        <property name="digits">3</property>
-                                                        <property name="numeric">True</property>
-                                                        <property name="value">3</property>
-                                                        <style>
-                                                          <class name="small-spinbutton"/>
-                                                        </style>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">1</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="checkSigCold">
-                                                        <property name="label" translatable="yes">Cold Sigma:</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                        <property name="halign">end</property>
-                                                        <property name="active">True</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">0</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="checkSigHot">
-                                                        <property name="label" translatable="yes">Hot Sigma:</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                        <property name="halign">end</property>
-                                                        <property name="active">True</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">2</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkButton" id="GtkButtonEvaluateCC">
-                                                        <property name="label" translatable="yes">Estimate</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Click on this button to evaluate the number of deviant pixels. If values are higher than 1% of the total of pixels, you will be encouraged to change sigma values.</property>
-                                                        <property name="halign">center</property>
-                                                        <signal name="clicked" handler="on_GtkButtonEvaluateCC_clicked" swapped="no"/>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">0</property>
-                                                        <property name="top-attach">2</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkLabel" id="GtkLabelColdCC">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="label" translatable="yes">Cold: 0 px</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">1</property>
-                                                        <property name="top-attach">2</property>
-                                                        <property name="width">2</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkLabel" id="GtkLabelHotCC">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="label" translatable="yes">Hot: 0 px</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">3</property>
-                                                        <property name="top-attach">2</property>
-                                                        <property name="width">2</property>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
                                                       </packing>
                                                     </child>
                                                   </object>
@@ -14468,7 +14630,7 @@ Hot pixels are located on the master-dark.</property>
                                                   <object class="GtkLabel">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">Cosmetic correction (using master-dark)</property>
+                                                    <property name="label" translatable="yes">Cosmetic correction</property>
                                                     <attributes>
                                                       <attribute name="weight" value="bold"/>
                                                     </attributes>
