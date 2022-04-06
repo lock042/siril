@@ -144,7 +144,6 @@ int generic_save(struct generic_seq_args *, int, int, fits *);
 void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();
 void stop_processing_thread();
-void set_thread_run(gboolean b);
 gboolean get_thread_run();
 
 void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);

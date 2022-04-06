@@ -237,13 +237,14 @@ gpointer execute_script(gpointer p) {
 				break;
 			}
 		}
-		if ((retval = execute_command(wordnb))) {
+		retval = execute_command(wordnb);
+		if (retval && retval != CMD_NO_WAIT) {
 			siril_log_message(_("Error in line %d: '%s'.\n"), line, buffer);
 			siril_log_message(_("Exiting batch processing.\n"));
 			g_free (buffer);
 			break;
 		}
-		if (waiting_for_thread()) {
+		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			retval = 1;
 			g_free (buffer);
 			break;	// abort script on command failure

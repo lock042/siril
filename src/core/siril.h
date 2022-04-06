@@ -51,7 +51,7 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
-#define SWAP(a,b) { double temp = (a); (a) = (b); (b) = temp; }
+#define SWAPD(a,b) { double temp = (a); (a) = (b); (b) = temp; }
 
 #define SQR(x) ((x)*(x))
 #endif

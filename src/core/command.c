@@ -96,6 +96,7 @@
 #include "registration/matching/match.h"
 #include "algos/fix_xtrans_af.h"
 #include "algos/annotate.h"
+#include "livestacking/livestacking.h"
 
 #include "command.h"
 #include "command_def.h"
@@ -3661,7 +3662,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", arg->result_file);
 				retval = 1;
-			} else ++arg->number_of_loaded_sequences;
+			}
+			else ++arg->number_of_loaded_sequences;
 			bgnoise_await();
 		}
 		clearfits(&args.result);
@@ -4383,5 +4385,65 @@ int process_boxselect(int nb){
 			siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), com.selection.x, com.selection.y, com.selection.w, com.selection.h);
 		}
 	}
+	return 0;
+}
+
+int process_start_ls(int nb) {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	// start_ls [-dark=filename] [-flat=filename] [-gradient_removal] [-watch_files]"
+	gchar *dark_file = NULL, *flat_file = NULL;
+	gboolean use_file_watcher = FALSE, remove_gradient = FALSE;
+	for (int i = 1; i < nb; i++) {
+		if (!word[i])
+			continue;
+		if (g_str_has_prefix(word[i], "-dark="))
+			dark_file = g_shell_unquote(word[i] + 6, NULL);
+		else if (g_str_has_prefix(word[i], "-flat="))
+			flat_file = g_shell_unquote(word[i] + 6, NULL);
+		else if (!strcmp(word[i], "-gradient_removal"))
+			remove_gradient = TRUE;
+		else if (!strcmp(word[i], "-watch_files"))
+			use_file_watcher = TRUE;
+		else {
+			siril_log_message(_("Unknown option provided: %s\n"), word[i]);
+			return 1;
+		}
+	}
+
+	return start_livestack_from_command(dark_file, flat_file, use_file_watcher, remove_gradient);
+}
+
+int process_livestack(int nb) {
+	// livestack filename [-out=result]
+	if (!livestacking_is_started()) {
+		siril_log_message(_("Live stacking needs to be initialized with the START_LS command first\n"));
+		return 1;
+	}
+	if (livestacking_uses_filewatcher()) {
+		siril_log_message(_("Live stacking was configured to use file watching, not this command\n"));
+		return 1;
+	}
+
+	image_type type;
+	char *filename;
+	if (stat_file(word[1], &type, &filename)) {
+		siril_log_message(_("Could not open file: %s"), filename);
+		return 1;
+	}
+
+	livestacking_queue_file(filename);
+	return CMD_NO_WAIT;
+}
+
+int process_stop_ls(int nb) {
+	if (!livestacking_is_started()) {
+		siril_log_message(_("Live stacking needs to be initialized with the START_LS command first\n"));
+		return 1;
+	}
+	stop_live_stacking_engine();
 	return 0;
 }

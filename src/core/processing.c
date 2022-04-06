@@ -496,6 +496,8 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
  *      P R O C E S S I N G      T H R E A D      M A N A G E M E N T        *
  ****************************************************************************/
 
+static void set_thread_run(gboolean b);
+
 static gboolean thread_being_waited = FALSE;
 
 // This function is reentrant. The pointer will be freed in the idle function,
@@ -553,7 +555,8 @@ void stop_processing_thread() {
 		waiting_for_thread();
 }
 
-void set_thread_run(gboolean b) {
+static void set_thread_run(gboolean b) {
+	siril_debug_print("setting run %d to the processing thread\n", b);
 	g_mutex_lock(&com.mutex);
 	com.run_thread = b;
 	g_mutex_unlock(&com.mutex);

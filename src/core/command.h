@@ -5,6 +5,8 @@
 #  include <config.h>
 #endif
 
+#define CMD_NO_WAIT -667
+
 int	process_addmax(int nb);
 int	process_autostretch(int nb);
 int	process_asinh(int nb);
@@ -140,5 +142,10 @@ int	process_visu(int nb);
 
 int	process_wavelet(int nb);
 int	process_wrecons(int nb);
+
+/* live stacking specials */
+int process_start_ls(int nb);
+int process_livestack(int nb);
+int process_stop_ls(int nb);
 
 #endif

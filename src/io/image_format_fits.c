@@ -2029,8 +2029,9 @@ int savefits(const char *name, fits *f) {
 	status = 0;
 	fits_close_file(f->fptr, &status);
 	if (!status) {
-		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels\n"),
-				filename, f->naxes[2], f->rx, f->ry);
+		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"),
+				filename, f->naxes[2], f->rx, f->ry,
+				f->type == DATA_USHORT ? 16 : 32);
 	}
 	return 0;
 }
