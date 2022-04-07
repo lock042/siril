@@ -474,9 +474,9 @@ static guint siril_string_replace_parameter(GString *string, const gchar *find,
 
 	while ((next = strstr(cur, find)) != NULL) {
 		pos = next - string->str;
-		if ((pos == 0 && is_op_or_null(string->str[pos + 1])) ||
+		if ((pos == 0 && is_op_or_null(string->str[pos + f_len])) ||
 				((pos > 0 && is_op_or_null(string->str[pos - 1])) &&
-				(pos < strlen(string->str) && is_op_or_null(string->str[pos + 1])))) {
+				(pos < strlen(string->str) && is_op_or_null(string->str[pos + f_len])))) {
 			g_string_erase(string, pos, f_len);
 			g_string_insert(string, pos, replace);
 			cur = string->str + pos + r_len;
