@@ -290,7 +290,7 @@ static void opendial(int whichdial) {
 		gboolean anything_loaded;
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 		GtkEntry *flat_entry, *dark_entry, *bias_entry, *bad_pixel_entry;
-		GtkToggleButton *flat_button, *dark_button, *bias_button, *bad_pixel_button;
+		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
 		filename = gtk_file_chooser_get_filename(chooser);
@@ -313,7 +313,6 @@ static void opendial(int whichdial) {
 		flat_button = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
 		dark_button = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
 		bias_button = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
-		bad_pixel_button = GTK_TOGGLE_BUTTON(lookup_widget("usebadpixelmap_button"));
 
 		anything_loaded = sequence_is_loaded() || single_image_is_loaded();
 
@@ -361,7 +360,6 @@ static void opendial(int whichdial) {
 
 		case OD_BADPIXEL:
 			gtk_entry_set_text(bad_pixel_entry, filename);
-			gtk_toggle_button_set_active(bad_pixel_button, TRUE);
 			break;
 
 		}

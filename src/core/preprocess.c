@@ -746,20 +746,18 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 	}
 
 	/* Using Bad Pixel Map ? */
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usebadpixelmap_button"));
-	if (gtk_toggle_button_get_active(tbutton)) {
-		const gchar *bad_pixel_f;
-		entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
-		bad_pixel_f = gtk_entry_get_text(entry);
-		/* test for file */
-		if (bad_pixel_f[0] != '\0') {
-			args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
-			if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-				g_object_unref(args->bad_pixel_map_file);
-				args->bad_pixel_map_file = NULL;
-			}
+	const gchar *bad_pixel_f;
+	entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
+	bad_pixel_f = gtk_entry_get_text(entry);
+	/* test for file */
+	if (bad_pixel_f[0] != '\0') {
+		args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
+		if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+			g_object_unref(args->bad_pixel_map_file);
+			args->bad_pixel_map_file = NULL;
 		}
 	}
+
 
 	/* now we want to know which cosmetic correction we choose */
 	GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
