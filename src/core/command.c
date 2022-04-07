@@ -3970,7 +3970,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		if (word[i]) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
-				if (expression[0] == '=') {
+				if (expression && expression[0] == '=') {
 					if (seq) {
 						// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
 						int image_to_load = sequence_find_refimage(seq);
