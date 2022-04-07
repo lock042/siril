@@ -13639,12 +13639,11 @@ WARNING: it will erase all registration and statistics data.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Base name for the exported sequence</property>
-                                                            <property name="width-chars">50</property>
                                                             <signal name="changed" handler="on_entryExportSeq_changed" swapped="no"/>
                                                             <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
                                                           </object>
                                                           <packing>
-                                                            <property name="expand">False</property>
+                                                            <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">1</property>
                                                           </packing>
@@ -15148,11 +15147,13 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <object class="GtkBox" id="box_comet">
+                                                            <!-- n-columns=3 n-rows=2 -->
+                                                            <object class="GtkGrid" id="box_comet">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="spacing">5</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
+                                                            <property name="column-homogeneous">True</property>
                                                             <child>
                                                             <object class="GtkButton" id="button1_comet">
                                                             <property name="label" translatable="yes">Pick object in #1</property>
@@ -15163,9 +15164,22 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="clicked" handler="on_button1_comet_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">0</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="button1_comet2">
+                                                            <property name="label" translatable="yes">Pick object in #2</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
+                                                            <signal name="clicked" handler="on_button2_comet_clicked" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15179,40 +15193,8 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkEntry" id="entry1_y_comet">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Core Y-coordinates of the first image.</property>
-                                                            <property name="width-chars">7</property>
-                                                            <property name="text">0.00</property>
-                                                            <property name="input-purpose">number</property>
-                                                            <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkButton" id="button1_comet2">
-                                                            <property name="label" translatable="yes">Pick object in #2</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                            <signal name="clicked" handler="on_button2_comet_clicked" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15226,9 +15208,23 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkEntry" id="entry1_y_comet">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Core Y-coordinates of the first image.</property>
+                                                            <property name="width-chars">7</property>
+                                                            <property name="text">0.00</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15242,16 +15238,15 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">5</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">0</property>
+                                                            <property name="position">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15290,7 +15285,7 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -15583,7 +15578,45 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="margin-top">5</property>
+                                                            <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
+                                                            <property name="label" translatable="yes">Simplified Drizzle x2</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Activate the simplified drizzle algorithm for the processing of this sequence. An up-scale (x2) will be applied to the registered frame or during stacking depending on which registration is chosen, that will result in higher resolution images.
+This option is adapted for under-sampled images, i.e, when the telescope focal length is too short for the pixel size. One may consider that the system is under-sampled when FWHM is smaller than 2 pixels.
+The correct name of this method should be super-resolution stacking, but for a more convenient understanding we called it "Simplified Drizzle x2".
+
+WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_button_comet">
+                                                            <property name="label" translatable="yes">Accumulate reg. data</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Check this button if you want the new registration data to be added to the previous one.
+This option is useful when sequence has previously been aligned using a method that does not build a new sequence, but it should be unchecked when the comet/asteroid algorithm is applied several times.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
                                                             <child>
                                                             <object class="GtkButton" id="goregister_button">
                                                             <property name="label" translatable="yes">Go register</property>
@@ -15602,43 +15635,6 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">16</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Simplified Drizzle x2</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Activate the simplified drizzle algorithm for the processing of this sequence. An up-scale (x2) will be applied to the registered frame or during stacking depending on which registration is chosen, that will result in higher resolution images.
-This option is adapted for under-sampled images, i.e, when the telescope focal length is too short for the pixel size. One may consider that the system is under-sampled when FWHM is smaller than 2 pixels.
-The correct name of this method should be super-resolution stacking, but for a more convenient understanding we called it "Simplified Drizzle x2".
-
-WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="check_button_comet">
-                                                            <property name="label" translatable="yes">Accumulate reg. data</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Check this button if you want the new registration data to be added to the previous one.
-This option is useful when sequence has previously been aligned using a method that does not build a new sequence, but it should be unchecked when the comet/asteroid algorithm is applied several times.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
                                                             <property name="position">2</property>
                                                             </packing>
                                                             </child>
