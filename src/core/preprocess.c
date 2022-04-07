@@ -377,7 +377,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 #endif
 	}
 
-	if (!prepro->cc_from_dark && prepro->bad_pixel_map_file) {
+	if (prepro->use_cosmetic_correction && !prepro->cc_from_dark && prepro->bad_pixel_map_file) {
 		apply_cosme_to_image(fit, prepro->bad_pixel_map_file, prepro->is_cfa);
 	}
 
@@ -741,23 +741,22 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
 					args->sigma[1] = gtk_spin_button_get_value(sigHot);
 				} else args->sigma[1] = -1.0;
+
+				/* Using Bad Pixel Map ? */
+				const gchar *bad_pixel_f;
+				entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
+				bad_pixel_f = gtk_entry_get_text(entry);
+				/* test for file */
+				if (bad_pixel_f[0] != '\0') {
+					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
+					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+						g_object_unref(args->bad_pixel_map_file);
+						args->bad_pixel_map_file = NULL;
+					}
+				}
 			}
 		}
 	}
-
-	/* Using Bad Pixel Map ? */
-	const gchar *bad_pixel_f;
-	entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
-	bad_pixel_f = gtk_entry_get_text(entry);
-	/* test for file */
-	if (bad_pixel_f[0] != '\0') {
-		args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
-		if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-			g_object_unref(args->bad_pixel_map_file);
-			args->bad_pixel_map_file = NULL;
-		}
-	}
-
 
 	/* now we want to know which cosmetic correction we choose */
 	GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));

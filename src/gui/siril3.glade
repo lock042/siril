@@ -14305,17 +14305,18 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                     <property name="orientation">vertical</property>
                                                     <property name="spacing">5</property>
                                                     <child>
-                                                      <object class="GtkCheckButton" id="cosmCFACheck">
-                                                        <property name="label" translatable="yes">CFA data</property>
+                                                      <object class="GtkCheckButton" id="cosmEnabledCheck">
+                                                        <property name="label" translatable="yes">Enable Cosmectic Correction</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Check if the target frames are CFA images.
-Uncheck if images come from a monochrome sensor.</property>
+                                                        <property name="tooltip-text" translatable="yes">Check if you want to apply a hot pixel removal.
+Hot pixels are located on the master-dark.</property>
                                                         <property name="halign">start</property>
                                                         <property name="margin-top">5</property>
+                                                        <property name="active">True</property>
                                                         <property name="draw-indicator">True</property>
-                                                        <signal name="toggled" handler="on_cosmCFACheck_toggled" swapped="no"/>
+                                                        <signal name="toggled" handler="on_cosmEnabledCheck_toggled" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">False</property>
@@ -14338,6 +14339,24 @@ Uncheck if images come from a monochrome sensor.</property>
                                                       </packing>
                                                     </child>
                                                     <child>
+                                                      <object class="GtkCheckButton" id="cosmCFACheck">
+                                                        <property name="label" translatable="yes">CFA data</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Check if the target frames are CFA images.
+Uncheck if images come from a monochrome sensor.</property>
+                                                        <property name="halign">start</property>
+                                                        <property name="draw-indicator">True</property>
+                                                        <signal name="toggled" handler="on_cosmCFACheck_toggled" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
                                                       <object class="GtkStack" id="stack_cc">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
@@ -14355,7 +14374,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
-                                                            <!-- n-columns=5 n-rows=3 -->
+                                                            <!-- n-columns=5 n-rows=2 -->
                                                             <object class="GtkGrid" id="grid24">
                                                             <property name="visible">True</property>
                                                             <property name="sensitive">False</property>
@@ -14383,26 +14402,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">3</property>
-                                                            <property name="top-attach">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="cosmEnabledCheck">
-                                                            <property name="label" translatable="yes">Enable Cosmectic Correction</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Check if you want to apply a hot pixel removal.
-Hot pixels are located on the master-dark.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_cosmEnabledCheck_toggled" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">0</property>
                                                             <property name="top-attach">0</property>
-                                                            <property name="width">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -14425,7 +14425,7 @@ Hot pixels are located on the master-dark.</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -14441,7 +14441,7 @@ Hot pixels are located on the master-dark.</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -14457,7 +14457,7 @@ Hot pixels are located on the master-dark.</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">2</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -14472,7 +14472,7 @@ Hot pixels are located on the master-dark.</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -14484,7 +14484,7 @@ Hot pixels are located on the master-dark.</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -14497,7 +14497,7 @@ Hot pixels are located on the master-dark.</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">3</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -14610,7 +14610,7 @@ Hot pixels are located on the master-dark.</property>
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">2</property>
+                                                        <property name="position">3</property>
                                                       </packing>
                                                     </child>
                                                   </object>

@@ -1294,24 +1294,18 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 
 void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *CFA, *SigHot, *SigCold, *checkHot, *checkCold, *evaluateButton;
+	GtkWidget *CFA, *cc_frame_dark, *cc_frame_bad_pixel_map;
 	gboolean is_active;
 
 	CFA = lookup_widget("cosmCFACheck");
-	SigHot = lookup_widget("spinSigCosmeHot");
-	SigCold = lookup_widget("spinSigCosmeCold");
-	checkHot = lookup_widget("checkSigHot");
-	checkCold = lookup_widget("checkSigCold");
-	evaluateButton = lookup_widget("GtkButtonEvaluateCC");
+	cc_frame_dark = lookup_widget("cc_frame_dark");
+	cc_frame_bad_pixel_map = lookup_widget("cc_frame_bad_pixel_map");
 
 	is_active = gtk_toggle_button_get_active(button);
 
 	gtk_widget_set_sensitive(CFA, is_active);
-	gtk_widget_set_sensitive(SigHot, is_active);
-	gtk_widget_set_sensitive(SigCold, is_active);
-	gtk_widget_set_sensitive(checkHot, is_active);
-	gtk_widget_set_sensitive(checkCold, is_active);
-	gtk_widget_set_sensitive(evaluateButton, is_active);
+	gtk_widget_set_sensitive(cc_frame_dark, is_active);
+	gtk_widget_set_sensitive(cc_frame_bad_pixel_map, is_active);
 }
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
