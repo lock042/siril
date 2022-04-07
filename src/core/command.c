@@ -3839,7 +3839,7 @@ int process_preprocess(int nb) {
 		if (word[i]) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
-				if (expression[0] == '=') {
+				if (expression && expression[0] == '=') {
 					// loading the sequence first image metadata in case $OFFSET is passed in the expression
 					int image_to_load = sequence_find_refimage(seq);
 					fits reffit = { 0 };
