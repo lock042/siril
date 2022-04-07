@@ -14043,7 +14043,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Enter the master flat file name here, or use the browse button.
 All images in the sequence will be divided by the master flat image (each pixel value).</property>
-                                                        <property name="width-chars">40</property>
+                                                        <property name="hexpand">True</property>
                                                         <property name="text">master-flat.fit</property>
                                                       </object>
                                                       <packing>
@@ -14118,7 +14118,7 @@ All images in the sequence will be divided by the master flat image (each pixel 
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Enter the master dark file name here, or use the browse button.
 The dark master image will be removed from all images in the sequence.</property>
-                                                        <property name="width-chars">40</property>
+                                                        <property name="hexpand">True</property>
                                                         <property name="text">master-dark.fit</property>
                                                       </object>
                                                       <packing>
@@ -14150,7 +14150,7 @@ The dark master image will be removed from all images in the sequence.</property
                                                         <property name="tooltip-text" translatable="yes">Enter the master bias/offset file name here, or use the browse button.
 The bias/offset master image will be removed from all images in the sequence.
 Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
-                                                        <property name="width-chars">40</property>
+                                                        <property name="hexpand">True</property>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -14374,7 +14374,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
-                                                            <!-- n-columns=5 n-rows=2 -->
+                                                            <!-- n-columns=3 n-rows=3 -->
                                                             <object class="GtkGrid" id="grid24">
                                                             <property name="visible">True</property>
                                                             <property name="sensitive">False</property>
@@ -14383,35 +14383,10 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="row-spacing">5</property>
                                                             <property name="column-spacing">5</property>
                                                             <child>
-                                                            <object class="GtkSpinButton" id="spinSigCosmeHot">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="width-chars">7</property>
-                                                            <property name="max-width-chars">6</property>
-                                                            <property name="text">3,000</property>
-                                                            <property name="input-purpose">number</property>
-                                                            <property name="adjustment">adjSigCosmeHot</property>
-                                                            <property name="digits">3</property>
-                                                            <property name="numeric">True</property>
-                                                            <property name="value">3</property>
-                                                            <style>
-                                                            <class name="small-spinbutton"/>
-                                                            </style>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">3</property>
-                                                            <property name="top-attach">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
                                                             <object class="GtkSpinButton" id="spinSigCosmeCold">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="width-chars">7</property>
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">3,000</property>
                                                             <property name="input-purpose">number</property>
@@ -14435,28 +14410,12 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                            <property name="halign">end</property>
+                                                            <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="checkSigHot">
-                                                            <property name="label" translatable="yes">Hot Sigma:</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                            <property name="halign">end</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">2</property>
                                                             <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
@@ -14467,11 +14426,47 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Click on this button to evaluate the number of deviant pixels. If values are higher than 1% of the total of pixels, you will be encouraged to change sigma values.</property>
-                                                            <property name="halign">center</property>
                                                             <signal name="clicked" handler="on_GtkButtonEvaluateCC_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="checkSigHot">
+                                                            <property name="label" translatable="yes">Hot Sigma:</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spinSigCosmeHot">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="max-width-chars">6</property>
+                                                            <property name="text">3,000</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="adjustment">adjSigCosmeHot</property>
+                                                            <property name="digits">3</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">3</property>
+                                                            <style>
+                                                            <class name="small-spinbutton"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
                                                             <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
@@ -14480,12 +14475,11 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Cold: 0 px</property>
+                                                            <property name="label" translatable="yes">0 px</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">1</property>
-                                                            <property name="width">2</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -14493,13 +14487,15 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Hot: 0 px</property>
+                                                            <property name="label" translatable="yes">0 px</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">3</property>
+                                                            <property name="left-attach">2</property>
                                                             <property name="top-attach">1</property>
-                                                            <property name="width">2</property>
                                                             </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
                                                             </child>
                                                             <child>
                                                             <placeholder/>
@@ -14553,10 +14549,9 @@ Uncheck if images come from a monochrome sensor.</property>
 * The line &lt;i&gt;C x 0 type&lt;/i&gt; will fix the bad column at coordinates &lt;i&gt;x&lt;/i&gt;.
 * The line &lt;i&gt;L y 0 type&lt;/i&gt; will fix the bad line at coordinates &lt;i&gt;y&lt;/i&gt;.</property>
                                                             <property name="valign">center</property>
-                                                            <property name="width-chars">40</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">False</property>
+                                                            <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">1</property>
                                                             </packing>
