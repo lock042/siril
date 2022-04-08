@@ -595,7 +595,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 		for (int candidate = 0; candidate < nb_candidates; candidate++) {
 			if (limit_nbstars && nbstars >= maxstars)
 				break;
-			if (results[candidate] && candidate != nbstars)
+			if (results[candidate] && candidate >= nbstars)
 				results[nbstars++] = results[candidate];
 		}
 	}

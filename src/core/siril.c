@@ -138,9 +138,9 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 		float *result = malloc(n * sizeof(float));
 		if (!result) { PRINT_ALLOC_ERR; return 1; }
 		float **src = malloc(ry * sizeof(float *));
+		if (!src) { PRINT_ALLOC_ERR; free(result); return 1; }
 		float **dst = malloc(ry * sizeof(float *));
-		if (!src) { PRINT_ALLOC_ERR; return 1; }
-		if (!dst) { PRINT_ALLOC_ERR; return 1; }
+		if (!dst) { PRINT_ALLOC_ERR; free(src); free(result); return 1; }
 		for (int k = 0; k < ry; k++) {
 			src[k] = fit->fdata + k * rx;
 			dst[k] = result + k * rx;
