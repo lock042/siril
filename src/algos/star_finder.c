@@ -541,65 +541,79 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	//sorting candidates by starc.mag_est values
 	qsort(candidates, nb_candidates, sizeof(starc), star_cmp);
 
+	int round = 0;
+	siril_debug_print("limiting stars (%d) to %d for %d candidates\n", limit_nbstars, maxstars, nb_candidates);
+	int number_per_round = limit_nbstars ? maxstars + maxstars / 3 : nb_candidates;
+	int lower_limit_for_this_round, upper_limit;
+	do {
+		lower_limit_for_this_round = round * number_per_round;
+		upper_limit = (round + 1) * number_per_round;
+		if (upper_limit > nb_candidates)
+			upper_limit = nb_candidates;
+		siril_debug_print("round %d from %d to %d candidates\n", round, lower_limit_for_this_round, upper_limit);
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1)
 #endif
-	for (int candidate = 0; candidate < nb_candidates; candidate++) {
-		if (limit_nbstars && nbstars >= maxstars)
-			continue;
-		int x = candidates[candidate].x, y = candidates[candidate].y;
-		int R = candidates[candidate].R;
-		int ii, jj, i, j;
-		gsl_matrix *z = gsl_matrix_alloc(R * 2 + 1, R * 2 + 1);
-		/* FILL z */
-		if (image->type == DATA_USHORT) {
-			for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
-				for (ii = 0, i = x - R; i <= x + R;
-						i++, ii++) {
-					gsl_matrix_set(z, ii, jj, (double)image_ushort[j][i]);
-				}
-			}
-		} else {
-			for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
-				for (ii = 0, i = x - R; i <= x + R;
-						i++, ii++) {
-					gsl_matrix_set(z, ii, jj, (double)image_float[j][i]);
-				}
-			}
-		}
-
-		psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, FALSE, FALSE);
-		gsl_matrix_free(z);
-		if (cur_star) {
-			if (is_star(cur_star, sf, &candidates[candidate])) {
-				//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
-				cur_star->layer = layer;
-				cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
-				cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
-				if (threads > 1)
-					results[candidate] = cur_star;
-				else results[nbstars++] = cur_star;
-				//fprintf(stdout, "%03d: %11f %11f %f\n",
-				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
-			} else {
-				free_psf(cur_star);
-				if (threads > 1)
-					results[candidate] = NULL;
-			}
-		}
-		else if (threads > 1)
-			results[candidate] = NULL;
-	}
-	if (threads > 1) {
-		// we kept the candidates at the same indices to keep the list ordered, now we compact it
-		for (int candidate = 0; candidate < nb_candidates; candidate++) {
+		for (int candidate = lower_limit_for_this_round; candidate < upper_limit; candidate++) {
 			if (limit_nbstars && nbstars >= maxstars)
-				break;
-			if (results[candidate] && candidate >= nbstars)
-				results[nbstars++] = results[candidate];
+				continue;
+			int x = candidates[candidate].x, y = candidates[candidate].y;
+			int R = candidates[candidate].R;
+			int ii, jj, i, j;
+			gsl_matrix *z = gsl_matrix_alloc(R * 2 + 1, R * 2 + 1);
+			/* FILL z */
+			if (image->type == DATA_USHORT) {
+				for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
+					for (ii = 0, i = x - R; i <= x + R;
+							i++, ii++) {
+						gsl_matrix_set(z, ii, jj, (double)image_ushort[j][i]);
+					}
+				}
+			} else {
+				for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
+					for (ii = 0, i = x - R; i <= x + R;
+							i++, ii++) {
+						gsl_matrix_set(z, ii, jj, (double)image_float[j][i]);
+					}
+				}
+			}
+
+			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, FALSE, FALSE);
+			gsl_matrix_free(z);
+			if (cur_star) {
+				if (is_star(cur_star, sf, &candidates[candidate])) {
+					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
+					cur_star->layer = layer;
+					cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
+					cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
+					if (threads > 1)
+						results[candidate] = cur_star;
+					else results[nbstars++] = cur_star;
+					//fprintf(stdout, "%03d: %11f %11f %f\n",
+					//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
+				} else {
+					free_psf(cur_star);
+					if (threads > 1)
+						results[candidate] = NULL;
+				}
+			}
+			else if (threads > 1)
+				results[candidate] = NULL;
 		}
-	}
-	results[nbstars] = NULL;
+		if (threads > 1) {
+			// we kept the candidates at the same indices to keep the list ordered, now we compact it
+			for (int candidate = lower_limit_for_this_round; candidate < upper_limit; candidate++) {
+				if (limit_nbstars && nbstars >= maxstars)
+					break;
+				if (results[candidate] && candidate >= nbstars)
+					results[nbstars++] = results[candidate];
+			}
+		}
+		results[nbstars] = NULL;
+		siril_debug_print("after round %d, found %d stars\n", round, nbstars);
+		round++;
+	} while (limit_nbstars && nbstars < maxstars && upper_limit < nb_candidates);
+
 	if (retval)
 		*retval = results;
 	if (image_ushort) free(image_ushort);
