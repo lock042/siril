@@ -269,6 +269,7 @@ void init_preprocessing_from_GUI() {
 
 void on_livestacking_start() {
 	init_preprocessing_from_GUI();
-	start_livestacking(TRUE);
+	if (start_livestacking(TRUE))
+		stop_live_stacking_engine();
 }
 

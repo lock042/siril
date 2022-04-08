@@ -11,7 +11,7 @@ int get_paused_status();
 
 int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_watcher, gboolean remove_gradient);
 void init_preprocessing_finalize();
-void start_livestacking(gboolean with_filewatcher);
+int start_livestacking(gboolean with_filewatcher);
 gboolean livestacking_is_started();
 gboolean livestacking_uses_filewatcher();
 

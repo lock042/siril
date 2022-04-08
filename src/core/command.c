@@ -1887,7 +1887,7 @@ int process_findhot(int nb){
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			fprintf(stderr, "Cannot open file: %s\n", filename);
+			siril_log_message(_("Cauld not open file: %s\n"), filename);
 		}
 		g_object_unref(file);
 		return 1;
@@ -4404,11 +4404,15 @@ int process_start_ls(int nb) {
 			dark_file = g_shell_unquote(word[i] + 6, NULL);
 		else if (g_str_has_prefix(word[i], "-flat="))
 			flat_file = g_shell_unquote(word[i] + 6, NULL);
-		else if (!strcmp(word[i], "-gradient_removal"))
-			remove_gradient = TRUE;
-		else if (!strcmp(word[i], "-watch_files"))
-			use_file_watcher = TRUE;
-		else {
+		else if (!strcmp(word[i], "-gradient_removal")) {
+			//remove_gradient = TRUE;
+			siril_log_message("gradient removal in live stacking is not yet implemented\n");
+			return 1;
+		} else if (!strcmp(word[i], "-watch_files")) {
+			//use_file_watcher = TRUE;
+			siril_log_message("file watcher in headless live stacking is not yet implemented\n");
+			return 1;
+		} else {
 			siril_log_message(_("Unknown option provided: %s\n"), word[i]);
 			return 1;
 		}
@@ -4431,7 +4435,7 @@ int process_livestack(int nb) {
 	image_type type;
 	char *filename;
 	if (stat_file(word[1], &type, &filename)) {
-		siril_log_message(_("Could not open file: %s"), filename);
+		siril_log_message(_("Could not open file: %s\n"), word[1]);
 		return 1;
 	}
 

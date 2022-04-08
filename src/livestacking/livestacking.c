@@ -220,9 +220,9 @@ void livestacking_queue_file(char *file) {
 }
 
 /* for fullscreen, see livestacking_action_activate() in core/siril_actions.c */
-void start_livestacking(gboolean with_filewatcher) {
+int start_livestacking(gboolean with_filewatcher) {
 	if (live_stacker_thread)
-		return;
+		return 1;
 	livestacking_display(_("Starting live stacking"), FALSE);
 	if (!com.headless) {
 		gui.rendering_mode = STF_DISPLAY;
@@ -242,15 +242,28 @@ void start_livestacking(gboolean with_filewatcher) {
 		dirmon = g_file_monitor_directory(cwd, G_FILE_MONITOR_WATCH_MOVES, NULL, &err);
 		g_object_unref(cwd);
 		if (err) {
-			fprintf(stderr, "Unable to monitor CWD (%s): %s\n", com.wd, err->message);
+			siril_log_message(_("Unable to monitor CWD (%s): %s\n"), com.wd, err->message);
+			g_async_queue_unref(new_files_queue);
+			new_files_queue = NULL;
+			dirmon = NULL;
 			g_error_free(err);
-			return;
+			return 1;
 		}
 
-		g_signal_connect(G_OBJECT(dirmon), "changed", G_CALLBACK(file_changed), NULL);
+		if (g_signal_connect(G_OBJECT(dirmon), "changed", G_CALLBACK(file_changed), NULL) <= 0) {
+			siril_log_message(_("Unable to monitor CWD (%s): %s\n"), com.wd, "signal did not connect");
+			new_files_queue = NULL;
+			g_async_queue_unref(new_files_queue);
+			g_object_unref(dirmon);
+			dirmon = NULL;
+			return 1;
+		}
+
+		siril_debug_print("file watcher active for CWD (%s)\n", com.wd);
 	}
 
 	live_stacker_thread = g_thread_new("live stacker", live_stacker, NULL);
+	return 0;
 }
 
 static void init_preprocessing_from_command(char *dark, char *flat) {
@@ -344,8 +357,13 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 	prepro = calloc(1, sizeof(struct preprocessing_data));
 	init_preprocessing_from_command(dark, flat);
 
-	start_livestacking(use_file_watcher);
-	return 0;
+	int retval = start_livestacking(use_file_watcher);
+	if (retval && prepro) {
+		clear_preprocessing_data(prepro);
+		free(prepro);
+		prepro = NULL;
+	}
+	return retval;
 }
 
 /*static int register_image(fits *fit, char *output_name) {
@@ -511,6 +529,8 @@ static gpointer live_stacker(gpointer arg) {
 			siril_debug_print("Exiting thread\n");
 			break;
 		}
+		struct timeval tv_start, tv_tmp, tv_end;
+		gettimeofday(&tv_start, NULL);
 
 		/* init demosaicing (check if the incoming file is CFA) */
 		if (use_demosaicing == BOOL_NOT_SET) {	// another kind of first_loop
@@ -568,6 +588,9 @@ static gpointer live_stacker(gpointer arg) {
 			}
 			clearfits(&fit);
 		}
+		gettimeofday(&tv_end, NULL);
+		show_time_msg(tv_start, tv_end, "calibration and demosaicing");
+		tv_tmp = tv_end;
 
 		if (target && symlink_uniq_file(filename, target, do_links)) {
 			livestacking_display(_("Failed to rename or make a symbolic link to the input file"), FALSE);
@@ -640,6 +663,10 @@ static gpointer live_stacker(gpointer arg) {
 
 		if (start_global_registration(&seq))
 			continue;
+
+		gettimeofday(&tv_end, NULL);
+		show_time_msg(tv_tmp, tv_end, "registration");
+		tv_tmp = tv_end;
 
 		gchar *result_filename = g_strdup_printf("live_stack_00001%s", com.pref.ext);
 
@@ -741,6 +768,9 @@ static gpointer live_stacker(gpointer arg) {
 		number_of_images_stacked++;
 		double noise = bgnoise_await();
 		livestacking_update_number_of_images(number_of_images_stacked, gfit.livetime, noise);
+		gettimeofday(&tv_end, NULL);
+		show_time_msg(tv_tmp, tv_end, "stacking");
+		show_time_msg(tv_start, tv_end, "time to process the last image for live stacking");
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");
