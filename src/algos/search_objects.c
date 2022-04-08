@@ -29,7 +29,7 @@
 #include "astrometry_solver.h"
 
 static gboolean parse_buffer(char *buffer) {
-	char **token, **fields, *realname= NULL;
+	gchar **token, **fields, *realname= NULL;
 	point center;
 	int nargs, i = 0;
 	SirilWorldCS *world_cs = NULL;
@@ -38,28 +38,42 @@ static gboolean parse_buffer(char *buffer) {
 	token = g_strsplit(buffer, "\n", -1);
 	nargs = g_strv_length(token);
 
-	while (i < nargs) {
-		if (g_str_has_prefix(token[i], "%I.0 ") && !realname) {
-			gchar *name = g_strstr_len(token[i], strlen(token[i]), "%I.0 ");
-			realname = g_strdup(name + 5);
-
-		} else if (g_str_has_prefix (token[i], "%J ") && !world_cs) {
-			fields = g_strsplit(token[i], " ", -1);
+	if (g_str_has_prefix(buffer, "oid")) {
+		fields = g_strsplit(token[i], "\t", -1);
+		guint n = g_strv_length(token);
+		if (n > 2) {
 			sscanf(fields[1], "%lf", &center.x);
 			sscanf(fields[2], "%lf", &center.y);
 			world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
+			realname = g_shell_unquote(fields[3], NULL);
 
 			g_strfreev(fields);
 		}
-		i++;
+	} else {
+		while (i < nargs) {
+			if (g_str_has_prefix(token[i], "%I.0 ") && !realname) {
+				gchar *name = g_strstr_len(token[i], strlen(token[i]), "%I.0 ");
+				realname = g_strdup(name + 5);
+
+			} else if (g_str_has_prefix (token[i], "%J ") && !world_cs) {
+				fields = g_strsplit(token[i], " ", -1);
+				sscanf(fields[1], "%lf", &center.x);
+				sscanf(fields[2], "%lf", &center.y);
+				world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
+
+				g_strfreev(fields);
+			}
+			i++;
+		}
+
+		g_strfreev(token);
 	}
 	if (world_cs && realname) {
 		add_object_in_catalogue(realname, world_cs);
+		g_free(realname);
 		siril_world_cs_unref(world_cs);
 		ok = TRUE;
 	}
-
-	g_strfreev(token);
 	return ok;
 }
 
