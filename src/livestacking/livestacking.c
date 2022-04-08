@@ -291,6 +291,8 @@ static void init_preprocessing_from_command(char *dark, char *flat) {
 				prepro->use_cosmetic_correction = TRUE;
 				prepro->sigma[0] = 3.0;
 				prepro->sigma[1] = 3.5;
+				if (strlen(prepro->dark->bayer_pattern) >= 4)
+					prepro->is_cfa = TRUE;
 			}
 			siril_log_message(_("Master dark %d x %d configured for live stacking (%s cosmetic correction)\n"), prepro->dark->rx, prepro->dark->ry, prepro->use_cosmetic_correction ? _("with") : _("without") );
 		}
