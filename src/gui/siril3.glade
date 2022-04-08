@@ -13043,15 +13043,15 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                     <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkScrolledWindow" id="scrolledwindow8">
-                                                        <property name="height-request">400</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
+                                                        <property name="vexpand">True</property>
                                                         <property name="shadow-type">in</property>
                                                         <child>
                                                           <object class="GtkTreeView" id="treeview_convert">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="margin-top">10</property>
+                                                            <property name="margin-top">5</property>
                                                             <property name="model">liststore_convert</property>
                                                             <property name="headers-clickable">False</property>
                                                             <property name="reorderable">True</property>
@@ -16135,83 +16135,17 @@ Cross marker: the value for the currently loaded frame.</property>
                                               <object class="GtkBox">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
-Green curve: sorted values by order of decreasing quality.
-Circle marker: the value for the reference frame.
-Cross marker: the value for the currently loaded frame.</property>
                                                 <property name="spacing">5</property>
                                                 <child>
-                                                  <object class="GtkButton" id="varCurvePhotometry">
-                                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.
-WARNING: gnuplot must be installed.</property>
-                                                    <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+                                                  <object class="GtkLabel">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label" translatable="yes">X:</property>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
                                                     <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkComboBoxText" id="plotSourceCombo">
-                                                    <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="tooltip-text" translatable="yes">Select the source of graph information.</property>
-                                                    <property name="active">0</property>
-                                                    <items>
-                                                      <item translatable="yes">Registration</item>
-                                                      <item translatable="yes">Photometry</item>
-                                                    </items>
-                                                    <signal name="changed" handler="on_plotSourceCombo_changed" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="padding">6</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">1</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkComboBoxText" id="plotCombo">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="tooltip-text" translatable="yes">Select which information to display from photometry data.</property>
-                                                    <property name="active">0</property>
-                                                    <items>
-                                                      <item translatable="yes">FWHM</item>
-                                                      <item translatable="yes">Roundness</item>
-                                                      <item translatable="yes">wFWHM</item>
-                                                      <item translatable="yes">Quality</item>
-                                                      <item translatable="yes">X Position</item>
-                                                      <item translatable="yes">Y Position</item>
-                                                    </items>
-                                                    <signal name="changed" handler="on_plotCombo_changed" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">2</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkLabel">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">Y:</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">3</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -16233,21 +16167,68 @@ WARNING: gnuplot must be installed.</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">4</property>
+                                                    <property name="position">1</property>
                                                   </packing>
                                                 </child>
                                                 <child>
                                                   <object class="GtkLabel">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">X:</property>
+                                                    <property name="label" translatable="yes">Y:</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkComboBoxText" id="plotCombo">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Select which information to display from photometry data.</property>
+                                                    <property name="active">0</property>
+                                                    <items>
+                                                      <item translatable="yes">FWHM</item>
+                                                      <item translatable="yes">Roundness</item>
+                                                      <item translatable="yes">wFWHM</item>
+                                                      <item translatable="yes">Quality</item>
+                                                      <item translatable="yes">X Position</item>
+                                                      <item translatable="yes">Y Position</item>
+                                                    </items>
+                                                    <signal name="changed" handler="on_plotCombo_changed" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkBox">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="spacing">5</property>
+                                                <child>
+                                                  <object class="GtkCheckButton" id="JulianPhotometry">
+                                                    <property name="label" translatable="yes">Julian Date</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">False</property>
+                                                    <property name="draw-indicator">True</property>
+                                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
                                                     <property name="pack-type">end</property>
-                                                    <property name="position">5</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -16263,29 +16244,50 @@ WARNING: gnuplot must be installed.</property>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
                                                     <property name="pack-type">end</property>
-                                                    <property name="position">6</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkCheckButton" id="JulianPhotometry">
-                                                    <property name="label" translatable="yes">Julian Date</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
+                                                  <object class="GtkComboBoxText" id="plotSourceCombo">
+                                                    <property name="visible">True</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Select the source of graph information.</property>
+                                                    <property name="active">0</property>
+                                                    <items>
+                                                      <item translatable="yes">Registration</item>
+                                                      <item translatable="yes">Photometry</item>
+                                                    </items>
+                                                    <signal name="changed" handler="on_plotSourceCombo_changed" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">7</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="varCurvePhotometry">
+                                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.
+WARNING: gnuplot must be installed.</property>
+                                                    <property name="halign">start</property>
+                                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">False</property>
+                                                    <property name="position">2</property>
                                                   </packing>
                                                 </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
-                                                <property name="fill">False</property>
-                                                <property name="position">2</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">3</property>
                                               </packing>
                                             </child>
                                           </object>
