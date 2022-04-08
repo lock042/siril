@@ -15897,6 +15897,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   <object class="GtkButton" id="ButtonSaveCSV">
                                                     <property name="label" translatable="yes">Export to CSV</property>
                                                     <property name="visible">True</property>
+                                                    <property name="sensitive">False</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">Export displayed plot to a CSV file.</property>
@@ -15905,7 +15906,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
-                                                    <property name="fill">False</property>
+                                                    <property name="fill">True</property>
                                                     <property name="position">0</property>
                                                   </packing>
                                                 </child>
