@@ -579,7 +579,7 @@ free_on_error:
 	return 0;
 }
 
-static gboolean check_for_cosme_file_sanity(GFile *file) {
+gboolean check_for_cosme_file_sanity(GFile *file) {
 	GError *error = NULL;
 	gchar *line;
 

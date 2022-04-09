@@ -3965,6 +3965,13 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	args->ppprefix = "pp_";
 	args->bias_level = FLT_MAX;
 
+	//cosmetic_correction init
+	args->sigma[0] = -1.00; /* cold pixels */
+	args->sigma[1] =  3.00; /* hot pixels - used if -cc=dark but not sigmas specified */
+	args->use_cosmetic_correction = FALSE;// dy default, CC is not activated
+	args->cc_from_dark = FALSE;
+	args->bad_pixel_map_file = NULL;
+
 	/* checking for options */
 	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
@@ -4021,7 +4028,6 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->dark = calloc(1, sizeof(fits));
 				if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
 					args->use_dark = TRUE;
-					args->use_cosmetic_correction = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
 					if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
@@ -4067,6 +4073,52 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->equalize_cfa = TRUE;
 			} else if (seq && !strcmp(word[i], "-fitseq")) {
 				args->output_seqtype = SEQ_FITSEQ;
+			} else if (g_str_has_prefix(word[i], "-cc=")) {
+				char *current = word[i], *value;
+				value = current + 4;
+				args->use_cosmetic_correction = TRUE;// dy default, CC is not activated
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					retvalue = 1;
+					break;
+				}
+				if (!strcmp(value, "dark")) {
+					if (!args->use_dark){
+						siril_log_message(_("You must specify a masterdark with -dark= before activating this option, aborting.\n"));
+						retvalue = 1;
+						break;
+					}
+					args->cc_from_dark = TRUE;
+					//either we use the default sigmas or we try to read the next two checking for sigma low and high
+					if (word[i + 1] && word[i + 2] && (args->sigma[0] = g_ascii_strtod(word[i + 1], NULL)) < 0.0
+							&& (args->sigma[1] = g_ascii_strtod(word[i + 2], NULL)) < 0.0) {
+						i+= 2;
+					} 
+					if (args->sigma[0] == 0) args->sigma[0] = -1.00;
+					siril_log_color_message(_("Cosmetic correction from masterdark: using sigmas %.2lf and %.2lf for cold and hot pixels.\n"), "green", args->sigma[0], args->sigma[1]);
+				} else if (!strcmp(value, "bpm")) {
+					if (word[i + 1] && word[i + 1][0] != '\0') {
+						args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
+						if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+							g_object_unref(args->bad_pixel_map_file);
+							args->bad_pixel_map_file = NULL;
+							siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
+							retvalue = 1;
+							break;
+						} else {
+							siril_log_message(_("Using bap pixel map %s.\n"), word[i + 1]);
+							i++;
+						}
+					} else {
+						siril_log_message(_("You must specify a bap pixel map file with -cc=bpm option, aborting.\n"));
+						retvalue = 1;
+						break;
+					}
+				} else {
+					siril_log_message(_("argument %s, aborting.\n"), word[i + 1]);
+					retvalue = 1;
+					break;
+				}
 			}
 		}
 	}
@@ -4096,8 +4148,6 @@ int process_preprocess(int nb) {
 	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
-	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
-	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
 			|| args->output_seqtype == SEQ_FITSEQ) && !com.pref.force_to_16bit;
 
@@ -4117,8 +4167,6 @@ int process_preprocess_single(int nb) {
 	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
-	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
-	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = !com.pref.force_to_16bit;
 
 	return preprocess_given_image(word[1], args);
