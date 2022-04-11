@@ -78,13 +78,14 @@ static double guess_resolution(fits *fit) {
 	return res;
 }
 
-static float compute_threshold(fits *fit, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise, int threads) {
+static float compute_threshold(image *image, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise, int threads) {
 	float threshold;
 	imstats *stat;
 
 	assert(layer <= 3);
 
-	stat = statistics(NULL, -1, fit, layer, area, STATS_BASIC, threads);
+	stat = statistics(image->from_seq, image->index_in_seq, image->fit,
+			layer, area, STATS_BASIC, threads);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		*norm = 0;
@@ -225,9 +226,9 @@ void confirm_peaker_GUI() {
 
 static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads);
 
-psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads) {
-	int nx = fit->rx;
-	int ny = fit->ry;
+psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads) {
+	int nx = image->fit->rx;
+	int ny = image->fit->ry;
 	int areaX0 = 0;
 	int areaY0 = 0;
 	int areaX1 = nx;
@@ -244,17 +245,18 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	assert(nx > 0 && ny > 0);
 
 	siril_log_color_message(_("Findstar: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
+	if (show_time)
+		gettimeofday(&t_start, NULL);
 
 	/* running statistics on the input image is best as it caches them */
-	threshold = compute_threshold(fit, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise, threads);
+	threshold = compute_threshold(image, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise, threads);
 	if (norm == 0.0f)
 		return NULL;
 
 	siril_debug_print("Threshold: %f (background: %f, norm: %f)\n", threshold, bg, norm);
 
 	/* Applying a Gaussian filter to select candidates */
-	if (extract_fits(fit, &smooth_fit, layer, TRUE)) {
+	if (extract_fits(image->fit, &smooth_fit, layer, TRUE)) {
 		siril_log_color_message(_("Failed to copy the image for processing\n"), "red");
 		return NULL;
 	}
@@ -299,7 +301,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 		return NULL;
 	}
 
-	double res = guess_resolution(fit);
+	double res = guess_resolution(image->fit);
 
 	if (res < 0) {
 		res = 1.0;
@@ -498,15 +500,16 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars, maxstars, threads);
+	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, &results, limit_nbstars, maxstars, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars(results, nbstars);
 	free(candidates);
 
-	gettimeofday(&t_end, NULL);
-	if (showtime)
+	if (showtime) {
+		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
+	}
 	if (nb_stars)
 		*nb_stars = nbstars;
 	return results;
