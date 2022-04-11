@@ -245,7 +245,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	assert(nx > 0 && ny > 0);
 
 	siril_log_color_message(_("Findstar: processing...\n"), "green");
-	if (show_time)
+	if (showtime)
 		gettimeofday(&t_start, NULL);
 
 	/* running statistics on the input image is best as it caches them */
@@ -759,7 +759,8 @@ gpointer findstar(gpointer p) {
 
 	int nbstars = 0;
 
-	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
+	com.stars = peaker(&im, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
 	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
 
 	siril_add_idle(end_findstar, args);
