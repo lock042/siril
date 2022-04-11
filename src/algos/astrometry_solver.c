@@ -1637,7 +1637,10 @@ gpointer match_catalog(gpointer p) {
 	if (!args->manual) {
 		com.starfinder_conf.pixel_size_x = com.pref.focal;
 		com.starfinder_conf.focal_length = com.pref.pitch;
-		com.stars = peaker(args->fit, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
+
+		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
+
+		com.stars = peaker(&im, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
 		com.starfinder_conf.pixel_size_x = 0.;
 		com.starfinder_conf.focal_length = 0.;
 	} else {
