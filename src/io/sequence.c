@@ -193,7 +193,6 @@ int read_single_sequence(char *realname, image_type imagetype) {
  * force clears the stats in the seqfile.
  */
 int check_seq(int recompute_stats) {
-	char *basename;
 	int curidx, fixed;
 	GDir *dir;
 	GError *error = NULL;
@@ -232,12 +231,15 @@ int check_seq(int recompute_stats) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
 		} else if (!strcasecmp(ext, com.pref.ext + 1)) {
+			char *basename = NULL;
 			if (!get_index_and_basename(file, &basename, &curidx, &fixed)) {
 				int current_seq = -1;
 				/* search in known sequences if we already have it */
 				for (i = 0; i < nb_seq; i++) {
 					if (!strcmp(sequences[i]->seqname, basename)) {
 						current_seq = i;
+						free(basename);
+						break;
 					}
 				}
 				/* not found */
@@ -1343,6 +1345,8 @@ void close_sequence(int loading_sequence_from_combo) {
 	if (sequence_is_loaded()) {
 		fprintf(stdout, "MODE: closing sequence\n");
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
+		if (!single_image_is_loaded())
+			save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
 
