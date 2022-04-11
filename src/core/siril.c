@@ -119,6 +119,7 @@ int gaussian_blur_RT(fits *fit, double sigma, int threads) {
 		}
 
 		gaussianBlurC(src, src, rx, ry, sigma, threads);
+		free(src);
 		return 0;
 	}
 	else {
@@ -147,6 +148,8 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 		}
 
 		gaussianBlurC(src, dst, rx, ry, sigma, threads);
+		free(src);
+		free(dst);
 		float *olddata = gfit.fdata;
 		gfit.fdata = result;
 		gfit.fpdata[RLAYER] = gfit.fdata;
