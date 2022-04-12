@@ -462,7 +462,7 @@ static void check_gfit_is_ours() {
 
 	/* open the single image.
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
 	com.uniq = calloc(1, sizeof(single));
 	com.uniq->comment = strdup(_("Compositing result image"));

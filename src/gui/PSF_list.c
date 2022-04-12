@@ -300,7 +300,7 @@ static void remove_selected_star(int index) {
 }
 
 static void remove_all_stars(){
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	com.selected_star = -1;
 	display_status();
 	redraw(REDRAW_OVERLAY);
@@ -462,9 +462,9 @@ void refresh_star_list(psf_star **star){
 	redraw(REDRAW_OVERLAY);
 }
 
-void clear_stars_list() {
+void clear_stars_list(gboolean refresh_GUI) {
 	if (com.stars) {
-		if (!com.headless) {
+		if (refresh_GUI && !com.headless) {
 			get_stars_list_store();
 			gtk_list_store_clear(liststore_stars);
 		}

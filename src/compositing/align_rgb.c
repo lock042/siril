@@ -59,7 +59,7 @@ static void free_internal_sequence(sequence *seq) {
 			clearfits(internal_sequence_get(seq, i));
 		free_sequence(seq, TRUE);
 	}
-	clear_stars_list();
+	clear_stars_list(TRUE);
 }
 
 static int initialize_internal_rgb_sequence() {

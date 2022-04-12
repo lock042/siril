@@ -642,7 +642,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	} else {
 		if (com.star_is_seqdata) {
 			/* com.stars was allocated with a size of 2, we need to free it before reallocating */
-			clear_stars_list();
+			clear_stars_list(TRUE);
 		}
 		com.stars = new_fitted_stars(MAX_STARS);
 		if (!com.stars) {
@@ -758,10 +758,16 @@ gpointer findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 
 	int nbstars = 0;
-
-	image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
-	com.stars = peaker(&im, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
-	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
+	rectangle *selection = NULL;
+	if (com.selection.w != 0 && com.selection.h != 0)
+		selection = &com.selection;
+	psf_star **stars = peaker(&args->im, args->layer, &com.starfinder_conf, &nbstars, selection, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	if (stars) {
+		clear_stars_list(FALSE);
+		com.stars = stars;
+	}
+	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
+			selection ? _("selection") : _("image"), args->layer);
 
 	siril_add_idle(end_findstar, args);
 
@@ -774,12 +780,17 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
 		return;
 	}
-
 	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
-	delete_selected_area();
-	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
 
-	args->fit = &gfit;
+	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	args->im.fit = &gfit;
+	if (sequence_is_loaded() && com.seq.current >= 0) {
+		args->im.from_seq = &com.seq;
+		args->im.index_in_seq = com.seq.current;
+	} else {
+		args->im.from_seq = NULL;
+		args->im.index_in_seq = -1;
+	}
 	args->layer = layer;
 
 	start_in_new_thread(findstar, args);

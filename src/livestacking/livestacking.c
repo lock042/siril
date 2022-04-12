@@ -713,7 +713,7 @@ static gpointer live_stacker(gpointer arg) {
 			livestacking_display(str, TRUE);
 			break;
 		}
-		clear_stars_list();
+		clear_stars_list(FALSE);
 		bgnoise_async(&gfit, FALSE);
 
 		if (savefits(result_filename, &gfit)) {

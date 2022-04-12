@@ -88,7 +88,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
 	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
