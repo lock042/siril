@@ -1842,11 +1842,15 @@ int process_findstar(int nb){
 	}
 	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
-	delete_selected_area();
-
 	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
-
-	args->fit = &gfit;
+	args->im.fit = &gfit;
+	if (sequence_is_loaded() && com.seq.current >= 0) {
+		args->im.from_seq = &com.seq;
+		args->im.index_in_seq = com.seq.current;
+	} else {
+		args->im.from_seq = NULL;
+		args->im.index_in_seq = -1;
+	}
 	args->layer = layer;
 
 	start_in_new_thread(findstar, args);
@@ -2091,7 +2095,7 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REDRAW_OVERLAY);
 	redraw_previews();

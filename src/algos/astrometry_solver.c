@@ -1221,7 +1221,7 @@ static gboolean end_plate_solver(gpointer p) {
 	}
 
 	if (!args->manual)
-		clear_stars_list();
+		clear_stars_list(TRUE);
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {

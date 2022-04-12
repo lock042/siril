@@ -10,7 +10,7 @@ typedef struct {
 } image;
 
 struct starfinder_data {
-	fits *fit;
+	image im;
 	int layer;
 	int max_stars_fitted;
 };

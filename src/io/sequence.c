@@ -567,7 +567,7 @@ int set_seq(const char *name){
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	clear_histograms();
 	undo_flush();
 	close_single_image();
@@ -1317,7 +1317,7 @@ gboolean close_sequence_idle(gpointer data) {
 	fprintf(stdout, "closing sequence idle\n");
 	free_cbbt_layers();
 	clear_sequence_list();
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	clear_previews();
 	free_reference_image();
 	update_stack_interface(TRUE);

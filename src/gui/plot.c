@@ -940,7 +940,7 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	}
 	if (i == 0) {
 		reset_plot();
-		clear_stars_list();
+		clear_stars_list(TRUE);
 	}
 	drawPlot();
 }
@@ -950,7 +950,7 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 		free_photometry_set(&com.seq, i);
 	}
 	reset_plot();
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	drawPlot();
 }
 
