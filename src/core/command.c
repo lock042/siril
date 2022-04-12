@@ -4099,7 +4099,15 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 						i+= 2;
 					} 
 					if (args->sigma[0] == 0) args->sigma[0] = -1.00;
-					siril_log_message(_("Cosmetic correction from masterdark: using sigmas %.2lf and %.2lf for cold and hot pixels.\n"), args->sigma[0], args->sigma[1]);
+					if (args->sigma[1] == 0) args->sigma[1] = -1.00;
+					if (args->sigma[0] > 0)
+						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
+					else
+						siril_log_message(_("Cosmetic correction from masterdark: deactivated for cold pixels.\n"));
+					if (args->sigma[1] > 0)
+						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"), args->sigma[1]);
+					else
+						siril_log_message(_("Cosmetic correction from masterdark: deactivated for hot pixels.\n"));
 				} else if (!strcmp(value, "bpm")) {
 					if (word[i + 1] && word[i + 1][0] != '\0') {
 						args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
