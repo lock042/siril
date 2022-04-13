@@ -4,8 +4,6 @@
 #include "core/siril.h"
 #include "algos/PSF.h"
 
-void add_star_to_list(psf_star *);
-void fill_stars_list(fits *fit, psf_star **);
 void refresh_star_list(psf_star **);
 void clear_stars_list(gboolean refresh_GUI);
 void pick_a_star();

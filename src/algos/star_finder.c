@@ -661,9 +661,15 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		if (i < MAX_STARS) {
 			result->xpos = result->x0 + com.selection.x - 0.5;
 			result->ypos = com.selection.y + com.selection.h - result->y0 - 0.5;
-			com.stars[i] = result;
-			com.stars[i + 1] = NULL;
-			*index = i;
+			psf_star **newstars = realloc(com.stars, (i + 2) * sizeof(psf_star *));
+			if (!newstars)
+				PRINT_ALLOC_ERR;
+			else {
+				com.stars = newstars;
+				com.stars[i] = result;
+				com.stars[i + 1] = NULL;
+				*index = i;
+			}
 		} else {
 			free_psf(result);
 			result = NULL;
