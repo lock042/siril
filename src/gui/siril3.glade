@@ -13043,15 +13043,15 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                                                     <property name="spacing">5</property>
                                                     <child>
                                                       <object class="GtkScrolledWindow" id="scrolledwindow8">
-                                                        <property name="height-request">400</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
+                                                        <property name="vexpand">True</property>
                                                         <property name="shadow-type">in</property>
                                                         <child>
                                                           <object class="GtkTreeView" id="treeview_convert">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="margin-top">10</property>
+                                                            <property name="margin-top">5</property>
                                                             <property name="model">liststore_convert</property>
                                                             <property name="headers-clickable">False</property>
                                                             <property name="reorderable">True</property>
@@ -13639,12 +13639,11 @@ WARNING: it will erase all registration and statistics data.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Base name for the exported sequence</property>
-                                                            <property name="width-chars">50</property>
                                                             <signal name="changed" handler="on_entryExportSeq_changed" swapped="no"/>
                                                             <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
                                                           </object>
                                                           <packing>
-                                                            <property name="expand">False</property>
+                                                            <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">1</property>
                                                           </packing>
@@ -14043,7 +14042,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Enter the master flat file name here, or use the browse button.
 All images in the sequence will be divided by the master flat image (each pixel value).</property>
-                                                        <property name="width-chars">40</property>
+                                                        <property name="hexpand">True</property>
                                                         <property name="text">master-flat.fit</property>
                                                       </object>
                                                       <packing>
@@ -14118,7 +14117,7 @@ All images in the sequence will be divided by the master flat image (each pixel 
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Enter the master dark file name here, or use the browse button.
 The dark master image will be removed from all images in the sequence.</property>
-                                                        <property name="width-chars">40</property>
+                                                        <property name="hexpand">True</property>
                                                         <property name="text">master-dark.fit</property>
                                                       </object>
                                                       <packing>
@@ -14150,7 +14149,7 @@ The dark master image will be removed from all images in the sequence.</property
                                                         <property name="tooltip-text" translatable="yes">Enter the master bias/offset file name here, or use the browse button.
 The bias/offset master image will be removed from all images in the sequence.
 Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
-                                                        <property name="width-chars">40</property>
+                                                        <property name="hexpand">True</property>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -14299,17 +14298,48 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
                                                 <child>
-                                                  <!-- n-columns=5 n-rows=3 -->
-                                                  <object class="GtkGrid" id="grid24">
+                                                  <object class="GtkBox">
                                                     <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="margin-top">5</property>
-                                                    <property name="row-spacing">5</property>
-                                                    <property name="column-spacing">5</property>
+                                                    <property name="orientation">vertical</property>
+                                                    <property name="spacing">5</property>
+                                                    <child>
+                                                      <object class="GtkCheckButton" id="cosmEnabledCheck">
+                                                        <property name="label" translatable="yes">Enable Cosmectic Correction</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Check if you want to apply a hot pixel removal.
+Hot pixels are located on the master-dark.</property>
+                                                        <property name="halign">start</property>
+                                                        <property name="margin-top">5</property>
+                                                        <property name="active">True</property>
+                                                        <property name="draw-indicator">True</property>
+                                                        <signal name="toggled" handler="on_cosmEnabledCheck_toggled" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkStackSwitcher">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="halign">start</property>
+                                                        <property name="margin-top">5</property>
+                                                        <property name="stack">stack_cc</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">1</property>
+                                                      </packing>
+                                                    </child>
                                                     <child>
                                                       <object class="GtkCheckButton" id="cosmCFACheck">
-                                                        <property name="label" translatable="yes">CFA</property>
+                                                        <property name="label" translatable="yes">CFA data</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
@@ -14320,146 +14350,261 @@ Uncheck if images come from a monochrome sensor.</property>
                                                         <signal name="toggled" handler="on_cosmCFACheck_toggled" swapped="no"/>
                                                       </object>
                                                       <packing>
-                                                        <property name="left-attach">4</property>
-                                                        <property name="top-attach">1</property>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkSpinButton" id="spinSigCosmeHot">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="width-chars">7</property>
-                                                        <property name="max-width-chars">6</property>
-                                                        <property name="text">3,000</property>
-                                                        <property name="input-purpose">number</property>
-                                                        <property name="adjustment">adjSigCosmeHot</property>
-                                                        <property name="digits">3</property>
-                                                        <property name="numeric">True</property>
-                                                        <property name="value">3</property>
-                                                        <style>
-                                                          <class name="small-spinbutton"/>
-                                                        </style>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">3</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="cosmEnabledCheck">
-                                                        <property name="label" translatable="yes">Enable Cosmectic Correction</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Check if you want to apply a hot pixel removal.
-Hot pixels are located on the master-dark.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="active">True</property>
-                                                        <property name="draw-indicator">True</property>
-                                                        <signal name="toggled" handler="on_cosmEnabledCheck_toggled" swapped="no"/>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">0</property>
-                                                        <property name="top-attach">0</property>
-                                                        <property name="width">5</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkSpinButton" id="spinSigCosmeCold">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="width-chars">7</property>
-                                                        <property name="max-width-chars">5</property>
-                                                        <property name="text">3,000</property>
-                                                        <property name="input-purpose">number</property>
-                                                        <property name="adjustment">adjSigCosmeCold</property>
-                                                        <property name="digits">3</property>
-                                                        <property name="numeric">True</property>
-                                                        <property name="value">3</property>
-                                                        <style>
-                                                          <class name="small-spinbutton"/>
-                                                        </style>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">1</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="checkSigCold">
-                                                        <property name="label" translatable="yes">Cold Sigma:</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                        <property name="halign">end</property>
-                                                        <property name="active">True</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">0</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="checkSigHot">
-                                                        <property name="label" translatable="yes">Hot Sigma:</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
-                                                        <property name="halign">end</property>
-                                                        <property name="active">True</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">2</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkButton" id="GtkButtonEvaluateCC">
-                                                        <property name="label" translatable="yes">Estimate</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Click on this button to evaluate the number of deviant pixels. If values are higher than 1% of the total of pixels, you will be encouraged to change sigma values.</property>
-                                                        <property name="halign">center</property>
-                                                        <signal name="clicked" handler="on_GtkButtonEvaluateCC_clicked" swapped="no"/>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">0</property>
-                                                        <property name="top-attach">2</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkLabel" id="GtkLabelColdCC">
+                                                      <object class="GtkStack" id="stack_cc">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="label" translatable="yes">Cold: 0 px</property>
+                                                        <property name="transition-type">slide-left-right</property>
+                                                        <child>
+                                                          <object class="GtkFrame" id="cc_frame_dark">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="label-xalign">0</property>
+                                                            <property name="shadow-type">none</property>
+                                                            <child>
+                                                            <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <!-- n-columns=3 n-rows=3 -->
+                                                            <object class="GtkGrid" id="grid24">
+                                                            <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spinSigCosmeCold">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="max-width-chars">5</property>
+                                                            <property name="text">3,000</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="adjustment">adjSigCosmeCold</property>
+                                                            <property name="digits">3</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">3</property>
+                                                            <style>
+                                                            <class name="small-spinbutton"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="checkSigCold">
+                                                            <property name="label" translatable="yes">Cold Sigma:</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="GtkButtonEvaluateCC">
+                                                            <property name="label" translatable="yes">Estimate</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Click on this button to evaluate the number of deviant pixels. If values are higher than 1% of the total of pixels, you will be encouraged to change sigma values.</property>
+                                                            <signal name="clicked" handler="on_GtkButtonEvaluateCC_clicked" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="checkSigHot">
+                                                            <property name="label" translatable="yes">Hot Sigma:</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spinSigCosmeHot">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                                            <property name="max-width-chars">6</property>
+                                                            <property name="text">3,000</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="adjustment">adjSigCosmeHot</property>
+                                                            <property name="digits">3</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">3</property>
+                                                            <style>
+                                                            <class name="small-spinbutton"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="GtkLabelColdCC">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">0 px</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="GtkLabelHotCC">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">0 px</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            <child type="label">
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Master-dark</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="name">cc_page0</property>
+                                                            <property name="title" translatable="yes">Using Master-Dark</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkFrame" id="cc_frame_bad_pixel_map">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="label-xalign">0</property>
+                                                            <property name="shadow-type">none</property>
+                                                            <child>
+                                                            <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-top">5</property>
+                                                            <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkEntry" id="pixelmap_entry">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-markup" translatable="yes">Enter the bad pixel map file name here, or use the browse button. This file is generally created by the command &lt;i&gt;find_hot&lt;/i&gt; applied on a dark frame or a master-dark. The file is structured as follow:
+
+* The line &lt;i&gt;P x y type&lt;/i&gt; will fix the pixel at coordinates (x, y) type is an optional character (&lt;i&gt;C&lt;/i&gt;or &lt;i&gt;H&lt;/i&gt;) specifying to Siril if the current pixel is cold or hot.
+* The line &lt;i&gt;C x 0 type&lt;/i&gt; will fix the bad column at coordinates &lt;i&gt;x&lt;/i&gt;.
+* The line &lt;i&gt;L y 0 type&lt;/i&gt; will fix the bad line at coordinates &lt;i&gt;y&lt;/i&gt;.</property>
+                                                            <property name="valign">center</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="pixelmap_button">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">Load the bad pixel map file. This file must be ended by the &lt;i&gt;*.lst&lt;/i&gt; extension.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="use-underline">True</property>
+                                                            <signal name="clicked" handler="on_pixelmap_button_clicked" swapped="no"/>
+                                                            <child>
+                                                            <object class="GtkImage">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="icon-name">document-open-symbolic</property>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            <child type="label">
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Bad Pixel Map</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="name">cc_page1</property>
+                                                            <property name="title" translatable="yes">Using Bad Pixel Map</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
                                                       </object>
                                                       <packing>
-                                                        <property name="left-attach">1</property>
-                                                        <property name="top-attach">2</property>
-                                                        <property name="width">2</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkLabel" id="GtkLabelHotCC">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="label" translatable="yes">Hot: 0 px</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">3</property>
-                                                        <property name="top-attach">2</property>
-                                                        <property name="width">2</property>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">3</property>
                                                       </packing>
                                                     </child>
                                                   </object>
@@ -14468,7 +14613,7 @@ Hot pixels are located on the master-dark.</property>
                                                   <object class="GtkLabel">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">Cosmetic correction (using master-dark)</property>
+                                                    <property name="label" translatable="yes">Cosmetic correction</property>
                                                     <attributes>
                                                       <attribute name="weight" value="bold"/>
                                                     </attributes>
@@ -15002,11 +15147,13 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <object class="GtkBox" id="box_comet">
+                                                            <!-- n-columns=3 n-rows=2 -->
+                                                            <object class="GtkGrid" id="box_comet">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="spacing">5</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
+                                                            <property name="column-homogeneous">True</property>
                                                             <child>
                                                             <object class="GtkButton" id="button1_comet">
                                                             <property name="label" translatable="yes">Pick object in #1</property>
@@ -15017,9 +15164,22 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="clicked" handler="on_button1_comet_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">0</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="button1_comet2">
+                                                            <property name="label" translatable="yes">Pick object in #2</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
+                                                            <signal name="clicked" handler="on_button2_comet_clicked" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15033,40 +15193,8 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkEntry" id="entry1_y_comet">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Core Y-coordinates of the first image.</property>
-                                                            <property name="width-chars">7</property>
-                                                            <property name="text">0.00</property>
-                                                            <property name="input-purpose">number</property>
-                                                            <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkButton" id="button1_comet2">
-                                                            <property name="label" translatable="yes">Pick object in #2</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                            <signal name="clicked" handler="on_button2_comet_clicked" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15080,9 +15208,23 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkEntry" id="entry1_y_comet">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Core Y-coordinates of the first image.</property>
+                                                            <property name="width-chars">7</property>
+                                                            <property name="text">0.00</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15096,16 +15238,15 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">5</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">0</property>
+                                                            <property name="position">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15144,7 +15285,7 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -15437,7 +15578,45 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="margin-top">5</property>
+                                                            <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
+                                                            <property name="label" translatable="yes">Simplified Drizzle x2</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Activate the simplified drizzle algorithm for the processing of this sequence. An up-scale (x2) will be applied to the registered frame or during stacking depending on which registration is chosen, that will result in higher resolution images.
+This option is adapted for under-sampled images, i.e, when the telescope focal length is too short for the pixel size. One may consider that the system is under-sampled when FWHM is smaller than 2 pixels.
+The correct name of this method should be super-resolution stacking, but for a more convenient understanding we called it "Simplified Drizzle x2".
+
+WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_button_comet">
+                                                            <property name="label" translatable="yes">Accumulate reg. data</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Check this button if you want the new registration data to be added to the previous one.
+This option is useful when sequence has previously been aligned using a method that does not build a new sequence, but it should be unchecked when the comet/asteroid algorithm is applied several times.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
                                                             <child>
                                                             <object class="GtkButton" id="goregister_button">
                                                             <property name="label" translatable="yes">Go register</property>
@@ -15456,43 +15635,6 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">16</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Simplified Drizzle x2</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Activate the simplified drizzle algorithm for the processing of this sequence. An up-scale (x2) will be applied to the registered frame or during stacking depending on which registration is chosen, that will result in higher resolution images.
-This option is adapted for under-sampled images, i.e, when the telescope focal length is too short for the pixel size. One may consider that the system is under-sampled when FWHM is smaller than 2 pixels.
-The correct name of this method should be super-resolution stacking, but for a more convenient understanding we called it "Simplified Drizzle x2".
-
-WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="check_button_comet">
-                                                            <property name="label" translatable="yes">Accumulate reg. data</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Check this button if you want the new registration data to be added to the previous one.
-This option is useful when sequence has previously been aligned using a method that does not build a new sequence, but it should be unchecked when the comet/asteroid algorithm is applied several times.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
                                                             <property name="position">2</property>
                                                             </packing>
                                                             </child>
@@ -15894,23 +16036,6 @@ Circle marker: the value for the reference frame.
 Cross marker: the value for the currently loaded frame.</property>
                                                 <property name="spacing">5</property>
                                                 <child>
-                                                  <object class="GtkButton" id="ButtonSaveCSV">
-                                                    <property name="label" translatable="yes">Export to CSV</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Export displayed plot to a CSV file.</property>
-                                                    <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_ButtonSaveCSV_clicked" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
                                                   <object class="GtkButton" id="clearAllPhotometry">
                                                     <property name="label" translatable="yes">Clear all</property>
                                                     <property name="visible">True</property>
@@ -15924,7 +16049,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">1</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -15941,6 +16066,22 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="ButtonSaveCSV">
+                                                    <property name="label" translatable="yes">Export to CSV</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Export displayed plot to a CSV file.</property>
+                                                    <signal name="clicked" handler="on_ButtonSaveCSV_clicked" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">False</property>
                                                     <property name="position">2</property>
                                                   </packing>
                                                 </child>
@@ -15980,7 +16121,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="fill">True</property>
                                                     <property name="padding">6</property>
                                                     <property name="pack-type">end</property>
-                                                    <property name="position">6</property>
+                                                    <property name="position">4</property>
                                                   </packing>
                                                 </child>
                                               </object>
@@ -15994,83 +16135,17 @@ Cross marker: the value for the currently loaded frame.</property>
                                               <object class="GtkBox">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
-Green curve: sorted values by order of decreasing quality.
-Circle marker: the value for the reference frame.
-Cross marker: the value for the currently loaded frame.</property>
                                                 <property name="spacing">5</property>
                                                 <child>
-                                                  <object class="GtkButton" id="varCurvePhotometry">
-                                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.
-WARNING: gnuplot must be installed.</property>
-                                                    <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+                                                  <object class="GtkLabel">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label" translatable="yes">X:</property>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
                                                     <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkComboBoxText" id="plotSourceCombo">
-                                                    <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="tooltip-text" translatable="yes">Select the source of graph information.</property>
-                                                    <property name="active">0</property>
-                                                    <items>
-                                                      <item translatable="yes">Registration</item>
-                                                      <item translatable="yes">Photometry</item>
-                                                    </items>
-                                                    <signal name="changed" handler="on_plotSourceCombo_changed" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="padding">6</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">1</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkComboBoxText" id="plotCombo">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="tooltip-text" translatable="yes">Select which information to display from photometry data.</property>
-                                                    <property name="active">0</property>
-                                                    <items>
-                                                      <item translatable="yes">FWHM</item>
-                                                      <item translatable="yes">Roundness</item>
-                                                      <item translatable="yes">wFWHM</item>
-                                                      <item translatable="yes">Quality</item>
-                                                      <item translatable="yes">X Position</item>
-                                                      <item translatable="yes">Y Position</item>
-                                                    </items>
-                                                    <signal name="changed" handler="on_plotCombo_changed" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">2</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkLabel">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">Y:</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">3</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -16092,21 +16167,68 @@ WARNING: gnuplot must be installed.</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">4</property>
+                                                    <property name="position">1</property>
                                                   </packing>
                                                 </child>
                                                 <child>
                                                   <object class="GtkLabel">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">X:</property>
+                                                    <property name="label" translatable="yes">Y:</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkComboBoxText" id="plotCombo">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Select which information to display from photometry data.</property>
+                                                    <property name="active">0</property>
+                                                    <items>
+                                                      <item translatable="yes">FWHM</item>
+                                                      <item translatable="yes">Roundness</item>
+                                                      <item translatable="yes">wFWHM</item>
+                                                      <item translatable="yes">Quality</item>
+                                                      <item translatable="yes">X Position</item>
+                                                      <item translatable="yes">Y Position</item>
+                                                    </items>
+                                                    <signal name="changed" handler="on_plotCombo_changed" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkBox">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="spacing">5</property>
+                                                <child>
+                                                  <object class="GtkCheckButton" id="JulianPhotometry">
+                                                    <property name="label" translatable="yes">Julian Date</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">False</property>
+                                                    <property name="draw-indicator">True</property>
+                                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
                                                     <property name="pack-type">end</property>
-                                                    <property name="position">5</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -16122,29 +16244,50 @@ WARNING: gnuplot must be installed.</property>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
                                                     <property name="pack-type">end</property>
-                                                    <property name="position">6</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkCheckButton" id="JulianPhotometry">
-                                                    <property name="label" translatable="yes">Julian Date</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
+                                                  <object class="GtkComboBoxText" id="plotSourceCombo">
+                                                    <property name="visible">True</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Select the source of graph information.</property>
+                                                    <property name="active">0</property>
+                                                    <items>
+                                                      <item translatable="yes">Registration</item>
+                                                      <item translatable="yes">Photometry</item>
+                                                    </items>
+                                                    <signal name="changed" handler="on_plotSourceCombo_changed" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">7</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="varCurvePhotometry">
+                                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.
+WARNING: gnuplot must be installed.</property>
+                                                    <property name="halign">start</property>
+                                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">False</property>
+                                                    <property name="position">2</property>
                                                   </packing>
                                                 </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
-                                                <property name="fill">False</property>
-                                                <property name="position">2</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">3</property>
                                               </packing>
                                             </child>
                                           </object>
