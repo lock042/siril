@@ -4118,11 +4118,11 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 							retvalue = 1;
 							break;
 						} else {
-							siril_log_message(_("Cosmetic correction from Bap Pixel Map: %s.\n"), word[i + 1]);
+							siril_log_message(_("Cosmetic correction from Bad Pixel Map: %s.\n"), word[i + 1]);
 							i++;
 						}
 					} else {
-						siril_log_message(_("You must specify a bap pixel map file with -cc=bpm option, aborting.\n"));
+						siril_log_message(_("You must specify a bad pixel map file with -cc=bpm option, aborting.\n"));
 						retvalue = 1;
 						break;
 					}

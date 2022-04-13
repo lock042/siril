@@ -14544,7 +14544,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-markup" translatable="yes">Enter the bad pixel map file name here, or use the browse button. This file is generally created by the command &lt;i&gt;find_hot&lt;/i&gt; applied on a dark frame or a master-dark. The file is structured as follow:
 
-* The line &lt;i&gt;P x y type&lt;/i&gt; will fix the pixel at coordinates (x, y) type is an optional character (&lt;i&gt;C&lt;/i&gt;or &lt;i&gt;H&lt;/i&gt;) specifying to Siril if the current pixel is cold or hot.
+* The line &lt;i&gt;P x y type&lt;/i&gt; will fix the pixel at coordinates (x, y), type is an optional character (&lt;i&gt;C&lt;/i&gt;or &lt;i&gt;H&lt;/i&gt;) specifying to Siril if the current pixel is cold or hot.
 * The line &lt;i&gt;C x 0 type&lt;/i&gt; will fix the bad column at coordinates &lt;i&gt;x&lt;/i&gt;.
 * The line &lt;i&gt;L y 0 type&lt;/i&gt; will fix the bad line at coordinates &lt;i&gt;y&lt;/i&gt;.</property>
                                                             <property name="valign">center</property>
