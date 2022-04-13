@@ -791,4 +791,3 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		start_in_new_thread(autoDetectThreaded, args);
 	}
 }
-
