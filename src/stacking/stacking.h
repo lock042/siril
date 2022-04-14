@@ -93,9 +93,11 @@ struct stacking_args {
 	gboolean apply_nbstack_weights;	/* enable weights */
 	double *weights; 		/* computed weights for each (layer, image)*/
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
+	gboolean lite_norm;		/* enable lightweight (med,mad) normalization */
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
 	float (*mad_calculator)(const WORD *, const size_t, const double, threading_type) ; // internal, for ushort
+	fits result;
 };
 
 /* configuration from the command line */
@@ -109,6 +111,7 @@ struct stacking_configuration {
 	gboolean force_no_norm;
 	gboolean output_norm;
 	gboolean equalizeRGB;
+	gboolean lite_norm;
 	normalization norm;
 	int number_of_loaded_sequences;
 	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p; // on if >0
@@ -130,7 +133,7 @@ struct outliers {
 
 void initialize_stacking_default();
 void initialize_stacking_methods();
-gboolean evaluate_stacking_should_output_32bits(stack_method method,
+gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err);
 
 int stack_median(struct stacking_args *args);
@@ -162,7 +165,7 @@ struct _image_block {
 };
 
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
 
 /* pool of memory blocks for parallel processing */
 struct _data_block {
@@ -176,7 +179,7 @@ struct _data_block {
 	int layer;	// to identify layer for normalization
 };
 
-int find_refimage_in_indices(int *indices, int nb, int ref);
+int find_refimage_in_indices(const int *indices, int nb, int ref);
 
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
 

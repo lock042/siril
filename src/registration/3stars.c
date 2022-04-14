@@ -234,7 +234,7 @@ int register_3stars(struct registration_args *regargs) {
 }
 
 /* image rotation sequence processing */
-static int affine_transform_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *area) {
+static int affine_transform_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *area, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int refimage = regargs->reference_image;
@@ -249,7 +249,7 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 			pointf ref[3] = {
 				{ results[refimage].stars[0]->xpos, results[refimage].stars[0]->ypos },
 				{ results[refimage].stars[1]->xpos, results[refimage].stars[1]->ypos },
-				{ 0 }
+				{ 0, 0 }
 			};
 			if (nb_stars == 3) {
 				ref[2].x = results[refimage].stars[2]->xpos;
@@ -258,7 +258,7 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 			pointf cur[3] = {
 				{ results[in_index].stars[0]->xpos, results[in_index].stars[0]->ypos },
 				{ results[in_index].stars[1]->xpos, results[in_index].stars[1]->ypos },
-				{ 0 }
+				{ 0, 0 }
 			};
 			if (nb_stars == 3) {
 				cur[2].x = results[in_index].stars[2]->xpos;
@@ -296,7 +296,6 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 			ref[star].y = results[refimage].stars[2]->ypos;
 			cur[star].x = results[in_index].stars[2]->xpos;
 			cur[star].y = results[in_index].stars[2]->ypos;
-			star++;
 		}
 
 		if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation))

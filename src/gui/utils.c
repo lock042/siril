@@ -72,6 +72,8 @@ GtkWidget* lookup_widget(const gchar *widget_name) {
 }
 
 void control_window_switch_to_tab(main_tabs tab) {
+	if (com.script)
+		return;
 	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
 	gtk_notebook_set_current_page(notebook, tab);
 }

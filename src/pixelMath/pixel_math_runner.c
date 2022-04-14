@@ -290,6 +290,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 void on_pm_use_rgb_button_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_g"), !gtk_toggle_button_get_active(button));
 	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_b"), !gtk_toggle_button_get_active(button));
+	gtk_label_set_text(GTK_LABEL(lookup_widget("label_RGBK")), gtk_toggle_button_get_active(button) ? _("RGB/K") : _("R"));
 	if (gtk_toggle_button_get_active(button)) entry_has_focus = 0;
 }
 
@@ -446,6 +447,56 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 	return GINT_TO_POINTER(args->ret);
 }
 
+static gboolean is_op_or_null(const gchar c) {
+	if (c == '\0') return TRUE;
+	if (c == '(') return TRUE;
+	if (c == ')') return TRUE;
+	for (int i = 0; i < MAX_OPERATORS; i++) {
+		const gchar op = operators[i].name[0];
+		if (c == op) return TRUE;
+	}
+	return FALSE;
+}
+
+static guint siril_string_replace_parameter(GString *string, const gchar *find,
+		const gchar *replace) {
+	gsize f_len, r_len, pos;
+	gchar *cur, *next;
+	gint n = 0;
+
+	g_return_val_if_fail(string != NULL, 0);
+	g_return_val_if_fail(find != NULL, 0);
+	g_return_val_if_fail(replace != NULL, 0);
+
+	f_len = strlen(find);
+	r_len = strlen(replace);
+	cur = string->str;
+
+	while ((next = strstr(cur, find)) != NULL) {
+		pos = next - string->str;
+		if ((pos == 0 && is_op_or_null(string->str[pos + f_len])) ||
+				((pos > 0 && is_op_or_null(string->str[pos - 1])) &&
+				(pos < strlen(string->str) && is_op_or_null(string->str[pos + f_len])))) {
+			g_string_erase(string, pos, f_len);
+			g_string_insert(string, pos, replace);
+			cur = string->str + pos + r_len;
+			n++;
+			/* Only match the empty string once at any given position, to
+			 * avoid infinite loops */
+			if (f_len == 0) {
+				if (cur[0] == '\0')
+					break;
+				else
+					cur++;
+			}
+		} else {
+			cur = string->str + pos + f_len;
+		}
+	}
+
+	return n;
+}
+
 static int parse_parameters(gchar **expression1, gchar **expression2, gchar **expression3) {
 	GtkEntry *entry_param = GTK_ENTRY(lookup_widget("pixel_math_entry_param"));
 
@@ -478,9 +529,9 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 		GString *string3 = g_string_new(*expression3);
 
 		/* we replace old expression by new ones */
-		g_string_replace(string1, expr[0], expr[1], 0);
-		g_string_replace(string2, expr[0], expr[1], 0);
-		g_string_replace(string3, expr[0], expr[1], 0);
+		siril_string_replace_parameter(string1, expr[0], expr[1]);
+		siril_string_replace_parameter(string2, expr[0], expr[1]);
+		siril_string_replace_parameter(string3, expr[0], expr[1]);
 
 		/* copy string into char */
 		g_free(*expression1);
@@ -558,14 +609,18 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	return 0;
 }
 
+static gboolean allowed_char(char c) {
+	return (g_ascii_isalnum(c) || c == '_');
+}
+
 static gboolean check_for_variable_sanity(char *new_text) {
 	gboolean abort = TRUE;
 	const char *p = new_text;
 
 	if (*p == '\0') return FALSE;
-	/* Exclude if non alphanum variable */
+	/* Exclude if non alphanum  (or _) variable */
 	while (*p) {
-		if (!g_ascii_isalnum(*p++)) return FALSE;
+		if (!allowed_char(*p++)) return FALSE;
 	}
 
 	/* no we exclude name that contain only digit */
@@ -686,11 +741,11 @@ static void select_image(int nb) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] ||
 							height != f.naxes[1])) {
-						gchar *f = g_path_get_basename(filename);
+						gchar *name = g_path_get_basename(filename);
 						gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
-								" (width, height or number of channels).", f);
+								" (width, height or number of channels).", name);
 						siril_message_dialog(GTK_MESSAGE_ERROR, _("Image must have same dimension"), str);
-						g_free(f);
+						g_free(name);
 						g_free(str);
 
 					} else {
@@ -790,7 +845,7 @@ void on_pixel_math_remove_var_button_clicked(GtkButton *button, gpointer user_da
 	remove_selected_lines();
 }
 
-void on_apply_pixel_math_clicked(GtkButton *button, gpointer user_data) {
+static void apply_pixel_math() {
 	gchar *expression1 = get_pixel_math_expression1();
 	remove_spaces_from_str(expression1);
 
@@ -801,6 +856,14 @@ void on_apply_pixel_math_clicked(GtkButton *button, gpointer user_data) {
 	remove_spaces_from_str(expression3);
 
 	pixel_math_evaluate(expression1, expression2, expression3);
+}
+
+void on_pixel_math_entry_activate(GtkEntry *entry, gpointer user_data) {
+	apply_pixel_math();
+}
+
+void on_apply_pixel_math_clicked(GtkButton *button, gpointer user_data) {
+	apply_pixel_math();
 }
 
 void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,

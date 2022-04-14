@@ -69,6 +69,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	args->retval = 0;
 
 #ifdef _OPENMP
+	// max_parallel_images can be computed by another function too, hence the check
 	if (args->max_parallel_images < 1) {
 		if (args->compute_mem_limits_hook)
 			args->max_parallel_images = args->compute_mem_limits_hook(args, FALSE);
@@ -78,8 +79,16 @@ gpointer generic_sequence_worker(gpointer p) {
 		args->retval = 1;
 		goto the_end;
 	}
+	/* if there are less images in the sequence than threads, we still
+	 * distribute them */
+	if (args->max_parallel_images > nb_frames - 1)
+		args->max_parallel_images = nb_frames - 1;
+
 	siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
 			args->description, args->max_parallel_images);
+
+	// remaining threads distribution per image thread
+	int *threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
@@ -173,6 +182,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 
 		int thread_id = -1;
+		int nb_subthreads = 1;
 #ifdef _OPENMP
 		thread_id = omp_get_thread_num();
 		if (have_seqwriter) {
@@ -182,6 +192,7 @@ gpointer generic_sequence_worker(gpointer p) {
 				continue;
 			}
 		}
+		nb_subthreads = threads_per_image[thread_id];
 #endif
 
 		if (args->partial_image) {
@@ -219,7 +230,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			}
 		}
 
-		if (args->image_hook(args, frame, input_idx, fit, &area)) {
+		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
 			else {
@@ -596,9 +607,10 @@ gboolean get_script_thread_run() {
 }
 
 void wait_for_script_thread() {
-	if (com.script_thread)
+	if (com.script_thread) {
 		g_thread_join(com.script_thread);
-	com.script_thread = NULL;
+		com.script_thread = NULL;
+	}
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {

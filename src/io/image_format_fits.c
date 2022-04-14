@@ -899,7 +899,7 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 
 static int get_compression_type(int siril_compression_fits_method) {
 	if (siril_compression_fits_method < 0
-			|| siril_compression_fits_method > G_N_ELEMENTS(CompressionMethods)) {
+			|| siril_compression_fits_method >= G_N_ELEMENTS(CompressionMethods)) {
 		return -1;
 	} else {
 		return CompressionMethods[siril_compression_fits_method];

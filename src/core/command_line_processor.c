@@ -276,11 +276,8 @@ gpointer execute_script(gpointer p) {
 	}
 	g_free(saved_cwd);
 
-	if (com.script_thread) {
+	if (com.script_thread)
 		siril_debug_print("Script thread exiting\n");
-		g_thread_unref(com.script_thread);
-		com.script_thread = NULL;
-	}
 	return GINT_TO_POINTER(retval);
 }
 

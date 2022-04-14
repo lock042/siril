@@ -132,7 +132,7 @@ gchar *siril_truncate_str(gchar *str, gint size);
 char **glist_to_array(GList *list, int *arg_count);
 gchar* url_cleanup(const gchar *uri_string);
 void remove_spaces_from_str(gchar *s);
-gboolean string_is_a_number(char *str);
+gboolean string_is_a_number(const char *str);
 #if !GLIB_CHECK_VERSION(2,68,0)
 guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 		guint limit);
@@ -154,6 +154,7 @@ int siril_fits_img_stats_float(float *array, long nx, long ny, int nullcheck,
 int threshlo(fits *fit, WORD level);
 int threshhi(fits *fit, WORD level);
 int nozero(fits *fit, WORD level);
+int gaussian_blur_RT(fits *fit, double sigma, int threads);
 int unsharp(fits*, double sigma, double mult, gboolean verbose);
 float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
 int loglut(fits *fit);

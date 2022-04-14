@@ -54,7 +54,7 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
-		*comboX = NULL, *layer_selector = NULL;
+		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -76,6 +76,7 @@ static void free_colors(struct kplotcfg *cfg);
 void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data);
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data);
 void on_plotComboX_changed(GtkComboBox *box, gpointer user_data);
+void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data);
 
 
 static const gchar *photometry_labels[] = {
@@ -659,6 +660,8 @@ static void fill_plot_statics() {
 		combo = lookup_widget("plotCombo");
 		comboX = lookup_widget("plotComboX");
 		varCurve = lookup_widget("varCurvePhotometry");
+		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
+		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
 		sourceCombo = lookup_widget("plotSourceCombo");
@@ -677,6 +680,8 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_visible(varCurve, use_photometry);
+	gtk_widget_set_visible(buttonSaveCSV, TRUE);
+	gtk_widget_set_visible(buttonSavePrt, TRUE);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
 	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
@@ -742,6 +747,8 @@ void reset_plot() {
 		gtk_widget_set_sensitive(comboX, TRUE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
+		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
+		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
 		gtk_widget_set_sensitive(buttonClearAll, FALSE);
@@ -899,10 +906,10 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	/* TODO: probably need to set export CSV button sensitivity
 	but this avoids a crash for now */
-	if(!plot_data) {
-		fprintf(stderr, "exportCSV: Nothing to export\n");
-		return;
-	}
+	//if(!plot_data) {
+	//	fprintf(stderr, "exportCSV: Nothing to export\n");
+	//	return;
+	//}
 	set_cursor_waiting(TRUE);
 	save_dialog(".csv", exportCSV);
 	set_cursor_waiting(FALSE);
@@ -933,7 +940,7 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	}
 	if (i == 0) {
 		reset_plot();
-		clear_stars_list();
+		clear_stars_list(TRUE);
 	}
 	drawPlot();
 }
@@ -943,14 +950,21 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 		free_photometry_set(&com.seq, i);
 	}
 	reset_plot();
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	drawPlot();
 }
 
-gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint width, height, i, j;
+
+void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
+	cairo_surface_t *surface;
+
+	gchar *timestamp, *filename;
+	timestamp = build_timestamp_filename();
+	filename = g_strdup_printf("%s.png", timestamp);
+	g_free(timestamp);
 
 	if (plot_data) {
 		struct kdata *d1, *ref_d, *mean_d, *curr_d;
@@ -1024,8 +1038,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			} else {
 				struct kpair *avg;
 				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
-				j = min_data;
-				for (i = 0; i < (max_data - min_data) + 1; i++) {
+				for (int i = 0, j = min_data; i < (max_data - min_data) + 1; i++) {
 					avg[i].x = plot_data->data[j].x;
 					avg[i].y = mean;
 					++j;
@@ -1048,11 +1061,154 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		width = gtk_widget_get_allocated_width(widget);
 		height = gtk_widget_get_allocated_height(widget);
 
+		////****my mod
+		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 8*width, 12*height);
+		cr = cairo_create(surface);
+		////****
+
+		
+		cairo_set_source_rgb(cr, color, color, color);
+		cairo_rectangle(cr, 0.0, 0.0, 8*width, 12*height);
+		cairo_fill(cr);
+		kplot_draw(p, 8*width, 12*height, cr);
+		////****mymod
+		cairo_surface_write_to_png(surface, filename );
+		cairo_surface_destroy(surface);
+		g_free(filename);
+		////****
+		
+		free_colors(&cfgplot);
+		kplot_free(p);
+		kdata_destroy(d1);
+		kdata_destroy(ref_d);
+		if (mean_d)
+			kdata_destroy(mean_d);
+	}
+	
+}
+
+
+
+
+
+
+
+gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint width, height;
+	struct kplotcfg cfgplot;
+	struct kdatacfg cfgdata;
+	////cairo_surface_t *surface;
+
+	if (plot_data) {
+		struct kdata *d1, *ref_d, *mean_d, *curr_d;
+		pldata *plot = plot_data;
+
+		d1 = ref_d = mean_d = NULL;
+
+		double color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
+
+		kplotcfg_defaults(&cfgplot);
+		kdatacfg_defaults(&cfgdata);
+		set_colors(&cfgplot);
+		cfgplot.ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
+		cfgplot.border = BORDER_ALL;
+		cfgplot.borderline.clr.type = KPLOTCTYPE_RGBA;
+		cfgplot.borderline.clr.rgba[0] = 0.5;
+		cfgplot.borderline.clr.rgba[1] = 0.5;
+		cfgplot.borderline.clr.rgba[2] = 0.5;
+		cfgplot.borderline.clr.rgba[3] = 1.0;
+		cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
+		cfgplot.xtics = 5;
+		cfgplot.yaxislabel = ylabel;
+		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
+		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
+		cfgdata.point.radius = 10;
+
+		struct kplot *p = kplot_alloc(&cfgplot);
+
+		// data plots
+		int nb_graphs = 0;
+
+		while (plot) {
+			d1 = kdata_array_alloc(plot->data, plot->nb);
+			if (X_selected_source == r_FRAME) {
+			kplot_attach_data(p, d1,
+					((plot_data->nb <= 100) ? KPLOT_LINESPOINTS : KPLOT_LINES),
+					NULL);
+			} else {
+				kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
+			}
+			plot = plot->next;
+			nb_graphs++;
+		}
+
+		/* mean and min/max */
+		double mean = kdata_ymean(d1);
+		//sigma = kdata_ystddev(d1);
+		int min_data = kdata_xmin(d1, NULL);
+		int max_data = kdata_xmax(d1, NULL);
+
+		if (nb_graphs == 1 && plot_data->nb > 0) {
+			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) ||(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY))) {
+				if (X_selected_source == r_FRAME) {
+					struct kpair *sorted_data;
+					sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
+					for (int i = 0; i < plot_data->nb; i++) {
+						sorted_data[i].x = plot_data->data[i].x;
+						sorted_data[i].y = plot_data->data[i].y;
+					}
+					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY)) ? comparey_desc : comparey);
+					double imin = plot_data->data[min_data].x;
+					double imax = plot_data->data[max_data].x;
+					double pace = (imax - imin) / ((double)plot_data->nb - 1.);
+					for (int i = 0; i < plot_data->nb; i++) {
+						sorted_data[i].x = imin + (double)i * pace;
+					}
+					d1 = kdata_array_alloc(sorted_data, plot_data->nb);
+					kplot_attach_data(p, d1, KPLOT_LINES, NULL);
+					free(sorted_data);
+				}
+			} else {
+				struct kpair *avg;
+				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
+				for (int i = 0, j = min_data; i < (max_data - min_data) + 1; i++) {
+					avg[i].x = plot_data->data[j].x;
+					avg[i].y = mean;
+					++j;
+				}
+				mean_d = kdata_array_alloc(avg, (max_data - min_data) + 1);
+				kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
+				free(avg);
+			}
+
+			if (ref.x >= 0.0 && ref.y >= 0.0) {
+				ref_d = kdata_array_alloc(&ref, 1);
+				kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
+			}
+			if (curr.x >= 0.0 && curr.y >= 0.0) {
+				curr_d = kdata_array_alloc(&curr, 1);
+				kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
+			}
+		}
+
+		width = gtk_widget_get_allocated_width(widget);
+		height = gtk_widget_get_allocated_height(widget);
+
+		////****
+		//surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+		//cr = cairo_create(surface);
+		////****
+
 		cairo_set_source_rgb(cr, color, color, color);
 		cairo_rectangle(cr, 0.0, 0.0, width, height);
 		cairo_fill(cr);
 		kplot_draw(p, width, height, cr);
 
+		////****
+		//cairo_surface_write_to_png(surface, "mytest.png" );
+		//cairo_surface_destroy(surface);
+		////****
+		
 		free_colors(&cfgplot);
 		kplot_free(p);
 		kdata_destroy(d1);
@@ -1091,7 +1247,9 @@ void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
 
 static void update_ylabel() {
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+	gtk_widget_set_sensitive(buttonSavePrt, TRUE);
 	if (use_photometry) {
+		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
 		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
 		switch (current_selected_source) {
 			case ROUNDNESS:
@@ -1125,6 +1283,7 @@ static void update_ylabel() {
 				break;
 		}
 	} else {
+		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
 		switch (current_selected_source) {
 			case r_ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");

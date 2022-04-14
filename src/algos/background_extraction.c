@@ -270,7 +270,7 @@ static background_sample *get_sample(float *buf, const int xx,
 	return sample;
 }
 
-static double get_sample_median(double *buf, const int xx,
+static double get_sample_median(const double *buf, const int xx,
 		const int yy, const int w, const int h) {
 	int radius, x, y, n;
 	double *data, median;
@@ -506,7 +506,7 @@ static double get_tolerance_value() {
 	return gtk_range_get_value(tol);
 }
 
-static void remove_gradient(double *img, double *background, size_t ndata, int type) {
+static void remove_gradient(double *img, const double *background, size_t ndata, int type) {
 	size_t i;
 	double mean;
 
@@ -651,7 +651,7 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean 
 /** Apply for sequence **/
 
 static int background_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct background_data *b_args = (struct background_data*) args->user;
 
 	gchar *error;

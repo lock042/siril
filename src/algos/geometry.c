@@ -418,7 +418,7 @@ static void crop_ushort(fits *fit, rectangle *bounds) {
 	fit->ry = fit->naxes[1] = bounds->h;
 
 	if (fit == &gfit) {
-		clear_stars_list();
+		clear_stars_list(TRUE);
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
@@ -454,7 +454,7 @@ static void crop_float(fits *fit, rectangle *bounds) {
 	fit->ry = fit->naxes[1] = bounds->h;
 
 	if (fit == &gfit) {
-		clear_stars_list();
+		clear_stars_list(TRUE);
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
@@ -462,9 +462,12 @@ static void crop_float(fits *fit, rectangle *bounds) {
 }
 
 int crop(fits *fit, rectangle *bounds) {
+#ifdef HAVE_WCSLIB
 	point shift; //need to be computed before fit rx/ry are altered by crop
 	shift.x = (double)(bounds->x);
 	shift.y = fit->ry - (double)(bounds->h) - (double)(bounds->y) - 1; // for top-bottom flip
+#endif
+
 	if (fit->type == DATA_USHORT) {
 		crop_ushort(fit, bounds);
 	} else if (fit->type == DATA_FLOAT) {
@@ -613,7 +616,7 @@ gint64 crop_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
 }
 
 int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
 	return crop(fit, &(c_args->area));

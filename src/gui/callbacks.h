@@ -27,7 +27,7 @@ int copy_rendering_settings();
 void clear_sampling_setting_box();
 void set_GUI_CAMERA();
 
-int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb);
+int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb);
 const char *vport_number_to_name(int);
 const char *untranslated_vport_number_to_name(int);
 void update_display_selection();
@@ -49,6 +49,7 @@ void activate_tab(int vport);
 
 void update_prepro_interface();
 
+void on_treeview_selection_convert_changed(GtkTreeSelection *treeselection, gpointer user_data);
 void update_statusbar_convert();
 
 void update_spinCPU(int max);

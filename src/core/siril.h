@@ -65,6 +65,8 @@
 #define UCHAR_MAX_SINGLE ((float)UCHAR_MAX)
 #define INV_USHRT_MAX_SINGLE .000015259022f	 // 1/65535
 #define INV_UCHAR_MAX_SINGLE .0039215686f	 // 1/255
+#define INV_USHRT_MAX_DOUBLE .000015259022	 // 1/65535
+#define INV_UCHAR_MAX_DOUBLE .0039215686	 // 1/255
 
 #define BYTES_IN_A_MB 1048576	// 1024*1024
 
@@ -157,6 +159,7 @@ typedef enum {
 
 #define MAX_STARS 200000		// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
+#define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
 
 #define INDEX_MAX 65535		// maximum index for images
 

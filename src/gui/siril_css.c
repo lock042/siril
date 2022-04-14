@@ -42,9 +42,7 @@ static gchar *get_buffer_from_css_file(gchar *css) {
  * Loads the css sheet
  */
 void load_css_style_sheet () {
-	gchar *CSSFile;
-
-	CSSFile = g_build_filename(siril_get_system_data_dir(), CSS_FILENAME, NULL);
+	gchar *CSSFile = g_build_filename(siril_get_system_data_dir(), CSS_FILENAME, NULL);
 	if (!g_file_test (CSSFile, G_FILE_TEST_EXISTS)) {
 		g_error (_("Unable to load CSS style sheet file: %s. Please reinstall Siril\n"), CSSFile);
 	}

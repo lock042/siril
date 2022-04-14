@@ -59,7 +59,7 @@ static void free_internal_sequence(sequence *seq) {
 			clearfits(internal_sequence_get(seq, i));
 		free_sequence(seq, TRUE);
 	}
-	clear_stars_list();
+	clear_stars_list(TRUE);
 }
 
 static int initialize_internal_rgb_sequence() {
@@ -141,6 +141,7 @@ int rgb_align(int m) {
 	regargs.follow_star = FALSE;
 	regargs.x2upscale = FALSE;
 	regargs.run_in_thread = FALSE;
+	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	com.run_thread = TRUE;	// fix for the canceling check in processing
 
 	retval = method->method_ptr(&regargs);

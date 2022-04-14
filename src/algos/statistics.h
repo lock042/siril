@@ -17,14 +17,15 @@ struct stat_data {
 #define STATS_MINMAX            (1 << 0)    // min, max
 #define STATS_SIGMEAN           (1 << 1)    // noise, mean, sigma
 #define STATS_BASIC             (1 << 2)    // median, mean, sigma, noise, min, max
-#define STATS_AVGDEV            (1 << 3)    // average absolute deviation
-#define STATS_MAD               (1 << 4)    // median absolute deviation
+#define STATS_MAD               (1 << 3)    // median absolute deviation
+#define STATS_AVGDEV            (1 << 4)    // average absolute deviation
 #define STATS_BWMV              (1 << 5)    // bidweight midvariance
 #define STATS_IKSS              (1 << 6)    // IKSS, used for normalisation
 
 #define STATS_MAIN              STATS_BASIC | STATS_AVGDEV | STATS_MAD | STATS_BWMV
 #define STATS_EXTRA             STATS_MAIN | STATS_IKSS
 #define STATS_NORM              STATS_BASIC | STATS_MAD | STATS_IKSS   // IKSSlite needs ngoodpix, median, mad and IKSS
+#define STATS_LITENORM          STATS_BASIC | STATS_MAD // For faster normalization
 
 #include "core/siril.h"
 
@@ -58,7 +59,7 @@ float siril_stats_trmean_from_sorted_data(const float trim, const float sorted_d
 int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fits *fit, int option,
 		threading_type threading, int image_thread_id, imstats **stats);
 int compute_all_channels_statistics_single_image(fits *fit, int option,
-		threading_type threading, int image_thread_id, imstats **stats);
+		threading_type threading, imstats **stats);
 
 int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels);
 

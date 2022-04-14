@@ -151,10 +151,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	gchar *script_file = g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT);
 	GFile *file = g_file_new_for_path(script_file);
-
-    GFileInfo *info;
-
-	info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+	GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
 			G_FILE_QUERY_INFO_NONE, NULL, &error);
 	if (info) {
 		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);

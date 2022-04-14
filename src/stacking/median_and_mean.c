@@ -93,7 +93,6 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
 		if (args->apply_nbstack_weights) {
-			int nb_frames = args->nb_images_to_stack;
 			int nb_layers = args->seq->nb_layers;
 			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 		}
@@ -245,7 +244,7 @@ static int refine_blocks_candidate(int nb_threads, int nb_channels, int minimum_
  * threads to work but as big as possible for the available memory.
  */
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
 	int candidate = nb_threads;	// candidate number of blocks
 	if (nb_threads < 1 || max_number_of_rows < 1)
 		return ST_GENERIC_ERROR;
@@ -428,7 +427,7 @@ static void norm_to_0_1_range(fits *fit) {
  * does a different operation to keep the final pixel values.
  *********************************************************************************/
 
-static int percentile_clipping(WORD pixel, float sig[], float median, guint64 rej[]) {
+static int percentile_clipping(WORD pixel, const float sig[], float median, guint64 rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
 
@@ -446,7 +445,7 @@ static int percentile_clipping(WORD pixel, float sig[], float median, guint64 re
 /* Rejection of pixels, following sigma_(high/low) * sigma.
  * The function returns 0 if no rejections are required, 1 if it's a high
  * rejection and -1 for a low-rejection */
-static int sigma_clipping(WORD pixel, float sig[], float sigma, float median, guint64 rej[]) {
+static int sigma_clipping(WORD pixel, const float sig[], float sigma, float median, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -468,7 +467,7 @@ static void Winsorize(WORD *pixel, WORD m0, WORD m1, int N) {
 	}
 }
 
-static int line_clipping(WORD pixel, float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
+static int line_clipping(WORD pixel, const float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -952,7 +951,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	struct _data_block *data_pool = NULL;
 	struct _image_block *blocks = NULL;
 	fits fit = { 0 }; // output result
-	fits ref = { 0 }; // reference image, used to get metadata back
+	fits ref = { 0 }; // reference image, used to propagate metadata
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
@@ -1358,26 +1357,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					(double) irej[channel][1] / nb_tot * 100.0);
 		}
 	}
-
-	/* copy result to gfit if success */
-	clearfits(&gfit);
-	copyfits(&fit, &gfit, CP_FORMAT, -1);
-
-	if (args->use_32bit_output) {
-		gfit.fdata = fit.fdata;
-		for (i = 0; i < fit.naxes[2]; i++)
-			gfit.fpdata[i] = fit.fpdata[i];
-
-		if (args->output_norm) {
-			norm_to_0_1_range(&gfit);
-		}
-	} else {
-		gfit.data = fit.data;
-		for (i = 0; i < fit.naxes[2]; i++)
-			gfit.pdata[i] = fit.pdata[i];
-	}
-
-	compute_date_time_keywords(list_date, &gfit);
+	if (args->use_32bit_output && args->output_norm)
+		norm_to_0_1_range(&fit);
+	memcpy(&args->result, &fit, sizeof(fits));
+	compute_date_time_keywords(list_date, &fit);
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);

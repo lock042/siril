@@ -102,11 +102,11 @@ static command commands[] = {
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE},
 
-	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE},
+	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE},
 	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
 
-	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=]", process_register, STR_REGISTER, TRUE},
+	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=]", process_register, STR_REGISTER, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE},
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE},
@@ -160,8 +160,8 @@ static command commands[] = {
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE},
 	{"split", 3, "split fileR fileG fileB", process_split, STR_SPLIT, TRUE},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE},
-	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack]", process_stackone, STR_STACK, TRUE},
-	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack]", process_stackall, STR_STACKALL, TRUE},
+	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackone, STR_STACK, TRUE},
+	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackall, STR_STACKALL, TRUE},
 	{"stat", 0, "stat", process_stat, STR_STAT, TRUE},
 	{"subsky", 1, "subsky degree", process_subsky, STR_SUBSKY, TRUE},
 

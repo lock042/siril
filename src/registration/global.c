@@ -146,12 +146,13 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
+	image refimage = { .fit = &fit, .from_seq = args->seq, .index_in_seq = regargs->reference_image };
 
 	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
 	}
 	else {
-		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -224,7 +225,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 /* reads the image, searches for stars in it, tries to match them with
  * reference stars, computes the homography matrix, applies it on the image,
  * possibly up-scales the image and stores registration data */
-int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int nbpoints, nb_stars = 0;
@@ -235,6 +236,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	char *units;
 	Homography H = { 0 };
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
+	siril_debug_print("registration of image %d using %d threads\n", in_index, threads);
 
 	if (regargs->translation_only) {
 		/* if "translation only", we choose to initialize all frames
@@ -258,11 +260,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			layer = regargs->layer;
 		}
 
+		image im = { .fit = fit, .from_seq = args->seq, .index_in_seq = in_index };
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE);
+			stars = peaker(&im, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, threads);
 		}
 		else {
-			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+			stars = peaker(&im, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, threads);
 		}
 
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
@@ -442,7 +445,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	if (sadata->success) free(sadata->success);
 	free(sadata);
 	args->user = NULL;
-	clear_stars_list();
+	clear_stars_list(FALSE);
 
 	if (!args->retval) {
 		siril_log_message(_("Registration finished.\n"));

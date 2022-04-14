@@ -241,7 +241,7 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
                          * plus how many images can be stored in what remains
                          * unused by the main processing */
                         limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
-			siril_debug_print("%d MB avail for writer\n", MB_avail - required * thread_limit);
+			siril_debug_print("%u MB avail for writer\n", MB_avail - required * thread_limit);
                 } else limit = thread_limit;
 	}
 	if (limit == 0) {
@@ -334,7 +334,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	// proceed to cosmetic correction
-	if (prepro->use_cosmetic_correction && prepro->use_dark) {
+	if (prepro->use_cosmetic_correction && prepro->use_dark && prepro->cc_from_dark) {
 		if (strlen(prepro->dark->bayer_pattern) > 4) {
 			siril_log_color_message(_("Cosmetic correction cannot be applied on X-Trans files.\n"), "red");
 			prepro->use_cosmetic_correction = FALSE;
@@ -354,7 +354,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct preprocessing_data *prepro = args->user;
 
 	/******/
@@ -367,7 +367,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 		return 1;
 
 	if (prepro->use_cosmetic_correction && prepro->use_dark
-			&& prepro->dark->naxes[2] == 1) {
+			&& prepro->dark->naxes[2] == 1 && prepro->cc_from_dark) {
 		cosmeticCorrection(fit, prepro->dev, prepro->icold + prepro->ihot, prepro->is_cfa);
 #ifdef SIRIL_OUTPUT_DEBUG
 		image_find_minmax(fit);
@@ -375,6 +375,10 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 				fit->mini, fit->maxi);
 		invalidate_stats_from_fit(fit);
 #endif
+	}
+
+	if (prepro->use_cosmetic_correction && !prepro->cc_from_dark && prepro->bad_pixel_map_file) {
+		apply_cosme_to_image(fit, prepro->bad_pixel_map_file, prepro->is_cfa);
 	}
 
 	if (prepro->debayer) {
@@ -476,7 +480,7 @@ int preprocess_single_image(struct preprocessing_data *args) {
 
 	ret = prepro_prepare_hook(&generic);
 	if (!ret)
-		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
 	clear_preprocessing_data(args);
 
 	if (!ret) {
@@ -491,9 +495,7 @@ int preprocess_single_image(struct preprocessing_data *args) {
 		if (!ret) {
 			// open the new image?
 			copyfits(&fit, com.uniq->fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
-			if (com.uniq->nb_layers != fit.naxes[2]) {
-				com.uniq->nb_layers = fit.naxes[2];
-			}
+			com.uniq->nb_layers = fit.naxes[2];
 			if (com.uniq->filename)
 				free(com.uniq->filename);
 			com.uniq->filename = strdup(dest_filename);
@@ -523,7 +525,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 
 	ret = prepro_prepare_hook(&generic);
 	if (!ret)
-		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL);
+		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
 	clear_preprocessing_data(args);
 
 	if (!ret) {
@@ -577,11 +579,41 @@ free_on_error:
 	return 0;
 }
 
+gboolean check_for_cosme_file_sanity(GFile *file) {
+	GError *error = NULL;
+	gchar *line;
+
+	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, &error);
+
+	if (input_stream == NULL) {
+		if (error != NULL) {
+			g_clear_error(&error);
+			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
+		}
+		g_object_unref(file);
+		return FALSE;
+	}
+
+	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
+				NULL, NULL))) {
+		if (!g_str_has_prefix(line, "P ") && !g_str_has_prefix(line, "C ")
+				&& !g_str_has_prefix(line, "C ")
+				&& !g_str_has_prefix(line, "#")) {
+			g_free(line);
+			return FALSE;
+		}
+		g_free(line);
+	}
+	return TRUE;
+}
+
 static gboolean test_for_master_files(struct preprocessing_data *args) {
 	GtkToggleButton *tbutton;
 	GtkEntry *entry;
 	gboolean has_error = FALSE;
 	args->bias_level = FLT_MAX;
+	args->bad_pixel_map_file = NULL;
 
 	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
 	if (gtk_toggle_button_get_active(tbutton)) {
@@ -668,7 +700,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				free(args->dark);
+				clearfits(args->dark);
+				args->dark = NULL; // in order to be sure it is freed
 				gtk_entry_set_text(entry, "");
 				args->use_dark = FALSE;
 				has_error = TRUE;
@@ -686,7 +719,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				free(args->dark);
+				clearfits(args->dark);
 				gtk_entry_set_text(entry, "");
 				args->use_dark_optim = FALSE;
 				has_error = TRUE;
@@ -708,8 +741,34 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
 					args->sigma[1] = gtk_spin_button_get_value(sigHot);
 				} else args->sigma[1] = -1.0;
+
+				/* Using Bad Pixel Map ? */
+				const gchar *bad_pixel_f;
+				entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
+				bad_pixel_f = gtk_entry_get_text(entry);
+				/* test for file */
+				if (bad_pixel_f[0] != '\0') {
+					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
+					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+						g_object_unref(args->bad_pixel_map_file);
+						args->bad_pixel_map_file = NULL;
+					}
+				}
 			}
 		}
+	}
+
+	/* now we want to know which cosmetic correction we choose */
+	GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
+	GtkWidget *w = gtk_stack_get_visible_child(stack);
+	args->cc_from_dark = TRUE; // default value
+	if (w) {
+		GValue value = G_VALUE_INIT;
+		g_value_init(&value, G_TYPE_INT);
+		gtk_container_child_get_property(GTK_CONTAINER(stack), w, "position", &value);
+		gint position = g_value_get_int(&value);
+		args->cc_from_dark = position == 0 ? TRUE : FALSE;
+		g_value_unset(&value);
 	}
 
 	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
@@ -859,11 +918,11 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	rate = (double)icold / total;
 	/* 1% of cold pixels seems to be a reasonable limit */
 	if (rate > 0.01) {
-		str[0] = g_markup_printf_escaped(_("<span foreground=\"red\">Cold: %ld px</span>"), icold);
+		str[0] = g_markup_printf_escaped("<span foreground=\"red\">%ld px</span>", icold);
 		gtk_widget_set_tooltip_text(widget[0], _("This value may be too high. Please, consider to change sigma value or uncheck the box."));
 	}
 	else {
-		str[0] = g_markup_printf_escaped(_("Cold: %ld px"), icold);
+		str[0] = g_markup_printf_escaped("%ld px", icold);
 		gtk_widget_set_tooltip_text(widget[0], "");
 	}
 	gtk_label_set_markup(label[0], str[0]);
@@ -871,11 +930,11 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	rate = (double)ihot / total;
 	/* 1% of hot pixels seems to be a reasonable limit */
 	if (rate > 0.01) {
-		str[1] = g_markup_printf_escaped(_("<span foreground=\"red\">Hot: %ld px</span>"), ihot);
+		str[1] = g_markup_printf_escaped("<span foreground=\"red\">%ld px</span>", ihot);
 		gtk_widget_set_tooltip_text(widget[1], _("This value may be too high. Please, consider to change sigma value or uncheck the box."));
 	}
 	else {
-		str[1] = g_markup_printf_escaped(_("Hot: %ld px"), ihot);
+		str[1] = g_markup_printf_escaped("%ld px", ihot);
 		gtk_widget_set_tooltip_text(widget[1], "");
 	}
 	gtk_label_set_markup(label[1], str[1]);

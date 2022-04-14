@@ -454,10 +454,13 @@ static void draw_empty_image(const draw_data_t* dd) {
 #ifdef SIRIL_UNSTABLE
 
 	msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
+			    "<small>%c%s</small>\n"
 				"<small>commit <tt>%s</tt></small>\n"
 				"<small>Please test bugs against "
 				"latest git master branch\n"
 				"before reporting them.</small>"),
+			toupper(PACKAGE_STRING[0]),
+			(char *)PACKAGE_STRING + 1,
 			SIRIL_GIT_VERSION_ABBREV);
 	pango_layout_set_markup(layout, msg, -1);
 	g_free(msg);
@@ -524,8 +527,8 @@ static void draw_vport(const draw_data_t* dd) {
 		cairo_paint(cached_cr);
 		cairo_destroy(cached_cr);
 
-		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
-				view->view_width, view->view_height);
+//		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
+//				view->view_width, view->view_height);
 	}
 	cairo_set_source_surface(dd->cr, view->disp_surface, 0, 0);
 	cairo_paint(dd->cr);
@@ -804,7 +807,7 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_restore(cr); // restore the original transform
 }
 
-static label_point *new_label_point(double height, double *pix1, double *pix2, double *world, gboolean isRA, int border) {
+static label_point *new_label_point(double height, const double *pix1, const double *pix2, const double *world, gboolean isRA, int border) {
 	label_point *pt = g_new(label_point, 1);
 
 	pt->x = pix1[0];
@@ -890,7 +893,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 
 	/* Compute borders in pixel for tags*/
 	double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
-	double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
+	const double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
 	int pixtype[4] = { 1, 0, 1, 0 }; // y, x, y, x
 	int polesign = has_pole(fit, width, height);
 

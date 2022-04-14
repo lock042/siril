@@ -400,6 +400,7 @@ int process_gauss(int nb){
 	}
 
 	unsharp(&gfit, g_ascii_strtod(word[1], NULL), 0.0, TRUE);
+	//gaussian_blur_RT(&gfit, g_ascii_strtod(word[1], NULL), com.max_thread);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1551,24 +1552,12 @@ int process_bg(int nb){
 }
 
 int process_bgnoise(int nb){
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return 1;
-	}
-
 	if (!(single_image_is_loaded() || sequence_is_loaded())) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
 
-	struct noise_data *args = malloc(sizeof(struct noise_data));
-
-	args->fit = &gfit;
-	args->verbose = TRUE;
-	args->use_idle = TRUE;
-	memset(args->bgnoise, 0.0, sizeof(double[3]));
-
-	start_in_new_thread(noise, args);
+	evaluate_noise_in_image();
 	return 0;
 }
 
@@ -1853,11 +1842,15 @@ int process_findstar(int nb){
 	}
 	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
-	delete_selected_area();
-
 	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
-
-	args->fit = &gfit;
+	args->im.fit = &gfit;
+	if (sequence_is_loaded() && com.seq.current >= 0) {
+		args->im.from_seq = &com.seq;
+		args->im.index_in_seq = com.seq.current;
+	} else {
+		args->im.from_seq = NULL;
+		args->im.index_in_seq = -1;
+	}
 	args->layer = layer;
 
 	start_in_new_thread(findstar, args);
@@ -2102,7 +2095,7 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REDRAW_OVERLAY);
 	redraw_previews();
@@ -2166,7 +2159,7 @@ int process_offset(int nb){
 }
 
 /* The version in command line is a minimal version
- * Only neutral type are available (no amount needed), 
+ * Only neutral type are available (no amount needed),
  * then we always preserve the lightness */
 int process_scnr(int nb){
 	if (get_thread_run()) {
@@ -3301,6 +3294,7 @@ int process_register(int nb) {
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
+	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
 
@@ -3319,7 +3313,7 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) { 
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
 #ifdef HAVE_CV44
 					reg_args->type = SHIFT_TRANSFORMATION;
 					continue;
@@ -3339,7 +3333,7 @@ int process_register(int nb) {
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"homography")) {
 					reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 					continue;
-				} 
+				}
 				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 				return 1;
 			} else if (g_str_has_prefix(word[i], "-layer=")) {
@@ -3353,7 +3347,7 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) { 
+				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) {
 					siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
 					continue;
 				}
@@ -3383,6 +3377,18 @@ int process_register(int nb) {
 					return 1;
 				}
 				reg_args->min_pairs = g_ascii_strtoull(value, NULL, 10);
+			} else if (g_str_has_prefix(word[i], "-maxstars=")) {
+				char *current = word[i], *value;
+				value = current + 10;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if ((g_ascii_strtoull(value, NULL, 10) > MAX_STARS_FITTED) || (g_ascii_strtoull(value, NULL, 10) < MIN_STARS_FITTED)) { // limiting values to avoid too long computation or too low number of candidates
+					siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
+					return 1;
+				}
+				reg_args->max_stars_candidates = g_ascii_strtoull(value, NULL, 10);
 			}
 		}
 	}
@@ -3423,7 +3429,7 @@ int process_register(int nb) {
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'
-static int parse_stack_command_line(struct stacking_configuration *arg, int first, gboolean norm_allowed, gboolean out_allowed) {
+static int parse_stack_command_line(struct stacking_configuration *arg, int first, gboolean rej_options_allowed, gboolean out_allowed) {
 	while (word[first]) {
 		char *current = word[first], *value;
 		if (!strcmp(current, "-nonorm") || !strcmp(current, "-no_norm"))
@@ -3431,7 +3437,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 		else if (!strcmp(current, "-output_norm")) {
 			arg->output_norm = TRUE;
 		} else if (!strcmp(current, "-weight_from_noise")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
@@ -3441,7 +3447,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->apply_noise_weights = TRUE;
 			}
 		} else if (!strcmp(current, "-rgb_equal")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
@@ -3449,7 +3455,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->equalizeRGB = TRUE;
 			}
 		} else if (!strcmp(current, "-weight_from_nbstack")) {
-			if (arg->method != stack_mean_with_rejection) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
@@ -3458,9 +3464,16 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->apply_nbstack_weights = TRUE;
 			}
-
+		} else if (!strcmp(current, "-fastnorm")) {
+			if (!rej_options_allowed) {
+				siril_log_message(_("Fast normalization is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("Fast normalization is allowed only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->lite_norm = TRUE;
+			}
 		} else if (g_str_has_prefix(current, "-norm=")) {
-			if (!norm_allowed) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Normalization options are not allowed in this context, ignoring.\n"));
 			} else {
 				value = current + 6;
@@ -3612,6 +3625,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.apply_noise_weights = arg->apply_noise_weights;
 		args.apply_nbstack_weights = arg->apply_nbstack_weights;
 		args.equalizeRGB = arg->equalizeRGB;
+		args.lite_norm = arg->lite_norm;
 
 		// manage filters
 		if (convert_stack_data_to_filter(arg, &args) ||
@@ -3646,14 +3660,15 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		free(args.description);
 
 		if (!retval) {
-			struct noise_data noise_args = { .fit = &gfit, .verbose = FALSE, .use_idle = FALSE };
-			noise(&noise_args);
-			if (savefits(arg->result_file, &gfit))
+			bgnoise_async(&args.result, TRUE);
+			if (savefits(arg->result_file, &args.result)) {
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", arg->result_file);
-			++arg->number_of_loaded_sequences;
+				retval = 1;
+			} else ++arg->number_of_loaded_sequences;
+			bgnoise_await();
 		}
-		else if (!get_thread_run()) return -1;
+		clearfits(&args.result);
 
 	} else {
 		siril_log_message(_("No sequence `%s' found.\n"), arg->seqfile);
@@ -3711,6 +3726,7 @@ int process_stackall(int nb) {
 	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
 	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
 	arg->equalizeRGB = FALSE;
+	arg->lite_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
@@ -3721,7 +3737,7 @@ int process_stackall(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 2;
-		gboolean allow_norm = FALSE;
+		gboolean allow_rej_options = FALSE;
 		if (!strcmp(word[1], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[1], "max")) {
@@ -3730,7 +3746,7 @@ int process_stackall(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[1], "med") || !strcmp(word[1], "median")) {
 			arg->method = stack_median;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		} else if (!strcmp(word[1], "rej") || !strcmp(word[1], "mean")) {
 			int shift = 1;
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
@@ -3768,13 +3784,13 @@ int process_stackall(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = 4 + shift;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, FALSE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, FALSE))
 			goto failure;
 	}
 
@@ -3826,6 +3842,7 @@ int process_stackone(int nb) {
 	arg->norm = NO_NORM;
 	arg->force_no_norm = FALSE;
 	arg->equalizeRGB = FALSE;
+	arg->lite_norm = FALSE;
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
@@ -3841,7 +3858,7 @@ int process_stackone(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 3;
-		gboolean allow_norm = FALSE;
+		gboolean allow_rej_options = FALSE;
 		if (!strcmp(word[2], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[2], "max")) {
@@ -3850,7 +3867,7 @@ int process_stackone(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[2], "med") || !strcmp(word[2], "median")) {
 			arg->method = stack_median;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
 			int shift = 1, base_shift = 5;
 			if (nb < 4) {
@@ -3901,13 +3918,13 @@ int process_stackone(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = base_shift + shift;
-			allow_norm = TRUE;
+			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_norm, TRUE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, TRUE))
 			goto failure;
 	}
 
@@ -3923,8 +3940,8 @@ failure:
 	return 1;
 }
 
-/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]
- * preprocess_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
+/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]
+ * preprocess_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
  */
 struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	int retvalue = 0;
@@ -3952,12 +3969,19 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	args->ppprefix = "pp_";
 	args->bias_level = FLT_MAX;
 
+	//cosmetic_correction init
+	args->sigma[0] = -1.00; /* cold pixels */
+	args->sigma[1] =  3.00; /* hot pixels - used if -cc=dark but not sigmas specified */
+	args->use_cosmetic_correction = FALSE;// dy default, CC is not activated
+	args->cc_from_dark = FALSE;
+	args->bad_pixel_map_file = NULL;
+
 	/* checking for options */
 	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
-				if (expression[0] == '=') {
+				if (expression && expression[0] == '=') {
 					if (seq) {
 						// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
 						int image_to_load = sequence_find_refimage(seq);
@@ -4008,7 +4032,6 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->dark = calloc(1, sizeof(fits));
 				if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
 					args->use_dark = TRUE;
-					args->use_cosmetic_correction = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
 					if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
@@ -4054,6 +4077,60 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->equalize_cfa = TRUE;
 			} else if (seq && !strcmp(word[i], "-fitseq")) {
 				args->output_seqtype = SEQ_FITSEQ;
+			} else if (g_str_has_prefix(word[i], "-cc=")) {
+				char *current = word[i], *value;
+				value = current + 4;
+				args->use_cosmetic_correction = TRUE;// dy default, CC is not activated
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					retvalue = 1;
+					break;
+				}
+				if (!strcmp(value, "dark")) {
+					if (!args->use_dark){
+						siril_log_message(_("You must specify a masterdark with -dark= before activating this option, aborting.\n"));
+						retvalue = 1;
+						break;
+					}
+					args->cc_from_dark = TRUE;
+					//either we use the default sigmas or we try to read the next two checking for sigma low and high
+					if (word[i + 1] && word[i + 2] && (args->sigma[0] = g_ascii_strtod(word[i + 1], NULL)) < 0.0
+							&& (args->sigma[1] = g_ascii_strtod(word[i + 2], NULL)) < 0.0) {
+						i+= 2;
+					} 
+					if (args->sigma[0] == 0) args->sigma[0] = -1.00;
+					if (args->sigma[1] == 0) args->sigma[1] = -1.00;
+					if (args->sigma[0] > 0)
+						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
+					else
+						siril_log_message(_("Cosmetic correction from masterdark: deactivated for cold pixels.\n"));
+					if (args->sigma[1] > 0)
+						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"), args->sigma[1]);
+					else
+						siril_log_message(_("Cosmetic correction from masterdark: deactivated for hot pixels.\n"));
+				} else if (!strcmp(value, "bpm")) {
+					if (word[i + 1] && word[i + 1][0] != '\0') {
+						args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
+						if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+							g_object_unref(args->bad_pixel_map_file);
+							args->bad_pixel_map_file = NULL;
+							siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
+							retvalue = 1;
+							break;
+						} else {
+							siril_log_message(_("Cosmetic correction from Bad Pixel Map: %s.\n"), word[i + 1]);
+							i++;
+						}
+					} else {
+						siril_log_message(_("You must specify a bad pixel map file with -cc=bpm option, aborting.\n"));
+						retvalue = 1;
+						break;
+					}
+				} else {
+					siril_log_message(_("argument %s, aborting.\n"), word[i + 1]);
+					retvalue = 1;
+					break;
+				}
 			}
 		}
 	}
@@ -4083,8 +4160,6 @@ int process_preprocess(int nb) {
 	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
-	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
-	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
 			|| args->output_seqtype == SEQ_FITSEQ) && !com.pref.force_to_16bit;
 
@@ -4104,8 +4179,6 @@ int process_preprocess_single(int nb) {
 	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
-	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
-	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = !com.pref.force_to_16bit;
 
 	return preprocess_given_image(word[1], args);

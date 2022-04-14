@@ -227,8 +227,6 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		allocate_stats(&stat);
 		if (!stat) return NULL;
 		stat_is_local = 1;
-	} else {
-		atomic_int_incref(stat->_nb_refs);
 	}
 
 	if (fit) {
@@ -684,7 +682,7 @@ static int stat_prepare_hook(struct generic_seq_args *args) {
 }
 
 static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
 	for (int layer = 0; layer < fit->naxes[2]; layer++) {
@@ -967,7 +965,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 
 /* compute statistics for all channels of a single image, only on full image, make sure the result (stats) is allocated */
 int compute_all_channels_statistics_single_image(fits *fit, int option,
-		threading_type threading, int image_thread_id, imstats **stats) {
+		threading_type threading, imstats **stats) {
 	int required_computations = (int)fit->naxes[2];
 	int retval = 0;
 

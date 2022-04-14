@@ -59,14 +59,14 @@ void	check_or_allocate_regparam(sequence *seq, int layer);
 void	set_shifts(sequence *seq, int frame, int layer, float shiftx, float shifty, gboolean data_is_top_down);
 sequence *create_internal_sequence(int size);
 void	internal_sequence_set(sequence *seq, int index, fits *fit);
-int	internal_sequence_find_index(sequence *seq, fits *fit);
+int	internal_sequence_find_index(sequence *seq, const fits *fit);
 fits	*internal_sequence_get(sequence *seq, int index);
 gboolean sequence_is_rgb(sequence *seq);
 void	enforce_area_in_image(rectangle *area, sequence *seq);
 
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		framing_mode framing, gboolean run_in_thread);
-int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area);
+int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads);
 void free_reference_image();
 
 /* in export.c now */

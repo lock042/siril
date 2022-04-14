@@ -467,7 +467,7 @@ static const float xyz_rgb[3][3] = { /* XYZ from RGB */
 static const float d65_white[3] = { 0.950456f, 1.0f, 1.088754f };
 /* TODO: store the precomputation of xyz_rgb * d65 instead of running a silly init */
 
-static void cam_to_cielab(uint16_t cam[3], float lab[3]) /* [SA] */
+static void cam_to_cielab(const uint16_t cam[3], float lab[3]) /* [SA] */
 {
 	float xyz[3];
 	static float cbrt[0x10000], xyz_cam[3][4];

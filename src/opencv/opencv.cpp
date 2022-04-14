@@ -390,9 +390,10 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	std::vector<Point2f> ref;
 	std::vector<Point2f> img;
 	// needed for shift transform which uses estimateTranslation3D
+#ifdef HAVE_CV44
 	std::vector<Point3f> ref3;
 	std::vector<Point3f> img3;
-
+#endif
 	Mat H, a, mask, s;
 	unsigned char *ret = NULL;
 
@@ -510,9 +511,14 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
 		return 1;
 
+	//setUseOptimized(false);
+	//std::cout << "---- OpenCV setUseOptimize(false) ----" << std::endl;
+	//std::cout << getBuildInformation();
+
 	/* 3rd argument: Gaussian kernel size. When width and height are zeros
 	 * they are computed from sigma.
 	 */
+	siril_debug_print("using opencv GaussianBlur (CPU)\n");
 	GaussianBlur(in, out, Size(), sigma);
 	if (fabs(amount) > 0.0) {
 		out = in * (1 + amount) + out * (-amount);

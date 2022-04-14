@@ -3,7 +3,10 @@ xx/xx/22
 
 * Added livestacking mode with darks/CC/flats support, registration and stacking
 * Added unlinking channels in autostretch preview
-* Added RGB equalization in stacking options
+* Added RGB equalization and lightweight (faster) normalisation in stacking options
+* Added specifying max number of stars for registration
+* Added bap pixel map option for preprocess, both in GUI and command
+* Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Added commands: seqtilt
 * Added chosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)
@@ -11,16 +14,19 @@ xx/xx/22
 * Replaced Libraw with RT debayering
 
 siril 1.0.1
-xx/xx/22
+04/06/22
 
 * Added min,max, iif and logical operators in pixelmath
 * Added support for 3 channels for direct preview of resulting composition in pixelmath
-* Added reporting channel name in FILTER header key during split operation
 * Added parameters field in PixelMath
-* Using FILTER keyword value for Pixel Math tool variable name
+* Added reporting channel name in FILTER header key during split operation
+* Added using FILTER keyword value for Pixel Math tool variable name
 * Fixed using shift transform for global registration
 * Fixed crash when changing image with preview opened
+* Fixed crash when pressing Stop button during script execution
+* Fixed crash that could occur when moving the mouse over the image while it was being updated
 * Fixed date wrongly reported in the FITS header in SER/FITSEQ stacking when filtering out images
+* Fixed excluding null pixels of both ref and target in linear match
 
 siril 1.0.0
 03/09/22

@@ -51,11 +51,11 @@ static int get_model(const char *model) {
 	return -1;
 }
 
-static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
+static void set_af_matrix(const gchar *pattern, af_pixel_matrix af_matrix) {
 	// If we don't find a match, we will not populate af_matrix.
 	// af_pixel_matrix is [12][6].
 	// Numbers are candidate green AF patterns.  G's are green.  Hyphens are red or blue.
-	char matrix_str[72]="G0-G0-G3-G3---G--GG1-G1-G0-G0---G--GG2-G2-G1-G1---G--GG3-G3-G2-G2---G--G";
+	const char matrix_str[72]="G0-G0-G3-G3---G--GG1-G1-G0-G0---G--GG2-G2-G1-G1---G--GG3-G3-G2-G2---G--G";
 
 	// Swap with this to try the inverse.  We haven't found a sensor that works with this yet.
 	//char matrix_str[72]="0G-0G-3G-3G---G--G1G-1G-0G-0G---G--G2G-2G-1G-1G---G--G3G-3G-2G-2G---G--G";

@@ -38,7 +38,6 @@
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
-#include "filters/wavelets.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -79,13 +78,14 @@ static double guess_resolution(fits *fit) {
 	return res;
 }
 
-static float compute_threshold(fits *fit, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise) {
+static float compute_threshold(image *image, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise, int threads) {
 	float threshold;
 	imstats *stat;
 
 	assert(layer <= 3);
 
-	stat = statistics(NULL, -1, fit, layer, area, STATS_BASIC, SINGLE_THREADED);
+	stat = statistics(image->from_seq, image->index_in_seq, image->fit,
+			layer, area, STATS_BASIC, threads);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		*norm = 0;
@@ -130,8 +130,7 @@ int star_cmp(const void *a, const void *b)
         return -1;
     else if ((*a1).mag_est < (*a2).mag_est)
         return 1;
-    else
-        return 0;
+    return 0;
 }
 
 static void get_structure(star_finder_params *sf) {
@@ -224,11 +223,12 @@ void confirm_peaker_GUI() {
  Original algorithm come from:
  Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
  */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars);
 
-psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars) {
-	int nx = fit->rx;
-	int ny = fit->ry;
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads);
+
+psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads) {
+	int nx = image->fit->rx;
+	int ny = image->fit->ry;
 	int areaX0 = 0;
 	int areaY0 = 0;
 	int areaX1 = nx;
@@ -245,23 +245,24 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	assert(nx > 0 && ny > 0);
 
 	siril_log_color_message(_("Findstar: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
+	if (showtime)
+		gettimeofday(&t_start, NULL);
 
 	/* running statistics on the input image is best as it caches them */
-	threshold = compute_threshold(fit, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise);
+	threshold = compute_threshold(image, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise, threads);
 	if (norm == 0.0f)
 		return NULL;
 
 	siril_debug_print("Threshold: %f (background: %f, norm: %f)\n", threshold, bg, norm);
 
-	/* Removing wavelets and applying a Gaussian filter to select candidates
-	 */
-	if (extract_fits(fit, &smooth_fit, layer, TRUE)) {
+	/* Applying a Gaussian filter to select candidates */
+	if (extract_fits(image->fit, &smooth_fit, layer, TRUE)) {
 		siril_log_color_message(_("Failed to copy the image for processing\n"), "red");
 		return NULL;
 	}
 
-	if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
+	//if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
+	if (gaussian_blur_RT(&smooth_fit, 3.0, threads)) {
 		siril_log_color_message(_("Could not apply Gaussian filter, aborting\n"), "red");
 		clearfits(&smooth_fit);
 		return NULL;
@@ -286,6 +287,8 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 
 		if (areaX1 > nx || areaY1 > ny) {
 			siril_log_color_message(_("Selection is larger than image\n"), "red");
+			clearfits(&smooth_fit);
+			free(smooth_image);
 			return NULL;
 		}
 	}
@@ -298,7 +301,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 		return NULL;
 	}
 
-	double res = guess_resolution(fit);
+	double res = guess_resolution(image->fit);
 
 	if (res < 0) {
 		res = 1.0;
@@ -314,7 +317,7 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
 		for (int x = r + areaX0; x < areaX1 - r; x++) {
 			float pixel = smooth_image[y][x];
-			if (pixel > threshold && pixel < norm) {
+			if (pixel > threshold) {
 				gboolean bingo = TRUE;
 				float neighbor;
 				double mean = 0., meanhigh = 0.;
@@ -491,28 +494,29 @@ psf_star **peaker(fits *fit, int layer, star_finder_params *sf, int *nb_stars, r
 		}
 		if (nbstars == MAX_STARS) break;
 	}
+	free(smooth_image);
 	clearfits(&smooth_fit);
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
 
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(fit, sf, candidates, nbstars, layer, &results, limit_nbstars);
+	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, &results, limit_nbstars, maxstars, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars(results, nbstars);
-	free(smooth_image);
 	free(candidates);
 
-	gettimeofday(&t_end, NULL);
-	if (showtime)
+	if (showtime) {
+		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
+	}
 	if (nb_stars)
 		*nb_stars = nbstars;
 	return results;
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
@@ -537,13 +541,18 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 		return 0;
 	}
 
-	//sorting candidates by starc.mean values as an estimator of mag
+	//sorting candidates by starc.mag_est values
 	qsort(candidates, nb_candidates, sizeof(starc), star_cmp);
 
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1)
+#endif
 	for (int candidate = 0; candidate < nb_candidates; candidate++) {
+		if (limit_nbstars && nbstars >= maxstars)
+			continue;
 		int x = candidates[candidate].x, y = candidates[candidate].y;
-		int ii, jj, i, j, R;
-		R = candidates[candidate].R;
+		int R = candidates[candidate].R;
+		int ii, jj, i, j;
 		gsl_matrix *z = gsl_matrix_alloc(R * 2 + 1, R * 2 + 1);
 		/* FILL z */
 		if (image->type == DATA_USHORT) {
@@ -568,15 +577,29 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			if (is_star(cur_star, sf, &candidates[candidate])) {
 				//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 				cur_star->layer = layer;
-				int result_index = g_atomic_int_add(&nbstars, 1);
 				cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
 				cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
-				results[result_index] = cur_star;
+				if (threads > 1)
+					results[candidate] = cur_star;
+				else results[nbstars++] = cur_star;
 				//fprintf(stdout, "%03d: %11f %11f %f\n",
 				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
+			} else {
+				free_psf(cur_star);
+				if (threads > 1)
+					results[candidate] = NULL;
 			}
-			else free_psf(cur_star);
-			if ((nbstars >= MAX_STARS_FITTED) && limit_nbstars) break;
+		}
+		else if (threads > 1)
+			results[candidate] = NULL;
+	}
+	if (threads > 1) {
+		// we kept the candidates at the same indices to keep the list ordered, now we compact it
+		for (int candidate = 0; candidate < nb_candidates; candidate++) {
+			if (limit_nbstars && nbstars >= maxstars)
+				break;
+			if (results[candidate] && candidate >= nbstars)
+				results[nbstars++] = results[candidate];
 		}
 	}
 	results[nbstars] = NULL;
@@ -619,7 +642,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	} else {
 		if (com.star_is_seqdata) {
 			/* com.stars was allocated with a size of 2, we need to free it before reallocating */
-			clear_stars_list();
+			clear_stars_list(TRUE);
 		}
 		com.stars = new_fitted_stars(MAX_STARS);
 		if (!com.stars) {
@@ -638,9 +661,15 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		if (i < MAX_STARS) {
 			result->xpos = result->x0 + com.selection.x - 0.5;
 			result->ypos = com.selection.y + com.selection.h - result->y0 - 0.5;
-			com.stars[i] = result;
-			com.stars[i + 1] = NULL;
-			*index = i;
+			psf_star **newstars = realloc(com.stars, (i + 2) * sizeof(psf_star *));
+			if (!newstars)
+				PRINT_ALLOC_ERR;
+			else {
+				com.stars = newstars;
+				com.stars[i] = result;
+				com.stars[i + 1] = NULL;
+				*index = i;
+			}
 		} else {
 			free_psf(result);
 			result = NULL;
@@ -735,9 +764,16 @@ gpointer findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 
 	int nbstars = 0;
-
-	com.stars = peaker(args->fit, args->layer, &com.starfinder_conf, &nbstars, NULL, TRUE, FALSE);
-	siril_log_message(_("Found %d stars in image, channel #%d\n"), nbstars, args->layer);
+	rectangle *selection = NULL;
+	if (com.selection.w != 0 && com.selection.h != 0)
+		selection = &com.selection;
+	psf_star **stars = peaker(&args->im, args->layer, &com.starfinder_conf, &nbstars, selection, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	if (stars) {
+		clear_stars_list(FALSE);
+		com.stars = stars;
+	}
+	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
+			selection ? _("selection") : _("image"), args->layer);
 
 	siril_add_idle(end_findstar, args);
 
@@ -750,12 +786,17 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
 		return;
 	}
-
 	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
-	delete_selected_area();
-	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
 
-	args->fit = &gfit;
+	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	args->im.fit = &gfit;
+	if (sequence_is_loaded() && com.seq.current >= 0) {
+		args->im.from_seq = &com.seq;
+		args->im.index_in_seq = com.seq.current;
+	} else {
+		args->im.from_seq = NULL;
+		args->im.index_in_seq = -1;
+	}
 	args->layer = layer;
 
 	start_in_new_thread(findstar, args);

@@ -1,9 +1,9 @@
 ############################################
 #
 # Script for Siril 1.0
-# July 2020
+# April 2022
 # (C) Cyril Richard
-# Preprocessing v1.0
+# Preprocessing v1.1
 #
 ########### PREPROCESSING SCRIPT ###########
 #
@@ -18,7 +18,7 @@
 #
 ############################################
 
-requires 0.99.4
+requires 1.1.0
 
 # Convert Bias Frames to .fit files
 cd biases
@@ -56,7 +56,7 @@ convert light -out=../process
 cd ../process
 
 # Pre-process Light Frames
-preprocess light -dark=dark_stacked -flat=pp_flat_stacked -cfa -equalize_cfa -debayer
+preprocess light -dark=dark_stacked -flat=pp_flat_stacked -cc=dark -cfa -equalize_cfa -debayer
 
 # Align lights
 register pp_light

@@ -193,7 +193,6 @@ int read_single_sequence(char *realname, image_type imagetype) {
  * force clears the stats in the seqfile.
  */
 int check_seq(int recompute_stats) {
-	char *basename;
 	int curidx, fixed;
 	GDir *dir;
 	GError *error = NULL;
@@ -232,12 +231,15 @@ int check_seq(int recompute_stats) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
 		} else if (!strcasecmp(ext, com.pref.ext + 1)) {
+			char *basename = NULL;
 			if (!get_index_and_basename(file, &basename, &curidx, &fixed)) {
 				int current_seq = -1;
 				/* search in known sequences if we already have it */
 				for (i = 0; i < nb_seq; i++) {
 					if (!strcmp(sequences[i]->seqname, basename)) {
 						current_seq = i;
+						free(basename);
+						break;
 					}
 				}
 				/* not found */
@@ -565,7 +567,7 @@ int set_seq(const char *name){
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	clear_histograms();
 	undo_flush();
 	close_single_image();
@@ -1315,7 +1317,7 @@ gboolean close_sequence_idle(gpointer data) {
 	fprintf(stdout, "closing sequence idle\n");
 	free_cbbt_layers();
 	clear_sequence_list();
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	clear_previews();
 	free_reference_image();
 	update_stack_interface(TRUE);
@@ -1343,6 +1345,8 @@ void close_sequence(int loading_sequence_from_combo) {
 	if (sequence_is_loaded()) {
 		fprintf(stdout, "MODE: closing sequence\n");
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
+		if (!single_image_is_loaded())
+			save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
 
@@ -1464,7 +1468,7 @@ fits *internal_sequence_get(sequence *seq, int index) {
 }
 
 // find index of the fit argument in the sequence
-int internal_sequence_find_index(sequence *seq, fits *fit) {
+int internal_sequence_find_index(sequence *seq, const fits *fit) {
 	int i;
 	assert(seq);
 	assert(seq->internal_fits);
@@ -1517,7 +1521,7 @@ void enforce_area_in_image(rectangle *area, sequence *seq) {
  * area is the area from which fit was extracted from the full frame.
  * when the framing is set to follow star, args->area is centered on the found star
  */
-int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area) {
+int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	struct seqpsf_data *data = malloc(sizeof(struct seqpsf_data));
 	if (!data) {

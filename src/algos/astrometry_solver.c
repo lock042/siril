@@ -1221,7 +1221,7 @@ static gboolean end_plate_solver(gpointer p) {
 	}
 
 	if (!args->manual)
-		clear_stars_list();
+		clear_stars_list(TRUE);
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {
@@ -1607,7 +1607,7 @@ void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]) {
 	pc[1][1] = cd[1][1] / cdelt[1];
 }
 
-void wcs_pc_to_cd(double pc[][2], double cdelt[2], double cd[][2]) {
+void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 	cd[0][0] = pc[0][0] * cdelt[0];
 	cd[0][1] = pc[0][1] * cdelt[0];
 	cd[1][0] = pc[1][0] * cdelt[1];
@@ -1637,7 +1637,10 @@ gpointer match_catalog(gpointer p) {
 	if (!args->manual) {
 		com.starfinder_conf.pixel_size_x = com.pref.focal;
 		com.starfinder_conf.focal_length = com.pref.pitch;
-		com.stars = peaker(args->fit, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE); // TODO: use good layer
+
+		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
+
+		com.stars = peaker(&im, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
 		com.starfinder_conf.pixel_size_x = 0.;
 		com.starfinder_conf.focal_length = 0.;
 	} else {

@@ -35,7 +35,7 @@
 static double QualityEstimate_ushort(fits *fit, int layer);
 static int32_t SubSample(WORD *ptr, int img_wid, int x_size, int y_size);
 static void _smooth_image_16(unsigned short *buf, int width, int height);
-static double Gradient(WORD *buf, int width, int height);
+static double Gradient(const WORD *buf, int width, int height);
 
 double QualityEstimate(fits *fit, int layer) {
 	if (fit->type == DATA_USHORT)
@@ -209,7 +209,7 @@ static int32_t SubSample(WORD *ptr, int img_wid, int x_size, int y_size) {
 	return round_to_WORD((double)val / (double)(x_size * y_size));
 }
 
-static double Gradient(WORD *buf, int width, int height) {
+static double Gradient(const WORD *buf, int width, int height) {
 	int pixels;
 	int x, y;
 	int yborder = (int) ((double) height * QMARGIN) + 1;

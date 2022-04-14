@@ -462,16 +462,11 @@ void update_prepro_interface(gboolean allow_debayer) {
        	static GtkWidget *debayer = NULL, *fix_xtrans = NULL;
 	static GtkComboBox *output_type = NULL;
 	if (udark == NULL) {
-		udark = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "usedark_button"));
-		uoffset = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "useoffset_button"));
-		uflat = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "useflat_button"));
-		checkAutoEvaluate = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "checkbutton_auto_evaluate"));
-		output_type = GTK_COMBO_BOX(
-				gtk_builder_get_object(gui.builder, "prepro_output_type_combo"));
+		udark = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
+		uoffset = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
+		uflat = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
+		checkAutoEvaluate = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
+		output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 		prepro_button = lookup_widget("prepro_button");
 		cosme_grid = lookup_widget("grid24");
 		dark_optim = lookup_widget("checkDarkOptimize");
@@ -567,7 +562,7 @@ const gchar *layer_name_for_gfit(int layer) {
 	}
 }
 
-int match_drawing_area_widget(GtkWidget *drawing_area, gboolean allow_rgb) {
+int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb) {
 	/* could be done with a for i=0 loop, to get rid of these defines */
 	if (drawing_area == gui.view[RED_VPORT].drawarea)
 		return RED_VPORT;
@@ -1188,6 +1183,11 @@ void initialize_all_GUI(gchar *supported_files) {
 			GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_HIGHLIGHT, drop_types, G_N_ELEMENTS(drop_types),
 			GDK_ACTION_COPY);
 
+	/* Due to a glade bug, this property is often removed, lets code it */
+	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview_selection_convert"));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+	g_signal_connect(selection, "changed", G_CALLBACK(on_treeview_selection_convert_changed), NULL);
+
 	siril_drag_single_image_set_dest();
 
 	set_GUI_CWD();
@@ -1294,24 +1294,18 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 
 void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *CFA, *SigHot, *SigCold, *checkHot, *checkCold, *evaluateButton;
+	GtkWidget *CFA, *cc_frame_dark, *cc_frame_bad_pixel_map;
 	gboolean is_active;
 
 	CFA = lookup_widget("cosmCFACheck");
-	SigHot = lookup_widget("spinSigCosmeHot");
-	SigCold = lookup_widget("spinSigCosmeCold");
-	checkHot = lookup_widget("checkSigHot");
-	checkCold = lookup_widget("checkSigCold");
-	evaluateButton = lookup_widget("GtkButtonEvaluateCC");
+	cc_frame_dark = lookup_widget("cc_frame_dark");
+	cc_frame_bad_pixel_map = lookup_widget("cc_frame_bad_pixel_map");
 
 	is_active = gtk_toggle_button_get_active(button);
 
 	gtk_widget_set_sensitive(CFA, is_active);
-	gtk_widget_set_sensitive(SigHot, is_active);
-	gtk_widget_set_sensitive(SigCold, is_active);
-	gtk_widget_set_sensitive(checkHot, is_active);
-	gtk_widget_set_sensitive(checkCold, is_active);
-	gtk_widget_set_sensitive(evaluateButton, is_active);
+	gtk_widget_set_sensitive(cc_frame_dark, is_active);
+	gtk_widget_set_sensitive(cc_frame_bad_pixel_map, is_active);
 }
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
