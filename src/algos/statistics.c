@@ -227,8 +227,6 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		allocate_stats(&stat);
 		if (!stat) return NULL;
 		stat_is_local = 1;
-	} else {
-		atomic_int_incref(stat->_nb_refs);
 	}
 
 	if (fit) {

@@ -418,7 +418,7 @@ static void crop_ushort(fits *fit, rectangle *bounds) {
 	fit->ry = fit->naxes[1] = bounds->h;
 
 	if (fit == &gfit) {
-		clear_stars_list();
+		clear_stars_list(TRUE);
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
@@ -454,7 +454,7 @@ static void crop_float(fits *fit, rectangle *bounds) {
 	fit->ry = fit->naxes[1] = bounds->h;
 
 	if (fit == &gfit) {
-		clear_stars_list();
+		clear_stars_list(TRUE);
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}

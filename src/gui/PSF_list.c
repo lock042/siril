@@ -300,7 +300,7 @@ static void remove_selected_star(int index) {
 }
 
 static void remove_all_stars(){
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	com.selected_star = -1;
 	display_status();
 	redraw(REDRAW_OVERLAY);
@@ -404,9 +404,7 @@ static void save_stars_dialog() {
 	siril_widget_destroy(widgetdialog);
 }
 
-/********************* public ***********************/
-
-void add_star_to_list(psf_star *star) {
+static void add_star_to_list(psf_star *star) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
 
@@ -437,10 +435,9 @@ void add_star_to_list(psf_star *star) {
 			-1);
 
 	units = star->units;
-	display_status();
 }
 
-void fill_stars_list(fits *fit, psf_star **stars) {
+static void fill_stars_list(fits *fit, psf_star **stars) {
 	int i = 0;
 	if (stars == NULL)
 		return;
@@ -453,7 +450,10 @@ void fill_stars_list(fits *fit, psf_star **stars) {
 		i++;
 	}
 	com.selected_star = -1;
+	display_status();
 }
+
+/********************* public ***********************/
 
 void refresh_star_list(psf_star **star){
 	get_stars_list_store();
@@ -462,9 +462,9 @@ void refresh_star_list(psf_star **star){
 	redraw(REDRAW_OVERLAY);
 }
 
-void clear_stars_list() {
+void clear_stars_list(gboolean refresh_GUI) {
 	if (com.stars) {
-		if (!com.headless) {
+		if (refresh_GUI && !com.headless) {
 			get_stars_list_store();
 			gtk_list_store_clear(liststore_stars);
 		}
@@ -501,6 +501,7 @@ void pick_a_star() {
 		psf_star *new_star = add_star(&gfit, layer, &new_index);
 		if (new_star) {
 			add_star_to_list(new_star);
+			display_status();
 			siril_open_dialog("stars_list_window");
 		} else
 			return;

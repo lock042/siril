@@ -146,12 +146,13 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
+	image refimage = { .fit = &fit, .from_seq = args->seq, .index_in_seq = regargs->reference_image };
 
 	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
 	}
 	else {
-		sadata->refstars = peaker(&fit, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -259,11 +260,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			layer = regargs->layer;
 		}
 
+		image im = { .fit = fit, .from_seq = args->seq, .index_in_seq = in_index };
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, threads);
+			stars = peaker(&im, layer, &com.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, threads);
 		}
 		else {
-			stars = peaker(fit, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, threads);
+			stars = peaker(&im, layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, threads);
 		}
 
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
@@ -443,7 +445,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	if (sadata->success) free(sadata->success);
 	free(sadata);
 	args->user = NULL;
-	clear_stars_list();
+	clear_stars_list(FALSE);
 
 	if (!args->retval) {
 		siril_log_message(_("Registration finished.\n"));

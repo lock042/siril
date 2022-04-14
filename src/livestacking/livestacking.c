@@ -736,8 +736,9 @@ static gpointer live_stacker(gpointer arg) {
 			livestacking_display(str, TRUE);
 			break;
 		}
-		clear_stars_list();
+		clear_stars_list(FALSE);
 		bgnoise_async(&stackparam.result, TRUE);
+
 		if (savefits(result_filename, &stackparam.result)) {
 			char *msg = siril_log_color_message(_("Could not save the stacking result %s, aborting\n"),
 					"red", result_filename);
