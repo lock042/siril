@@ -289,7 +289,7 @@ static void init_preprocessing_from_command(char *dark, char *flat) {
 				prepro->fix_xtrans = TRUE;
 			} else {
 				prepro->use_cosmetic_correction = TRUE;
-				prepro->sigma[0] = 3.0;
+				prepro->sigma[0] = -1.0;
 				prepro->sigma[1] = 3.5;
 				if (strlen(prepro->dark->bayer_pattern) >= 4)
 					prepro->is_cfa = TRUE;
@@ -459,7 +459,7 @@ static int start_global_registration(sequence *seq) {
 	reg_args.load_new_sequence = FALSE;
 	reg_args.interpolation = REGISTRATION_INTERPOLATION;
 	reg_args.type = REGISTRATION_TYPE;
-	reg_args.max_stars_candidates = 444;
+	reg_args.max_stars_candidates = 200;
 	/*reg_args.func(&reg_args);
 	if (reg_args.retval)
 		return 1;*/
