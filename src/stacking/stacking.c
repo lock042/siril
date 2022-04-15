@@ -362,7 +362,7 @@ static gboolean end_stacking(gpointer p) {
 		clearfits(&gfit);
 		memcpy(&gfit, &args->result, sizeof(fits));
 
-		clear_stars_list();
+		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
 		if (com.seq.upscale_at_stacking > 1.05)
 			com.seq.current = SCALED_IMAGE;

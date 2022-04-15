@@ -101,7 +101,6 @@ src/io/ser.c
 src/io/single_image.c
 src/livestacking/gui.c
 src/livestacking/livestacking.c
-src/livestacking/noise.c
 src/main.c
 src/opencv/opencv.cpp
 src/pixelMath/pixel_math_runner.c

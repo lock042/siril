@@ -1,9 +1,9 @@
 ###################################################
 # Script pour Siril 1.0
-# Juillet 2020
+# Avrile 2022
 # (C) Cyril Richard
 # Adapté, modifié et traduit par Colmic
-# Mono_Pre-traitement v1.1
+# Mono_Pre-traitement v1.2
 # 
 ###################################################
 #
@@ -16,7 +16,7 @@
 # 
 ###################################################
 
-requires 0.99.4
+requires 1.1.0
 
 #Création du master-offset (ou dark de flat)
 cd offsets
@@ -46,7 +46,7 @@ cd ..
 cd brutes
 convert brute -out=../process
 cd ../process
-preprocess brute -dark=dark_stacked -flat=pp_flat_stacked
+preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cc=dark
 
 #Alignement des brutes
 register pp_brute

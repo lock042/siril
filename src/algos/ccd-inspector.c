@@ -166,7 +166,8 @@ int draw_sensor_tilt(fits *fit) {
 
 	delete_selected_area();
 
-	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+	psf_star **stars = peaker(&im, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
 
 	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
 		float best = min(min(m1, m2), min(m3, m4));
@@ -178,19 +179,17 @@ int draw_sensor_tilt(fits *fit) {
 
 		siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
 				nbstars, m, worst - best, roundf(((worst - best) / ref) * 100.f), mr2 - mr1);
-
-}
+	}
 
 	free_fitted_stars(stars);
-
 	return 0;
 }
 
-static int compute_tilt_to_image(fits *fit, struct tilt_data *t_args) {
+static int compute_tilt_to_image(image *im, struct tilt_data *t_args) {
 	int nbstars = 0;
-	int layer = fit->naxes[2] > 1 ? GLAYER : RLAYER;
+	int layer = im->fit->naxes[2] > 1 ? GLAYER : RLAYER;
 
-	psf_star **stars = peaker(fit, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	psf_star **stars = peaker(im, layer, &com.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
 
 	float m = 0;
 	float m1 = 0;
@@ -200,8 +199,7 @@ static int compute_tilt_to_image(fits *fit, struct tilt_data *t_args) {
 	float mr1 = 0;
 	float mr2 = 0;
 
-	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
-
+	if (!compute_tilt_values(im->fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
 #pragma omp critical
 		{
 			t_args->m += m;
@@ -215,8 +213,7 @@ static int compute_tilt_to_image(fits *fit, struct tilt_data *t_args) {
 			t_args->nbstars += nbstars;
 		}
 
-	free_fitted_stars(stars);
-
+		free_fitted_stars(stars);
 	}
 
 	return 0;
@@ -265,7 +262,8 @@ static int tilt_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 		rectangle *_, int threads) {
 	struct tilt_data *t_args = (struct tilt_data*) args->user;
 
-	return compute_tilt_to_image(fit, t_args);
+	image im = { .fit = fit, .from_seq = args->seq, .index_in_seq = i };
+	return compute_tilt_to_image(&im, t_args);
 }
 
 void apply_tilt_to_sequence(struct tilt_data *tilt_args) {

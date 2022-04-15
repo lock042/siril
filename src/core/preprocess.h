@@ -12,7 +12,8 @@ struct preprocessing_data {
 	fits *bias, *dark, *flat;
 	float bias_level;
 	gboolean fix_xtrans;
-	gboolean use_dark_optim, use_cosmetic_correction;
+	gboolean use_dark_optim, use_cosmetic_correction, cc_from_dark;
+	GFile *bad_pixel_map_file;
 	gboolean is_sequence;
 	sequence *seq;
 	sequence_type output_seqtype;
@@ -33,6 +34,7 @@ int preprocess_single_image(struct preprocessing_data *args);
 int preprocess_given_image(char *file, struct preprocessing_data *args);
 int evaluateoffsetlevel(const char* expression, fits *fit);
 void start_sequence_preprocessing(struct preprocessing_data *prepro);
+gboolean check_for_cosme_file_sanity(GFile *file);
 
 /* used in live stacking */
 int prepro_prepare_hook(struct generic_seq_args *args);

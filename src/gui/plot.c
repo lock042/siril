@@ -54,7 +54,7 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL;
+		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -660,6 +660,7 @@ static void fill_plot_statics() {
 		combo = lookup_widget("plotCombo");
 		comboX = lookup_widget("plotComboX");
 		varCurve = lookup_widget("varCurvePhotometry");
+		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
 		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
@@ -679,6 +680,7 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_visible(varCurve, use_photometry);
+	gtk_widget_set_visible(buttonSaveCSV, TRUE);
 	gtk_widget_set_visible(buttonSavePrt, TRUE);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
@@ -745,6 +747,7 @@ void reset_plot() {
 		gtk_widget_set_sensitive(comboX, TRUE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
+		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
 		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
@@ -903,10 +906,10 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	/* TODO: probably need to set export CSV button sensitivity
 	but this avoids a crash for now */
-	if(!plot_data) {
-		fprintf(stderr, "exportCSV: Nothing to export\n");
-		return;
-	}
+	//if(!plot_data) {
+	//	fprintf(stderr, "exportCSV: Nothing to export\n");
+	//	return;
+	//}
 	set_cursor_waiting(TRUE);
 	save_dialog(".csv", exportCSV);
 	set_cursor_waiting(FALSE);
@@ -937,7 +940,7 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	}
 	if (i == 0) {
 		reset_plot();
-		clear_stars_list();
+		clear_stars_list(TRUE);
 	}
 	drawPlot();
 }
@@ -947,7 +950,7 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 		free_photometry_set(&com.seq, i);
 	}
 	reset_plot();
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	drawPlot();
 }
 
@@ -1246,6 +1249,7 @@ static void update_ylabel() {
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	gtk_widget_set_sensitive(buttonSavePrt, TRUE);
 	if (use_photometry) {
+		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
 		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
 		switch (current_selected_source) {
 			case ROUNDNESS:
@@ -1279,6 +1283,7 @@ static void update_ylabel() {
 				break;
 		}
 	} else {
+		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
 		switch (current_selected_source) {
 			case r_ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");

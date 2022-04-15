@@ -1842,11 +1842,15 @@ int process_findstar(int nb){
 	}
 	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
-	delete_selected_area();
-
 	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
-
-	args->fit = &gfit;
+	args->im.fit = &gfit;
+	if (sequence_is_loaded() && com.seq.current >= 0) {
+		args->im.from_seq = &com.seq;
+		args->im.index_in_seq = com.seq.current;
+	} else {
+		args->im.from_seq = NULL;
+		args->im.index_in_seq = -1;
+	}
 	args->layer = layer;
 
 	start_in_new_thread(findstar, args);
@@ -2091,7 +2095,7 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	clear_stars_list();
+	clear_stars_list(TRUE);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REDRAW_OVERLAY);
 	redraw_previews();
@@ -3657,11 +3661,11 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 		if (!retval) {
 			bgnoise_async(&args.result, TRUE);
-			if (savefits(arg->result_file, &args.result))
+			if (savefits(arg->result_file, &args.result)) {
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", arg->result_file);
-			++arg->number_of_loaded_sequences;
-			retval = 1;
+				retval = 1;
+			} else ++arg->number_of_loaded_sequences;
 			bgnoise_await();
 		}
 		clearfits(&args.result);
@@ -3936,8 +3940,8 @@ failure:
 	return 1;
 }
 
-/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]
- * preprocess_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
+/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]
+ * preprocess_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
  */
 struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	int retvalue = 0;
@@ -3965,12 +3969,19 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	args->ppprefix = "pp_";
 	args->bias_level = FLT_MAX;
 
+	//cosmetic_correction init
+	args->sigma[0] = -1.00; /* cold pixels */
+	args->sigma[1] =  3.00; /* hot pixels - used if -cc=dark but not sigmas specified */
+	args->use_cosmetic_correction = FALSE;// dy default, CC is not activated
+	args->cc_from_dark = FALSE;
+	args->bad_pixel_map_file = NULL;
+
 	/* checking for options */
 	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (g_str_has_prefix(word[i], "-bias=")) {
 				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
-				if (expression[0] == '=') {
+				if (expression && expression[0] == '=') {
 					if (seq) {
 						// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
 						int image_to_load = sequence_find_refimage(seq);
@@ -4021,7 +4032,6 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->dark = calloc(1, sizeof(fits));
 				if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
 					args->use_dark = TRUE;
-					args->use_cosmetic_correction = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
 					if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
 						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
@@ -4067,6 +4077,60 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->equalize_cfa = TRUE;
 			} else if (seq && !strcmp(word[i], "-fitseq")) {
 				args->output_seqtype = SEQ_FITSEQ;
+			} else if (g_str_has_prefix(word[i], "-cc=")) {
+				char *current = word[i], *value;
+				value = current + 4;
+				args->use_cosmetic_correction = TRUE;// dy default, CC is not activated
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					retvalue = 1;
+					break;
+				}
+				if (!strcmp(value, "dark")) {
+					if (!args->use_dark){
+						siril_log_message(_("You must specify a masterdark with -dark= before activating this option, aborting.\n"));
+						retvalue = 1;
+						break;
+					}
+					args->cc_from_dark = TRUE;
+					//either we use the default sigmas or we try to read the next two checking for sigma low and high
+					if (word[i + 1] && word[i + 2] && (args->sigma[0] = g_ascii_strtod(word[i + 1], NULL)) < 0.0
+							&& (args->sigma[1] = g_ascii_strtod(word[i + 2], NULL)) < 0.0) {
+						i+= 2;
+					} 
+					if (args->sigma[0] == 0) args->sigma[0] = -1.00;
+					if (args->sigma[1] == 0) args->sigma[1] = -1.00;
+					if (args->sigma[0] > 0)
+						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
+					else
+						siril_log_message(_("Cosmetic correction from masterdark: deactivated for cold pixels.\n"));
+					if (args->sigma[1] > 0)
+						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"), args->sigma[1]);
+					else
+						siril_log_message(_("Cosmetic correction from masterdark: deactivated for hot pixels.\n"));
+				} else if (!strcmp(value, "bpm")) {
+					if (word[i + 1] && word[i + 1][0] != '\0') {
+						args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
+						if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+							g_object_unref(args->bad_pixel_map_file);
+							args->bad_pixel_map_file = NULL;
+							siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
+							retvalue = 1;
+							break;
+						} else {
+							siril_log_message(_("Cosmetic correction from Bad Pixel Map: %s.\n"), word[i + 1]);
+							i++;
+						}
+					} else {
+						siril_log_message(_("You must specify a bad pixel map file with -cc=bpm option, aborting.\n"));
+						retvalue = 1;
+						break;
+					}
+				} else {
+					siril_log_message(_("argument %s, aborting.\n"), word[i + 1]);
+					retvalue = 1;
+					break;
+				}
 			}
 		}
 	}
@@ -4096,8 +4160,6 @@ int process_preprocess(int nb) {
 	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
-	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
-	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
 			|| args->output_seqtype == SEQ_FITSEQ) && !com.pref.force_to_16bit;
 
@@ -4117,8 +4179,6 @@ int process_preprocess_single(int nb) {
 	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
-	args->sigma[0] = -1.00; /* cold pixels: it is better to deactivate it */
-	args->sigma[1] =  3.00; /* hot pixels */
 	args->allow_32bit_output = !com.pref.force_to_16bit;
 
 	return preprocess_given_image(word[1], args);
