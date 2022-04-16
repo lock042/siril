@@ -382,6 +382,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	if (!regargs->translation_only) {
 		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
+		regargs->imgparam[out_index].ry = args->seq->imgparam[in_index].ry;
 		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
@@ -636,6 +638,7 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
 	seq.current = -1;
+	seq.is_variable = args->seq->is_variable;
 	// don't copy from old sequence, it may not be the same image
 	seq.reference_image = sequence_find_refimage(&seq);
 	seq.needs_saving = TRUE;

@@ -788,6 +788,12 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 	}
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
+	seq->imgparam[index].rx = dest->rx;
+	seq->imgparam[index].ry = dest->ry;
+	if (seq->rx != 0 && seq->ry != 0 && (dest->rx != seq->rx || dest->ry != seq->ry)) {
+		siril_debug_print("sequence detected as containing images of different sizes\n");
+		seq->is_variable = TRUE;
+	}
 	return 0;
 }
 
