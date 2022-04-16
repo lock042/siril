@@ -48,6 +48,7 @@
  * version 1 introduced roundness in regdata, 0.9.9
  * version 2 allowed regdata to be stored for CFA SER sequences, 0.9.11
  * version 3 introduced new weighted fwhm criteria, 0.99.0
+ * version 4 introduced variable size sequences, extended registration data (incl. H), 1.1.0
  */
 #define CURRENT_SEQFILE_VERSION 4	// to increment on format change
 
@@ -56,7 +57,7 @@
  *
  * S sequence_name beg number selnum fixed reference_image [version]
  * L nb_layers
- * (for all images) I filenum incl [stats+] <- stats added at some point, removed in 0.9.9
+ * (for all images) I filenum incl [width,height] [stats+] <- stats added at some point, removed in 0.9.9
  * (for all layers (x)) Rx regparam+
  * TS | TA | TF (type for ser or film (avi) or fits)
  * U up-scale_ratio
@@ -107,13 +108,13 @@ sequence * readseqfile(const char *name){
 				 * Such sequences don't exist anymore. */
 				assert(line[2] != '"');
 				if (line[2] == '\'')	/* new format, quoted string */
-					scanformat = "'%511[^']' %d %d %d %d %d %d";
-				else scanformat = "%511s %d %d %d %d %d %d";
+					scanformat = "'%511[^']' %d %d %d %d %d %d %d";
+				else scanformat = "%511s %d %d %d %d %d %d %d";
 
 				if(sscanf(line+2, scanformat,
 							filename, &seq->beg, &seq->number,
 							&seq->selnum, &seq->fixed,
-							&seq->reference_image, &version) < 6 ||
+							&seq->reference_image, &version, &seq->is_variable) < 6 ||
 						allocated != 0){
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 					goto error;
@@ -175,27 +176,42 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr, "readseqfile: sequence file format error, missing S line\n");
 					goto error;
 				}
-				allocate_stats(&stats);
-				nb_tokens = sscanf(line + 2,
-						"%d %d %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg",
-						&(seq->imgparam[i].filenum),
-						&(seq->imgparam[i].incl),
-						&(stats->mean),
-						&(stats->median),
-						&(stats->sigma),
-						&(stats->avgDev),
-						&(stats->mad),
-						&(stats->sqrtbwmv),
-						&(stats->location),
-						&(stats->scale),
-						&(stats->min),
-						&(stats->max));
-				if (nb_tokens == 12) {
-					add_stats_to_seq(seq, i, 0, stats);
-					free_stats(stats);	// we unreference it here
+
+				if (version <= 3) {
+					allocate_stats(&stats);
+					nb_tokens = sscanf(line + 2,
+							"%d %d %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg",
+							&(seq->imgparam[i].filenum),
+							&(seq->imgparam[i].incl),
+							&(stats->mean),
+							&(stats->median),
+							&(stats->sigma),
+							&(stats->avgDev),
+							&(stats->mad),
+							&(stats->sqrtbwmv),
+							&(stats->location),
+							&(stats->scale),
+							&(stats->min),
+							&(stats->max));
+					if (nb_tokens == 12) {
+						add_stats_to_seq(seq, i, 0, stats);
+						free_stats(stats);	// we unreference it here
+					} else {
+						free_stats(stats);
+						if (nb_tokens != 2) {
+							fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
+							goto error;
+						}
+					}
 				} else {
-					free_stats(stats);
-					if (nb_tokens != 2) {
+					// v4: width and height for variable sequences
+					nb_tokens = sscanf(line + 2, "%d %d %d,%d",
+							&(seq->imgparam[i].filenum),
+							&(seq->imgparam[i].incl),
+							&(seq->imgparam[i].rx),
+							&(seq->imgparam[i].ry));
+					if ((nb_tokens != 4 && seq->is_variable) ||
+							(nb_tokens != 2 && !seq->is_variable)) {
 						fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
 						goto error;
 					}
@@ -574,10 +590,11 @@ int writeseqfile(sequence *seq){
 	fprintf(stdout, "Writing sequence file %s\n", filename);
 	free(filename);
 
-	fprintf(seqfile,"#Siril sequence file. Contains list of files (images), selection, and registration data\n");
-	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d\n",
-			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed, seq->reference_image, CURRENT_SEQFILE_VERSION);
+	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
+	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size\n");
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d\n",
+			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
+			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {
@@ -600,9 +617,17 @@ int writeseqfile(sequence *seq){
 	fprintf(seqfile, "L %d\n", seq->nb_layers);
 
 	for(i=0; i < seq->number; ++i){
-		fprintf(seqfile,"I %d %d\n",
-				seq->imgparam[i].filenum,
-				seq->imgparam[i].incl);
+		if (seq->is_variable) {
+			fprintf(seqfile,"I %d %d %d,%d\n",
+					seq->imgparam[i].filenum,
+					seq->imgparam[i].incl,
+					seq->imgparam[i].rx,
+					seq->imgparam[i].ry);
+		} else {
+			fprintf(seqfile,"I %d %d\n",
+					seq->imgparam[i].filenum,
+					seq->imgparam[i].incl);
+		}
 	}
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {

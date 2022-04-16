@@ -280,7 +280,8 @@ typedef enum {
 struct imdata {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
-	GDateTime *date_obs;/* date of the observation, processed and copied from the header */
+	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	int rx, ry;
 };
 
 typedef struct Homo {
@@ -313,8 +314,9 @@ struct sequ {
 	int selnum;		// number of selected images in the sequence
 	int fixed;		// fixed length of image index in filename (like %3d)
 	int nb_layers;		// number of layers embedded in each image file, -1 if unknown
-	unsigned int rx;	// first image width
-	unsigned int ry;	// first image height
+	unsigned int rx;	// first image width (or ref if set)
+	unsigned int ry;	// first image height (or ref if set)
+	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
