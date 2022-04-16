@@ -73,8 +73,8 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		"planetary movies. It can also be used for some deep-sky images registration. "
 		"Shifts at pixel precision are saved in seq file."),
 		N_("<b>KOMBAT</b>: a Kind of Minimal/Basic Alignment Tool, which is still work in progress. "
-		"It uses an OpenCV algorithm to detect pattern on each image, and then align them accordingly. "
-		"Notice that only translations are corrected here."),
+		"It uses an OpenCV algorithm to detect pattern on each image, and then align them accordingly."
+		"Select best images (for accuracy) and whole object for small targets. For the moon, select an area of about 10% of visible surface . Notice that only translations are corrected here."),
 		N_("<b>Enhanced Correlation Coefficient Maximization</b>: It is based on the enhanced correlation "
 		"coefficient maximization algorithm. This method is more complex and slower than Image Pattern Alignment "
 		"but no selection is required. It is good for moon surface images registration. Only translation is taken "
