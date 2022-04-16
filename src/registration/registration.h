@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 7
+#define NUMBER_OF_METHODS 8
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);

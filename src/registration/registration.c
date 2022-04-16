@@ -54,6 +54,7 @@
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
 #include "opencv/ecc/ecc.h"
+#include "opencv/kombat/kombat.h"
 
 #undef DEBUG
 
@@ -71,6 +72,9 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		"using cross correlation in the spatial domain. This method is fast and is used to register "
 		"planetary movies. It can also be used for some deep-sky images registration. "
 		"Shifts at pixel precision are saved in seq file."),
+		N_("<b>KOMBAT</b>: a Kind of Minimal/Basic Alignment Tool, which is still work in progress. "
+		"It uses an OpenCV algorithm to detect pattern on each image, and then align them accordingly. "
+		"Notice that only translations are corrected here."),
 		N_("<b>Enhanced Correlation Coefficient Maximization</b>: It is based on the enhanced correlation "
 		"coefficient maximization algorithm. This method is more complex and slower than Image Pattern Alignment "
 		"but no selection is required. It is good for moon surface images registration. Only translation is taken "
@@ -83,6 +87,8 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 /*Possible values for max stars combo box
 Needs to be consistent with list in comboreg_maxstars*/
 static int maxstars_values[] = {100, 200, 500, 1000, 2000};
+
+int register_kombat(struct registration_args *args);
 
 /* callback for the selected area event */
 void _reg_selected_area_callback() {
@@ -117,6 +123,8 @@ void initialize_registration_methods() {
 			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
 			&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+	reg_methods[i++] = new_reg_method(_("KOMBAT (planetary surfaces or full disk)"),
+			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Enhanced Correlation Coefficient (planetary - surfaces)"),
 			&register_ecc, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
@@ -442,6 +450,167 @@ int register_shift_dft(struct registration_args *args) {
 		args->seq->regparam[args->layer] = NULL;
 	}
 	return ret;
+}
+
+/* simple tool function for KOMBAT registration below; might be
+  * adopted by other functions too? */
+void _register_kombat_disable_frame(struct registration_args *args, regdata *current_regdata, int frame) {
+	args->seq->imgparam[frame].incl = FALSE;
+	current_regdata[frame].quality = 0.0;
+	#ifdef _OPENMP
+	#pragma omp atomic
+	#endif
+	args->seq->selnum--;
+}
+
+/* register images using KOMBAT algorithm: calculate shift in images to be
+  * aligned with the reference image; images are not modified, only shift
+  * parameters are saved in regparam in the sequence.
+  *
+  * TODO: if multiple selections would be possible, this algorithm can be
+  * extended to build mosaics (by searching for corresponding patterns
+  * iteratively).
+  * 
+  * TODO: missing optimisations, as many components are computed
+  * again and again for each images (as for others registration
+  * algorithms, it seems).
+  */
+int register_kombat(struct registration_args *args)
+{
+	fits fit_templ = { 0 };	
+	fits fit_ref = { 0 };
+
+    regdata *current_regdata;
+    float nb_frames, cur_nb = 0;
+	int frame;
+    int ref_idx;
+    int ret;
+	int abort = 0;
+	rectangle full = { 0 };
+
+	reg_kombat ref_align;
+	reg_kombat cur_align;
+    
+    if (args->seq->regparam[args->layer]) {
+	    	siril_log_message(
+		    		_("Recomputing already existing registration for this layer\n"));
+		    current_regdata = args->seq->regparam[args->layer];
+		    /* we reset all values as we may register different images */
+		    memset(current_regdata, 0, args->seq->number * sizeof(regdata));
+	} else {
+		    current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
+		    if (current_regdata == NULL) {
+    			PRINT_ALLOC_ERR;
+	    		return 1; // ???
+    		}
+	    	args->seq->regparam[args->layer] = current_regdata;
+   }
+
+   	if (args->process_all_frames)
+		nb_frames = (float) args->seq->number;
+	else
+		nb_frames = (float) args->seq->selnum;
+
+    /* loading reference frame */
+	ref_idx = sequence_find_refimage(args->seq);
+
+	set_progress_bar_data(
+			_("Register using KOMBAT: loading and processing reference frame"),
+			PROGRESS_NONE);
+	
+	/* we want pattern (aka. pattern) to search on each image */
+	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
+	        &args->selection, FALSE, -1);
+
+	/* we load reference image just to get dimensions of each image,
+	     in order to call seq_read_frame_part() and use only the desired layer, over the full image */
+	seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
+	full.x = full.y = 0;
+    full.w = fit_ref.rx;
+	full.h = fit_ref.ry;
+
+	if (ret || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
+		siril_log_message(
+				_("Register: could not load first image to register, aborting.\n"));
+		args->seq->regparam[args->layer] = NULL;
+		free(current_regdata);
+		clearfits(&fit_templ);
+		return 1; // ???
+	}
+
+    set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
+
+	/* we want pattern position on the reference image */
+	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align);
+	
+	/* main loop */
+	#ifdef _OPENMP
+		#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
+	    if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+	#endif
+	for (frame = 0; frame < args->seq->number; ++frame) {
+		if (abort) continue;
+		if (args->run_in_thread && !get_thread_run()) {
+			abort = 1;
+			continue;
+		}
+
+		if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
+			continue;
+
+		fits cur_fit = { 0 };
+		char tmpmsg[1024], tmpfilename[256];
+
+		seq_get_image_filename(args->seq, frame, tmpfilename);
+		g_snprintf(tmpmsg, 1024, _("Register: processing image %s"), tmpfilename);
+		set_progress_bar_data(tmpmsg, PROGRESS_NONE);
+		int thread_id = -1;
+		#ifdef _OPENMP
+			thread_id = omp_get_thread_num();
+		#endif
+
+	    if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
+				siril_log_message(
+						_("Cannot perform ECC alignment for frame %d\n"),
+						frame + 1);
+				/* we exclude this frame */
+				_register_kombat_disable_frame(args, current_regdata, frame);				
+				continue;
+		} else {
+			current_regdata[frame].quality = QualityEstimate(&cur_fit, args->layer);
+			if (frame == ref_idx) {
+				clearfits(&cur_fit);
+				continue;
+			}
+		}
+
+		/* we want pattern position on any single image */
+		if (kombat_find_template(frame, args, &fit_templ, &cur_fit, &cur_align)) {
+			siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), "error", frame);			
+			/* we exclude this frame too */
+			_register_kombat_disable_frame(args, current_regdata, frame);
+		} else {			
+			set_shifts(args->seq, frame, args->layer,
+						      ref_align.dx-cur_align.dx,
+							  (ref_align.dy-cur_align.dy),
+							  cur_fit.top_down);
+		}
+
+		#ifdef _OPENMP
+		#pragma omp atomic
+		#endif
+		cur_nb += 1.f;
+		set_progress_bar_data(NULL, cur_nb / nb_frames);
+
+			// We don't need fit anymore, we can destroy it.
+		clearfits(&cur_fit);
+	}
+	
+	siril_log_message(_("Registration finished.\n"));
+
+	clearfits(&fit_templ);
+	clearfits(&fit_ref);
+    return(1);
 }
 
 /* register images: calculate shift in images to be aligned with the reference image;

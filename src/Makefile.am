@@ -315,6 +315,8 @@ siril_common_SOURCES += \
 	opencv/opencv.h \
 	opencv/ecc/ecc.cpp \
 	opencv/ecc/ecc.h \
+	opencv/kombat/kombat.cpp \
+	opencv/kombat/kombat.h \
 	core/exif.cpp \
 	core/exif.h
 
