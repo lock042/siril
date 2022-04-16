@@ -94,6 +94,8 @@ static const gchar *registration_labels[] = {
 		N_("FWHM"),
 		N_("Roundness"),
 		N_("wFWHM"),
+		N_("Background"),
+		N_("# Stars"),
 		N_("Quality"),
 		N_("X Position"),
 		N_("Y Position"),
@@ -182,6 +184,12 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			case r_QUALITY:
 				plot->data[j].x = seq->regparam[layer][i].quality;
 				break;
+			case r_BACKGROUND:
+				plot->data[j].x = seq->regparam[layer][i].background_lvl;
+				break;
+			case r_NBSTARS:
+				plot->data[j].x = seq->regparam[layer][i].number_of_stars;
+				break;
 			case r_FRAME:
 				plot->data[j].x = (double) i + 1;
 				break;
@@ -219,6 +227,12 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_QUALITY:
 				plot->data[j].y = seq->regparam[layer][i].quality;
+				break;
+			case r_BACKGROUND:
+				plot->data[j].y = seq->regparam[layer][i].background_lvl;
+				break;
+			case r_NBSTARS:
+				plot->data[j].y = seq->regparam[layer][i].number_of_stars;
 				break;
 			default:
 				break;
@@ -647,7 +661,7 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 			if (!is_fwhm) {
 				sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
 			} else {
-				sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS));
+				sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS) || (index[0] == r_BACKGROUND) || (index[0] == r_NBSTARS));
 			}
 		}
 	}
@@ -709,7 +723,7 @@ static void validate_combos() {
 		if ((!is_fwhm) && registration_selected_source < r_QUALITY) {
 			registration_selected_source = r_QUALITY;
 		}
-		if ((is_fwhm) && registration_selected_source > r_WFWHM) {
+		if ((is_fwhm) && registration_selected_source > r_NBSTARS) {
 			registration_selected_source = r_FWHM;
 		}
 	}
@@ -1016,7 +1030,9 @@ void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		int max_data = kdata_xmax(d1, NULL);
 
 		if (nb_graphs == 1 && plot_data->nb > 0) {
-			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) ||(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY))) {
+			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) || 
+			(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) ||
+			(registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS))) {
 				if (X_selected_source == r_FRAME) {
 					struct kpair *sorted_data;
 					sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
@@ -1024,7 +1040,7 @@ void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
 						sorted_data[i].x = plot_data->data[i].x;
 						sorted_data[i].y = plot_data->data[i].y;
 					}
-					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY)) ? comparey_desc : comparey);
+					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
 					double imin = plot_data->data[min_data].x;
 					double imax = plot_data->data[max_data].x;
 					double pace = (imax - imin) / ((double)plot_data->nb - 1.);
@@ -1149,7 +1165,9 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		int max_data = kdata_xmax(d1, NULL);
 
 		if (nb_graphs == 1 && plot_data->nb > 0) {
-			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) ||(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY))) {
+			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) || 
+			(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || 
+			(registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS))) {
 				if (X_selected_source == r_FRAME) {
 					struct kpair *sorted_data;
 					sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
@@ -1157,7 +1175,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 						sorted_data[i].x = plot_data->data[i].x;
 						sorted_data[i].y = plot_data->data[i].y;
 					}
-					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY)) ? comparey_desc : comparey);
+					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
 					double imin = plot_data->data[min_data].x;
 					double imax = plot_data->data[max_data].x;
 					double pace = (imax - imin) / ((double)plot_data->nb - 1.);
@@ -1303,6 +1321,12 @@ static void update_ylabel() {
 			case r_QUALITY:
 				ylabel = _("Quality");
 				break;
+			case r_BACKGROUND:
+				ylabel = _("Background value");
+				break;
+			case r_NBSTARS:
+				ylabel = _("Number of stars");
+				break;
 			default:
 				break;
 		}
@@ -1324,6 +1348,12 @@ static void update_ylabel() {
 				break;
 			case r_QUALITY:
 				xlabel = _("Quality");
+				break;
+			case r_BACKGROUND:
+				xlabel = _("Background value");
+				break;
+			case r_NBSTARS:
+				xlabel = _("Number of stars");
 				break;
 			case r_FRAME:
 				xlabel = _("Frames");

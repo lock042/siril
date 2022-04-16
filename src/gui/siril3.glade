@@ -16152,11 +16152,13 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   <object class="GtkComboBoxText" id="plotComboX">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="active">6</property>
+                                                    <property name="active">8</property>
                                                     <items>
                                                       <item translatable="yes">FWHM</item>
                                                       <item translatable="yes">Roundness</item>
                                                       <item translatable="yes">wFWHM</item>
+                                                      <item translatable="yes">Background</item>
+                                                      <item translatable="yes"># Stars</item>
                                                       <item translatable="yes">Quality</item>
                                                       <item translatable="yes">X Position</item>
                                                       <item translatable="yes">Y Position</item>
@@ -16192,6 +16194,8 @@ Cross marker: the value for the currently loaded frame.</property>
                                                       <item translatable="yes">FWHM</item>
                                                       <item translatable="yes">Roundness</item>
                                                       <item translatable="yes">wFWHM</item>
+                                                      <item translatable="yes">Background</item>
+                                                      <item translatable="yes"># Stars</item>
                                                       <item translatable="yes">Quality</item>
                                                       <item translatable="yes">X Position</item>
                                                       <item translatable="yes">Y Position</item>

@@ -206,6 +206,12 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 				case r_QUALITY:
 					fwhm = seq->regparam[layer][index].quality;
 					break;
+				case r_BACKGROUND:
+					fwhm = seq->regparam[layer][index].background_lvl;
+					break;
+				case r_NBSTARS:
+					fwhm = seq->regparam[layer][index].number_of_stars;
+					break;
 				default: 
 					break;
 			}
@@ -486,6 +492,12 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 					break;
 				case r_QUALITY:
 					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
+					break;
+				case r_BACKGROUND:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+					break;
+				case r_NBSTARS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
 					break;
 				default: 
 					break;
