@@ -1040,7 +1040,7 @@ void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
 						sorted_data[i].x = plot_data->data[i].x;
 						sorted_data[i].y = plot_data->data[i].y;
 					}
-					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
+					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
 					double imin = plot_data->data[min_data].x;
 					double imax = plot_data->data[max_data].x;
 					double pace = (imax - imin) / ((double)plot_data->nb - 1.);
@@ -1175,7 +1175,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 						sorted_data[i].x = plot_data->data[i].x;
 						sorted_data[i].y = plot_data->data[i].y;
 					}
-					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
+					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
 					double imin = plot_data->data[min_data].x;
 					double imax = plot_data->data[max_data].x;
 					double pace = (imax - imin) / ((double)plot_data->nb - 1.);
