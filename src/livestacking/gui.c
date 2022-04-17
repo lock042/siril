@@ -208,17 +208,43 @@ void init_preprocessing_from_GUI() {
 			prepro->use_cosmetic_correction = gtk_toggle_button_get_active(tbutton);
 
 			if (prepro->use_cosmetic_correction) {
-				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
-				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
-					prepro->sigma[0] = gtk_spin_button_get_value(sigCold);
-				} else prepro->sigma[0] = -1.0;
+				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
+				prepro->is_cfa = gtk_toggle_button_get_active(CFA);
 
-				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
-				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
-					prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
-				} else prepro->sigma[1] = -1.0;
+				/* now we want to know which cosmetic correction was chosen */
+				GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
+				GtkWidget *w = gtk_stack_get_visible_child(stack);
+				if (w) {
+					GValue value = G_VALUE_INIT;
+					g_value_init(&value, G_TYPE_INT);
+					gtk_container_child_get_property(GTK_CONTAINER(stack), w, "position", &value);
+					gint position = g_value_get_int(&value);
+					prepro->cc_from_dark = position == 0 ? TRUE : FALSE;
+					g_value_unset(&value);
+					if (prepro->cc_from_dark) { // cosmetic correction from masterdark
+						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
+						if (gtk_toggle_button_get_active(tbutton)) {
+							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
+							prepro->sigma[0] = gtk_spin_button_get_value(sigCold);
+						} else prepro->sigma[0] = -1.0;
+						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
+						if (gtk_toggle_button_get_active(tbutton)) {
+							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
+							prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
+						} else prepro->sigma[1] = -1.0;
+					} else {
+						// TODO: cosmetic correction from bap pixel map is disabled for now
+						// may need to take it out from the use_dark condition anyway
+						prepro->use_cosmetic_correction = FALSE;
+						livestacking_display(_("COSMETIC CORRECTION: can only use masterdark in livestacking mode - disabling"), FALSE);
+						prepro->bad_pixel_map_file = NULL;
+					}
+				} else {  //fallback required?
+					prepro->sigma[0] = -1.0;
+					prepro->sigma[1] = -1.0;
+					prepro->use_cosmetic_correction = FALSE;
+					livestacking_display(_("COSMETIC CORRECTION: could not read the inputs - disabling"), FALSE);
+				}
 			}
 
 			GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
@@ -253,7 +279,6 @@ void init_preprocessing_from_GUI() {
 					GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
 					prepro->normalisation = g_ascii_strtod(gtk_entry_get_text(norm_entry), NULL);
 				}
-
 
 				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
 				prepro->is_cfa = gtk_toggle_button_get_active(CFA);
