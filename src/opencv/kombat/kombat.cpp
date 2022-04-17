@@ -56,14 +56,14 @@ static BYTE *fits8_to_bgrbgr(fits *image) {
 
 /* TODO: A local, KOMBAT specific version of image_to_Mat()
      (formerly from opencv.cpp). Versions might be merged? */
- int image_to_Mat(fits *image, Mat **in)
+ int image_to_Mat(fits *image, Mat& in)
  {
 	 if (image->naxes[2] != 1 && image->naxes[2] != 3) {
 		return -1;
 	}
 	if (image->type == DATA_USHORT) {
 		if (image->naxes[2] == 1) {
-			(*in) = new Mat(image->ry, image->rx, CV_16UC1, image->data);
+			in  = Mat(image->ry, image->rx, CV_16UC1, image->data);
 		}
 		else if (image->naxes[2] == 3) {
 			WORD *bgr_u = fits_to_bgrbgr_ushort(image);
@@ -71,12 +71,12 @@ static BYTE *fits8_to_bgrbgr(fits *image) {
 			free(image->data);
 			image->data = NULL;
 			memset(image->pdata, 0, sizeof image->pdata);
-			(*in) = new Mat(image->ry, image->rx, CV_16UC3, bgr_u);			
+			in = Mat(image->ry, image->rx, CV_16UC3, bgr_u);			
 		}
 	}
 	else if (image->type == DATA_FLOAT) {
 		if (image->naxes[2] == 1) {
-			(*in) = new Mat(image->ry, image->rx, CV_32FC1, image->fdata);			
+			in = Mat(image->ry, image->rx, CV_32FC1, image->fdata);			
 		}
 		else if (image->naxes[2] == 3) {
 			float *bgr_f = fits_to_bgrbgr_float(image);
@@ -84,41 +84,39 @@ static BYTE *fits8_to_bgrbgr(fits *image) {
 			free(image->fdata);
 			image->fdata = NULL;
 			memset(image->fpdata, 0, sizeof image->fpdata);
-			(*in )= new Mat(image->ry, image->rx, CV_32FC3, bgr_f);			
+			in = Mat(image->ry, image->rx, CV_32FC3, bgr_f);			
 		}
 	}
 	else return -1;
 	return 0;
 }
-
+  
 int kombat_find_template(int idx, struct registration_args *args, fits *templ, fits *image,  reg_kombat *reg_param)
 {
 	int layer = args->layer;
-	Mat *ref_mat;
-	Mat *im;
+	Mat ref_mat;
+	Mat im;
 	Mat result;
 	int ret;
 
 	Mat im_t;
 	Mat ref_mat_t;
-	
-	ret = image_to_Mat(templ, &ref_mat);
+
+	ret = image_to_Mat(templ, ref_mat);
 	if (ret) return ret;
-	ret = image_to_Mat(image, &im);
+	ret = image_to_Mat(image, im);
 	if (ret) return ret;
 		
-    int results_w = im->cols - ref_mat->cols + 1;
-    int results_h = im->rows - ref_mat->rows + 1;
-    result.create( results_h, results_w, CV_32FC1 );
+    int results_w = im.cols - ref_mat.cols + 1;
+    int results_h = im.rows - ref_mat.rows + 1;
+    result.create( results_h, results_w, CV_8UC1 );
 	
-	im->convertTo(im_t, CV_32F);
-	ref_mat->convertTo(ref_mat_t, CV_32F);
-	delete(im);
-	delete(ref_mat);
+	im.convertTo(im_t, CV_8U);
+	ref_mat.convertTo(ref_mat_t, CV_8U);
 
 	matchTemplate( im_t,  ref_mat_t, result, TM_CCORR_NORMED ); 
 	
-    /* few variables used to analyse result just computed */
+    /* few variables to analyse result just computed */
     double ignored1; 
     double score;
     Point ignored2;
@@ -126,13 +124,13 @@ int kombat_find_template(int idx, struct registration_args *args, fits *templ, f
 
 	// normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
   
-    /* score would be the matching score of pattern within img [0 .. 1.0]
-         matchLoc.x and matchLoc.y the coordinates of pattern within img. */
+    /* score would be the matching score [0 .. 1.0] of pattern in img
+         matchLoc.x and matchLoc.y store coordinates of pattern within img. */
     minMaxLoc( result, &ignored1, &score, &ignored2, &matchLoc, Mat() );
 
 	reg_param->dx = matchLoc.x;
-	reg_param->dy = matchLoc.y;
-
+	reg_param->dy = matchLoc.y;	
+	
 	ret = (score<0.70);
 	return(ret);
 }

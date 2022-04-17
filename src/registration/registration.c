@@ -488,8 +488,7 @@ int register_kombat(struct registration_args *args)
 	int abort = 0;
 	rectangle full = { 0 };
 
-	reg_kombat ref_align;
-	reg_kombat cur_align;
+	reg_kombat ref_align;	
     
     if (args->seq->regparam[args->layer]) {
 	    	siril_log_message(
@@ -518,7 +517,7 @@ int register_kombat(struct registration_args *args)
 			_("Register using KOMBAT: loading and processing reference frame"),
 			PROGRESS_NONE);
 	
-	/* we want pattern (aka. pattern) to search on each image */
+	/* we want pattern (the selection) to search on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 	        &args->selection, FALSE, -1);
 
@@ -585,8 +584,9 @@ int register_kombat(struct registration_args *args)
 		}
 
 		/* we want pattern position on any single image */
+		reg_kombat cur_align;		
 		if (kombat_find_template(frame, args, &fit_templ, &cur_fit, &cur_align)) {
-			siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), "error", frame);			
+			siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), "red", frame);			
 			/* we exclude this frame too */
 			_register_kombat_disable_frame(args, current_regdata, frame);
 		} else {			
@@ -595,7 +595,7 @@ int register_kombat(struct registration_args *args)
 							  (ref_align.dy-cur_align.dy),
 							  cur_fit.top_down);
 		}
-
+		
 		#ifdef _OPENMP
 		#pragma omp atomic
 		#endif
