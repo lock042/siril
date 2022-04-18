@@ -553,8 +553,6 @@ int register_kombat(struct registration_args *args)
 	for(int i=0; i<max_threads; i++)
 		caches[i] = NULL;
 	
-	printf("max=%d\n", max_threads);
-
 	#ifdef _OPENMP
 		#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
 	    if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
@@ -597,7 +595,7 @@ int register_kombat(struct registration_args *args)
 
 		/* we want pattern position on any single image */
 		reg_kombat cur_align;				
-		if (kombat_find_template(frame, args, &fit_templ, &cur_fit, &cur_align, &(caches[thread_id+1]))) {
+		if (kombat_find_template(frame, args, &fit_templ, &cur_fit, &cur_align, &ref_align, &(caches[thread_id+1]))) {
 			siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), "red", frame);			
 			/* we exclude this frame too */
 			_register_kombat_disable_frame(args, current_regdata, frame);
