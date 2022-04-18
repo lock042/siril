@@ -540,7 +540,7 @@ int register_kombat(struct registration_args *args)
     set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
 
 	/* we want pattern position on the reference image */
-	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL);
+	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL, NULL);
 	
 	/* main loop */
 	int max_threads;	
