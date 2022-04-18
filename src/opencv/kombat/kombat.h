@@ -27,7 +27,9 @@ struct reg_kombat_struct {
 	float dy;
 };
 
-int kombat_find_template(int idx, struct registration_args *args, fits *templ, fits *image,  reg_kombat *reg_param);
+int kombat_find_template(int idx, struct registration_args *args, fits *templ, fits *image,  reg_kombat *reg_param, void **vcache);
+
+void kombat_done(void **vcache);
 
 #ifdef __cplusplus
 }

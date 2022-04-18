@@ -540,9 +540,21 @@ int register_kombat(struct registration_args *args)
     set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
 
 	/* we want pattern position on the reference image */
-	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align);
+	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL);
 	
 	/* main loop */
+	int max_threads;	
+	#ifdef _OPENMP
+		max_threads = omp_get_max_threads()+1;		
+	#else		
+		max_threads = 1;
+	#endif
+	void *caches[max_threads];
+	for(int i=0; i<max_threads; i++)
+		caches[i] = NULL;
+	
+	printf("max=%d\n", max_threads);
+
 	#ifdef _OPENMP
 		#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
 	    if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
@@ -565,7 +577,7 @@ int register_kombat(struct registration_args *args)
 		set_progress_bar_data(tmpmsg, PROGRESS_NONE);
 		int thread_id = -1;
 		#ifdef _OPENMP
-			thread_id = omp_get_thread_num();
+			thread_id = omp_get_thread_num();			
 		#endif
 
 	    if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
@@ -584,8 +596,8 @@ int register_kombat(struct registration_args *args)
 		}
 
 		/* we want pattern position on any single image */
-		reg_kombat cur_align;		
-		if (kombat_find_template(frame, args, &fit_templ, &cur_fit, &cur_align)) {
+		reg_kombat cur_align;				
+		if (kombat_find_template(frame, args, &fit_templ, &cur_fit, &cur_align, &(caches[thread_id+1]))) {
 			siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), "red", frame);			
 			/* we exclude this frame too */
 			_register_kombat_disable_frame(args, current_regdata, frame);
@@ -610,6 +622,10 @@ int register_kombat(struct registration_args *args)
 
 	clearfits(&fit_templ);
 	clearfits(&fit_ref);
+
+	for(int i=0; i<max_threads;i++)
+		kombat_done(&caches[i]);
+
     return(1);
 }
 

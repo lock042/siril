@@ -90,31 +90,62 @@ static BYTE *fits8_to_bgrbgr(fits *image) {
 	else return -1;
 	return 0;
 }
-  
-int kombat_find_template(int idx, struct registration_args *args, fits *templ, fits *image,  reg_kombat *reg_param)
+
+typedef struct {
+	Mat ref_mat;
+	Mat ref_mat_t;
+	Mat result;
+	int ready;
+} kombat_cache;
+
+int kombat_find_template(int idx, struct registration_args *args, fits *templ, fits *image,  reg_kombat *reg_param, void **vcache)
 {
 	int layer = args->layer;
-	Mat ref_mat;
+	// Mat ref_mat;	
+	kombat_cache *cache;
 	Mat im;
-	Mat result;
-	int ret;
+	// Mat result;
+	int ret = 0;
 
 	Mat im_t;
 	Mat ref_mat_t;
 
-	ret = image_to_Mat(templ, ref_mat);
-	if (ret) return ret;
+	if (!vcache) {
+		cache = new kombat_cache();
+		cache->ready = 0;
+	} else {
+		if (!*vcache) {
+			(*vcache) = (void*) new kombat_cache();
+			cache = (kombat_cache*) *vcache;
+			cache->ready = 0;
+		} else
+			cache = (kombat_cache*) *vcache;
+	}		
+	
+	if (!cache->ready) {
+		ret = image_to_Mat(templ, cache->ref_mat);
+		cache->ref_mat.convertTo(cache->ref_mat_t, CV_8U);
+		int results_w = image->rx - cache->ref_mat.cols + 1;
+    	int results_h = image->ry - cache->ref_mat.rows + 1;
+    	cache->result.create( results_h, results_w, CV_8UC1 );
+		cache->ready = 1;
+	}
+
+	if (ret) {
+		if (!vcache) delete(cache);
+		return ret;
+	}
+
 	ret = image_to_Mat(image, im);
-	if (ret) return ret;
-		
-    int results_w = im.cols - ref_mat.cols + 1;
-    int results_h = im.rows - ref_mat.rows + 1;
-    result.create( results_h, results_w, CV_8UC1 );
+
+	if (ret) {
+		if (!vcache) delete(cache);
+		return ret;
+	}
 	
 	im.convertTo(im_t, CV_8U);
-	ref_mat.convertTo(ref_mat_t, CV_8U);
 
-	matchTemplate( im_t,  ref_mat_t, result, TM_CCORR_NORMED ); 
+	matchTemplate( im_t,  cache->ref_mat_t, cache->result, TM_CCORR_NORMED ); 
 	
     /* few variables to analyse result just computed */
     double ignored1; 
@@ -122,15 +153,24 @@ int kombat_find_template(int idx, struct registration_args *args, fits *templ, f
     Point ignored2;
     Point matchLoc;
 
-	// normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
-  
     /* score would be the matching score [0 .. 1.0] of pattern in img
          matchLoc.x and matchLoc.y store coordinates of pattern within img. */
-    minMaxLoc( result, &ignored1, &score, &ignored2, &matchLoc, Mat() );
+    minMaxLoc( cache->result, &ignored1, &score, &ignored2, &matchLoc, Mat() );
 
 	reg_param->dx = matchLoc.x;
 	reg_param->dy = matchLoc.y;	
 	
 	ret = (score<0.70);
+
+	if (!vcache) delete(cache);
 	return(ret);
+}
+
+void kombat_done(void **vcache)
+{
+	if (vcache) {
+			kombat_cache *cache = (kombat_cache*)  (*vcache);
+			delete(cache);
+			(*vcache) = NULL;
+	}
 }
