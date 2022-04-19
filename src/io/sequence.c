@@ -465,6 +465,7 @@ int set_seq(const char *name){
 		return 1;
 	}
 	free_image_data();
+	close_sequence(TRUE);
 
 #ifdef HAVE_FFMS2
 	int convert = 0;
@@ -499,15 +500,6 @@ int set_seq(const char *name){
 	}
 	if (seq->type == SEQ_SER)
 		ser_display_info(seq->ser_file);
-	if (retval == 0) {
-		int image_to_load = sequence_find_refimage(seq);
-		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
-			fprintf(stderr, "could not load first image from sequence\n");
-			free(seq);
-			return 1;
-		}
-		seq->current = image_to_load;
-	}
 
 	basename = g_path_get_basename(seq->seqname);
 	siril_log_message(_("Sequence loaded: %s (%d->%d)\n"),
@@ -515,7 +507,6 @@ int set_seq(const char *name){
 	g_free(basename);
 
 	/* Sequence is stored in com.seq for now */
-	close_sequence(TRUE);
 	memcpy(&com.seq, seq, sizeof(sequence));
 
 	if (!com.script) {

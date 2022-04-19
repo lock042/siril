@@ -468,7 +468,7 @@ struct writer_data {
 	gboolean have_seqwriter;
 
 	/* or write to a FITS files sequence */
-	char *filename;
+	gchar *filename;
 
 	gint *converted_files; // points to convert_status->converted_files
 };
@@ -519,7 +519,7 @@ static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader);
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
-static void create_sequence_filename(sequence_type output_type, const char *destroot, int index, char *output, int outsize);
+static gchar *create_sequence_filename(sequence_type output_type, const char *destroot, int index);
 static seqwrite_status write_image(fits *fit, struct writer_data *writer);
 static int compute_nb_images_fit_mem(fits *fit);
 static void print_reader(struct reader_data *reader);
@@ -989,7 +989,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			if (!conv->output_ser) {
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
-				char *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
+				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
@@ -1025,8 +1025,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		}
 		else {
 			g_assert(args->output_type == SEQ_REGULAR);
-			writer->filename = malloc(128);
-			create_sequence_filename(SEQ_REGULAR, args->destroot, conv->output_file_number++, writer->filename, 128);
+			writer->filename = create_sequence_filename(SEQ_REGULAR, args->destroot, conv->output_file_number++);
 			return GOT_OK_WRITE;
 		}
 	} else {
@@ -1056,27 +1055,29 @@ static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_
 	if (args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {
-				char dest_filename[128];
-				create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++, dest_filename, 128);
+				gchar *dest_filename = create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++);
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
+					g_free(dest_filename);
 					return GOT_WRITE_ERROR;
 				}
+				g_free(dest_filename);
 				conv->next_image_in_output = 0;
 				conv->writeseq_count = get_new_write_counter();
 			}
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (conv->next_file != conv->args->total) {
-				char dest_filename[128];
-				create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++, dest_filename, 128);
+				gchar *dest_filename = create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++);
 				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
 				if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
+					g_free(dest_filename);
 					return GOT_WRITE_ERROR;
 				}
+				g_free(dest_filename);
 				conv->next_image_in_output = 0;
 				conv->writeseq_count = get_new_write_counter();
 			}
@@ -1166,23 +1167,25 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 	return OPEN_NOT_A_SEQ;
 }
 
-static void create_sequence_filename(sequence_type output_type, const char *destroot, int index, char *output, int outsize) {
+static gchar *create_sequence_filename(sequence_type output_type, const char *destroot, int index) {
 	char *destroot_noext = remove_ext_from_filename(destroot);
 	char dest_end = destroot_noext[strlen(destroot_noext)-1];
+	gchar *output;
 	gboolean append_underscore = dest_end != '_' && dest_end != '-' && (dest_end < '0' || dest_end > '9');
 	switch (output_type) {
 		case SEQ_REGULAR:
-			snprintf(output, outsize, "%s%s%05d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
+			output = g_strdup_printf("%s%s%05d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		case SEQ_SER:
-			snprintf(output, outsize, "%s%s%03d.ser", destroot_noext, append_underscore ? "_" : "", index);
+			output = g_strdup_printf("%s%s%03d.ser", destroot_noext, append_underscore ? "_" : "", index);
 			break;
 		case SEQ_FITSEQ:
-			snprintf(output, outsize, "%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
+			output = g_strdup_printf("%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
 	}
+	return output;
 }
 
 
@@ -1216,7 +1219,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 		}
 		clearfits(fit);
 		free(fit);
-		free(writer->filename);
+		g_free(writer->filename);
 	}
 	else {
 		siril_log_color_message(_("Error while converting, unknown output\n"), "red");
