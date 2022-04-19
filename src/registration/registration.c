@@ -481,6 +481,8 @@ int register_kombat(struct registration_args *args)
 
     regdata *current_regdata;
     float nb_frames, cur_nb = 0;
+    double q_max = 0, q_min = DBL_MAX;
+    double qual;
 	int frame;
     int ref_idx;
     int ret;
@@ -585,7 +587,10 @@ int register_kombat(struct registration_args *args)
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
 		} else {
-			current_regdata[frame].quality = QualityEstimate(&cur_fit, args->layer);
+			qual = QualityEstimate(&cur_fit, args->layer);
+			q_min = min(q_min, qual);
+			q_max = max(q_max, qual);
+			current_regdata[frame].quality = qual;
 			if (frame == ref_idx) {
 				clearfits(&cur_fit);
 				continue;
@@ -616,6 +621,8 @@ int register_kombat(struct registration_args *args)
 	}
 
 	siril_log_message(_("Registration finished.\n"));
+
+	normalizeQualityData(args, q_min, q_max);
 
 	clearfits(&fit_templ);
 	clearfits(&fit_ref);
