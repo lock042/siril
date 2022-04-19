@@ -144,7 +144,7 @@
 #define STR_WAVELET N_("Computes the wavelet transform on <b>nbr_plan</b> plans using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' algorithm. The result is stored in a file as a structure containing the planes, ready for weighted reconstruction with WRECONS")
 #define STR_WRECONS N_("Reconstructs to current image from the planes previously computed with wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> according to the number of planes used for wavelet transform")
 
-#define STR_START_LS N_("Initialize a livestacking session, using the optional calibration files, optionally applying gradient removal on all calibrated files and start live stacking by watching incoming files if <b>-watch_files</b> is provided. The alternative is to provide all file names with the LIVESTACK command")
+#define STR_START_LS N_("Initialize a livestacking session, using the optional calibration files and wait for input files to be provided by the LIVESTACK command until STOP_LS is called")
 #define STR_LIVESTACK N_("Process the provided image for live stacking. Only possible after START_LS")
 #define STR_STOP_LS N_("Stop the live stacking session. Only possible after START_LS")
 

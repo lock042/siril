@@ -553,7 +553,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 		upper_limit = (round + 1) * number_per_round;
 		if (upper_limit > nb_candidates)
 			upper_limit = nb_candidates;
-		siril_debug_print("round %d from %d to %d candidates\n", round, lower_limit_for_this_round, upper_limit);
+		//siril_debug_print("round %d from %d to %d candidates\n", round, lower_limit_for_this_round, upper_limit);
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1)
 #endif
@@ -613,7 +613,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			}
 		}
 		results[nbstars] = NULL;
-		siril_debug_print("after round %d, found %d stars\n", round, nbstars);
+		//siril_debug_print("after round %d, found %d stars\n", round, nbstars);
 		round++;
 	} while (limit_nbstars && nbstars < maxstars && upper_limit < nb_candidates);
 

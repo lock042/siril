@@ -181,8 +181,8 @@ static command commands[] = {
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE},
 
-	{"start_ls", 0, "start_ls [-dark=filename] [-flat=filename] [-gradient_removal] [-watch_files]", process_start_ls, STR_START_LS, TRUE},
-	{"livestack", 1, "livestack filename [-out=result]", process_livestack, STR_LIVESTACK, TRUE},
+	{"start_ls", 0, "start_ls [-dark=filename] [-flat=filename]", process_start_ls, STR_START_LS, TRUE},
+	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE},
 	{"stop_ls", 0, "stop_ls", process_stop_ls, STR_STOP_LS, TRUE},
 
 	{"",0,"",0, STR_NONE, FALSE}
