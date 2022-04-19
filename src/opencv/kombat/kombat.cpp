@@ -1,5 +1,6 @@
 #include "core/siril.h"
 #include "opencv/kombat/kombat.h"
+#include "opencv/opencv.h"
 
 #include "registration/registration.h"
 #include "io/sequence.h"
@@ -16,31 +17,6 @@ using namespace cv;
 /****************************************************************************************\
 *                                       KOMBAT                     *
  \****************************************************************************************/
-
-/* TODO: Duplicated, code stolen from opencv.cpp */
- static WORD *fits_to_bgrbgr_ushort(fits *image) {
-	size_t ndata = image->rx * image->ry * 3;
-	WORD *bgrbgr = (WORD *)malloc(ndata * sizeof(WORD));
-	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		bgrbgr[i + 0] = image->pdata[BLAYER][j];
-		bgrbgr[i + 1] = image->pdata[GLAYER][j];
-		bgrbgr[i + 2] = image->pdata[RLAYER][j];
-	}
-	return bgrbgr;
-}
-
-static float *fits_to_bgrbgr_float(fits *image) {
-	size_t ndata = image->rx * image->ry * 3;
-	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
-	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		bgrbgr[i + 0] = image->fpdata[BLAYER][j];
-		bgrbgr[i + 1] = image->fpdata[GLAYER][j];
-		bgrbgr[i + 2] = image->fpdata[RLAYER][j];
-	}
-	return bgrbgr;
-}
 
 /* TODO: A local, KOMBAT specific version of image_to_Mat()
      (formerly from opencv.cpp). Versions might be merged? */
@@ -59,12 +35,12 @@ static float *fits_to_bgrbgr_float(fits *image) {
 			free(image->data);
 			image->data = NULL;
 			memset(image->pdata, 0, sizeof image->pdata);
-			in = Mat(image->ry, image->rx, CV_16UC3, bgr_u);			
+			in = Mat(image->ry, image->rx, CV_16UC3, bgr_u);
 		}
 	}
 	else if (image->type == DATA_FLOAT) {
 		if (image->naxes[2] == 1) {
-			in = Mat(image->ry, image->rx, CV_32FC1, image->fdata);			
+			in = Mat(image->ry, image->rx, CV_32FC1, image->fdata);
 		}
 		else if (image->naxes[2] == 3) {
 			float *bgr_f = fits_to_bgrbgr_float(image);
@@ -72,7 +48,7 @@ static float *fits_to_bgrbgr_float(fits *image) {
 			free(image->fdata);
 			image->fdata = NULL;
 			memset(image->fpdata, 0, sizeof image->fpdata);
-			in = Mat(image->ry, image->rx, CV_32FC3, bgr_f);			
+			in = Mat(image->ry, image->rx, CV_32FC3, bgr_f);
 		}
 	}
 	else return -1;
@@ -86,18 +62,18 @@ void image_crop_params(reg_kombat *templ_in_ref, int sel_w, int sel_h, int full_
 		captures are noisy */
 	float PC = 0.25f;
 
-	roi.x = (int) (templ_in_ref->dx - full_w*PC/2);	
+	roi.x = (int) (templ_in_ref->dx - full_w*PC/2);
 	if (roi.x < 0) roi.x = 0;
 	if (roi.x >= full_w) roi.x = full_w - 1;
 
-	roi.width = sel_w + (int) (full_w*PC);	
+	roi.width = sel_w + (int) (full_w*PC);
 	if (roi.width+roi.x>=full_w) roi.width = full_w - roi.x - 1;
 
-	roi.y = (int) (templ_in_ref->dy - full_h*PC/2);	
+	roi.y = (int) (templ_in_ref->dy - full_h*PC/2);
 	if (roi.y < 0) roi.y = 0;
 	if (roi.y >= full_h) roi.y = full_h - 1;
 
-	roi.height = sel_h + (int) (full_h*PC);	
+	roi.height = sel_h + (int) (full_h*PC);
 	if (roi.height+roi.y>=full_h) roi.height = full_h - roi.y - 1;
 }
 
@@ -112,7 +88,7 @@ typedef struct {
 int kombat_find_template(int idx, struct registration_args *args, fits *templ, fits *image,  reg_kombat *reg_param, reg_kombat *ref_align, void **vcache)
 {
 	kombat_cache *cache;
-	Mat im;	
+	Mat im;
 	int ret = 0;
 
 	Mat im_t;
@@ -128,8 +104,8 @@ int kombat_find_template(int idx, struct registration_args *args, fits *templ, f
 			cache->ready = 0;
 		} else
 			cache = (kombat_cache*) *vcache;
-	}		
-	
+	}
+
 	if (!cache->ready) {
 		ret = image_to_Mat(templ, cache->ref_mat);
 		cache->ref_mat.convertTo(cache->ref_mat_t, CV_8U);
@@ -146,8 +122,8 @@ int kombat_find_template(int idx, struct registration_args *args, fits *templ, f
 		} else {
 			results_w =  image->rx - cache->ref_mat_t.cols + 1;
 			results_h =  image->ry - cache->ref_mat_t.rows + 1;
-		}		
-		cache->result.create( results_h, results_w, CV_8UC1 );		
+		}
+		cache->result.create( results_h, results_w, CV_8UC1 );
 		cache->ready = 1;
 	}
 
@@ -162,18 +138,18 @@ int kombat_find_template(int idx, struct registration_args *args, fits *templ, f
 		if (!vcache) delete(cache);
 		return ret;
 	}
-	
+
 	/* if we can crop, we do it. Only a small part of image will thus have to be analysed */
 	if (ref_align)
-		im = im(cache->crop_rect);	
+		im = im(cache->crop_rect);
 
 	// TODO: image_to_Mat should produce expected result...
 	im.convertTo(im_t, CV_8U);
 
-	matchTemplate( im_t,  cache->ref_mat_t, cache->result, TM_CCORR_NORMED ); 
-	
+	matchTemplate( im_t,  cache->ref_mat_t, cache->result, TM_CCORR_NORMED );
+
     /* few variables to analyse result just computed */
-    double ignored1; 
+    double ignored1;
     double score;
     Point ignored2;
     Point matchLoc;
@@ -189,7 +165,7 @@ int kombat_find_template(int idx, struct registration_args *args, fits *templ, f
 		reg_param->dx += cache->crop_rect.x;
 		reg_param->dy += cache->crop_rect.y;
 	}
-	
+
 	ret = (score<0.70);
 
 	if (!vcache) delete(cache);
