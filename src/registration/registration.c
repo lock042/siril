@@ -452,7 +452,7 @@ int register_shift_dft(struct registration_args *args) {
   * adopted by other functions too? */
 void _register_kombat_disable_frame(struct registration_args *args, regdata *current_regdata, int frame) {
 	args->seq->imgparam[frame].incl = FALSE;
-	current_regdata[frame].quality = 0.0;
+	current_regdata[frame].quality = -1;
 	#ifdef _OPENMP
 	#pragma omp atomic
 	#endif
@@ -555,7 +555,7 @@ int register_kombat(struct registration_args *args)
 		#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
 	    if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
 	#endif
-	for (frame = 0; frame < args->seq->number; ++frame) {
+	for (frame = 0; frame < args->seq->number; frame++) {
 		if (abort) continue;
 		if (args->run_in_thread && !get_thread_run()) {
 			abort = 1;
@@ -617,9 +617,9 @@ int register_kombat(struct registration_args *args)
 
 	siril_log_message(_("Registration finished.\n"));
 
-	for (frame = 0; frame < args->seq->number; ++frame) {
-		qual = current_regdata[frame].quality;
-		if (qual != -1) {
+	for (frame = 0; frame < args->seq->number; frame++) {
+		if (args->seq->imgparam[frame].incl) {
+			qual = current_regdata[frame].quality;
 			q_min = min(q_min, qual);
 			q_max = max(q_max, qual);
 		}
