@@ -38,7 +38,6 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
-#include "opencv/ecc/ecc.h"
 
 #ifdef __cplusplus
 extern "C" {
