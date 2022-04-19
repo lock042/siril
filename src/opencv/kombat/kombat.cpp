@@ -42,18 +42,6 @@ static float *fits_to_bgrbgr_float(fits *image) {
 	return bgrbgr;
 }
 
-static BYTE *fits8_to_bgrbgr(fits *image) {
-	size_t ndata = image->rx * image->ry * 3;
-	BYTE *bgrbgr = (BYTE *)malloc(ndata * sizeof(BYTE));
-	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		bgrbgr[i + 0] = (BYTE)image->pdata[BLAYER][j];
-		bgrbgr[i + 1] = (BYTE)image->pdata[GLAYER][j];
-		bgrbgr[i + 2] = (BYTE)image->pdata[RLAYER][j];
-	}
-	return bgrbgr;
-}
-
 /* TODO: A local, KOMBAT specific version of image_to_Mat()
      (formerly from opencv.cpp). Versions might be merged? */
  int image_to_Mat(fits *image, Mat& in)
@@ -123,7 +111,6 @@ typedef struct {
 
 int kombat_find_template(int idx, struct registration_args *args, fits *templ, fits *image,  reg_kombat *reg_param, reg_kombat *ref_align, void **vcache)
 {
-	int layer = args->layer;
 	kombat_cache *cache;
 	Mat im;	
 	int ret = 0;
