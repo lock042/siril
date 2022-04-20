@@ -46,6 +46,7 @@
 
 #define WAVELET_SCALE 3
 #define _SQRT_EXP1 1.6487212707
+#define KERNEL_SIZE 3.
 
 
 static double guess_resolution(fits *fit) {
@@ -72,9 +73,10 @@ static double guess_resolution(fits *fit) {
 	/* test for high value. In this case we increase
 	 * the number of detected star in is_star function
 	 */
-	if (res > 20.0) return -1.0;
 	/* if res > 1.0 we use default radius value */
-	if (res < 0.1 || res > 1.0) return 1.0;
+	if (res > 1.0) return 1.0;
+	/* if res is too small, we bound the value to 2.0 to avoid expanding the first search box (and decrease perf) */
+	if (res < 0.5) return 0.5;
 	return res;
 }
 
@@ -111,7 +113,7 @@ static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
 		return FALSE;
 	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) // if star center off from original candidate detection by more than sigma radius
 		return FALSE;
-	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503)
+	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) // criteria gets looser as guessed fwhm gets larger than kernel
 		return FALSE;
 	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0)
 		return FALSE;
@@ -262,7 +264,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	}
 
 	//if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
-	if (gaussian_blur_RT(&smooth_fit, 3.0, threads)) {
+	if (gaussian_blur_RT(&smooth_fit, KERNEL_SIZE, threads)) {
 		siril_log_color_message(_("Could not apply Gaussian filter, aborting\n"), "red");
 		clearfits(&smooth_fit);
 		return NULL;
@@ -460,8 +462,9 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				B = 0.5 * (Br + Bc);
 
 				// restimate new box size to enclose enough background
-				int Rr = (int) ceil(2 * Sr);
-				int Rc = (int) ceil(2 * Sc);
+				// term S / 3 increases the box radius when the guessed fwhm is larger than the smoothing kernel size
+				int Rr = (int) ceil(2 * Sr * Sr / KERNEL_SIZE);
+				int Rc = (int) ceil(2 * Sc * Sc / KERNEL_SIZE);
 				if (Rr > r) { // avoid enlarging outside frame width
 					if (xx - Rr < 0) Rr = xx;
 					if (xx + Rr >= nx) Rr = nx - xx - 1;
