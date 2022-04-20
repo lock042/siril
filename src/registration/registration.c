@@ -821,6 +821,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
 		} else if (method->method_ptr == &register_3stars) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
+		} else if (method->method_ptr == &register_kombat) {
+			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
 		}
 		gtk_widget_set_visible(follow, method->method_ptr == &register_shift_fwhm);
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
@@ -948,11 +950,11 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
 	struct registration_method *method;
 	char *msg;
-	GtkToggleButton *regall, *follow, *matchSel, *no_translate, *x2upscale,
+	GtkToggleButton *follow, *matchSel, *no_translate, *x2upscale,
 			*cumul;
 	GtkComboBox *cbbt_layers;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
-	GtkSpinButton *minpairs;
+	GtkSpinButton *minpairs, *percent_moved;
 
 	if (!reserve_thread()) {	// reentrant from here
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -983,7 +985,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	/* filling the arguments for registration */
-	regall = GTK_TOGGLE_BUTTON(lookup_widget("regallbutton"));
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
 	no_translate = GTK_TOGGLE_BUTTON(lookup_widget("regTranslationOnly"));
@@ -992,13 +993,13 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
 	cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
 	minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
+	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
-	reg_args->process_all_frames = gtk_toggle_button_get_active(regall);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
 	reg_args->translation_only = gtk_toggle_button_get_active(no_translate);
@@ -1006,6 +1007,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
+	reg_args->percent_moved = (float) gtk_spin_button_get_value(percent_moved) / 100.f;
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));

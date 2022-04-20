@@ -55,12 +55,12 @@ using namespace cv;
 	return 0;
 }
 
-void image_crop_params(reg_kombat *templ_in_ref, int sel_w, int sel_h, int full_w, int full_h, Rect& roi)
+void image_crop_params(reg_kombat *templ_in_ref, int sel_w, int sel_h, int full_w, int full_h, Rect& roi, float percent_moved)
 {
 	/* we accept pixels to be moved of 25% of the image size;
 	    smaller values give a great speed boost, but may prevent alignment if
 		captures are noisy */
-	float PC = 0.25f;
+	float PC = percent_moved;
 
 	roi.x = (int) (templ_in_ref->dx - full_w*PC/2);
 	if (roi.x < 0) roi.x = 0;
@@ -114,9 +114,9 @@ int kombat_find_template(int idx, struct registration_args *args, fits *templ, f
 		/* if we have spoted template in reference frame, we will crop current image
 			around template's spot to analyse less data and speed up process */
 		if (ref_align) {
-			image_crop_params(ref_align,
-											cache->ref_mat_t.cols, cache->ref_mat_t.rows,
-											image->rx, image->ry, cache->crop_rect);
+			image_crop_params(ref_align, cache->ref_mat_t.cols,
+					cache->ref_mat_t.rows, image->rx, image->ry,
+					cache->crop_rect, args->percent_moved);
 			results_w = cache->crop_rect.width - cache->ref_mat.cols + 1;
     	    results_h = cache->crop_rect.height - cache->ref_mat.rows + 1;
 		} else {
