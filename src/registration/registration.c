@@ -471,8 +471,7 @@ void _register_kombat_disable_frame(struct registration_args *args, regdata *cur
   * again and again for each images (as for others registration
   * algorithms, it seems).
   */
-int register_kombat(struct registration_args *args)
-{
+int register_kombat(struct registration_args *args) {
 	fits fit_templ = { 0 };
 	fits fit_ref = { 0 };
 
@@ -501,14 +500,14 @@ int register_kombat(struct registration_args *args)
 	    		return 1; // ???
     		}
 	    	args->seq->regparam[args->layer] = current_regdata;
-   }
+	}
 
-   	if (args->process_all_frames)
+	if (args->process_all_frames)
 		nb_frames = (float) args->seq->number;
 	else
 		nb_frames = (float) args->seq->selnum;
 
-    /* loading reference frame */
+	/* loading reference frame */
 	ref_idx = sequence_find_refimage(args->seq);
 
 	set_progress_bar_data(
@@ -517,13 +516,13 @@ int register_kombat(struct registration_args *args)
 
 	/* we want pattern (the selection) to be located on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
-	        &args->selection, FALSE, -1);
+			&args->selection, FALSE, -1);
 
 	/* we load reference image just to get dimensions of images,
-	     in order to call seq_read_frame_part() and use only the desired layer, over each full image */
+	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
 	seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
 	full.x = full.y = 0;
-    full.w = fit_ref.rx;
+	full.w = fit_ref.rx;
 	full.h = fit_ref.ry;
 
 	if (ret || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
@@ -535,87 +534,85 @@ int register_kombat(struct registration_args *args)
 		return 1; // ???
 	}
 
-    set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
+	set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
 
 	/* we want pattern position on the reference image */
 	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL, NULL);
 
 	/* main part starts here */
 	int max_threads;
-	#ifdef _OPENMP
-		max_threads = omp_get_max_threads()+1;
-	#else
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads() + 1;
+#else
 		max_threads = 1;
 	#endif
 
 	void *caches[max_threads];
-	for(int i=0; i<max_threads; i++)
+	for (int i = 0; i < max_threads; i++)
 		caches[i] = NULL;
 
-	#ifdef _OPENMP
-		#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
-	    if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR ||
-	        args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
-	#endif
-	for (frame = 0; frame < args->seq->number; frame++) {
-		if (abort) continue;
-		if (args->run_in_thread && !get_thread_run()) {
-			abort = 1;
-			continue;
-		}
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+#endif
+		for (frame = 0; frame < args->seq->number; frame++) {
+			if (abort)
+				continue;
+			if (args->run_in_thread && !get_thread_run()) {
+				abort = 1;
+				continue;
+			}
 
-		if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
-			continue;
+			if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
+				continue;
 
-		fits cur_fit = { 0 };
-		char tmpmsg[1024], tmpfilename[256];
+			fits cur_fit = { 0 };
+			char tmpmsg[1024], tmpfilename[256];
 
-		seq_get_image_filename(args->seq, frame, tmpfilename);
-		g_snprintf(tmpmsg, 1024, _("Register: processing image %s"), tmpfilename);
-		set_progress_bar_data(tmpmsg, PROGRESS_NONE);
-		int thread_id = -1;
-		#ifdef _OPENMP
+			seq_get_image_filename(args->seq, frame, tmpfilename);
+			g_snprintf(tmpmsg, 1024, _("Register: processing image %s"),
+					tmpfilename);
+			set_progress_bar_data(tmpmsg, PROGRESS_NONE);
+			int thread_id = -1;
+#ifdef _OPENMP
 			thread_id = omp_get_thread_num();
-		#endif
+#endif
 
-	    if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
-				siril_log_message(
-						_("Cannot perform KOMBAT alignment for frame %d\n"),
-						frame + 1);
+			if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
+				siril_log_message(_("Cannot perform KOMBAT alignment for frame %d\n"), frame + 1);
 				/* we exclude this frame */
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
-		} else {
-			qual = QualityEstimate(&cur_fit, args->layer);
-			current_regdata[frame].quality = qual;
-			if (frame == ref_idx) {
-				clearfits(&cur_fit);
-				continue;
+			} else {
+				qual = QualityEstimate(&cur_fit, args->layer);
+				current_regdata[frame].quality = qual;
+				if (frame == ref_idx) {
+					clearfits(&cur_fit);
+					continue;
+				}
 			}
-		}
 
-		/* we want pattern position on any single image */
-		reg_kombat cur_align;
-		if (kombat_find_template(frame, args, &fit_templ, &cur_fit, &cur_align, &ref_align, &(caches[thread_id+1]))) {
-			siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), "red", frame);
-			/* we exclude this frame too */
-			_register_kombat_disable_frame(args, current_regdata, frame);
-		} else {
-			set_shifts(args->seq, frame, args->layer,
-						      ref_align.dx-cur_align.dx,
-							  (ref_align.dy-cur_align.dy),
-							  cur_fit.top_down);
-		}
+			/* we want pattern position on any single image */
+			reg_kombat cur_align;
+			if (kombat_find_template(frame, args, &fit_templ, &cur_fit,
+					&cur_align, &ref_align, &(caches[thread_id + 1]))) {
+				siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"),	"red", frame);
+				/* we exclude this frame too */
+				_register_kombat_disable_frame(args, current_regdata, frame);
+			} else {
+				set_shifts(args->seq, frame, args->layer,
+						ref_align.dx - cur_align.dx,
+						(ref_align.dy - cur_align.dy), cur_fit.top_down);
+			}
 
-		#ifdef _OPENMP
-		#pragma omp atomic
-		#endif
-		cur_nb += 1.f;
-		set_progress_bar_data(NULL, cur_nb / nb_frames);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+			cur_nb += 1.f;
+			set_progress_bar_data(NULL, cur_nb / nb_frames);
 
 			// We don't need fit anymore, we can destroy it.
-		clearfits(&cur_fit);
-	}
+			clearfits(&cur_fit);
+		}
 
 	siril_log_message(_("Registration finished.\n"));
 
@@ -631,10 +628,10 @@ int register_kombat(struct registration_args *args)
 	clearfits(&fit_templ);
 	clearfits(&fit_ref);
 
-	for(int i=0; i<max_threads;i++)
+	for (int i = 0; i < max_threads; i++)
 		kombat_done(&caches[i]);
 
-    return(1);
+	return (1);
 }
 
 /* register images: calculate shift in images to be aligned with the reference image;
@@ -1121,3 +1118,4 @@ static gboolean end_register_idle(gpointer p) {
 	free(args);
 	return FALSE;
 }
+
