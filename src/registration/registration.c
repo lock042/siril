@@ -515,12 +515,12 @@ int register_kombat(struct registration_args *args)
 			_("Register using KOMBAT: loading and processing reference frame"),
 			PROGRESS_NONE);
 
-	/* we want pattern (the selection) to search on each image */
+	/* we want pattern (the selection) to be located on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 	        &args->selection, FALSE, -1);
 
-	/* we load reference image just to get dimensions of each image,
-	     in order to call seq_read_frame_part() and use only the desired layer, over the full image */
+	/* we load reference image just to get dimensions of images,
+	     in order to call seq_read_frame_part() and use only the desired layer, over each full image */
 	seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
 	full.x = full.y = 0;
     full.w = fit_ref.rx;
@@ -540,20 +540,22 @@ int register_kombat(struct registration_args *args)
 	/* we want pattern position on the reference image */
 	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL, NULL);
 
-	/* main loop */
+	/* main part starts here */
 	int max_threads;
 	#ifdef _OPENMP
 		max_threads = omp_get_max_threads()+1;
 	#else
 		max_threads = 1;
 	#endif
+
 	void *caches[max_threads];
 	for(int i=0; i<max_threads; i++)
 		caches[i] = NULL;
 
 	#ifdef _OPENMP
 		#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
-	    if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+	    if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR ||
+	        args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
 	#endif
 	for (frame = 0; frame < args->seq->number; frame++) {
 		if (abort) continue;
@@ -578,7 +580,7 @@ int register_kombat(struct registration_args *args)
 
 	    if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
 				siril_log_message(
-						_("Cannot perform ECC alignment for frame %d\n"),
+						_("Cannot perform KOMBAT alignment for frame %d\n"),
 						frame + 1);
 				/* we exclude this frame */
 				_register_kombat_disable_frame(args, current_regdata, frame);
