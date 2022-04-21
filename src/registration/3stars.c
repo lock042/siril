@@ -177,6 +177,11 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		update_label(_("Draw a selection around the star"));
 		return;
 	}
+	if (com.seq.current < 0) {
+		update_label(_("Make sure you load the first image"));
+		return;
+	}
+
 	GtkWidget *widget = GTK_WIDGET(button);
 	if (three_buttons[0] == widget)
 		awaiting_star = 1;
