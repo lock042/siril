@@ -38,7 +38,6 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
-#include "opencv/ecc/ecc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,9 +53,12 @@ using namespace cv;
 
 /* TODO:
  * fix memory leak
+ *
+ * Notice that functions are not static anymore as they are used
+ * in kombat.cpp; and "static" function are only valid within current
+ * translation unit in C++.
  */
-
-static WORD *fits_to_bgrbgr_ushort(fits *image) {
+WORD *fits_to_bgrbgr_ushort(fits *image) {
 	size_t ndata = image->rx * image->ry * 3;
 	WORD *bgrbgr = (WORD *)malloc(ndata * sizeof(WORD));
 	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
@@ -68,7 +70,7 @@ static WORD *fits_to_bgrbgr_ushort(fits *image) {
 	return bgrbgr;
 }
 
-static float *fits_to_bgrbgr_float(fits *image) {
+float *fits_to_bgrbgr_float(fits *image) {
 	size_t ndata = image->rx * image->ry * 3;
 	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
 	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
@@ -273,7 +275,7 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 	if (is_fast && (interpolation == -1 || !cropped)) {	// fast rotation
 		/* flip third argument: how to flip the array; 0 means flipping around the
 		 * x-axis and positive value (for example, 1) means flipping around y-axis.
-		 * Negative value (for example, -1) means flipping around both axes. 
+		 * Negative value (for example, -1) means flipping around both axes.
 		 */
 		if (angle == 90 || angle == -270) {
 			transpose(in, out);
@@ -401,7 +403,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	switch (type) {
 	case SIMILARITY_TRANSFORMATION:
 	case HOMOGRAPHY_TRANSFORMATION:
-	case AFFINE_TRANSFORMATION:	
+	case AFFINE_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
 			ref.push_back(Point2f(star_array_ref[i].x, star_array_ref[i].y));
 			img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
@@ -427,7 +429,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		if (!s.cols) return NULL; // exit if could not find a match at all=> s is null
 		H = Mat::eye(3, 3, CV_64FC1);
 		H.at<double>(0,2) = s.at<double>(0);
-		H.at<double>(1,2) = s.at<double>(1);		
+		H.at<double>(1,2) = s.at<double>(1);
 	break;
 #endif
 	case SIMILARITY_TRANSFORMATION:

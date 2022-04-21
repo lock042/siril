@@ -16,7 +16,7 @@ configure_file(output : 'config.h',
 ################################################################################
 # Generate Siril static library with all sources
 
-src_files = [ 
+src_files = [
   'algos/annotate.c',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
@@ -44,11 +44,11 @@ src_files = [
   'algos/transform.c',
   'algos/search_objects.c',
   'algos/siril_wcs.c',
-  
+
   'compositing/align_rgb.c',
   'compositing/compositing.c',
   'compositing/filters.c',
-  
+
   'core/arithm.c',
   'core/atomic.cpp',
   'core/command.c',
@@ -73,7 +73,7 @@ src_files = [
   'core/siril_world_cs.c',
   'core/undo.c',
   'core/utils.c',
-  
+
   'filters/asinh.c',
   'filters/banding.c',
   'filters/clahe.c',
@@ -86,7 +86,7 @@ src_files = [
   'filters/saturation.c',
   'filters/scnr.c',
   'filters/wavelets.c',
-  
+
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
   'io/avi_pipp/pipp_avi_write_dib.cpp',
@@ -112,16 +112,15 @@ src_files = [
 
   'io/ser.c',
   'io/single_image.c',
-  
+
   'livestacking/livestacking.c',
   'livestacking/gui.c',
-  
+
   'opencv/opencv.cpp',
   'opencv/opencv.h',
-  'opencv/ecc/ecc.cpp',
-  'opencv/ecc/ecc.h',
+  'opencv/kombat/kombat.cpp',
+  'opencv/kombat/kombat.h',
 
-  
   'gui/about_dialog.c',
   'gui/callbacks.c',
   'gui/conversion.c',
@@ -152,10 +151,10 @@ src_files = [
   'gui/siril-window.c',
   'gui/statistics_list.c',
   'gui/utils.c',
-  
+
   'pixelMath/pixel_math_runner.c',
   'pixelMath/tinyexpr.c',
-  
+
   'registration/3stars.c',
   'registration/comet.c',
   'registration/global.c',
@@ -165,7 +164,7 @@ src_files = [
   'registration/matching/project_coords.c',
   'registration/matching/apply_match.c',
   'registration/registration.c',
-  
+
   'stacking/median_and_mean.c',
   'stacking/rejection_float.c',
   'stacking/normalization.c',
@@ -174,7 +173,7 @@ src_files = [
   'stacking/stackminmax.c',
   'stacking/sum.c',
   'stacking/upscaling.c',
-  
+
   'rt/boxblur.cc',
   'rt/deconvolution.cc',
   'rt/gauss.cc',
@@ -203,7 +202,7 @@ siril_gui = executable('siril', 'main.c', win_res,
                        c_args : siril_c_flag,
                        cpp_args : siril_cpp_flag,
                        install : true,
-                       win_subsystem : stable ? 'windows' : 'console',                       
+                       win_subsystem : stable ? 'windows' : 'console',
                       )
 
 ################################################################################
