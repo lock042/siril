@@ -53,7 +53,7 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-#include "opencv/ecc/ecc.h"
+#include "opencv/kombat/kombat.h"
 
 #undef DEBUG
 
@@ -71,6 +71,8 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		"using cross correlation in the spatial domain. This method is fast and is used to register "
 		"planetary movies. It can also be used for some deep-sky images registration. "
 		"Shifts at pixel precision are saved in seq file."),
+		N_("<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on images and"
+		" to align them accordingly. Only translation is taken into account yet."),
 		N_("<b>Enhanced Correlation Coefficient Maximization</b>: It is based on the enhanced correlation "
 		"coefficient maximization algorithm. This method is more complex and slower than Image Pattern Alignment "
 		"but no selection is required. It is good for moon surface images registration. Only translation is taken "
@@ -83,6 +85,8 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 /*Possible values for max stars combo box
 Needs to be consistent with list in comboreg_maxstars*/
 static int maxstars_values[] = {100, 200, 500, 1000, 2000};
+
+int register_kombat(struct registration_args *args);
 
 /* callback for the selected area event */
 void _reg_selected_area_callback() {
@@ -117,8 +121,8 @@ void initialize_registration_methods() {
 			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
 			&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
-	reg_methods[i++] = new_reg_method(_("Enhanced Correlation Coefficient (planetary - surfaces)"),
-			&register_ecc, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
+	reg_methods[i++] = new_reg_method(_("KOMBAT (planetary surfaces or full disk)"),
+			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i] = NULL;
@@ -193,6 +197,7 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
  */
 int register_shift_dft(struct registration_args *args) {
 	fits fit_ref = { 0 };
+	struct timeval t_start, t_end;
 	unsigned int frame, size, sqsize, j;
 	fftwf_complex *ref, *in, *out, *convol;
 	fftwf_plan p, q;
@@ -246,6 +251,8 @@ int register_shift_dft(struct registration_args *args) {
 		clearfits(&fit_ref);
 		return ret;
 	}
+
+	gettimeofday(&t_start, NULL);
 
 	ref = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 	in = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
@@ -441,7 +448,206 @@ int register_shift_dft(struct registration_args *args) {
 		free(args->seq->regparam[args->layer]);
 		args->seq->regparam[args->layer] = NULL;
 	}
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
 	return ret;
+}
+
+/* simple tool function for KOMBAT registration below; might be
+  * adopted by other functions too? */
+void _register_kombat_disable_frame(struct registration_args *args, regdata *current_regdata, int frame) {
+	args->seq->imgparam[frame].incl = FALSE;
+	current_regdata[frame].quality = -1;
+	#ifdef _OPENMP
+	#pragma omp atomic
+	#endif
+	args->seq->selnum--;
+}
+
+/* register images using KOMBAT algorithm: calculate shift in images to be
+  * aligned with the reference image; images are not modified, only shift
+  * parameters are saved in regparam in the sequence.
+  *
+  * TODO: if multiple selections would be possible, this algorithm can be
+  * extended to build mosaics (by searching for corresponding patterns
+  * iteratively).
+  *
+  * TODO: missing optimisations, as many components are computed
+  * again and again for each images (as for others registration
+  * algorithms, it seems).
+  */
+int register_kombat(struct registration_args *args) {
+	fits fit_templ = { 0 };
+	fits fit_ref = { 0 };
+
+	regdata *current_regdata;
+	struct timeval t_start, t_end;
+	float nb_frames, cur_nb = 0;
+	double q_max = 0, q_min = DBL_MAX;
+	double qual;
+	int frame;
+	int ref_idx;
+	int ret;
+	int abort = 0;
+	rectangle full = { 0 };
+	int q_index = -1;
+
+	reg_kombat ref_align;
+
+	if (args->seq->regparam[args->layer]) {
+	    	siril_log_message(
+		    		_("Recomputing already existing registration for this layer\n"));
+		    current_regdata = args->seq->regparam[args->layer];
+		    /* we reset all values as we may register different images */
+		    memset(current_regdata, 0, args->seq->number * sizeof(regdata));
+	} else {
+		    current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
+		    if (current_regdata == NULL) {
+    			PRINT_ALLOC_ERR;
+	    		return 1;
+    		}
+	    	args->seq->regparam[args->layer] = current_regdata;
+	}
+
+	if (args->process_all_frames)
+		nb_frames = (float) args->seq->number;
+	else
+		nb_frames = (float) args->seq->selnum;
+
+	/* loading reference frame */
+	ref_idx = sequence_find_refimage(args->seq);
+	q_index = ref_idx;
+
+	set_progress_bar_data(
+			_("Register using KOMBAT: loading and processing reference frame"),
+			PROGRESS_NONE);
+
+	/* we want pattern (the selection) to be located on each image */
+	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
+			&args->selection, FALSE, -1);
+
+	/* we load reference image just to get dimensions of images,
+	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
+	seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
+	full.x = full.y = 0;
+	full.w = fit_ref.rx;
+	full.h = fit_ref.ry;
+
+	if (ret || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
+		siril_log_message(
+				_("Register: could not load first image to register, aborting.\n"));
+		args->seq->regparam[args->layer] = NULL;
+		free(current_regdata);
+		clearfits(&fit_templ);
+		return 1;
+	}
+
+	gettimeofday(&t_start, NULL);
+	set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
+
+	/* we want pattern position on the reference image */
+	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL, NULL);
+
+	/* main part starts here */
+	int max_threads;
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads() + 1;
+#else
+		max_threads = 1;
+	#endif
+
+	void *caches[max_threads];
+	for (int i = 0; i < max_threads; i++)
+		caches[i] = NULL;
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+#endif
+		for (frame = 0; frame < args->seq->number; frame++) {
+			if (abort)
+				continue;
+			if (args->run_in_thread && !get_thread_run()) {
+				abort = 1;
+				continue;
+			}
+
+			if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
+				continue;
+
+			fits cur_fit = { 0 };
+			char tmpmsg[1024], tmpfilename[256];
+
+			seq_get_image_filename(args->seq, frame, tmpfilename);
+			g_snprintf(tmpmsg, 1024, _("Register: processing image %s"),
+					tmpfilename);
+			set_progress_bar_data(tmpmsg, PROGRESS_NONE);
+			int thread_id = -1;
+#ifdef _OPENMP
+			thread_id = omp_get_thread_num();
+#endif
+
+			if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
+				siril_log_message(_("Cannot perform KOMBAT alignment for frame %d\n"), frame + 1);
+				/* we exclude this frame */
+				_register_kombat_disable_frame(args, current_regdata, frame);
+				continue;
+			} else {
+				qual = QualityEstimate(&cur_fit, args->layer);
+				current_regdata[frame].quality = qual;
+				if (frame == ref_idx) {
+					clearfits(&cur_fit);
+					continue;
+				}
+			}
+
+			/* we want pattern position on any single image */
+			reg_kombat cur_align;
+			if (kombat_find_template(frame, args, &fit_templ, &cur_fit,
+					&cur_align, &ref_align, &(caches[thread_id + 1]))) {
+				siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"),	"red", frame);
+				/* we exclude this frame too */
+				_register_kombat_disable_frame(args, current_regdata, frame);
+			} else {
+				set_shifts(args->seq, frame, args->layer,
+						ref_align.dx - cur_align.dx,
+						(ref_align.dy - cur_align.dy), cur_fit.top_down);
+			}
+
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+			cur_nb += 1.f;
+			set_progress_bar_data(NULL, cur_nb / nb_frames);
+
+			// We don't need fit anymore, we can destroy it.
+			clearfits(&cur_fit);
+		}
+
+	siril_log_message(_("Registration finished.\n"));
+
+	for (frame = 0; frame < args->seq->number; frame++) {
+		if (args->seq->imgparam[frame].incl) {
+			qual = current_regdata[frame].quality;
+			q_min = min(q_min, qual);
+			if (qual>q_max) {
+				q_max = qual;
+				q_index = frame;
+			}
+		}
+	}
+	normalizeQualityData(args, q_min, q_max);
+
+	clearfits(&fit_templ);
+	clearfits(&fit_ref);
+
+	siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
+
+	for (int i = 0; i < max_threads; i++)
+		kombat_done(&caches[i]);
+
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	return 0;
 }
 
 /* register images: calculate shift in images to be aligned with the reference image;
@@ -524,147 +730,6 @@ int register_shift_fwhm(struct registration_args *args) {
 	siril_log_message(_("Registration finished.\n"));
 	siril_log_color_message(_("Best frame: #%d with fwhm=%.3g.\n"), "bold",
 			fwhm_index + 1, fwhm_min);
-	return 0;
-}
-
-int register_ecc(struct registration_args *args) {
-	int frame, ref_image, failed = 0;
-	float nb_frames, cur_nb;
-	regdata *current_regdata;
-	fits ref = { 0 };
-	double q_max = 0, q_min = DBL_MAX;
-	int q_index = -1;
-	int abort = 0;
-
-	if (args->seq->regparam[args->layer]) {
-		current_regdata = args->seq->regparam[args->layer];
-		/* we reset all values as we may register different images */
-		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
-	} else {
-		current_regdata = calloc(args->seq->number, sizeof(regdata));
-		if (current_regdata == NULL) {
-			PRINT_ALLOC_ERR;
-			return -2;
-		}
-		args->seq->regparam[args->layer] = current_regdata;
-	}
-
-	if (args->process_all_frames)
-		nb_frames = (float)args->seq->number;
-	else nb_frames = (float)args->seq->selnum;
-
-	/* loading reference frame */
-	ref_image = sequence_find_refimage(args->seq);
-
-	if (seq_read_frame(args->seq, ref_image, &ref, FALSE, -1)) {
-		siril_log_message(_("Could not load reference image\n"));
-		args->seq->regparam[args->layer] = NULL;
-		free(current_regdata);
-		return 1;
-	}
-	current_regdata[ref_image].quality = QualityEstimate(&ref, args->layer);
-	/* we make sure to free data in the destroyed fit */
-	clearfits(&ref);
-	/* Ugly code: as QualityEstimate destroys fit we need to reload it */
-	seq_read_frame(args->seq, ref_image, &ref, FALSE, -1);
-	image_find_minmax(&ref);
-	q_min = q_max = current_regdata[ref_image].quality;
-	q_index = ref_image;
-
-	/* then we compare to other frames */
-	if (args->process_all_frames)
-		args->new_total = args->seq->number;
-	else args->new_total = args->seq->selnum;
-
-	cur_nb = 0.f;
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
-	if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
-#endif
-	for (frame = 0; frame < args->seq->number; frame++) {
-		if (abort) continue;
-		if (args->run_in_thread && !get_thread_run()) {
-			abort = 1;
-			continue;
-		}
-		if (frame == ref_image) continue;
-		if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
-			continue;
-
-		set_shifts(args->seq, frame, args->layer, 0.0, 0.0, FALSE);
-		fits im = { 0 };
-		char tmpmsg[1024], tmpfilename[256];
-
-		seq_get_image_filename(args->seq, frame, tmpfilename);
-		g_snprintf(tmpmsg, 1024, _("Register: processing image %s"),
-				tmpfilename);
-		set_progress_bar_data(tmpmsg, PROGRESS_NONE);
-		int thread_id = -1;
-#ifdef _OPENMP
-		thread_id = omp_get_thread_num();
-#endif
-		if (!seq_read_frame(args->seq, frame, &im, FALSE, thread_id)) {
-			reg_ecc reg_param = { 0 };
-			image_find_minmax(&im);
-
-			if (findTransform(&ref, &im, args->layer, &reg_param)) {
-				siril_log_message(
-						_("Cannot perform ECC alignment for frame %d\n"),
-						frame + 1);
-				/* We exclude this frame */
-				args->seq->imgparam[frame].incl = FALSE;
-				current_regdata[frame].quality = 0.0;
-				args->seq->selnum--;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				++failed;
-				clearfits(&im);
-				continue;
-			}
-
-			current_regdata[frame].quality = QualityEstimate(&im,
-					args->layer);
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-			{
-				double qual = current_regdata[frame].quality;
-				if (qual > q_max) {
-					q_max = qual;
-					q_index = frame;
-				}
-				q_min = min(q_min, qual);
-			}
-
-			set_shifts(args->seq, frame, args->layer, -reg_param.dx,
-					-reg_param.dy, im.top_down);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb += 1.f;
-			set_progress_bar_data(NULL, cur_nb / nb_frames);
-			clearfits(&im);
-		}
-	}
-
-	if (args->x2upscale)
-		args->seq->upscale_at_stacking = 2.0;
-	else
-		args->seq->upscale_at_stacking = 1.0;
-
-	normalizeQualityData(args, q_min, q_max);
-	clearfits(&ref);
-
-	siril_log_message(_("Registration finished.\n"));
-	if (failed) {
-		gchar *str = ngettext("%d file was ignored and excluded\n", "%d files were ignored and excluded\n", failed);
-		str = g_strdup_printf(str, failed);
-		siril_log_color_message(str, "red");
-		g_free(str);
-	}
-	siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
-
 	return 0;
 }
 
@@ -772,6 +837,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
 		} else if (method->method_ptr == &register_3stars) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
+		} else if (method->method_ptr == &register_kombat) {
+			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
 		}
 		gtk_widget_set_visible(follow, method->method_ptr == &register_shift_fwhm);
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
@@ -899,11 +966,11 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
 	struct registration_method *method;
 	char *msg;
-	GtkToggleButton *regall, *follow, *matchSel, *no_translate, *x2upscale,
+	GtkToggleButton *follow, *matchSel, *no_translate, *x2upscale,
 			*cumul;
 	GtkComboBox *cbbt_layers;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
-	GtkSpinButton *minpairs;
+	GtkSpinButton *minpairs, *percent_moved;
 
 	if (!reserve_thread()) {	// reentrant from here
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -934,7 +1001,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	/* filling the arguments for registration */
-	regall = GTK_TOGGLE_BUTTON(lookup_widget("regallbutton"));
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
 	no_translate = GTK_TOGGLE_BUTTON(lookup_widget("regTranslationOnly"));
@@ -943,13 +1009,13 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
 	cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
 	minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
+	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
-	reg_args->process_all_frames = gtk_toggle_button_get_active(regall);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
 	reg_args->translation_only = gtk_toggle_button_get_active(no_translate);
@@ -957,6 +1023,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
+	reg_args->percent_moved = (float) gtk_spin_button_get_value(percent_moved) / 100.f;
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
@@ -1069,3 +1136,4 @@ static gboolean end_register_idle(gpointer p) {
 	free(args);
 	return FALSE;
 }
+

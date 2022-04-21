@@ -28,6 +28,7 @@ typedef enum {
 	REG_PAGE_GLOBAL,
 	REG_PAGE_COMET,
 	REG_PAGE_3_STARS,
+	REG_PAGE_KOMBAT,
 	REG_PAGE_MISC
 } reg_notebook_page;
 
@@ -55,6 +56,7 @@ struct registration_args {
 	int min_pairs;			// Minimum number of star pairs for success
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
 	transformation_type type;   // Use affine transform  or homography
+	float percent_moved; // for KOMBAT algorithm
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean translation_only;	// don't rotate images => no new sequence
@@ -82,7 +84,6 @@ struct registration_method * get_selected_registration_method();
 int register_shift_dft(struct registration_args *args);
 int register_shift_fwhm(struct registration_args *args);
 int register_star_alignment(struct registration_args *args);
-int register_ecc(struct registration_args *args);
 int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 void reset_3stars();
