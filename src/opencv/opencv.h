@@ -15,6 +15,9 @@ extern "C" {
 #include "registration/matching/atpmatch.h"
 #include "gui/progress_and_log.h"
 
+WORD *fits_to_bgrbgr_ushort(fits *image);
+float *fits_to_bgrbgr_float(fits *image);
+
 int cvResizeGaussian(fits *, int, int, int);
 
 int cvRotateImage(fits *, point, double, int, int);
