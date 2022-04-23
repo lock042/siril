@@ -409,7 +409,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2rr  = smooth_image[yy][xx + i + 1] + smooth_image[yy][xx + i - 1] - 2 * smooth_image[yy][xx + i    ];
 				d2rrr = smooth_image[yy][xx + i + 2] + smooth_image[yy][xx + i    ] - 2 * smooth_image[yy][xx + i + 1];
-				while ((d2rrr < 0) && ((xx + i + 2) <= areaX1 - 1)) {
+				while ((d2rrr < 0) && ((xx + i + 2) < areaX1 - 1)) {
 					i++;
 					d2rr = d2rrr;
 					d2rrr = smooth_image[yy][xx + i + 2] + smooth_image[yy][xx + i] - 2 * smooth_image[yy][xx + i + 1];
@@ -422,7 +422,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2rl  = smooth_image[yy][xx - i - 1] + smooth_image[yy][xx - i + 1] - 2 * smooth_image[yy][xx + i    ];
 				d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i    ] - 2 * smooth_image[yy][xx - i - 1];
-				while ((d2rll < 0) && ((xx - i - 2) >= areaX0 + 1)) {
+				while ((d2rll < 0) && ((xx - i - 2) > areaX0 + 1)) {
 					i++;
 					d2rl = d2rll;
 					d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i] - 2 * smooth_image[yy][xx - i - 1];
@@ -435,7 +435,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2cd  = smooth_image[yy + i + 1][xx] + smooth_image[yy + i - 1][xx] - 2 * smooth_image[yy + i    ][xx];
 				d2cdd = smooth_image[yy + i + 2][xx] + smooth_image[yy + i    ][xx] - 2 * smooth_image[yy + i + 1][xx];
-				while ((d2cdd < 0) && ((yy + i + 2) <= areaY1 - 1)) {
+				while ((d2cdd < 0) && ((yy + i + 2) < areaY1 - 1)) {
 					i++;
 					d2cd = d2cdd;
 					d2cdd = smooth_image[yy + i + 2][xx] + smooth_image[yy + i][xx] - 2 * smooth_image[yy + i + 1][xx];
@@ -448,7 +448,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2cu =  smooth_image[yy - i - 1][xx] + smooth_image[yy - i + 1][xx] - 2 * smooth_image[yy + i    ][xx];
 				d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i    ][xx] - 2 * smooth_image[yy - i - 1][xx];
-				while ((d2cuu < 0) && ((yy - i - 2) >= areaY0 + 1)) {
+				while ((d2cuu < 0) && ((yy - i - 2) > areaY0 + 1)) {
 					i++;
 					d2cu = d2cuu;
 					d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i][xx] - 2 * smooth_image[yy - i - 1][xx];
