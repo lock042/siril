@@ -375,11 +375,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				mean of 9 central pixels must be above mean of the whole search box excluding them
 				i.e, an approximation of the local background, by a significant amount
 				*/
-				meanhigh = (meanhigh + pixel) / 9;
-				if (meanhigh - mean <= locthreshold) { 
-					bingo = FALSE;
-					continue;
-				}
+				// meanhigh = (meanhigh + pixel) / 9;
+				// if (meanhigh - mean <= locthreshold) { 
+				// 	bingo = FALSE;
+				// 	continue;
+				// }
+				/*This check has been moved later on and done with the amplitude 
+				so that the initial search box size does not influence the outcome
+				Could miss weak stars when to much of the "mean" variable was polluted
+				by large stars for small sampling images*/
 
 				// first derivatives. r c is for row and column. l, r, u, d for left, right, up and down
 				int xx = x - r, yy = y;
@@ -479,7 +483,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float dA = max(Ar,Ac)/min(Ar,Ac);
 				float dSr = max(-srl,srr)/min(-srl,srr);
 				float dSc = max(-scu,scd)/min(-scu,scd);
-				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.))  bingo = FALSE;
+				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || max(Ar,Ac) < locthreshold)  bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
 					candidates[nbstars].x = xx;
