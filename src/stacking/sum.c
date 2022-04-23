@@ -137,7 +137,6 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	if (args->retval) {
 		if (ssdata->sum[0]) free(ssdata->sum[0]);
 		if (ssdata->fsum[0]) free(ssdata->fsum[0]);
-		free(ssdata);
 		args->user = NULL;
 		return args->retval;
 	}
