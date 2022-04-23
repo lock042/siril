@@ -121,6 +121,8 @@ static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
 		return FALSE;
 	if ((result->fwhmy / result->fwhmx) < sf->roundness)
 		return FALSE;
+	if (((result->rmse / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) //  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
+		return FALSE;
 	return TRUE;
 }
 
@@ -483,7 +485,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float dA = max(Ar,Ac)/min(Ar,Ac);
 				float dSr = max(-srl,srr)/min(-srl,srr);
 				float dSc = max(-scu,scd)/min(-scu,scd);
-				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || max(Ar,Ac) < locthreshold)  bingo = FALSE;
+				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
 					candidates[nbstars].x = xx;
