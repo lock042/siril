@@ -389,12 +389,14 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
 		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
 		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+		cvGetEye(&regargs->regparam[out_index].H);
 
 		if (regargs->x2upscale) {
 			fit->pixel_size_x /= 2;
 			fit->pixel_size_y /= 2;
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
+			//TODO: do we need to scale-up the H matrix here?
 		}
 	} else {
 		set_shifts(args->seq, in_index, regargs->layer, (float) H.h02,
