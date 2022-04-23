@@ -1439,14 +1439,30 @@ int process_set_findstar(int nb) {
 			}
 		}
 	}
-
-	com.starfinder_conf.sigma = sigma;
-	com.starfinder_conf.roundness = roundness;
-	com.starfinder_conf.radius = radius;
-	com.starfinder_conf.focal_length = focal_length;
-	com.starfinder_conf.pixel_size_x = pixel_size_x;
-	com.starfinder_conf.adjust = adjust;
-
+	if (com.starfinder_conf.sigma != sigma) {
+		siril_log_message(_("sigma = %3.2f\n"), sigma);
+		com.starfinder_conf.sigma = sigma;
+	}
+	if (com.starfinder_conf.roundness != roundness) {
+		siril_log_message(_("roundness = %3.2f\n"), roundness);
+		com.starfinder_conf.roundness = roundness;
+	}
+	if (com.starfinder_conf.radius != radius) {
+		siril_log_message(_("radius = %d\n"), radius);
+		com.starfinder_conf.radius = radius;
+	}
+	if (com.starfinder_conf.focal_length != focal_length) {
+		siril_log_message(_("focal = %3.1f\n"), focal_length);
+		com.starfinder_conf.focal_length = focal_length;
+	}
+	if (com.starfinder_conf.pixel_size_x != pixel_size_x) {
+		siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
+		com.starfinder_conf.pixel_size_x = pixel_size_x;
+	}
+	if (com.starfinder_conf.adjust != adjust) {
+		siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
+		com.starfinder_conf.adjust = adjust;
+	}
 	return 0;
 }
 
