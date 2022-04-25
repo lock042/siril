@@ -88,7 +88,7 @@
 #define STR_ROTATE N_("Rotates the image by an angle of <b>degree</b> value. The option <b>-nocrop</b> can be added to avoid the cropping")
 #define STR_ROTATEPI N_("Rotates the image of an angle of 180° around its center. This is equivalent to the command \"ROTATE 180\" or \"ROTATE -180\"")
 
-#define STR_SATU N_("Enhances the global saturation of the image. Try iteratively to obtain best results")
+#define STR_SATU N_("Enhances the color saturation of the loaded image. Try iteratively to obtain best results.\n<b>amount</b> can be a positive number to increase color saturation, negative to decrease it, 0 would do nothing, 1 would increase it by 100%\n<b>background_factor</b> is a sigma factor to set a threshold for which only pixels above it would be modified. This allows background noise to not be color saturated, if chosen carefully. Defaults to 1\n<b>hue_range_index</b> can be [0, 6], meaning: 0 for pink to orange, 1 for orange to yellow, 2 for yellow to cyan, 3 for cyan, 4 for cyan to magenta, 5 for magenta to pink, 6 for all (default)")
 #define STR_SAVE N_("Saves current image to <b>filename</b>.fit (or .fits, depending on your preferences, see SETEXT). Fits headers MIPS-HI and MIPS-LO are added with values corresponding to the current viewing levels")
 #define STR_SAVEBMP N_("Saves current image under the form of a bitmap file with 8-bit per channel: <b>filename</b>.bmp (BMP 24-bit)")
 #define STR_SAVEJPG N_("Saves current image into a JPG file: <b>filename</b>.jpg.\n\nYou have the possibility to adjust the quality of the compression. A value 100 for <b>quality</b> parameter offers best fidelity while a low value increases the compression ratio. If no value is specified, a default value of 100 is applied")

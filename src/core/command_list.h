@@ -116,7 +116,7 @@ static command commands[] = {
 	{"rotate", 1, "rotate degree [-nocrop]", process_rotate, STR_ROTATE, TRUE},
 	{"rotatePi", 0, "rotatePi", process_rotatepi, STR_ROTATEPI, TRUE},
 
-	{"satu", 1, "satu coeff", process_satu, STR_SATU, TRUE},
+	{"satu", 1, "satu amount [background_factor [hue_range_index]]", process_satu, STR_SATU, TRUE},
 	{"save", 1, "save filename", process_save, STR_SAVE, TRUE},
 	{"savebmp", 1, "savebmp filename", process_savebmp, STR_SAVEBMP, TRUE},
 #ifdef HAVE_LIBJPEG

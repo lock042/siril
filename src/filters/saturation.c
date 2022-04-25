@@ -66,17 +66,8 @@ static void apply_satu_changes() {
 	satu_close(!status);
 }
 
-static int satu_update_preview() {
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return 1;
-	}
-
-	set_cursor_waiting(TRUE);
-
-	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
-
-	switch (satu_hue_type) {
+void satu_set_hues_from_types(struct enhance_saturation_data *args, int type) {
+	switch (type) {
 		case 0:		// Pink-Red to Red-Orange
 			args->h_min = 346.0;
 			args->h_max = 20.0;
@@ -106,11 +97,25 @@ static int satu_update_preview() {
 			args->h_min = 0.0;
 			args->h_max = 360.0;
 	}
+}
+
+static int satu_update_preview() {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	set_cursor_waiting(TRUE);
+
+	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	satu_set_hues_from_types(args, satu_hue_type);
 
 	args->input = satu_show_preview ? get_preview_gfit_backup() : &gfit;
 	args->output = &gfit;
 	args->coeff = satu_amount;
 	args->background_factor = background_factor;
+	args->from_thread = TRUE;
+
 	start_in_new_thread(enhance_saturation, args);
 
 	return 0;
@@ -152,7 +157,8 @@ gpointer enhance_saturation_ushort(gpointer p) {
 		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
-			siril_add_idle(end_generic, args);
+			if (args->from_thread)
+				siril_add_idle(end_generic, NULL);
 			free(args);
 			return GINT_TO_POINTER(1);
 		}
@@ -194,7 +200,8 @@ gpointer enhance_saturation_ushort(gpointer p) {
 	}
 	invalidate_stats_from_fit(args->output);
 
-	siril_add_idle(end_generic, args);
+	if (args->from_thread)
+		siril_add_idle(end_generic, NULL);
 	free(args);
 
 	return GINT_TO_POINTER(0);
@@ -215,7 +222,8 @@ static gpointer enhance_saturation_float(gpointer p) {
 		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
-			siril_add_idle(end_generic, args);
+			if (args->from_thread)
+				siril_add_idle(end_generic, NULL);
 			free(args);
 			return GINT_TO_POINTER(1);
 		}
@@ -259,7 +267,8 @@ static gpointer enhance_saturation_float(gpointer p) {
 		out[BLAYER][i] = b;
 	}
 	invalidate_stats_from_fit(args->output);
-	siril_add_idle(end_generic, args);
+	if (args->from_thread)
+		siril_add_idle(end_generic, NULL);
 	free(args);
 
 	return GINT_TO_POINTER(0);

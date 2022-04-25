@@ -142,14 +142,31 @@ int process_satu(int nb){
 	}
 
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
-	
+	args->background_factor = 1.0;
 	args->coeff = g_ascii_strtod(word[1], NULL);
+	if (nb > 2) {
+		args->background_factor = g_ascii_strtod(word[2], NULL);
+		if (args->background_factor < 0.0) {
+			siril_log_message(_("Background factor must be positive\n"));
+			free(args);
+			return 1;
+		}
+	}
+	int satu_hue_type = 6;
+	if (nb > 3) {
+		satu_hue_type = g_ascii_strtoull(word[3], NULL, 10);
+		if (satu_hue_type > 6) {
+			siril_log_message(_("Hue range must be [0, 6]\n"));
+			free(args);
+			return 1;
+		}
+	}
 
+	satu_set_hues_from_types(args, satu_hue_type);
 	args->input = &gfit;
 	args->output = &gfit;
-	args->h_min = 0.0;
-	args->h_max = 360.0;
-	args->background_factor = 1.0;
+	args->from_thread = FALSE;
+	siril_log_message(_("Applying saturation enhancement of %d%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
 
 	set_cursor_waiting(TRUE);
 	enhance_saturation(args);
@@ -158,7 +175,6 @@ int process_satu(int nb){
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
-
 	return 0;
 }
 
