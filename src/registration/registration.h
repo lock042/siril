@@ -118,4 +118,6 @@ int star_align_finalize_hook(struct generic_seq_args *args);
 
 const char *describe_transformation_type(transformation_type type);
 
+void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
+
 #endif

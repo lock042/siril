@@ -39,6 +39,8 @@ void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped,
 
 void cvGetEye(Homography *H);
 
+void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg);
+
 #ifdef __cplusplus
 }
 #endif

@@ -35,6 +35,7 @@
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
+#include "registration/registration.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -196,14 +197,8 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 
 		if (args->partial_image) {
-			// if we run in parallel, it will not be the same for all
-			// and we don't want to overwrite the original anyway
-			if (args->regdata_for_partial) {
-				int shiftx = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shiftx);
-				int shifty = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shifty);
-				area.x -= shiftx;
-				area.y += shifty;
-			}
+			if (args->regdata_for_partial)
+				selection_H_transform(&area, args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H, args->seq->regparam[args->layer_for_partial][input_idx].H);
 
 			// args->area may be modified in hooks
 			enforce_area_in_image(&area, args->seq);
@@ -221,7 +216,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			  sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
 			  savefits(tmpfn, fit);*/
 		} else {
-			// image is obtained bottom to top here, while it's in natural order for partial images!
+			// image is read bottom-up here, while it's top-down for partial images
 			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);

@@ -70,6 +70,7 @@
 #include "algos/geometry.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
+#include "opencv/opencv.h"
 
 #include "sequence.h"
 
@@ -1711,8 +1712,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (seq->regparam[layer] && seq->current >= 0) {
-		args->area.x += seq->regparam[layer][seq->current].shiftx;
-		args->area.y -= seq->regparam[layer][seq->current].shifty;
+		// transform selection back from current to ref frame coordinates
+		selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
 		if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
 				args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
 			siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");

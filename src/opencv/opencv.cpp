@@ -391,6 +391,22 @@ void cvGetEye(Homography *Hom) {
 	convert_MatH_to_H(M, Hom);
 }
 
+void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
+	Mat_<double> ref(3,1);
+	Mat_<double> dst;
+	Mat H0 = Mat(3, 3, CV_64FC1);
+	Mat H1 = Mat(3, 3, CV_64FC1);
+
+	ref(0,0) = *x;
+	ref(1,0) = *y;
+	ref(2,0) = 1.;
+	convert_H_to_MatH(&Href, H0);
+	convert_H_to_MatH(&Himg, H1);
+	dst = H1.inv() * H0 * ref;
+	*x = dst(0,0);
+	*y = dst(1,0);
+}
+
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type) {
 

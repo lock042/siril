@@ -1137,3 +1137,14 @@ static gboolean end_register_idle(gpointer p) {
 	return FALSE;
 }
 
+/* Moves the selection x, and y after transformation by Href^-1*Him */
+void selection_H_transform(rectangle *selection, Homography Href, Homography Himg) {
+	double xc, yc;
+	xc = (double)selection->x + (double)selection->w * 0.5;
+	yc = (double)selection->y + (double)selection->h * 0.5;
+	cvTransfPoint(&xc, &yc, Href, Himg);
+	selection->x = (int)(xc - (double)selection->w * 0.5);
+	selection->y = (int)(yc - (double)selection->h * 0.5);
+	// siril_log_message(_("boxselect %d %d %d %d\n"), selection->x, selection->y, selection->w, selection->h);
+}
+
