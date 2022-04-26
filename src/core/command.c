@@ -165,17 +165,11 @@ int process_satu(int nb){
 	satu_set_hues_from_types(args, satu_hue_type);
 	args->input = &gfit;
 	args->output = &gfit;
-	args->from_thread = FALSE;
+	args->for_preview = FALSE;
 	siril_log_message(_("Applying saturation enhancement of %d%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
 
 	set_cursor_waiting(TRUE);
-	enhance_saturation(args);
-
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
-	return 0;
+	return GPOINTER_TO_INT(enhance_saturation(args));
 }
 
 int process_save(int nb){
@@ -184,8 +178,10 @@ int process_save(int nb){
 
 	gchar *filename = g_strdup(word[1]);
 	set_cursor_waiting(TRUE);
-	gfit.lo = gui.lo;
-	gfit.hi = gui.hi;
+	if (!com.script) {
+		gfit.lo = gui.lo;
+		gfit.hi = gui.hi;
+	}
 	int retval = savefits(filename, &gfit);
 	set_precision_switch();
 	set_cursor_waiting(FALSE);
@@ -2299,13 +2295,19 @@ int process_scnr(int nb){
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
 	
-	args->type = g_ascii_strtoull(word[1], NULL, 10);
+	if (nb > 1) {
+		args->type = g_ascii_strtoull(word[1], NULL, 10);
+		if (args->type > 1) {
+			siril_log_message(_("Type can either be 0 (average) or 1 (maximum) neutral protection\n"));
+			free(args);
+			return 1;
+		}
+	}
 	args->fit = &gfit;
 	args->amount = 0.0;
 	args->preserve = TRUE;
 
 	start_in_new_thread(scnr, args);
-
 	return 0;
 }
 

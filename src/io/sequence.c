@@ -559,7 +559,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
 	clear_stars_list(TRUE);
-	clear_histograms();
+	invalidate_gfit_histogram();
 	undo_flush();
 	close_single_image();
 	clearfits(&gfit);

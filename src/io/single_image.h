@@ -11,8 +11,10 @@ int image_find_minmax(fits *fit);
 double fit_get_max(fits *fit, int layer);
 double fit_get_min(fits *fit, int layer);
 void init_layers_hi_and_lo_values(sliders_mode force_minmax);
-void adjust_cutoff_from_updated_gfit();		// was level_adjust()
 void unique_free_preprocessing_data(single *uniq);
 int single_image_is_loaded();
+
+void adjust_cutoff_from_updated_gfit();		// was level_adjust(), deprecated too
+void notify_gfit_modified();		// to be called after all gfit modifications
 
 #endif

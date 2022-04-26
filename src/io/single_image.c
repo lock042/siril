@@ -151,7 +151,7 @@ void free_image_data() {
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 	clearfits(&gfit);
 
-	clear_histograms();
+	invalidate_gfit_histogram();
 
 	if (com.uniq) {
 		free(com.uniq->filename);
@@ -358,18 +358,51 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	}
 }
 
+int single_image_is_loaded() {
+	return (com.uniq != NULL && com.uniq->nb_layers > 0);
+}
+
+/**************** updating the single image *******************/
+
 /* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
+/* deprecated, use notify_gfit_modified() instead */
 void adjust_cutoff_from_updated_gfit() {
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 	if (!com.script) {
-		compute_histo_for_gfit();
+		update_gfit_histogram_if_needed();
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
 	}
 }
 
-int single_image_is_loaded() {
-	return (com.uniq != NULL && com.uniq->nb_layers > 0);
+/* generic idle function for end of operation on gfit */
+static gboolean end_gfit_operation() {
+	// this function should not contain anything required by the execution
+	// of the operation because it won't be run in headless
+
+	siril_debug_print("end of gfit operation - idle function\n");
+	stop_processing_thread();
+
+	update_gfit_histogram_if_needed();
+
+	// compute new min and max if needed for display and update sliders
+	init_layers_hi_and_lo_values(gui.sliders);
+	set_cutoff_sliders_values();
+
+	redraw(REMAP_ALL);	// queues a redraw if !com.script
+	redraw_previews();	// queues redraws if !com.script
+	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
+	return FALSE;
+}
+
+/* to be called after each operation that modifies the content of gfit, at the
+ * end of a processing operation, not for previews */
+void notify_gfit_modified() {
+	siril_debug_print("end of gfit operation\n");
+	invalidate_stats_from_fit(&gfit);
+	invalidate_gfit_histogram();
+
+	siril_add_idle(end_gfit_operation, NULL);
 }
 

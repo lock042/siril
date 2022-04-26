@@ -21,7 +21,6 @@ gsl_histogram* computeHisto_Selection(fits*, int, rectangle *);
 void compute_histo_for_gfit();
 void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();
-void clear_histograms();
 void apply_histo_cancel();
 void toggle_histogram_window_visibility();
 

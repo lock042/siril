@@ -57,9 +57,8 @@ static void satu_close(gboolean revert) {
 				_("Saturation enhancement (amount=%4.2lf)"), satu_amount);
 	}
 	clear_backup();
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 }
-
 
 static void apply_satu_changes() {
 	gboolean status = satu_amount != 0.0;
@@ -114,7 +113,7 @@ static int satu_update_preview() {
 	args->output = &gfit;
 	args->coeff = satu_amount;
 	args->background_factor = background_factor;
-	args->from_thread = TRUE;
+	args->for_preview = TRUE;
 
 	start_in_new_thread(enhance_saturation, args);
 
@@ -142,9 +141,9 @@ void on_satu_dialog_close(GtkDialog *dialog, gpointer user_data) {
 	apply_satu_changes();
 }
 
-gpointer enhance_saturation_ushort(gpointer p) {
+static int enhance_saturation_ushort(gpointer p) {
 	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
-	double bg = 0;
+	double bg = 0.0;
 
 	WORD *in[3] = { args->input->pdata[RLAYER], args->input->pdata[GLAYER],
 		args->input->pdata[BLAYER] };
@@ -157,59 +156,53 @@ gpointer enhance_saturation_ushort(gpointer p) {
 		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
-			if (args->from_thread)
-				siril_add_idle(end_generic, NULL);
-			free(args);
-			return GINT_TO_POINTER(1);
+			return 1;
 		}
-		bg = stat->median + stat->sigma;
+		bg = (stat->median + stat->sigma) * args->background_factor;
 		bg /= stat->normValue;
-		bg *= args->background_factor;
 		free_stats(stat);
 	}
+	siril_debug_print("threshold for saturation: %f\n", bg);
 
+	gboolean loop_range = args->h_min > args->h_max;
+	double s_mult = 1.0 + args->coeff;
+	float h_min = args->h_min;
+	float h_max = args->h_max;
+	double norm = args->input->bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
+	double invnorm = 1.0 / norm;
 	size_t i, n = args->input->naxes[0] * args->input->naxes[1];
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
 #endif
 	for (i = 0; i < n; i++) {
 		double h, s, l;
-		double r = (double) in[RLAYER][i] / USHRT_MAX_DOUBLE;
-		double g = (double) in[GLAYER][i] / USHRT_MAX_DOUBLE;
-		double b = (double) in[BLAYER][i] / USHRT_MAX_DOUBLE;
+		double r = in[RLAYER][i] * invnorm;
+		double g = in[GLAYER][i] * invnorm;
+		double b = in[BLAYER][i] * invnorm;
 		rgb_to_hsl(r, g, b, &h, &s, &l);
 		if (l > bg) {
-			if (args->h_min > args->h_max) {// Red case. TODO: find a nicer way to do it
-				if (h >= args->h_min || h <= args->h_max) {
-					s += (s * args->coeff);
-				}
+			if (loop_range) {
+				if (h >= h_min || h <= h_max)
+					s *= s_mult;
 			} else {
-				if (h >= args->h_min && h <= args->h_max) {
-					s += (s * args->coeff);
-				}
+				if (h >= h_min && h <= h_max)
+					s *= s_mult;
 			}
-			if (s < 0.0)
-				s = 0.0;
-			else if (s > 1.0)
-				s = 1.0;
+			if (s < 0.0) s = 0.0;
+			else if (s > 1.0) s = 1.0;
+
+			hsl_to_rgb(h, s, l, &r, &g, &b);
 		}
-		hsl_to_rgb(h, s, l, &r, &g, &b);
-		out[RLAYER][i] = round_to_WORD(r * USHRT_MAX_DOUBLE);
-		out[GLAYER][i] = round_to_WORD(g * USHRT_MAX_DOUBLE);
-		out[BLAYER][i] = round_to_WORD(b * USHRT_MAX_DOUBLE);
+		out[RLAYER][i] = round_to_WORD(r * norm);
+		out[GLAYER][i] = round_to_WORD(g * norm);
+		out[BLAYER][i] = round_to_WORD(b * norm);
 	}
-	invalidate_stats_from_fit(args->output);
-
-	if (args->from_thread)
-		siril_add_idle(end_generic, NULL);
-	free(args);
-
-	return GINT_TO_POINTER(0);
+	return 0;
 }
 
-static gpointer enhance_saturation_float(gpointer p) {
+static int enhance_saturation_float(gpointer p) {
 	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
-	float bg = 0;
+	float bg = 0.0f;
 
 	float *in[3] = { args->input->fpdata[RLAYER], args->input->fpdata[GLAYER],
 		args->input->fpdata[BLAYER] };
@@ -222,19 +215,16 @@ static gpointer enhance_saturation_float(gpointer p) {
 		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
-			if (args->from_thread)
-				siril_add_idle(end_generic, NULL);
-			free(args);
-			return GINT_TO_POINTER(1);
+			return 1;
 		}
-		bg = stat->median + stat->sigma;
+		bg = (stat->median + stat->sigma) * args->background_factor;
 		bg /= stat->normValue;
-		bg *= args->background_factor;
 		free_stats(stat);
 	}
+	siril_debug_print("threshold for saturation: %f\n", bg);
 
+	gboolean loop_range = args->h_min > args->h_max;
 	float s_mult = 1.f + args->coeff;
-	gboolean red_case = args->h_min > args->h_max;
 	float h_min = args->h_min;
 	float h_max = args->h_max;
 
@@ -247,42 +237,42 @@ static gpointer enhance_saturation_float(gpointer p) {
 		float r = in[RLAYER][i];
 		float g = in[GLAYER][i];
 		float b = in[BLAYER][i];
-
 		rgb_to_hsl_float_sat(r, g, b, bg, &h, &s, &l);
 		if (l > bg) {
-			if (red_case) {// Red case. TODO: find a nicer way to do it
-				if (h >= h_min || h <= h_max) {
+			if (loop_range) {
+				if (h >= h_min || h <= h_max)
 					s *= s_mult;
-				}
 			} else {
-				if (h >= h_min && h <= h_max) {
+				if (h >= h_min && h <= h_max)
 					s *= s_mult;
-				}
 			}
-			s = s > 1.f ? 1.f : s;
+			if (s < 0.f) s = 0.f;
+			else if (s > 1.f) s = 1.f;
+
 			hsl_to_rgb_float_sat(h, s, l, &r, &g, &b);
 		}
 		out[RLAYER][i] = r;
 		out[GLAYER][i] = g;
 		out[BLAYER][i] = b;
 	}
-	invalidate_stats_from_fit(args->output);
-	if (args->from_thread)
-		siril_add_idle(end_generic, NULL);
-	free(args);
-
-	return GINT_TO_POINTER(0);
+	return 0;
 }
 
 gpointer enhance_saturation(gpointer p) {
 	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
 
+	int retval = -1;
 	if (args->input->type == DATA_USHORT) {
-		return enhance_saturation_ushort(args);
+		retval = enhance_saturation_ushort(args);
 	} else if (args->input->type == DATA_FLOAT) {
-		return enhance_saturation_float(args);
+		retval = enhance_saturation_float(args);
 	}
-	return GINT_TO_POINTER(-1);
+
+	if (!args->for_preview)
+		notify_gfit_modified();
+
+	free(args);
+	return GINT_TO_POINTER(retval);
 }
 
 /** callbacks **/
@@ -296,6 +286,7 @@ void on_satu_dialog_show(GtkWidget *widget, gpointer user_data) {
 	set_notify_block(TRUE);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_saturation")), satu_hue_type);
 	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), satu_amount);
+	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), background_factor);
 	set_notify_block(FALSE);
 
 	satu_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")));
@@ -317,6 +308,7 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 
 	set_notify_block(TRUE);
 	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), satu_amount);
+	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), background_factor);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
