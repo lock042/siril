@@ -24,6 +24,7 @@
 #define STR_CROP N_("Crops a selection of the loaded image.\n\nIn the GUI, if a selection is active, no further arguments are required. Otherwise, or in scripts, arguments have to be given, with <b>x</b> and <b>y</b> being the coordinates of the top left corner, and <b>width</b> and <b>height</b> the size of the selection")
 
 #define STR_DDP N_("Performs a DDP (digital development processing) as described first by Kunihiko Okano. This implementation is the one described in IRIS.\n\nIt combines a linear distribution on low levels (below <b>level</b>) and a non-linear one on high levels.\nIt uses a Gaussian filter of standard deviation <b>sigma</b> and multiplies the resulting image by <b>coef</b>. Typical values for <b>sigma</b> are within 0.7 and 2")
+#define STR_DUMPHEADER N_("Dumps the FITS header")
 
 #define STR_ENTROPY N_("Computes the entropy of the opened image on the displayed layer, only in the selected area if one has been selected or in the whole image. The entropy is one way of measuring the noise or the details in an image")
 #define STR_EXIT N_("Quits the application")

@@ -127,6 +127,31 @@ int process_load(int nb){
 	return (retval < 0);
 }
 
+int process_dumpheader(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+	if (!gfit.header || gfit.header[0] == '\0') {
+		siril_log_message(_("Currently loaded image has no FITS header\n"));
+	} else {
+		siril_log_message(_("=FITS header for currently loaded image=\n"));
+		char *header = strdup(gfit.header);
+		char *line = header;
+		do {
+			char *eol = strchr(line, '\n');
+			if (!eol)
+				break;
+			*eol = '\0';
+			siril_log_message("%s\n", line);
+			line = eol+1;
+		} while (line[0] != '\0');
+		free(header);
+		siril_log_message("END\n");
+	}
+	return 0;
+}
+
 int process_satu(int nb){
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;

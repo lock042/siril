@@ -46,6 +46,7 @@ static command commands[] = {
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE},
 #endif
+	{"dumpheader", 0, "dumpheader", process_dumpheader, STR_DUMPHEADER, TRUE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE},
