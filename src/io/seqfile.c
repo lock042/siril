@@ -39,6 +39,7 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "registration/registration.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -284,10 +285,10 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				if (version < 1) {
-					float rot_centre_x, rot_centre_y, angle;
+					float rot_centre_x, rot_centre_y, angle, shiftx, shifty;
 					nb_tokens = sscanf(line+3, "%f %f %g %g %g %g %lg",
-							&(regparam[i].shiftx),
-							&(regparam[i].shifty),
+							&shiftx,
+							&shifty,
 							&rot_centre_x, &rot_centre_y,
 							&angle,
 							&(regparam[i].fwhm),
@@ -302,22 +303,26 @@ sequence * readseqfile(const char *name){
 							goto error;
 						}
 					}
+					regparam[i].H = H_from_translation(shiftx, shifty);
 				} else if (version <= 2) { // include version 1
 					// version 2 with roundness instead of weird things
+					float shiftx, shifty;
 					if (sscanf(line+3, "%f %f %g %g %lg",
-								&(regparam[i].shiftx),
-								&(regparam[i].shifty),
+								&shiftx,
+								&shifty,
 								&(regparam[i].fwhm),
 								&(regparam[i].roundness),
 								&(regparam[i].quality)) != 5) {
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
+					regparam[i].H = H_from_translation(shiftx, shifty);
 				} else if (version == 3) {
 					// version 3 with weighted_fwhm
+					float shiftx, shifty;
 					if (sscanf(line+3, "%f %f %g %g %g %lg",
-								&(regparam[i].shiftx),
-								&(regparam[i].shifty),
+								&shiftx,
+								&shifty,
 								&(regparam[i].fwhm),
 								&(regparam[i].weighted_fwhm),
 								&(regparam[i].roundness),
@@ -325,12 +330,11 @@ sequence * readseqfile(const char *name){
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
+					regparam[i].H = H_from_translation(shiftx, shifty);
 				}
 				else {
-					// version 4 with homography matrix
-					if (sscanf(line+3, "%f %f %g %g %g %lg %g %d H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
-								&(regparam[i].shiftx),
-								&(regparam[i].shifty),
+					// version 4 without shifts and with homography matrix
+					if (sscanf(line+3, "%g %g %g %lg %g %d H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
 								&(regparam[i].fwhm),
 								&(regparam[i].weighted_fwhm),
 								&(regparam[i].roundness),
@@ -345,7 +349,7 @@ sequence * readseqfile(const char *name){
 								&(regparam[i].H.h12),
 								&(regparam[i].H.h20),
 								&(regparam[i].H.h21),
-								&(regparam[i].H.h22)) != 17) {
+								&(regparam[i].H.h22)) != 15) {
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
@@ -633,10 +637,8 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %f %f %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
+				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
-						seq->regparam[layer][i].shiftx,
-						seq->regparam[layer][i].shifty,
 						seq->regparam[layer][i].fwhm,
 						seq->regparam[layer][i].weighted_fwhm,
 						seq->regparam[layer][i].roundness,
@@ -682,10 +684,8 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %f %f %g %g %g %g H %g %g %g %g %g %g %g %g %g\n",
+				fprintf(seqfile, "R%c %g %g %g %g H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
-						seq->regparam_bkp[layer][i].shiftx,
-						seq->regparam_bkp[layer][i].shifty,
 						seq->regparam_bkp[layer][i].fwhm,
 						seq->regparam_bkp[layer][i].weighted_fwhm,
 						seq->regparam_bkp[layer][i].roundness,

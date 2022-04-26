@@ -181,8 +181,10 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 
 	if (!use_photometry) { // reporting registration data
 		if (seq->regparam && seq->regparam[layer]) {
-			shiftx = roundf_to_int(seq->regparam[layer][index].shiftx);
-			shifty = roundf_to_int(seq->regparam[layer][index].shifty);
+			double dx, dy;
+			translation_from_H(seq->regparam[layer][index].H, &dx, &dy);
+			shiftx = round_to_int(dx);
+			shifty = round_to_int(dy);
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {

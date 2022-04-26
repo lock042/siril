@@ -294,7 +294,6 @@ typedef struct Homo {
 
 /* registration data, exists once for each image and each layer */
 struct registration_data {
-	float shiftx, shifty;	// we could have a subpixel precision, but is it needed? saved
 	psf_star *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
 	float weighted_fwhm;	// used to exclude spurious images.

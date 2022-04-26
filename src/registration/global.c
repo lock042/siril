@@ -399,8 +399,9 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			//TODO: do we need to scale-up the H matrix here?
 		}
 	} else {
-		set_shifts(args->seq, in_index, regargs->layer, (float) H.h02,
-				(float) -H.h12, fit->top_down);
+		double dx, dy;
+		translation_from_H(H, &dx, &dy);
+		set_shifts(args->seq, in_index, regargs->layer, dx, dy, fit->top_down);
 		args->seq->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;

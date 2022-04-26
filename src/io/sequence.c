@@ -1420,10 +1420,10 @@ void check_or_allocate_regparam(sequence *seq, int layer) {
 }
 
 /* assign shift values for registration data of a sequence, depending on its type and sign */
-void set_shifts(sequence *seq, int frame, int layer, float shiftx, float shifty, gboolean data_is_top_down) {
+void set_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down) {
 	if (seq->regparam[layer]) {
-		seq->regparam[layer][frame].shiftx = shiftx;
-		seq->regparam[layer][frame].shifty = data_is_top_down ? -shifty : shifty;
+		seq->regparam[layer][frame].H = H_from_translation(shiftx,
+				data_is_top_down ? -shifty : shifty);
 	}
 }
 

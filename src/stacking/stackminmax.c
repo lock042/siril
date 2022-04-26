@@ -144,8 +144,11 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		/* load registration data for current image */
 		int shiftx, shifty;
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
-			shiftx = round_to_int(args->seq->regparam[reglayer][j].shiftx * (float) args->seq->upscale_at_stacking);
-			shifty = round_to_int(args->seq->regparam[reglayer][j].shifty * (float) args->seq->upscale_at_stacking);
+			double dx, dy;
+			double scale = args->seq->upscale_at_stacking;
+			translation_from_H(args->seq->regparam[reglayer][j].H, &dx, &dy);
+			shiftx = round_to_int(dx * scale);
+			shifty = round_to_int(dy * scale);
 		} else {
 			shiftx = 0;
 			shifty = 0;

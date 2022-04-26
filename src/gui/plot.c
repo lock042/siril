@@ -147,6 +147,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		pldata *plot) {
 	int i, j;
 	double fwhm;
+	double dx, dy;
 	curr.x = -1.0;
 	curr.y = -1.0;
 
@@ -167,10 +168,12 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				plot->data[j].x = fwhm;
 				break;
 			case r_X_POSITION:
-				plot->data[j].x = seq->regparam[layer][i].shiftx;
+				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
+				plot->data[j].x = dx;
 				break;
 			case r_Y_POSITION:
-				plot->data[j].x = seq->regparam[layer][i].shifty;
+				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
+				plot->data[j].x = dy;
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
@@ -211,10 +214,12 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				plot->data[j].y = fwhm;
 				break;
 			case r_X_POSITION:
-				plot->data[j].y = seq->regparam[layer][i].shiftx;
+				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
+				plot->data[j].y = dx;
 				break;
 			case r_Y_POSITION:
-				plot->data[j].y = seq->regparam[layer][i].shifty;
+				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
+				plot->data[j].y = dy;
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
