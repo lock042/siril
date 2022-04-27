@@ -23,7 +23,7 @@ int cvResizeGaussian(fits *, int, int, int);
 int cvRotateImage(fits *, point, double, int, int);
 
 int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points,
-		gboolean upscale2x, int interpolation);
+		gboolean upscale2x, int interpolation, Homography *Hom);
 
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *H, transformation_type type);

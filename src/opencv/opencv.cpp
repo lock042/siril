@@ -51,6 +51,9 @@ extern "C" {
 
 using namespace cv;
 
+static void convert_H_to_MatH(Homography *from, Mat &to);
+static void convert_MatH_to_H(Mat from, Homography *to);
+
 /* TODO:
  * fix memory leak
  *
@@ -325,7 +328,7 @@ void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped,
 }
 
 
-int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points, gboolean upscale2x, int interpolation) {
+int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points, gboolean upscale2x, int interpolation, Homography *Hom) {
 	// see https://docs.opencv.org/3.4/d4/d61/tutorial_warp_affine.html
 	std::vector<Point2f> ref;
 	std::vector<Point2f> cur;
@@ -337,6 +340,7 @@ int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, in
 	}
 
 	Mat m = estimateAffinePartial2D(cur, ref);
+	convert_MatH_to_H(m, Hom);
 	//std::cout << m << std::endl;
 
 	/* test that m is not a zero matrix */
