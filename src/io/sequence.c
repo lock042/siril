@@ -1639,6 +1639,9 @@ gboolean end_seqpsf(gpointer p) {
 				seq->regparam[layer][data->image_index].fwhm = data->psf->fwhmx;
 				seq->regparam[layer][data->image_index].roundness =
 					data->psf->fwhmy / data->psf->fwhmx;
+				seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
+				seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
+				seq->regparam[layer][data->image_index].number_of_stars = 1;
 			}
 		}
 
