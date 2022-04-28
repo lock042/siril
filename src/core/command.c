@@ -1145,9 +1145,7 @@ int process_mtf(int nb) {
 
 	apply_linked_mtf_to_fits(&gfit, &gfit, params);
 
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return 0;
 }
 
@@ -1156,10 +1154,10 @@ int process_autostretch(int nb) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
-	float shadows_clipping = SHADOWS_CLIPPING;
+	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
 	if (nb > 1)
 		shadows_clipping = g_ascii_strtod(word[1], NULL);
-	float target_bg = TARGET_BACKGROUND;
+	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
 	if (nb > 2)
 		target_bg = g_ascii_strtod(word[2], NULL);
 	if (target_bg < 0.0f || target_bg > 1.0f) {
@@ -1167,13 +1165,17 @@ int process_autostretch(int nb) {
 		return 1;
 	}
 
-	struct mtf_params params[3];
-	find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
-	apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
+	if (!strcasecmp(word[0], "autostretch_linked")) {
+		struct mtf_params params;
+		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
+		apply_linked_mtf_to_fits(&gfit, &gfit, params);
+	} else {
+		struct mtf_params params[3];
+		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
+		apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
+	}
 
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return 0;
 }
 

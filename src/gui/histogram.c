@@ -815,7 +815,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 	set_cursor_waiting(TRUE);
 	/* we always apply this function on original data */
 	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
-	if (!find_linked_midtones_balance(get_preview_gfit_backup(), &params)) {
+	if (!find_linked_midtones_balance_default(get_preview_gfit_backup(), &params)) {
 		_shadows = params.shadows;
 		_midtones = params.midtones;
 		_highlights = 1.f;

@@ -197,8 +197,8 @@ static void remap(int vport) {
 		// for all other modes and ushort data, the index can be reused
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
-				find_unlinked_midtones_balance(&gfit, SHADOWS_CLIPPING, TARGET_BACKGROUND, stf);
-			else find_linked_midtones_balance(&gfit, stf);
+				find_unlinked_midtones_balance_default(&gfit, stf);
+			else find_linked_midtones_balance_default(&gfit, stf);
 			stf_computed = TRUE;
 		}
 		make_index_for_current_display(vport);
