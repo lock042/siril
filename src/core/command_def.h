@@ -6,7 +6,7 @@
 #define STR_ADDMAX N_("Computes a new image combining the image in memory with the image <b>filename</b>. At each pixel location, the new value is determined as the max of value in current image and in <b>filename</b>")
 #define STR_AUTOSTRETCH N_("Auto-stretches the currently loaded image, with different parameters for each channel. The first argument is the shadows clipping point, measured in sigma units from the main histogram peak, default is -2.8. The second argument is the target background value, giving a final brightness to the image, range [0, 1], default is 0.25")
 #define STR_AUTOSTRETCH_LINKED N_("Auto-stretches the currently loaded image, with identical parameters for all channels. The first argument is the shadows clipping point, measured in sigma units from the main histogram peak, default is -2.8. The second argument is the target background value, giving a final brightness to the image, range [0, 1], default is 0.25")
-#define STR_ASINH N_("Stretches the image to show faint objects, while simultaneously, preserves the structure of bright objects of the field")
+#define STR_ASINH N_("Stretches the image to show faint objects using an hyperbolic arcsin transformation. The mandatory argument <b>stretch</b>, typically between 1 and 1000, will give the strength of the stretch. The black point can be offset by providing an optional <b>offset</b> argument in the normalized pixel value of [0, 1]. Finally the option <b>-human</b> enables human luminance computation to compute the stretch value for each pixel, instead of the simple mean of the channels pixel values")
 
 #define STR_BG N_("Returns the background level of the image loaded in memory")
 #define STR_BGNOISE N_("Returns the background noise level of the image loaded in memory")

@@ -25,7 +25,7 @@ static command commands[] = {
 	{"addmax", 1,	"addmax filename", process_addmax, STR_ADDMAX, FALSE},
 	{"autostretch", 0, "autostretch [shadowsclip [targetbg]]", process_autostretch, STR_AUTOSTRETCH, TRUE},
 	{"autostretch_linked", 0, "autostretch_linked [shadowsclip [targetbg]]", process_autostretch, STR_AUTOSTRETCH_LINKED, TRUE},
-	{"asinh", 1,	"asinh stretch", process_asinh, STR_ASINH, TRUE},
+	{"asinh", 1,	"asinh [-human] stretch [offset]", process_asinh, STR_ASINH, TRUE},
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE},
 	{"bgnoise", 0, "bgnoise", process_bgnoise, STR_BGNOISE, TRUE},

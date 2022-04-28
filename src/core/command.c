@@ -102,6 +102,11 @@
 #include "command_list.h"
 #include "command_line_processor.h"
 
+/* process_command functions take the number of arguments (like argc) as
+ * parameter and will be able to access the equivalent of argv with `word'
+ * they return 0 on success
+ */
+
 #define PRINT_LOAD_IMAGE_FIRST siril_log_message(_("Load an image or a sequence first.\n"))
 #define PRINT_NOT_FOR_SEQUENCE siril_log_message(_("Single image must be loaded, and this command cannot be applied on a sequence.\n"))
 #define PRINT_NOT_FOR_SINGLE siril_log_message(_("This command can only be used when a sequence is loaded.\n"))
@@ -736,14 +741,28 @@ int process_asinh(int nb) {
 		return 1;
 	}
 
-	double beta = g_ascii_strtod(word[1], NULL);
+	gboolean human_luminance = FALSE;
+	int arg_offset = 0;
+	if (!strcmp(word[1], "-human")) {
+		human_luminance = TRUE;
+		arg_offset = 1;
+	}
+	if (nb <= arg_offset + 1)
+		return 1;
+	double beta = g_ascii_strtod(word[arg_offset+1], NULL);
+	if (beta < 1.0) {
+		siril_log_message(_("Stretch must be greater than or equal to 1\n"));
+		return 1;
+	}
+
+	double offset = 0.0;
+	if (nb > 2 + arg_offset)
+		offset = g_ascii_strtod(word[2+arg_offset], NULL);
 
 	set_cursor_waiting(TRUE);
-	asinhlut(&gfit, beta, 0, FALSE);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	asinhlut(&gfit, beta, offset, human_luminance);
+
+	notify_gfit_modified();
 	return 0;
 }
 

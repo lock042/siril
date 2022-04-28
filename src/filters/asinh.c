@@ -61,15 +61,14 @@ static int asinh_update_preview() {
 	return 0;
 }
 
-int asinhlut_ushort(fits *fit, double beta, double offset, gboolean RGBspace) {
+int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_luminance) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-	double norm, asinh_beta, factor_red, factor_green, factor_blue;
 
-	norm = get_normalized_value(fit);
-	asinh_beta = asinh(beta);
-	factor_red = RGBspace ? 0.2126 : 0.3333;
-	factor_green = RGBspace ? 0.7152 : 0.3333;
-	factor_blue = RGBspace ? 0.0722 : 0.3333;
+	double norm = get_normalized_value(fit);
+	double asinh_beta = asinh(beta);
+	double factor_red = human_luminance ? 0.2126 : 0.3333;
+	double factor_green = human_luminance ? 0.7152 : 0.3333;
+	double factor_blue = human_luminance ? 0.0722 : 0.3333;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -77,16 +76,13 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean RGBspace) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
-			double r, g, b;
+			double r = buf[RLAYER][i] / norm;
+			double g = buf[GLAYER][i] / norm;
+			double b = buf[BLAYER][i] / norm;
 
-			r = (double) buf[RLAYER][i] / norm;
-			g = (double) buf[GLAYER][i] / norm;
-			b = (double) buf[BLAYER][i] / norm;
+			double x = factor_red * r + factor_green * g + factor_blue * b;
 
-			x = factor_red * r + factor_green * g + factor_blue * b;
-
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
+			double k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
 
 			buf[RLAYER][i] = round_to_WORD((r - offset) * k * norm);
 			buf[GLAYER][i] = round_to_WORD((g - offset) * k * norm);
@@ -97,9 +93,8 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean RGBspace) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
-			x = buf[RLAYER][i] / norm;
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
+			double x = buf[RLAYER][i] / norm;
+			double k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
 			buf[RLAYER][i] = round_to_WORD((x - offset) * k * norm);
 		}
 	}
@@ -107,14 +102,13 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean RGBspace) {
 	return 0;
 }
 
-static int asinhlut_float(fits *fit, double beta, double offset, gboolean RGBspace) {
+static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_luminance) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
-	double asinh_beta, factor_red, factor_green, factor_blue;
 
-	asinh_beta = asinh(beta);
-	factor_red = RGBspace ? 0.2126 : 0.3333;
-	factor_green = RGBspace ? 0.7152 : 0.3333;
-	factor_blue = RGBspace ? 0.0722 : 0.3333;
+	double asinh_beta = asinh(beta);
+	double factor_red = human_luminance ? 0.2126 : 0.3333;
+	double factor_green = human_luminance ? 0.7152 : 0.3333;
+	double factor_blue = human_luminance ? 0.0722 : 0.3333;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -122,16 +116,13 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean RGBspa
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
-			float r, g, b;
+			double r = buf[RLAYER][i];
+			double g = buf[GLAYER][i];
+			double b = buf[BLAYER][i];
 
-			r = buf[RLAYER][i];
-			g = buf[GLAYER][i];
-			b = buf[BLAYER][i];
+			double x = factor_red * r + factor_green * g + factor_blue * b;
 
-			x = factor_red * r + factor_green * g + factor_blue * b;
-
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
+			double k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
 
 			buf[RLAYER][i] = (r - offset) * k;
 			buf[GLAYER][i] = (g - offset) * k;
@@ -152,11 +143,11 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean RGBspa
 	return 0;
 }
 
-int asinhlut(fits *fit, double beta, double offset, gboolean RGBspace) {
+int asinhlut(fits *fit, double beta, double offset, gboolean human_luminance) {
 	if (fit->type == DATA_USHORT)
-		return asinhlut_ushort(fit, beta, offset, RGBspace);
+		return asinhlut_ushort(fit, beta, offset, human_luminance);
 	if (fit->type == DATA_FLOAT)
-		return asinhlut_float(fit, beta, offset, RGBspace);
+		return asinhlut_float(fit, beta, offset, human_luminance);
 	return 1;
 }
 

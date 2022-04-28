@@ -3328,9 +3328,10 @@ If the parameters is null, so no filter is apply at all.</property>
         </child>
         <child>
           <object class="GtkCheckButton" id="checkbutton_RGBspace">
-            <property name="label" translatable="yes">Use RGB working space</property>
+            <property name="label" translatable="yes">Human-weighted luminance</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="tooltip_text" translatable="yes">For colour images, use human eye luminous efficiency weights to compute the luminance used to compute the stretch for each pixel.</property>
             <property name="receives_default">False</property>
             <property name="halign">end</property>
             <property name="active">True</property>
