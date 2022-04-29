@@ -146,7 +146,7 @@ static command commands[] = {
 	{"seqpsf", 0, "seqpsf", process_seq_psf, STR_SEQPSF, FALSE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE},
 	{"seqstat", 2, "seqstat sequencename output [option]", process_seq_stat, STR_SEQSTAT, TRUE},
-	{"seqsubsky", 2, "seqsubsky sequencename degree [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE},
+	{"seqsubsky", 2, "seqsubsky sequencename degree [-samples=20] [-tolerance=1.0] [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE},
 	{"seqtilt", 0, "seqtilt [sequencename]", process_seq_tilt, STR_SEQTILT, TRUE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE},
 	{"set32bits", 0, "set32bits", process_set_32bits, STR_SET32, TRUE},
@@ -165,7 +165,7 @@ static command commands[] = {
 	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackone, STR_STACK, TRUE},
 	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackall, STR_STACKALL, TRUE},
 	{"stat", 0, "stat", process_stat, STR_STAT, TRUE},
-	{"subsky", 1, "subsky degree", process_subsky, STR_SUBSKY, TRUE},
+	{"subsky", 1, "subsky degree [-samples=20] [-tolerance=1.0]", process_subsky, STR_SUBSKY, TRUE},
 
 	{"threshlo", 1, "threshlo level", process_threshlo, STR_THRESHLO, TRUE},
 	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE},

@@ -2413,63 +2413,79 @@ int process_subsky(int nb) {
 
 	sequence *seq = NULL;
 	int degree = 0;
+	int samples = 20;
+	double tolerance = 1.0;
+	char *prefix = NULL;
 
+	int arg_index = 1;
 	gboolean is_sequence = (word[0][2] == 'q');
 
 	if (is_sequence) {
+		arg_index = 2;
 		seq = load_sequence(word[1], NULL);
 		if (!seq)
 			return 1;
-		degree = g_ascii_strtoull(word[2], NULL, 10);
 	} else {
 		if (!single_image_is_loaded()) return 1;
-		degree = g_ascii_strtoull(word[1], NULL, 10);
 	}
 
+	degree = g_ascii_strtoull(word[arg_index], NULL, 10);
 	if (degree < 1 || degree > 4) {
 		siril_log_message(_("Polynomial degree order must be within the [1, 4] range.\n"));
 		return 1;
+	}
+
+	arg_index++;
+	while (arg_index < nb && word[arg_index]) {
+		char *arg = word[arg_index];
+		if (g_str_has_prefix(arg, "-prefix=")) {
+			char *value = arg + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+				return 1;
+			}
+			prefix = strdup(value);
+		}
+		else if (g_str_has_prefix(arg, "-samples=")) {
+			char *value = arg + 9;
+			samples = g_ascii_strtoull(value, NULL, 10);
+			if (samples <= 1) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				return 1;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-tolerance=")) {
+			char *next, *value = arg + 11;
+			tolerance = g_ascii_strtod(value, &next);
+			if (tolerance < 0.0 || next == value) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				return 1;
+			}
+		}
+		arg_index++;
 	}
 
 	if (is_sequence) {
 		struct background_data *args = malloc(sizeof(struct background_data));
 
 		args->seq = seq;
-		args->nb_of_samples = 20;
-		args->tolerance = 1.0;
+		args->nb_of_samples = samples;
+		args->tolerance = tolerance;
 		args->correction = 0; //subtraction
-		args->seqEntry = "bkg_";
+		args->seqEntry = prefix ? prefix : "bkg_";
 		args->degree = (poly_order) (degree - 1);
 		args->dither = TRUE;
-
-		int startoptargs = 3;
-		if (nb > startoptargs) {
-			for (int i = startoptargs; i < nb; i++) {
-				if (word[i]) {
-					if (g_str_has_prefix(word[i], "-prefix=")) {
-						char *current = word[i], *value;
-						value = current + 8;
-						if (value[0] == '\0') {
-							siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-							return 1;
-						}
-						args->seqEntry = strdup(value);
-					}
-				}
-			}
-		}
 
 		apply_background_extraction_to_sequence(args);
 	} else {
 		set_cursor_waiting(TRUE);
-		generate_background_samples(20, 1.0);
+
+		generate_background_samples(samples, tolerance);
 		remove_gradient_from_image(0, (poly_order) (degree - 1), TRUE);
+
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
-
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		set_cursor_waiting(FALSE);
+		notify_gfit_modified();
 	}
 
 	return 0;

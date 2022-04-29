@@ -11,10 +11,15 @@ typedef enum {
 	BACKGROUND_POLY_4,
 } poly_order;
 
+typedef enum {
+	BACKGROUND_CORRECTION_SUBTRACT,
+	BACKGROUND_CORRECTION_DIVIDE
+} background_correction;
+
 struct background_data {
 	int nb_of_samples;
 	double tolerance;
-	int correction;
+	background_correction correction;
 	poly_order degree;
 	gboolean dither;
 	fits *fit;
@@ -29,7 +34,7 @@ void free_background_sample_list(GSList *list);
 GSList* add_background_sample(GSList *list, fits *fit, point pt);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
 void generate_background_samples(int nb_of_samples, double tolerance);
-gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean use_dither);
+gboolean remove_gradient_from_image(background_correction correction, poly_order degree, gboolean use_dither);
 void apply_background_extraction_to_sequence(struct background_data *background_args);
 
 gboolean background_sample_is_valid(background_sample *sample);

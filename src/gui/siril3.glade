@@ -594,12 +594,12 @@ Uncheck if images come from a monochrome sensor.</property>
       </object>
     </child>
   </object>
-  <object class="GtkAdjustment" id="adj_background_nb_samples">
-    <property name="lower">0.01</property>
-    <property name="upper">4</property>
-    <property name="value">1</property>
+  <object class="GtkAdjustment" id="adj_background_tolerance">
+    <property name="lower">0.0</property>
+    <property name="upper">3</property>
+    <property name="value">0.4</property>
     <property name="step_increment">0.01</property>
-    <property name="page_increment">10</property>
+    <property name="page_increment">1</property>
   </object>
   <object class="GtkAdjustment" id="adj_black_point_asinh">
     <property name="upper">0.20000000000000001</property>
@@ -3582,12 +3582,12 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                           <object class="GtkSpinButton">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="tooltip_text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
+                            <property name="tooltip_text" translatable="yes">Tolerance of global sample rejection, in exponential mad units (0 means median + mad, 1 means median + 2.72 mad, ...). By decreasing this value, Siril will be more restrictive to select background samples.</property>
                             <property name="input_purpose">digits</property>
-                            <property name="adjustment">adj_background_nb_samples</property>
+                            <property name="adjustment">adj_background_tolerance</property>
                             <property name="digits">2</property>
                             <property name="numeric">True</property>
-                            <property name="value">1</property>
+                            <property name="value">0.4</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -3604,12 +3604,12 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkScale" id="scale_background_nb_samples">
+                      <object class="GtkScale" id="scale_background_tolerance">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="tooltip_text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                         <property name="hexpand">True</property>
-                        <property name="adjustment">adj_background_nb_samples</property>
+                        <property name="adjustment">adj_background_tolerance</property>
                         <property name="round_digits">2</property>
                         <property name="digits">2</property>
                         <property name="draw_value">False</property>
@@ -3627,8 +3627,8 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
-                        <property name="tooltip_text" translatable="yes">Hit this option when color banding is produced after background extraction.
-Dither is an intentionally applied form of noise used to randomize quantization error, preventing large-scale patterns such as color banding in images.</property>
+                        <property name="tooltip_text" translatable="yes">Avoid generating banding by adding some random noise in the low dynamic background gradient.
+This should be enabled for non-stretched images.</property>
                         <property name="halign">start</property>
                         <property name="draw_indicator">True</property>
                       </object>
