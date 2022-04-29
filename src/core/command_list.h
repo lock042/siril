@@ -29,7 +29,7 @@ static command commands[] = {
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE},
 	{"bgnoise", 0, "bgnoise", process_bgnoise, STR_BGNOISE, TRUE},
-	{"boxselect", 0, "boxselect [x y width height]", process_boxselect, STR_BOXSELECT, FALSE},
+	{"boxselect", 0, "boxselect [-clear] [x y width height]", process_boxselect, STR_BOXSELECT, TRUE},
 
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE},
 	{"cdg", 0, "cdg", process_cdg, STR_CDG, TRUE},
@@ -106,7 +106,7 @@ static command commands[] = {
 
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE},
-	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
+	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE},
 
 	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=]", process_register, STR_REGISTER, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},

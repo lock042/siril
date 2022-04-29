@@ -1542,11 +1542,6 @@ int process_psf(int nb){
 		return 1;
 	}
 
-	if (gui.cvport >= MAXGRAYVPORT) {
-		siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
-		return 1;
-	}
-
 	if (com.selection.w > 300 || com.selection.h > 300){
 		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 		return 1;
@@ -1555,7 +1550,23 @@ int process_psf(int nb){
 		siril_log_message(_("Select an area first\n"));
 		return 1;
 	}
-	psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
+
+	if (gfit.naxes[2] > 1 && nb == 1 && (com.headless || gui.cvport >= MAXGRAYVPORT)) {
+		siril_log_color_message(_("Please display the channel on which you want to compute the PSF or use -channel argument\n"), "red");
+		return 1;
+	}
+
+	int channel = com.headless ? 0 : gui.cvport;
+	if (nb == 2) {
+		char *next;
+		channel = g_ascii_strtoull(word[1], &next, 10);
+		if (word[1]== next || channel > (int)gfit.naxes[2]) {
+			siril_log_message(_("Please provide the channel number starting from 0 for red\n"));
+			return 1;
+		}
+	}
+
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
@@ -4592,40 +4603,62 @@ int process_boxselect(int nb){
 		return 1;
 	}
 
-	rectangle area;
-	if ((!com.selection.h) || (!com.selection.w)) {
-		if (nb == 5) {
-			if (g_ascii_strtoull(word[1], NULL, 10) < 0 || g_ascii_strtoull(word[2], NULL, 10) < 0) {
-				siril_log_message(_("Selection: x and y must be positive values.\n"));
-				return 1;
-			}
-			if (g_ascii_strtoull(word[3], NULL, 10) <= 0 || g_ascii_strtoull(word[4], NULL, 10) <= 0) {
-				siril_log_message(_("Selection: width and height must be greater than 0.\n"));
-				return 1;
-			}
-			if (g_ascii_strtoull(word[1], NULL, 10) + g_ascii_strtoull(word[3], NULL, 10) > gfit.rx || g_ascii_strtoull(word[2], NULL, 10) + g_ascii_strtoull(word[4], NULL, 10) > gfit.ry) {
-				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit.rx,gfit.ry);
-				return 1;
-			}
-			area.x = g_ascii_strtoull(word[1], NULL, 10);
-			area.y = g_ascii_strtoull(word[2], NULL, 10);
-			area.w = g_ascii_strtoull(word[3], NULL, 10);
-			area.h = g_ascii_strtoull(word[4], NULL, 10);
-		}
-		else {
-			siril_log_message(_("Please specify x, y, w and h, aborting\n"));
-			return 1;
-		}
-		memcpy(&com.selection, &area, sizeof(rectangle));
-		redraw(REMAP_ALL);
-		redraw_previews();
-	} else {
-		if (nb > 1) {
-			siril_log_message(_("A selection is already made, aborting\n"));
-			return 1;
-		} else {
-			siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), com.selection.x, com.selection.y, com.selection.w, com.selection.h);
-		}
+	/* first case: no argument, printing current selection */
+	if (nb == 1) {
+		if (com.selection.w > 0 && com.selection.h > 0)
+			siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"),
+					com.selection.x, com.selection.y,
+					com.selection.w, com.selection.h);
+		else siril_log_message(_("No current selection in image\n"));
+		return 0;
 	}
+
+	/* second case: clearing the selection */
+	if (nb > 1 && !strcmp(word[1], "-clear")) {
+		if (nb > 2) {
+			siril_log_message(_("Too many arguments to boxselect, use either -clear or the coordinates, not both.\n"));
+			return 1;
+		}
+		delete_selected_area();
+		siril_log_message(_("Selected area in image was cleared\n"));
+		return 0;
+	}
+
+	/* third case: setting a new selection */
+	if (nb != 5) {
+		siril_log_message(_("Please specify x, y, w and h, aborting\n"));
+		return 1;
+	}
+
+	gboolean parse_error = FALSE;
+	int x, y, w, h;
+	char *end;
+	x = g_ascii_strtoull(word[1], &end, 10);
+	if (word[1] == end) parse_error = TRUE;
+	y = g_ascii_strtoull(word[2], &end, 10);
+	if (word[2] == end) parse_error = TRUE;
+	w = g_ascii_strtoull(word[3], &end, 10);
+	if (word[3] == end) parse_error = TRUE;
+	h = g_ascii_strtoull(word[4], &end, 10);
+	if (word[4] == end) parse_error = TRUE;
+	if (parse_error || w == 0 || h == 0) {
+		siril_log_message(_("Please specify x, y, w and h, aborting\n"));
+		return 1;
+	}
+	if (x+w > gfit.rx || y+h > gfit.ry) {
+		siril_log_message(_("The provided coordinates are outside the dimension of the currently loaded image (%d x %d).\n"), gfit.rx, gfit.ry);
+		return 1;
+	}
+
+	if (com.selection.w > 0 && com.selection.h > 0)
+		siril_log_message(_("Overriding previous selection\n"));
+
+	com.selection.x = x;
+	com.selection.y = y;
+	com.selection.w = w;
+	com.selection.h = h;
+	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
+	if (!com.script)
+		new_selection_zone();
 	return 0;
 }
