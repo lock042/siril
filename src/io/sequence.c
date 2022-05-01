@@ -1497,13 +1497,28 @@ gboolean sequence_is_rgb(sequence *seq) {
 /* Ensures that an area does not derive off-image.
  * Verifies coordinates of the center and moves it inside the image if the area crosses the bounds.
  */
-void enforce_area_in_image(rectangle *area, sequence *seq) {
-	if (area->x < 0) area->x = 0;
-	if (area->y < 0) area->y = 0;
-	if (area->x + area->w > seq->rx)
-		area->x = seq->rx - area->w;
-	if (area->y + area->h > seq->ry)
-		area->y = seq->ry - area->h;
+gboolean enforce_area_in_image(rectangle *area, sequence *seq, int index) {
+	gboolean has_crossed = FALSE;
+	// need to check against current image size in case not the same as seq->rx/ry
+	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx; 
+	int ry = (seq->is_variable) ? seq->imgparam[index].ry : seq->ry;
+	if (area->x < 0) {
+		area->x = 0;
+		has_crossed = TRUE;
+	}
+	if (area->y < 0) {
+		area->y = 0;
+		has_crossed = TRUE;
+	}
+	if (area->x + area->w > rx) {
+		area->x = rx - area->w;
+		has_crossed = TRUE;
+	}
+	if (area->y + area->h > ry) {
+		area->y = seq->imgparam[index].ry - area->h;
+		has_crossed = TRUE;
+	}
+	return has_crossed;
 }
 
 /********************************************************************

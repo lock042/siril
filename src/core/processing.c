@@ -201,13 +201,21 @@ gpointer generic_sequence_worker(gpointer p) {
 				selection_H_transform(&area, args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H, args->seq->regparam[args->layer_for_partial][input_idx].H);
 
 			// args->area may be modified in hooks
-			enforce_area_in_image(&area, args->seq);
-			if (seq_read_frame_part(args->seq,
+
+			/* We need to detect if the psf box has crossed the borders to invalidate
+			the current frame in case the box position was computed from reg data.
+			Otherwise the psf will catch another star and probably not the intended one */
+			gboolean has_crossed = (enforce_area_in_image(&area, args->seq, input_idx) && (args->regdata_for_partial));
+			if ((has_crossed) || seq_read_frame_part(args->seq,
 						args->layer_for_partial,
 						input_idx, fit, &area,
 						args->get_photometry_data_for_partial, thread_id))
 			{
-				abort = 1;
+				if (args->stop_on_error) {
+					abort = 1;
+				} else {
+					excluded_frames++;
+				}
 				clearfits(fit);
 				free(fit);
 				continue;
