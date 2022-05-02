@@ -96,9 +96,15 @@ gpointer scnr(gpointer p) {
 		}
 
 		if (args->fit->type == DATA_USHORT) {
-			args->fit->pdata[RLAYER][i] = round_to_WORD(red * norm);
-			args->fit->pdata[GLAYER][i] = round_to_WORD(green * norm);
-			args->fit->pdata[BLAYER][i] = round_to_WORD(blue * norm);
+			if (args->fit->orig_bitpix == BYTE_IMG) {
+				args->fit->pdata[RLAYER][i] = round_to_BYTE(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_BYTE(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * norm);
+			} else {
+				args->fit->pdata[RLAYER][i] = round_to_WORD(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_WORD(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_WORD(blue * norm);
+			}
 		}
 		else if (args->fit->type == DATA_FLOAT) {
 			args->fit->fpdata[RLAYER][i] = (float)red;
@@ -166,4 +172,5 @@ void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(label), type > 1);
 	gtk_widget_set_sensitive(GTK_WIDGET(spinButton), type > 1);
 }
+
 
