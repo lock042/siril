@@ -1515,7 +1515,7 @@ gboolean enforce_area_in_image(rectangle *area, sequence *seq, int index) {
 		has_crossed = TRUE;
 	}
 	if (area->y + area->h > ry) {
-		area->y = seq->imgparam[index].ry - area->h;
+		area->y = ry - area->h;
 		has_crossed = TRUE;
 	}
 	return has_crossed;
