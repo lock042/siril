@@ -1416,6 +1416,10 @@ void check_or_allocate_regparam(sequence *seq, int layer) {
 	}
 	if (seq->regparam && !seq->regparam[layer] && seq->number > 0) {
 		seq->regparam[layer] = calloc(seq->number, sizeof(regdata));
+		for (int i = 0; i < seq->number; i++) {
+			cvGetEye(&seq->regparam[layer][i].H);
+		}
+		if (seq->reference_image < 0) seq->reference_image = 0;
 	}
 }
 
