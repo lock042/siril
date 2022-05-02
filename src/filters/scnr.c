@@ -105,9 +105,15 @@ gpointer scnr(gpointer p) {
 			xyz_to_rgb(x, y, z, &red, &green, &blue);
 		}
 		if (args->fit->type == DATA_USHORT) {
-			args->fit->pdata[RLAYER][i] = round_to_WORD(red * (double)norm);
-			args->fit->pdata[GLAYER][i] = round_to_WORD(green * (double)norm);
-			args->fit->pdata[BLAYER][i] = round_to_WORD(blue * (double)norm);
+			if (args->fit->orig_bitpix == BYTE_IMG) {
+				args->fit->pdata[RLAYER][i] = round_to_BYTE(red * (double)norm);
+				args->fit->pdata[GLAYER][i] = round_to_BYTE(green * (double)norm);
+				args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * (double)norm);
+			} else {
+				args->fit->pdata[RLAYER][i] = round_to_WORD(red * (double)norm);
+				args->fit->pdata[GLAYER][i] = round_to_WORD(green * (double)norm);
+				args->fit->pdata[BLAYER][i] = round_to_WORD(blue * (double)norm);
+			}
 		}
 		else if (args->fit->type == DATA_FLOAT) {
 			args->fit->fpdata[RLAYER][i] = (float)red;

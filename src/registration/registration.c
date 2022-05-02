@@ -1157,4 +1157,3 @@ Homography H_from_translation(double dx, double dy) {
 	H.h12 = -dy;
 	return H;
 }
-
