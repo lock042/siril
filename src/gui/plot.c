@@ -1038,7 +1038,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 				kplot_attach_data(p, d1, KPLOT_LINES, NULL);
 				free(sorted_data);
 			}
-		} else {
+		} else if (use_photometry){
 			int nb_data = max_data - min_data + 1;
 			struct kpair *avg = calloc(nb_data, sizeof(struct kpair));
 			for (int i = 0, j = min_data; i < nb_data; i++, j++) {
