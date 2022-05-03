@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_multifit.h>
+#include <gsl/gsl_linalg.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_version.h>
@@ -99,6 +100,116 @@ static double poly_1(gsl_vector *c, double x, double y) {
 }
 
 static gboolean computeBackground(GSList *list, double *background, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
+    /* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
+    """
+    References:
+    ----------  
+    [1] G. B. Wright. Radial Basis Function Interpolation: Numerical and 
+        Analytical Developments. PhD thesis, University of Colorado, 2003.
+
+    [2] SciPy version 1.1.0
+        https://github.com/scipy/scipy/blob/v1.1.0/scipy/interpolate/rbf.py
+    
+    [3] S. Rippa. An algorithm for selecting a good value for the parameter 
+        c in radial basis function interpolation. Advances in Computational 
+        Mathematics, 11(2-3):193–210, 1999.
+        
+    [4] J. D. Martin and T. W. Simpson. Use of Kriging Models to Approximate 
+        Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
+    */
+    
+    double pixel;
+	gsl_matrix *K;
+	gsl_vector *f, *coef, *A;
+	GSList *l_i, *l_j, *l_k;
+	guint n = g_slist_length(list);
+
+	K = gsl_matrix_calloc(n + 1, n + 1);
+	f = gsl_vector_calloc(n + 1);
+	coef = gsl_vector_calloc(n + 1);
+
+	// Setup Kernel matrix K with K_ij = k(r_ij) and vector f with f_i = median(sample_i)
+	l_i = list;
+	for (int i = 0; i < n; i++) {
+		background_sample *sample_i = (background_sample*) l_i->data;
+		double x_i = sample_i->position.x;
+		double y_i = sample_i->position.y;
+
+		gsl_matrix_set(K, i, n, 1.0);
+		gsl_matrix_set(K, n, i, 1.0);
+		gsl_vector_set(f, i, sample_i->median[channel]);
+
+		l_j = list;
+		for (int j = 0; j < n; j++) {
+			background_sample *sample_j = (background_sample*) l_j->data;
+			double x_j = sample_j->position.x;
+			double y_j = sample_j->position.y;
+			double distance = sqrt(pow(x_i - x_j, 2) + pow(y_i - y_j, 2));
+			double kernel = pow(distance, 2) * log(distance);
+			if (distance <= 1e-10) {
+				kernel = 0.0;
+			}
+
+			if (i == j) {
+				kernel += 1.0; // for smoothing
+			}
+
+			gsl_matrix_set(K, i, j, kernel);
+
+			l_j = l_j->next;
+		}
+
+		l_i = l_i->next;
+
+	}
+
+	gsl_matrix_set(K, n, n, 0.0);
+	gsl_vector_set(f, n, 0.0);
+
+	// Solve K*coef = f for coef
+    
+    int s;
+    gsl_permutation * p = gsl_permutation_alloc (n+1);
+    gsl_linalg_LU_decomp(K, p, &s);
+    gsl_linalg_LU_solve(K, p, f, coef);
+    
+    // Calculate background from coefficients coef
+    
+    A = gsl_vector_calloc(n + 1);
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++) {
+			l_k = list;
+			for (int k = 0; k < n; k++) {
+				background_sample *sample_k = (background_sample*) l_k->data;
+				double x_k = sample_k->position.x;
+				double y_k = sample_k->position.y;
+				double distance = sqrt(pow(j - x_k, 2) + pow(i - y_k, 2));
+				double kernel = pow(distance, 2) * log(distance);
+				if (distance <= 1e-10) {
+					kernel = 0.0;
+				}
+				gsl_vector_set(A, k, kernel);
+
+				l_k = l_k->next;
+			}
+
+			gsl_vector_set(A, n, 1.0);
+			gsl_vector_mul(A, coef);
+
+			pixel = gsl_vector_sum(A);
+			background[j + i * width] = pixel;
+
+		}
+	}
+
+	gsl_matrix_free(K);
+	gsl_vector_free(f);
+	gsl_vector_free(coef);
+	gsl_vector_free(A);
+	return TRUE;
+}
+
+static gboolean computeBackground2(GSList *list, double *background, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
 	size_t k = 0;
 	double chisq, pixel;
 	gsl_matrix *J, *cov;
@@ -893,4 +1004,10 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
+}
+
+void on_background_extraction_combo_changed(GtkComboBox *combo, gpointer user_data) {
+	GtkWidget *label = lookup_widget("background_box_poly");
+
+	gtk_widget_set_sensitive(label, gtk_combo_box_get_active(combo) == 0);
 }
