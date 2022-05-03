@@ -3937,7 +3937,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="show-tabs">False</property>
                 <property name="show-border">False</property>
                 <child>
-                  <!-- n-columns=3 n-rows=3 -->
+                  <!-- n-columns=2 n-rows=1 -->
                   <object class="GtkGrid" id="grid6">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -4260,27 +4260,6 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                         <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
                       </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                   </object>
                 </child>
@@ -5340,7 +5319,7 @@ enter a visible wavelength in nm</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=3 n-rows=3 -->
+          <!-- n-columns=2 n-rows=1 -->
           <object class="GtkGrid" id="grid21">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -5372,27 +5351,6 @@ enter a visible wavelength in nm</property>
                 <property name="left-attach">0</property>
                 <property name="top-attach">0</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>
@@ -5478,7 +5436,7 @@ enter a visible wavelength in nm</property>
             <property name="orientation">vertical</property>
             <property name="spacing">2</property>
             <child>
-              <!-- n-columns=3 n-rows=4 -->
+              <!-- n-columns=2 n-rows=4 -->
               <object class="GtkGrid" id="grid37">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -5591,18 +5549,6 @@ enter a visible wavelength in nm</property>
                     <property name="left-attach">0</property>
                     <property name="top-attach">0</property>
                   </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
                 </child>
               </object>
               <packing>
@@ -5936,7 +5882,7 @@ enter a visible wavelength in nm</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=6 n-rows=3 -->
+          <!-- n-columns=6 n-rows=2 -->
           <object class="GtkGrid" id="grid_layers">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -6023,24 +5969,6 @@ enter a visible wavelength in nm</property>
                 <property name="top-attach">1</property>
                 <property name="width">2</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -6332,7 +6260,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <!-- n-columns=3 n-rows=3 -->
+              <!-- n-columns=2 n-rows=3 -->
               <object class="GtkGrid" id="grid11">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -6414,15 +6342,6 @@ Modifying parameters in this windows afterward will void the colour balance, and
                     <property name="left-attach">1</property>
                     <property name="top-attach">2</property>
                   </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
                 </child>
               </object>
             </child>
@@ -12010,7 +11929,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <child>
-              <!-- n-columns=3 n-rows=4 -->
+              <!-- n-columns=2 n-rows=4 -->
               <object class="GtkGrid" id="grid36">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -12130,18 +12049,6 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="left-attach">1</property>
                     <property name="top-attach">0</property>
                   </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
                 </child>
               </object>
               <packing>
@@ -12465,7 +12372,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           </packing>
         </child>
         <child>
-          <!-- n-columns=3 n-rows=3 -->
+          <!-- n-columns=3 n-rows=2 -->
           <object class="GtkGrid" id="grid3">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -12544,15 +12451,6 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                 <property name="top-attach">0</property>
                 <property name="width">2</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>
@@ -14862,7 +14760,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
                                                 <child>
-                                                  <!-- n-columns=3 n-rows=3 -->
+                                                  <!-- n-columns=3 n-rows=2 -->
                                                   <object class="GtkGrid">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
@@ -14953,15 +14851,6 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                         <property name="left-attach">2</property>
                                                         <property name="top-attach">0</property>
                                                       </packing>
-                                                    </child>
-                                                    <child>
-                                                      <placeholder/>
-                                                    </child>
-                                                    <child>
-                                                      <placeholder/>
-                                                    </child>
-                                                    <child>
-                                                      <placeholder/>
                                                     </child>
                                                     <child>
                                                       <placeholder/>
@@ -19372,7 +19261,7 @@ The Background Neutralization should be applied before this operation.</property
                             <property name="can-focus">False</property>
                             <property name="homogeneous">True</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=3 -->
                               <object class="GtkGrid" id="grid26">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -19455,15 +19344,6 @@ The Background Neutralization should be applied before this operation.</property
                                     <property name="top-attach">0</property>
                                     <property name="width">2</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                               <packing>
@@ -19760,7 +19640,7 @@ This step should be run before any attempt of color calibration.</property>
                                 <property name="margin-top">10</property>
                                 <property name="homogeneous">True</property>
                                 <child>
-                                  <!-- n-columns=3 n-rows=3 -->
+                                  <!-- n-columns=2 n-rows=3 -->
                                   <object class="GtkGrid" id="grid27">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -19847,15 +19727,6 @@ This step should be run before any attempt of color calibration.</property>
                                         <property name="width">2</property>
                                       </packing>
                                     </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -19889,7 +19760,7 @@ If the selection is empty, the whole image will be used as reference.</property>
                               </packing>
                             </child>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=2 -->
                               <object class="GtkGrid" id="grid41">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -19948,21 +19819,6 @@ If the selection is empty, the whole image will be used as reference.</property>
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">1</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                               <packing>
@@ -20151,7 +20007,7 @@ If the selection is empty, the whole image will be used as reference.</property>
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=7 -->
+                              <!-- n-columns=2 n-rows=7 -->
                               <object class="GtkGrid" id="grid22">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -20343,27 +20199,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="top-attach">5</property>
                                   </packing>
                                 </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
                               </object>
                             </child>
                           </object>
@@ -20428,7 +20263,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=2 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -20493,21 +20328,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">1</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>
@@ -20879,7 +20699,7 @@ The technique gives very good compression for astronomical images and is relativ
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=7 -->
+                              <!-- n-columns=2 n-rows=7 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -21011,27 +20831,6 @@ The technique gives very good compression for astronomical images and is relativ
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">6</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>
@@ -21487,7 +21286,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </packing>
                                     </child>
                                     <child>
-                                      <!-- n-columns=4 n-rows=3 -->
+                                      <!-- n-columns=4 n-rows=2 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -21584,18 +21383,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="top-attach">0</property>
                                           </packing>
                                         </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -21629,7 +21416,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </packing>
                                     </child>
                                     <child>
-                                      <!-- n-columns=4 n-rows=3 -->
+                                      <!-- n-columns=4 n-rows=2 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -21726,18 +21513,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="top-attach">1</property>
                                           </packing>
                                         </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -21818,7 +21593,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=2 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -21888,21 +21663,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="top-attach">1</property>
                                   </packing>
                                 </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
                               </object>
                             </child>
                           </object>
@@ -21939,7 +21699,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=2 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -21995,21 +21755,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
                               </object>
                             </child>
                           </object>
@@ -22047,7 +21792,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=2 -->
                               <object class="GtkGrid" id="grid1">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -22114,21 +21859,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="top-attach">1</property>
                                   </packing>
                                 </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
                               </object>
                             </child>
                           </object>
@@ -22164,7 +21894,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=1 -->
                               <object class="GtkGrid" id="grid44">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -22202,27 +21932,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">0</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>
@@ -22519,7 +22228,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=3 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -22584,15 +22293,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">2</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                                 <child>
                                   <placeholder/>
@@ -22676,7 +22376,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=2 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -22726,21 +22426,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">1</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>
@@ -22808,7 +22493,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="valign">center</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=2 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -22891,21 +22576,6 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">1</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>
