@@ -778,9 +778,11 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 		}
 	}
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
+	if (!model) return;
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view)); //clear current selection
 	gtk_tree_selection_unselect_all(selection);
 	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	if (!path) return;
 	gtk_tree_selection_select_path(selection, path);
 	gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW(tree_view), path, NULL, FALSE, FALSE, FALSE);
 	gtk_tree_path_free(path);
