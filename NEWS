@@ -12,6 +12,13 @@ v1.2.0 mmm dd, 2022
 * Added option "full" to export all possible stats in seqstat command
 * Replaced Libraw with RT debayering
 
+v1.0.2 Xxx x, 2022
+
+* Removed file name length limit in conversion
+* Fixed crash in preprocess command if a quote was not closed in -bias= option
+* Fixed crash when star detection box was expanded past a border
+* Fixed crash in plot when X axis data contained negative values
+
 v1.0.1 April 6, 2022
 
 * Added min,max, iif and logical operators in pixelmath
