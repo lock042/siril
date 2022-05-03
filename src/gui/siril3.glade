@@ -16830,7 +16830,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="receives_default">True</property>
                                                     <property name="tooltip_text" translatable="yes">Save current plot to png file</property>
                                                     <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_ButtonSavePlot_clicked" swapped="no"/>
+                                                    <signal name="clicked" handler="on_ButtonSavePlot_clicked" object="DrawingPlot" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>

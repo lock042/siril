@@ -851,7 +851,7 @@ void drawPlot() {
 			qsort(plot->data, plot->nb, sizeof(struct kpair), compare);
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
-			update_seqlist(reglayer); 
+			update_seqlist(reglayer);
 			requires_seqlist_update = FALSE;
 		}
 	} else {
@@ -966,7 +966,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	struct kdatacfg cfgdata;
 	struct kdata *d1, *ref_d, *mean_d, *curr_d;
 
-	if (!plot_data)
+	if (!plot_data || !widget)
 		return;
 	pldata *plot = plot_data;
 	d1 = ref_d = mean_d = NULL;
@@ -1015,8 +1015,8 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	int max_data = kdata_xmax(d1, NULL);
 
 	if (nb_graphs == 1 && plot_data->nb > 0) {
-		if (!use_photometry && (registration_selected_source == r_FWHM || registration_selected_source == r_WFWHM || 
-					registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY || 
+		if (!use_photometry && (registration_selected_source == r_FWHM || registration_selected_source == r_WFWHM ||
+					registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY ||
 					registration_selected_source == r_BACKGROUND || registration_selected_source == r_NBSTARS)) {
 			if (X_selected_source == r_FRAME) {
 				struct kpair *sorted_data;
@@ -1062,29 +1062,28 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 
 	width = gtk_widget_get_allocated_width(widget);
 	height = gtk_widget_get_allocated_height(widget);
+	cairo_surface_t *surface = NULL;
 
 	if (for_saving) {
-		cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 8*width, 12*height);
+		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 		cr = cairo_create(surface);
+	}
 
-		cairo_set_source_rgb(cr, color, color, color);
-		cairo_rectangle(cr, 0.0, 0.0, 8*width, 12*height);
-		cairo_fill(cr);
-		kplot_draw(p, 8*width, 12*height, cr);
+	cairo_set_source_rgb(cr, color, color, color);
+	cairo_rectangle(cr, 0.0, 0.0, width, height);
+	cairo_fill(cr);
+	kplot_draw(p, width, height, cr);
 
+	if (for_saving) {
 		gchar *timestamp, *filename;
 		timestamp = build_timestamp_filename();
 		filename = g_strdup_printf("%s.png", timestamp);
 		g_free(timestamp);
 
-		cairo_surface_write_to_png(surface, filename );
+		cairo_surface_write_to_png(surface, filename);
 		cairo_surface_destroy(surface);
+		siril_log_message(_("Saved plot to image %s\n"), filename);
 		g_free(filename);
-	} else {
-		cairo_set_source_rgb(cr, color, color, color);
-		cairo_rectangle(cr, 0.0, 0.0, width, height);
-		cairo_fill(cr);
-		kplot_draw(p, width, height, cr);
 	}
 
 	free_colors(&cfgplot);
@@ -1100,16 +1099,15 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	return FALSE;
 }
 
-void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	// TODO: why do we use widget here? it's the button!
-	drawing_the_graph(widget, NULL, TRUE);
+void on_ButtonSavePlot_clicked(GtkButton *button, gpointer user_data) {
+	drawing_the_graph((GtkWidget *)user_data, NULL, TRUE);
 }
 
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
 	if (use_photometry) {
-		photometry_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));	
+		photometry_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	} else {
-		registration_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));	
+		registration_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	}
 	requires_seqlist_update = TRUE;
 	drawPlot();
