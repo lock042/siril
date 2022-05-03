@@ -35,7 +35,7 @@ void sort_stars(psf_star **stars, int total);
 psf_star **new_fitted_stars(size_t n);
 void free_fitted_stars(psf_star **stars);
 int count_stars(psf_star **stars);
-void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units);
+void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B);
 gpointer findstar(gpointer p);
 
 #endif

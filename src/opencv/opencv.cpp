@@ -51,6 +51,9 @@ extern "C" {
 
 using namespace cv;
 
+static void convert_H_to_MatH(Homography *from, Mat &to);
+static void convert_MatH_to_H(Mat from, Homography *to);
+
 /* TODO:
  * fix memory leak
  *
@@ -325,7 +328,7 @@ void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped,
 }
 
 
-int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points, gboolean upscale2x, int interpolation) {
+int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points, gboolean upscale2x, int interpolation, Homography *Hom) {
 	// see https://docs.opencv.org/3.4/d4/d61/tutorial_warp_affine.html
 	std::vector<Point2f> ref;
 	std::vector<Point2f> cur;
@@ -337,6 +340,7 @@ int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, in
 	}
 
 	Mat m = estimateAffinePartial2D(cur, ref);
+	convert_MatH_to_H(m, Hom);
 	//std::cout << m << std::endl;
 
 	/* test that m is not a zero matrix */
@@ -384,6 +388,27 @@ static void convert_MatH_to_H(Mat from, Homography *to) {
 	to->h20 = from.at<double>(2, 0);
 	to->h21 = from.at<double>(2, 1);
 	to->h22 = from.at<double>(2, 2);
+}
+
+void cvGetEye(Homography *Hom) {
+	Mat M = Mat::eye(3, 3, CV_64FC1);
+	convert_MatH_to_H(M, Hom);
+}
+
+void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
+	Mat_<double> ref(3,1);
+	Mat_<double> dst;
+	Mat H0 = Mat(3, 3, CV_64FC1);
+	Mat H1 = Mat(3, 3, CV_64FC1);
+
+	ref(0,0) = *x;
+	ref(1,0) = *y;
+	ref(2,0) = 1.;
+	convert_H_to_MatH(&Href, H0);
+	convert_H_to_MatH(&Himg, H1);
+	dst = H1.inv() * H0 * ref;
+	*x = dst(0,0);
+	*y = dst(1,0);
 }
 
 unsigned char *cvCalculH(s_star *star_array_img,
