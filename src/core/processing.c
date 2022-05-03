@@ -198,26 +198,31 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		if (args->partial_image) {
 			if (args->regdata_for_partial)
-				selection_H_transform(&area, args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H, args->seq->regparam[args->layer_for_partial][input_idx].H);
-
+				selection_H_transform(&area,
+						args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H,
+						args->seq->regparam[args->layer_for_partial][input_idx].H);
 			// args->area may be modified in hooks
 
-			/* We need to detect if the psf box has crossed the borders to invalidate
-			the current frame in case the box position was computed from reg data.
-			Otherwise the psf will catch another star and probably not the intended one */
-			gboolean has_crossed = (enforce_area_in_image(&area, args->seq, input_idx) && (args->regdata_for_partial));
-			if ((has_crossed) || seq_read_frame_part(args->seq,
-						args->layer_for_partial,
+			/* We need to detect if the box has crossed the borders to invalidate
+			 * the current frame in case the box position was computed from reg data.
+			 */
+			gboolean has_crossed = enforce_area_in_image(&area, args->seq, input_idx) && args->regdata_for_partial;
+
+			if (has_crossed || seq_read_frame_part(args->seq, args->layer_for_partial,
 						input_idx, fit, &area,
 						args->get_photometry_data_for_partial, thread_id))
 			{
-				if (args->stop_on_error) {
+				if (args->stop_on_error)
 					abort = 1;
-				} else {
+				else {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
 					excluded_frames++;
 				}
 				clearfits(fit);
 				free(fit);
+				// TODO: for seqwriter, we need to notify the failed frame
 				continue;
 			}
 			/*char tmpfn[100];	// this is for debug purposes
@@ -231,6 +236,7 @@ gpointer generic_sequence_worker(gpointer p) {
 				free(fit);
 				continue;
 			}
+			// TODO: for seqwriter, we need to notify the failed frame
 		}
 
 		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
@@ -303,7 +309,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	else {
 		if (excluded_frames) {
 			set_progress_bar_data(_("Sequence processing partially succeeded. Check the log."), PROGRESS_RESET);
-			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed and that were temporarily excluded from the sequence.\n"), "salmon", excluded_frames);
+			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed.\n"), "salmon", excluded_frames);
 		} else {
 			set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
 			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
