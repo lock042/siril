@@ -315,6 +315,8 @@ int image_find_minmax(fits *fit) {
 	int layer;
 	if (fit->maxi > 0.0)
 		return 0;
+	fit->mini = DBL_MAX;
+	fit->maxi = -DBL_MAX;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
 		// calling statistics() saves stats in the fit already, we don't need
 		// to use the returned handle
