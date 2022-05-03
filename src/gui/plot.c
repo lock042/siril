@@ -76,7 +76,6 @@ static void free_colors(struct kplotcfg *cfg);
 void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data);
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data);
 void on_plotComboX_changed(GtkComboBox *box, gpointer user_data);
-void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data);
 
 
 static const gchar *photometry_labels[] = {
@@ -664,9 +663,9 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (index) {
 			if (!is_fwhm) {
-				sensitive = ((index[0] == r_FRAME) || (index[0] == r_QUALITY) || (index[0] == r_X_POSITION) || (index[0] == r_Y_POSITION));
+				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY || index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
 			} else {
-				sensitive = ((index[0] == r_FRAME) || (index[0] == r_FWHM) || (index[0] == r_WFWHM) || (index[0] == r_ROUNDNESS) || (index[0] == r_BACKGROUND) || (index[0] == r_NBSTARS));
+				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM || index[0] == r_WFWHM || index[0] == r_ROUNDNESS || index[0] == r_BACKGROUND || index[0] == r_NBSTARS);
 			}
 		}
 	}
@@ -780,40 +779,31 @@ static int compare(const void *a, const void *b) {
 	struct kpair datax_a = * ((struct kpair *) a);
 	struct kpair datax_b = * ((struct kpair *) b);
 
-	if (datax_a.x > datax_b.x) {
-		return 1;
-	} else if (datax_a.x < datax_b.x) {
-		return -1;
-	} else
-		return 0;
+	if (datax_a.x > datax_b.x) return 1;
+	if (datax_a.x < datax_b.x) return -1;
+	return 0;
 }
 
 static int comparey(const void *a, const void *b) {
 	struct kpair datax_a = * ((struct kpair *) a);
 	struct kpair datax_b = * ((struct kpair *) b);
 
-	if (datax_a.y == 0.) return 1; // push zeros at the back
-	if (datax_b.y == 0.) return -1; // push zeros at the back
-	if (datax_a.y > datax_b.y) {
-		return 1;
-	} else if (datax_a.y < datax_b.y) {
-		return -1;
-	} else
-		return 0;
+	if (datax_a.y == 0.) return 1;	// push zeros at the back
+	if (datax_b.y == 0.) return -1;	// push zeros at the back
+	if (datax_a.y > datax_b.y) return 1;
+	if (datax_a.y < datax_b.y) return -1;
+	return 0;
 }
 
 static int comparey_desc(const void *a, const void *b) {
-	struct kpair datax_a = * ((struct kpair *) b);
+	struct kpair datax_a = * ((struct kpair *) b); // inverted here
 	struct kpair datax_b = * ((struct kpair *) a);
 
-	if (datax_a.y == 0.) return -1; // push zeros at the back
-	if (datax_b.y == 0.) return 1; // push zeros at the back
-	if (datax_a.y > datax_b.y) {
-		return 1;
-	} else if (datax_a.y < datax_b.y) {
-		return -1;
-	} else
-		return 0;
+	if (datax_a.y == 0.) return -1;	// push zeros at the back
+	if (datax_b.y == 0.) return 1;	// push zeros at the back
+	if (datax_a.y > datax_b.y) return 1;
+	if (datax_a.y < datax_b.y) return -1;
+	return 0;
 }
 
 void drawPlot() {
@@ -842,7 +832,7 @@ void drawPlot() {
 	if (use_photometry) {
 		// photometry data display
 		pldata *plot;
-		gtk_widget_set_visible(arcsec, ((current_selected_source == FWHM) && arcsec_is_ok));
+		gtk_widget_set_visible(arcsec, current_selected_source == FWHM && arcsec_is_ok);
 		update_ylabel();
 		ref.x = -1.0;
 		ref.y = -1.0;
@@ -866,14 +856,11 @@ void drawPlot() {
 		}
 	} else {
 		// registration data display
-		if (!(seq->regparam))
+		if (!seq->regparam || reglayer < 0 || !seq->regparam[reglayer])
 			return;
 
-		if ((!seq->regparam[reglayer]) || reglayer < 0)
-			return;
-
-		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f) ? TRUE : FALSE;
-		gtk_widget_set_visible(arcsec, ((current_selected_source == r_FWHM) || (current_selected_source == r_WFWHM) || (X_selected_source == r_FWHM) || (X_selected_source == r_WFWHM)) && arcsec_is_ok);
+		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f);
+		gtk_widget_set_visible(arcsec, (current_selected_source == r_FWHM || current_selected_source == r_WFWHM || X_selected_source == r_FWHM || X_selected_source == r_WFWHM) && arcsec_is_ok);
 
 		update_ylabel();
 		/* building data array */
@@ -973,273 +960,149 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	drawPlot();
 }
 
-
-void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
+void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
-	cairo_surface_t *surface;
+	struct kdata *d1, *ref_d, *mean_d, *curr_d;
 
-	gchar *timestamp, *filename;
-	timestamp = build_timestamp_filename();
-	filename = g_strdup_printf("%s.png", timestamp);
-	g_free(timestamp);
+	if (!plot_data)
+		return;
+	pldata *plot = plot_data;
+	d1 = ref_d = mean_d = NULL;
 
-	if (plot_data) {
-		struct kdata *d1, *ref_d, *mean_d, *curr_d;
-		pldata *plot = plot_data;
+	double color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
 
-		d1 = ref_d = mean_d = NULL;
+	kplotcfg_defaults(&cfgplot);
+	kdatacfg_defaults(&cfgdata);
+	set_colors(&cfgplot);
+	cfgplot.ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
+	cfgplot.border = BORDER_ALL;
+	cfgplot.borderline.clr.type = KPLOTCTYPE_RGBA;
+	cfgplot.borderline.clr.rgba[0] = 0.5;
+	cfgplot.borderline.clr.rgba[1] = 0.5;
+	cfgplot.borderline.clr.rgba[2] = 0.5;
+	cfgplot.borderline.clr.rgba[3] = 1.0;
+	cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
+	cfgplot.xtics = 5;
+	cfgplot.yaxislabel = ylabel;
+	cfgplot.yaxislabelrot = M_PI_2 * 3.0;
+	cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
+	cfgdata.point.radius = 10;
 
-		double color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
+	struct kplot *p = kplot_alloc(&cfgplot);
 
-		kplotcfg_defaults(&cfgplot);
-		kdatacfg_defaults(&cfgdata);
-		set_colors(&cfgplot);
-		cfgplot.ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
-		cfgplot.border = BORDER_ALL;
-		cfgplot.borderline.clr.type = KPLOTCTYPE_RGBA;
-		cfgplot.borderline.clr.rgba[0] = 0.5;
-		cfgplot.borderline.clr.rgba[1] = 0.5;
-		cfgplot.borderline.clr.rgba[2] = 0.5;
-		cfgplot.borderline.clr.rgba[3] = 1.0;
-		cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
-		cfgplot.xtics = 5;
-		cfgplot.yaxislabel = ylabel;
-		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
-		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
-		cfgdata.point.radius = 10;
+	// data plots
+	int nb_graphs = 0;
 
-		struct kplot *p = kplot_alloc(&cfgplot);
-
-		// data plots
-		int nb_graphs = 0;
-
-		while (plot) {
-			d1 = kdata_array_alloc(plot->data, plot->nb);
-			if (X_selected_source == r_FRAME) {
+	while (plot) {
+		d1 = kdata_array_alloc(plot->data, plot->nb);
+		if (X_selected_source == r_FRAME) {
 			kplot_attach_data(p, d1,
-					((plot_data->nb <= 100) ? KPLOT_LINESPOINTS : KPLOT_LINES),
+					plot_data->nb <= 100 ? KPLOT_LINESPOINTS : KPLOT_LINES,
 					NULL);
-			} else {
-				kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
+		} else {
+			kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
+		}
+		plot = plot->next;
+		nb_graphs++;
+	}
+
+	/* mean and min/max */
+	double mean = kdata_ymean(d1);
+	//sigma = kdata_ystddev(d1);
+	int min_data = kdata_xmin(d1, NULL);
+	int max_data = kdata_xmax(d1, NULL);
+
+	if (nb_graphs == 1 && plot_data->nb > 0) {
+		if (!use_photometry && (registration_selected_source == r_FWHM || registration_selected_source == r_WFWHM || 
+					registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY || 
+					registration_selected_source == r_BACKGROUND || registration_selected_source == r_NBSTARS)) {
+			if (X_selected_source == r_FRAME) {
+				struct kpair *sorted_data;
+				sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
+				for (int i = 0; i < plot_data->nb; i++) {
+					sorted_data[i].x = plot_data->data[i].x;
+					sorted_data[i].y = plot_data->data[i].y;
+				}
+				qsort(sorted_data, plot_data->nb, sizeof(struct kpair),
+						(registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY ||
+						 registration_selected_source == r_NBSTARS) ? comparey_desc : comparey);
+				double imin = plot_data->data[min_data].x;
+				double imax = plot_data->data[max_data].x;
+				double pace = (imax - imin) / ((double)plot_data->nb - 1.);
+				for (int i = 0; i < plot_data->nb; i++) {
+					sorted_data[i].x = imin + (double)i * pace;
+				}
+				d1 = kdata_array_alloc(sorted_data, plot_data->nb);
+				kplot_attach_data(p, d1, KPLOT_LINES, NULL);
+				free(sorted_data);
 			}
-			plot = plot->next;
-			nb_graphs++;
+		} else {
+			int nb_data = max_data - min_data + 1;
+			struct kpair *avg = calloc(nb_data, sizeof(struct kpair));
+			for (int i = 0, j = min_data; i < nb_data; i++, j++) {
+				avg[i].x = plot_data->data[j].x;
+				avg[i].y = mean;
+			}
+			mean_d = kdata_array_alloc(avg, nb_data);
+			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
+			free(avg);
 		}
 
-		/* mean and min/max */
-		double mean = kdata_ymean(d1);
-		//sigma = kdata_ystddev(d1);
-		int min_data = kdata_xmin(d1, NULL);
-		int max_data = kdata_xmax(d1, NULL);
-
-		if (nb_graphs == 1 && plot_data->nb > 0) {
-			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) || 
-			(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) ||
-			(registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS))) {
-				if (X_selected_source == r_FRAME) {
-					struct kpair *sorted_data;
-					sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
-					for (int i = 0; i < plot_data->nb; i++) {
-						sorted_data[i].x = plot_data->data[i].x;
-						sorted_data[i].y = plot_data->data[i].y;
-					}
-					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
-					double imin = plot_data->data[min_data].x;
-					double imax = plot_data->data[max_data].x;
-					double pace = (imax - imin) / ((double)plot_data->nb - 1.);
-					for (int i = 0; i < plot_data->nb; i++) {
-						sorted_data[i].x = imin + (double)i * pace;
-					}
-					d1 = kdata_array_alloc(sorted_data, plot_data->nb);
-					kplot_attach_data(p, d1, KPLOT_LINES, NULL);
-					free(sorted_data);
-				}
-			} else {
-				struct kpair *avg;
-				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
-				for (int i = 0, j = min_data; i < (max_data - min_data) + 1; i++) {
-					avg[i].x = plot_data->data[j].x;
-					avg[i].y = mean;
-					++j;
-				}
-				mean_d = kdata_array_alloc(avg, (max_data - min_data) + 1);
-				kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
-				free(avg);
-			}
-
-			if (ref.x >= 0.0 && ref.y >= 0.0) {
-				ref_d = kdata_array_alloc(&ref, 1);
-				kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
-			}
-			if (curr.x >= 0.0 && curr.y >= 0.0) {
-				curr_d = kdata_array_alloc(&curr, 1);
-				kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
-			}
+		if (ref.x >= 0.0 && ref.y >= 0.0) {
+			ref_d = kdata_array_alloc(&ref, 1);
+			kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
 		}
+		if (curr.x >= 0.0 && curr.y >= 0.0) {
+			curr_d = kdata_array_alloc(&curr, 1);
+			kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
+		}
+	}
 
-		width = gtk_widget_get_allocated_width(widget);
-		height = gtk_widget_get_allocated_height(widget);
+	width = gtk_widget_get_allocated_width(widget);
+	height = gtk_widget_get_allocated_height(widget);
 
-		////****my mod
-		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 8*width, 12*height);
+	if (for_saving) {
+		cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 8*width, 12*height);
 		cr = cairo_create(surface);
-		////****
 
-		
 		cairo_set_source_rgb(cr, color, color, color);
 		cairo_rectangle(cr, 0.0, 0.0, 8*width, 12*height);
 		cairo_fill(cr);
 		kplot_draw(p, 8*width, 12*height, cr);
-		////****mymod
+
+		gchar *timestamp, *filename;
+		timestamp = build_timestamp_filename();
+		filename = g_strdup_printf("%s.png", timestamp);
+		g_free(timestamp);
+
 		cairo_surface_write_to_png(surface, filename );
 		cairo_surface_destroy(surface);
 		g_free(filename);
-		////****
-		
-		free_colors(&cfgplot);
-		kplot_free(p);
-		kdata_destroy(d1);
-		kdata_destroy(ref_d);
-		if (mean_d)
-			kdata_destroy(mean_d);
-	}
-	
-}
-
-
-
-
-
-
-
-gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint width, height;
-	struct kplotcfg cfgplot;
-	struct kdatacfg cfgdata;
-	////cairo_surface_t *surface;
-
-	if (plot_data) {
-		struct kdata *d1, *ref_d, *mean_d, *curr_d;
-		pldata *plot = plot_data;
-
-		d1 = ref_d = mean_d = NULL;
-
-		double color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
-
-		kplotcfg_defaults(&cfgplot);
-		kdatacfg_defaults(&cfgdata);
-		set_colors(&cfgplot);
-		cfgplot.ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
-		cfgplot.border = BORDER_ALL;
-		cfgplot.borderline.clr.type = KPLOTCTYPE_RGBA;
-		cfgplot.borderline.clr.rgba[0] = 0.5;
-		cfgplot.borderline.clr.rgba[1] = 0.5;
-		cfgplot.borderline.clr.rgba[2] = 0.5;
-		cfgplot.borderline.clr.rgba[3] = 1.0;
-		cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
-		cfgplot.xtics = 5;
-		cfgplot.yaxislabel = ylabel;
-		cfgplot.yaxislabelrot = M_PI_2 * 3.0;
-		cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
-		cfgdata.point.radius = 10;
-
-		struct kplot *p = kplot_alloc(&cfgplot);
-
-		// data plots
-		int nb_graphs = 0;
-
-		while (plot) {
-			d1 = kdata_array_alloc(plot->data, plot->nb);
-			if (X_selected_source == r_FRAME) {
-			kplot_attach_data(p, d1,
-					((plot_data->nb <= 100) ? KPLOT_LINESPOINTS : KPLOT_LINES),
-					NULL);
-			} else {
-				kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
-			}
-			plot = plot->next;
-			nb_graphs++;
-		}
-
-		/* mean and min/max */
-		double mean = kdata_ymean(d1);
-		//sigma = kdata_ystddev(d1);
-		int min_data = kdata_xmin(d1, NULL);
-		int max_data = kdata_xmax(d1, NULL);
-
-		if (nb_graphs == 1 && plot_data->nb > 0) {
-			if ((!use_photometry) && ((registration_selected_source == r_FWHM) || (registration_selected_source == r_WFWHM) || 
-			(registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || 
-			(registration_selected_source == r_BACKGROUND) || (registration_selected_source == r_NBSTARS))) {
-				if (X_selected_source == r_FRAME) {
-					struct kpair *sorted_data;
-					sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
-					for (int i = 0; i < plot_data->nb; i++) {
-						sorted_data[i].x = plot_data->data[i].x;
-						sorted_data[i].y = plot_data->data[i].y;
-					}
-					qsort(sorted_data, plot_data->nb, sizeof(struct kpair), ((registration_selected_source == r_ROUNDNESS) || (registration_selected_source == r_QUALITY) || (registration_selected_source == r_NBSTARS)) ? comparey_desc : comparey);
-					double imin = plot_data->data[min_data].x;
-					double imax = plot_data->data[max_data].x;
-					double pace = (imax - imin) / ((double)plot_data->nb - 1.);
-					for (int i = 0; i < plot_data->nb; i++) {
-						sorted_data[i].x = imin + (double)i * pace;
-					}
-					d1 = kdata_array_alloc(sorted_data, plot_data->nb);
-					kplot_attach_data(p, d1, KPLOT_LINES, NULL);
-					free(sorted_data);
-				}
-			} else {
-				struct kpair *avg;
-				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
-				for (int i = 0, j = min_data; i < (max_data - min_data) + 1; i++) {
-					avg[i].x = plot_data->data[j].x;
-					avg[i].y = mean;
-					++j;
-				}
-				mean_d = kdata_array_alloc(avg, (max_data - min_data) + 1);
-				kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
-				free(avg);
-			}
-
-			if (ref.x >= 0.0 && ref.y >= 0.0) {
-				ref_d = kdata_array_alloc(&ref, 1);
-				kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
-			}
-			if (curr.x >= 0.0 && curr.y >= 0.0) {
-				curr_d = kdata_array_alloc(&curr, 1);
-				kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
-			}
-		}
-
-		width = gtk_widget_get_allocated_width(widget);
-		height = gtk_widget_get_allocated_height(widget);
-
-		////****
-		//surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-		//cr = cairo_create(surface);
-		////****
-
+	} else {
 		cairo_set_source_rgb(cr, color, color, color);
 		cairo_rectangle(cr, 0.0, 0.0, width, height);
 		cairo_fill(cr);
 		kplot_draw(p, width, height, cr);
-
-		////****
-		//cairo_surface_write_to_png(surface, "mytest.png" );
-		//cairo_surface_destroy(surface);
-		////****
-		
-		free_colors(&cfgplot);
-		kplot_free(p);
-		kdata_destroy(d1);
-		kdata_destroy(ref_d);
-		if (mean_d)
-			kdata_destroy(mean_d);
 	}
+
+	free_colors(&cfgplot);
+	kplot_free(p);
+	kdata_destroy(d1);
+	kdata_destroy(ref_d);
+	if (mean_d)
+		kdata_destroy(mean_d);
+}
+
+gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	drawing_the_graph(widget, cr, FALSE);
 	return FALSE;
+}
+
+void on_ButtonSavePlot_clicked(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	// TODO: why do we use widget here? it's the button!
+	drawing_the_graph(widget, NULL, TRUE);
 }
 
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
@@ -1279,7 +1142,7 @@ static void update_ylabel() {
 				ylabel = _("Star roundness (1 is round)");
 				break;
 			case FWHM:
-				ylabel = (is_arcsec) ? _("FWHM ('')") : _("FWHM (px)");
+				ylabel = is_arcsec ? _("FWHM ('')") : _("FWHM (px)");
 				break;
 			case AMPLITUDE:
 				ylabel = _("Amplitude");
