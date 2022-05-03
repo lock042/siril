@@ -16831,7 +16831,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="receives_default">True</property>
                                                     <property name="tooltip_text" translatable="yes">Save current plot to png file</property>
                                                     <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_ButtonSavePlot_clicked" swapped="no"/>
+                                                    <signal name="clicked" handler="on_ButtonSavePlot_clicked" object="DrawingPlot" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
@@ -16894,6 +16894,8 @@ Cross marker: the value for the currently loaded frame.</property>
                                                       <item translatable="yes">FWHM</item>
                                                       <item translatable="yes">Roundness</item>
                                                       <item translatable="yes">wFWHM</item>
+                                                      <item translatable="yes">Background</item>
+                                                      <item translatable="yes"># Stars</item>
                                                       <item translatable="yes">Quality</item>
                                                       <item translatable="yes">X Position</item>
                                                       <item translatable="yes">Y Position</item>
@@ -16929,6 +16931,8 @@ Cross marker: the value for the currently loaded frame.</property>
                                                       <item translatable="yes">FWHM</item>
                                                       <item translatable="yes">Roundness</item>
                                                       <item translatable="yes">wFWHM</item>
+                                                      <item translatable="yes">Background</item>
+                                                      <item translatable="yes"># Stars</item>
                                                       <item translatable="yes">Quality</item>
                                                       <item translatable="yes">X Position</item>
                                                       <item translatable="yes">Y Position</item>

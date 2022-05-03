@@ -696,7 +696,6 @@ int register_shift_fwhm(struct registration_args *args) {
 
 	/* Second step: align image by aligning star coordinates together */
 	for (frame = 0; frame < args->seq->number; frame++) {
-		double tmp;
 		if (args->run_in_thread && !get_thread_run())
 			break;
 		if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
@@ -710,14 +709,12 @@ int register_shift_fwhm(struct registration_args *args) {
 			fwhm_min = current_regdata[frame].fwhm;
 			fwhm_index = frame;
 		}
-		tmp = reference_xpos - current_regdata[frame].fwhm_data->xpos;
-		current_regdata[frame].shiftx = tmp;
-		tmp = current_regdata[frame].fwhm_data->ypos - reference_ypos;
-		current_regdata[frame].shifty = tmp;
+		double shiftx = reference_xpos - current_regdata[frame].fwhm_data->xpos;
+		double shifty = current_regdata[frame].fwhm_data->ypos - reference_ypos;
+		current_regdata[frame].H = H_from_translation(shiftx, shifty);
 
 		fprintf(stderr, "reg: file %d, shiftx=%f shifty=%f\n",
-				args->seq->imgparam[frame].filenum,
-				current_regdata[frame].shiftx, current_regdata[frame].shifty);
+				args->seq->imgparam[frame].filenum, shiftx, shifty);
 		cur_nb += 1.f;
 		set_progress_bar_data(NULL, cur_nb / nb_frames);
 	}
@@ -1137,3 +1134,26 @@ static gboolean end_register_idle(gpointer p) {
 	return FALSE;
 }
 
+/* Moves the selection x, and y after transformation by Href^-1*Him */
+void selection_H_transform(rectangle *selection, Homography Href, Homography Himg) {
+	double xc, yc;
+	xc = (double)selection->x + (double)selection->w * 0.5;
+	yc = (double)selection->y + (double)selection->h * 0.5;
+	cvTransfPoint(&xc, &yc, Href, Himg);
+	selection->x = (int)(xc - (double)selection->w * 0.5);
+	selection->y = (int)(yc - (double)selection->h * 0.5);
+	// siril_log_message(_("boxselect %d %d %d %d\n"), selection->x, selection->y, selection->w, selection->h);
+}
+
+void translation_from_H(Homography H, double *dx, double *dy) {
+	*dx = H.h02;
+	*dy = -H.h12;
+}
+
+Homography H_from_translation(double dx, double dy) {
+	Homography H;
+	cvGetEye(&H);
+	H.h02 = dx;
+	H.h12 = -dy;
+	return H;
+}

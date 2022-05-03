@@ -740,20 +740,21 @@ void free_fitted_stars(psf_star **stars) {
 	free(stars);
 }
 
-void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units) {
+void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B) {
+	*FWHMx = 0.0f;
+	*FWHMy = 0.0f;
+	*B = 0.0f;
 	if (stars && stars[0]) {
-		int i = 0;
-
-		*FWHMx = 0.0f;
-		*FWHMy = 0.0f;
+		double fwhmx = 0.0, fwhmy = 0.0, b = 0.0;
 		*units = stars[0]->units;
-		while (i < nb) {
-			*FWHMx += (float) stars[i]->fwhmx;
-			*FWHMy += (float) stars[i]->fwhmy;
-			i++;
+		for (int i = 0; i < nb; i++) {
+			fwhmx += stars[i]->fwhmx;
+			fwhmy += stars[i]->fwhmy;
+			b += stars[i]->B;
 		}
-		*FWHMx = *FWHMx / (float)i;
-		*FWHMy = *FWHMy / (float)i;
+		*FWHMx = (float)(fwhmx / (double)nb);
+		*FWHMy = (float)(fwhmy / (double)nb);
+		*B = (float)(b / (double)nb);
 	}
 }
 
