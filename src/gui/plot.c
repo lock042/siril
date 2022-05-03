@@ -1021,7 +1021,7 @@ gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 					kplot_attach_data(p, d1, KPLOT_LINES, NULL);
 					free(sorted_data);
 				}
-			} else {
+			} else if (use_photometry){
 				struct kpair *avg;
 				avg = calloc((max_data - min_data) + 1, sizeof(struct kpair));
 				j = min_data;
