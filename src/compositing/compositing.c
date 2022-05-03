@@ -617,7 +617,7 @@ void create_the_internal_sequence() {
 
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
-	int i, j;
+	int i = 0;
 	struct registration_args regargs;
 	struct registration_method *method;
 	char *msg;
@@ -647,21 +647,16 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
 
 	/* display the values */
-	if (luminance_mode) {
-		for (j=0, i=0; i<layers_count; i++) {
-			if (has_fit(i)) {
-				gtk_spin_button_set_value(layers[i]->spinbutton_x, roundf_to_int(seq->regparam[0][j].shiftx));
-				gtk_spin_button_set_value(layers[i]->spinbutton_y, roundf_to_int(seq->regparam[0][j].shifty));
-				j++;
-			}
-		}
-	} else {
-		for (j=0, i=1; i<layers_count; i++) {
-			if (has_fit(i)) {
-				gtk_spin_button_set_value(layers[i]->spinbutton_x, roundf_to_int(seq->regparam[0][j].shiftx));
-				gtk_spin_button_set_value(layers[i]->spinbutton_y, roundf_to_int(seq->regparam[0][j].shifty));
-				j++;
-			}
+	if (!luminance_mode)
+		i = 1;
+
+	for (int j=0; i<layers_count; i++) {
+		if (has_fit(i)) {
+			double dx, dy;
+			translation_from_H(seq->regparam[0][j].H, &dx, &dy);
+			gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
+			gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
+			j++;
 		}
 	}
 
@@ -686,10 +681,12 @@ float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
 static float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y) {
 	int realX = x, realY = y;
 	if (seq && seq->regparam && reg_layer < seq->number && reg_layer >= 0) {
+		double dx, dy;
+		translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
 		// all images have one layer, hence the 0 below
-		realX = x - roundf_to_int(seq->regparam[0][reg_layer].shiftx);
+		realX = x - round_to_int(dx);
 		if (realX < 0 || realX >= gfit.rx) return 0.0f;
-		realY = y - roundf_to_int(seq->regparam[0][reg_layer].shifty);
+		realY = y - round_to_int(dy);
 		if (realY < 0 || realY >= gfit.ry) return 0.0f;
 	}
 	float pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * gfit.rx];
