@@ -245,6 +245,12 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
 	return Mat_to_image(image, &in, &out, bgr, toX, toY);
 }
 
+void cvResizeArray(double *in, double *out, int inX, int inY, int outX, int outY) {
+    Mat in_mat(inX, inY, CV_64F, in);
+    Mat out_mat(outX, outY, CV_64F, out);
+    resize(in_mat, out_mat, out_mat.size(), 0, 0);
+}
+
 int cvRotateImage(fits *image, point center, double angle, int interpolation, int cropped) {
 	Mat in, out;
 	void *bgr = NULL;

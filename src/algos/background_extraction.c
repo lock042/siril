@@ -38,6 +38,7 @@
 #include "algos/statistics.h"
 #include "algos/geometry.h"
 #include "algos/sorting.h"
+#include "opencv/opencv.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
@@ -147,15 +148,24 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	/* TODO: starts this function in a new thread to get it working */
 	char *msg = siril_log_color_message(_("Background Extraction: processing...\n"), "green");
 	msg[strlen(msg) - 1] = '\0';	set_progress_bar_data(msg, PROGRESS_RESET);
-
+    
+    /* Scaling */
+    int scaling_factor = 4;
+    int width_scaled = width / scaling_factor;
+    int height_scaled = height / scaling_factor;
+    
+    double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
+    double x_scaling = (double)height_scaled / (double)height;
+    double y_scaling = (double)width_scaled / (double)width;
+    
 	// Copy linked list into array
 	list_array = (double**) calloc(n, sizeof(double*));
 	l_i = list;
 	for (int i = 0; i < n; i++) {
 		background_sample *sample_i = (background_sample*) l_i->data;
 		list_array[i] = (double*) calloc(3, sizeof(double));
-		list_array[i][0] = sample_i->position.x;
-		list_array[i][1] = sample_i->position.y;
+		list_array[i][0] = sample_i->position.x * x_scaling;
+		list_array[i][1] = sample_i->position.y * y_scaling;
 		list_array[i][2] = sample_i->median[channel];
 
 		l_i = l_i->next;
@@ -207,8 +217,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	{
 		A = gsl_vector_calloc(n + 1);
 #pragma omp for
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
+		for (int i = 0; i < height_scaled; i++) {
+			for (int j = 0; j < width_scaled; j++) {
 				for (int k = 0; k < n; k++) {
 					double x_k = list_array[k][0];
 					double y_k = list_array[k][1];
@@ -224,7 +234,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				gsl_vector_mul(A, coef);
 
 				pixel = siril_gsl_vector_sum(A);
-				background[j + i * width] = pixel;
+				background_scaled[j + i * width_scaled] = pixel;
 
 			}
 #ifdef _OPENMP
@@ -240,10 +250,13 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		gsl_vector_free(A);
 	}
 
+    cvResizeArray(background_scaled, background, height_scaled, width_scaled, height, width);
+    
 	gsl_matrix_free(K);
 	gsl_vector_free(f);
 	gsl_vector_free(coef);
-
+    free(background_scaled);
+    
 	for (int i = 0; i < n; i++) {
 		free(list_array[i]);
 	}
