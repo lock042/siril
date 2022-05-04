@@ -132,7 +132,6 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
         Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
     */
     
-	int progress = 0;
     double pixel;
 	gsl_matrix *K;
 	gsl_vector *f, *coef, *A;
@@ -144,10 +143,6 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	K = gsl_matrix_calloc(n + 1, n + 1);
 	f = gsl_vector_calloc(n + 1);
 	coef = gsl_vector_calloc(n + 1);
-
-	/* TODO: starts this function in a new thread to get it working */
-	char *msg = siril_log_color_message(_("Background Extraction: processing...\n"), "green");
-	msg[strlen(msg) - 1] = '\0';	set_progress_bar_data(msg, PROGRESS_RESET);
     
     /* Scaling */
     int scaling_factor = 4;
@@ -236,15 +231,6 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				pixel = siril_gsl_vector_sum(A);
 				background_scaled[j + i * width_scaled] = pixel;
 
-			}
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-			{
-				++progress;
-				if (!(progress % 32)) {
-					set_progress_bar_data(NULL, (double) progress / (height * width * n));
-				}
 			}
 		}
 		gsl_vector_free(A);
