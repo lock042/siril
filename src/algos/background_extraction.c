@@ -100,12 +100,12 @@ static double poly_1(gsl_vector *c, double x, double y) {
 }
 
 /* this function come from GSL 2.7 */
-static int siril_gsl_vector_sum(const gsl_vector_int *v) {
+static int siril_gsl_vector_sum(const gsl_vector *v) {
 	size_t i;
 	int sum = 0;
 
 	for (i = 0; i < v->size; ++i) {
-		int vi = gsl_vector_int_get(v, i);
+		int vi = gsl_vector_get(v, i);
 		sum += vi;
 	}
 
