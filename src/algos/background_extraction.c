@@ -1028,6 +1028,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		args->tolerance = get_tolerance_value();
 		args->correction = get_correction_type();
 		args->degree = get_poly_order();
+		args->smoothing = get_smoothing_parameter();
 		args->dither = is_dither_checked();
         args->interpolation_method = get_interpolation_method();
         
