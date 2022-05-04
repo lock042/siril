@@ -121,31 +121,42 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
     double pixel;
 	gsl_matrix *K;
 	gsl_vector *f, *coef, *A;
-	GSList *l_i, *l_j, *l_k;
+	GSList *l_i;
 	guint n = g_slist_length(list);
-    double smoothing = 0.5;
+    double smoothing = 0.01;
     double mean = 0.0;
+    double **list_array;
     
 	K = gsl_matrix_calloc(n + 1, n + 1);
 	f = gsl_vector_calloc(n + 1);
 	coef = gsl_vector_calloc(n + 1);
+    
+    // Copy linked list into array
+    list_array = (double**)calloc(n, sizeof(double*));
+    l_i = list;
+    for (int i = 0; i < n; i++){
+        background_sample *sample_i = (background_sample*) l_i->data;
+        list_array[i] = (double*)calloc(3, sizeof(double));
+        list_array[i][0] = sample_i->position.x;
+        list_array[i][1] = sample_i->position.y;
+        list_array[i][2] = sample_i->median[channel];
+        
+        l_i = l_i->next;
+    }
 
 	// Setup Kernel matrix K with K_ij = k(r_ij) and vector f with f_i = median(sample_i)
-	l_i = list;
+
 	for (int i = 0; i < n; i++) {
-		background_sample *sample_i = (background_sample*) l_i->data;
-		double x_i = sample_i->position.x;
-		double y_i = sample_i->position.y;
+		double x_i = list_array[i][0];
+		double y_i = list_array[i][1];
 
 		gsl_matrix_set(K, i, n, 1.0);
 		gsl_matrix_set(K, n, i, 1.0);
-		gsl_vector_set(f, i, sample_i->median[channel]);
+		gsl_vector_set(f, i, list_array[i][2]);
 
-		l_j = list;
 		for (int j = 0; j < n; j++) {
-			background_sample *sample_j = (background_sample*) l_j->data;
-			double x_j = sample_j->position.x;
-			double y_j = sample_j->position.y;
+			double x_j = list_array[j][0];
+			double y_j = list_array[j][1];
 			double distance = sqrt(pow(x_i - x_j, 2) + pow(y_i - y_j, 2));
 			double kernel = pow(distance, 2) * log(distance);
 			if (distance <= 1e-10) {
@@ -154,11 +165,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 			gsl_matrix_set(K, i, j, kernel);
             mean += kernel/n;
-
-			l_j = l_j->next;
 		}
-
-		l_i = l_i->next;
 	}
     
     //smoothing
@@ -179,23 +186,21 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
     
     // Calculate background from coefficients coef
     
+    #pragma omp parallel shared(background) private(A)
+    {
     A = gsl_vector_calloc(n + 1);
-    
+    #pragma omp for
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
-			l_k = list;
 			for (int k = 0; k < n; k++) {
-				background_sample *sample_k = (background_sample*) l_k->data;
-				double x_k = sample_k->position.x;
-				double y_k = sample_k->position.y;
+				double x_k = list_array[k][0];
+				double y_k = list_array[k][1];
 				double distance = sqrt(pow(j - x_k, 2) + pow(i - y_k, 2));
 				double kernel = pow(distance, 2) * log(distance);
 				if (distance <= 1e-10) {
 					kernel = 0.0;
 				}
 				gsl_vector_set(A, k, kernel);
-
-				l_k = l_k->next;
 			}
 
 			gsl_vector_set(A, n, 1.0);
@@ -206,11 +211,18 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 		}
 	}
-
+    gsl_vector_free(A);
+    }
+    
 	gsl_matrix_free(K);
 	gsl_vector_free(f);
 	gsl_vector_free(coef);
-	gsl_vector_free(A);
+    
+    for (int i=0; i<n; i++){
+        free(list_array[i]);
+    }
+    free(list_array);
+    
 	return TRUE;
 }
 
