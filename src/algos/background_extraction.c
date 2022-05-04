@@ -112,7 +112,7 @@ static double siril_gsl_vector_sum(const gsl_vector *v) {
 	return sum;
 }
 
-static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, gchar **err) {
+static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err) {
     /* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
     
     References:
@@ -131,18 +131,22 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
         Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
     */
     
+	int progress = 0;
     double pixel;
 	gsl_matrix *K;
 	gsl_vector *f, *coef, *A;
 	GSList *l_i;
 	guint n = g_slist_length(list);
-	double smoothing = 0.01;
 	double mean = 0.0;
 	double **list_array;
 
 	K = gsl_matrix_calloc(n + 1, n + 1);
 	f = gsl_vector_calloc(n + 1);
 	coef = gsl_vector_calloc(n + 1);
+
+	/* TODO: starts this function in a new thread to get it working */
+	char *msg = siril_log_color_message(_("Background Extraction: processing...\n"), "green");
+	msg[strlen(msg) - 1] = '\0';	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	// Copy linked list into array
 	list_array = (double**) calloc(n, sizeof(double*));
@@ -223,6 +227,15 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				background[j + i * width] = pixel;
 
 			}
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+			{
+				++progress;
+				if (!(progress % 32)) {
+					set_progress_bar_data(NULL, (double) progress / (height * width * n));
+				}
+			}
 		}
 		gsl_vector_free(A);
 	}
@@ -235,6 +248,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		free(list_array[i]);
 	}
 	free(list_array);
+	set_progress_bar_data(_("Background Extraction computed"), PROGRESS_DONE);
 
 	return TRUE;
 }
@@ -660,6 +674,12 @@ static int get_interpolation_method() {
     return gtk_combo_box_get_active(combo);
 }
 
+static double get_smoothing_parameter() {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_background_smoothing"));
+
+	return gtk_spin_button_get_value(spin);
+}
+
 static void remove_gradient(double *img, const double *background, size_t ndata, int type) {
 	size_t i;
 	double mean;
@@ -760,7 +780,7 @@ void generate_background_samples(int nb_of_samples, double tolerance) {
 }
 
 /* uses samples from com.grad_samples */
-gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean use_dither, int interpolation_method) {
+gboolean remove_gradient_from_image(int correction, poly_order degree, double smoothing, gboolean use_dither, int interpolation_method) {
 	gchar *error;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 	if (!background && !com.script) {
@@ -787,7 +807,7 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean 
                                     gfit.rx, gfit.ry, degree, &error);
         } else {
             interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel, 
-                                    gfit.rx, gfit.ry, &error);
+                                    gfit.rx, gfit.ry, smoothing, &error);
         }
         
 		if (!interpolation_worked) {
@@ -854,7 +874,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
         if (b_args->interpolation_method == 0){
             interpolation_worked = computeBackground_Polynom(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error);
         } else {
-            interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, &error);    
+            interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error);
         }
         
 		if (!interpolation_worked) {
@@ -1041,11 +1061,12 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		int correction = get_correction_type();
 		poly_order degree = get_poly_order();
+		double smoothing = get_smoothing_parameter();
 		gboolean use_dither = is_dither_checked();
         int interpolation_method = get_interpolation_method();
 		undo_save_state(&gfit, _("Background extraction (Correction: %s)"),
 				correction ? "Division" : "Subtraction");
-		remove_gradient_from_image(correction, degree, use_dither, interpolation_method);
+		remove_gradient_from_image(correction, degree, smoothing, use_dither, interpolation_method);
 
 		invalidate_stats_from_fit(&gfit);
 		adjust_cutoff_from_updated_gfit();
