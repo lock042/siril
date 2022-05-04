@@ -131,8 +131,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
     [4] J. D. Martin and T. W. Simpson. Use of Kriging Models to Approximate 
         Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
     */
-    
-    double pixel;
+
+	double pixel;
 	gsl_matrix *K;
 	gsl_vector *f, *coef, *A;
 	GSList *l_i;
@@ -236,13 +236,13 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		gsl_vector_free(A);
 	}
 
-    cvResizeArray(background_scaled, background, height_scaled, width_scaled, height, width);
-    
+	cvResizeArray(background_scaled, background, height_scaled, width_scaled, height, width);
+
 	gsl_matrix_free(K);
 	gsl_vector_free(f);
 	gsl_vector_free(coef);
-    free(background_scaled);
-    
+	free(background_scaled);
+
 	for (int i = 0; i < n; i++) {
 		free(list_array[i]);
 	}
