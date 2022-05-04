@@ -99,9 +99,9 @@ static double poly_1(gsl_vector *c, double x, double y) {
 	return (value);
 }
 
-static gboolean computeBackground(GSList *list, double *background, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
+static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, gchar **err) {
     /* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
-    """
+    
     References:
     ----------  
     [1] G. B. Wright. Radial Basis Function Interpolation: Numerical and 
@@ -123,7 +123,9 @@ static gboolean computeBackground(GSList *list, double *background, int channel,
 	gsl_vector *f, *coef, *A;
 	GSList *l_i, *l_j, *l_k;
 	guint n = g_slist_length(list);
-
+    double smoothing = 0.5;
+    double mean = 0.0;
+    
 	K = gsl_matrix_calloc(n + 1, n + 1);
 	f = gsl_vector_calloc(n + 1);
 	coef = gsl_vector_calloc(n + 1);
@@ -150,18 +152,20 @@ static gboolean computeBackground(GSList *list, double *background, int channel,
 				kernel = 0.0;
 			}
 
-			if (i == j) {
-				kernel += 1.0; // for smoothing
-			}
-
 			gsl_matrix_set(K, i, j, kernel);
+            mean += kernel/n;
 
 			l_j = l_j->next;
 		}
 
 		l_i = l_i->next;
-
 	}
+    
+    //smoothing
+    
+    for (int i=0; i < n; i++){
+        gsl_matrix_set(K,i,i,0.02*smoothing*mean);
+    }
 
 	gsl_matrix_set(K, n, n, 0.0);
 	gsl_vector_set(f, n, 0.0);
@@ -176,6 +180,7 @@ static gboolean computeBackground(GSList *list, double *background, int channel,
     // Calculate background from coefficients coef
     
     A = gsl_vector_calloc(n + 1);
+    
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
 			l_k = list;
@@ -209,7 +214,7 @@ static gboolean computeBackground(GSList *list, double *background, int channel,
 	return TRUE;
 }
 
-static gboolean computeBackground2(GSList *list, double *background, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
+static gboolean computeBackground_Polynom(GSList *list, double *background, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
 	size_t k = 0;
 	double chisq, pixel;
 	gsl_matrix *J, *cov;
@@ -617,6 +622,12 @@ static double get_tolerance_value() {
 	return gtk_range_get_value(tol);
 }
 
+static int get_interpolation_method() {
+    GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("background_extraction_combo"));
+
+    return gtk_combo_box_get_active(combo);
+}
+
 static void remove_gradient(double *img, const double *background, size_t ndata, int type) {
 	size_t i;
 	double mean;
@@ -717,7 +728,7 @@ void generate_background_samples(int nb_of_samples, double tolerance) {
 }
 
 /* uses samples from com.grad_samples */
-gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean use_dither) {
+gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean use_dither, int interpolation_method) {
 	gchar *error;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 	if (!background && !com.script) {
@@ -737,8 +748,17 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean 
 	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
 		convert_fits_to_img(&gfit, image, channel, use_dither);
-		if (!computeBackground(com.grad_samples, background, channel, gfit.rx,
-				gfit.ry, degree, &error)) {
+        
+        gboolean interpolation_worked = TRUE;
+        if (interpolation_method == 0){
+            interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel, 
+                                    gfit.rx, gfit.ry, degree, &error);
+        } else {
+            interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel, 
+                                    gfit.rx, gfit.ry, &error);
+        }
+        
+		if (!interpolation_worked) {
 			free(image);
 			free(background);
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
@@ -797,7 +817,15 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		/* compute background */
 		convert_fits_to_img(fit, image, channel, b_args->dither);
-		if (!computeBackground(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error)) {
+        
+        gboolean interpolation_worked = TRUE;
+        if (b_args->interpolation_method == 0){
+            interpolation_worked = computeBackground_Polynom(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error);
+        } else {
+            interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, &error);    
+        }
+        
+		if (!interpolation_worked) {
 			if (error) {
 				siril_log_message(error);
 			}
@@ -949,6 +977,8 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		args->correction = get_correction_type();
 		args->degree = get_poly_order();
 		args->dither = is_dither_checked();
+        args->interpolation_method = get_interpolation_method();
+        
 		if (args->degree > BACKGROUND_POLY_1) {
 			int confirm = siril_confirm_dialog(_("Polynomial order seems too high."),
 					_("You are about to process a sequence of preprocessed files with "
@@ -980,9 +1010,10 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		int correction = get_correction_type();
 		poly_order degree = get_poly_order();
 		gboolean use_dither = is_dither_checked();
+        int interpolation_method = get_interpolation_method();
 		undo_save_state(&gfit, _("Background extraction (Correction: %s)"),
 				correction ? "Division" : "Subtraction");
-		remove_gradient_from_image(correction, degree, use_dither);
+		remove_gradient_from_image(correction, degree, use_dither, interpolation_method);
 
 		invalidate_stats_from_fit(&gfit);
 		adjust_cutoff_from_updated_gfit();
