@@ -802,7 +802,7 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, double sm
 		convert_fits_to_img(&gfit, image, channel, use_dither);
         
         gboolean interpolation_worked = TRUE;
-        if (interpolation_method == 0){
+        if (interpolation_method == INTER_POLY){
             interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel, 
                                     gfit.rx, gfit.ry, degree, &error);
         } else {
@@ -871,7 +871,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		convert_fits_to_img(fit, image, channel, b_args->dither);
         
         gboolean interpolation_worked = TRUE;
-        if (b_args->interpolation_method == 0){
+        if (b_args->interpolation_method == INTER_POLY){
             interpolation_worked = computeBackground_Polynom(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error);
         } else {
             interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error);
@@ -1032,7 +1032,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		args->dither = is_dither_checked();
         args->interpolation_method = get_interpolation_method();
         
-		if (args->degree > BACKGROUND_POLY_1) {
+		if (args->interpolation_method == INTER_POLY && args->degree > BACKGROUND_POLY_1) {
 			int confirm = siril_confirm_dialog(_("Polynomial order seems too high."),
 					_("You are about to process a sequence of preprocessed files with "
 							"a polynomial degree greater than 1. This is unlikely because such "

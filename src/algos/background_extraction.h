@@ -11,6 +11,11 @@ typedef enum {
 	BACKGROUND_POLY_4,
 } poly_order;
 
+enum {
+	INTER_POLY = 0,
+	INTER_RBF = 1
+};
+
 struct background_data {
 	int nb_of_samples;
 	double tolerance;
