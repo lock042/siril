@@ -428,7 +428,6 @@ static background_sample *get_sample(float *buf, const int xx,
 	gsl_stats_minmax(&sample->min, &sample->max, data, 1, size);
 	sample->mean = gsl_stats_mean(data, 1, size);
 	sample->median[RLAYER] = quickmedian_double(data, size);
-	sample->median[GLAYER] = sample->median[BLAYER] = sample->median[RLAYER];
 	sample->position.x = xx;
 	sample->position.y = yy;
 	sample->size = SAMPLE_SIZE;
@@ -742,6 +741,10 @@ GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
 
 	background_sample *sample = get_sample(image, pt.x, pt.y, nx, ny);
 	list = g_slist_append(list, sample);
+
+	if (fit->naxes[2] > 1) {
+		list = update_median_for_rgb_samples(list, fit);
+	}
 
 	free(image);
 
