@@ -474,6 +474,11 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_background_smoothing">
+    <property name="upper">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_black_point_asinh">
     <property name="upper">0.20</property>
     <property name="step-increment">0.01</property>
@@ -3334,7 +3339,7 @@ If the parameters is null, so no filter is apply at all.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="margin-top">5</property>
-                        <property name="active">1</property>
+                        <property name="active">0</property>
                         <items>
                           <item translatable="yes">Polynomial</item>
                           <item translatable="yes">RBF</item>
@@ -3348,45 +3353,142 @@ If the parameters is null, so no filter is apply at all.</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="background_box_poly">
+                      <object class="GtkNotebook" id="bkg_notebook_inter">
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can-focus">False</property>
-                        <property name="spacing">10</property>
+                        <property name="can-focus">True</property>
+                        <property name="show-tabs">False</property>
+                        <property name="show-border">False</property>
                         <child>
-                          <object class="GtkLabel" id="background_label_degree">
+                          <object class="GtkBox" id="background_box_poly">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Degree order: </property>
+                            <property name="valign">start</property>
+                            <property name="spacing">10</property>
+                            <child>
+                              <object class="GtkLabel" id="background_label_degree">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Degree order: </property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="box_background_order">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Choose the degree order of the polynomial function used in the fit.
+By default the value is of 4.
+The higher the degree order is, the more complex the gradient can be removed.</property>
+                                <property name="hexpand">True</property>
+                                <property name="active">3</property>
+                                <items>
+                                  <item>1</item>
+                                  <item>2</item>
+                                  <item>3</item>
+                                  <item>4</item>
+                                </items>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="tab">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">page 1</property>
                           </object>
                           <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="tab-fill">False</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkComboBoxText" id="box_background_order">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Choose the degree order of the polynomial function used in the fit.
-By default the value is of 4.
-The higher the degree order is, the more complex the gradient can be removed.</property>
-                            <property name="halign">start</property>
-                            <property name="hexpand">True</property>
-                            <property name="active">3</property>
-                            <items>
-                              <item>1</item>
-                              <item>2</item>
-                              <item>3</item>
-                              <item>4</item>
-                            </items>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkLabel" id="RBF_smoothing">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Smoothing</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_background_smoothing">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="text">20</property>
+                                    <property name="input-purpose">digits</property>
+                                    <property name="adjustment">adj_background_smoothing</property>
+                                    <property name="digits">2</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">1</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
+                                <property name="adjustment">adj_background_smoothing</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
                             <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child type="tab">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">page 2</property>
+                          </object>
+                          <packing>
+                            <property name="position">1</property>
+                            <property name="tab-fill">False</property>
                           </packing>
                         </child>
                       </object>

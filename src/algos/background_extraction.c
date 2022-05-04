@@ -1038,7 +1038,6 @@ void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data)
 }
 
 void on_background_extraction_combo_changed(GtkComboBox *combo, gpointer user_data) {
-	GtkWidget *label = lookup_widget("background_box_poly");
-
-	gtk_widget_set_sensitive(label, gtk_combo_box_get_active(combo) == 0);
+	GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget("bkg_notebook_inter"));
+	gtk_notebook_set_current_page(notebook, gtk_combo_box_get_active(combo));
 }
