@@ -4744,6 +4744,7 @@ If the parameters is null, so no filter is apply at all.</property>
                   <object class="GtkComboBoxText" id="background_extraction_combo">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Choose between interpolation methods.</property>
                     <property name="margin-top">5</property>
                     <property name="active">0</property>
                     <items>
@@ -4872,7 +4873,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                           <object class="GtkScale">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
+                            <property name="tooltip-text" translatable="yes">Adjust the smoothing parameter for the interpolation method. A smoothing parameter that is too small may result in overshoots and undershoots between points in the background, while a smoothing parameter that is too large may not be suitable for large deviations in gradient.</property>
                             <property name="adjustment">adj_background_smoothing</property>
                             <property name="draw-value">False</property>
                           </object>
@@ -4971,7 +4972,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">Tolerance</property>
+                        <property name="label" translatable="yes">Grid tolerance</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
