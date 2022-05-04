@@ -136,26 +136,26 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	gsl_vector *f, *coef, *A;
 	GSList *l_i;
 	guint n = g_slist_length(list);
-    double smoothing = 0.01;
-    double mean = 0.0;
-    double **list_array;
-    
+	double smoothing = 0.01;
+	double mean = 0.0;
+	double **list_array;
+
 	K = gsl_matrix_calloc(n + 1, n + 1);
 	f = gsl_vector_calloc(n + 1);
 	coef = gsl_vector_calloc(n + 1);
-    
-    // Copy linked list into array
-    list_array = (double**)calloc(n, sizeof(double*));
-    l_i = list;
-    for (int i = 0; i < n; i++){
-        background_sample *sample_i = (background_sample*) l_i->data;
-        list_array[i] = (double*)calloc(3, sizeof(double));
-        list_array[i][0] = sample_i->position.x;
-        list_array[i][1] = sample_i->position.y;
-        list_array[i][2] = sample_i->median[channel];
-        
-        l_i = l_i->next;
-    }
+
+	// Copy linked list into array
+	list_array = (double**) calloc(n, sizeof(double*));
+	l_i = list;
+	for (int i = 0; i < n; i++) {
+		background_sample *sample_i = (background_sample*) l_i->data;
+		list_array[i] = (double*) calloc(3, sizeof(double));
+		list_array[i][0] = sample_i->position.x;
+		list_array[i][1] = sample_i->position.y;
+		list_array[i][2] = sample_i->median[channel];
+
+		l_i = l_i->next;
+	}
 
 	// Setup Kernel matrix K with K_ij = k(r_ij) and vector f with f_i = median(sample_i)
 
@@ -177,65 +177,65 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 			}
 
 			gsl_matrix_set(K, i, j, kernel);
-            mean += kernel/n;
+			mean += kernel / n;
 		}
 	}
-    
-    //smoothing
-    
-    for (int i=0; i < n; i++){
-        gsl_matrix_set(K,i,i,0.02*smoothing*mean);
-    }
+
+	//smoothing
+
+	for (int i = 0; i < n; i++) {
+		gsl_matrix_set(K, i, i, 0.02 * smoothing * mean);
+	}
 
 	gsl_matrix_set(K, n, n, 0.0);
 	gsl_vector_set(f, n, 0.0);
 
 	// Solve K*coef = f for coef
-    
-    int s;
-    gsl_permutation * p = gsl_permutation_alloc (n+1);
-    gsl_linalg_LU_decomp(K, p, &s);
-    gsl_linalg_LU_solve(K, p, f, coef);
-    
-    // Calculate background from coefficients coef
-    
-    #pragma omp parallel shared(background) private(A)
-    {
-    A = gsl_vector_calloc(n + 1);
-    #pragma omp for
-	for (int i = 0; i < height; i++) {
-		for (int j = 0; j < width; j++) {
-			for (int k = 0; k < n; k++) {
-				double x_k = list_array[k][0];
-				double y_k = list_array[k][1];
-				double distance = sqrt(pow(j - x_k, 2) + pow(i - y_k, 2));
-				double kernel = pow(distance, 2) * log(distance);
-				if (distance <= 1e-10) {
-					kernel = 0.0;
+
+	int s;
+	gsl_permutation *p = gsl_permutation_alloc(n + 1);
+	gsl_linalg_LU_decomp(K, p, &s);
+	gsl_linalg_LU_solve(K, p, f, coef);
+
+	// Calculate background from coefficients coef
+
+#pragma omp parallel shared(background) private(A)
+	{
+		A = gsl_vector_calloc(n + 1);
+#pragma omp for
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				for (int k = 0; k < n; k++) {
+					double x_k = list_array[k][0];
+					double y_k = list_array[k][1];
+					double distance = sqrt(pow(j - x_k, 2) + pow(i - y_k, 2));
+					double kernel = pow(distance, 2) * log(distance);
+					if (distance <= 1e-10) {
+						kernel = 0.0;
+					}
+					gsl_vector_set(A, k, kernel);
 				}
-				gsl_vector_set(A, k, kernel);
+
+				gsl_vector_set(A, n, 1.0);
+				gsl_vector_mul(A, coef);
+
+				pixel = siril_gsl_vector_sum(A);
+				background[j + i * width] = pixel;
+
 			}
-
-			gsl_vector_set(A, n, 1.0);
-			gsl_vector_mul(A, coef);
-
-			pixel = siril_gsl_vector_sum(A);
-			background[j + i * width] = pixel;
-
 		}
+		gsl_vector_free(A);
 	}
-    gsl_vector_free(A);
-    }
-    
+
 	gsl_matrix_free(K);
 	gsl_vector_free(f);
 	gsl_vector_free(coef);
-    
-    for (int i=0; i<n; i++){
-        free(list_array[i]);
-    }
-    free(list_array);
-    
+
+	for (int i = 0; i < n; i++) {
+		free(list_array[i]);
+	}
+	free(list_array);
+
 	return TRUE;
 }
 
