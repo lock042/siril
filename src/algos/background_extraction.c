@@ -131,9 +131,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
     [4] J. D. Martin and T. W. Simpson. Use of Kriging Models to Approximate 
         Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
     */
-    
-	int progress = 0;
-    double pixel;
+
+	double pixel;
 	gsl_matrix *K;
 	gsl_vector *f, *coef, *A;
 	GSList *l_i;
@@ -144,10 +143,6 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	K = gsl_matrix_calloc(n + 1, n + 1);
 	f = gsl_vector_calloc(n + 1);
 	coef = gsl_vector_calloc(n + 1);
-
-	/* TODO: starts this function in a new thread to get it working */
-	char *msg = siril_log_color_message(_("Background Extraction: processing...\n"), "green");
-	msg[strlen(msg) - 1] = '\0';	set_progress_bar_data(msg, PROGRESS_RESET);
     
     /* Scaling */
     int scaling_factor = 4;
@@ -240,26 +235,17 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				background_scaled[j + i * width_scaled] = pixel;
 
 			}
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-			{
-				++progress;
-				if (!(progress % 32)) {
-					set_progress_bar_data(NULL, (double) progress / (height * width * n));
-				}
-			}
 		}
 		gsl_vector_free(A);
 	}
 
-    cvResizeArray(background_scaled, background, height_scaled, width_scaled, height, width);
-    
+	cvResizeArray(background_scaled, background, height_scaled, width_scaled, height, width);
+
 	gsl_matrix_free(K);
 	gsl_vector_free(f);
 	gsl_vector_free(coef);
-    free(background_scaled);
-    
+	free(background_scaled);
+
 	for (int i = 0; i < n; i++) {
 		free(list_array[i]);
 	}
