@@ -467,15 +467,15 @@ Uncheck if images come from a monochrome sensor.</property>
       </object>
     </child>
   </object>
-  <object class="GtkAdjustment" id="adj_background_nb_samples">
-    <property name="lower">0.01</property>
-    <property name="upper">4</property>
-    <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="adj_background_smoothing">
     <property name="upper">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_background_tol">
+    <property name="lower">0.01</property>
+    <property name="upper">6</property>
+    <property name="value">2</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">10</property>
   </object>
@@ -3579,10 +3579,10 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                             <property name="input-purpose">digits</property>
-                            <property name="adjustment">adj_background_nb_samples</property>
+                            <property name="adjustment">adj_background_tol</property>
                             <property name="digits">2</property>
                             <property name="numeric">True</property>
-                            <property name="value">1</property>
+                            <property name="value">2</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -3604,7 +3604,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                         <property name="hexpand">True</property>
-                        <property name="adjustment">adj_background_nb_samples</property>
+                        <property name="adjustment">adj_background_tol</property>
                         <property name="round-digits">2</property>
                         <property name="digits">2</property>
                         <property name="draw-value">False</property>

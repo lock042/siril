@@ -100,12 +100,12 @@ static double poly_1(gsl_vector *c, double x, double y) {
 }
 
 /* this function come from GSL 2.7 */
-static int siril_gsl_vector_sum(const gsl_vector *v) {
+static double siril_gsl_vector_sum(const gsl_vector *v) {
 	size_t i;
-	int sum = 0;
+	double sum = 0;
 
 	for (i = 0; i < v->size; ++i) {
-		int vi = gsl_vector_get(v, i);
+		double vi = gsl_vector_get(v, i);
 		sum += vi;
 	}
 
@@ -535,23 +535,6 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	}
 }
 
-static double siril_stats_mad(const float data[], const size_t stride,
-		const size_t n, float work[]) {
-
-	/* copy input data to work */
-	for (size_t i = 0; i < n; ++i)
-		work[i] = data[i * stride];
-
-	/* compute median of input data using double version */
-	const float median = histogram_median_float(work, n, TRUE);
-
-	/* compute absolute deviations from median */
-	for (size_t i = 0; i < n; ++i)
-		work[i] = fabsf(data[i * stride] - median);
-
-	return histogram_median_float(work, n, TRUE);
-}
-
 static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, size_t size) {
 	int nx = fit->rx;
 	int ny = fit->ry;
@@ -574,21 +557,45 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, si
 	radius = size / 2;
 	startx = ((nx - size) % dist) / 2;
 	starty = ((ny - size) % dist) / 2;
-	mad0 = siril_stats_mad(image, 1, nx * ny, work);
 	median = histogram_median_float(image, nx * ny, TRUE);
 
+	/* create samples */
 	for (y = starty; y <= ny - radius; y = y + dist) {
 		for (x = startx; x <= nx - radius; x = x + dist) {
 			background_sample *sample = get_sample(image, x, y, nx, ny);
-			if (sample->median[RLAYER] > 0.0
-					&& sample->median[RLAYER] <= (mad0 * exp(tolerance)) + median) {
 				list = g_slist_prepend(list, sample);
-			} else {
-				g_free(sample);
-			}
 		}
 	}
+
+	/* compute mad */
+	guint nb = g_slist_length(list);
+	float *mad = malloc(nb * sizeof(float));
+	int i = 0;
+	for (GSList *l = list; l; l = l->next) {
+		background_sample *sample = (background_sample*) l->data;
+		mad[i] = fabsf(sample->median[RLAYER] - median);
+		i++;
+	}
+
+	mad0 = histogram_median_float(mad, nb, TRUE);
+
+	/* remove bad samples */
+	GSList *l = list;
+	while (l != NULL) {
+		background_sample *sample = (background_sample*) l->data;
+		/* Store next element's pointer before removing it */
+		GSList *next = g_slist_next(l);
+		if (sample->median[RLAYER] <= 0.0
+				|| sample->median[RLAYER] >= (mad0 * tolerance) + median) {
+			g_free(sample);
+			list = g_slist_delete_link(list, l);
+		}
+		l = next;
+	}
+
 	list = g_slist_reverse(list);
+
+	free(mad);
 	free(image);
 	free(work);
 
