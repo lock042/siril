@@ -99,6 +99,19 @@ static double poly_1(gsl_vector *c, double x, double y) {
 	return (value);
 }
 
+/* this function come from GSL 2.7 */
+static int siril_gsl_vector_sum(const gsl_vector_int *v) {
+	size_t i;
+	int sum = 0;
+
+	for (i = 0; i < v->size; ++i) {
+		int vi = gsl_vector_int_get(v, i);
+		sum += vi;
+	}
+
+	return sum;
+}
+
 static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, gchar **err) {
     /* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
     
@@ -206,7 +219,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 			gsl_vector_set(A, n, 1.0);
 			gsl_vector_mul(A, coef);
 
-			pixel = gsl_vector_sum(A);
+			pixel = siril_gsl_vector_sum(A);
 			background[j + i * width] = pixel;
 
 		}
