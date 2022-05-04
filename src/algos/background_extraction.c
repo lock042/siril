@@ -213,7 +213,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 	// Calculate background from coefficients coef
 
-#pragma omp parallel shared(background) private(A)
+#pragma omp parallel shared(background) private(A) num_threads(com.max_thread)
 	{
 		A = gsl_vector_calloc(n + 1);
 #pragma omp for
@@ -600,7 +600,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, si
 	int i = 0;
 	for (GSList *l = list; l; l = l->next) {
 		background_sample *sample = (background_sample*) l->data;
-		mad[i] = fabsf(sample->median[RLAYER] - median);
+		mad[i] = fabs(sample->median[RLAYER] - median);
 		i++;
 	}
 
