@@ -88,10 +88,12 @@ static void align_and_compose() {
 			for (int channel = 0; channel < 3; channel++) {
 				fits *fit = internal_sequence_get(seq, channel);
 				if (seq && seq->regparam) {
+					double dx, dy;
+					translation_from_H(seq->regparam[REGLAYER][channel].H, &dx, &dy);
+					int realX = x - round_to_int(dx);
+					int realY = y - round_to_int(dy);
 					if (fit->type == DATA_USHORT) {
 						WORD pixel;
-						int realX = x - roundf_to_int(seq->regparam[REGLAYER][channel].shiftx);
-						int realY = y - roundf_to_int(seq->regparam[REGLAYER][channel].shifty);
 						if (realX < 0 || realX >= gfit.rx)
 							pixel = 0;
 						else if (realY < 0 || realY >= gfit.ry)
@@ -101,17 +103,15 @@ static void align_and_compose() {
 						}
 						gfit.pdata[channel][i] = pixel;
 					} else {
-							float pixel;
-							int realX = x - roundf_to_int(seq->regparam[REGLAYER][channel].shiftx);
-							int realY = y - roundf_to_int(seq->regparam[REGLAYER][channel].shifty);
-							if (realX < 0 || realX >= gfit.rx)
-								pixel = 0.f;
-							else if (realY < 0 || realY >= gfit.ry)
-								pixel = 0.f;
-							else {
-								pixel = fit->fpdata[0][realX + gfit.rx * realY];
-							}
-							gfit.fpdata[channel][i] = pixel;
+						float pixel;
+						if (realX < 0 || realX >= gfit.rx)
+							pixel = 0.f;
+						else if (realY < 0 || realY >= gfit.ry)
+							pixel = 0.f;
+						else {
+							pixel = fit->fpdata[0][realX + gfit.rx * realY];
+						}
+						gfit.fpdata[channel][i] = pixel;
 					}
 				}
 			}

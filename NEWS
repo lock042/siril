@@ -6,11 +6,22 @@ v1.2.0 mmm dd, 2022
 * Added specifying max number of stars for registration
 * Added bap pixel map option for preprocess, both in GUI and command
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
-* Added commands: seqtilt
+* Updated seq file version to v4. Registration block keeps homography information
+* Added background level and number of stars to stored registation data and plots
+* Added commands: seqtilt, autostretch, autostretch_linked, dumpheader, psf
+* Added KOMBAT alogrithm for registration and removed deprecated ECC
 * Added chosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)
 * Added option "full" to export all possible stats in seqstat command
 * Replaced Libraw with RT debayering
+* Fixed comet registration when registration was accumulated over existing data
+
+v1.0.2 Xxx x, 2022
+
+* Removed file name length limit in conversion
+* Fixed crash in preprocess command if a quote was not closed in -bias= option
+* Fixed crash when star detection box was expanded past a border
+* Fixed crash in plot when X axis data contained negative values
 
 v1.0.1 April 6, 2022
 

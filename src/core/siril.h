@@ -280,17 +280,29 @@ typedef enum {
 struct imdata {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
-	GDateTime *date_obs;/* date of the observation, processed and copied from the header */
+	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	int rx, ry;
 };
+
+typedef struct Homo {
+	double h00, h01, h02;
+	double h10, h11, h12;
+	double h20, h21, h22;
+	int pair_matched;
+	int Inliers;
+} Homography;
 
 /* registration data, exists once for each image and each layer */
 struct registration_data {
-	float shiftx, shifty;	// we could have a subpixel precision, but is it needed? saved
 	psf_star *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
-	float weighted_fwhm; // used to exclude spurious images.
+	float weighted_fwhm;	// used to exclude spurious images.
 	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
 	double quality;
+	float background_lvl;
+	int number_of_stars;
+
+	Homography H;
 };
 
 /* see explanation about sequence and single image management in io/sequence.c */
@@ -301,8 +313,9 @@ struct sequ {
 	int selnum;		// number of selected images in the sequence
 	int fixed;		// fixed length of image index in filename (like %3d)
 	int nb_layers;		// number of layers embedded in each image file, -1 if unknown
-	unsigned int rx;	// first image width
-	unsigned int ry;	// first image height
+	unsigned int rx;	// first image width (or ref if set)
+	unsigned int ry;	// first image height (or ref if set)
+	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
@@ -739,14 +752,6 @@ struct image_stats {
 
 	atomic_int* _nb_refs;	// reference counting for data management
 };
-
-typedef struct Homo {
-	double h00, h01, h02;
-	double h10, h11, h12;
-	double h20, h21, h22;
-	int pair_matched;
-	int Inliers;
-} Homography;
 
 #ifndef MAIN
 extern guiinfo gui;

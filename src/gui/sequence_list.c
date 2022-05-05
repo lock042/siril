@@ -181,8 +181,10 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 
 	if (!use_photometry) { // reporting registration data
 		if (seq->regparam && seq->regparam[layer]) {
-			shiftx = roundf_to_int(seq->regparam[layer][index].shiftx);
-			shifty = roundf_to_int(seq->regparam[layer][index].shifty);
+			double dx, dy;
+			translation_from_H(seq->regparam[layer][index].H, &dx, &dy);
+			shiftx = round_to_int(dx);
+			shifty = round_to_int(dy);
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
@@ -205,6 +207,12 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 					break;
 				case r_QUALITY:
 					fwhm = seq->regparam[layer][index].quality;
+					break;
+				case r_BACKGROUND:
+					fwhm = seq->regparam[layer][index].background_lvl;
+					break;
+				case r_NBSTARS:
+					fwhm = seq->regparam[layer][index].number_of_stars;
 					break;
 				default: 
 					break;
@@ -487,6 +495,12 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 				case r_QUALITY:
 					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
 					break;
+				case r_BACKGROUND:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+					break;
+				case r_NBSTARS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
+					break;
 				default: 
 					break;
 			}
@@ -764,9 +778,11 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 		}
 	}
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
+	if (!model) return;
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view)); //clear current selection
 	gtk_tree_selection_unselect_all(selection);
 	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	if (!path) return;
 	gtk_tree_selection_select_path(selection, path);
 	gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW(tree_view), path, NULL, FALSE, FALSE, FALSE);
 	gtk_tree_path_free(path);

@@ -103,8 +103,10 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	cairo_translate(cr, area_width / 2.0 - com.seq.previewX[current_preview],
 			area_height/2.0-com.seq.previewY[current_preview]);
 	if (com.seq.regparam && com.seq.regparam[gui.cvport]) {
-		shiftx = roundf_to_int(com.seq.regparam[gui.cvport][com.seq.current].shiftx);
-		shifty = roundf_to_int(com.seq.regparam[gui.cvport][com.seq.current].shifty);
+		double dx, dy;
+		translation_from_H(com.seq.regparam[gui.cvport][com.seq.current].H, &dx, &dy);
+		shiftx = round_to_int(dx);
+		shifty = round_to_int(dy);
 	}
 	if (shiftx || shifty)
 		cairo_translate(cr, shiftx, -shifty);
@@ -287,10 +289,10 @@ void adjust_reginfo() {
 		gtk_spin_button_set_value(spin_shiftx, 0.);
 		gtk_spin_button_set_value(spin_shifty, 0.);
 	} else {
-		gtk_spin_button_set_value(spin_shiftx,
-				roundf_to_int(com.seq.regparam[cvport][com.seq.current].shiftx));
-		gtk_spin_button_set_value(spin_shifty,
-				roundf_to_int(com.seq.regparam[cvport][com.seq.current].shifty));
+		double dx, dy;
+		translation_from_H(com.seq.regparam[cvport][com.seq.current].H, &dx, &dy);
+		gtk_spin_button_set_value(spin_shiftx, round_to_int(dx));
+		gtk_spin_button_set_value(spin_shifty, round_to_int(dy));
 	}
 	g_signal_handlers_unblock_by_func(spin_shiftx, on_spinbut_shift_value_change, NULL);
 	g_signal_handlers_unblock_by_func(spin_shifty, on_spinbut_shift_value_change, NULL);
@@ -327,9 +329,12 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 	}
 
 	new_value = gtk_spin_button_get_value_as_int(spinbutton);
+	double shiftx, shifty;
+	translation_from_H(com.seq.regparam[current_layer][com.seq.current].H, &shiftx, &shifty);
 	if (spinbutton == spin_shiftx)
-		com.seq.regparam[current_layer][com.seq.current].shiftx = (float) new_value;
-	else com.seq.regparam[current_layer][com.seq.current].shifty = (float) new_value;
+		shiftx = new_value;
+	else shifty = new_value;
+	com.seq.regparam[current_layer][com.seq.current].H = H_from_translation(shiftx, shifty);
 	writeseqfile(&com.seq);
 	update_seqlist(current_layer);
 	fill_sequence_list(&com.seq, current_layer, FALSE);	// update list with new regparam
