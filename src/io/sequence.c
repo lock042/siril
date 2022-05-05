@@ -1419,7 +1419,6 @@ void check_or_allocate_regparam(sequence *seq, int layer) {
 		for (int i = 0; i < seq->number; i++) {
 			cvGetEye(&seq->regparam[layer][i].H);
 		}
-		if (seq->reference_image < 0) seq->reference_image = 0;
 	}
 }
 
@@ -1775,6 +1774,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (seq->regparam[layer] && seq->current >= 0) {
 		// transform selection back from current to ref frame coordinates
+		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
 		selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
 		if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
 				args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
