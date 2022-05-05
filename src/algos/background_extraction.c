@@ -240,7 +240,6 @@ static background_sample *get_sample(float *buf, const int xx,
 		return NULL;
 	}
 
-
 	int n = 0;
 	double *data = calloc(size, sizeof(double));
 	if (!data) {
@@ -302,15 +301,15 @@ static unsigned int _rand(guint64 *const p_rng) {
 }
 
 static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gboolean add_dither) {
-
 	guint64 seed = time(NULL);
 
+	float invnorm = (float)(1.0 / USHRT_MAX);
 	const int height = fit->ry;
 	const int width = fit->rx;
 	if (fit->type == DATA_USHORT) {
 		for (int y = 0; y < height; ++y) {
 			for (int x = 0; x < width; ++x) {
-				image[y * width + x] = fit->pdata[channel][(height - y - 1) * width + x] / USHRT_MAX_SINGLE;
+				image[y * width + x] = fit->pdata[channel][(height - y - 1) * width + x] * invnorm;
 				if (add_dither) {
 					/* add dithering in order to avoid colour banding */
 					image[y * width + x] += (_rand(&seed) % 1048576) * 0.000000000095367431640625f;
@@ -334,7 +333,7 @@ static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gbool
 static float* convert_fits_to_luminance(fits *fit, threading_type threads) {
 	g_assert(fit->type == DATA_USHORT || fit->type == DATA_FLOAT);
 	const size_t n = fit->naxes[0] * fit->naxes[1];
-	float invnorm = (float)(1.0 / get_normalized_value(fit));
+	float invnorm = (float)(1.0 / USHRT_MAX);
 	/* allocating memory to image */
 	float *image = malloc(n * sizeof(float));
 	if (!image) {
@@ -382,13 +381,12 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	const int height = fit->ry;
 	const int width = fit->rx;
 	if (fit->type == DATA_USHORT) {
-		double norm = get_normalized_value(fit);
 		WORD *buf = fit->pdata[channel];
 		for (int y = 0; y < height; ++y) {
 			for (int x = 0; x < width; ++x) {
 				size_t in_idx = (height - y - 1) * width + x;
 				size_t out_idx = y * width + x;
-				buf[out_idx] = round_to_WORD(image[in_idx] * norm);
+				buf[out_idx] = round_to_WORD(image[in_idx] * USHRT_MAX);
 			}
 		}
 	} else if (fit->type == DATA_FLOAT) {
@@ -490,6 +488,7 @@ static void remove_gradient(double *img, const double *background, size_t ndata,
 	size_t i;
 	double mean;
 
+	// TODO: use cached stats
 	mean = gsl_stats_mean(img, 1, ndata);
 
 	switch (type) {
