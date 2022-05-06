@@ -16,7 +16,7 @@ v1.2.0 mmm dd, 2022
 * Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
 
-v1.0.2 Xxx x, 2022
+v1.0.2 May 16, 2022
 
 * Added new RBF interpolation method in the background extraction tool
 * Removed file name length limit in conversion
