@@ -168,7 +168,7 @@ siril-deb-meson:
       - ${BUILD_DIR}/coverage.xml    
     reports:
       junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
-      cobertura: ${BUILD_DIR}/coverage.xml
+      coverage_report: ${BUILD_DIR}/coverage.xml
 
 
 
