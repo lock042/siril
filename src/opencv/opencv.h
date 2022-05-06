@@ -17,6 +17,8 @@ extern "C" {
 
 int cvResizeGaussian(fits *, int, int, int);
 
+void cvResizeArray(double *, double *, int, int, int, int);
+
 int cvRotateImage(fits *, point, double, int, int);
 
 int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points,
