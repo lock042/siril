@@ -1,5 +1,5 @@
 siril 1.0.2
-xx/xx/22
+05/16/22
 
 * Added new RBF interpolation method in the background extraction tool
 * Removed file name length limit in conversion
