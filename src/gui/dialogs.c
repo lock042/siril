@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
+#include "algos/background_extraction.h"
 #include "filters/asinh.h"
 #include "filters/deconv.h"
 #include "filters/clahe.h"
@@ -33,7 +34,7 @@
 static const SirilDialogEntry entries[] =
 {
 		{"asinh_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
-		{"background_extraction_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+		{"background_extraction_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
 		{"canon_fixbanding_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"CLAHE_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
 		{"composition_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
