@@ -1603,40 +1603,94 @@ int process_seq_tilt(int nb) {
 	return 0;
 }
 
+/* seqpsf [sequencename channel [-at=x,y]] */
 int process_seq_psf(int nb) {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
-	if (!sequence_is_loaded()) {
+	if (com.script && nb < 2) {
+		siril_log_message(_("arguments are not optional when called from script: sequence name and channel number\n"));
+		return 1;
+	}
+	if (!com.headless && !sequence_is_loaded()) {
 		PRINT_NOT_FOR_SINGLE;
 		return 1;
 	}
-	if (com.selection.w > 300 || com.selection.h > 300){
-		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-		return 1;
-	}
-	if (com.selection.w <= 0 || com.selection.h <= 0){
-		siril_log_message(_("Select an area first\n"));
-		return 1;
+	if (nb < 3) {
+		if (com.selection.w > 300 || com.selection.h > 300){
+			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+			return 1;
+		}
+		if (com.selection.w <= 0 || com.selection.h <= 0){
+			if (com.headless)
+				siril_log_message(_("Select an area using the boxselect command first\n"));
+			else siril_log_message(_("Select an area first\n"));
+			return 1;
+		}
+	} else if (g_str_has_prefix(word[3], "-at=")) {
+		gchar *arg = word[3] + 4, *end;
+		int x = g_ascii_strtoull(arg, &end, 10);
+		if (end == arg) return 1;
+		if (*end != ',') return 1;
+		end++;
+		arg = end;
+		int y = g_ascii_strtoull(arg, &end, 10);
+		if (end == arg) return 1;
+
+		double start = 1.5 * com.pref.phot_set.outer;
+		double size = 3 * com.pref.phot_set.outer;
+	
+		com.selection.x = x - start;
+		com.selection.y = y - start;
+		com.selection.w = size;
+		com.selection.h = size;
+		if (com.selection.x < 0 || com.selection.y < 0 ||
+				com.selection.h <= 0 || com.selection.w <= 0)
+			return 1;
 	}
 
-	if (gui.cvport >= MAXGRAYVPORT) {
+	if (!com.headless && nb < 2 && gui.cvport >= MAXGRAYVPORT) {
 		siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
 		return 1;
 	}
 
-	int layer = gui.cvport;
+	sequence *seq;
+	int layer;
+	if (nb < 2) {
+		seq = &com.seq;
+		layer = gui.cvport;
+	} else {
+		seq = load_sequence(word[1], NULL);
+		if (!seq)
+			return 1;
+		layer = g_ascii_strtoull(word[2], NULL, 10);
+		if (layer >= seq->nb_layers) {
+			siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
+			free_sequence(seq, TRUE);
+			return 1;
+		}
+	}
+	rectangle area = com.selection;
+	if (enforce_area_in_image(&area, seq, 0)) {
+		siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
+		return 1;
+	}
+
 	framing_mode framing = REGISTERED_FRAME;
-	if (framing == REGISTERED_FRAME && !com.seq.regparam[layer])
+	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
 		framing = ORIGINAL_FRAME;
 	if (framing == ORIGINAL_FRAME) {
-		GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-		if (gtk_toggle_button_get_active(follow))
+		if (com.headless)
 			framing = FOLLOW_STAR_FRAME;
+		else {
+			GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+			if (gtk_toggle_button_get_active(follow))
+				framing = FOLLOW_STAR_FRAME;
+		}
 	}
-	siril_log_message(_("Running the PSF on the loaded sequence, layer %d\n"), layer);
-	seqpsf(&com.seq, layer, FALSE, FALSE, framing, TRUE);
+	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
+	seqpsf(seq, layer, FALSE, FALSE, framing, TRUE);
 	return 0;
 }
 

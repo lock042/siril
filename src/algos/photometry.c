@@ -276,7 +276,7 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radiu
 	if (appRadius >= r1 && !force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
-			siril_log_message(_("Inner and outer radii are too small. Please update values in preferences.\n"));
+			siril_log_message(_("Inner and outer radii are too small (%d required for inner). Please update values in preferences or with setphot.\n"), round_to_int(appRadius));
 		}
 		return NULL;
 	}
