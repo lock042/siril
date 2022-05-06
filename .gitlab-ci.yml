@@ -168,8 +168,9 @@ siril-deb-meson:
       - ${BUILD_DIR}/coverage.xml    
     reports:
       junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
-      cobertura: ${BUILD_DIR}/coverage.xml
-
+      coverage_report:
+        coverage_format: cobertura
+        path: ${BUILD_DIR}/coverage.xml
 
 
 ################################################################################
@@ -395,3 +396,4 @@ win64-native-installer:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-native-nightly"]
+
