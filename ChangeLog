@@ -20,10 +20,12 @@ xx/xx/22
 siril 1.0.2
 xx/xx/22
 
+* Added new RBF interpolation method in the background extraction tool
 * Removed file name length limit in conversion
 * Fixed crash in preprocess command if a quote was not closed in -bias= option
 * Fixed crash when star detection box was expanded past a border
 * Fixed crash in plot when X axis data contained negative values
+* Fixed numerous bugs in the background extraction tool
 
 siril 1.0.1
 04/06/22
