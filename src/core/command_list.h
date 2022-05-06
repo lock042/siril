@@ -143,7 +143,7 @@ static command commands[] = {
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME, TRUE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE},
-	{"seqpsf", 0, "seqpsf", process_seq_psf, STR_SEQPSF, FALSE},
+	{"seqpsf", 0, "seqpsf [sequencename channel [-at=x,y]]", process_seq_psf, STR_SEQPSF, TRUE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE},
 	{"seqstat", 2, "seqstat sequencename output [option]", process_seq_stat, STR_SEQSTAT, TRUE},
 	{"seqsubsky", 2, "seqsubsky sequencename degree [-samples=20] [-tolerance=1.0] [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE},

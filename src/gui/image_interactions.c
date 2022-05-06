@@ -529,12 +529,10 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {
-			double dX, dY, w, h;
-
-			dX = 1.5 * com.pref.phot_set.outer;
-			dY = dX;
-			w = 3 * com.pref.phot_set.outer;
-			h = w;
+			double dX = 1.5 * com.pref.phot_set.outer;
+			double dY = dX;
+			double w = 3 * com.pref.phot_set.outer;
+			double h = w;
 
 			if ((dX <= zoomed.x) && (dY <= zoomed.y)
 					&& (zoomed.x - dX + w < gfit.rx)
