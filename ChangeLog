@@ -7,6 +7,8 @@ xx/xx/22
 * Fixed crash when star detection box was expanded past a border
 * Fixed crash in plot when X axis data contained negative values
 * Fixed numerous bugs in the background extraction tool
+* Fixed bug in PixelMath where only one char parameter where allowed
+* Fixed bug in FITS partial reader
 
 siril 1.0.1
 04/06/22
