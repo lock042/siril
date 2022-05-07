@@ -186,9 +186,9 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		for (int j = 0; j < n; j++) {
 			double x_j = list_array[j][0];
 			double y_j = list_array[j][1];
-			double distance = sqrt(pow(x_i - x_j, 2) + pow(y_i - y_j, 2));
-			double kernel = pow(distance, 2) * log(distance);
-			if (distance <= 1e-10) {
+			double distance = pow(x_i - x_j, 2) + pow(y_i - y_j, 2); // we can use r^2 directly in kernel calc
+			double kernel = distance * log(distance) * 0.5;
+			if (distance <= 1e-5) {
 				kernel = 0.0;
 			}
 
@@ -227,9 +227,9 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				for (int k = 0; k < n; k++) {
 					double x_k = list_array[k][0];
 					double y_k = list_array[k][1];
-					double distance = sqrt(pow(j - x_k, 2) + pow(i - y_k, 2));
-					double kernel = pow(distance, 2) * log(distance);
-					if (distance <= 1e-10) {
+					double distance = pow(j - x_k, 2.) + pow(i - y_k, 2.); // we can use r^2 directly in kernel calc
+					double kernel = distance * log(distance) * 0.5;
+					if (distance <= 1e-5) {
 						kernel = 0.0;
 					}
 					gsl_vector_set(A, k, kernel);
@@ -831,6 +831,8 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, double sm
 	update_median_samples(com.grad_samples, &gfit);
 
 	double background_mean = get_background_mean(com.grad_samples, gfit.naxes[2]);
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
 		gboolean interpolation_worked = TRUE;
@@ -857,6 +859,9 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, double sm
 		remove_gradient(image, background, background_mean, gfit.naxes[0] * gfit.naxes[1], correction);
 		convert_img_to_fits(image, &gfit, channel);
 	}
+	siril_log_message(_("Background with %s interpolation computed.\n"), (interpolation_method == INTER_POLY) ? "polynomial" : "RBF");
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
 	/* free memory */
 	free(image);
 	free(background);
