@@ -515,7 +515,7 @@ msgstr "Choisissez parmi les méthodes d'interpolation."
 
 #: src/gui/siril3.glade:3313
 msgid "Polynomial"
-msgstr "Polynomialz"
+msgstr "Polynomiale"
 
 #: src/gui/siril3.glade:3314
 msgid "RBF"
