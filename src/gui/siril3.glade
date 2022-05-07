@@ -3375,7 +3375,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">page 1</property>
+                        <property name="label">page 1</property>
                       </object>
                       <packing>
                         <property name="tab-fill">False</property>
@@ -3454,7 +3454,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">page 2</property>
+                        <property name="label">page 2</property>
                       </object>
                       <packing>
                         <property name="position">1</property>
@@ -3547,7 +3547,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
-                        <property name="text" translatable="yes">2,00</property>
+                        <property name="text">2,00</property>
                         <property name="input-purpose">digits</property>
                         <property name="adjustment">adj_background_tol</property>
                         <property name="digits">2</property>
