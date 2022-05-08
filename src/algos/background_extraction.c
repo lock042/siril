@@ -157,6 +157,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	int height_scaled = height / scaling_factor;
 	
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
+	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double x_scaling = (double)height_scaled / (double)height;
 	double y_scaling = (double)width_scaled / (double)width;
 	
@@ -216,23 +217,30 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	gsl_linalg_LU_decomp(K, p, &s);
 	gsl_linalg_LU_solve(K, p, f, coef);
 
+	/* precompute the kernel in the x>0, y>0 plane */
+	for (int i = 0; i < height_scaled; i++) {
+		for (int j = 0; j < width_scaled; j++) {
+			if ((i == 0) && (j == 0)) {
+				kernel_scaled[j + i * width_scaled] = 0.;
+			} else {
+				double distance = pow((double)j, 2.) + pow((double)i, 2.); // we can use r^2 directly in kernel calc
+				kernel_scaled[j + i * width_scaled] = distance * log(distance) * 0.5;
+			}
+		}
+	}
+
 	/* Calculate background from coefficients coef */
 
-#pragma omp parallel shared(background) private(A) num_threads(com.max_thread)
+#pragma omp parallel shared(background_scaled) private(A) num_threads(com.max_thread)
 	{
 		A = gsl_vector_calloc(n + 1);
 #pragma omp for
 		for (int i = 0; i < height_scaled; i++) {
 			for (int j = 0; j < width_scaled; j++) {
 				for (int k = 0; k < n; k++) {
-					double x_k = list_array[k][0];
-					double y_k = list_array[k][1];
-					double distance = pow(j - x_k, 2.) + pow(i - y_k, 2.); // we can use r^2 directly in kernel calc
-					double kernel = distance * log(distance) * 0.5;
-					if (distance <= 1e-5) {
-						kernel = 0.0;
-					}
-					gsl_vector_set(A, k, kernel);
+					int deltax = abs(j -(int)list_array[k][0]);
+					int deltay = abs(i -(int)list_array[k][1]);
+					gsl_vector_set(A, k, kernel_scaled[deltax + deltay * width_scaled]);
 				}
 
 				gsl_vector_set(A, n, 1.0);
@@ -253,6 +261,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	gsl_vector_free(f);
 	gsl_vector_free(coef);
 	free(background_scaled);
+	free(kernel_scaled);
 
 	for (int i = 0; i < n; i++) {
 		free(list_array[i]);
