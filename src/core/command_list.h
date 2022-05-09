@@ -159,6 +159,7 @@ static command commands[] = {
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE},
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE},
+	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE},
 	{"split", 3, "split fileR fileG fileB", process_split, STR_SPLIT, TRUE},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE},

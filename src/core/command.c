@@ -1337,6 +1337,141 @@ int process_set_mag(int nb) {
 	return 0;
 }
 
+int process_set_photometry(int nb) {
+	if (nb > 0) {
+		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0;
+		int min = -1, max = -1, force = -1;
+		gboolean error = FALSE;
+		for (int i = 1; i < nb; i++) {
+			char *arg = word[i], *end;
+			if (!word[i])
+				break;
+			if (g_str_has_prefix(arg, "-inner=")) {
+				arg += 7;
+				inner = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
+				else if (inner < 1.0) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-outer=")) {
+				arg += 7;
+				outer = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
+				else if (outer < 2.0) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-aperture=")) {
+				arg += 10;
+				aperture = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
+				else if (aperture < 1.0) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-gain=")) {
+				arg += 6;
+				gain = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
+				else if (gain <= 0.0) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-min_val=")) {
+				arg += 9;
+				min = g_ascii_strtoull(arg, &end, 10);
+				if (arg == end) error = TRUE;
+				else if (min >= 65535) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-max_val=")) {
+				arg += 9;
+				max = g_ascii_strtoull(arg, &end, 10);
+				if (arg == end) error = TRUE;
+				else if (max == 0 || max > 65535) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-force_radius=")) {
+				arg += 14;
+				if (*arg == 'y')
+					force = 1;
+				else if (*arg == 'n')
+					force = 0;
+				else error = TRUE;
+			}
+		}
+
+		if (error) {
+			siril_log_message(_("Error parsing arguments, aborting.\n"));
+			return 1;
+		}
+		if (inner > 0) {
+			if (outer > 0) {
+				if (outer > inner) {
+					com.pref.phot_set.inner = inner;
+					com.pref.phot_set.outer = outer;
+				} else {
+					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
+					error = TRUE;
+				}
+			} else {
+				if (com.pref.phot_set.outer > inner) {
+					com.pref.phot_set.inner = inner;
+				} else {
+					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
+					error = TRUE;
+				}
+			}
+		}
+		else if (outer > 0) {
+			if (outer > com.pref.phot_set.inner) {
+				com.pref.phot_set.outer = outer;
+			} else {
+					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
+					error = TRUE;
+				}
+		}
+		if (aperture > 0.0)
+			com.pref.phot_set.aperture = aperture;
+		if (force == 0)
+			com.pref.phot_set.force_radius = FALSE;
+		else if (force == 1)
+			com.pref.phot_set.force_radius = TRUE;
+		if (gain > 0.0)
+			com.pref.phot_set.gain = gain;
+		if (min >= 0) {
+			if (max > 0) {
+				if (min < max) {
+					com.pref.phot_set.minval = min;
+					com.pref.phot_set.maxval = max;
+				} else {
+					siril_log_message(_("minimum value must be smaller than the maximum\n"));
+					error = TRUE;
+				}
+			} else {
+				if (min < com.pref.phot_set.maxval) {
+					com.pref.phot_set.minval = min;
+				} else {
+					siril_log_message(_("minimum value must be smaller than the maximum\n"));
+					error = TRUE;
+				}
+			}
+		} else if (max > 0) {
+			if (com.pref.phot_set.minval < max) {
+				com.pref.phot_set.maxval = max;
+			} else {
+				siril_log_message(_("minimum value must be smaller than the maximum\n"));
+				error = TRUE;
+			}
+		}
+
+		if (error) {
+			siril_log_message(_("Error parsing arguments, aborting.\n"));
+			return 1;
+		}
+	}
+	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%d, %d[\n"),
+			com.pref.phot_set.inner,
+			com.pref.phot_set.outer,
+			com.pref.phot_set.aperture,
+			com.pref.phot_set.force_radius ? _("forced") : _("unused, dynamic"),
+			com.pref.phot_set.gain,
+			com.pref.phot_set.minval,
+			com.pref.phot_set.maxval);
+	return 0;
+}
+
 int process_set_ref(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
