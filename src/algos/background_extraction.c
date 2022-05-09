@@ -153,8 +153,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 	/* Scaling */
 	int scaling_factor = 4;
-	int width_scaled = width / scaling_factor;
-	int height_scaled = height / scaling_factor;
+	int width_scaled = round_to_int(width / scaling_factor);
+	int height_scaled = round_to_int(height / scaling_factor);
 	
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
@@ -166,8 +166,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	l_i = list;
 	for (int i = 0; i < n; i++) {
 		background_sample *sample_i = (background_sample*) l_i->data;
-		list_array[i][0] = sample_i->position.x * x_scaling;
-		list_array[i][1] = sample_i->position.y * y_scaling;
+		list_array[i][0] = (double)round_to_int(sample_i->position.x * x_scaling);
+		list_array[i][1] = (double)round_to_int(sample_i->position.y * y_scaling);
 		list_array[i][2] = sample_i->median[channel];
 
 		l_i = l_i->next;
@@ -237,8 +237,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		for (int i = 0; i < height_scaled; i++) {
 			for (int j = 0; j < width_scaled; j++) {
 				for (int k = 0; k < n; k++) {
-					int deltax = abs(j -(int)list_array[k][0]);
-					int deltay = abs(i -(int)list_array[k][1]);
+					int deltax = abs(j - round_to_int(list_array[k][0]));
+					int deltay = abs(i - round_to_int(list_array[k][1]));
 					gsl_vector_set(A, k, kernel_scaled[deltax + deltay * width_scaled]);
 				}
 
