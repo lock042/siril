@@ -2544,9 +2544,9 @@ int process_subsky(int nb) {
 		apply_background_extraction_to_sequence(args);
 	} else {
 		set_cursor_waiting(TRUE);
-
 		generate_background_samples(samples, tolerance);
-		remove_gradient_from_image(0, (poly_order) (degree - 1), TRUE);
+		/* TODO: add new interpolation algorithm */
+		remove_gradient_from_image(0, (poly_order) (degree - 1), 0.0, TRUE, BACKGROUND_INTER_POLY, com.max_thread);
 
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;

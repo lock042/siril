@@ -616,14 +616,18 @@ void display_filename() {
 	gboolean local_filename = FALSE;
 	int nb_layers, vport;
 	char *filename;
+	gchar *orig_filename = NULL;
+	GError *error = NULL;
 	if (single_image_is_loaded()) {	// unique image
 		filename = com.uniq->filename;
+		orig_filename = g_file_read_link(filename, &error);
 		nb_layers = com.uniq->nb_layers;
 	} else if (sequence_is_loaded()) {	// sequence
 		filename = malloc(256);
 		strcpy(filename, " ");
 		local_filename = TRUE;
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
+		orig_filename = g_file_read_link(filename, &error);
 		nb_layers = com.seq.nb_layers;
 	} else {
 		filename = " ";
@@ -632,16 +636,32 @@ void display_filename() {
 	vport = nb_layers > 1 ? nb_layers + 1 : nb_layers;
 
 	gchar *	base_name = g_path_get_basename(filename);
+	gchar *orig_base_name = NULL;
+	GString *concat_base_name = NULL;
+	if (orig_filename) {
+		orig_base_name = g_path_get_basename(orig_filename);
+		concat_base_name = g_string_new(orig_base_name);
+		concat_base_name = g_string_append(concat_base_name, " <==> ");
+		concat_base_name = g_string_append(concat_base_name, base_name);
+	}
 	for (int channel = 0; channel < vport; channel++) {
 		gchar *c = g_strdup_printf("labelfilename_%s", untranslated_vport_number_to_name(channel));
 		GtkLabel *fn_label = GTK_LABEL(lookup_widget(c));
-		gtk_label_set_text(fn_label, base_name);
+		if (orig_base_name) {
+			gtk_label_set_text(fn_label, concat_base_name->str);
+			gtk_label_set_ellipsize(fn_label, PANGO_ELLIPSIZE_START);
+		} else {
+			gtk_label_set_text(fn_label, base_name);
+			gtk_label_set_ellipsize(fn_label, PANGO_ELLIPSIZE_NONE);
+		}
 		g_free(c);
 	}
 
 	if (local_filename)
 		free(filename);
 	g_free(base_name);
+	g_free(orig_filename);
+	g_free(orig_base_name);
 }
 
 void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
