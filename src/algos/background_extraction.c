@@ -198,12 +198,10 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	}
 
 	/* Smoothing */
-	if (smoothing < 0.01) {
-		smoothing = 1e-5;
-	}
+	smoothing = 1e-4 * pow(10.0, (smoothing-0.5) * 3);
 	
 	for (int i = 0; i < n; i++) {
-		gsl_matrix_set(K, i, i, 0.02 * smoothing * mean);
+		gsl_matrix_set(K, i, i, smoothing * mean);
 	}
 
 	gsl_matrix_set(K, n, n, 0.0);
