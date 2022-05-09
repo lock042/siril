@@ -208,7 +208,7 @@ static int undo_get_data_float(fits *fit, historic hist) {
 		return 1;
 	}
 	/* need to reallocate data as size may have changed */
-	float *newdata = (float*) realloc(fit->data, size);
+	float *newdata = (float*) realloc(fit->fdata, size);
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
 		free(newdata);
