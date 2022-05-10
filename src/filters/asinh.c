@@ -65,6 +65,7 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
 	double norm = get_normalized_value(fit);
+	double invnorm = 1.0 / norm;
 	double asinh_beta = asinh(beta);
 	double factor_red = human_luminance ? 0.2126 : 0.3333;
 	double factor_green = human_luminance ? 0.7152 : 0.3333;
@@ -76,9 +77,9 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double r = buf[RLAYER][i] / norm;
-			double g = buf[GLAYER][i] / norm;
-			double b = buf[BLAYER][i] / norm;
+			double r = buf[RLAYER][i] * invnorm;
+			double g = buf[GLAYER][i] * invnorm;
+			double b = buf[BLAYER][i] * invnorm;
 
 			double x = factor_red * r + factor_green * g + factor_blue * b;
 
@@ -93,7 +94,7 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x = buf[RLAYER][i] / norm;
+			double x = buf[RLAYER][i] * invnorm;
 			double k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
 			buf[RLAYER][i] = round_to_WORD((x - offset) * k * norm);
 		}
