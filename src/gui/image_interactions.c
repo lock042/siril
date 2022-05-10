@@ -418,7 +418,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				redraw(REDRAW_OVERLAY);
 			} else if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 				point pt;
-				int radius = get_sample_radius();
+				int radius = get_background_sample_radius();
 
 				pt.x = (gdouble) zoomed.x;
 				pt.y = (gdouble) zoomed.y;
