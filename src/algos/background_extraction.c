@@ -544,7 +544,7 @@ static float* convert_fits_to_luminance(fits *fit, threading_type threads) {
 					r = fit->pdata[RLAYER][in_idx] * invnorm;
 					g = fit->pdata[GLAYER][in_idx] * invnorm;
 					b = fit->pdata[BLAYER][in_idx] * invnorm;
-				} else if (fit->type == DATA_FLOAT) {
+				} else {
 					r = fit->fpdata[RLAYER][in_idx];
 					g = fit->fpdata[GLAYER][in_idx];
 					b = fit->fpdata[BLAYER][in_idx];
