@@ -173,10 +173,16 @@ int process_satu(int nb){
 
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	args->background_factor = 1.0;
-	args->coeff = g_ascii_strtod(word[1], NULL);
+	gchar *end;
+	args->coeff = g_ascii_strtod(word[1], &end);
+	if (end == word[1]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+		free(args);
+		return 1;
+	}
 	if (nb > 2) {
-		args->background_factor = g_ascii_strtod(word[2], NULL);
-		if (args->background_factor < 0.0) {
+		args->background_factor = g_ascii_strtod(word[2], &end);
+		if (end == word[2] || args->background_factor < 0.0) {
 			siril_log_message(_("Background factor must be positive\n"));
 			free(args);
 			return 1;
@@ -184,8 +190,8 @@ int process_satu(int nb){
 	}
 	int satu_hue_type = 6;
 	if (nb > 3) {
-		satu_hue_type = g_ascii_strtoull(word[3], NULL, 10);
-		if (satu_hue_type > 6) {
+		satu_hue_type = g_ascii_strtoull(word[3], &end, 10);
+		if (end == word[3] || satu_hue_type > 6) {
 			siril_log_message(_("Hue range must be [0, 6]\n"));
 			free(args);
 			return 1;
@@ -242,9 +248,15 @@ int process_savejpg(int nb){
 	}
 
 	int quality = 100;
-	
-	if ((nb == 3) && g_ascii_strtoull(word[2], NULL, 10) <= 100 && g_ascii_strtoull(word[2], NULL, 10) > 0)
-		quality = g_ascii_strtoull(word[2], NULL, 10);
+
+	if (nb == 3) {
+		gchar *end;
+		quality = g_ascii_strtoull(word[2], &end, 10);
+		if (end == word[2] || quality < 10 || quality > 100) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+			return 1;
+		}
+	}
 
 	gchar *filename = g_strdup_printf("%s.jpg", word[1]);
 
@@ -373,9 +385,14 @@ int process_fdiv(int nb){
 		return 1;
 	}
 
-	fits fit = { 0 };
-	float norm = g_ascii_strtod(word[2], NULL);
+	gchar *end;
+	float norm = g_ascii_strtod(word[2], &end);
+	if (end == word[2]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+		return 1;
+	}
 
+	fits fit = { 0 };
 	if (readfits(word[1], &fit, NULL, !com.pref.force_to_16bit)) return -1;
 	siril_fdiv(&gfit, &fit, norm, TRUE);
 
@@ -441,11 +458,15 @@ int process_gauss(int nb){
 		return 1;
 	}
 
-	unsharp(&gfit, g_ascii_strtod(word[1], NULL), 0.0, TRUE);
-	//gaussian_blur_RT(&gfit, g_ascii_strtod(word[1], NULL), com.max_thread);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	gchar *end;
+	double sigma = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || sigma <= 0.0) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+		return 1;
+	}
+	unsharp(&gfit, sigma, 0.0, TRUE);
+	//gaussian_blur_RT(&gfit, sigma, com.max_thread);
+	notify_gfit_modified();
 	return 0;
 }
 
@@ -476,22 +497,22 @@ int process_rl(int nb) {
 
 	double sigma, corner;
 	int iter;
+	gchar *end;
 
-	sigma = g_ascii_strtod(word[1], NULL);
-	corner = g_ascii_strtod(word[2], NULL);
-	iter = g_ascii_strtoull(word[3], NULL, 10);
-
-	if (sigma < 0.4 || sigma > 2.0) {
+	sigma = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || sigma < 0.4 || sigma > 2.0) {
 		siril_log_message(_("Sigma must be between [0.4, 2.0]\n"));
 		return 1;
 	}
 
-	if (corner < -0.5 || corner > 0.5) {
+	corner = g_ascii_strtod(word[2], &end);
+	if (end == word[2] || corner < -0.5 || corner > 0.5) {
 		siril_log_message(_("Corner radius boost must be between [-0.5, 0.5]\n"));
 		return 1;
 	}
 
-	if (iter <= 0) {
+	iter = g_ascii_strtoull(word[3], &end, 10);
+	if (end == word[3] || iter <= 0) {
 		siril_log_message(_("Number of iterations must be > 0.\n"));
 		return 1;
 	}
@@ -526,10 +547,19 @@ int process_unsharp(int nb) {
 		return 1;
 	}
 
-	unsharp(&(gfit), g_ascii_strtod(word[1], NULL), g_ascii_strtod(word[2], NULL), TRUE);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	gchar *end;
+	double sigma = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || sigma <= 0.0) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+		return 1;
+	}
+	double multi = g_ascii_strtod(word[2], &end);
+	if (end == word[2]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+		return 1;
+	}
+	unsharp(&(gfit), sigma, multi, TRUE);
+	notify_gfit_modified();
 	return 0;
 }
 
@@ -544,26 +574,26 @@ int process_crop(int nb) {
 		return 1;
 	}
 
-
 	rectangle area;
-	if ((!com.selection.h) || (!com.selection.w)) {
+	if (!com.selection.h || !com.selection.w) {
 		if (nb == 5) {
-			if (g_ascii_strtoull(word[1], NULL, 10) < 0 || g_ascii_strtoull(word[2], NULL, 10) < 0) {
+			gchar *end1, *end2;
+			area.x = g_ascii_strtoull(word[1], &end1, 10);
+			area.y = g_ascii_strtoull(word[2], &end2, 10);
+			if (end1 == word[1] || area.x < 0 || end2 == word[2] || area.y < 0) {
 				siril_log_message(_("Crop: x and y must be positive values.\n"));
 				return 1;
 			}
-			if (g_ascii_strtoull(word[3], NULL, 10) <= 0 || g_ascii_strtoull(word[4], NULL, 10) <= 0) {
+			area.w = g_ascii_strtoull(word[3], &end1, 10);
+			area.h = g_ascii_strtoull(word[4], &end2, 10);
+			if (end1 == word[3] || area.w < 0 || end2 == word[4] || area.h < 0) {
 				siril_log_message(_("Crop: width and height must be greater than 0.\n"));
 				return 1;
 			}
-			if (g_ascii_strtoull(word[1], NULL, 10) + g_ascii_strtoull(word[3], NULL, 10) > gfit.rx || g_ascii_strtoull(word[2], NULL, 10) + g_ascii_strtoull(word[4], NULL, 10) > gfit.ry) {
-				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit.rx,gfit.ry);
+			if (area.x + area.w > gfit.rx || area.y + area.h > gfit.ry) {
+				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit.rx, gfit.ry);
 				return 1;
 			}
-			area.x = g_ascii_strtoull(word[1], NULL, 10);
-			area.y = g_ascii_strtoull(word[2], NULL, 10);
-			area.w = g_ascii_strtoull(word[3], NULL, 10);
-			area.h = g_ascii_strtoull(word[4], NULL, 10);
 		}
 		else {
 			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
@@ -756,8 +786,13 @@ int process_asinh(int nb) {
 	}
 
 	double offset = 0.0;
+	gchar *end;
 	if (nb > 2 + arg_offset)
-		offset = g_ascii_strtod(word[2+arg_offset], NULL);
+		offset = g_ascii_strtod(word[2+arg_offset], &end);
+	if (end == word[2+arg_offset]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2+arg_offset]);
+		return 1;
+	}
 
 	set_cursor_waiting(TRUE);
 	asinhlut(&gfit, beta, offset, human_luminance);
@@ -1158,9 +1193,16 @@ int process_mtf(int nb) {
 		return 1;
 	}
 	struct mtf_params params;
-	params.shadows = g_ascii_strtod(word[1], NULL);
-	params.midtones = g_ascii_strtod(word[2], NULL);
-	params.highlights = g_ascii_strtod(word[3], NULL);
+	gchar *end1, *end2, *end3;
+	params.shadows = g_ascii_strtod(word[1], &end1);
+	params.midtones = g_ascii_strtod(word[2], &end2);
+	params.highlights = g_ascii_strtod(word[3], &end3);
+	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
+			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
+			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
+		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		return 1;
+	}
 
 	apply_linked_mtf_to_fits(&gfit, &gfit, params);
 
@@ -1179,14 +1221,20 @@ int process_autostretch(int nb) {
 		linked = TRUE;
 		arg_index++;
 	}
+	gchar *end;
 	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
 	if (nb > arg_index)
-		shadows_clipping = g_ascii_strtod(word[arg_index++], NULL);
+		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
+	if (end == word[arg_index]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_index]);
+		return 1;
+	}
+	arg_index++;
 
 	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
 	if (nb > arg_index)
-		target_bg = g_ascii_strtod(word[arg_index], NULL);
-	if (target_bg < 0.0f || target_bg > 1.0f) {
+		target_bg = g_ascii_strtod(word[arg_index], &end);
+	if (end == word[arg_index] || target_bg < 0.0f || target_bg > 1.0f) {
 		siril_log_message(_("The target background value must be in the [0, 1] range\n"));
 		return 1;
 	}
@@ -1213,8 +1261,9 @@ int process_resample(int nb) {
 		return 1;
 	}
 
-	double factor = g_ascii_strtod(word[1], NULL);
-	if (factor > 5.0) {
+	gchar *end;
+	double factor = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || factor <= 0.0 || factor > 5.0) {
 		siril_log_message(_("The scaling factor must be less than 5.0\n"));
 		return 1;
 	}
@@ -1557,6 +1606,7 @@ int process_set_findstar(int nb) {
 	gboolean adjust = com.starfinder_conf.adjust;
 	double focal_length = com.starfinder_conf.focal_length;
 	double pixel_size_x = com.starfinder_conf.pixel_size_x;
+	gchar *end;
 
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
@@ -1564,70 +1614,46 @@ int process_set_findstar(int nb) {
 				if (g_str_has_prefix(word[i], "-radius=")) {
 					char *current = word[i], *value;
 					value = current + 8;
-					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-						return 1;
-					}
-					radius = g_ascii_strtoull(value, NULL, 10);
-					if ((radius < 3) || (radius > 50)) {
+					radius = g_ascii_strtoull(value, &end, 10);
+					if (end == value || radius < 3 || radius > 50) {
 						siril_log_message(_("Wrong parameter values. Radius must be between 3 and 50, aborting.\n"));
 						return 1;
 					}
 				} else if (g_str_has_prefix(word[i], "-sigma=")) {
 					char *current = word[i], *value;
 					value = current + 7;
-					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-						return 1;
-					}
-					sigma = g_ascii_strtod(value, NULL);
-					if (sigma < 0.05) {
+					sigma = g_ascii_strtod(value, &end);
+					if (end == value || sigma < 0.05) {
 						siril_log_message(_("Wrong parameter values. Sigma must be greater than 0.05, aborting\n"));
 						return 1;
 					}
 				} else if (g_str_has_prefix(word[i], "-roundness=")) {
 					char *current = word[i], *value;
 					value = current + 11;
-					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-						return 1;
-					}
-					roundness = g_ascii_strtod(value, NULL);
-					if ((roundness < 0) || (roundness > 0.95)) {
+					roundness = g_ascii_strtod(value, &end);
+					if (end == value || roundness < 0.0 || roundness > 0.95) {
 						siril_log_message(_("Wrong parameter values. Roundness must be between 0 and 0.95, aborting.\n"));
 						return 1;
 					}
 				} else if (g_str_has_prefix(word[i], "-focal=")) {
 					char *current = word[i], *value;
 					value = current + 7;
-					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-						return 1;
-					}
-					focal_length = g_ascii_strtod(value, NULL);
-					if (focal_length < 0) {
+					focal_length = g_ascii_strtod(value, &end);
+					if (end == value || focal_length < 0) {
 						siril_log_message(_("Wrong parameter values. Focal length must be greater than 0, aborting.\n"));
 						return 1;
 					}
 				} else if (g_str_has_prefix(word[i], "-pixelsize=")) {
 					char *current = word[i], *value;
 					value = current + 11;
-					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-						return 1;
-					}
-					pixel_size_x = g_ascii_strtod(value, NULL);
-					if (pixel_size_x < 0) {
+					pixel_size_x = g_ascii_strtod(value, &end);
+					if (end == value || pixel_size_x < 0) {
 						siril_log_message(_("Wrong parameter values. Pixel size must be greater than 0, aborting.\n"));
 						return 1;
 					}
 				} else if (g_str_has_prefix(word[i], "-auto=")) {
 					char *current = word[i], *value;
 					value = current + 6;
-					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-						return 1;
-					}
 					if (!(g_ascii_strcasecmp(value, "on"))) adjust = TRUE;
 					else if (!(g_ascii_strcasecmp(value, "off"))) adjust = FALSE;
 					else {
@@ -1704,7 +1730,7 @@ int process_psf(int nb){
 	if (nb == 2) {
 		char *next;
 		channel = g_ascii_strtoull(word[1], &next, 10);
-		if (word[1]== next || channel > (int)gfit.naxes[2]) {
+		if (word[1] == next || channel > (int)gfit.naxes[2]) {
 			siril_log_message(_("Please provide the channel number starting from 0 for red\n"));
 			return 1;
 		}
@@ -1808,8 +1834,9 @@ int process_seq_psf(int nb) {
 		seq = load_sequence(word[1], NULL);
 		if (!seq)
 			return 1;
-		layer = g_ascii_strtoull(word[2], NULL, 10);
-		if (layer >= seq->nb_layers) {
+		gchar *end;
+		layer = g_ascii_strtoull(word[2], &end, 10);
+		if (end == word[2] || layer >= seq->nb_layers) {
 			siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
 			free_sequence(seq, TRUE);
 			return 1;
@@ -2241,11 +2268,19 @@ int process_findhot(int nb){
 	}
 	GError *error = NULL;
 	long icold, ihot;
-	gchar type;
+	gchar type, *end;
 	double sig[2];
 
-	sig[0] = g_ascii_strtod(word[2], NULL);
-	sig[1] = g_ascii_strtod(word[3], NULL);
+	sig[0] = g_ascii_strtod(word[2], &end);
+	if (end == word[2]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+		return 1;
+	}
+	sig[1] = g_ascii_strtod(word[3], &end);
+	if (end == word[3]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[3]);
+		return 1;
+	}
 
 	deviant_pixel *dev = find_deviant_pixels(&gfit, sig, &icold, &ihot, FALSE);
 	siril_log_message(_("%ld cold and %ld hot pixels\n"), icold, ihot);
@@ -2551,8 +2586,9 @@ int process_scnr(int nb){
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
 	
 	if (nb > 1) {
-		args->type = g_ascii_strtoull(word[1], NULL, 10);
-		if (args->type > 1) {
+		gchar *end;
+		args->type = g_ascii_strtoull(word[1], &end, 10);
+		if (end == word[1] || args->type > 1) {
 			siril_log_message(_("Type can either be 0 (average) or 1 (maximum) neutral protection\n"));
 			free(args);
 			return 1;
@@ -3097,9 +3133,16 @@ int process_seq_mtf(int nb) {
 	args->seq = seq;
 	args->fit = &gfit;
 	args->seqEntry = "mtf_";
-	args->params.shadows = g_ascii_strtod(word[2], NULL);
-	args->params.midtones = g_ascii_strtod(word[3], NULL);
-	args->params.highlights = g_ascii_strtod(word[4], NULL);
+	gchar *end1, *end2, *end3;
+	args->params.shadows = g_ascii_strtod(word[2], &end1);
+	args->params.midtones = g_ascii_strtod(word[3], &end2);
+	args->params.highlights = g_ascii_strtod(word[4], &end3);
+	if (end1 == word[2] || end2 == word[3] || end3 == word[4] ||
+			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
+			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
+		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		return 1;
+	}
 
 	int startoptargs = 5;
 	if (nb > startoptargs) {
@@ -3389,7 +3432,12 @@ int process_convertraw(int nb) {
 				str_append(&destroot, ".ser");
 		} else if (g_str_has_prefix(current, "-start=")) {
 			value = current + 7;
-			idx = (g_ascii_strtoull(value, NULL, 10) <= 0 || g_ascii_strtoull(value, NULL, 10) >= INDEX_MAX) ? 1 : g_ascii_strtoull(value, NULL, 10);
+			gchar *end;
+			idx = g_ascii_strtoull(value, &end, 10);
+			if (end == value || idx <= 0 || idx >= INDEX_MAX) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), current);
+				return 1;
+			}
 		} else if (g_str_has_prefix(current, "-out=")) {
 			value = current + 5;
 			if (value[0] == '\0') {
@@ -3480,9 +3528,12 @@ int process_link(int nb) {
 		char *current = word[i], *value;
 		if (g_str_has_prefix(current, "-start=")) {
 			value = current + 7;
-			idx = (g_ascii_strtoull(value, NULL, 10) <= 0 ||
-					g_ascii_strtoull(value, NULL, 10) >= INDEX_MAX) ?
-				1 : g_ascii_strtoull(value, NULL, 10);
+			gchar *end;
+			idx = g_ascii_strtoull(value, &end, 10);
+			if (end == value || idx <= 0 || idx >= INDEX_MAX) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), current);
+				return 1;
+			}
 		} else if (g_str_has_prefix(current, "-out=")) {
 			value = current + 5;
 			if (value[0] == '\0') {
@@ -3590,8 +3641,12 @@ int process_convert(int nb) {
 				str_append(&destroot, ".ser");
 		} else if (g_str_has_prefix(current, "-start=")) {
 			value = current + 7;
-			idx = (g_ascii_strtoull(value, NULL, 10) <= 0 || g_ascii_strtoull(value, NULL, 10) >= INDEX_MAX) ?
-				1 : g_ascii_strtoull(value, NULL, 10);
+			gchar *end;
+			idx = g_ascii_strtoull(value, &end, 10);
+			if (end == value || idx <= 0 || idx >= INDEX_MAX) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), current);
+				return 1;
+			}
 		} else if (g_str_has_prefix(current, "-out=")) {
 			value = current + 5;
 			if (value[0] == '\0') {
@@ -3753,15 +3808,14 @@ int process_register(int nb) {
 				}
 				char *current = word[i], *value;
 				value = current + 7;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return 1;
-				}
-				if ((g_ascii_strtoull(value, NULL, 10) < 0) || (g_ascii_strtoull(value, NULL, 10) > 2)) {
+				gchar *end;
+				int layer = g_ascii_strtoull(value, &end, 10);
+				if (end == value || layer < 0 || layer > 2) {
 					siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
-					continue;
+					if (end == value) break;
+					else continue;
 				}
-				reg_args->layer = g_ascii_strtoull(value, NULL, 10);
+				reg_args->layer = layer;
 			} else if (g_str_has_prefix(word[i], "-prefix=")) {
 				char *current = word[i], *value;
 				value = current + 8;
@@ -3777,16 +3831,15 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if (g_ascii_strtoull(value, NULL, 10) < 4) { // using absolute min_pairs required by homography
-					gchar *str = ngettext("%d smaller than minimum allowable star pairs: %d, aborting.\n", "%d smaller than minimum allowable star pairs: %d, aborting.\n",
-							g_ascii_strtoull(value, NULL, 10));
-					str = g_strdup_printf(str, g_ascii_strtoull(value, NULL, 10), reg_args->min_pairs);
+				int min_pairs = g_ascii_strtoull(value, NULL, 10);
+				if (min_pairs < 4) { // using absolute min_pairs required by homography
+					gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
 					siril_log_message(str);
 					g_free(str);
 
 					return 1;
 				}
-				reg_args->min_pairs = g_ascii_strtoull(value, NULL, 10);
+				reg_args->min_pairs = min_pairs;
 			} else if (g_str_has_prefix(word[i], "-maxstars=")) {
 				char *current = word[i], *value;
 				value = current + 10;
@@ -3794,11 +3847,14 @@ int process_register(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return 1;
 				}
-				if ((g_ascii_strtoull(value, NULL, 10) > MAX_STARS_FITTED) || (g_ascii_strtoull(value, NULL, 10) < MIN_STARS_FITTED)) { // limiting values to avoid too long computation or too low number of candidates
+				gchar *end;
+				int max_stars = g_ascii_strtoull(value, &end, 10);
+				if (end == value || max_stars > MAX_STARS_FITTED || max_stars < MIN_STARS_FITTED) {
+					// limiting values to avoid too long computation or too low number of candidates
 					siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
 					return 1;
 				}
-				reg_args->max_stars_candidates = g_ascii_strtoull(value, NULL, 10);
+				reg_args->max_stars_candidates = max_stars;
 			}
 		}
 	}
@@ -4606,7 +4662,11 @@ int process_set_32bits(int nb) {
 }
 
 int process_set_compress(int nb) {
-	gboolean compress = g_ascii_strtoull(word[1], NULL, 10) == 1;
+	if (word[1][0] != '0' && word[1][0] != '1' && word[1][0] != 'y' && word[1][0] != 'n' && word[1][1] != '\0') {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+		return 1;
+	}
+	gboolean compress = word[1][0] == '1' || word[1][0] == 'y';
 	int method = 0;
 	double q = 16.0, hscale= 4.0;
 
@@ -4645,7 +4705,7 @@ int process_set_compress(int nb) {
 			return 1;
 		}
 		q = g_ascii_strtod(word[3], NULL);
-		if (q == 0.0 && (method == RICE_COMP || (method == HCOMPRESS_COMP))) {
+		if (q == 0.0 && (method == RICE_COMP || method == HCOMPRESS_COMP)) {
 			siril_log_message(_("Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"));
 			return 1;
 		}
