@@ -1173,18 +1173,27 @@ int process_autostretch(int nb) {
 		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
+	int arg_index = 1;
+	gboolean linked = FALSE;
+	if (nb > 1 && !strcmp(word[1], "-linked")) {
+		linked = TRUE;
+		arg_index++;
+	}
 	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
-	if (nb > 1)
-		shadows_clipping = g_ascii_strtod(word[1], NULL);
+	if (nb > arg_index)
+		shadows_clipping = g_ascii_strtod(word[arg_index++], NULL);
+
 	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
-	if (nb > 2)
-		target_bg = g_ascii_strtod(word[2], NULL);
+	if (nb > arg_index)
+		target_bg = g_ascii_strtod(word[arg_index], NULL);
 	if (target_bg < 0.0f || target_bg > 1.0f) {
 		siril_log_message(_("The target background value must be in the [0, 1] range\n"));
 		return 1;
 	}
 
-	if (!strcasecmp(word[0], "autostretch_linked")) {
+	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
+			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
+	if (linked) {
 		struct mtf_params params;
 		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
 		apply_linked_mtf_to_fits(&gfit, &gfit, params);
