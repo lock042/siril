@@ -346,14 +346,16 @@ int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, in
 	}
 
 	Mat m = estimateAffinePartial2D(cur, ref);
-	convert_MatH_to_H(m, Hom);
-	//std::cout << m << std::endl;
+	// std::cout << m << std::endl;
 
 	/* test that m is not a zero matrix */
 	if (countNonZero(m) < 1) {
 		siril_log_color_message(_("Singular Matrix. Cannot compute Affine Transformation.\n"), "red");
 		return -1;
 	}
+	Mat H = Mat::eye(3, 3, CV_64FC1);
+	m.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
+	convert_MatH_to_H(H, Hom);
 
 	Mat in, out;
 	void *bgr = NULL;
