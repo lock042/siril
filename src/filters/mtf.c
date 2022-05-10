@@ -34,11 +34,12 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params) {
 			params.shadows, params.midtones, params.highlights);
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
+		float invnorm = 1.0f / norm;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0; i < ndata; i++) {
-			float pxl = from->data[i] / norm;
+			float pxl = from->data[i] * invnorm;
 			float mtf = MTFp(pxl, params);
 			to->data[i] = roundf_to_WORD(mtf * norm);
 		}
@@ -152,6 +153,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
+		float invnorm = 1.0f / norm;
 #ifdef _OPENMP
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
 #pragma omp parallel for num_threads(threads) schedule(static) if (threads> 1)
@@ -160,7 +162,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
 				params[chan].shadows, params[chan].midtones, params[chan].highlights);
 			for (size_t i = 0; i < ndata; i++) {
-				float pxl = (float)from->pdata[chan][i] / norm;
+				float pxl = (float)from->pdata[chan][i] * invnorm;
 				float mtf = MTFp(pxl, params[chan]);
 				to->pdata[chan][i] = roundf_to_WORD(mtf * norm);
 			}
