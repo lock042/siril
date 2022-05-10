@@ -2612,9 +2612,9 @@ int process_subsky(int nb) {
 	}
 
 	sequence *seq = NULL;
-	int degree = 0;
-	int samples = 20;
-	double tolerance = 1.0;
+	int degree = 0, samples = 20;
+	double tolerance = 1.0, smooth = 0.5;
+	background_interpolation interp;
 	char *prefix = NULL;
 
 	int arg_index = 1;
@@ -2629,10 +2629,15 @@ int process_subsky(int nb) {
 		if (!single_image_is_loaded()) return 1;
 	}
 
-	degree = g_ascii_strtoull(word[arg_index], NULL, 10);
-	if (degree < 1 || degree > 4) {
-		siril_log_message(_("Polynomial degree order must be within the [1, 4] range.\n"));
-		return 1;
+	if (!strcmp(word[arg_index], "-rbf"))
+		interp = BACKGROUND_INTER_RBF;
+	else {
+		interp = BACKGROUND_INTER_POLY;
+		degree = g_ascii_strtoull(word[arg_index], NULL, 10);
+		if (degree < 1 || degree > 4) {
+			siril_log_message(_("Polynomial degree order must be within the [1, 4] range.\n"));
+			return 1;
+		}
 	}
 
 	arg_index++;
@@ -2657,10 +2662,20 @@ int process_subsky(int nb) {
 		else if (g_str_has_prefix(arg, "-tolerance=")) {
 			char *next, *value = arg + 11;
 			tolerance = g_ascii_strtod(value, &next);
-			if (tolerance < 0.0 || next == value) {
+			if (next == value || tolerance < 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
 				return 1;
 			}
+		}
+		else if (g_str_has_prefix(arg, "-smooth=")) {
+			char *next, *value = arg + 8;
+			smooth = g_ascii_strtod(value, &next);
+			if (next == value || smooth < 0.0 || smooth > 1.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				return 1;
+			}
+			if (interp != BACKGROUND_INTER_RBF)
+				siril_log_message(_("smooth parameter is unused with the polynomial model, ignoring.\n"));
 		}
 		arg_index++;
 	}
@@ -2671,17 +2686,19 @@ int process_subsky(int nb) {
 		args->seq = seq;
 		args->nb_of_samples = samples;
 		args->tolerance = tolerance;
-		args->correction = 0; //subtraction
-		args->seqEntry = prefix ? prefix : "bkg_";
+		args->correction = BACKGROUND_CORRECTION_SUBTRACT;
+		args->interpolation_method = interp;
 		args->degree = (poly_order) (degree - 1);
+		args->smoothing = smooth;
 		args->dither = TRUE;
+		args->seqEntry = prefix ? prefix : "bkg_";
 
 		apply_background_extraction_to_sequence(args);
 	} else {
 		set_cursor_waiting(TRUE);
 		generate_background_samples(samples, tolerance);
-		/* TODO: add new interpolation algorithm */
-		remove_gradient_from_image(0, (poly_order) (degree - 1), 0.0, TRUE, BACKGROUND_INTER_POLY, com.max_thread);
+		remove_gradient_from_image(BACKGROUND_CORRECTION_SUBTRACT,
+				(poly_order) (degree - 1), smooth, TRUE, interp, com.max_thread);
 
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
