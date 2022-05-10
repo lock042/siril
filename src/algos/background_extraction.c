@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_multifit.h>
+#include <gsl/gsl_linalg.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_version.h>
@@ -37,6 +38,7 @@
 #include "algos/statistics.h"
 #include "algos/geometry.h"
 #include "algos/sorting.h"
+#include "opencv/opencv.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
@@ -44,9 +46,15 @@
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
+#include "gui/siril_preview.h"
 #include "registration/registration.h"	// for mouse_status
 #include "background_extraction.h"
 
+static gboolean background_computed = FALSE;
+
+static void background_startup() {
+	copy_gfit_to_backup();
+}
 
 #define NPARAM_POLY4 15		// Number of parameters used with 4rd order
 #define NPARAM_POLY3 10		// Number of parameters used with 3rd order
@@ -98,7 +106,165 @@ static double poly_1(gsl_vector *c, double x, double y) {
 	return (value);
 }
 
-static gboolean computeBackground(GSList *list, double *background, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
+/* this function come from GSL 2.7 */
+static double siril_gsl_vector_sum(const gsl_vector *v) {
+	size_t i;
+	double sum = 0;
+
+	for (i = 0; i < v->size; ++i) {
+		double vi = gsl_vector_get(v, i);
+		sum += vi;
+	}
+
+	return sum;
+}
+
+static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err, int threads) {
+	/* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
+	
+	References:
+	----------  
+	[1] G. B. Wright. Radial Basis Function Interpolation: Numerical and 
+		Analytical Developments. PhD thesis, University of Colorado, 2003.
+
+	[2] SciPy version 1.1.0
+		https://github.com/scipy/scipy/blob/v1.1.0/scipy/interpolate/rbf.py
+	
+	[3] S. Rippa. An algorithm for selecting a good value for the parameter 
+		c in radial basis function interpolation. Advances in Computational 
+		Mathematics, 11(2-3):193–210, 1999.
+		
+	[4] J. D. Martin and T. W. Simpson. Use of Kriging Models to Approximate 
+		Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
+	*/
+
+
+	double pixel;
+	gsl_matrix *K;
+	gsl_vector *f, *coef, *A;
+	GSList *l_i;
+	guint n = g_slist_length(list);
+	double mean = 0.0;
+	double (*list_array)[3];
+
+	K = gsl_matrix_calloc(n + 1, n + 1);
+	f = gsl_vector_calloc(n + 1);
+	coef = gsl_vector_calloc(n + 1);
+
+	/* Scaling */
+	int scaling_factor = 4;
+	int width_scaled = round_to_int(width / scaling_factor);
+	int height_scaled = round_to_int(height / scaling_factor);
+	
+	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
+	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
+	double x_scaling = (double)height_scaled / (double)height;
+	double y_scaling = (double)width_scaled / (double)width;
+	
+	/* Copy linked list into array */
+	list_array = malloc(n * sizeof(double[3]));
+	l_i = list;
+	for (int i = 0; i < n; i++) {
+		background_sample *sample_i = (background_sample*) l_i->data;
+		list_array[i][0] = round(sample_i->position.x * x_scaling);
+		list_array[i][1] = round(sample_i->position.y * y_scaling);
+		list_array[i][2] = sample_i->median[channel];
+
+		l_i = l_i->next;
+	}
+
+	/* Setup Kernel matrix K with K_ij = k(r_ij) and vector f with f_i = median(sample_i) */
+
+	for (int i = 0; i < n; i++) {
+		double x_i = list_array[i][0];
+		double y_i = list_array[i][1];
+
+		gsl_matrix_set(K, i, n, 1.0);
+		gsl_matrix_set(K, n, i, 1.0);
+		gsl_vector_set(f, i, list_array[i][2]);
+
+		for (int j = 0; j < n; j++) {
+			double x_j = list_array[j][0];
+			double y_j = list_array[j][1];
+			double distance = pow(x_i - x_j, 2) + pow(y_i - y_j, 2); // we can use r^2 directly in kernel calc
+			double kernel = distance * log(distance) * 0.5;
+			if (distance <= 1e-5) {
+				kernel = 0.0;
+			}
+
+			gsl_matrix_set(K, i, j, kernel);
+			mean += kernel / n;
+		}
+	}
+
+	/* Smoothing */
+	smoothing = 1e-4 * pow(10.0, (smoothing-0.5) * 3);
+	
+	for (int i = 0; i < n; i++) {
+		gsl_matrix_set(K, i, i, smoothing * mean);
+	}
+
+	gsl_matrix_set(K, n, n, 0.0);
+	gsl_vector_set(f, n, 0.0);
+
+	/* Solve K*coef = f for coef */
+
+	int s;
+	gsl_permutation *p = gsl_permutation_alloc(n + 1);
+	gsl_linalg_LU_decomp(K, p, &s);
+	gsl_linalg_LU_solve(K, p, f, coef);
+
+	/* precompute the kernel in the x>0, y>0 plane */
+	for (int i = 0; i < height_scaled; i++) {
+		for (int j = 0; j < width_scaled; j++) {
+			if ((i == 0) && (j == 0)) {
+				kernel_scaled[j + i * width_scaled] = 0.;
+			} else {
+				double distance = pow((double)j, 2.) + pow((double)i, 2.); // we can use r^2 directly in kernel calc
+				kernel_scaled[j + i * width_scaled] = distance * log(distance) * 0.5;
+			}
+		}
+	}
+
+	/* Calculate background from coefficients coef */
+
+#pragma omp parallel shared(background_scaled) private(A) num_threads(threads)
+	{
+		A = gsl_vector_calloc(n + 1);
+#pragma omp for
+		for (int i = 0; i < height_scaled; i++) {
+			for (int j = 0; j < width_scaled; j++) {
+				for (int k = 0; k < n; k++) {
+					int deltax = abs(j - (int)list_array[k][0]);
+					int deltay = abs(i - (int)list_array[k][1]);
+					gsl_vector_set(A, k, kernel_scaled[deltax + deltay * width_scaled]);
+				}
+
+				gsl_vector_set(A, n, 1.0);
+				gsl_vector_mul(A, coef);
+
+				pixel = siril_gsl_vector_sum(A);
+				background_scaled[j + i * width_scaled] = pixel;
+
+			}
+		}
+		gsl_vector_free(A);
+	}
+
+	cvResizeArray(background_scaled, background, height_scaled, width_scaled, height, width);
+
+	gsl_permutation_free(p);
+	gsl_matrix_free(K);
+	gsl_vector_free(f);
+	gsl_vector_free(coef);
+	free(background_scaled);
+	free(kernel_scaled);
+	free(list_array);
+
+	return TRUE;
+}
+
+static gboolean computeBackground_Polynom(GSList *list, double *background, int channel, unsigned int width, unsigned int height, poly_order order, gchar **err) {
 	size_t k = 0;
 	double chisq, pixel;
 	gsl_matrix *J, *cov;
@@ -260,7 +426,6 @@ static background_sample *get_sample(float *buf, const int xx,
 	gsl_stats_minmax(&sample->min, &sample->max, data, 1, size);
 	sample->mean = gsl_stats_mean(data, 1, size);
 	sample->median[RLAYER] = quickmedian_double(data, size);
-	sample->median[GLAYER] = sample->median[BLAYER] = sample->median[RLAYER];
 	sample->position.x = xx;
 	sample->position.y = yy;
 	sample->size = SAMPLE_SIZE;
@@ -297,6 +462,22 @@ static double get_sample_median(const double *buf, const int xx,
 
 	free(data);
 	return median;
+}
+
+static double get_background_mean(GSList *list, int num_channels) {
+	/* Estimate background mean for all channels from samples */
+	GSList *l;
+	guint n = g_slist_length(list);
+	double mean = 0.0;
+	
+	for (int channel = 0; channel < num_channels; channel++) {
+		for (l = list; l; l = l->next) {
+			background_sample *sample = (background_sample *) l->data;
+			mean += sample->median[channel];
+		}
+	}
+	
+	return mean / n / num_channels;
 }
 
 static unsigned int _rand(guint64 *const p_rng) {
@@ -394,23 +575,6 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	}
 }
 
-static double siril_stats_mad(const float data[], const size_t stride,
-		const size_t n, float work[]) {
-
-	/* copy input data to work */
-	for (size_t i = 0; i < n; ++i)
-		work[i] = data[i * stride];
-
-	/* compute median of input data using double version */
-	const float median = histogram_median_float(work, n, TRUE);
-
-	/* compute absolute deviations from median */
-	for (size_t i = 0; i < n; ++i)
-		work[i] = fabsf(data[i * stride] - median);
-
-	return histogram_median_float(work, n, TRUE);
-}
-
 static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, size_t size) {
 	int nx = fit->rx;
 	int ny = fit->ry;
@@ -433,28 +597,52 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, si
 	radius = size / 2;
 	startx = ((nx - size) % dist) / 2;
 	starty = ((ny - size) % dist) / 2;
-	mad0 = siril_stats_mad(image, 1, nx * ny, work);
 	median = histogram_median_float(image, nx * ny, TRUE);
 
+	/* create samples */
 	for (y = starty; y <= ny - radius; y = y + dist) {
 		for (x = startx; x <= nx - radius; x = x + dist) {
 			background_sample *sample = get_sample(image, x, y, nx, ny);
-			if (sample->median[RLAYER] > 0.0
-					&& sample->median[RLAYER] <= (mad0 * exp(tolerance)) + median) {
 				list = g_slist_prepend(list, sample);
-			} else {
-				g_free(sample);
-			}
 		}
 	}
+
+	/* compute mad */
+	guint nb = g_slist_length(list);
+	float *mad = malloc(nb * sizeof(float));
+	int i = 0;
+	for (GSList *l = list; l; l = l->next) {
+		background_sample *sample = (background_sample*) l->data;
+		mad[i] = fabs(sample->median[RLAYER] - median);
+		i++;
+	}
+
+	mad0 = histogram_median_float(mad, nb, TRUE);
+
+	/* remove bad samples */
+	GSList *l = list;
+	while (l != NULL) {
+		background_sample *sample = (background_sample*) l->data;
+		/* Store next element's pointer before removing it */
+		GSList *next = g_slist_next(l);
+		if (sample->median[RLAYER] <= 0.0
+				|| sample->median[RLAYER] >= (mad0 * tolerance) + median) {
+			g_free(sample);
+			list = g_slist_delete_link(list, l);
+		}
+		l = next;
+	}
+
 	list = g_slist_reverse(list);
+
+	free(mad);
 	free(image);
 	free(work);
 
 	return list;
 }
 
-static GSList *update_median_for_rgb_samples(GSList *orig, fits *fit) {
+static GSList *update_median_samples(GSList *orig, fits *fit) {
 	const int nx = fit->rx;
 	const int ny = fit->ry;
 
@@ -506,21 +694,32 @@ static double get_tolerance_value() {
 	return gtk_range_get_value(tol);
 }
 
-static void remove_gradient(double *img, const double *background, size_t ndata, int type) {
+static int get_interpolation_method() {
+	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("background_extraction_combo"));
+
+	return gtk_combo_box_get_active(combo);
+}
+
+static double get_smoothing_parameter() {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_background_smoothing"));
+
+	return gtk_spin_button_get_value(spin);
+}
+
+static void remove_gradient(double *img, const double *background, double background_mean, size_t ndata, int type) {
 	size_t i;
 	double mean;
-
-	mean = gsl_stats_mean(img, 1, ndata);
 
 	switch (type) {
 	default:
 	case 0: // Subtraction
 		for (i = 0; i < ndata; i++) {
 			img[i] -= background[i];
-			img[i] += mean;
+			img[i] += background_mean;
 		}
 		break;
 	case 1: // Division
+		mean = gsl_stats_mean(img, 1, ndata);
 		for (i = 0; i < ndata; i++) {
 			img[i] /= background[i];
 			img[i] *= mean;
@@ -555,6 +754,10 @@ GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
 
 	background_sample *sample = get_sample(image, pt.x, pt.y, nx, ny);
 	list = g_slist_append(list, sample);
+
+	if (fit->naxes[2] > 1) {
+		list = update_median_samples(list, fit);
+	}
 
 	free(image);
 
@@ -598,17 +801,20 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 void generate_background_samples(int nb_of_samples, double tolerance) {
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE);
+	/* If RGB we need to update all local median, not only the first one */
 	if (gfit.naxes[2] > 1) {
-		com.grad_samples = update_median_for_rgb_samples(com.grad_samples, &gfit);
+		com.grad_samples = update_median_samples(com.grad_samples, &gfit);
 	}
 
 	redraw(REDRAW_OVERLAY);
 }
 
+
 /* uses samples from com.grad_samples */
-gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean use_dither) {
+gboolean remove_gradient_from_image(int correction, poly_order degree, double smoothing, gboolean use_dither, int interpolation_method, int threads) {
 	gchar *error;
-	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
+	double *background = (double*)malloc(gfit.ry * gfit.rx * sizeof(double));
+	
 	if (!background && !com.script) {
 		PRINT_ALLOC_ERR;
 		set_cursor_waiting(FALSE);
@@ -622,12 +828,25 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean 
 		PRINT_ALLOC_ERR;
 		return FALSE;
 	}
+	
+	/* Make sure to update local median. Useful if undo is pressed */
+	update_median_samples(com.grad_samples, &gfit);
 
+	double background_mean = get_background_mean(com.grad_samples, gfit.naxes[2]);
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
-		convert_fits_to_img(&gfit, image, channel, use_dither);
-		if (!computeBackground(com.grad_samples, background, channel, gfit.rx,
-				gfit.ry, degree, &error)) {
+		gboolean interpolation_worked = TRUE;
+		if (interpolation_method == INTER_POLY){
+			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel, 
+									gfit.rx, gfit.ry, degree, &error);
+		} else {
+			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel, 
+									gfit.rx, gfit.ry, smoothing, &error, threads);
+		}
+		
+		if (!interpolation_worked) {
 			free(image);
 			free(background);
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
@@ -638,10 +857,13 @@ gboolean remove_gradient_from_image(int correction, poly_order degree, gboolean 
 		/* remove background */
 		const char *c_name = vport_number_to_name(channel);
 		siril_log_message(_("Background extraction from channel %s.\n"), c_name);
-		remove_gradient(image, background, gfit.naxes[0] * gfit.naxes[1], correction);
+		convert_fits_to_img(&gfit, image, channel, use_dither);
+		remove_gradient(image, background, background_mean, gfit.naxes[0] * gfit.naxes[1], correction);
 		convert_img_to_fits(image, &gfit, channel);
-
 	}
+	siril_log_message(_("Background with %s interpolation computed.\n"), (interpolation_method == INTER_POLY) ? "polynomial" : "RBF");
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
 	/* free memory */
 	free(image);
 	free(background);
@@ -655,7 +877,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	struct background_data *b_args = (struct background_data*) args->user;
 
 	gchar *error;
-	double *background = malloc(fit->ry * fit->rx * sizeof(double));
+	double *background = (double*)malloc(fit->naxes[0] * fit->naxes[1] * sizeof(double));
 	if (!background) {
 		PRINT_ALLOC_ERR;
 		error = _("Out of memory - aborting");
@@ -670,8 +892,9 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		return 1;
 	}
 
+	/* If RGB we need to update all local median, not only the first one */
 	if (fit->naxes[2] > 1) {
-		samples = update_median_for_rgb_samples(samples, fit);
+		samples = update_median_samples(samples, fit);
 	}
 
 	const size_t n = fit->naxes[0] * fit->naxes[1];
@@ -682,11 +905,18 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-
+	
+	double background_mean = get_background_mean(samples, fit->naxes[2]);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		/* compute background */
-		convert_fits_to_img(fit, image, channel, b_args->dither);
-		if (!computeBackground(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error)) {
+		gboolean interpolation_worked = TRUE;
+		if (b_args->interpolation_method == INTER_POLY){
+			interpolation_worked = computeBackground_Polynom(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error);
+		} else {
+			interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error, threads);
+		}
+		
+		if (!interpolation_worked) {
 			if (error) {
 				siril_log_message(error);
 			}
@@ -698,9 +928,9 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 			return 1;
 		}
 		/* remove background */
-		remove_gradient(image, background, fit->naxes[0] * fit->naxes[1], b_args->correction);
+		convert_fits_to_img(fit, image, channel, b_args->dither);
+		remove_gradient(image, background, background_mean, fit->naxes[0] * fit->naxes[1], b_args->correction);
 		convert_img_to_fits(image, fit, channel);
-
 	}
 	/* free memory */
 	free(image);
@@ -732,14 +962,14 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 		required = MB_per_image + double_channel_size_MB * 2;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
-                        thread_limit = com.max_thread;
+						thread_limit = com.max_thread;
 
 		if (for_writer) {
-                        /* we allow the already allocated thread_limit images,
-                         * plus how many images can be stored in what remains
-                         * unused by the main processing */
-                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
-                } else limit = thread_limit;
+						/* we allow the already allocated thread_limit images,
+						 * plus how many images can be stored in what remains
+						 * unused by the main processing */
+						limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+				} else limit = thread_limit;
 
 	}
 	if (limit == 0) {
@@ -827,23 +1057,59 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
+	if (com.grad_samples == NULL) {
+		return;
+	}
+	set_cursor_waiting(TRUE);
+	copy_backup_to_gfit();
+
+	int correction = get_correction_type();
+	poly_order degree = get_poly_order();
+	double smoothing = get_smoothing_parameter();
+	gboolean use_dither = is_dither_checked();
+	int interpolation_method = get_interpolation_method();
+
+	remove_gradient_from_image(correction, degree, smoothing, use_dither, interpolation_method, com.max_thread);
+	background_computed = TRUE;
+
+	invalidate_stats_from_fit(&gfit);
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	set_cursor_waiting(FALSE);
+}
+
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(lookup_widget("checkBkgSeq"));
-	if (gtk_toggle_button_get_active(seq_button)
-			&& sequence_is_loaded()) {
+	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(
+			lookup_widget("checkBkgSeq"));
+	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
 		struct background_data *args = malloc(sizeof(struct background_data));
 
 		args->nb_of_samples = get_nb_samples_per_line();
 		args->tolerance = get_tolerance_value();
 		args->correction = get_correction_type();
 		args->degree = get_poly_order();
+		args->smoothing = get_smoothing_parameter();
 		args->dither = is_dither_checked();
-		if (args->degree > BACKGROUND_POLY_1) {
+		args->interpolation_method = get_interpolation_method();
+		
+		if (args->interpolation_method == INTER_POLY && args->degree > BACKGROUND_POLY_1) {
 			int confirm = siril_confirm_dialog(_("Polynomial order seems too high."),
 					_("You are about to process a sequence of preprocessed files with "
 							"a polynomial degree greater than 1. This is unlikely because such "
 							"gradients are often linear and a correction with a polynomial "
 							"function of degree 1 is probably enough."), _("Extract Background"));
+			if (!confirm) {
+				free(args);
+				set_cursor_waiting(FALSE);
+				return;
+			}
+		} else if (args->interpolation_method != INTER_POLY) {
+			int confirm = siril_confirm_dialog(_("Using wrong interpolation method"),
+					_("You are about to process a sequence of preprocessed files with an RBF algorithm. "
+							"This algorithm may not be very well suited for automated processing "
+							"and we advise you to use the polynomial algorithm with a "
+							"degree order of 1."), _("Extract Background"));
 			if (!confirm) {
 				free(args);
 				set_cursor_waiting(FALSE);
@@ -861,23 +1127,22 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		gtk_toggle_button_set_active(seq_button, FALSE);
 		apply_background_extraction_to_sequence(args);
 	} else {
-		if (com.grad_samples == NULL) {
-			return;
+		if (background_computed) {
+			int correction = get_correction_type();
+			undo_save_state(get_preview_gfit_backup(), _("Background extraction (Correction: %s)"),
+					correction ? "Division" : "Subtraction");
+			background_computed = FALSE;
+			clear_backup();
+			siril_close_dialog("background_extraction_dialog");
+		} else {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("No Background model computed"),
+					_("You must first compute the background model."));
 		}
-		set_cursor_waiting(TRUE);
-
-		int correction = get_correction_type();
-		poly_order degree = get_poly_order();
-		gboolean use_dither = is_dither_checked();
-		undo_save_state(&gfit, _("Background extraction (Correction: %s)"),
-				correction ? "Division" : "Subtraction");
-		remove_gradient_from_image(correction, degree, use_dither);
-
-		invalidate_stats_from_fit(&gfit);
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		set_cursor_waiting(FALSE);
 	}
+}
+
+void apply_background_cancel() {
+	siril_close_dialog("background_extraction_dialog");
 }
 
 void on_background_close_button_clicked(GtkButton *button, gpointer user_data) {
@@ -889,8 +1154,18 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 	com.grad_samples = NULL;
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	redraw(REDRAW_OVERLAY);
+
+	if (background_computed) {
+		siril_preview_hide();
+	}
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
+	background_startup();
+}
+
+void on_background_extraction_combo_changed(GtkComboBox *combo, gpointer user_data) {
+	GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget("bkg_notebook_inter"));
+	gtk_notebook_set_current_page(notebook, gtk_combo_box_get_active(combo));
 }

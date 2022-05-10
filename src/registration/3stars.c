@@ -210,29 +210,41 @@ int register_3stars(struct registration_args *regargs) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
 
+	/* used to compute weighted_FWHM
+	we assume the number of stars in the reference image is the number of selected stars */
+	int nb_selected_stars = 0;
+	if (results[regargs->seq->reference_image].stars[0]) nb_selected_stars++;
+	if (results[regargs->seq->reference_image].stars[1]) nb_selected_stars++;
+	if (results[regargs->seq->reference_image].stars[2]) nb_selected_stars++;
+
 	/* set regparams for current sequence before closing it */
 	for (int i = 0; i < regargs->seq->number; i++) {
-		double sumx = 0.0, sumy = 0.0;
+		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
 		if (results[i].stars[0]) {
 			sumx += results[i].stars[0]->fwhmx;
 			sumy += results[i].stars[0]->fwhmy;
+			sumb += results[i].stars[0]->B;
 			nb_stars++;
 		}
 		if (results[i].stars[1]) {
 			sumx += results[i].stars[1]->fwhmx;
 			sumy += results[i].stars[1]->fwhmy;
+			sumb += results[i].stars[1]->B;
 			nb_stars++;
 		}
 		if (results[i].stars[2]) {
 			sumx += results[i].stars[2]->fwhmx;
 			sumy += results[i].stars[2]->fwhmy;
+			sumb += results[i].stars[2]->B;
 			nb_stars++;
 		}
 		double fwhm = sumx / nb_stars;
 		current_regdata[i].roundness = sumy / sumx;
 		current_regdata[i].fwhm = fwhm;
-		current_regdata[i].weighted_fwhm = fwhm; // TODO: compute it with nb_stars
+		current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_selected_stars - nb_stars) / (double)nb_stars + fwhm; 
+		current_regdata[i].background_lvl = sumb / nb_stars;
+		current_regdata[i].number_of_stars = nb_stars;
 	}
 
 	return rotate_images(regargs, current_regdata);
@@ -243,7 +255,7 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int refimage = regargs->reference_image;
-
+	Homography H;
 	int nb_stars = 3;
 	if (!results[refimage].stars[2])
 		nb_stars = 2;
@@ -269,8 +281,7 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 				cur[2].x = results[in_index].stars[2]->xpos;
 				cur[2].y = results[in_index].stars[2]->ypos;
 			}
-
-			if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation))
+			if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation, &H))
 				return 1;
 		}
 	}
@@ -303,16 +314,20 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 			cur[star].y = results[in_index].stars[2]->ypos;
 		}
 
-		if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation))
+		if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation, &H))
 			return 1;
 	}
 
 	sadata->success[out_index] = 1;
+	sadata->current_regdata[in_index].H = H;
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+	cvGetEye(&regargs->regparam[out_index].H);
 
 	if (regargs->x2upscale) {
 		fit->pixel_size_x /= 2;

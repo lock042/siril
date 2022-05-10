@@ -29,6 +29,7 @@
 #include "io/image_format_fits.h"
 #include "stacking.h"
 #include "gui/progress_and_log.h"
+#include "registration/registration.h"
 
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels
@@ -81,7 +82,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 
 static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct sum_stacking_data *ssdata = args->user;
-	int shiftx, shifty, nx, ny, x, y, layer;
+	int shiftx = 0, shifty = 0, nx, ny, x, y, layer;
 	size_t ii, pixel = 0;	// index in sum[0]
 
 #ifdef _OPENMP
@@ -90,11 +91,11 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	ssdata->livetime += fit->exposure;
 	
 	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
-		shiftx = round_to_int(args->seq->regparam[ssdata->reglayer][i].shiftx * (float)args->seq->upscale_at_stacking);
-		shifty = round_to_int(args->seq->regparam[ssdata->reglayer][i].shifty * (float)args->seq->upscale_at_stacking);
-	} else {
-		shiftx = 0;
-		shifty = 0;
+		double scale = args->seq->upscale_at_stacking;
+		double dx, dy;
+		translation_from_H(args->seq->regparam[ssdata->reglayer][i].H, &dx, &dy);
+		shiftx = round_to_int(dx * scale);
+		shifty = round_to_int(dy * scale);
 	}
 
 	for (y = 0; y < fit->ry; ++y) {

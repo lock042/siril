@@ -59,11 +59,11 @@ void close_single_image() {
 	if (sequence_is_loaded() && com.seq.current >= 0)
 		return;
 	siril_debug_print("MODE: closing single image\n");
+	undo_flush();
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
 	 */
 	free_image_data();
-	undo_flush();
 }
 
 static gboolean free_image_data_idle(gpointer p) {

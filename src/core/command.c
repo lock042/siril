@@ -1349,18 +1349,122 @@ int process_set_ext(int nb) {
 }
 
 int process_set_findstar(int nb) {
-	double sigma = g_ascii_strtod(word[1], NULL);
-	double roundness = g_ascii_strtod(word[2], NULL);
-	int retval = 0;
+	int startoptargs = 1;
+	double sigma = com.starfinder_conf.sigma;
+	double roundness = com.starfinder_conf.roundness;
+	int radius = com.starfinder_conf.radius;
+	gboolean adjust = com.starfinder_conf.adjust;
+	double focal_length = com.starfinder_conf.focal_length;
+	double pixel_size_x = com.starfinder_conf.pixel_size_x;
 
-	if (sigma >= 0.05 && roundness >= 0 && roundness <= 0.9) {
-		com.starfinder_conf.sigma = sigma;
-		com.starfinder_conf.roundness = roundness;
-	} else {
-		siril_log_message(_("Wrong parameter values. Sigma must be >= 0.05 and roundness between 0 and 0.9.\n"));
-		retval = 1;
+	if (nb > startoptargs) {
+		for (int i = startoptargs; i < nb; i++) {
+			if (word[i]) {
+				if (g_str_has_prefix(word[i], "-radius=")) {
+					char *current = word[i], *value;
+					value = current + 8;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						return 1;
+					}
+					radius = g_ascii_strtoull(value, NULL, 10);
+					if ((radius < 3) || (radius > 50)) {
+						siril_log_message(_("Wrong parameter values. Radius must be between 3 and 50, aborting.\n"));
+						return 1;
+					}
+				} else if (g_str_has_prefix(word[i], "-sigma=")) {
+					char *current = word[i], *value;
+					value = current + 7;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						return 1;
+					}
+					sigma = g_ascii_strtod(value, NULL);
+					if (sigma < 0.05) {
+						siril_log_message(_("Wrong parameter values. Sigma must be greater than 0.05, aborting\n"));
+						return 1;
+					}
+				} else if (g_str_has_prefix(word[i], "-roundness=")) {
+					char *current = word[i], *value;
+					value = current + 11;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						return 1;
+					}
+					roundness = g_ascii_strtod(value, NULL);
+					if ((roundness < 0) || (roundness > 0.95)) {
+						siril_log_message(_("Wrong parameter values. Roundness must be between 0 and 0.95, aborting.\n"));
+						return 1;
+					}
+				} else if (g_str_has_prefix(word[i], "-focal=")) {
+					char *current = word[i], *value;
+					value = current + 7;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						return 1;
+					}
+					focal_length = g_ascii_strtod(value, NULL);
+					if (focal_length < 0) {
+						siril_log_message(_("Wrong parameter values. Focal length must be greater than 0, aborting.\n"));
+						return 1;
+					}
+				} else if (g_str_has_prefix(word[i], "-pixelsize=")) {
+					char *current = word[i], *value;
+					value = current + 11;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						return 1;
+					}
+					pixel_size_x = g_ascii_strtod(value, NULL);
+					if (pixel_size_x < 0) {
+						siril_log_message(_("Wrong parameter values. Pixel size must be greater than 0, aborting.\n"));
+						return 1;
+					}
+				} else if (g_str_has_prefix(word[i], "-auto=")) {
+					char *current = word[i], *value;
+					value = current + 6;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						return 1;
+					}
+					if (!(g_ascii_strcasecmp(value, "on"))) adjust = TRUE;
+					else if (!(g_ascii_strcasecmp(value, "off"))) adjust = FALSE;
+					else {
+						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
+						return 1;
+					}
+				} else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					return 1;
+				}
+			}
+		}
 	}
-	return retval;
+	if (com.starfinder_conf.sigma != sigma) {
+		siril_log_message(_("sigma = %3.2f\n"), sigma);
+		com.starfinder_conf.sigma = sigma;
+	}
+	if (com.starfinder_conf.roundness != roundness) {
+		siril_log_message(_("roundness = %3.2f\n"), roundness);
+		com.starfinder_conf.roundness = roundness;
+	}
+	if (com.starfinder_conf.radius != radius) {
+		siril_log_message(_("radius = %d\n"), radius);
+		com.starfinder_conf.radius = radius;
+	}
+	if (com.starfinder_conf.focal_length != focal_length) {
+		siril_log_message(_("focal = %3.1f\n"), focal_length);
+		com.starfinder_conf.focal_length = focal_length;
+	}
+	if (com.starfinder_conf.pixel_size_x != pixel_size_x) {
+		siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
+		com.starfinder_conf.pixel_size_x = pixel_size_x;
+	}
+	if (com.starfinder_conf.adjust != adjust) {
+		siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
+		com.starfinder_conf.adjust = adjust;
+	}
+	return 0;
 }
 
 int process_unset_mag_seq(int nb) {
@@ -2296,7 +2400,8 @@ int process_subsky(int nb) {
 	} else {
 		set_cursor_waiting(TRUE);
 		generate_background_samples(20, 1.0);
-		remove_gradient_from_image(0, (poly_order) (degree - 1), TRUE);
+		/* TODO: add new interpolation algorithm */
+		remove_gradient_from_image(0, (poly_order) (degree - 1), 0.0, TRUE, INTER_POLY, com.max_thread);
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
 

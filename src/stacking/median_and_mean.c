@@ -35,6 +35,7 @@
 #include "algos/statistics.h"
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
+#include "registration/registration.h"
 
 typedef struct {
 	GDateTime *date_obs;
@@ -330,9 +331,10 @@ static void stack_read_block_data(struct stacking_args *args, int use_regdata,
 			 * shift is managed in the main loop after the read. */
 			regdata *layerparam = args->seq->regparam[args->reglayer];
 			if (layerparam) {
-				int shifty = round_to_int(
-						layerparam[args->image_indices[frame]].shifty *
-						args->seq->upscale_at_stacking);
+				double scale = args->seq->upscale_at_stacking;
+				double dx, dy;
+				translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+				int shifty = round_to_int(dy * scale);
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
@@ -1230,9 +1232,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					if (use_regdata) {
 						int shiftx = 0;
 						if (layerparam) {
-							shiftx = round_to_int(
-									layerparam[args->image_indices[frame]].shiftx *
-									args->seq->upscale_at_stacking);
+							double scale = args->seq->upscale_at_stacking;
+							double dx, dy;
+							translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+							shiftx = round_to_int(dx * scale);
 						}
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {

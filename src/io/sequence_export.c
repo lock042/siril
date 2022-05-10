@@ -400,8 +400,10 @@ static gpointer export_sequence(gpointer ptr) {
 		int shiftx, shifty;
 		/* load registration data for current image */
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
-			shiftx = roundf_to_int(args->seq->regparam[reglayer][i].shiftx);
-			shifty = roundf_to_int(args->seq->regparam[reglayer][i].shifty);
+			double dx, dy;
+			translation_from_H(args->seq->regparam[reglayer][i].H, &dx, &dy);
+			shiftx = round_to_int(dx);
+			shifty = round_to_int(dy);
 		} else {
 			shiftx = 0;
 			shifty = 0;

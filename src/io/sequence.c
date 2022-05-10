@@ -70,6 +70,7 @@
 #include "algos/geometry.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
+#include "opencv/opencv.h"
 
 #include "sequence.h"
 
@@ -779,6 +780,12 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 	}
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
+	seq->imgparam[index].rx = dest->rx;
+	seq->imgparam[index].ry = dest->ry;
+	if (seq->rx != 0 && seq->ry != 0 && (dest->rx != seq->rx || dest->ry != seq->ry)) {
+		siril_debug_print("sequence detected as containing images of different sizes\n");
+		seq->is_variable = TRUE;
+	}
 	return 0;
 }
 
@@ -1409,14 +1416,24 @@ void check_or_allocate_regparam(sequence *seq, int layer) {
 	}
 	if (seq->regparam && !seq->regparam[layer] && seq->number > 0) {
 		seq->regparam[layer] = calloc(seq->number, sizeof(regdata));
+		for (int i = 0; i < seq->number; i++) {
+			cvGetEye(&seq->regparam[layer][i].H);
+		}
 	}
 }
 
 /* assign shift values for registration data of a sequence, depending on its type and sign */
-void set_shifts(sequence *seq, int frame, int layer, float shiftx, float shifty, gboolean data_is_top_down) {
+void set_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down) {
 	if (seq->regparam[layer]) {
-		seq->regparam[layer][frame].shiftx = shiftx;
-		seq->regparam[layer][frame].shifty = data_is_top_down ? -shifty : shifty;
+		seq->regparam[layer][frame].H = H_from_translation(shiftx,
+				data_is_top_down ? -shifty : shifty);
+	}
+}
+/* cum shift values for registration data of a sequence, depending on its type and sign */
+void cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down) {
+	if (seq->regparam[layer]) {
+		seq->regparam[layer][frame].H = H_from_translation(shiftx + seq->regparam[layer][frame].H.h02,
+				(data_is_top_down ? -shifty : shifty) - seq->regparam[layer][frame].H.h12);
 	}
 }
 
@@ -1490,13 +1507,28 @@ gboolean sequence_is_rgb(sequence *seq) {
 /* Ensures that an area does not derive off-image.
  * Verifies coordinates of the center and moves it inside the image if the area crosses the bounds.
  */
-void enforce_area_in_image(rectangle *area, sequence *seq) {
-	if (area->x < 0) area->x = 0;
-	if (area->y < 0) area->y = 0;
-	if (area->x + area->w > seq->rx)
-		area->x = seq->rx - area->w;
-	if (area->y + area->h > seq->ry)
-		area->y = seq->ry - area->h;
+gboolean enforce_area_in_image(rectangle *area, sequence *seq, int index) {
+	gboolean has_crossed = FALSE;
+	// need to check against current image size in case not the same as seq->rx/ry
+	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx; 
+	int ry = (seq->is_variable) ? seq->imgparam[index].ry : seq->ry;
+	if (area->x < 0) {
+		area->x = 0;
+		has_crossed = TRUE;
+	}
+	if (area->y < 0) {
+		area->y = 0;
+		has_crossed = TRUE;
+	}
+	if (area->x + area->w > rx) {
+		area->x = rx - area->w;
+		has_crossed = TRUE;
+	}
+	if (area->y + area->h > ry) {
+		area->y = ry - area->h;
+		has_crossed = TRUE;
+	}
+	return has_crossed;
 }
 
 /********************************************************************
@@ -1632,6 +1664,9 @@ gboolean end_seqpsf(gpointer p) {
 				seq->regparam[layer][data->image_index].fwhm = data->psf->fwhmx;
 				seq->regparam[layer][data->image_index].roundness =
 					data->psf->fwhmy / data->psf->fwhmx;
+				seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
+				seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
+				seq->regparam[layer][data->image_index].number_of_stars = 1;
 			}
 		}
 
@@ -1705,8 +1740,9 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (seq->regparam[layer] && seq->current >= 0) {
-		args->area.x += seq->regparam[layer][seq->current].shiftx;
-		args->area.y -= seq->regparam[layer][seq->current].shifty;
+		// transform selection back from current to ref frame coordinates
+		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
+		selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
 		if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
 				args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
 			siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");

@@ -46,6 +46,7 @@
 
 #define WAVELET_SCALE 3
 #define _SQRT_EXP1 1.6487212707
+#define KERNEL_SIZE 3.
 
 
 static double guess_resolution(fits *fit) {
@@ -72,9 +73,10 @@ static double guess_resolution(fits *fit) {
 	/* test for high value. In this case we increase
 	 * the number of detected star in is_star function
 	 */
-	if (res > 20.0) return -1.0;
 	/* if res > 1.0 we use default radius value */
-	if (res < 0.1 || res > 1.0) return 1.0;
+	if (res > 1.0) return 1.0;
+	/* if res is too small, we bound the value to 2.0 to avoid expanding the first search box (and decrease perf) */
+	if (res < 0.5) return 0.5;
 	return res;
 }
 
@@ -111,13 +113,15 @@ static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
 		return FALSE;
 	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) // if star center off from original candidate detection by more than sigma radius
 		return FALSE;
-	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503)
+	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) // criteria gets looser as guessed fwhm gets larger than kernel
 		return FALSE;
 	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0)
 		return FALSE;
 	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0)
 		return FALSE;
 	if ((result->fwhmy / result->fwhmx) < sf->roundness)
+		return FALSE;
+	if (((result->rmse / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) //  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
 		return FALSE;
 	return TRUE;
 }
@@ -262,7 +266,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	}
 
 	//if (cvUnsharpFilter(&smooth_fit, 3, 0)) {
-	if (gaussian_blur_RT(&smooth_fit, 3.0, threads)) {
+	if (gaussian_blur_RT(&smooth_fit, KERNEL_SIZE, threads)) {
 		siril_log_color_message(_("Could not apply Gaussian filter, aborting\n"), "red");
 		clearfits(&smooth_fit);
 		return NULL;
@@ -373,11 +377,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				mean of 9 central pixels must be above mean of the whole search box excluding them
 				i.e, an approximation of the local background, by a significant amount
 				*/
-				meanhigh = (meanhigh + pixel) / 9;
-				if (meanhigh - mean <= locthreshold) { 
-					bingo = FALSE;
-					continue;
-				}
+				// meanhigh = (meanhigh + pixel) / 9;
+				// if (meanhigh - mean <= locthreshold) { 
+				// 	bingo = FALSE;
+				// 	continue;
+				// }
+				/*This check has been moved later on and done with the amplitude 
+				so that the initial search box size does not influence the outcome
+				Could miss weak stars when to much of the "mean" variable was polluted
+				by large stars for small sampling images*/
 
 				// first derivatives. r c is for row and column. l, r, u, d for left, right, up and down
 				int xx = x - r, yy = y;
@@ -401,7 +409,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2rr  = smooth_image[yy][xx + i + 1] + smooth_image[yy][xx + i - 1] - 2 * smooth_image[yy][xx + i    ];
 				d2rrr = smooth_image[yy][xx + i + 2] + smooth_image[yy][xx + i    ] - 2 * smooth_image[yy][xx + i + 1];
-				while ((d2rrr < 0) && ((xx + i + 2) <= areaX1 - 1)) {
+				while ((d2rrr < 0) && ((xx + i + 2) < areaX1 - 1)) {
 					i++;
 					d2rr = d2rrr;
 					d2rrr = smooth_image[yy][xx + i + 2] + smooth_image[yy][xx + i] - 2 * smooth_image[yy][xx + i + 1];
@@ -414,7 +422,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2rl  = smooth_image[yy][xx - i - 1] + smooth_image[yy][xx - i + 1] - 2 * smooth_image[yy][xx + i    ];
 				d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i    ] - 2 * smooth_image[yy][xx - i - 1];
-				while ((d2rll < 0) && ((xx - i - 2) >= areaX0 + 1)) {
+				while ((d2rll < 0) && ((xx - i - 2) > areaX0 + 1)) {
 					i++;
 					d2rl = d2rll;
 					d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i] - 2 * smooth_image[yy][xx - i - 1];
@@ -427,7 +435,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2cd  = smooth_image[yy + i + 1][xx] + smooth_image[yy + i - 1][xx] - 2 * smooth_image[yy + i    ][xx];
 				d2cdd = smooth_image[yy + i + 2][xx] + smooth_image[yy + i    ][xx] - 2 * smooth_image[yy + i + 1][xx];
-				while ((d2cdd < 0) && ((yy + i + 2) <= areaY1 - 1)) {
+				while ((d2cdd < 0) && ((yy + i + 2) < areaY1 - 1)) {
 					i++;
 					d2cd = d2cdd;
 					d2cdd = smooth_image[yy + i + 2][xx] + smooth_image[yy + i][xx] - 2 * smooth_image[yy + i + 1][xx];
@@ -440,7 +448,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i = 0;
 				d2cu =  smooth_image[yy - i - 1][xx] + smooth_image[yy - i + 1][xx] - 2 * smooth_image[yy + i    ][xx];
 				d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i    ][xx] - 2 * smooth_image[yy - i - 1][xx];
-				while ((d2cuu < 0) && ((yy - i - 2) >= areaY0 + 1)) {
+				while ((d2cuu < 0) && ((yy - i - 2) > areaY0 + 1)) {
 					i++;
 					d2cu = d2cuu;
 					d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i][xx] - 2 * smooth_image[yy - i - 1][xx];
@@ -460,8 +468,9 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				B = 0.5 * (Br + Bc);
 
 				// restimate new box size to enclose enough background
-				int Rr = (int) ceil(2 * Sr);
-				int Rc = (int) ceil(2 * Sc);
+				// term S / 3 increases the box radius when the guessed fwhm is larger than the smoothing kernel size
+				int Rr = (int) ceil(2 * Sr * Sr / KERNEL_SIZE);
+				int Rc = (int) ceil(2 * Sc * Sc / KERNEL_SIZE);
 				if (Rr > r) { // avoid enlarging outside frame width
 					if (xx - Rr < 0) Rr = xx;
 					if (xx + Rr >= nx) Rr = nx - xx - 1;
@@ -476,7 +485,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float dA = max(Ar,Ac)/min(Ar,Ac);
 				float dSr = max(-srl,srr)/min(-srl,srr);
 				float dSc = max(-scu,scd)/min(-scu,scd);
-				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.))  bingo = FALSE;
+				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
 					candidates[nbstars].x = xx;
@@ -745,20 +754,21 @@ void free_fitted_stars(psf_star **stars) {
 	free(stars);
 }
 
-void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units) {
+void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B) {
+	*FWHMx = 0.0f;
+	*FWHMy = 0.0f;
+	*B = 0.0f;
 	if (stars && stars[0]) {
-		int i = 0;
-
-		*FWHMx = 0.0f;
-		*FWHMy = 0.0f;
+		double fwhmx = 0.0, fwhmy = 0.0, b = 0.0;
 		*units = stars[0]->units;
-		while (i < nb) {
-			*FWHMx += (float) stars[i]->fwhmx;
-			*FWHMy += (float) stars[i]->fwhmy;
-			i++;
+		for (int i = 0; i < nb; i++) {
+			fwhmx += stars[i]->fwhmx;
+			fwhmy += stars[i]->fwhmy;
+			b += stars[i]->B;
 		}
-		*FWHMx = *FWHMx / (float)i;
-		*FWHMy = *FWHMy / (float)i;
+		*FWHMx = (float)(fwhmx / (double)nb);
+		*FWHMy = (float)(fwhmy / (double)nb);
+		*B = (float)(b / (double)nb);
 	}
 }
 

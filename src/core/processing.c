@@ -35,6 +35,7 @@
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
+#include "registration/registration.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -196,38 +197,46 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 
 		if (args->partial_image) {
-			// if we run in parallel, it will not be the same for all
-			// and we don't want to overwrite the original anyway
-			if (args->regdata_for_partial) {
-				int shiftx = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shiftx);
-				int shifty = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shifty);
-				area.x -= shiftx;
-				area.y += shifty;
-			}
-
+			if (args->regdata_for_partial)
+				selection_H_transform(&area,
+						args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H,
+						args->seq->regparam[args->layer_for_partial][input_idx].H);
 			// args->area may be modified in hooks
-			enforce_area_in_image(&area, args->seq);
-			if (seq_read_frame_part(args->seq,
-						args->layer_for_partial,
+
+			/* We need to detect if the box has crossed the borders to invalidate
+			 * the current frame in case the box position was computed from reg data.
+			 */
+			gboolean has_crossed = enforce_area_in_image(&area, args->seq, input_idx) && args->regdata_for_partial;
+
+			if (has_crossed || seq_read_frame_part(args->seq, args->layer_for_partial,
 						input_idx, fit, &area,
 						args->get_photometry_data_for_partial, thread_id))
 			{
-				abort = 1;
+				if (args->stop_on_error)
+					abort = 1;
+				else {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+					excluded_frames++;
+				}
 				clearfits(fit);
 				free(fit);
+				// TODO: for seqwriter, we need to notify the failed frame
 				continue;
 			}
 			/*char tmpfn[100];	// this is for debug purposes
 			  sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
 			  savefits(tmpfn, fit);*/
 		} else {
-			// image is obtained bottom to top here, while it's in natural order for partial images!
+			// image is read bottom-up here, while it's top-down for partial images
 			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
 				continue;
 			}
+			// TODO: for seqwriter, we need to notify the failed frame
 		}
 
 		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
@@ -300,7 +309,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	else {
 		if (excluded_frames) {
 			set_progress_bar_data(_("Sequence processing partially succeeded. Check the log."), PROGRESS_RESET);
-			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed and that were temporarily excluded from the sequence.\n"), "salmon", excluded_frames);
+			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed.\n"), "salmon", excluded_frames);
 		} else {
 			set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
 			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
