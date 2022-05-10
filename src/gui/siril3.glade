@@ -3409,7 +3409,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                                 <property name="adjustment">adj_background_smoothing</property>
                                 <property name="digits">2</property>
                                 <property name="numeric">True</property>
-                                <property name="value">0.05</property>
+                                <property name="value">0.5</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
