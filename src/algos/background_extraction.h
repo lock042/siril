@@ -36,7 +36,7 @@ struct background_data {
 
 typedef struct sample background_sample;
 
-int get_sample_radius();
+int get_background_sample_radius();
 void free_background_sample_list(GSList *list);
 GSList* add_background_sample(GSList *list, fits *fit, point pt);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);

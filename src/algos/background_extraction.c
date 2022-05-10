@@ -61,7 +61,7 @@ static void background_startup() {
 #define NPARAM_POLY2 6		// Number of parameters used with 2nd order
 #define NPARAM_POLY1 3		// Number of parameters used with 1nd order
 
-#define SAMPLE_SIZE 25
+#define SAMPLE_SIZE 25		// must be odd to compute a radius
 
 struct sample {
 	double median[3]; // median of each channel of the sample (if color)
@@ -153,8 +153,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 	/* Scaling */
 	int scaling_factor = 4;
-	int width_scaled = width / scaling_factor;
-	int height_scaled = height / scaling_factor;
+	int width_scaled = round_to_int(width / scaling_factor);
+	int height_scaled = round_to_int(height / scaling_factor);
 	
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
@@ -405,13 +405,13 @@ static background_sample *get_sample(float *buf, const int xx,
 		return NULL;
 	}
 
-	int n = 0;
-	double *data = calloc(size, sizeof(double));
+	double *data = malloc(size * sizeof(double));
 	if (!data) {
 		free(sample);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
+	int n = 0;
 	for (int y = yy - radius; y <= yy + radius; y ++) {
 		for (int x = xx - radius; x <= xx + radius; x ++) {
 			if (y >= 0 && y < h) {
@@ -420,6 +420,12 @@ static background_sample *get_sample(float *buf, const int xx,
 				}
 			}
 		}
+	}
+	if (n != size) {
+		siril_debug_print("sample did not have the expected size (on border?)\n");
+		free(sample);
+		free(data);
+		return NULL;
 	}
 	gsl_stats_minmax(&sample->min, &sample->max, data, 1, size);
 	sample->mean = gsl_stats_mean(data, 1, size);
@@ -483,7 +489,7 @@ static unsigned int _rand(guint64 *const p_rng) {
 static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gboolean add_dither) {
 	guint64 seed = time(NULL);
 
-	float invnorm = (float)(1.0 / USHRT_MAX);
+	double invnorm = 1.0 / USHRT_MAX;
 	const int height = fit->ry;
 	const int width = fit->rx;
 	if (fit->type == DATA_USHORT) {
@@ -529,9 +535,9 @@ static float* convert_fits_to_luminance(fits *fit, threading_type threads) {
 #pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (int y = 0; y < height; ++y) {
+		size_t in_idx = (height - y - 1) * width;
+		size_t out_idx = y * width;
 		for (int x = 0; x < width; ++x) {
-			size_t in_idx = (height - y - 1) * width + x;
-			size_t out_idx = y * width + x;
 			if (fit->naxes[2] > 1) {
 				float r, g, b;
 				if (fit->type == DATA_USHORT) {
@@ -551,6 +557,8 @@ static float* convert_fits_to_luminance(fits *fit, threading_type threads) {
 					image[out_idx] = fit->fpdata[RLAYER][in_idx];
 				}
 			}
+			in_idx++;
+			out_idx++;
 		}
 	}
 
@@ -562,27 +570,30 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	const int width = fit->rx;
 	if (fit->type == DATA_USHORT) {
 		WORD *buf = fit->pdata[channel];
+		size_t out_idx = 0;
 		for (int y = 0; y < height; ++y) {
+			size_t in_idx = (height - y - 1) * width;
 			for (int x = 0; x < width; ++x) {
-				size_t in_idx = (height - y - 1) * width + x;
-				size_t out_idx = y * width + x;
 				buf[out_idx] = round_to_WORD(image[in_idx] * USHRT_MAX);
+				in_idx++;
+				out_idx++;
 			}
 		}
 	} else if (fit->type == DATA_FLOAT) {
 		float *buf = fit->fpdata[channel];
+		size_t out_idx = 0;
 		for (int y = 0; y < height; ++y) {
+			size_t in_idx = (height - y - 1) * width;
 			for (int x = 0; x < width; ++x) {
-				size_t in_idx = (height - y - 1) * width + x;
-				size_t out_idx = y * width + x;
 				buf[out_idx] = (float) image[in_idx];
+				in_idx++;
+				out_idx++;
 			}
 		}
 	}
 }
 
-static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, size_t size, threading_type threads) {
-	unsigned int x, y;
+static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, threading_type threads) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	size_t n = fit->naxes[0] * fit->naxes[1];
@@ -592,29 +603,38 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, si
 	if (!image) return NULL;
 	float median = (float)histogram_median_float(image, n, threads);
 
-	int dist = nx / nb_per_line;
-	size_t radius = size / 2;
-	int startx = ((nx - size) % dist) / 2;
-	int starty = ((ny - size) % dist) / 2;
+	int boxes_width = nb_per_line * size + 2;	// leave a margin of 1 px on the sides
+	float spacing = (nx - boxes_width) / (float)(nb_per_line-1);
+	int radius = size / 2;
+	// solving iteratively n for: ny - 2 = n * size + (n-1) * spacing;
+	int nb_per_column = 1;
+	while (nb_per_column * size + round_to_int((nb_per_column - 1) * spacing) <= (ny - 2))
+		nb_per_column++;
+	nb_per_column--;
+	if (nb_per_column == 0) {
+		siril_debug_print("image is smaller than the sample size");
+		return NULL;
+	}
 
-	guint nb = 0;
-	for (y = starty; y <= ny - radius; y += dist) {
-		for (x = startx; x <= nx - radius; x += dist) {
+	guint nb = nb_per_line * nb_per_column;
+	float *mad = malloc(nb * sizeof(float));
+	int k = 0;
+
+	for (int i = 0; i < nb_per_line; i++) {
+		for (int j = 0; j < nb_per_column; j++) {
+			int x = round_to_int(i * (spacing + size)) + radius + 1;
+			int y = round_to_int(j * (spacing + size)) + radius + 1;
 			background_sample *sample = get_sample(image, x, y, nx, ny);
-			list = g_slist_prepend(list, sample);
-			nb++;
+			if (sample) {
+				mad[k++] = fabs(sample->median[RLAYER] - median);
+				list = g_slist_prepend(list, sample);
+			}
 		}
 	}
 
 	/* compute mad */
-	float *mad = malloc(nb * sizeof(float));
-	int i = 0;
-	for (GSList *l = list; l; l = l->next) {
-		background_sample *sample = (background_sample*) l->data;
-		mad[i++] = fabs(sample->median[RLAYER] - median);
-	}
-
-	double mad0 = histogram_median_float(mad, nb, TRUE);
+	double mad0 = histogram_median_float(mad, k, TRUE);
+	free(mad);
 	double threshold = median + mad0 * tolerance;
 	siril_debug_print("Background gradient: %d samples per line, threshold %f\n", nb_per_line, threshold);
 
@@ -632,10 +652,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, si
 	}
 
 	list = g_slist_reverse(list);
-
-	free(mad);
 	free(image);
-
 	return list;
 }
 
@@ -691,7 +708,6 @@ static background_interpolation get_interpolation_method() {
 
 static double get_smoothing_parameter() {
 	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_background_smoothing"));
-
 	return gtk_spin_button_get_value(spin);
 }
 
@@ -724,14 +740,14 @@ static void remove_gradient(double *img, const double *background, double backgr
 	}
 }
 
-/************* PUBLIC FUNCTIONS *************/
-
-int get_sample_radius() {
-	return SAMPLE_SIZE / 2;
+static gboolean is_dither_checked() {
+	return (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_dither_button"))));
 }
 
-gboolean is_dither_checked() {
-	return (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_dither_button"))));
+/************* PUBLIC FUNCTIONS *************/
+
+int get_background_sample_radius() {
+       return SAMPLE_SIZE / 2;
 }
 
 void free_background_sample_list(GSList *list) {
@@ -798,11 +814,11 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 void generate_background_samples(int nb_of_samples, double tolerance) {
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE, MULTI_THREADED);
-	/* If RGB we need to update all local median, not only the first one */
-	if (gfit.naxes[2] > 1) {
+
+	if (com.grad_samples && gfit.naxes[2] > 1) {
+		/* If RGB we need to update all local median, not only the first one */
 		com.grad_samples = update_median_samples(com.grad_samples, &gfit);
 	}
-
 	redraw(REDRAW_OVERLAY);
 }
 
