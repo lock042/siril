@@ -580,7 +580,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			}
 		}
 
-		psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, FALSE, FALSE);
+		psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, 1.0, FALSE, FALSE);
 		gsl_matrix_free(z);
 		if (cur_star) {
 			if (is_star(cur_star, sf, &candidates[candidate])) {

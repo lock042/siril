@@ -11,16 +11,21 @@ typedef enum {
 	BACKGROUND_POLY_4,
 } poly_order;
 
-enum {
-	INTER_POLY = 0,
-	INTER_RBF = 1
-};
+typedef enum {
+	BACKGROUND_CORRECTION_SUBTRACT,
+	BACKGROUND_CORRECTION_DIVIDE
+} background_correction;
+
+typedef enum {
+	BACKGROUND_INTER_RBF = 0,
+	BACKGROUND_INTER_POLY = 1,
+} background_interpolation;
 
 struct background_data {
 	int nb_of_samples;
 	double tolerance;
-	int correction;
-    int interpolation_method;
+	background_correction correction;
+	background_interpolation interpolation_method;
 	poly_order degree;
 	double smoothing;
 	gboolean dither;
@@ -31,12 +36,12 @@ struct background_data {
 
 typedef struct sample background_sample;
 
-int get_sample_radius();
+int get_background_sample_radius();
 void free_background_sample_list(GSList *list);
 GSList* add_background_sample(GSList *list, fits *fit, point pt);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
 void generate_background_samples(int nb_of_samples, double tolerance);
-gboolean remove_gradient_from_image(int correction, poly_order degree, double smoothing, gboolean use_dither, int interpolation_method, int threads);
+gboolean remove_gradient_from_image(background_correction correction, poly_order degree, double smoothing, gboolean use_dither, background_interpolation interpolation_method, int threads);
 void apply_background_extraction_to_sequence(struct background_data *background_args);
 
 gboolean background_sample_is_valid(background_sample *sample);
@@ -46,3 +51,4 @@ point background_sample_get_position(background_sample *sample);
 void apply_background_cancel();
 
 #endif /* SRC_ALGOS_BACKGROUND_EXTRACTION_H_ */
+

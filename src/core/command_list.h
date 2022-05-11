@@ -21,14 +21,14 @@ struct {
 } command;
 
 static command commands[] = {
-	/* name,	nbarg,	usage,		function pointer, definition, scriptable */
-	{"addmax", 1,	"addmax filename", process_addmax, STR_ADDMAX, FALSE},
-	{"autostretch", 0, "autostretch [shadowsclip] [targetbg]", process_autostretch, STR_AUTOSTRETCH, TRUE},
-	{"asinh", 1,	"asinh stretch", process_asinh, STR_ASINH, TRUE},
+	/* name, nbarg, usage, function pointer, description, scriptable */
+	{"addmax", 1, "addmax filename", process_addmax, STR_ADDMAX, FALSE},
+	{"autostretch", 0, "autostretch [-linked] [shadowsclip [targetbg]]", process_autostretch, STR_AUTOSTRETCH, TRUE},
+	{"asinh", 1, "asinh [-human] stretch [offset]", process_asinh, STR_ASINH, TRUE},
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE},
 	{"bgnoise", 0, "bgnoise", process_bgnoise, STR_BGNOISE, TRUE},
-	{"boxselect", 0, "boxselect [x y width height]", process_boxselect, STR_BOXSELECT, FALSE},
+	{"boxselect", 0, "boxselect [-clear] [x y width height]", process_boxselect, STR_BOXSELECT, TRUE},
 
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE},
 	{"cdg", 0, "cdg", process_cdg, STR_CDG, TRUE},
@@ -46,6 +46,7 @@ static command commands[] = {
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE},
 #endif
+	{"dumpheader", 0, "dumpheader", process_dumpheader, STR_DUMPHEADER, TRUE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE},
@@ -104,7 +105,7 @@ static command commands[] = {
 
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE},
-	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
+	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE},
 
 	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=]", process_register, STR_REGISTER, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},
@@ -112,11 +113,11 @@ static command commands[] = {
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE},
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE},
 	{"rl", 3, "rl sigma corner_radius_boost iterations", process_rl, STR_RL, TRUE},
-	{"rmgreen", 1, "rmgreen type", process_scnr, STR_RMGREEN, TRUE},
+	{"rmgreen", 0, "rmgreen [type]", process_scnr, STR_RMGREEN, TRUE},
 	{"rotate", 1, "rotate degree [-nocrop]", process_rotate, STR_ROTATE, TRUE},
 	{"rotatePi", 0, "rotatePi", process_rotatepi, STR_ROTATEPI, TRUE},
 
-	{"satu", 1, "satu coeff", process_satu, STR_SATU, TRUE},
+	{"satu", 1, "satu amount [background_factor [hue_range_index]]", process_satu, STR_SATU, TRUE},
 	{"save", 1, "save filename", process_save, STR_SAVE, TRUE},
 	{"savebmp", 1, "savebmp filename", process_savebmp, STR_SAVEBMP, TRUE},
 #ifdef HAVE_LIBJPEG
@@ -141,10 +142,10 @@ static command commands[] = {
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME, TRUE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE},
-	{"seqpsf", 0, "seqpsf", process_seq_psf, STR_SEQPSF, FALSE},
+	{"seqpsf", 0, "seqpsf [sequencename channel [-at=x,y]]", process_seq_psf, STR_SEQPSF, TRUE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE},
 	{"seqstat", 2, "seqstat sequencename output [option]", process_seq_stat, STR_SEQSTAT, TRUE},
-	{"seqsubsky", 2, "seqsubsky sequencename degree [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE},
+	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE},
 	{"seqtilt", 0, "seqtilt [sequencename]", process_seq_tilt, STR_SEQTILT, TRUE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE},
 	{"set32bits", 0, "set32bits", process_set_32bits, STR_SET32, TRUE},
@@ -157,13 +158,14 @@ static command commands[] = {
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE},
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE},
+	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE},
 	{"split", 3, "split fileR fileG fileB", process_split, STR_SPLIT, TRUE},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE},
 	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackone, STR_STACK, TRUE},
 	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackall, STR_STACKALL, TRUE},
 	{"stat", 0, "stat", process_stat, STR_STAT, TRUE},
-	{"subsky", 1, "subsky degree", process_subsky, STR_SUBSKY, TRUE},
+	{"subsky", 1, "subsky { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5]", process_subsky, STR_SUBSKY, TRUE},
 
 	{"threshlo", 1, "threshlo level", process_threshlo, STR_THRESHLO, TRUE},
 	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE},
