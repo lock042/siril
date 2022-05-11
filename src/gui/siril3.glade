@@ -3311,8 +3311,8 @@ If the parameters is null, so no filter is apply at all.</property>
                     <property name="margin-top">5</property>
                     <property name="active">0</property>
                     <items>
-                      <item translatable="yes">Polynomial</item>
                       <item translatable="yes">RBF</item>
+                      <item translatable="yes">Polynomial</item>
                     </items>
                     <signal name="changed" handler="on_background_extraction_combo_changed" swapped="no"/>
                   </object>
@@ -3328,6 +3328,82 @@ If the parameters is null, so no filter is apply at all.</property>
                     <property name="can-focus">False</property>
                     <property name="show-tabs">False</property>
                     <property name="show-border">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <child>
+                              <object class="GtkLabel" id="RBF_smoothing">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Smoothing</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_background_smoothing">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
+                                <property name="halign">end</property>
+                                <property name="hexpand">True</property>
+                                <property name="width-chars">6</property>
+                                <property name="text">0,50</property>
+                                <property name="input-purpose">digits</property>
+                                <property name="adjustment">adj_background_smoothing</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">0.5</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Adjust the smoothing parameter for the interpolation method. A smoothing parameter that is too small may result in overshoots and undershoots between points in the background, while a smoothing parameter that is too large may not be suitable for large deviations in gradient.</property>
+                            <property name="adjustment">adj_background_smoothing</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="tab">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">page 1</property>
+                      </object>
+                      <packing>
+                        <property name="tab-fill">False</property>
+                      </packing>
+                    </child>
                     <child>
                       <object class="GtkBox" id="background_box_poly">
                         <property name="visible">True</property>
@@ -3371,82 +3447,6 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                           </packing>
                         </child>
                       </object>
-                    </child>
-                    <child type="tab">
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label">page 1</property>
-                      </object>
-                      <packing>
-                        <property name="tab-fill">False</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <child>
-                              <object class="GtkLabel" id="RBF_smoothing">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Smoothing</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spin_background_smoothing">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
-                                <property name="halign">end</property>
-                                <property name="hexpand">True</property>
-                                <property name="width-chars">6</property>
-                                <property name="text">1,00</property>
-                                <property name="input-purpose">digits</property>
-                                <property name="adjustment">adj_background_smoothing</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">0.5</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkScale">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Adjust the smoothing parameter for the interpolation method. A smoothing parameter that is too small may result in overshoots and undershoots between points in the background, while a smoothing parameter that is too large may not be suitable for large deviations in gradient.</property>
-                            <property name="adjustment">adj_background_smoothing</property>
-                            <property name="draw-value">False</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
                       <packing>
                         <property name="position">1</property>
                       </packing>
@@ -3455,7 +3455,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label">page 2</property>
+                        <property name="label">page 1</property>
                       </object>
                       <packing>
                         <property name="position">1</property>

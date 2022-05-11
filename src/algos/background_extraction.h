@@ -17,8 +17,8 @@ typedef enum {
 } background_correction;
 
 typedef enum {
-	BACKGROUND_INTER_POLY = 0,
-	BACKGROUND_INTER_RBF = 1
+	BACKGROUND_INTER_RBF = 0,
+	BACKGROUND_INTER_POLY = 1,
 } background_interpolation;
 
 struct background_data {
