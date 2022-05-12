@@ -8684,8 +8684,7 @@ msgstr ""
 
 #: src/gui/about_dialog.c:79
 msgid "translator-credits"
-msgstr "Joan Vinyals <joanvyc@ieee.org>\nRafel Albert <binraff@gmail.com>
-"
+msgstr "Joan Vinyals <joanvyc@ieee.org>\nRafel Albert <binraff@gmail.com>"
 
 #: src/gui/about_dialog.c:81
 msgid "Visit the Siril website"
