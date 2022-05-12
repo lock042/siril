@@ -642,6 +642,7 @@ gsl_histogram* computeHisto_Selection(fits* fit, int layer,
 	return histo;
 }
 
+/* call from main thread */
 void compute_histo_for_gfit() {
 	int nb_layers = 3;
 	if (gfit.naxis == 2)
@@ -653,24 +654,20 @@ void compute_histo_for_gfit() {
 	set_histo_toggles_names();
 }
 
+/* call from any thread */
 void invalidate_gfit_histogram() {
 	for (int layer = 0; layer < MAXVPORT; layer++) {
 		set_histogram(NULL, layer);
 	}
 }
 
+/* call from main thread */
 void update_gfit_histogram_if_needed() {
+	invalidate_gfit_histogram();
 	if (is_histogram_visible()) {
 		compute_histo_for_gfit();
 		queue_window_redraw();
 	}
-}
-
-void clear_histograms() {
-	for (int i = 0; i < MAXVPORT; i++) {
-		set_histogram(NULL, i);
-	}
-	// TODO: call histo_close? should it be done by the caller?
 }
 
 static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
@@ -818,7 +815,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 	set_cursor_waiting(TRUE);
 	/* we always apply this function on original data */
 	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
-	if (!find_linked_midtones_balance(get_preview_gfit_backup(), &params)) {
+	if (!find_linked_midtones_balance_default(get_preview_gfit_backup(), &params)) {
 		_shadows = params.shadows;
 		_midtones = params.midtones;
 		_highlights = 1.f;

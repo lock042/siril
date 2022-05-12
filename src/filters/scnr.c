@@ -35,26 +35,14 @@
 
 #include "scnr.h"
 
-// idle function executed at the end of the scnr processing
-static gboolean end_scnr(gpointer p) {
-	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	update_gfit_histogram_if_needed();
-	set_cursor_waiting(FALSE);
-	
-	return FALSE;
-}
 
-/* Subtractive Chromatic Noise Reduction.
- * No unprotected GTK+ calls can go there. */
+/* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
-	double m;
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
 	double norm = get_normalized_value(args->fit);
+	double invnorm = 1.0 / norm;
 
 	siril_log_color_message(_("SCNR: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
@@ -65,21 +53,22 @@ gpointer scnr(gpointer p) {
 	for (i = 0; i < nbdata; i++) {
 		double red, green, blue;
 		if (args->fit->type == DATA_USHORT) {
-			red = (double)args->fit->pdata[RLAYER][i] / norm;
-			green = (double)args->fit->pdata[GLAYER][i] / norm;
-			blue = (double)args->fit->pdata[BLAYER][i] / norm;
+			red = args->fit->pdata[RLAYER][i] * invnorm;
+			green = args->fit->pdata[GLAYER][i] * invnorm;
+			blue = args->fit->pdata[BLAYER][i] * invnorm;
 		}
 		else if (args->fit->type == DATA_FLOAT) {
 			red = (double)args->fit->fpdata[RLAYER][i];
 			green = (double)args->fit->fpdata[GLAYER][i];
 			blue = (double)args->fit->fpdata[BLAYER][i];
 		}
-		double x, y, z, L, a, b;
 
+		double x, y, z, L, a, b, m;
 		if (args->preserve) {
 			rgb_to_xyz(red, green, blue, &x, &y, &z);
 			xyz_to_LAB(x, y, z, &L, &a, &b);
 		}
+
 		switch (args->type) {
 			case 0:
 				m = 0.5 * (red + blue);
@@ -97,6 +86,7 @@ gpointer scnr(gpointer p) {
 				m = min(1.0, red + blue);
 				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 		}
+
 		if (args->preserve) {
 			double tmp;
 			rgb_to_xyz(red, green, blue, &x, &y, &z);
@@ -104,15 +94,16 @@ gpointer scnr(gpointer p) {
 			LAB_to_xyz(L, a, b, &x, &y, &z);
 			xyz_to_rgb(x, y, z, &red, &green, &blue);
 		}
+
 		if (args->fit->type == DATA_USHORT) {
 			if (args->fit->orig_bitpix == BYTE_IMG) {
-				args->fit->pdata[RLAYER][i] = round_to_BYTE(red * (double)norm);
-				args->fit->pdata[GLAYER][i] = round_to_BYTE(green * (double)norm);
-				args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * (double)norm);
+				args->fit->pdata[RLAYER][i] = round_to_BYTE(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_BYTE(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * norm);
 			} else {
-				args->fit->pdata[RLAYER][i] = round_to_WORD(red * (double)norm);
-				args->fit->pdata[GLAYER][i] = round_to_WORD(green * (double)norm);
-				args->fit->pdata[BLAYER][i] = round_to_WORD(blue * (double)norm);
+				args->fit->pdata[RLAYER][i] = round_to_WORD(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_WORD(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_WORD(blue * norm);
 			}
 		}
 		else if (args->fit->type == DATA_FLOAT) {
@@ -122,11 +113,10 @@ gpointer scnr(gpointer p) {
 		}
 	}
 
-	invalidate_stats_from_fit(args->fit);
 	free(args);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_scnr, NULL);
+	notify_gfit_modified();
 	return GINT_TO_POINTER(0);
 }
 
@@ -182,4 +172,5 @@ void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(label), type > 1);
 	gtk_widget_set_sensitive(GTK_WIDGET(spinButton), type > 1);
 }
+
 

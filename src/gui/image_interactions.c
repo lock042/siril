@@ -418,7 +418,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				redraw(REDRAW_OVERLAY);
 			} else if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 				point pt;
-				int radius = get_sample_radius();
+				int radius = get_background_sample_radius();
 
 				pt.x = (gdouble) zoomed.x;
 				pt.y = (gdouble) zoomed.y;
@@ -529,12 +529,10 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {
-			double dX, dY, w, h;
-
-			dX = 1.5 * com.pref.phot_set.outer;
-			dY = dX;
-			w = 3 * com.pref.phot_set.outer;
-			h = w;
+			double dX = 1.5 * com.pref.phot_set.outer;
+			double dY = dX;
+			double w = 3 * com.pref.phot_set.outer;
+			double h = w;
 
 			if ((dX <= zoomed.x) && (dY <= zoomed.y)
 					&& (zoomed.x - dX + w < gfit.rx)

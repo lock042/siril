@@ -41,7 +41,7 @@ static fits preview_gfit_backup;
 static gboolean update_preview(gpointer user_data) {
 	update_image *im = (update_image*) user_data;
 
-	if (notify_is_blocked == TRUE) return FALSE;
+	if (notify_is_blocked) return FALSE;
 
 	if (im->show_preview) {
 		siril_debug_print("update preview\n");
@@ -52,10 +52,7 @@ static gboolean update_preview(gpointer user_data) {
 	waiting_for_thread(); // in case function is run in another thread
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	if (im->show_preview) {
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+		notify_gfit_modified();
 	}
 	return FALSE;
 }
@@ -106,9 +103,7 @@ void set_notify_block(gboolean value) {
 void siril_preview_hide() {
 	copy_backup_to_gfit();
 	clear_backup();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 }
 
 void notify_update(gpointer user_data) {

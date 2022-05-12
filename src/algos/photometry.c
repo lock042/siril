@@ -198,12 +198,13 @@ static double getMagnitude(double intensity) {
 	return -2.5 * log10(intensity);
 }
 
-static double getCameraGain() {
-	if (gfit.type == DATA_FLOAT) {
-		return com.pref.phot_set.gain * USHRT_MAX_DOUBLE;
-	} else {
-		return com.pref.phot_set.gain;
-	}
+double get_camera_gain(fits *fit) {
+	double gain = com.pref.phot_set.gain;
+	if (fit->cvf > 0.0)
+		gain = fit->cvf;
+	if (fit->type == DATA_FLOAT)
+		return gain * USHRT_MAX_DOUBLE;
+	return gain;
 }
 
 static double getInnerRadius() {
@@ -218,19 +219,13 @@ static double getAperture() {
 	return com.pref.phot_set.aperture;
 }
 
-static double getMagErr(double intensity, double area, int nsky, double skysig, double *SNR) {
-	double skyvar, sigsq;
-	double err1, err2, err3;
-	double phpadu;
-	double noise;
-
-	skyvar = skysig * skysig; /* variance of the sky brightness */
-	sigsq = skyvar / nsky; /* square of the standard error of the mean sky brightness */
-	phpadu = getCameraGain();
-	err1 = area * skyvar;
-	err2 = intensity / phpadu;
-	err3 = sigsq * area * area;
-	noise = sqrt(err1 + err2 + err3);
+static double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR) {
+	double skyvar = skysig * skysig;/* variance of the sky brightness */
+	double sigsq = skyvar / nsky;	/* square of the standard error of the mean sky brightness */
+	double err1 = area * skyvar;
+	double err2 = intensity / cvf;
+	double err3 = sigsq * area * area;
+	double noise = sqrt(err1 + err2 + err3);
 
 	*SNR = 10.0 * log10(intensity / noise);
 
@@ -254,21 +249,20 @@ static double hi_data() {
 }
 
 /* Function that compute all photometric data. The result must be freed */
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radius, gboolean verbose) {
+photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolean force_radius, gboolean verbose) {
 	int width = z->size2;
 	int height = z->size1;
 	int n_sky = 0, ret;
 	int x, y, x1, y1, x2, y2;
 	double r1, r2, r, rmin_sq, appRadius;
-	double xc, yc;
 	double apmag = 0.0, mean = 0.0, stdev = 0.0, area = 0.0;
 	gboolean valid = TRUE;
 	photometry *phot;
 
-	xc = psf->x0 - 1;
-	yc = psf->y0 - 1;
+	double xc = psf->x0 - 1;
+	double yc = psf->y0 - 1;
 
-	if ((xc <= 0.0) || (yc <= 0.0)) return NULL;
+	if (xc <= 0.0 || yc <= 0.0 || xc >= width || yc >= height) return NULL;
 
 	r1 = getInnerRadius();
 	r2 = getOuterRadius();
@@ -276,11 +270,12 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radiu
 	if (appRadius >= r1 && !force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
-			siril_log_message(_("Inner and outer radii are too small. Please update values in preferences.\n"));
+			siril_log_message(_("Inner and outer radii are too small (%d required for inner). Please update values in preferences or with setphot.\n"), round_to_int(appRadius));
 		}
 		return NULL;
 	}
 
+	/* compute the bounding box of the outer radius around the star */
 	x1 = xc - r2;
 	if (x1 < 1)
 		x1 = 1;
@@ -294,10 +289,6 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radiu
 	if (y2 > height - 1)
 		y2 = height - 1;
 
-	r1 *= r1;
-	r2 *= r2;
-	rmin_sq = (appRadius - 0.5) * (appRadius - 0.5);
-
 	int ndata = (y2 - y1) * (x2 - x1);
 	if (ndata <= 0) {
 		siril_log_color_message(_("An error occurred in your selection. Please make another selection.\n"), "red");
@@ -309,12 +300,20 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radiu
 		return NULL;
 	}
 
+	r1 *= r1;	// we square the radii to avoid doing
+	r2 *= r2;	// sqrts for radius checks in the loop
+	rmin_sq = (appRadius - 0.5) * (appRadius - 0.5);
+	double lo = lo_data(), hi = hi_data();
+
+	/* from the matrix containing pixel data, we extract pixels within
+	 * limits of pixel value and of distance to the star centre for
+	 * background evaluation */
 	for (y = y1; y <= y2; ++y) {
 		int yp = (y - yc) * (y - yc);
 		for (x = x1; x <= x2; ++x) {
 			r = yp + (x - xc) * (x - xc);
 			double pixel = gsl_matrix_get(z, y, x);
-			if (pixel > lo_data() && pixel < hi_data()) {
+			if (pixel > lo && pixel < hi) {
 				double f = (r < rmin_sq ? 1 : appRadius - sqrt(r) + 0.5);
 				if (f >= 0) {
 					area += f;
@@ -330,33 +329,31 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, gboolean force_radiu
 			}
 		}
 	}
-	if (area < 1) {
+	if (area < 1.0) {
+		siril_debug_print("area is < 1: not enough pixels of star data, too small aperture?\n");
 		free(data);
 		return NULL;
 	}
 	if (n_sky < min_sky) {
-		if (verbose) {
+		if (verbose)
 			siril_log_message(_("Warning: There aren't enough pixels"
 						" in the sky annulus. You need to make a larger selection.\n"));
-		}
 		free(data);
 		return NULL;
 	}
 
 	ret = robustmean(n_sky, data, &mean, &stdev);
 	free(data);
-	if (ret > 0) {
+	if (ret > 0)
 		return NULL;
-	}
 
 	phot = phot_alloc();
 	if (phot) {
 		double SNR = 0.0;
-
 		double signalIntensity = apmag - (area * mean);
 
 		phot->mag = getMagnitude(signalIntensity);
-		phot->s_mag = getMagErr(signalIntensity, area, n_sky, stdev, &SNR);
+		phot->s_mag = getMagErr(signalIntensity, area, n_sky, stdev, gain, &SNR);
 		phot->SNR = phot->s_mag < 9.999 ? SNR : 0.0;
 		valid = phot->s_mag < 9.999 ? valid : FALSE;
 		phot->valid = valid;

@@ -560,7 +560,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
 	clear_stars_list(TRUE);
-	clear_histograms();
+	invalidate_gfit_histogram();
 	undo_flush();
 	close_single_image();
 	clearfits(&gfit);
@@ -1602,30 +1602,86 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	return !data->psf;
 }
 
+int seqpsf_finalize_hook(struct generic_seq_args *args) {
+	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
+	sequence *seq = args->seq;
+	int photometry_index = 0;
+	gboolean displayed_warning = FALSE;
+
+	if (args->retval || spsfargs->for_registration)
+		return 0;
+
+	int i;
+	for (i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++);
+	if (i == MAX_SEQPSF) {
+		free_photometry_set(seq, 0);
+		i = 0;
+	}
+	seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));
+	photometry_index = i;
+
+	GSList *iterator;
+	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
+		struct seqpsf_data *data = iterator->data;
+
+		/* check exposure consistency (only obtained when !for_registration) */
+		if (seq->exposure > 0.0 && seq->exposure != data->exposure &&
+				!displayed_warning) {
+			siril_log_color_message(_("Star analysis does not give consistent results when exposure changes across the sequence.\n"), "red");
+			displayed_warning = TRUE;
+		}
+		seq->exposure = data->exposure;
+
+		// for photometry use: store data in seq->photometry
+		seq->photometry[photometry_index][data->image_index] = data->psf;
+	}
+	if (com.headless) {
+		// printing results ordered, the list isn't
+		gboolean first = TRUE;
+		for (int i = 0; i < seq->number; i++) {
+			if (seq->photometry[photometry_index][i]) {
+				psf_star *psf = seq->photometry[photometry_index][i];
+				if (first) {
+					siril_log_message(_("Photometry for star at %.1f, %.1f in image %d\n"), psf->xpos, psf->ypos, i);
+					siril_log_message("image_index magnitude error fwhm amplitude background\n");
+					first = FALSE;
+				}
+				siril_log_message("%d %f %f %f %f %f\n", i, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
+			}
+		}
+
+		/* the idle below won't be called, we free data here */
+		if (spsfargs->list)
+			g_slist_free(spsfargs->list);
+		free(spsfargs);
+		free_sequence(seq, TRUE);
+	}
+	return 0;
+}
+
 gboolean end_seqpsf(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *)p;
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	sequence *seq = args->seq;
 	int layer = args->layer_for_partial;
-	int photometry_index = 0;
-	gboolean displayed_warning = FALSE, write_to_regdata = FALSE;
+	gboolean write_to_regdata = FALSE;
 	gboolean duplicate_for_regdata = FALSE, dont_stop_thread;
 	gboolean saveregdata = TRUE;
-	gboolean has_any_regdata = FALSE;
 
 	if (args->retval)
 		goto proper_ending;
-	
-	for (int i = 0; i < seq->nb_layers; i++) {
-		has_any_regdata = has_any_regdata || seq->regparam[i];
-	}
 
 	if (spsfargs->for_registration || !seq->regparam[layer]) {
+
+		gboolean has_any_regdata = FALSE;
+		for (int i = 0; i < seq->nb_layers; i++)
+			has_any_regdata = has_any_regdata || seq->regparam[i];
+
 		if (!spsfargs->for_registration && !seq->regparam[layer]) {
 			if (has_any_regdata) {
 				saveregdata = siril_confirm_dialog(_("No registration data stored for this layer"),
-				_("Some registration data was found for another layer.\n"
-					"Do you want to save the psf data as registration data for this layer?"), _("Save"));
+						_("Some registration data was found for another layer.\n"
+							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
 				duplicate_for_regdata = saveregdata;
 			} else {
 				duplicate_for_regdata = TRUE;
@@ -1635,28 +1691,10 @@ gboolean end_seqpsf(gpointer p) {
 		write_to_regdata = saveregdata;
 		seq->needs_saving = saveregdata;
 	}
-	if (!spsfargs->for_registration) {
-		int i;
-		for (i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++);
-		if (i == MAX_SEQPSF) {
-			free_photometry_set(seq, 0);
-		       	i = 0;
-		}
-		seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));
-		photometry_index = i;
-	}
 
 	GSList *iterator;
 	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
 		struct seqpsf_data *data = iterator->data;
-		/* check exposure consistency (only obtained when !for_registration) */
-		if (!spsfargs->for_registration && seq->exposure > 0.0 &&
-				seq->exposure != data->exposure && !displayed_warning) {
-			siril_log_color_message(_("Star analysis does not give consistent results when exposure changes across the sequence.\n"), "red");
-			displayed_warning = TRUE;
-		}
-		seq->exposure = data->exposure;
-
 		if (write_to_regdata) {
 			seq->regparam[layer][data->image_index].fwhm_data =
 				duplicate_for_regdata ? duplicate_psf(data->psf) : data->psf;
@@ -1668,11 +1706,6 @@ gboolean end_seqpsf(gpointer p) {
 				seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
 				seq->regparam[layer][data->image_index].number_of_stars = 1;
 			}
-		}
-
-		// for photometry use: store data in seq->photometry
-		if (!spsfargs->for_registration) {
-			seq->photometry[photometry_index][data->image_index] = data->psf;
 		}
 	}
 
@@ -1759,6 +1792,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		args->nb_filtered_images = seq->selnum;
 	}
 	args->image_hook = seqpsf_image_hook;
+	args->finalize_hook = seqpsf_finalize_hook;
 	args->idle_function = end_seqpsf;
 	args->stop_on_error = FALSE;
 	args->description = _("PSF on area");

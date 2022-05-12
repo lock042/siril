@@ -45,7 +45,7 @@ struct PSF_data {
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
 psf_star *psf_get_minimisation(fits *, int, rectangle *, gboolean, gboolean, gboolean);
-psf_star *psf_global_minimisation(gsl_matrix *, double, gboolean, gboolean, gboolean, gboolean);
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, gboolean fit_angle, gboolean for_photometry, double gain, gboolean force_radius, gboolean verbose);
 void psf_display_result(psf_star *, rectangle *);
 void fwhm_to_arcsec_if_needed(fits*, psf_star*);
 void fwhm_to_pixels(psf_star *result);

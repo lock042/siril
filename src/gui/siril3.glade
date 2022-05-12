@@ -471,14 +471,14 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="upper">1</property>
     <property name="value">0.5</property>
     <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.20</property>
   </object>
-  <object class="GtkAdjustment" id="adj_background_tol">
+  <object class="GtkAdjustment" id="adj_background_tolerance">
     <property name="lower">0.01</property>
     <property name="upper">6</property>
     <property name="value">2</property>
     <property name="step-increment">0.10</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">1</property>
   </object>
   <object class="GtkAdjustment" id="adj_black_point_asinh">
     <property name="upper">0.20</property>
@@ -3185,10 +3185,11 @@ If the parameters is null, so no filter is apply at all.</property>
         </child>
         <child>
           <object class="GtkCheckButton" id="checkbutton_RGBspace">
-            <property name="label" translatable="yes">Use RGB working space</property>
+            <property name="label" translatable="yes">Human-weighted luminance</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">For colour images, use human eye luminous efficiency weights to compute the luminance used to compute the stretch for each pixel.</property>
             <property name="halign">end</property>
             <property name="active">True</property>
             <property name="draw-indicator">True</property>
@@ -3310,8 +3311,8 @@ If the parameters is null, so no filter is apply at all.</property>
                     <property name="margin-top">5</property>
                     <property name="active">0</property>
                     <items>
-                      <item translatable="yes">Polynomial</item>
                       <item translatable="yes">RBF</item>
+                      <item translatable="yes">Polynomial</item>
                     </items>
                     <signal name="changed" handler="on_background_extraction_combo_changed" swapped="no"/>
                   </object>
@@ -3327,6 +3328,82 @@ If the parameters is null, so no filter is apply at all.</property>
                     <property name="can-focus">False</property>
                     <property name="show-tabs">False</property>
                     <property name="show-border">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <child>
+                              <object class="GtkLabel" id="RBF_smoothing">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Smoothing</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_background_smoothing">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
+                                <property name="halign">end</property>
+                                <property name="hexpand">True</property>
+                                <property name="width-chars">6</property>
+                                <property name="text">0,50</property>
+                                <property name="input-purpose">digits</property>
+                                <property name="adjustment">adj_background_smoothing</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">0.5</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Adjust the smoothing parameter for the interpolation method. A smoothing parameter that is too small may result in overshoots and undershoots between points in the background, while a smoothing parameter that is too large may not be suitable for large deviations in gradient.</property>
+                            <property name="adjustment">adj_background_smoothing</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="tab">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">page 1</property>
+                      </object>
+                      <packing>
+                        <property name="tab-fill">False</property>
+                      </packing>
+                    </child>
                     <child>
                       <object class="GtkBox" id="background_box_poly">
                         <property name="visible">True</property>
@@ -3370,82 +3447,6 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                           </packing>
                         </child>
                       </object>
-                    </child>
-                    <child type="tab">
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label">page 1</property>
-                      </object>
-                      <packing>
-                        <property name="tab-fill">False</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <child>
-                              <object class="GtkLabel" id="RBF_smoothing">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Smoothing</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spin_background_smoothing">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
-                                <property name="halign">end</property>
-                                <property name="hexpand">True</property>
-                                <property name="width-chars">6</property>
-                                <property name="text">1,00</property>
-                                <property name="input-purpose">digits</property>
-                                <property name="adjustment">adj_background_smoothing</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">0.5</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkScale">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Adjust the smoothing parameter for the interpolation method. A smoothing parameter that is too small may result in overshoots and undershoots between points in the background, while a smoothing parameter that is too large may not be suitable for large deviations in gradient.</property>
-                            <property name="adjustment">adj_background_smoothing</property>
-                            <property name="draw-value">False</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
                       <packing>
                         <property name="position">1</property>
                       </packing>
@@ -3454,7 +3455,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label">page 2</property>
+                        <property name="label">page 1</property>
                       </object>
                       <packing>
                         <property name="position">1</property>
@@ -3533,6 +3534,8 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkLabel" id="background_label_tolorence">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Avoid generating banding by adding some random noise in the low dynamic background gradient.
+This should be enabled for non-stretched images.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Grid tolerance</property>
                       </object>
@@ -3546,10 +3549,10 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                       <object class="GtkSpinButton">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
+                        <property name="tooltip-text" translatable="yes">Tolerance factor of global sample rejection, in mad units (median + this * mad). By decreasing this value, Siril will be more restrictive to select background samples.</property>
                         <property name="text">2,00</property>
                         <property name="input-purpose">digits</property>
-                        <property name="adjustment">adj_background_tol</property>
+                        <property name="adjustment">adj_background_tolerance</property>
                         <property name="digits">2</property>
                         <property name="numeric">True</property>
                         <property name="value">2</property>
@@ -3569,12 +3572,12 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScale" id="scale_background_nb_samples">
+                  <object class="GtkScale" id="scale_background_tolerance">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                     <property name="hexpand">True</property>
-                    <property name="adjustment">adj_background_tol</property>
+                    <property name="adjustment">adj_background_tolerance</property>
                     <property name="digits">2</property>
                     <property name="draw-value">False</property>
                     <property name="value-pos">bottom</property>
@@ -4897,7 +4900,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           </packing>
         </child>
         <child>
-          <object class="GtkScale">
+          <object class="GtkScale" id="scale_satu_bkg">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="tooltip-text" translatable="yes">This is the factor multiplied by the background value. Lower is the value, stronger is the  saturation effect. While a high value will preserve the background.</property>
