@@ -2585,6 +2585,7 @@ int process_scnr(int nb){
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
 	
+	args->type = 0;
 	if (nb > 1) {
 		gchar *end;
 		args->type = g_ascii_strtoull(word[1], &end, 10);
