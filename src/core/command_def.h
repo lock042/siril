@@ -50,7 +50,7 @@
 #define STR_GAUSS N_("Performs a Gaussian filter with the given <b>sigma</b>")
 #define STR_GREY_FLAT N_("Equalizes the mean intensity of RGB layers in a CFA image")
 
-#define STR_HELP N_("Gives the available commands")
+#define STR_HELP N_("Lists the available commands or help for one command")
 #define STR_HISTO N_("Calculates the histogram of the image channel in memory and produces file histo_[channel name].dat in the working directory")
 
 #define STR_IADD N_("Adds the image in memory to the image <b>filename</b> given in argument")

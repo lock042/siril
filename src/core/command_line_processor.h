@@ -7,6 +7,7 @@ void parse_line(char *myline, int len, int *nb);
 void remove_trailing_cr(char *str);
 int execute_command(int wordnb);
 int check_requires(gboolean *checked_requires);
+void log_several_lines(char *text);
 
 gpointer execute_script(gpointer p);
 int	processcommand(const char *line);

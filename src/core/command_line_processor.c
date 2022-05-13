@@ -669,3 +669,16 @@ void on_command_activate(GtkEntry *entry, gpointer user_data) {
 		set_precision_switch();
 	}
 }
+
+void log_several_lines(char *text) {
+	char *line = text;
+	do {
+		char *eol = strchr(line, '\n');
+		if (eol)
+			*eol = '\0';
+		siril_log_message("%s\n", line);
+		if (!eol)
+			break;
+		line = eol+1;
+	} while (line[0] != '\0');
+}

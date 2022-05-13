@@ -143,15 +143,7 @@ int process_dumpheader(int nb) {
 	} else {
 		siril_log_message(_("=FITS header for currently loaded image=\n"));
 		char *header = strdup(gfit.header);
-		char *line = header;
-		do {
-			char *eol = strchr(line, '\n');
-			if (!eol)
-				break;
-			*eol = '\0';
-			siril_log_message("%s\n", line);
-			line = eol+1;
-		} while (line[0] != '\0');
+		log_several_lines(header);
 		free(header);
 		siril_log_message("END\n");
 	}
@@ -4779,12 +4771,24 @@ int process_set_mem(int nb){
 
 int process_help(int nb){
 	command *current = commands;
-	siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
+	if (nb == 1)
+		siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
 	while (current->process) {
-		siril_log_message("%s\n", current->usage);
+		if (nb == 2) {
+		       if (!g_ascii_strcasecmp(current->name, word[1])) {
+			       siril_log_message("%s\n", current->usage);
+			       char *def = strdup(current->definition);
+			       log_several_lines(def);
+			       free(def);
+			       siril_log_message(_("Can be used in a script: %s\n"), current->scriptable ? _("YES") : _("NO"));
+			       break;
+		       }
+		}
+		else siril_log_message("%s\n", current->usage);
 		current++;
 	}
-	siril_log_message(_("********* END OF THE LIST *********\n"));
+	if (nb == 1)
+		siril_log_message(_("********* END OF THE LIST *********\n"));
 	return 0;
 }
 
