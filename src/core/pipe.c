@@ -22,8 +22,8 @@
 
 #define PIPE_NAME_R "siril_command.in"
 #define PIPE_NAME_W "siril_command.out"
-#define PIPE_PATH_R "/tmp/" PIPE_NAME_R  // TODO: use g_get_tmp_dir()
-#define PIPE_PATH_W "/tmp/" PIPE_NAME_W  // TODO: use g_get_tmp_dir()
+#define PIPE_PATH_R "/tmp/" PIPE_NAME_R
+#define PIPE_PATH_W "/tmp/" PIPE_NAME_W
 #define PIPE_MSG_SZ 512	// max input command length
 
 #include <stdio.h>
@@ -241,6 +241,9 @@ int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 }
 
 int enqueue_command(char *command) {
+	remove_trailing_cr(command);
+	g_strstrip(command);
+
 	if (!strncmp(command, "cancel", 6))
 		return 1;
 	if ((command[0] >= 'a' && command[0] <= 'z') ||
@@ -423,6 +426,7 @@ void *read_pipe(void *p) {
 }
 
 void *process_commands(void *p) {
+	gboolean checked_requires = FALSE;
 	while (pipe_active) {
 		char *command;
 		g_mutex_lock(&read_mutex);
@@ -436,20 +440,39 @@ void *process_commands(void *p) {
 		}
 
 		command = (char*)command_list->data;
+
 		command_list = g_list_next(command_list);
 		g_mutex_unlock(&read_mutex);
 
-		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command);
-		int retval = processcommand(command);
-		if (waiting_for_thread()) {
+		int wordnb;
+		parse_line(command, strlen(command), &wordnb);
+		gchar *command_name = g_strdup_printf("%s\n", command);
+
+		if (check_requires(&checked_requires)) {
+			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command_name);
+			empty_command_queue();
+			free(command);
+			g_free(command_name);
+			continue;
+		}
+
+		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command_name);
+
+		int retval = execute_command(wordnb);
+
+		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			empty_command_queue();
 			retval = 1;
 		}
+
 		if (retval)
-			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command);
-		else pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, command);
+			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command_name);
+		else pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, command_name);
 		free(command);
+		g_free(command_name);
 	}
+
+	siril_log_message("exiting pipe input thread\n");
 	return NULL;
 }
 
@@ -502,6 +525,7 @@ static void *write_pipe(void *p) {
 			free(msg);
 		} while (1);
 	} while (pipe_active);
+	siril_log_message("exiting pipe output thread\n");
 	return GINT_TO_POINTER(-1);
 }
 

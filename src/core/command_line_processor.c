@@ -40,7 +40,7 @@
 
 #include "command_line_processor.h"
 
-static void parse_line(char *myline, int len, int *nb) {
+void parse_line(char *myline, int len, int *nb) {
 	int i = 0, wordnb = 0;
 	char string_starter = '\0';	// quotes don't split words on spaces
 	word[0] = NULL;
@@ -69,7 +69,7 @@ static void parse_line(char *myline, int len, int *nb) {
 	*nb = wordnb;
 }
 
-static void remove_trailing_cr(char *str) {
+void remove_trailing_cr(char *str) {
 	if (str == NULL || str[0] == '\0')
 		return;
 	int length = strlen(str);
@@ -77,7 +77,7 @@ static void remove_trailing_cr(char *str) {
 		str[length - 1] = '\0';
 }
 
-static int execute_command(int wordnb) {
+int execute_command(int wordnb) {
 	// search for the command in the list
 	if (word[0] == NULL) return 1;
 	int i = G_N_ELEMENTS(commands);
@@ -178,9 +178,22 @@ static gboolean end_script(gpointer p) {
 	return FALSE;
 }
 
+int check_requires(gboolean *checked_requires) {
+	int retval = 0;
+	/* check for requires command */
+	if (!g_ascii_strcasecmp(word[0], "requires")) {
+		*checked_requires = TRUE;
+	} else if (com.pref.script_check_requires && !*checked_requires) {
+		siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
+					" This command is needed to check script compatibility.\n"), "red");
+		retval = 1;
+	}
+	return retval;
+}
+
 gpointer execute_script(gpointer p) {
 	GInputStream *input_stream = (GInputStream*) p;
-	gboolean check_required = FALSE;
+	gboolean checked_requires = FALSE;
 	gchar *buffer;
 	int line = 0, retval = 0;
 	int wordnb;
@@ -225,19 +238,13 @@ gpointer execute_script(gpointer p) {
 
 		display_command_on_status_bar(line, buffer);
 		parse_line(buffer, length, &wordnb);
-		/* check for requires command */
-		if (!g_ascii_strcasecmp(word[0], "requires")) {
-			check_required = TRUE;
-		} else {
-			if (com.pref.script_check_requires && !check_required) {
-				siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
-						" This command is needed to check script compatibility.\n"), "red");
-				retval = 1;
-				g_free (buffer);
-				break;
-			}
+		if (check_requires(&checked_requires)) {
+			g_free (buffer);
+			break;
 		}
+
 		retval = execute_command(wordnb);
+
 		if (retval && retval != CMD_NO_WAIT) {
 			siril_log_message(_("Error in line %d: '%s'.\n"), line, buffer);
 			siril_log_message(_("Exiting batch processing.\n"));
