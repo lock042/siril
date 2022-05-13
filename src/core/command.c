@@ -788,11 +788,12 @@ int process_asinh(int nb) {
 
 	double offset = 0.0;
 	gchar *end;
-	if (nb > 2 + arg_offset)
+	if (nb > 2 + arg_offset) {
 		offset = g_ascii_strtod(word[2+arg_offset], &end);
-	if (end == word[2+arg_offset]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2+arg_offset]);
-		return 1;
+		if (end == word[2+arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2+arg_offset]);
+			return 1;
+		}
 	}
 
 	set_cursor_waiting(TRUE);
