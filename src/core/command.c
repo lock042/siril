@@ -4789,6 +4789,8 @@ int process_help(int nb){
 	}
 	if (nb == 1)
 		siril_log_message(_("********* END OF THE LIST *********\n"));
+	if (nb == 2 && !current->process)
+		siril_log_message(_("Error: command %s is not available\n"), word[1]);
 	return 0;
 }
 

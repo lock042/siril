@@ -37,6 +37,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/ser.h"
+#include "livestacking/livestacking.h"
 
 #include "command_line_processor.h"
 
@@ -191,6 +192,20 @@ int check_requires(gboolean *checked_requires) {
 	return retval;
 }
 
+int check_command_mode() {
+	/* until we have a proper implementation of modes, we just forbid other
+	 * commands to be run during live stacking */
+	int retval = 0;
+	if (livestacking_is_started()) {
+		retval = g_ascii_strcasecmp(word[0], "livestack") &&
+			g_ascii_strcasecmp(word[0], "stop_ls");
+		if (retval)
+			siril_log_message(_("This command cannot be run while live stacking is active, ignoring.\n"));
+
+	}
+	return retval;
+}
+
 gpointer execute_script(gpointer p) {
 	GInputStream *input_stream = (GInputStream*) p;
 	gboolean checked_requires = FALSE;
@@ -243,6 +258,10 @@ gpointer execute_script(gpointer p) {
 			g_free (buffer);
 			break;
 		}
+		if (check_command_mode()) {
+			g_free (buffer);
+			continue;
+		};
 
 		retval = execute_command(wordnb);
 

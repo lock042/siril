@@ -762,7 +762,6 @@ static gpointer live_stacker(gpointer arg) {
 				queue_redraw(REMAP_ALL);
 			}
 		}
-		else clearfits(&stackparam.result);
 		g_free(result_filename);
 		gchar *str = g_strdup_printf(_("Stacked image %d"), index);
 		livestacking_display(str, TRUE);
@@ -770,6 +769,8 @@ static gpointer live_stacker(gpointer arg) {
 		index++;
 		number_of_images_stacked++;
 		double noise = bgnoise_await();
+		if (com.headless)
+			clearfits(&stackparam.result);
 		livestacking_update_number_of_images(number_of_images_stacked, gfit.livetime, noise);
 		gettimeofday(&tv_end, NULL);
 		show_time_msg(tv_tmp, tv_end, "stacking");
