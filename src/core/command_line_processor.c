@@ -202,6 +202,7 @@ gpointer execute_script(gpointer p) {
 
 	com.script = TRUE;
 	com.stop_script = FALSE;
+	com.script_thread_exited = FALSE;
 
 	gettimeofday(&t_start, NULL);
 
@@ -284,8 +285,10 @@ gpointer execute_script(gpointer p) {
 	}
 	g_free(saved_cwd);
 
-	if (com.script_thread)
+	if (com.script_thread) {
 		siril_debug_print("Script thread exiting\n");
+		com.script_thread_exited = TRUE;
+	}
 	return GINT_TO_POINTER(retval);
 }
 
@@ -425,10 +428,12 @@ int processcommand(const char *line) {
 	if (line[0] == '\0' || line[0] == '\n')
 		return 0;
 	if (line[0] == '@') { // case of files
-		if (get_thread_run() || get_script_thread_run()) {
+		if (get_thread_run() || (get_script_thread_run() && !com.script_thread_exited)) {
 			PRINT_ANOTHER_THREAD_RUNNING;
 			return 1;
 		}
+		if (get_script_thread_run())
+			wait_for_script_thread();
 
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);

@@ -151,6 +151,7 @@ gboolean reserve_thread();
 void unreserve_thread();
 
 gboolean get_script_thread_run();
+void wait_for_script_thread();
 
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
