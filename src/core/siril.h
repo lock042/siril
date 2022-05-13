@@ -720,6 +720,7 @@ struct cominf {
 	gboolean script;		// scripts execution
 	gboolean stop_script;		// abort script execution
 	GThread *script_thread;		// reads a script and executes its commands
+	gboolean script_thread_exited;	// boolean set by the script thread when it exits
 
 	rectangle selection;		// coordinates of the selection rectangle
 };
