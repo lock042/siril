@@ -198,7 +198,8 @@ int check_command_mode() {
 	int retval = 0;
 	if (livestacking_is_started()) {
 		retval = g_ascii_strcasecmp(word[0], "livestack") &&
-			g_ascii_strcasecmp(word[0], "stop_ls");
+			g_ascii_strcasecmp(word[0], "stop_ls") &&
+			g_ascii_strcasecmp(word[0], "exit");
 		if (retval)
 			siril_log_message(_("This command cannot be run while live stacking is active, ignoring.\n"));
 
