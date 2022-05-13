@@ -709,7 +709,10 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.output_norm = FALSE;
 		stackparam.equalizeRGB = FALSE;		// not possible currently
 		stackparam.lite_norm = TRUE;
-		stackparam.use_32bit_output = !com.pref.force_to_16bit;
+		/* we should not use 32 bits for stack results if input files are 16 bits,
+		 * otherwise we end up with a mixed sequence to process;
+		 * inputs to stack are 16 bits when no preprocessing or debayer occur */
+		stackparam.use_32bit_output = !com.pref.force_to_16bit && (prepro || use_demosaicing == BOOL_TRUE);
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.apply_nbstack_weights = TRUE;
 
