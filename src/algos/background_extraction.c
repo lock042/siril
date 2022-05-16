@@ -1157,6 +1157,8 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 
 	if (background_computed) {
 		siril_preview_hide();
+	} else {
+		clear_backup();
 	}
 }
 
