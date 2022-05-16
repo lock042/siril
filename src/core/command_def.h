@@ -50,7 +50,7 @@
 #define STR_GAUSS N_("Performs a Gaussian filter with the given <b>sigma</b>")
 #define STR_GREY_FLAT N_("Equalizes the mean intensity of RGB layers in a CFA image")
 
-#define STR_HELP N_("Gives the available commands")
+#define STR_HELP N_("Lists the available commands or help for one command")
 #define STR_HISTO N_("Calculates the histogram of the image channel in memory and produces file histo_[channel name].dat in the working directory")
 
 #define STR_IADD N_("Adds the image in memory to the image <b>filename</b> given in argument")
@@ -146,6 +146,9 @@
 #define STR_WAVELET N_("Computes the wavelet transform on <b>nbr_plan</b> plans using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' algorithm. The result is stored in a file as a structure containing the planes, ready for weighted reconstruction with WRECONS")
 #define STR_WRECONS N_("Reconstructs to current image from the planes previously computed with wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> according to the number of planes used for wavelet transform")
 
+#define STR_START_LS N_("Initialize a livestacking session, using the optional calibration files and wait for input files to be provided by the LIVESTACK command until STOP_LS is called")
+#define STR_LIVESTACK N_("Process the provided image for live stacking. Only possible after START_LS")
+#define STR_STOP_LS N_("Stop the live stacking session. Only possible after START_LS")
 
 
 #endif /* SRC_CORE_COMMAND_DEF_H_ */

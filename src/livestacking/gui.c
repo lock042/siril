@@ -1,11 +1,14 @@
 #include "gui.h"
 #include "livestacking.h"
 #include <gtk/gtk.h>
+#include "io/image_format_fits.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
+#include "gui/progress_and_log.h"
 #include "core/siril_actions.h"
 #include "core/proto.h"
+#include "core/preprocess.h"
 
 static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
 
@@ -46,7 +49,7 @@ void force_unlinked_channels() {
 	g_variant_unref(state);
 }
 
-void set_label(GtkLabel *label, gchar *text, gboolean free_after_display) {
+static void set_label(GtkLabel *label, gchar *text, gboolean free_after_display) {
 	struct _label_struct *arg = malloc(sizeof(struct _label_struct));
 	arg->label = label;
 	arg->text = text;
@@ -55,6 +58,10 @@ void set_label(GtkLabel *label, gchar *text, gboolean free_after_display) {
 }
 
 void livestacking_display(gchar *str, gboolean free_after_display) {
+	if (com.headless) {
+		siril_log_message("%s\n", str);
+		return;
+	}
 	static GtkLabel *label = NULL;
 	if (!label)
 		label = GTK_LABEL(lookup_widget("livest_label1"));
@@ -86,6 +93,8 @@ void livestacking_display_config(gboolean use_dark, gboolean use_flat, transform
 }
 
 void livestacking_update_number_of_images(int nb, double total_exposure, double noise) {
+	if (com.headless)
+		return;
 	static GtkLabel *label_cumul = NULL, *label_stats = NULL;
 	if (!label_cumul) {
 		label_cumul = GTK_LABEL(lookup_widget("ls_cumul_label"));
@@ -133,7 +142,7 @@ gboolean update_debayer_button_status_idle(gpointer new_state) {
 }
 
 void update_debayer_button_status(gboolean new_state) {
-	gdk_threads_add_idle(update_debayer_button_status_idle, GINT_TO_POINTER(new_state));
+	siril_add_idle(update_debayer_button_status_idle, GINT_TO_POINTER(new_state));
 }
 
 gboolean livestacking_first_result_idle(gpointer p) {
@@ -149,7 +158,9 @@ static gboolean enable_debayer_idle(gpointer arg) {
 }
 
 void enable_debayer(gboolean arg) {
-	gdk_threads_add_idle(enable_debayer_idle, GINT_TO_POINTER(arg));
+	if (com.headless)
+		com.pref.debayer.open_debayer = arg;
+	else gdk_threads_add_idle(enable_debayer_idle, GINT_TO_POINTER(arg));
 }
 
 static gboolean end_image_loading(gpointer arg) {
@@ -158,6 +169,132 @@ static gboolean end_image_loading(gpointer arg) {
 }
 
 void complete_image_loading() {
-	execute_idle_and_wait_for_it(end_image_loading, NULL);
+	if (!com.headless)
+		execute_idle_and_wait_for_it(end_image_loading, NULL);
+}
+
+void init_preprocessing_from_GUI() {
+	/* copied from core/preprocess.c test_for_master_files() but modified to not check
+	 * for some options and not check for image properties against gfit, which is not
+	 * already loaded here. Error management is different too.
+	 * Some options also come from on_prepro_button_clicked()
+	 */
+	struct preprocessing_data *prepro = calloc(1, sizeof(struct preprocessing_data));
+
+	/* checking for dark master and associated options */
+	GtkToggleButton *tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
+	if (gtk_toggle_button_get_active(tbutton)) {
+		const char *filename;
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("darkname_entry"));
+		filename = gtk_entry_get_text(entry);
+		if (filename[0] == '\0') {
+			gtk_toggle_button_set_active(tbutton, FALSE);
+		} else {
+			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
+			prepro->dark = calloc(1, sizeof(fits));
+			if (!readfits(filename, prepro->dark, NULL, FALSE)) {
+				prepro->use_dark = TRUE;
+			} else {
+				livestacking_display(_("NOT USING DARK: cannot open the file"), FALSE);
+				free(prepro->dark);
+				gtk_entry_set_text(entry, "");
+				prepro->use_dark = FALSE;
+			}
+		}
+
+		if (prepro->use_dark) {
+			// cosmetic correction
+			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
+			prepro->use_cosmetic_correction = gtk_toggle_button_get_active(tbutton);
+
+			if (prepro->use_cosmetic_correction) {
+				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
+				prepro->is_cfa = gtk_toggle_button_get_active(CFA);
+
+				/* now we want to know which cosmetic correction was chosen */
+				GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
+				GtkWidget *w = gtk_stack_get_visible_child(stack);
+				if (w) {
+					GValue value = G_VALUE_INIT;
+					g_value_init(&value, G_TYPE_INT);
+					gtk_container_child_get_property(GTK_CONTAINER(stack), w, "position", &value);
+					gint position = g_value_get_int(&value);
+					prepro->cc_from_dark = position == 0 ? TRUE : FALSE;
+					g_value_unset(&value);
+					if (prepro->cc_from_dark) { // cosmetic correction from masterdark
+						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
+						if (gtk_toggle_button_get_active(tbutton)) {
+							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
+							prepro->sigma[0] = gtk_spin_button_get_value(sigCold);
+						} else prepro->sigma[0] = -1.0;
+						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
+						if (gtk_toggle_button_get_active(tbutton)) {
+							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
+							prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
+						} else prepro->sigma[1] = -1.0;
+					} else {
+						// TODO: cosmetic correction from bap pixel map is disabled for now
+						// may need to take it out from the use_dark condition anyway
+						prepro->use_cosmetic_correction = FALSE;
+						livestacking_display(_("COSMETIC CORRECTION: can only use masterdark in livestacking mode - disabling"), FALSE);
+						prepro->bad_pixel_map_file = NULL;
+					}
+				} else {  //fallback required?
+					prepro->sigma[0] = -1.0;
+					prepro->sigma[1] = -1.0;
+					prepro->use_cosmetic_correction = FALSE;
+					livestacking_display(_("COSMETIC CORRECTION: could not read the inputs - disabling"), FALSE);
+				}
+			}
+
+			GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
+			prepro->fix_xtrans = gtk_toggle_button_get_active(fix_xtrans);
+		}
+	}
+
+	/* checking for flat master and associated options */
+	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
+	if (gtk_toggle_button_get_active(tbutton)) {
+		const char *filename;
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
+		filename = gtk_entry_get_text(entry);
+		if (filename[0] == '\0') {
+			gtk_toggle_button_set_active(tbutton, FALSE);
+		} else {
+			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+			prepro->flat = calloc(1, sizeof(fits));
+			if (!readfits(filename, prepro->flat, NULL, !com.pref.force_to_16bit)) {
+				prepro->use_flat = TRUE;
+			} else {
+				livestacking_display(_("NOT USING FLAT: cannot open the file"), FALSE);
+				free(prepro->flat);
+				gtk_entry_set_text(entry, "");
+				prepro->use_flat = FALSE;
+			}
+
+			if (prepro->use_flat) {
+				GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
+				prepro->autolevel = gtk_toggle_button_get_active(autobutton);
+				if (!prepro->autolevel) {
+					GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
+					prepro->normalisation = g_ascii_strtod(gtk_entry_get_text(norm_entry), NULL);
+				}
+
+				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
+				prepro->is_cfa = gtk_toggle_button_get_active(CFA);
+
+				GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
+				prepro->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);
+			}
+		}
+	}
+
+	init_preprocessing_finalize(prepro);
+}
+
+void on_livestacking_start() {
+	init_preprocessing_from_GUI();
+	if (start_livestacking(TRUE))
+		stop_live_stacking_engine();
 }
 

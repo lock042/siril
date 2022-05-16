@@ -5711,10 +5711,10 @@ int row /* I: want to pivot around this row */
 		printf("   will swap \n");
 #endif
 		for (col = row; col < num; col++) {
-			SWAP(matrix[pivot_row][col], matrix[row][col]);
+			SWAPD(matrix[pivot_row][col], matrix[row][col]);
 		}
-		SWAP(vector[pivot_row], vector[row]);
-		SWAP(biggest_val[pivot_row], biggest_val[row]);
+		SWAPD(vector[pivot_row], vector[row]);
+		SWAPD(biggest_val[pivot_row], biggest_val[row]);
 	} else {
 #ifdef DEBUG
 		printf("    no swap \n");

@@ -37,10 +37,11 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/ser.h"
+#include "livestacking/livestacking.h"
 
 #include "command_line_processor.h"
 
-static void parse_line(char *myline, int len, int *nb) {
+void parse_line(char *myline, int len, int *nb) {
 	int i = 0, wordnb = 0;
 	char string_starter = '\0';	// quotes don't split words on spaces
 	word[0] = NULL;
@@ -69,7 +70,7 @@ static void parse_line(char *myline, int len, int *nb) {
 	*nb = wordnb;
 }
 
-static void remove_trailing_cr(char *str) {
+void remove_trailing_cr(char *str) {
 	if (str == NULL || str[0] == '\0')
 		return;
 	int length = strlen(str);
@@ -77,7 +78,7 @@ static void remove_trailing_cr(char *str) {
 		str[length - 1] = '\0';
 }
 
-static int execute_command(int wordnb) {
+int execute_command(int wordnb) {
 	// search for the command in the list
 	if (word[0] == NULL) return 1;
 	int i = G_N_ELEMENTS(commands);
@@ -178,9 +179,37 @@ static gboolean end_script(gpointer p) {
 	return FALSE;
 }
 
+int check_requires(gboolean *checked_requires) {
+	int retval = 0;
+	/* check for requires command */
+	if (!g_ascii_strcasecmp(word[0], "requires")) {
+		*checked_requires = TRUE;
+	} else if (com.pref.script_check_requires && !*checked_requires) {
+		siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
+					" This command is needed to check script compatibility.\n"), "red");
+		retval = 1;
+	}
+	return retval;
+}
+
+int check_command_mode() {
+	/* until we have a proper implementation of modes, we just forbid other
+	 * commands to be run during live stacking */
+	int retval = 0;
+	if (livestacking_is_started()) {
+		retval = g_ascii_strcasecmp(word[0], "livestack") &&
+			g_ascii_strcasecmp(word[0], "stop_ls") &&
+			g_ascii_strcasecmp(word[0], "exit");
+		if (retval)
+			siril_log_message(_("This command cannot be run while live stacking is active, ignoring.\n"));
+
+	}
+	return retval;
+}
+
 gpointer execute_script(gpointer p) {
 	GInputStream *input_stream = (GInputStream*) p;
-	gboolean check_required = FALSE;
+	gboolean checked_requires = FALSE;
 	gchar *buffer;
 	int line = 0, retval = 0;
 	int wordnb;
@@ -189,6 +218,7 @@ gpointer execute_script(gpointer p) {
 
 	com.script = TRUE;
 	com.stop_script = FALSE;
+	com.script_thread_exited = FALSE;
 
 	gettimeofday(&t_start, NULL);
 
@@ -225,25 +255,24 @@ gpointer execute_script(gpointer p) {
 
 		display_command_on_status_bar(line, buffer);
 		parse_line(buffer, length, &wordnb);
-		/* check for requires command */
-		if (!g_ascii_strcasecmp(word[0], "requires")) {
-			check_required = TRUE;
-		} else {
-			if (com.pref.script_check_requires && !check_required) {
-				siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
-						" This command is needed to check script compatibility.\n"), "red");
-				retval = 1;
-				g_free (buffer);
-				break;
-			}
+		if (check_requires(&checked_requires)) {
+			g_free (buffer);
+			break;
 		}
-		if ((retval = execute_command(wordnb))) {
+		if (check_command_mode()) {
+			g_free (buffer);
+			continue;
+		};
+
+		retval = execute_command(wordnb);
+
+		if (retval && retval != CMD_NO_WAIT) {
 			siril_log_message(_("Error in line %d: '%s'.\n"), line, buffer);
 			siril_log_message(_("Exiting batch processing.\n"));
 			g_free (buffer);
 			break;
 		}
-		if (waiting_for_thread()) {
+		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			retval = 1;
 			g_free (buffer);
 			break;	// abort script on command failure
@@ -276,8 +305,10 @@ gpointer execute_script(gpointer p) {
 	}
 	g_free(saved_cwd);
 
-	if (com.script_thread)
+	if (com.script_thread) {
 		siril_debug_print("Script thread exiting\n");
+		com.script_thread_exited = TRUE;
+	}
 	return GINT_TO_POINTER(retval);
 }
 
@@ -417,10 +448,12 @@ int processcommand(const char *line) {
 	if (line[0] == '\0' || line[0] == '\n')
 		return 0;
 	if (line[0] == '@') { // case of files
-		if (get_thread_run() || get_script_thread_run()) {
+		if (get_thread_run() || (get_script_thread_run() && !com.script_thread_exited)) {
 			PRINT_ANOTHER_THREAD_RUNNING;
 			return 1;
 		}
+		if (get_script_thread_run())
+			wait_for_script_thread();
 
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -655,4 +688,17 @@ void on_command_activate(GtkEntry *entry, gpointer user_data) {
 		gtk_entry_set_text(entry, "");
 		set_precision_switch();
 	}
+}
+
+void log_several_lines(char *text) {
+	char *line = text;
+	do {
+		char *eol = strchr(line, '\n');
+		if (eol)
+			*eol = '\0';
+		siril_log_message("%s\n", line);
+		if (!eol)
+			break;
+		line = eol+1;
+	} while (line[0] != '\0');
 }

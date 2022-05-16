@@ -72,7 +72,7 @@ static command commands[] = {
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE},
 
-	{"help", 0, "help", process_help, STR_HELP, FALSE},
+	{"help", 0, "help [command]", process_help, STR_HELP, TRUE},
 	{"histo", 1, "histo channel (channel=0, 1, 2 with 0: red, 1: green, 2: blue)", process_histo, STR_HISTO, TRUE},
 
 	/* commands oper filename and curent image */
@@ -182,6 +182,10 @@ static command commands[] = {
 	{"wavelet", 1, "wavelet nbr_plan type", process_wavelet, STR_WAVELET, TRUE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE},
+
+	{"start_ls", 0, "start_ls [-dark=filename] [-flat=filename]", process_start_ls, STR_START_LS, TRUE},
+	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE},
+	{"stop_ls", 0, "stop_ls", process_stop_ls, STR_STOP_LS, TRUE},
 
 	{"",0,"",0, STR_NONE, FALSE}
 };

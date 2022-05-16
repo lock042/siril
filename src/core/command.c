@@ -96,6 +96,7 @@
 #include "registration/matching/match.h"
 #include "algos/fix_xtrans_af.h"
 #include "algos/annotate.h"
+#include "livestacking/livestacking.h"
 
 #include "command.h"
 #include "command_def.h"
@@ -142,15 +143,7 @@ int process_dumpheader(int nb) {
 	} else {
 		siril_log_message(_("=FITS header for currently loaded image=\n"));
 		char *header = strdup(gfit.header);
-		char *line = header;
-		do {
-			char *eol = strchr(line, '\n');
-			if (!eol)
-				break;
-			*eol = '\0';
-			siril_log_message("%s\n", line);
-			line = eol+1;
-		} while (line[0] != '\0');
+		log_several_lines(header);
 		free(header);
 		siril_log_message("END\n");
 	}
@@ -787,11 +780,12 @@ int process_asinh(int nb) {
 
 	double offset = 0.0;
 	gchar *end;
-	if (nb > 2 + arg_offset)
+	if (nb > 2 + arg_offset) {
 		offset = g_ascii_strtod(word[2+arg_offset], &end);
-	if (end == word[2+arg_offset]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2+arg_offset]);
-		return 1;
+		if (end == word[2+arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2+arg_offset]);
+			return 1;
+		}
 	}
 
 	set_cursor_waiting(TRUE);
@@ -2296,7 +2290,7 @@ int process_findhot(int nb){
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			fprintf(stderr, "Cannot open file: %s\n", filename);
+			siril_log_message(_("Cauld not open file: %s\n"), filename);
 		}
 		g_object_unref(file);
 		return 1;
@@ -4132,7 +4126,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				siril_log_color_message(_("Could not save the stacking result %s\n"),
 						"red", arg->result_file);
 				retval = 1;
-			} else ++arg->number_of_loaded_sequences;
+			}
+			else ++arg->number_of_loaded_sequences;
 			bgnoise_await();
 		}
 		clearfits(&args.result);
@@ -4776,12 +4771,26 @@ int process_set_mem(int nb){
 
 int process_help(int nb){
 	command *current = commands;
-	siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
+	if (nb == 1)
+		siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
 	while (current->process) {
-		siril_log_message("%s\n", current->usage);
+		if (nb == 2) {
+		       if (!g_ascii_strcasecmp(current->name, word[1])) {
+			       siril_log_message("%s\n", current->usage);
+			       char *def = strdup(current->definition);
+			       log_several_lines(def);
+			       free(def);
+			       siril_log_message(_("Can be used in a script: %s\n"), current->scriptable ? _("YES") : _("NO"));
+			       break;
+		       }
+		}
+		else siril_log_message("%s\n", current->usage);
 		current++;
 	}
-	siril_log_message(_("********* END OF THE LIST *********\n"));
+	if (nb == 1)
+		siril_log_message(_("********* END OF THE LIST *********\n"));
+	if (nb == 2 && !current->process)
+		siril_log_message(_("Error: command %s is not available\n"), word[1]);
 	return 0;
 }
 
@@ -4936,6 +4945,70 @@ int process_boxselect(int nb){
 	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
 	if (!com.script)
 		new_selection_zone();
+	return 0;
+}
+
+int process_start_ls(int nb) {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	// start_ls [-dark=filename] [-flat=filename] [-gradient_removal] [-watch_files]"
+	gchar *dark_file = NULL, *flat_file = NULL;
+	gboolean use_file_watcher = FALSE, remove_gradient = FALSE;
+	for (int i = 1; i < nb; i++) {
+		if (!word[i])
+			continue;
+		if (g_str_has_prefix(word[i], "-dark="))
+			dark_file = g_shell_unquote(word[i] + 6, NULL);
+		else if (g_str_has_prefix(word[i], "-flat="))
+			flat_file = g_shell_unquote(word[i] + 6, NULL);
+		else if (!strcmp(word[i], "-gradient_removal")) {
+			//remove_gradient = TRUE;
+			siril_log_message("gradient removal in live stacking is not yet implemented\n");
+			return 1;
+		} else if (!strcmp(word[i], "-watch_files")) {
+			//use_file_watcher = TRUE;
+			siril_log_message("file watcher in headless live stacking is not yet implemented\n");
+			return 1;
+		} else {
+			siril_log_message(_("Unknown option provided: %s\n"), word[i]);
+			return 1;
+		}
+	}
+
+	return start_livestack_from_command(dark_file, flat_file, use_file_watcher, remove_gradient);
+}
+
+int process_livestack(int nb) {
+	// livestack filename [-out=result]
+	if (!livestacking_is_started()) {
+		siril_log_message(_("Live stacking needs to be initialized with the START_LS command first\n"));
+		return 1;
+	}
+	if (livestacking_uses_filewatcher()) {
+		siril_log_message(_("Live stacking was configured to use file watching, not this command\n"));
+		return 1;
+	}
+
+	image_type type;
+	char *filename;
+	if (stat_file(word[1], &type, &filename)) {
+		siril_log_message(_("Could not open file: %s\n"), word[1]);
+		return 1;
+	}
+
+	livestacking_queue_file(filename);
+	return CMD_NO_WAIT;
+}
+
+int process_stop_ls(int nb) {
+	if (!livestacking_is_started()) {
+		siril_log_message(_("Live stacking needs to be initialized with the START_LS command first\n"));
+		return 1;
+	}
+	stop_live_stacking_engine();
 	return 0;
 }
 
