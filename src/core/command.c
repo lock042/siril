@@ -2720,29 +2720,31 @@ int process_subsky(int nb) {
 		arg_index++;
 	}
 
-	if (is_sequence) {
-		struct background_data *args = malloc(sizeof(struct background_data));
+	struct background_data *args = malloc(sizeof(struct background_data));
+	args->nb_of_samples = samples;
+	args->tolerance = tolerance;
+	args->correction = BACKGROUND_CORRECTION_SUBTRACT;
+	args->interpolation_method = interp;
+	args->degree = (poly_order) (degree - 1);
+	args->smoothing = smooth;
+	args->threads = com.max_thread;
+	args->from_ui = FALSE;
 
+	if (is_sequence) {
 		args->seq = seq;
-		args->nb_of_samples = samples;
-		args->tolerance = tolerance;
-		args->correction = BACKGROUND_CORRECTION_SUBTRACT;
-		args->interpolation_method = interp;
-		args->degree = (poly_order) (degree - 1);
-		args->smoothing = smooth;
 		args->dither = TRUE;
 		args->seqEntry = prefix ? prefix : "bkg_";
 
 		apply_background_extraction_to_sequence(args);
 	} else {
-		set_cursor_waiting(TRUE);
-		generate_background_samples(samples, tolerance);
-		remove_gradient_from_image(BACKGROUND_CORRECTION_SUBTRACT,
-				(poly_order) (degree - 1), smooth, TRUE, interp, com.max_thread);
+		args->seq = NULL;
+		args->dither = FALSE;
+		args->seqEntry = NULL;
+		args->fit = &gfit;
 
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
-		notify_gfit_modified();
+		generate_background_samples(samples, tolerance);
+
+		start_in_new_thread(remove_gradient_from_image, args);
 	}
 
 	return 0;

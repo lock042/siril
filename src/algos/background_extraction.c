@@ -822,16 +822,31 @@ void generate_background_samples(int nb_of_samples, double tolerance) {
 	redraw(REDRAW_OVERLAY);
 }
 
+static gboolean end_background(gpointer p) {
+	stop_processing_thread();
+	struct background_data *args = (struct background_data *)p;
+	invalidate_stats_from_fit(args->fit);
+	background_computed = TRUE;
+	if (!args->from_ui) {
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
+	}
+	notify_gfit_modified();
+	free(args);
+	return FALSE;
+}
+
 
 /* uses samples from com.grad_samples */
-gboolean remove_gradient_from_image(background_correction correction, poly_order degree, double smoothing, gboolean use_dither, background_interpolation interpolation_method, int threads) {
+gpointer remove_gradient_from_image(gpointer p) {
+	struct background_data *args = (struct background_data *)p;
 	gchar *error;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 	
 	if (!background && !com.script) {
 		PRINT_ALLOC_ERR;
 		set_cursor_waiting(FALSE);
-		return FALSE;
+		return NULL;
 	}
 
 	const size_t n = gfit.naxes[0] * gfit.naxes[1];
@@ -839,7 +854,7 @@ gboolean remove_gradient_from_image(background_correction correction, poly_order
 	if (!image) {
 		free(background);
 		PRINT_ALLOC_ERR;
-		return FALSE;
+		return NULL;
 	}
 	
 	/* Make sure to update local median. Useful if undo is pressed */
@@ -851,12 +866,12 @@ gboolean remove_gradient_from_image(background_correction correction, poly_order
 	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
 		gboolean interpolation_worked = TRUE;
-		if (interpolation_method == BACKGROUND_INTER_POLY){
+		if (args->interpolation_method == BACKGROUND_INTER_POLY){
 			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel, 
-									gfit.rx, gfit.ry, degree, &error);
+									gfit.rx, gfit.ry, args->degree, &error);
 		} else {
 			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel, 
-									gfit.rx, gfit.ry, smoothing, &error, threads);
+									gfit.rx, gfit.ry, args->smoothing, &error, args->threads);
 		}
 		
 		if (!interpolation_worked) {
@@ -865,22 +880,23 @@ gboolean remove_gradient_from_image(background_correction correction, poly_order
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
 					error);
 			set_cursor_waiting(FALSE);
-			return FALSE;
+			return NULL;
 		}
 		/* remove background */
 		const char *c_name = vport_number_to_name(channel);
 		siril_log_message(_("Background extraction from %s channel.\n"), c_name);
-		convert_fits_to_img(&gfit, image, channel, use_dither);
-		remove_gradient(image, background, background_mean, n, correction, MULTI_THREADED);
+		convert_fits_to_img(&gfit, image, channel, args->dither);
+		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
 		convert_img_to_fits(image, &gfit, channel);
 	}
-	siril_log_message(_("Background with %s interpolation computed.\n"), (interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
+	siril_log_message(_("Background with %s interpolation computed.\n"), (args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	/* free memory */
 	free(image);
 	free(background);
-	return TRUE;
+	siril_add_idle(end_background, args);
+	return args;
 }
 
 /** Apply for sequence **/
@@ -1080,13 +1096,18 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	double smoothing = get_smoothing_parameter();
 	background_interpolation interpolation_method = get_interpolation_method();
 
-	remove_gradient_from_image(correction, degree, smoothing, use_dither, interpolation_method, com.max_thread);
-	background_computed = TRUE;
+	struct background_data *args = malloc(sizeof(struct background_data));
+	args->threads = com.max_thread;
+	args->from_ui = TRUE;
+	args->correction = correction;
+	args->interpolation_method = interpolation_method;
+	args->degree = (poly_order) (degree - 1);
+	args->smoothing = smoothing;
+	args->dither = use_dither;
+	args->threads = com.max_thread;
+	args->fit = &gfit;
 
-	invalidate_stats_from_fit(&gfit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	set_cursor_waiting(FALSE);
+	start_in_new_thread(remove_gradient_from_image, args);
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
