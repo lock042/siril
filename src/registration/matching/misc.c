@@ -457,22 +457,22 @@ print_trans
    switch (trans->order) {
 
    case 1:  /* linear transformation */
-      printf("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e",
+      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e",
             trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
       break;
 
    case 2:  /* quadratic terms */
-      printf("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e ",
+      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e ",
           trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
-      printf("       g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e",
+      siril_debug_print("       g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e",
           trans->g, trans->h, trans->i, trans->j, trans->k, trans->l);
       break;
 
    case 3:  /* cubic terms */
-      printf("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e",
+      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e",
          trans->a, trans->b, trans->c, trans->d, trans->e, trans->f,
          trans->g, trans->h);
-      printf("       i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e",
+      siril_debug_print("       i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e",
          trans->i, trans->j, trans->k, trans->l, trans->m, trans->n,
          trans->o, trans->p);
       break;

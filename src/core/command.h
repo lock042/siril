@@ -143,4 +143,9 @@ int	process_visu(int nb);
 int	process_wavelet(int nb);
 int	process_wrecons(int nb);
 
+/* live stacking specials */
+int process_start_ls(int nb);
+int process_livestack(int nb);
+int process_stop_ls(int nb);
+
 #endif

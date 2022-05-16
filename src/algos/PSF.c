@@ -673,8 +673,8 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 		}
 		// Solve symmetry problem in order to have Sx>Sy in any case !!!
 		if (psf->sy > psf->sx) {
-			SWAP(psf->sx, psf->sy);
-			SWAP(psf->fwhmx, psf->fwhmy);
+			SWAPD(psf->sx, psf->sy);
+			SWAPD(psf->fwhmx, psf->fwhmy);
 			if (fit_angle && psf->angle != 0.0) {
 				if (psf->angle > 0.0)
 					psf->angle -= 90.0;

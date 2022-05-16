@@ -938,7 +938,7 @@ int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldna
 		oldnaxes[2] = naxes[2];
 	}
 
-	if (*oldbitpix > 0) {
+	if (*oldbitpix != 0) {
 		if (bitpix != *oldbitpix) {
 			siril_log_message(_("Stacking error: input images have "
 						"different precision\n"));

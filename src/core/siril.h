@@ -51,7 +51,7 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
-#define SWAP(a,b) { double temp = (a); (a) = (b); (b) = temp; }
+#define SWAPD(a,b) { double temp = (a); (a) = (b); (b) = temp; }
 
 #define SQR(x) ((x)*(x))
 #endif
@@ -739,6 +739,7 @@ struct cominf {
 	gboolean script;		// scripts execution
 	gboolean stop_script;		// abort script execution
 	GThread *script_thread;		// reads a script and executes its commands
+	gboolean script_thread_exited;	// boolean set by the script thread when it exits
 
 	rectangle selection;		// coordinates of the selection rectangle
 };
