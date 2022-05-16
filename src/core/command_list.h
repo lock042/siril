@@ -111,6 +111,7 @@ static command commands[] = {
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE},
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE},
+	{"rgbcomp", 2, "rgbcomp [-lum=image [rgb_image]] [red green blue] [-out=result_filename]", process_rgbcomp, STR_RGBCOMP, TRUE},
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE},
 	{"rl", 3, "rl sigma corner_radius_boost iterations", process_rl, STR_RL, TRUE},
 	{"rmgreen", 0, "rmgreen [type]", process_scnr, STR_RMGREEN, TRUE},

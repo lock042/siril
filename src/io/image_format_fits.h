@@ -44,6 +44,7 @@ int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type
 int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data_type type, void *data);
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype);
 int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
+void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
 void keep_first_channel_from_fits(fits *fit);
@@ -57,5 +58,8 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status);
 void save_fits_header(fits *fit);
 void report_fits_error(int status);
+
+int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
+int check_loaded_fits_params(fits *ref, ...);
 
 #endif

@@ -21,6 +21,7 @@
 /* Management of Siril's internal image format: unsigned 16-bit FITS */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <math.h>
 #include <ctype.h>
 #include <string.h>
@@ -2326,6 +2327,24 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	return 0;
 }
 
+void keep_only_first_channel(fits *fit) {
+	fit->naxis = 2;
+	fit->naxes[2] = 1L;
+	fit->maxi = -1.0;
+	fit->history = NULL;
+	invalidate_stats_from_fit(fit);
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
+	if (fit->type == DATA_USHORT) {
+		fit->data = realloc(fit->data, nbdata * sizeof(WORD));
+		fit->pdata[1] = fit->data;
+		fit->pdata[2] = fit->data;
+	} else if (fit->type == DATA_FLOAT) {
+		fit->fdata = realloc(fit->fdata, nbdata * sizeof(float));
+		fit->fpdata[1] = fit->fdata;
+		fit->fpdata[2] = fit->fdata;
+	}
+}
+
 /* copy non-mandatory keywords from 'from' to 'to' */
 int copy_fits_metadata(fits *from, fits *to) {
 	to->pixel_size_x = from->pixel_size_x;
@@ -2934,3 +2953,73 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	return pixbuf;
 }
 
+/* verify that the parameters of the image pointed by fptr are the same as some reference values */
+int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes) {
+	int status = 0;
+	long naxes[3] = { 0 };
+	int bitpix = 0, naxis = -1;
+	fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
+	if (status) {
+		siril_log_message(_("Opening image failed\n"));
+		fits_report_error(stderr, status); /* print error message */
+		return -1;
+	}
+	if (naxis > 3) {
+		siril_log_message(_("Stacking error: images with > 3 dimensions "
+					"are not supported\n"));
+		return -1;
+	}
+
+	if (*oldnaxis > 0) {
+		if (naxis != *oldnaxis ||
+				oldnaxes[0] != naxes[0] ||
+				oldnaxes[1] != naxes[1] ||
+				oldnaxes[2] != naxes[2]) {
+			siril_log_message(_("Stacking error: input images have "
+						"different sizes\n"));
+			return -1;
+		}
+	} else {
+		*oldnaxis = naxis;
+		oldnaxes[0] = naxes[0];
+		oldnaxes[1] = naxes[1];
+		oldnaxes[2] = naxes[2];
+	}
+
+	if (*oldbitpix != 0) {
+		if (bitpix != *oldbitpix) {
+			siril_log_message(_("Stacking error: input images have "
+						"different precision\n"));
+			return -1;
+		}
+	} else {
+		*oldbitpix = bitpix;
+	}
+
+	return 0;
+}
+
+/* NULL-terminated list of fits */
+int check_loaded_fits_params(fits *ref, ...) {
+	int retval = 0;
+	va_list args;
+	va_start(args, ref);
+
+	fits *test;
+	while (!retval && (test = va_arg(args, fits *))) {
+		if (test->bitpix != ref->bitpix ||
+				test->naxis != ref->naxis) {
+			retval = 1;
+			break;
+		}
+		for (int chan = 0; chan < ref->naxis; chan++) {
+			if (test->naxes[chan] != ref->naxes[chan]) {
+				retval = 1;
+				break;
+			}
+		}
+	}
+
+	va_end(args);
+	return retval;
+}

@@ -181,8 +181,6 @@ struct _data_block {
 
 int find_refimage_in_indices(const int *indices, int nb, int ref);
 
-int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
-
 	/* up-scaling functions */
 
 int upscale_sequence(struct stacking_args *args);

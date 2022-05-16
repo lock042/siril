@@ -4589,7 +4589,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 						break;
 					}
 				} else {
-					siril_log_message(_("argument %s, aborting.\n"), word[i + 1]);
+					siril_log_message(_("Unknown argument %s, aborting.\n"), word[i + 1]);
 					retvalue = 1;
 					break;
 				}
@@ -4946,6 +4946,102 @@ int process_boxselect(int nb){
 	if (!com.script)
 		new_selection_zone();
 	return 0;
+}
+
+int process_rgbcomp(int nb) {
+	fits r = { 0 }, g = { 0 }, b = { 0 };
+	fits rgb = { 0 }, *rgbptr = &rgb;
+	int retval = 0, next_arg;
+	char *default_result_name;
+
+	if (g_str_has_prefix(word[1], "-lum=")) {
+		char *lum_file = word[1] + 5;
+		if (nb < 4) {
+			siril_log_message(_("Incorrect number of arguments\n"));
+			return 1;
+		}
+
+		fits l = { 0 };
+		if (readfits(lum_file, &l, NULL, TRUE)) return -1;
+		if (readfits(word[2], &r, NULL, TRUE)) { clearfits(&l); return -1; }
+		/* colors can be a single color image or 3 mono */
+		if (r.naxis == 3) {
+			extract_fits(&r, &g, 1, FALSE);
+			extract_fits(&r, &b, 2, FALSE);
+			keep_only_first_channel(&r);
+			next_arg = 3;
+		} else {
+			if (nb < 5) {
+				siril_log_message(_("Incorrect number of arguments\n"));
+				return 1;
+			}
+			if (readfits(word[3], &g, NULL, TRUE)) { clearfits(&l); clearfits(&r); return -1; }
+			if (readfits(word[4], &b, NULL, TRUE)) { clearfits(&l); clearfits(&r); clearfits(&g); return -1; }
+			next_arg = 5;
+		}
+
+		if (l.naxes[2] != 1 || check_loaded_fits_params(&l, &r, &g, &b)) {
+			clearfits(&l); clearfits(&r); clearfits(&g); clearfits(&b);
+			siril_log_message(_("Image must all have the same dimensions and be monochrome\n"));
+			return 1;
+		}
+
+		if (new_fit_image(&rgbptr, l.rx, l.ry, 3, DATA_FLOAT)) {
+			clearfits(&l); clearfits(&r); clearfits(&g); clearfits(&b);
+			siril_log_message(_("Memory allocation for the result failed\n"));
+			return 1;
+		}
+		size_t nbpix = l.naxes[0] * l.naxes[1];
+		for (size_t i = 0; i < nbpix; i++) {
+			gdouble h, s, el, rd, gd, bd;
+			rgb_to_hsl(r.fdata[i], g.fdata[i], b.fdata[i], &h, &s, &el);
+			hsl_to_rgb(h, s, l.fdata[i], &rd, &gd, &bd);
+			rgb.fpdata[0][i] = (float)rd;
+			rgb.fpdata[1][i] = (float)gd;
+			rgb.fpdata[1][i] = (float)bd;
+		}
+		clearfits(&l);
+		default_result_name = "composed_lrgb";
+	} else {
+		if (readfits(word[1], &r, NULL, TRUE)) return -1;
+		if (readfits(word[2], &g, NULL, TRUE)) { clearfits(&r); return -1; }
+		if (readfits(word[3], &b, NULL, TRUE)) { clearfits(&r); clearfits(&g); return -1; }
+		if (r.naxes[2] != 1 || check_loaded_fits_params(&r, &g, &b)) {
+			clearfits(&r); clearfits(&g); clearfits(&b);
+			siril_log_message(_("Image must all have the same dimensions and be monochrome\n"));
+			return 1;
+		}
+
+		if (new_fit_image(&rgbptr, r.rx, r.ry, 3, DATA_FLOAT)) {
+			clearfits(&r); clearfits(&g); clearfits(&b);
+			siril_log_message(_("Memory allocation for the result failed\n"));
+			return 1;
+		}
+		size_t nbpix = r.naxes[0] * r.naxes[1];
+		for (size_t i = 0; i < nbpix; i++) {
+			rgb.fpdata[0][i] = r.fdata[i];
+			rgb.fpdata[1][i] = g.fdata[i];
+			rgb.fpdata[1][i] = b.fdata[i];
+		}
+		next_arg = 4;
+		default_result_name = "composed_rgb";
+	}
+
+	clearfits(&r); clearfits(&g); clearfits(&b);
+	gchar *result_filename;
+	if (nb == next_arg + 1 && g_str_has_prefix(word[next_arg], "-out=") &&
+			word[next_arg][5] != '\0') {
+		result_filename = word[next_arg] + 5;
+		if (g_str_has_suffix(result_filename, com.pref.ext))
+			result_filename = g_strdup(result_filename);
+		else result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
+	} else result_filename = g_strdup_printf("%s%s", default_result_name, com.pref.ext);
+
+	retval = savefits(result_filename, rgbptr);
+	g_free(result_filename);
+	clearfits(rgbptr);
+
+	return retval;
 }
 
 int process_start_ls(int nb) {
