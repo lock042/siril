@@ -2174,7 +2174,6 @@ int process_fixbanding(int nb) {
 	return 0;
 }
 
-
 int process_subsky(int nb) {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -2200,18 +2199,19 @@ int process_subsky(int nb) {
 		siril_log_message(_("Polynomial degree order must be within the [1, 4] range.\n"));
 		return 1;
 	}
+	
+	struct background_data *args = malloc(sizeof(struct background_data));
+	args->nb_of_samples = 20;
+	args->tolerance = 2;
+	args->correction = 0;
+	args->interpolation_method = INTER_POLY;
+	args->degree = (poly_order) (degree - 1);
+	args->smoothing = FALSE;
+	args->threads = com.max_thread;
+	args->from_ui = FALSE;
 
 	if (is_sequence) {
-		struct background_data *args = malloc(sizeof(struct background_data));
-
-		args->seq = seq;
-		args->nb_of_samples = 20;
-		args->tolerance = 1.0;
-		args->correction = 0; //subtraction
-		args->seqEntry = "bkg_";
-		args->degree = (poly_order) (degree - 1);
-		args->dither = TRUE;
-
+		char *prefix = NULL;
 		int startoptargs = 3;
 		if (nb > startoptargs) {
 			for (int i = startoptargs; i < nb; i++) {
@@ -2223,24 +2223,26 @@ int process_subsky(int nb) {
 							siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 							return 1;
 						}
-						args->seqEntry = strdup(value);
+						prefix = strdup(value);
 					}
 				}
 			}
 		}
+		args->seq = seq;
+		args->dither = TRUE;
+		args->seqEntry = prefix ? prefix : "bkg_";
 
 		apply_background_extraction_to_sequence(args);
 	} else {
+		args->seq = NULL;
+		args->dither = FALSE;
+		args->seqEntry = NULL;
+		args->fit = &gfit;
+		
 		set_cursor_waiting(TRUE);
-		generate_background_samples(20, 1.0);
-		/* TODO: add new interpolation algorithm */
-		remove_gradient_from_image(0, (poly_order) (degree - 1), 0.0, TRUE, INTER_POLY);
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
+		generate_background_samples(20, 2);
 
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		set_cursor_waiting(FALSE);
+		start_in_new_thread(remove_gradient_from_image, args);
 	}
 
 	return 0;
