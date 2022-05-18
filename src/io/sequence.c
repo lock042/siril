@@ -1705,6 +1705,8 @@ gboolean end_seqpsf(gpointer p) {
 				seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
 				seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
 				seq->regparam[layer][data->image_index].number_of_stars = 1;
+				//TODO need to update the H matrix with shifts computed from psf diff to refimage
+				//seq->regparam[layer][data->image_index].H = H_from_translation(shiftx, shifty);
 			}
 		}
 	}

@@ -15036,6 +15036,9 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="position">1</property>
                                                             </packing>
                                                             </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -15056,105 +15059,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
                                                             <child>
-                                                            <object class="GtkBox" id="box29">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="spacing">10</property>
-                                                            <child>
-                                                            <object class="GtkLabel" id="preproseqname_label1">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="label" translatable="yes">Prefix:</property>
-                                                            <property name="justify">center</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">12</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkEntry" id="regseqname_entry">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the registration.</property>
-                                                            <property name="max-length">10</property>
-                                                            <property name="width-chars">10</property>
-                                                            <property name="text">r_</property>
-                                                            <property name="caps-lock-warning">False</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel" id="GtkLabelRegAlgo">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="label" translatable="yes">Algorithm: </property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkComboBoxText" id="ComboBoxRegInter">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Type of algorithm used for rotation</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="active">3</property>
-                                                            <items>
-                                                            <item translatable="yes">Nearest Neighbor</item>
-                                                            <item translatable="yes">Bilinear</item>
-                                                            <item translatable="yes">Bicubic</item>
-                                                            <item translatable="yes">Pixel Area Relation</item>
-                                                            <item translatable="yes">Lanczos-4</item>
-                                                            </items>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">8</property>
-                                                            <property name="position">3</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkButton">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Hit this button for star detection settings</property>
-                                                            <property name="action-name">win.dyn-psf</property>
-                                                            <child>
-                                                            <object class="GtkImage">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="icon-name">applications-system-symbolic</property>
-                                                            </object>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="pack-type">end</property>
-                                                            <property name="position">4</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <!-- n-columns=3 n-rows=3 -->
+                                                            <!-- n-columns=3 n-rows=4 -->
                                                             <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -15175,26 +15080,75 @@ When processing images, registration data is taken from the default layer if ava
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">0</property>
+                                                            <property name="top-attach">3</property>
+                                                            <property name="width">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="regTranslationOnly">
-                                                            <property name="label" translatable="yes">Save translation in seq file</property>
+                                                            <object class="GtkLabel" id="label_minpairs">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Minimum Star Pairs:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spinbut_minpairs">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">Global resgistration is the only method that can detect and apply rotations on images. However, rotating images will degrade them to a certain extent. Activating this will use the same image alignment algorithm but only apply "one-pixel accurate" translations. This is useful for image sequences with very small rotation angle.
-We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transformation as it will fit only translations to match the images.
-
-&lt;b&gt;WARNING&lt;/b&gt;: no new sequence is built, registration data is stored in the original sequence.</property>
+                                                            <property name="tooltip-text" translatable="yes">The minimum number of star pairs a given frame can have in relation with the reference frame. If a given light frame has less star pairs, it will not be registered.</property>
                                                             <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_regTranslationOnly_toggled" swapped="no"/>
+                                                            <property name="max-length">4</property>
+                                                            <property name="width-chars">4</property>
+                                                            <property name="max-width-chars">4</property>
+                                                            <property name="text">10</property>
+                                                            <property name="progress-pulse-step">1</property>
+                                                            <property name="input-purpose">digits</property>
+                                                            <property name="adjustment">register_minpairs</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">10</property>
+                                                            <style>
+                                                            <class name="small-spinbutton"/>
+                                                            </style>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="label_maxstars">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Maximum Stars Fitted:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="comboreg_maxstars">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">The maximum number of stars to be searched for in each frame (default 2000). The larger this value, the more stars will potentially be detected, resulting in a longer detection but more accurate registration.</property>
+                                                            <property name="active">4</property>
+                                                            <items>
+                                                            <item>100</item>
+                                                            <item>200</item>
+                                                            <item translatable="yes">500</item>
+                                                            <item>1000</item>
+                                                            <item>2000</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15220,76 +15174,45 @@ We strongly recommend to use this option with &lt;b&gt;Shift&lt;/b&gt; transform
                                                             <signal name="changed" handler="on_comboreg_transfo_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label_minpairs">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="halign">end</property>
-                                                            <property name="label" translatable="yes">Minimum Star Pairs:</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Transformation:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkSpinButton" id="spinbut_minpairs">
+                                                            <object class="GtkButton">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">The minimum number of star pairs a given frame can have in relation with the reference frame. If a given light frame has less star pairs, it will not be registered.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="max-length">4</property>
-                                                            <property name="width-chars">4</property>
-                                                            <property name="max-width-chars">4</property>
-                                                            <property name="text">10</property>
-                                                            <property name="progress-pulse-step">1</property>
-                                                            <property name="input-purpose">digits</property>
-                                                            <property name="adjustment">register_minpairs</property>
-                                                            <property name="numeric">True</property>
-                                                            <property name="value">10</property>
-                                                            <style>
-                                                            <class name="small-spinbutton"/>
-                                                            </style>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">2</property>
-                                                            <property name="top-attach">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel" id="label_maxstars">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Hit this button for star detection settings</property>
                                                             <property name="halign">end</property>
-                                                            <property name="label" translatable="yes">Maximum Stars Fitted:</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">2</property>
-                                                            </packing>
-                                                            </child>
+                                                            <property name="action-name">win.dyn-psf</property>
                                                             <child>
-                                                            <object class="GtkComboBoxText" id="comboreg_maxstars">
+                                                            <object class="GtkImage">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">The maximum number of stars to be searched for in each frame (default 2000). The larger this value, the more stars will potentially be detected, resulting in a longer detection but more accurate registration.</property>
-                                                            <property name="active">4</property>
-                                                            <items>
-                                                            <item>100</item>
-                                                            <item>200</item>
-                                                            <item translatable="yes">500</item>
-                                                            <item>1000</item>
-                                                            <item>2000</item>
-                                                            </items>
+                                                            <property name="icon-name">applications-system-symbolic</property>
+                                                            </object>
+                                                            </child>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">2</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
                                                             </child>
                                                             <child>
                                                             <placeholder/>
@@ -15868,6 +15791,116 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkCheckButton" id="regNoOutput">
+                                                            <property name="label" translatable="yes">Save transformation in seq file</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">to be updated</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_regNoOutput_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child>
+                                                            <object class="GtkLabel" id="preproseqname_label1">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Prefix:</property>
+                                                            <property name="justify">center</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">12</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkEntry" id="regseqname_entry">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the registration.</property>
+                                                            <property name="max-length">10</property>
+                                                            <property name="width-chars">10</property>
+                                                            <property name="text">r_</property>
+                                                            <property name="caps-lock-warning">False</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child>
+                                                            <object class="GtkLabel" id="GtkLabelRegAlgo">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Algorithm: </property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="ComboBoxRegInter">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Type of algorithm used for rotation</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="active">3</property>
+                                                            <items>
+                                                            <item translatable="yes">Nearest Neighbor</item>
+                                                            <item translatable="yes">Bilinear</item>
+                                                            <item translatable="yes">Bicubic</item>
+                                                            <item translatable="yes">Pixel Area Relation</item>
+                                                            <item translatable="yes">Lanczos-4</item>
+                                                            <item translatable="yes">None</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">8</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkCheckButton" id="check_button_comet">
                                                             <property name="label" translatable="yes">Accumulate reg. data</property>
                                                             <property name="can-focus">True</property>
@@ -15881,7 +15914,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -15902,7 +15935,27 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">16</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">5</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="applyregister_button">
+                                                            <property name="label" translatable="yes">Apply existing registration</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Applyt the registration process if data already exists. It will register images in the loaded sequence using the selected method and reference layer (loaded in the 'Image sequences' tab, current sequence name is at the bottom of the window too).</property>
+                                                            <property name="use-underline">True</property>
+                                                            <signal name="clicked" handler="on_applyregister_button_clicked" swapped="no"/>
+                                                            <style>
+                                                            <class name="suggested-action"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">6</property>
                                                             </packing>
                                                             </child>
                                                             </object>

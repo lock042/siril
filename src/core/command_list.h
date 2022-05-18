@@ -107,7 +107,7 @@ static command commands[] = {
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE},
 
-	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=]", process_register, STR_REGISTER, TRUE},
+	{"register", 1, "register sequence [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-interp=]", process_register, STR_REGISTER, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE},
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE},

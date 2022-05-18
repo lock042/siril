@@ -249,7 +249,8 @@ typedef enum {
 	OPENCV_CUBIC = 2,
 	OPENCV_AREA = 3,
 	OPENCV_LANCZOS4 = 4,
-	OPENCV_INTER_MAX = 7
+	OPENCV_INTER_MAX = 7,
+	OPENCV_NONE = -1 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
 typedef enum {

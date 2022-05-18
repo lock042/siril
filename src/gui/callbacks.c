@@ -1575,7 +1575,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 	}
 }
 
-void on_regTranslationOnly_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
 	GtkWidget *Prefix = lookup_widget("regseqname_entry");
 

@@ -73,10 +73,6 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		"Shifts at pixel precision are saved in seq file."),
 		N_("<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on images and"
 		" to align them accordingly. Only translation is taken into account yet."),
-		N_("<b>Enhanced Correlation Coefficient Maximization</b>: It is based on the enhanced correlation "
-		"coefficient maximization algorithm. This method is more complex and slower than Image Pattern Alignment "
-		"but no selection is required. It is good for moon surface images registration. Only translation is taken "
-		"into account yet."),
 		N_("<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet and asteroid registration. It is necessary to have timestamps "
 		"stored in FITS header and to load a sequence of star aligned images. This methods makes a translation of a certain number of pixels depending on "
 		"the timestamp of each images and the global shift of the object between the first and the last image.")
@@ -963,7 +959,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
 	struct registration_method *method;
 	char *msg;
-	GtkToggleButton *follow, *matchSel, *no_translate, *x2upscale,
+	GtkToggleButton *follow, *matchSel, *no_output, *x2upscale,
 			*cumul;
 	GtkComboBox *cbbt_layers;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
@@ -1000,7 +996,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	/* filling the arguments for registration */
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
-	no_translate = GTK_TOGGLE_BUTTON(lookup_widget("regTranslationOnly"));
+	no_output = GTK_TOGGLE_BUTTON(lookup_widget("regNoOutput"));
 	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
 	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
@@ -1015,7 +1011,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
-	reg_args->translation_only = gtk_toggle_button_get_active(no_translate);
+	reg_args->no_output = gtk_toggle_button_get_active(no_output);
 	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
@@ -1040,7 +1036,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	 *   new sequence */
 	if (reg_args->x2upscale ||
 			(method->method_ptr == register_star_alignment &&
-			 !reg_args->translation_only)) {
+			 !reg_args->no_output)) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
@@ -1081,6 +1077,10 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_reserved_thread(register_thread_func, reg_args);
+}
+/* callback for 'Apply existing registration' button, GTK thread */
+void on_applyregister_button_clicked(GtkButton *button, gpointer user_data) {
+	//TODO - apply existing registration
 }
 
 // worker thread function for the registration

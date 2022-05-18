@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 7
+#define NUMBER_OF_METHODS 6
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -59,7 +59,7 @@ struct registration_args {
 	float percent_moved; // for KOMBAT algorithm
 
 	/* data for generated sequence, for star alignment registration */
-	gboolean translation_only;	// don't rotate images => no new sequence
+	gboolean no_output;	// write transformation to .seq
 	int new_total;                  // remaining images after registration
 	imgdata *imgparam;		// imgparam for the new sequence
 	regdata *regparam;		// regparam for the new sequence

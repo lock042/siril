@@ -103,7 +103,7 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 
-	if (!regargs->translation_only) {
+	if (!regargs->no_output) {
 		// allocate destination sequence data
 		regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
 		regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
@@ -175,7 +175,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	clearfits(&fit);
 
 	if (regargs->x2upscale) {
-		if (regargs->translation_only) {
+		if (regargs->no_output) {
 			args->seq->upscale_at_stacking = 2.0;
 		} else {
 			sadata->ref.x *= 2.0;
@@ -183,7 +183,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		}
 	}
 	else {
-		if (regargs->translation_only) {
+		if (regargs->no_output) {
 			args->seq->upscale_at_stacking = 1.0;
 		}
 	}
@@ -240,8 +240,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 	siril_debug_print("registration of image %d using %d threads\n", in_index, threads);
 
-	if (regargs->translation_only) {
-		/* if "translation only", we choose to initialize all frames
+	if (regargs->no_output) {
+		/* if "save transformation only", we choose to initialize all frames
 		 * to exclude status. If registration is ok, the status is
 		 * set to include */
 		args->seq->imgparam[out_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
@@ -363,23 +363,73 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].number_of_stars = nb_stars;
 		sadata->current_regdata[in_index].H = H;
 
-		if (!regargs->translation_only) {
-			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
-				return 1;
+		// TODO - will need to extract this bit and make it available for all the registration methods
+		if (!regargs->no_output) {
+			if (regargs->interpolation <= OPENCV_LANCZOS4) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+					return 1;
+				}
+			} else {
+				fits *destfit = NULL; // TODO: could we realloc like in sequence_export, unless not possible with generic sequence worker?
+				if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
+					return 1;
+				}
+				destfit->bitpix = fit->type;
+				destfit->orig_bitpix = fit->orig_bitpix;
+				int nbpix = fit->naxes[0] * fit->naxes[1] * (regargs->x2upscale ? 4 : 1);
+				if (destfit->type == DATA_FLOAT) {
+					memset(destfit->fdata, 0, nbpix * fit->naxes[2] * sizeof(float));
+					if (fit->naxes[2] == 3) {
+						destfit->fpdata[1] = destfit->fdata + nbpix;
+						destfit->fpdata[2] = destfit->fdata + nbpix * 2;
+					}
+				} else {
+					memset(destfit->data, 0, nbpix * fit->naxes[2] * sizeof(WORD));
+					if (fit->naxes[2] == 3) {
+						destfit->pdata[1] = destfit->data + nbpix;
+						destfit->pdata[2] = destfit->data + nbpix * 2;
+					}
+				}
+				copy_fits_metadata(fit, destfit);
+				double scale = regargs->x2upscale ? 2. : 1.;
+				destfit->rx = destfit->naxes[0] = fit->rx * scale;
+				destfit->ry = destfit->naxes[1] = fit->ry * scale;
+				int shiftx, shifty;
+				/* load registration data for current image */
+				double dx, dy;
+				translation_from_H(H, &dx, &dy);
+				shiftx = round_to_int(dx * scale);
+				shifty = round_to_int(dy * scale);
+				for (int layer = 0; layer < fit->naxes[2]; ++layer) {
+					for (int y = 0; y < destfit->ry; ++y) {
+						for (int x = 0; x < destfit->rx; ++x) {
+							int nx = x + shiftx;
+							int ny = y + shifty;
+							if (nx >= 0 && nx < destfit->rx && ny >= 0 && ny < destfit->ry) {
+								if (destfit->type == DATA_USHORT) {
+									destfit->pdata[layer][nx + ny * destfit->rx] = fit->pdata[layer][x + y * fit->rx];
+								} else if (destfit->type == DATA_FLOAT) {
+									destfit->fpdata[layer][nx + ny * destfit->rx] = fit->fpdata[layer][x + y * fit->rx];
+								}
+							}
+						}
+					}
+				}
+				copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+				clearfits(destfit);
 			}
 		}
-	}
-	else {
+	} else {
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
-		if (regargs->x2upscale && !regargs->translation_only) {
+		if (regargs->x2upscale && !regargs->no_output) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
 		}
 	}
 
-	if (!regargs->translation_only) {
+	if (!regargs->no_output) {
 		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 		regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
@@ -399,9 +449,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			//TODO: do we need to scale-up the H matrix here?
 		}
 	} else {
-		double dx, dy;
-		translation_from_H(H, &dx, &dy);
-		set_shifts(args->seq, in_index, regargs->layer, dx, dy, fit->top_down);
+		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
+		// double dx, dy;
+		// translation_from_H(H, &dx, &dy);
+		// set_shifts(args->seq, in_index, regargs->layer, dx, dy, fit->top_down);
 		args->seq->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;
@@ -424,7 +475,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
 
-		if (!regargs->translation_only) {
+		if (!regargs->no_output) {
 			if (failed) {
 				// regargs->imgparam and regargs->regparam may have holes caused by images
 				// that failed to be registered - compact them
@@ -470,7 +521,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-		if (!regargs->translation_only) {
+		if (!regargs->no_output) {
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_global_star(regargs);
 			// will be loaded in the idle function if (load_new_sequence)
@@ -592,7 +643,7 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->finalize_hook = star_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Global star registration");
-	args->has_output = !regargs->translation_only;
+	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;

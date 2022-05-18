@@ -3752,22 +3752,22 @@ int process_register(int nb) {
 	reg_args->process_all_frames = TRUE;
 	reg_args->follow_star = FALSE;
 	reg_args->matchSelection = FALSE;
-	reg_args->translation_only = FALSE;
+	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
+	reg_args->interpolation = OPENCV_AREA;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (!strcmp(word[i], "-drizzle")) {
 				reg_args->x2upscale = TRUE;
-			} else if (!strcmp(word[i], "-norot")) {
-				reg_args->translation_only = TRUE;
-				reg_args->type = SHIFT_TRANSFORMATION; //using most rigid model as default if -norot
+			} else if (!strcmp(word[i], "-noout")) {
+				reg_args->no_output = TRUE;
 			} else if (g_str_has_prefix(word[i], "-transf=")) {
 				char *current = word[i], *value;
 				value = current + 8;
@@ -3853,13 +3853,50 @@ int process_register(int nb) {
 				}
 				reg_args->max_stars_candidates = max_stars;
 			}
+			} else if (g_str_has_prefix(word[i], "-interp=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return 1;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest")) {
+					reg_args->interpolation = OPENCV_NEAREST;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic")) {
+					reg_args->interpolation = OPENCV_CUBIC;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"max")) {
+					reg_args->interpolation = OPENCV_INTER_MAX;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4")) {
+					reg_args->interpolation = OPENCV_LANCZOS4;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear")) {
+					reg_args->interpolation = OPENCV_LINEAR;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"none")) {
+					reg_args->interpolation = OPENCV_NONE;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"area")) {
+					reg_args->interpolation = OPENCV_AREA;
+					continue;
+				}
+				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+				return 1;
 		}
 	}
 
 	// testing free space
 	if (reg_args->x2upscale ||
 			(method->method_ptr == register_star_alignment &&
-			 !reg_args->translation_only)) {
+			 !reg_args->no_output)) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
@@ -3875,7 +3912,6 @@ int process_register(int nb) {
 	}
 
 
-	reg_args->interpolation = OPENCV_AREA;
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
