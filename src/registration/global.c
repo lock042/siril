@@ -446,13 +446,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			fit->pixel_size_y /= 2;
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
-			//TODO: do we need to scale-up the H matrix here?
 		}
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// double dx, dy;
-		// translation_from_H(H, &dx, &dy);
-		// set_shifts(args->seq, in_index, regargs->layer, dx, dy, fit->top_down);
+		// seems like not but this could backfire at some point
 		args->seq->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;
