@@ -787,7 +787,7 @@ int get_registration_layer(sequence *seq) {
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL;
+	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -802,6 +802,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
 		cumul_data = lookup_widget("check_button_comet");
+		noout = lookup_widget("regNoOutput");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -861,6 +862,15 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelreginfo, _("Select an area in image first"));
 		}
 	}
+	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
+	if ((method->method_ptr == &register_comet) || (method->method_ptr == &register_kombat) || (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_shift_dft)) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
+		gtk_widget_set_sensitive(noout, FALSE);
+	} else {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
+		gtk_widget_set_sensitive(noout, TRUE);
+	}
+
 }
 
 /* try to maximize the area within the image size (based on gfit)
