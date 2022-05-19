@@ -138,6 +138,9 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
 	*/
 
+	char *msg = siril_log_color_message(_("RBF Extraction: processing channel %d...\n"), "green", channel);
+	msg[strlen(msg) - 1] = '\0';
+	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	double pixel;
 	gsl_matrix *K;
@@ -227,6 +230,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	}
 
 	/* Calculate background from coefficients coef */
+	double total = height_scaled * width_scaled;
+	int progress = 0;
 
 #pragma omp parallel shared(background_scaled) private(A) num_threads(com.max_thread)
 	{
@@ -246,6 +251,16 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				pixel = siril_gsl_vector_sum(A);
 				background_scaled[j + i * width_scaled] = pixel;
 
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+				{
+					++progress;
+					if (!(progress % 32)) {
+						set_progress_bar_data(NULL, (double) progress / total);
+					}
+				}
+
 			}
 		}
 		gsl_vector_free(A);
@@ -260,6 +275,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	free(background_scaled);
 	free(kernel_scaled);
 	free(list_array);
+
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
 	return TRUE;
 }
@@ -1094,7 +1111,6 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->degree = (poly_order) (degree - 1);
 	args->smoothing = smoothing;
 	args->dither = use_dither;
-	args->threads = com.max_thread;
 	args->fit = &gfit;
 
 	start_in_new_thread(remove_gradient_from_image, args);
