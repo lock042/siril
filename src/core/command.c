@@ -150,6 +150,50 @@ int process_dumpheader(int nb) {
 	return 0;
 }
 
+int process_seq_clean(int nb) {
+	gboolean cleanreg = FALSE, cleanstat = FALSE;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return 1;
+
+	if (nb > 2) {
+		for (int i = 2; i < nb; i++) {
+			if (word[i]) {
+				if (!strcmp(word[i], "-reg")) {
+					cleanreg = TRUE;
+				}
+				if (!strcmp(word[i], "-stat")) {
+					cleanstat = TRUE;
+				}
+			}
+		}
+	} else {
+		cleanreg = TRUE;
+		cleanstat = TRUE;
+	}
+
+	if (cleanreg && seq->regparam) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam[i]) {
+				free(seq->regparam[i]);
+				seq->regparam[i] = NULL;
+				siril_log_message(_("Registration data cleared for layer %d\n"), i);
+			}
+		}
+	}
+	if (cleanstat && seq->stats) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			clear_stats(seq, i);
+			siril_log_message(_("Statistics data cleared for layer %d\n"), i);
+		}
+	}
+	writeseqfile(seq);
+	free_sequence(seq, FALSE);
+	return 0;
+}
+
+
 int process_satu(int nb){
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;

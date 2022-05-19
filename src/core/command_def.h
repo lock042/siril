@@ -100,6 +100,7 @@
 #define STR_SAVETIF32 N_("Same command as SAVETIF but the output file is saved in 32-bit per channel: <b>filename</b>.tif")
 #define STR_SAVETIF8 N_("Same command as SAVETIF but the output file is saved in 8-bit per channel: <b>filename</b>.tif")
 #define STR_SELECT N_("This command allows easy mass selection of images in the loaded sequence (from <b>from</b> to <b>to</b> included)")
+#define STR_SEQCLEAN N_("This command clears registration and/or statistics data stored in <b>sequencename</b>.\n\nYou can specify to clear only registration or statistics with <b>-reg</b> and <b>-stat</b> options respectively. Both are cleared if no option is passed")
 #define STR_SEQCOSME N_("Same command as COSME but for the the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"cosme_\" unless otherwise specified with option <b>-prefix=</b>")
 #define STR_SEQCOSME_CFA N_("Same command as COSME_CFA but for the the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"cosme_\" unless otherwise specified with option <b>-prefix=</b>")
 #define STR_SEQCROP N_("Crops the sequence given in argument <b>sequencename</b>.\n\nThe crop selection is specified by the upper left corner position <b>x</b> and <b>y</b> and the selection <b>width</b> and <b>height</b>.\nThe output sequence name starts with the prefix \"cropped_\" unless otherwise specified with <b>-prefix=</b> option")
