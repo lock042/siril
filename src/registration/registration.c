@@ -1040,7 +1040,7 @@ static gboolean end_register_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (!args->retval) {
-		if (!args->load_new_sequence) {
+		if (!args->load_new_sequence && sequence_is_loaded()) {
 			int chan = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboboxreglayer")));
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);

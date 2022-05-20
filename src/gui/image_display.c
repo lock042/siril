@@ -615,7 +615,7 @@ static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	int i = 0;
 
-	if (com.stars && !com.script) {
+	if (com.stars && !com.script && (single_image_is_loaded() || sequence_is_loaded())) {
 		/* com.stars is a NULL-terminated array */
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
