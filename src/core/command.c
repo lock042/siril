@@ -1215,7 +1215,7 @@ int process_autostretch(int nb) {
 		linked = TRUE;
 		arg_index++;
 	}
-	gchar *end;
+	gchar *end = NULL;
 	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
 	if (nb > arg_index)
 		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
@@ -3138,6 +3138,7 @@ int process_seq_mtf(int nb) {
 			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		free(args);
 		return 1;
 	}
 
