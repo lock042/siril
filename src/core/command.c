@@ -4999,9 +4999,9 @@ int process_rgbcomp(int nb) {
 			gdouble h, s, el, rd, gd, bd;
 			rgb_to_hsl(r.fdata[i], g.fdata[i], b.fdata[i], &h, &s, &el);
 			hsl_to_rgb(h, s, l.fdata[i], &rd, &gd, &bd);
-			rgb.fpdata[0][i] = (float)rd;
-			rgb.fpdata[1][i] = (float)gd;
-			rgb.fpdata[1][i] = (float)bd;
+			rgb.fpdata[RLAYER][i] = (float)rd;
+			rgb.fpdata[GLAYER][i] = (float)gd;
+			rgb.fpdata[BLAYER][i] = (float)bd;
 		}
 		clearfits(&l);
 		default_result_name = "composed_lrgb";
@@ -5022,9 +5022,9 @@ int process_rgbcomp(int nb) {
 		}
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
-			rgb.fpdata[0][i] = r.fdata[i];
-			rgb.fpdata[1][i] = g.fdata[i];
-			rgb.fpdata[1][i] = b.fdata[i];
+			rgb.fpdata[RLAYER][i] = r.fdata[i];
+			rgb.fpdata[GLAYER][i] = g.fdata[i];
+			rgb.fpdata[BLAYER][i] = b.fdata[i];
 		}
 		next_arg = 4;
 		default_result_name = "composed_rgb";
