@@ -3817,7 +3817,7 @@ int process_register(int nb) {
 				value = current + 8;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return 1;
+					goto terminate_register_on_error;
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
 #ifdef HAVE_CV44
@@ -3825,7 +3825,7 @@ int process_register(int nb) {
 					continue;
 #else
 					siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
-					return 1;
+					goto terminate_register_on_error;
 #endif
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
@@ -3862,7 +3862,7 @@ int process_register(int nb) {
 				value = current + 8;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return 1;
+					goto terminate_register_on_error;
 				}
 				reg_args->prefix = strdup(value);
 			} else if (g_str_has_prefix(word[i], "-minpairs=")) {
@@ -3870,15 +3870,14 @@ int process_register(int nb) {
 				value = current + 10;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return 1;
+					goto terminate_register_on_error;
 				}
 				int min_pairs = g_ascii_strtoull(value, NULL, 10);
 				if (min_pairs < 4) { // using absolute min_pairs required by homography
 					gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
 					siril_log_message(str);
 					g_free(str);
-
-					return 1;
+					goto terminate_register_on_error;
 				}
 				reg_args->min_pairs = min_pairs;
 			} else if (g_str_has_prefix(word[i], "-maxstars=")) {
@@ -3886,54 +3885,50 @@ int process_register(int nb) {
 				value = current + 10;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return 1;
+					goto terminate_register_on_error;
 				}
 				gchar *end;
 				int max_stars = g_ascii_strtoull(value, &end, 10);
 				if (end == value || max_stars > MAX_STARS_FITTED || max_stars < MIN_STARS_FITTED) {
 					// limiting values to avoid too long computation or too low number of candidates
 					siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
-					return 1;
+					goto terminate_register_on_error;
 				}
 				reg_args->max_stars_candidates = max_stars;
-			}
 			} else if (g_str_has_prefix(word[i], "-interp=")) {
 				char *current = word[i], *value;
 				value = current + 8;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return 1;
+					goto terminate_register_on_error;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest")) {
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
 					reg_args->interpolation = OPENCV_NEAREST;
 					continue;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic")) {
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
 					reg_args->interpolation = OPENCV_CUBIC;
 					continue;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"max")) {
-					reg_args->interpolation = OPENCV_INTER_MAX;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4")) {
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
 					reg_args->interpolation = OPENCV_LANCZOS4;
 					continue;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear")) {
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
 					reg_args->interpolation = OPENCV_LINEAR;
 					continue;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"none")) {
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
 					reg_args->interpolation = OPENCV_NONE;
 					continue;
 				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"area")) {
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
 					reg_args->interpolation = OPENCV_AREA;
 					continue;
 				}
 				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-				return 1;
+				goto terminate_register_on_error;
+			}
 		}
 	}
 
@@ -3949,12 +3944,19 @@ int process_register(int nb) {
 		if (reg_args->x2upscale)
 			size *= 4;
 		if (test_available_space(size) > 0) {
-			free(reg_args);
-			free(method);
-			return 1;
+			goto terminate_register_on_error;
 		}
 	}
-
+	if (reg_args->interpolation == OPENCV_NONE && !(reg_args->type == SHIFT_TRANSFORMATION)) {
+#ifdef HAVE_CV44
+		reg_args->type = SHIFT_TRANSFORMATION;
+		siril_log_color_message(_("Forcing the registration transformation to shift, which is the only transformation compatible with no interpolation\n"), "salmon");
+					
+#else
+		siril_log_color_message(_("Forcing the registration transformation to shift, which is the only transformation compatible with no interpolation, is not compatible with OpenCV below 4.4. Aborting\n"), "red");
+		goto terminate_register_on_error;
+#endif
+	}
 
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
@@ -3969,6 +3971,11 @@ int process_register(int nb) {
 
 	start_in_new_thread(register_thread_func, reg_args);
 	return 0;
+
+terminate_register_on_error:
+	free(reg_args);
+	free(method);
+	return 1;
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'
