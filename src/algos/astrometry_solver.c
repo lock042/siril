@@ -261,22 +261,30 @@ static double get_fov(double resolution, int image_size) {
 	return (resolution * (double)image_size) / 60.0;
 }
 
-static double get_mag_limit(double fov) {
+static void get_mag_from_GUI(struct astrometry_data *args) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
-	if (gtk_toggle_button_get_active(autobutton)) {
+	args->auto_magnitude = gtk_toggle_button_get_active(autobutton);
+	if (!args->auto_magnitude) {
+		GtkSpinButton *magButton = GTK_SPIN_BUTTON(
+				lookup_widget("GtkSpinIPS_Mag_Limit"));
+		args->forced_magnitude = gtk_spin_button_get_value(magButton);
+	}
+}
+
+static void compute_mag_limit(struct astrometry_data *args) {
+	double fov = args->used_fov * CROP_ALLOWANCE;
+	if (args->auto_magnitude) {
 		// Empiric formula for 1000 stars at 20 deg of galactic latitude
 		double autoLimitMagnitudeFactor = 14.5;
 		/* convert fov in degree */
 		fov /= 60.0;
 		double m = autoLimitMagnitudeFactor * pow(fov, -0.179);
-		m = round(100 * min(20, max(7, m))) / 100;
-		return m;
-	} else {
-		GtkSpinButton *magButton = GTK_SPIN_BUTTON(
-				lookup_widget("GtkSpinIPS_Mag_Limit"));
-
-		return gtk_spin_button_get_value(magButton);
+		// for astrometry, it can be useful to go down to mag 20, for
+		// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
+		args->limit_mag = round(100.0 * min(20.0, max(7.0, m))) / 100;
 	}
+	else args->limit_mag = args->forced_magnitude;
+	siril_debug_print("limit magnitude set to %f\n", args->limit_mag);
 }
 
 static SirilWorldCS *get_center_of_catalog() {
@@ -560,13 +568,13 @@ static gchar *fetch_url(const gchar *url) {
 }
 #endif
 
-static online_catalog get_online_catalog(double fov, double m) {
+static online_catalog get_online_catalog(double fov, double mag) {
 	GtkToggleButton *auto_button;
 	int ret;
 
 	auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	if (gtk_toggle_button_get_active(auto_button)) {
-		if (m <= 6.5) {
+		if (mag <= 6.5) {
 			ret = BRIGHT_STARS;
 		} else if (fov > 180.0) {
 			ret = NOMAD;
@@ -583,7 +591,7 @@ static online_catalog get_online_catalog(double fov, double m) {
 	}
 }
 
-static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double m) {
+static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag) {
 	gchar *buffer = NULL;
 	GError *error = NULL;
 
@@ -594,7 +602,7 @@ static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog,
 			(int) onlineCatalog,
 			siril_world_cs_get_alpha(catalog_center),
 			siril_world_cs_get_delta(catalog_center),
-			fov, m);
+			fov, mag);
 	siril_debug_print("Catalogue file: %s\n", str);
 	GFile *file = g_file_new_build_filename(g_get_tmp_dir(), str, NULL);
 	g_free(str);
@@ -632,7 +640,7 @@ static GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog,
 	}
 
 	if (output_stream != NULL || !use_cache) {
-		gchar *url = get_catalog_url(catalog_center, m, fov, onlineCatalog);
+		gchar *url = get_catalog_url(catalog_center, mag, fov, onlineCatalog);
 		buffer = fetch_url(url);
 		g_free(url);
 
@@ -1263,11 +1271,11 @@ static gboolean end_plate_solver(gpointer p) {
 		free(solution);
 	}
 	update_MenuItem();
-	g_object_unref(args->catalog_name);
+	g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
 	g_free(args->message);
 	free(args);
-	
+
 	return FALSE;
 }
 
@@ -1293,7 +1301,7 @@ static void add_object_in_tree_view(const gchar *object) {
 		if (!has_nonzero_coords()) {
 			g_free(result);
 			set_cursor_waiting(FALSE);
-			siril_log_color_message(_("No catalog\n"),"red");
+			siril_log_color_message(_("No catalog\n"), "red");
 			return;
 		}
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
@@ -1301,7 +1309,7 @@ static void add_object_in_tree_view(const gchar *object) {
 		g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		g_free(result);
 
-		/* select first object found in the list*/
+		/* select first object found in the list */
 		GtkTreeIter iter;
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(GtkTreeViewIPS);
 		if (gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_IPS), &iter)) {
@@ -1317,7 +1325,7 @@ static void start_image_plate_solve() {
 	struct astrometry_data *args = malloc(sizeof(struct astrometry_data));
 
 	args->for_photometry_cc = FALSE;
-	if (!fill_plate_solver_structure(args)) {
+	if (!fill_plate_solver_structure_from_GUI(args)) {
 		set_cursor_waiting(TRUE);
 		start_in_new_thread(match_catalog, args);
 	}
@@ -1575,7 +1583,7 @@ void rotate_astrometry_data(fits *fit, point center, double angle, gboolean crop
 	pc2_2 = -sa * fit->wcsdata.pc[1][0] + ca * fit->wcsdata.pc[1][1];
 
 	point refpointin = {fit->wcsdata.crpix[0], fit->wcsdata.crpix[1]};
-	cvRotateImageRefPoint(fit, center, angle, cropped, refpointin, &refpointout); 
+	cvRotateImageRefPoint(fit, center, angle, cropped, refpointin, &refpointout);
 
 	fit->wcsdata.pc[0][0] = pc1_1;
 	fit->wcsdata.pc[0][1] = pc1_2;
@@ -1628,6 +1636,16 @@ gpointer match_catalog(gpointer p) {
 	args->catalogStars = NULL;
 	args->message = NULL;
 
+	if (!args->catalog_file) {
+		args->catalog_file = download_catalog(args->use_cache, args->onlineCatalog,
+				args->cat_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+		if (!args->catalog_file) {
+			siril_world_cs_unref(args->cat_center);	// TODO: good place to do that?
+			siril_log_message(_("Cannot download the online star catalog.\n"));
+			return GINT_TO_POINTER(1);
+		}
+	}
+
 	if (args->downsample) {
 		args->fit_backup = calloc(1, sizeof(fits));
 		copyfits(args->fit, args->fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
@@ -1656,10 +1674,11 @@ gpointer match_catalog(gpointer p) {
 		siril_add_idle(end_plate_solver, args);
 		return GINT_TO_POINTER(1);
 	}
-	if (fabs(args->xoffset) > 0.0 || fabs(args->yoffset) > 0.0 ) max_trials = 20; //retry to converge if solve is done at an offset from the center
+	if (args->uncentered)
+		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
 	cstars = new_fitted_stars(MAX_STARS);
-	if (cstars == NULL) {
+	if (!cstars) {
 		PRINT_ALLOC_ERR;
 		args->ret = 1;
 		siril_add_idle(end_plate_solver, args);
@@ -1667,7 +1686,7 @@ gpointer match_catalog(gpointer p) {
 	}
 
 	/* project and open the file */
-	args->catalogStars = project_catalog(args->catalog_name, args->cat_center);
+	args->catalogStars = project_catalog(args->catalog_file, args->cat_center);
 	if (!args->catalogStars) {
 		siril_world_cs_unref(args->cat_center);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No projection"), _("Cannot project the star catalog."));
@@ -1755,7 +1774,7 @@ gpointer match_catalog(gpointer p) {
 				double resolution = (scaleX + scaleY) * 0.5; // we assume square pixels
 				solution->focal = RADCONV * solution->pixel_size / resolution;
 				siril_debug_print("Current focal: %0.2fmm\n", solution->focal);
-				
+
 				if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
 					siril_log_color_message(_("Updating homography failed.\n"), "red");
 					args->ret = 1;
@@ -1767,7 +1786,7 @@ gpointer match_catalog(gpointer p) {
 				conv = fabs((dec0 - orig_dec0) / orig_dec0) + fabs((ra0 - orig_ra0) / orig_ra0);
 
 				trial += 1;
-			} 
+			}
 			solution->pixel_size = args->pixel_size;
 
 
@@ -1897,7 +1916,6 @@ gpointer match_catalog(gpointer p) {
 			siril_debug_print("pc2_1  = %*.12e\n", 20, args->fit->wcsdata.pc[1][0]);
 			siril_debug_print("pc2_2  = %*.12e\n", 20, args->fit->wcsdata.pc[1][1]);
 			siril_debug_print("******************************************\n");
-			
 		} else {
 			args->ret = 1;
 		}
@@ -1963,22 +1981,10 @@ gchar *search_in_catalogs(const gchar *object) {
 	return result;
 }
 
-int fill_plate_solver_structure(struct astrometry_data *args) {
-	double fov, px_size, scale, m, usedfov, scalefactor;
-	SirilWorldCS *catalog_center;
+void process_plate_solver_input(struct astrometry_data *args) {
+	args->scale = get_resolution(args->focal_length, args->pixel_size);
+
 	rectangle croparea = { 0 };
-
-	px_size = get_pixel();
-	scale = get_resolution(get_focal(), px_size);
-
-	args->autocrop = is_autocrop_activated();
-	args->manual = is_detection_manual();
-	args->downsample = is_downsample_activated();
-	args->use_cache = is_cache_activated();
-	args->fit = &gfit;
-	scalefactor = args->downsample ? DOWNSAMPLE_FACTOR : 1.0;
-	set_cursor_waiting(TRUE);
-
 	if (!args->manual) {
 		// first checking if there is a selection or if the full field is to be used
 		if (com.selection.w != 0 && com.selection.h != 0) {
@@ -1989,46 +1995,61 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 			croparea.w = args->fit->rx;
 			croparea.h = args->fit->ry;
 		}
-		fov = get_fov(scale, max(croparea.w, croparea.h));
-
+		double fov = get_fov(args->scale, max(croparea.w, croparea.h));
 		// then apply or not autocropping to 5deg (300 arcmin)
-		usedfov = (args->autocrop) ?  min(fov, 300.) : fov;
-		args->cropfactor = (usedfov < fov) ? usedfov / fov : 1.0; // to avoid cropping on rounding errors
-		if (args->cropfactor != 1.0) {
-			croparea.x += (int) ((croparea.w - croparea.w * args->cropfactor) / 2);
-			croparea.y += (int) ((croparea.h - croparea.h * args->cropfactor) / 2);
-			croparea.w = (int) (args->cropfactor * croparea.w);
-			croparea.h = (int) (args->cropfactor * croparea.h);
+		args->used_fov = args->autocrop ? min(fov, 300.) : fov;
+
+		double cropfactor = (args->used_fov < fov) ? args->used_fov / fov : 1.0;
+		if (cropfactor != 1.0) {
+			croparea.x += (int) ((croparea.w - croparea.w * cropfactor) / 2);
+			croparea.y += (int) ((croparea.h - croparea.h * cropfactor) / 2);
+			croparea.w = (int) (cropfactor * croparea.w);
+			croparea.h = (int) (cropfactor * croparea.h);
 			// TODO calc center offset if need
-			siril_log_message(_("Auto-cropped factor: %.2f\n"), args->cropfactor);
+			siril_log_message(_("Auto-cropped factor: %.2f\n"), cropfactor);
 		}
-		siril_log_message(_("Solving on selected area: %d %d %d %d \n"), croparea.x, croparea.y, croparea.w, croparea.h);
 
 		if (com.selection.w != 0 && com.selection.h != 0) {
-			args->xoffset = (double) croparea.x + 0.5 * (double) croparea.w - 0.5 * (double) args->fit->rx;
-			args->yoffset = (double) croparea.y + 0.5 * (double) croparea.h - 0.5 * (double) args->fit->ry;
+			// detect if the selection is not centered enough that it matters
+			double thr = max(args->fit->rx, args->fit->ry) / 10.0;
+			args->uncentered =
+				abs(croparea.x + 0.5 * croparea.w - 0.5 * args->fit->rx) > thr ||
+				abs(croparea.y + 0.5 * croparea.h - 0.5 * args->fit->ry) > thr;
 		} else {
-			args->xoffset = 0.0;
-			args->yoffset = 0.0;
+			args->uncentered = FALSE;
 		}
 
 		if (args->downsample) {
-			croparea.w *= scalefactor;
-			croparea.h *= scalefactor;
-			croparea.x *= scalefactor;
-			croparea.y *= scalefactor;
-			args->xoffset *= scalefactor;
-			args->yoffset *= scalefactor;
+			croparea.w *= DOWNSAMPLE_FACTOR;
+			croparea.h *= DOWNSAMPLE_FACTOR;
+			croparea.x *= DOWNSAMPLE_FACTOR;
+			croparea.y *= DOWNSAMPLE_FACTOR;
 		}
 	} else { //stars manual selection - use full field centered
-		fov = get_fov(scale, max(args->fit->rx, args->fit->ry));
-		usedfov = fov;
-		args->cropfactor = 1.0 ;  //just in case
-		args->xoffset = 0.0;
-		args->yoffset = 0.0;
+		args->used_fov = get_fov(args->scale, max(args->fit->rx, args->fit->ry));
+		args->uncentered = FALSE;
 	}
+
+	if (croparea.w == args->fit->rx && croparea.h == args->fit->ry)
+		memset(&croparea, 0, sizeof(rectangle));
+	siril_debug_print("area for the solve: %d, %d, %d x %d )\n", croparea.x, croparea.y, croparea.w, croparea.h);
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
-	m = get_mag_limit(usedfov * CROP_ALLOWANCE);
+	compute_mag_limit(args);
+}
+
+int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
+	SirilWorldCS *catalog_center;
+
+	args->pixel_size = get_pixel();
+	args->focal_length = get_focal();
+
+	args->autocrop = is_autocrop_activated();
+	args->manual = is_detection_manual();
+	args->downsample = is_downsample_activated();
+	args->use_cache = is_cache_activated();
+	args->fit = &gfit;
+	set_cursor_waiting(TRUE);
+
 	catalog_center = get_center_of_catalog();
 
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center) == 0.0) {
@@ -2037,19 +2058,21 @@ int fill_plate_solver_structure(struct astrometry_data *args) {
 		return 1;
 	}
 
+	get_mag_from_GUI(args);
+
+	process_plate_solver_input(args);
+
 	/* Filling structure */
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_online_catalog(usedfov * CROP_ALLOWANCE, m);
-	GFile *catalog_name = download_catalog(args->use_cache, args->onlineCatalog, catalog_center, usedfov * CROP_ALLOWANCE, m);
-	if (!catalog_name) {
+	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_online_catalog(args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+	GFile *catalog_file = download_catalog(args->use_cache, args->onlineCatalog, catalog_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+	if (!catalog_file) {
 		siril_world_cs_unref(catalog_center);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
 	args->cat_center = catalog_center; //for projection later on
-	args->catalog_name = catalog_name;
-	args->scale = scale;
-	args->pixel_size = px_size;
+	args->catalog_file = catalog_file;
 	args->flip_image = flip_image_after_ps();
 
 	set_cursor_waiting(FALSE);

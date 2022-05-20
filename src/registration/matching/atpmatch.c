@@ -619,13 +619,13 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 		GFile *BV_file = g_file_new_build_filename(g_get_tmp_dir(), "photometric_cc.dat", NULL);
 		GOutputStream *output_stream = (GOutputStream*) g_file_replace(BV_file, NULL, FALSE,
 				G_FILE_CREATE_NONE, NULL, &error);
+		g_object_unref(BV_file);
 
-		if (output_stream == NULL) {
-			if (error != NULL) {
+		if (!output_stream) {
+			if (error) {
 				g_warning("%s\n", error->message);
 				g_clear_error(&error);
 			}
-			g_object_unref(BV_file);
 			return 1;
 		}
 
@@ -644,7 +644,6 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 			}
 		}
 		g_object_unref(output_stream);
-		g_object_unref(BV_file);
 	}
 
 	/*

@@ -48,7 +48,7 @@
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
 #include "gui/registration_preview.h"
-
+#include "io/single_image.h"
 #include "photometric_cc.h"
 
 enum {
@@ -59,12 +59,13 @@ static void start_photometric_cc() {
 	struct astrometry_data *args = malloc(sizeof(struct astrometry_data));
 
 	args->for_photometry_cc = TRUE;
-	if (!fill_plate_solver_structure(args)) {
+	if (!fill_plate_solver_structure_from_GUI(args)) {
 		set_cursor_waiting(TRUE);
 		start_in_new_thread(match_catalog, args);
 	}
 }
 
+/* reads the content of the file to populate the stars list, only with their position and B-V */
 static void read_photometry_cc_file(GInputStream *stream, psf_star **stars, int *nb_stars) {
 	gchar *line;
 	int i = 0;
@@ -128,13 +129,14 @@ static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV 
 	}
 }
 
-static int make_selection_around_a_star(psf_star *stars, rectangle *area, fits *fit) {
+static int make_selection_around_a_star(psf_star *star, rectangle *area, fits *fit) {
 	/* make a selection around the star */
-	area->x = round_to_int(stars->xpos - com.pref.phot_set.outer);
-	area->y = round_to_int(stars->ypos - com.pref.phot_set.outer);
-	area->w = area->h = round_to_int(com.pref.phot_set.outer * 2);
+	double outer = com.pref.phot_set.outer;
+	area->x = round_to_int(star->xpos - outer);
+	area->y = round_to_int(star->ypos - outer);
+	area->w = area->h = round_to_int(outer * 2.0);
 
-	/* Don't want stars to close of the edge */
+	/* Don't want stars too close to the edge */
 	if (area->x + area->w >= fit->rx) {
 		return 1;
 	}
@@ -211,7 +213,6 @@ static float siril_stats_robust_mean(const float sorted_data[],
 
 static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, float kw[], int n_channel) {
 	int i = 0, ngood = 0;
-	gboolean no_phot = FALSE;
 	int progress = 0;
 	float *data[3];
 
@@ -236,6 +237,7 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 
 	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
 
+	// transform to a for loop and parallelize
 	while (stars[i]) {
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
@@ -249,18 +251,17 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 			continue;
 		}
 
-		for (int chan = 0; chan < 3; chan ++) {
+		gboolean no_phot = FALSE;
+		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
 			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE);
-			if (!photometry || !photometry->phot_is_valid) {
+			if (!photometry || !photometry->phot_is_valid)
 				no_phot = TRUE;
-				break;
-			}
-			flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
-			free_psf(photometry);
+			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
+			if (photometry)
+				free_psf(photometry);
 		}
 		if (no_phot) {
 			i++;
-			no_phot = FALSE;
 			continue;
 		}
 		/* get r g b coefficient from bv color index */
@@ -331,6 +332,7 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 static void get_background_coefficients(fits *fit, rectangle *area, coeff bg[], gboolean verbose) {
 
 	if (verbose) siril_log_message(_("Background reference:\n"));
+	// we cannot use compute_all_channels_statistics_single_image because of the area
 	for (int chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
@@ -397,12 +399,11 @@ static void background_neutralize(fits* fit, coeff bg[], int n_channel, double n
 static int cmp_coeff(const void *a, const void *b) {
 	coeff *a1 = (coeff *) a;
 	coeff *a2 = (coeff *) b;
-	if ((*a1).value > (*a2).value)
+	if (a1->value > a2->value)
 		return 1;
-	else if ((*a1).value < (*a2).value)
+	if (a1->value < a2->value)
 		return -1;
-	else
-		return 0;
+	return 0;
 }
 
 static int determine_chan_for_norm(coeff bg[], int n_channel) {
@@ -413,55 +414,43 @@ static int determine_chan_for_norm(coeff bg[], int n_channel) {
 	/* ascending order */
 	qsort(tmp, 3, sizeof(tmp[0]), cmp_coeff);
 
-	if (n_channel == 0) { /* on highest */
+	if (n_channel == 0)	/* on highest */
 		return tmp[2].channel;
-	} else if (n_channel == 1) { /* on middle */
+	if (n_channel == 1)	/* on middle */
 		return tmp[1].channel;
-	} else { /* on lowest */
-		return tmp[0].channel;
-	}
+	/* on lowest */
+	return tmp[0].channel;
 }
 
-static gboolean end_photometric_cc(gpointer p) {
-	struct photometric_cc_data *args = (struct photometric_cc_data *) p;
-	stop_processing_thread();
-
-	free_fitted_stars(args->stars);
-	g_object_unref(args->bv_stream);
-	free(args);
-
-	invalidate_gfit_histogram();
-	update_gfit_histogram_if_needed();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	
-	set_cursor_waiting(FALSE);
-	return FALSE;
-}
-
+/* run the PCC for gfit, using the existing star list of the image from the provided file */
 static gpointer photometric_cc(gpointer p) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *) p;
 	float kw[3];
 	coeff bg[3];
-	int nb_stars, chan;
-	rectangle *bkg_sel;
 
-	if (!args->bg_auto) {
-		bkg_sel = &(args->bg_area);
-	} else {
-		bkg_sel = NULL;
+	if (!isrgb(&gfit)) {
+		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
+		return GINT_TO_POINTER(0);
 	}
 
-	/* make sure parameters are initialized in a good way */
+	/* make sure parameters are initialized */
 	if (com.pref.phot_set.outer == 0.0) {
+		siril_log_message(_("Using default values for photometry settings\n"));
 		initialize_photometric_param();
 	}
 
+	rectangle *bkg_sel = NULL;
+	if (!args->bg_auto)
+		bkg_sel = &(args->bg_area);
+
+	int nb_stars;
 	read_photometry_cc_file(args->bv_stream, args->stars, &nb_stars);
+	g_object_unref(args->bv_stream);
 
 	get_background_coefficients(&gfit, bkg_sel, bg, FALSE);
-	chan = determine_chan_for_norm(bg, args->n_channel);
+	int chan = determine_chan_for_norm(bg, args->n_channel);
 	siril_log_message(_("Normalizing on %s channel.\n"), (chan == 0) ? _("red") : ((chan == 1) ? _("green") : _("blue")));
+
 	int ret = get_white_balance_coeff(args->stars, nb_stars, &gfit, kw, chan);
 	if (!ret) {
 		double norm = get_normalized_value(&gfit);
@@ -473,32 +462,15 @@ static gpointer photometric_cc(gpointer p) {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
 
-	siril_add_idle(end_photometric_cc, args);
+	free_fitted_stars(args->stars);
+	free(args);
+	notify_gfit_modified();
+
 	return GINT_TO_POINTER(ret);
-}
-
-static gboolean is_selection_ok() {
-	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
-
-	if (!selection_black_value[0]) {
-		selection_black_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_cc_bkg_x"));
-		selection_black_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_cc_bkg_y"));
-		selection_black_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_cc_bkg_w"));
-		selection_black_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_cc_bkg_h"));
-	}
-	int width = (int) gtk_spin_button_get_value(selection_black_value[2]);
-	int height = (int) gtk_spin_button_get_value(selection_black_value[3]);
-
-	if ((!width) || (!height)) {
-		return FALSE;
-	}
-	return TRUE;
 }
 
 static rectangle get_bkg_selection() {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
-	rectangle black_selection;
-
 	if (!selection_black_value[0]) {
 		selection_black_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_cc_bkg_x"));
 		selection_black_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_cc_bkg_y"));
@@ -506,12 +478,17 @@ static rectangle get_bkg_selection() {
 		selection_black_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_cc_bkg_h"));
 	}
 
+	rectangle black_selection;
 	black_selection.x = gtk_spin_button_get_value(selection_black_value[0]);
 	black_selection.y = gtk_spin_button_get_value(selection_black_value[1]);
 	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
-
 	return black_selection;
+}
+
+static gboolean is_selection_ok() {
+	rectangle selection = get_bkg_selection();
+	return selection.w != 0 && selection.h != 0;
 }
 
 /****
@@ -566,24 +543,20 @@ void initialize_photometric_cc_dialog() {
 }
 
 int apply_photometric_cc() {
-	psf_star **stars;
-	GtkComboBox *norm_box;
-	GtkToggleButton *auto_bkg;
 	GError *error = NULL;
 
-	norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
-	auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
+	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
+	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 
-
-	invalidate_stats_from_fit(&gfit);
-	invalidate_gfit_histogram();
+	//invalidate_stats_from_fit(&gfit);
+	//invalidate_gfit_histogram();
 
 	set_cursor_waiting(TRUE);
 	GFile *BV_file = g_file_new_build_filename(g_get_tmp_dir(), "photometric_cc.dat", NULL);
 	GInputStream *bv_stream = (GInputStream *)g_file_read(BV_file, NULL, &error);
 
-	if (bv_stream == NULL) {
-		if (error != NULL) {
+	if (!bv_stream) {
+		if (error) {
 			g_clear_error(&error);
 			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(BV_file));
 		}
@@ -591,17 +564,16 @@ int apply_photometric_cc() {
 		g_object_unref(BV_file);
 		return 1;
 	}
+	g_object_unref(BV_file);
 
-	stars = new_fitted_stars(MAX_STARS);
-	if (stars == NULL) {
+	psf_star **stars = new_fitted_stars(MAX_STARS);
+	if (!stars) {
 		PRINT_ALLOC_ERR;
 		set_cursor_waiting(FALSE);
-		g_object_unref(BV_file);
 		return 1;
 	}
 
 	struct photometric_cc_data *args = malloc(sizeof(struct photometric_cc_data));
-
 	args->stars = stars;
 	args->bv_stream = bv_stream;
 	args->n_channel = gtk_combo_box_get_active(norm_box);
@@ -609,24 +581,14 @@ int apply_photometric_cc() {
 	args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 
 	start_in_new_thread(photometric_cc, args);
-
-	g_object_unref(BV_file);
-
 	return 0;
 }
 
 int get_photometry_catalog() {
-	GtkComboBox *box;
-	int ret;
-
-	box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
-	ret = gtk_combo_box_get_active(box);
-
-	if (ret == 1) {
+	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
+	if (gtk_combo_box_get_active(box) == 1)
 		return APASS;
-	} else {
-		return NOMAD;
-	}
+	return NOMAD;
 }
 
 /*****
@@ -641,8 +603,8 @@ void on_button_cc_ok_clicked(GtkButton *button, gpointer user_data) {
 	if ((!gtk_toggle_button_get_active(auto_bkg)) && (!is_selection_ok())) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the background area"));
-	} else
-		start_photometric_cc();
+	}
+	else start_photometric_cc();
 }
 
 void on_button_cc_bkg_auto_toggled(GtkToggleButton *button,

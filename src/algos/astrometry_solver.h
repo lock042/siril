@@ -33,31 +33,41 @@ enum {
 };
 
 struct astrometry_data {
-	image_solved *solution;
-	online_catalog onlineCatalog;
-	SirilWorldCS *cat_center;
-	GFile *catalog_name;
-	gchar *catalogStars;
-	gboolean for_photometry_cc;
-	gboolean downsample;
-	gboolean use_cache;
-	gboolean autocrop;
-	double scale; // scale (resolution)
-	double cropfactor; // image cropping for wide fields
-	rectangle solvearea;
-	double xoffset, yoffset; //offset of solvearea center wrt. image center
-	fits *fit;
-	fits *fit_backup;
-	gchar *message; // error message
-	int ret; // return value
-	double pixel_size; // pixel size in µm
-	gboolean manual; // Manual platesolving
-	gboolean flip_image;
+	/* user input */
+	fits *fit;		// the image
+	double pixel_size;	// pixel size in µm
+	double focal_length;	// focal length in mm
+	online_catalog onlineCatalog;	// choice of catalog for the plate-solve
+	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate-solve
+	SirilWorldCS *cat_center;	// starting point for the search
+	gboolean downsample;	// downsample mage before solving
+	gboolean use_cache;	// avoid downloading an already existing catalog
+	gboolean autocrop;	// crop image if fov is larger than 5 degrees
+	gboolean flip_image;	// Flip at the end if detected mirrored
+	gboolean manual;	// use stars already detected by user, in com.stars
+	gboolean auto_magnitude;// automatically limit magnitude of the catalog
+	double forced_magnitude;// if not automatic, use this limit magnitude
+
+	/* program-processed input, by process_plate_solver_input() */
+	double limit_mag;	// limit magnitude to sear for in the catalog
+	double scale;		// scale (resolution) in arcsec per pixel
+	double used_fov;	// field of view for the solved image region (arcmin)
+	GFile *catalog_file;	// file containing raw catalog data
+	gchar *catalogStars;	// file name of the transformed catalog
+	rectangle solvearea;	// area in case of manual selection or autocrop
+	gboolean uncentered;	// solvearea is not centered with image
+	fits *fit_backup;	// original image in case of downsample
+
+	/* results */
+	int ret;		// return value
+	gchar *message;		// error message
+	image_solved *solution;	// the astrometry solution for the image
 };
 
 void open_astrometry_dialog();
 gchar *search_in_catalogs(const gchar *object);
-int fill_plate_solver_structure(struct astrometry_data *args);
+void process_plate_solver_input(struct astrometry_data *args);
+int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer match_catalog(gpointer p);
