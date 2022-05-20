@@ -119,7 +119,7 @@ static double siril_gsl_vector_sum(const gsl_vector *v) {
 	return sum;
 }
 
-static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err) {
+static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err, gboolean processing) {
 	/* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
 	
 	References:
@@ -138,9 +138,11 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
 	*/
 
-	char *msg = siril_log_color_message(_("RBF Extraction: processing channel %d...\n"), "green", channel);
-	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	if (processing) {
+		char *msg = siril_log_color_message(_("RBF Extraction: processing channel %d...\n"), "green", channel);
+		msg[strlen(msg) - 1] = '\0';
+		set_progress_bar_data(msg, PROGRESS_RESET);
+	}
 
 	double pixel;
 	gsl_matrix *K;
@@ -251,16 +253,17 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				pixel = siril_gsl_vector_sum(A);
 				background_scaled[j + i * width_scaled] = pixel;
 
+				if (processing) {
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-				{
-					++progress;
-					if (!(progress % 32)) {
-						set_progress_bar_data(NULL, (double) progress / total);
+					{
+						++progress;
+						if (!(progress % 32)) {
+							set_progress_bar_data(NULL,	(double) progress / total);
+						}
 					}
 				}
-
 			}
 		}
 		gsl_vector_free(A);
@@ -276,7 +279,9 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	free(kernel_scaled);
 	free(list_array);
 
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	if (processing) {
+		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	}
 
 	return TRUE;
 }
@@ -875,7 +880,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		if (args->interpolation_method == INTER_POLY) {
 			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel, gfit.rx, gfit.ry, args->degree, &error);
 		} else {
-			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel, gfit.rx, gfit.ry, args->smoothing, &error);
+			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel, gfit.rx, gfit.ry, args->smoothing, &error, TRUE);
 		}
 		
 		if (!interpolation_worked) {
@@ -946,7 +951,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		if (b_args->interpolation_method == INTER_POLY){
 			interpolation_worked = computeBackground_Polynom(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error);
 		} else {
-			interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error);
+			interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error, FALSE);
 		}
 		
 		if (!interpolation_worked) {
