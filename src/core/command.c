@@ -2290,7 +2290,7 @@ int process_findhot(int nb){
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			siril_log_message(_("Cauld not open file: %s\n"), filename);
+			siril_log_message(_("Could not open file: %s\n"), filename);
 		}
 		g_object_unref(file);
 		return 1;
