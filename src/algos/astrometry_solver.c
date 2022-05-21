@@ -873,7 +873,7 @@ static void print_platesolving_results(image_solved *image, gboolean downsample)
 	str = g_strdup_printf(str, H.pair_matched);
 	siril_log_message(str);
 	g_free(str);
-	inliers = 1.0 - ((((double) H.pair_matched - (double) H.Inliers)) / (double) H.pair_matched);
+	inliers = 1.0 - (((double) H.pair_matched - (double) H.Inliers) / (double) H.pair_matched);
 	siril_log_message(_("Inliers:%*.3f\n"), 14, inliers);
 
 	/* Plate Solving */
@@ -921,32 +921,24 @@ static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars) {
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while (i < MAX_STARS &&
 			(line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
+
+		if (line[0] == COMMENT_CHAR || is_blank(line) || g_str_has_prefix(line, "---")) {
+			g_free(line);
+			continue;
+		}
 		double r = 0.0, x = 0.0, y = 0.0, Vmag = 0.0, Bmag = 0.0;
-
-		if (line[0] == COMMENT_CHAR) {
-			g_free(line);
-			continue;
-		}
-		if (is_blank(line)) {
-			g_free(line);
-			continue;
-		}
-		if (g_str_has_prefix(line, "---")) {
-			g_free(line);
-			continue;
-		}
 		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &x, &y, &Vmag, &Bmag);
-
+		g_free(line);
+		if (Vmag >= 30.0)
+			continue;
 		star = new_psf_star();
 		star->xpos = x;
 		star->ypos = y;
 		star->mag = Vmag;
-		star->BV = n < 5 ? -99.9 : Bmag - Vmag;
+		star->BV = n < 5 || Bmag >= 30.0 ? -99.9 : Bmag - Vmag;
 		star->phot = NULL;
-		cstars[i] = star;
-		cstars[i + 1] = NULL;
-		i++;
-		g_free(line);
+		cstars[i++] = star;
+		cstars[i] = NULL;
 	}
 	g_object_unref(data_input);
 	sort_stars(cstars, i);
@@ -1207,29 +1199,15 @@ static gboolean check_affine_TRANS_sanity(TRANS trans) {
  * 1 - is the image flipped? Need to compute the determinant of H
  * 2 - did the user asked for a flip?
  */
-static gboolean flip_image(gboolean flip_image, Homography H) {
+static gboolean image_is_flipped(Homography H) {
 	double det = (H.h00 * H.h11 - H.h01 * H.h10); // determinant of rotation matrix (ad - bc)
-	return flip_image && det < 0;
+	return det < 0;
 }
 
 static gboolean end_plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	stop_processing_thread();
 
-	if (args->downsample) {
-		/* copying size of original fits */
-		args->fit->naxes[0] = args->fit_backup->naxes[0];
-		args->fit->naxes[1] = args->fit_backup->naxes[1];
-		args->fit->rx = args->fit->naxes[0];
-		args->fit->ry = args->fit->naxes[1];
-
-		copyfits(args->fit_backup, args->fit, CP_ALLOC | CP_COPYA, -1);
-
-		clearfits(args->fit_backup);
-	}
-
-	if (!args->manual)
-		clear_stars_list(TRUE);
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {
@@ -1242,6 +1220,7 @@ static gboolean end_plate_solver(gpointer p) {
 					"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
 		}
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
+		g_free(args->message);
 	} else {
 		image_solved *solution = args->solution;
 		print_platesolving_results(solution, args->downsample);
@@ -1250,8 +1229,6 @@ static gboolean end_plate_solver(gpointer p) {
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
 		update_coordinates(solution->image_center);
-		siril_world_cs_unref(solution->px_cat_center);
-		siril_world_cs_unref(solution->image_center);
 		delete_selected_area();
 		/* ****** */
 
@@ -1259,7 +1236,7 @@ static gboolean end_plate_solver(gpointer p) {
 		if (args->for_photometry_cc) {
 			apply_photometric_cc();
 		}
-		if (flip_image(args->flip_image, solution->H)) {
+		if (args->flip_image && image_is_flipped(solution->H)) {
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 			fits_flip_top_to_bottom(args->fit);
 			flip_bottom_up_astrometry_data(args->fit);
@@ -1268,14 +1245,13 @@ static gboolean end_plate_solver(gpointer p) {
 			redraw(REDRAW_OVERLAY);
 		}
 		load_WCS_from_memory(args->fit);
+
+		siril_world_cs_unref(solution->px_cat_center);
+		siril_world_cs_unref(solution->image_center);
 		free(solution);
 	}
 	update_MenuItem();
-	g_object_unref(args->catalog_file);
-	g_free(args->catalogStars);
-	g_free(args->message);
 	free(args);
-
 	return FALSE;
 }
 
@@ -1322,7 +1298,7 @@ static void add_object_in_tree_view(const gchar *object) {
 }
 
 static void start_image_plate_solve() {
-	struct astrometry_data *args = malloc(sizeof(struct astrometry_data));
+	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 
 	args->for_photometry_cc = FALSE;
 	if (!fill_plate_solver_structure_from_GUI(args)) {
@@ -1625,54 +1601,54 @@ void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 gpointer match_catalog(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	GError *error = NULL;
-	psf_star **cstars;
+	psf_star **cstars = NULL;
 	int n_fit = 0, n_cat = 0;
 	Homography H = { 0 };
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
 	int max_trials = 0;
-	GFile *catalog;
-	GInputStream *input_stream;
+	GFile *catalog = NULL;
+	GInputStream *input_stream = NULL;
 	s_star star_list_A, star_list_B;
-	args->catalogStars = NULL;
+	fits fit_backup = { 0 };
+
+	args->ret = 1;
 	args->message = NULL;
+	args->solution = NULL;
 
 	if (!args->catalog_file) {
 		args->catalog_file = download_catalog(args->use_cache, args->onlineCatalog,
 				args->cat_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 		if (!args->catalog_file) {
-			siril_world_cs_unref(args->cat_center);	// TODO: good place to do that?
-			siril_log_message(_("Cannot download the online star catalog.\n"));
-			return GINT_TO_POINTER(1);
+			args->message = g_strdup(_("Cannot download the online star catalog."));
+			goto clearup;
 		}
 	}
 
 	if (args->downsample) {
-		args->fit_backup = calloc(1, sizeof(fits));
-		copyfits(args->fit, args->fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
 	}
 
+	psf_star **stars;
 	if (!args->manual) {
 		com.starfinder_conf.pixel_size_x = com.pref.focal;
 		com.starfinder_conf.focal_length = com.pref.pitch;
 
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 
-		com.stars = peaker(&im, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
+		stars = peaker(&im, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
 		com.starfinder_conf.pixel_size_x = 0.;
 		com.starfinder_conf.focal_length = 0.;
 	} else {
+		stars = com.stars;
 		if (com.stars)
 			while (com.stars[n_fit++]);
 	}
 
-	if (!com.stars || n_fit < AT_MATCH_STARTN_LINEAR) {
+	if (!stars || n_fit < AT_MATCH_STARTN_LINEAR) {
 		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
 				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
-		siril_log_message("%s\n", args->message);
-		args->ret = 1;
-		siril_add_idle(end_plate_solver, args);
-		return GINT_TO_POINTER(1);
+		goto clearup;
 	}
 	if (args->uncentered)
 		max_trials = 20; //retry to converge if solve is done at an offset from the center
@@ -1680,44 +1656,36 @@ gpointer match_catalog(gpointer p) {
 	cstars = new_fitted_stars(MAX_STARS);
 	if (!cstars) {
 		PRINT_ALLOC_ERR;
-		args->ret = 1;
-		siril_add_idle(end_plate_solver, args);
-		return GINT_TO_POINTER(1);
+		goto clearup;
 	}
 
 	/* project and open the file */
 	args->catalogStars = project_catalog(args->catalog_file, args->cat_center);
 	if (!args->catalogStars) {
-		siril_world_cs_unref(args->cat_center);
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No projection"), _("Cannot project the star catalog."));
-		return GINT_TO_POINTER(1);
+		args->message = g_strdup(_("Cannot project the star catalog."));
+		goto clearup;
 	}
 	catalog = g_file_new_for_path(args->catalogStars);
 	input_stream = (GInputStream*) g_file_read(catalog, NULL, &error);
-	if (input_stream == NULL) {
+	if (!input_stream) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
 		}
-		free_fitted_stars(cstars);
-		args->ret = 1;
-		siril_add_idle(end_plate_solver, args);
-		g_object_unref(catalog);
-		return GINT_TO_POINTER(1);
+		goto clearup;
 	}
 
 	n_cat = read_catalog(input_stream, cstars, args->onlineCatalog);
 
 	/* make sure that arrays are not too small
-	* make  sure that the max of stars is BRIGHTEST_STARS */
+	 * make sure that the max of stars is BRIGHTEST_STARS */
 	int n = min(min(n_fit, n_cat), BRIGHTEST_STARS);
 
 	double scale_min = args->scale - 0.2;
 	double scale_max = args->scale + 0.2;
-	args->ret = 1;
 	int attempt = 1;
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
-		args->ret = new_star_match(com.stars, cstars, n, nobj, scale_min,
+		args->ret = new_star_match(stars, cstars, n, nobj, scale_min,
 				scale_max, &H, args->for_photometry_cc,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
@@ -1728,203 +1696,233 @@ gpointer match_catalog(gpointer p) {
 		}
 		attempt++;
 	}
-	if (!args->ret) {
-		double conv = DBL_MAX;
-		image_solved *solution = malloc(sizeof(image_solved));
+	if (args->ret)
+		goto clearup;
 
-		memcpy(&solution->H, &H, sizeof(Homography));
-		solution->px_cat_center = siril_world_cs_ref(args->cat_center);
-		/* we only want to compare with linear function
-		* Maybe one day we will apply match with homography matrix
-		*/
-		TRANS trans = H_to_linear_TRANS(H);
-		if (check_affine_TRANS_sanity(trans)) {
-			double ra0, dec0;
-			point image_size = { args->fit->rx, args->fit->ry };
+	double conv = DBL_MAX;
+	image_solved *solution = malloc(sizeof(image_solved));
 
-			solution->size = image_size;
-			solution->crpix[0] = ((image_size.x - 1) / 2.0);
-			solution->crpix[1] = ((image_size.y - 1) / 2.0);
+	memcpy(&solution->H, &H, sizeof(Homography));
+	solution->px_cat_center = siril_world_cs_ref(args->cat_center);
+	/* we only want to compare with linear function
+	 * Maybe one day we will apply match with homography matrix
+	 */
+	TRANS trans = H_to_linear_TRANS(H);
+	if (!check_affine_TRANS_sanity(trans)) {
+		args->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
+		args->ret = 1;
+		goto clearup;
+	}
 
-			apply_match(solution->px_cat_center, solution->crpix, trans, &ra0, &dec0);
-			int num_matched = H.pair_matched;
-			int trial = 0;
+	double ra0, dec0;
+	solution->crpix[0] = ((args->fit->rx - 1) / 2.0);
+	solution->crpix[1] = ((args->fit->ry - 1) / 2.0);
+	if (args->downsample) {
+		clearfits(args->fit);
+		memcpy(args->fit, &fit_backup, sizeof(fits));
+		memset(&fit_backup, 0, sizeof(fits));
+	}
+	solution->size.x = args->fit->rx;
+	solution->size.y = args->fit->ry;
+	solution->pixel_size = args->pixel_size;
 
-			while ((conv > CONV_TOLERANCE) && (trial < max_trials) && (!args->ret)){
-				double rainit = siril_world_cs_get_alpha(args->cat_center);
-				double decinit = siril_world_cs_get_delta(args->cat_center);
-				double orig_ra0 = ra0;
-				double orig_dec0 = dec0;
+	apply_match(solution->px_cat_center, solution->crpix, trans, &ra0, &dec0);
+	int num_matched = H.pair_matched;
+	int trial = 0;
 
-				deproject_starlist(num_matched, &star_list_B, rainit, decinit, 1);
-				siril_debug_print("Deprojecting from: alpha: %s, delta: %s\n",
-						siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
-						siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
-				args->cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
-				solution->px_cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
+	/* try to get a better solution in case of uncentered selection */
+	while (conv > CONV_TOLERANCE && trial < max_trials){
+		double rainit = siril_world_cs_get_alpha(args->cat_center);
+		double decinit = siril_world_cs_get_delta(args->cat_center);
+		double orig_ra0 = ra0;
+		double orig_dec0 = dec0;
 
-				project_starlist(num_matched, &star_list_B, ra0, dec0, 1);
-				siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
-						siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
-						siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
-				solution->pixel_size = args->pixel_size;
+		deproject_starlist(num_matched, &star_list_B, rainit, decinit, 1);
+		siril_debug_print("Deprojecting from: alpha: %s, delta: %s\n",
+				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
+				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
+		args->cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
+		solution->px_cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
 
-				double scaleX = sqrt(solution->H.h00 * solution->H.h00 + solution->H.h01 * solution->H.h01);
-				double scaleY = sqrt(solution->H.h10 * solution->H.h10 + solution->H.h11 * solution->H.h11);
-				double resolution = (scaleX + scaleY) * 0.5; // we assume square pixels
-				solution->focal = RADCONV * solution->pixel_size / resolution;
-				siril_debug_print("Current focal: %0.2fmm\n", solution->focal);
+		project_starlist(num_matched, &star_list_B, ra0, dec0, 1);
+		siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
+				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
+				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
 
-				if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
-					siril_log_color_message(_("Updating homography failed.\n"), "red");
-					args->ret = 1;
-				}
-				trans = H_to_linear_TRANS(H);
-				memcpy(&solution->H, &H, sizeof(Homography));
-				apply_match(solution->px_cat_center, solution->crpix, trans, &ra0, &dec0);
+		double scaleX = sqrt(H.h00 * H.h00 + H.h01 * H.h01);
+		double scaleY = sqrt(H.h10 * H.h10 + H.h11 * H.h11);
+		double resolution = (scaleX + scaleY) * 0.5; // we assume square pixels
 
-				conv = fabs((dec0 - orig_dec0) / orig_dec0) + fabs((ra0 - orig_ra0) / orig_ra0);
+		double focal = RADCONV * solution->pixel_size / resolution;
+		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
-				trial += 1;
-			}
-			solution->pixel_size = args->pixel_size;
-
-
-			double scaleX = sqrt(solution->H.h00 * solution->H.h00 + solution->H.h01 * solution->H.h01);
-			double scaleY = sqrt(solution->H.h10 * solution->H.h10 + solution->H.h11 * solution->H.h11);
-			double resolution = (scaleX + scaleY) * 0.5; // we assume square pixels
-			solution->focal = RADCONV * solution->pixel_size / resolution;
-
-			solution->image_center = siril_world_cs_new_from_a_d(ra0, dec0);
-			if (max_trials == 0) {
-				siril_debug_print("Converged to: alpha: %0.8f, delta: %0.8f\n", ra0, dec0);
-			} else if (trial == max_trials) {
-				siril_debug_print("No convergence found: alpha: %0.8f, delta: %0.8f\n", ra0, dec0);
-			} else {
-				siril_debug_print("Converged to: alpha: %0.8f, delta: %0.8f at iteration #%d\n", ra0, dec0, trial);
-			}
-
-			double scalefactor = (args->downsample) ? 1.0 / DOWNSAMPLE_FACTOR : 1.0;
-			if (args->downsample) {
-				solution->size.x *= scalefactor;
-				solution->size.y *= scalefactor;
-				solution->focal *= scalefactor;
-				solution->crpix[0] = ((image_size.x - 1) / 2.0);
-				solution->crpix[1] = ((image_size.y - 1) / 2.0);
-			}
-
-			/* compute cd matrix */
-			double ra7, dec7, delta_ra;
-
-			/* first, convert center coordinates from deg to rad: */
-			dec0 *= DEGTORAD;
-			ra0 *= DEGTORAD;
-
-			/* make 1 step in direction crpix1 */
-			double crpix1[] = { solution->crpix[0] + 1.0 / scalefactor, solution->crpix[1] };
-			apply_match(solution->px_cat_center, crpix1, trans, &ra7, &dec7);
-
-			dec7 *= DEGTORAD;
-			ra7 *= DEGTORAD;
-
-			delta_ra = ra7 - ra0;
-			if (delta_ra > +M_PI)
-				delta_ra = 2.0 * M_PI - delta_ra;
-			if (delta_ra < -M_PI)
-				delta_ra = delta_ra - 2.0 * M_PI;
-			double cd1_1 = (delta_ra) * cos(dec0) * RADTODEG;
-			double cd2_1 = (dec7 - dec0) * RADTODEG;
-
-			/* make 1 step in direction crpix2
-			* WARNING: we use -1 because of the Y axis reversing */
-			double crpix2[] = { solution->crpix[0], solution->crpix[1] - 1.0 / scalefactor };
-			apply_match(solution->px_cat_center, crpix2, trans, &ra7, &dec7);
-
-			dec7 *= DEGTORAD;
-			ra7 *= DEGTORAD;
-
-			delta_ra = ra7 - ra0;
-			if (delta_ra > +M_PI)
-				delta_ra = 2.0 * M_PI - delta_ra;
-			if (delta_ra < -M_PI)
-				delta_ra = delta_ra - 2.0 * M_PI;
-			double cd1_2 = (delta_ra) * cos(dec0) * RADTODEG;
-			double cd2_2 = (dec7 - dec0) * RADTODEG;
-
-			// saving state for undo before modifying fit structure
-			const char *undo_str = args->for_photometry_cc ? _("Photometric CC") : _("Plate Solve");
-			fits *undo_fit = args->downsample ? args->fit_backup : args->fit;
-
-			undo_save_state(undo_fit, undo_str);
-
-			/**** Fill wcsdata fit structure ***/
-
-			args->fit->wcsdata.equinox = 2000.0;
-			args->fit->focal_length = solution->focal;
-			args->fit->pixel_size_x = args->fit->pixel_size_y = solution->pixel_size;
-			solution->crpix[0] *= scalefactor;
-			solution->crpix[1] *= scalefactor;
-
-			args->fit->wcsdata.crpix[0] = solution->crpix[0];
-			args->fit->wcsdata.crpix[1] = solution->crpix[1];
-			args->fit->wcsdata.crval[0] = ra0 * RADTODEG;
-			args->fit->wcsdata.crval[1] = dec0 * RADTODEG;
-
-			args->fit->wcsdata.ra = siril_world_cs_get_alpha(solution->image_center);
-			args->fit->wcsdata.dec = siril_world_cs_get_delta(solution->image_center);
-
-			args->fit->wcsdata.pltsolvd = TRUE;
-			g_snprintf(args->fit->wcsdata.pltsolvd_comment, 21, "Siril internal solver");
-
-			gchar *ra = siril_world_cs_alpha_format(solution->image_center, "%02d %02d %.3lf");
-			gchar *dec = siril_world_cs_delta_format(solution->image_center, "%c%02d %02d %.3lf");
-
-			g_sprintf(args->fit->wcsdata.objctra, "%s", ra);
-			g_sprintf(args->fit->wcsdata.objctdec, "%s", dec);
-
-			g_free(ra);
-			g_free(dec);
-
-			double cdelt1, cdelt2;
-
-			extract_cdelt_from_cd(cd1_1, cd1_2, cd2_1, cd2_2, &cdelt1, &cdelt2);
-
-			args->fit->wcsdata.cdelt[0] = cdelt1;
-			args->fit->wcsdata.cdelt[1] = cdelt2;
-
-			/* PC + CDELT seems to be the preferred approach
-			 * according to Calabretta private discussion
-			 *
-			 *    |cd11 cd12|  = |cdelt1      0| * |pc11 pc12|
-			 *    |cd21 cd22|    |0      cdelt2|   |pc21 pc22|
-			 */
-
-			args->fit->wcsdata.pc[0][0] = cd1_1 / cdelt1;
-			args->fit->wcsdata.pc[0][1] = cd1_2 / cdelt1;
-			args->fit->wcsdata.pc[1][0] = cd2_1 / cdelt2;
-			args->fit->wcsdata.pc[1][1] = cd2_2 / cdelt2;
-
-			siril_debug_print("****Solution found: WCS data*************\n");
-			siril_debug_print("crpix1 = %*.12e\n", 20, solution->crpix[0]);
-			siril_debug_print("crpix2 = %*.12e\n", 20, solution->crpix[1]);
-			siril_debug_print("crval1 = %*.12e\n", 20, ra0 * RADTODEG);
-			siril_debug_print("crval2 = %*.12e\n", 20, dec0 * RADTODEG);
-			siril_debug_print("cdelt1 = %*.12e\n", 20, cdelt1);
-			siril_debug_print("cdelt2 = %*.12e\n", 20, cdelt2);
-			siril_debug_print("pc1_1  = %*.12e\n", 20, args->fit->wcsdata.pc[0][0]);
-			siril_debug_print("pc1_2  = %*.12e\n", 20, args->fit->wcsdata.pc[0][1]);
-			siril_debug_print("pc2_1  = %*.12e\n", 20, args->fit->wcsdata.pc[1][0]);
-			siril_debug_print("pc2_2  = %*.12e\n", 20, args->fit->wcsdata.pc[1][1]);
-			siril_debug_print("******************************************\n");
-		} else {
+		if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
+			siril_log_color_message(_("Updating homography failed.\n"), "red");
 			args->ret = 1;
+			break;
 		}
-		args->solution = solution;
+		trans = H_to_linear_TRANS(H);
+		memcpy(&solution->H, &H, sizeof(Homography));
+		apply_match(solution->px_cat_center, solution->crpix, trans, &ra0, &dec0);
+
+		conv = fabs((dec0 - orig_dec0) / orig_dec0) + fabs((ra0 - orig_ra0) / orig_ra0);
+
+		trial++;
+	}
+
+	double scaleX = sqrt(solution->H.h00 * solution->H.h00 + solution->H.h01 * solution->H.h01);
+	double scaleY = sqrt(solution->H.h10 * solution->H.h10 + solution->H.h11 * solution->H.h11);
+	double resolution = (scaleX + scaleY) * 0.5; // we assume square pixels
+	solution->focal = RADCONV * solution->pixel_size / resolution;
+
+	solution->image_center = siril_world_cs_new_from_a_d(ra0, dec0);
+	if (max_trials == 0) {
+		siril_debug_print("Converged to: alpha: %0.8f, delta: %0.8f\n", ra0, dec0);
+	} else if (trial == max_trials) {
+		siril_debug_print("No convergence found: alpha: %0.8f, delta: %0.8f\n", ra0, dec0);
+	} else {
+		siril_debug_print("Converged to: alpha: %0.8f, delta: %0.8f at iteration #%d\n", ra0, dec0, trial);
+	}
+
+	double scalefactor = (args->downsample) ? 1.0 / DOWNSAMPLE_FACTOR : 1.0;
+	if (args->downsample)
+		solution->focal *= scalefactor;
+
+	/* compute cd matrix */
+	double ra7, dec7, delta_ra;
+
+	/* first, convert center coordinates from deg to rad: */
+	dec0 *= DEGTORAD;
+	ra0 *= DEGTORAD;
+
+	/* make 1 step in direction crpix1 */
+	double crpix1[] = { solution->crpix[0] + 1.0 / scalefactor, solution->crpix[1] };
+	apply_match(solution->px_cat_center, crpix1, trans, &ra7, &dec7);
+
+	dec7 *= DEGTORAD;
+	ra7 *= DEGTORAD;
+
+	delta_ra = ra7 - ra0;
+	if (delta_ra > +M_PI)
+		delta_ra = 2.0 * M_PI - delta_ra;
+	if (delta_ra < -M_PI)
+		delta_ra = delta_ra - 2.0 * M_PI;
+	double cd1_1 = (delta_ra) * cos(dec0) * RADTODEG;
+	double cd2_1 = (dec7 - dec0) * RADTODEG;
+
+	/* make 1 step in direction crpix2
+	 * WARNING: we use -1 because of the Y axis reversing */
+	double crpix2[] = { solution->crpix[0], solution->crpix[1] - 1.0 / scalefactor };
+	apply_match(solution->px_cat_center, crpix2, trans, &ra7, &dec7);
+
+	dec7 *= DEGTORAD;
+	ra7 *= DEGTORAD;
+
+	delta_ra = ra7 - ra0;
+	if (delta_ra > +M_PI)
+		delta_ra = 2.0 * M_PI - delta_ra;
+	if (delta_ra < -M_PI)
+		delta_ra = delta_ra - 2.0 * M_PI;
+	double cd1_2 = (delta_ra) * cos(dec0) * RADTODEG;
+	double cd2_2 = (dec7 - dec0) * RADTODEG;
+
+	// saving state for undo before modifying fit structure
+	const char *undo_str = args->for_photometry_cc ? _("Photometric CC") : _("Plate Solve");
+	undo_save_state(args->fit, undo_str);
+
+	/**** Fill wcsdata fit structure ***/
+
+	args->fit->wcsdata.equinox = 2000.0;
+	args->fit->focal_length = solution->focal;
+	args->fit->pixel_size_x = args->fit->pixel_size_y = solution->pixel_size;
+	solution->crpix[0] *= scalefactor;
+	solution->crpix[1] *= scalefactor;
+
+	args->fit->wcsdata.crpix[0] = solution->crpix[0];
+	args->fit->wcsdata.crpix[1] = solution->crpix[1];
+	args->fit->wcsdata.crval[0] = ra0 * RADTODEG;
+	args->fit->wcsdata.crval[1] = dec0 * RADTODEG;
+
+	args->fit->wcsdata.ra = siril_world_cs_get_alpha(solution->image_center);
+	args->fit->wcsdata.dec = siril_world_cs_get_delta(solution->image_center);
+
+	args->fit->wcsdata.pltsolvd = TRUE;
+	g_snprintf(args->fit->wcsdata.pltsolvd_comment, 21, "Siril internal solver");
+
+	gchar *ra = siril_world_cs_alpha_format(solution->image_center, "%02d %02d %.3lf");
+	gchar *dec = siril_world_cs_delta_format(solution->image_center, "%c%02d %02d %.3lf");
+
+	g_sprintf(args->fit->wcsdata.objctra, "%s", ra);
+	g_sprintf(args->fit->wcsdata.objctdec, "%s", dec);
+
+	g_free(ra);
+	g_free(dec);
+
+	double cdelt1, cdelt2;
+
+	extract_cdelt_from_cd(cd1_1, cd1_2, cd2_1, cd2_2, &cdelt1, &cdelt2);
+
+	args->fit->wcsdata.cdelt[0] = cdelt1;
+	args->fit->wcsdata.cdelt[1] = cdelt2;
+
+	/* PC + CDELT seems to be the preferred approach
+	 * according to Calabretta private discussion
+	 *
+	 *    |cd11 cd12|  = |cdelt1      0| * |pc11 pc12|
+	 *    |cd21 cd22|    |0      cdelt2|   |pc21 pc22|
+	 */
+
+	args->fit->wcsdata.pc[0][0] = cd1_1 / cdelt1;
+	args->fit->wcsdata.pc[0][1] = cd1_2 / cdelt1;
+	args->fit->wcsdata.pc[1][0] = cd2_1 / cdelt2;
+	args->fit->wcsdata.pc[1][1] = cd2_2 / cdelt2;
+
+	siril_debug_print("****Solution found: WCS data*************\n");
+	siril_debug_print("crpix1 = %*.12e\n", 20, solution->crpix[0]);
+	siril_debug_print("crpix2 = %*.12e\n", 20, solution->crpix[1]);
+	siril_debug_print("crval1 = %*.12e\n", 20, ra0 * RADTODEG);
+	siril_debug_print("crval2 = %*.12e\n", 20, dec0 * RADTODEG);
+	siril_debug_print("cdelt1 = %*.12e\n", 20, cdelt1);
+	siril_debug_print("cdelt2 = %*.12e\n", 20, cdelt2);
+	siril_debug_print("pc1_1  = %*.12e\n", 20, args->fit->wcsdata.pc[0][0]);
+	siril_debug_print("pc1_2  = %*.12e\n", 20, args->fit->wcsdata.pc[0][1]);
+	siril_debug_print("pc2_1  = %*.12e\n", 20, args->fit->wcsdata.pc[1][0]);
+	siril_debug_print("pc2_2  = %*.12e\n", 20, args->fit->wcsdata.pc[1][1]);
+	siril_debug_print("******************************************\n");
+
+	args->solution = solution;
+
+#if 0
+	/* new code below, moved from the idle */
+	load_WCS_from_memory(args->fit);
+	print_platesolving_results(solution, args->downsample);
+	if (args->for_photometry_cc) {
+		apply_photometric_cc();
+	}
+	if (args->flip_image && image_is_flipped(solution->H)) {
+		siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
+		fits_flip_top_to_bottom(args->fit);
+		flip_bottom_up_astrometry_data(args->fit);
+	}
+	/* what do we do with solution ? */
+#endif
+
+clearup:
+	if (fit_backup.rx != 0) {
+		clearfits(args->fit);
+		memcpy(args->fit, &fit_backup, sizeof(fits));
 	}
 	/* free data */
-	if (n_cat > 0) free_fitted_stars(cstars);
-	g_object_unref(input_stream);
-	g_object_unref(catalog);
+	siril_world_cs_unref(args->cat_center);
+	if (cstars)
+		free_fitted_stars(cstars);
+	if (input_stream)
+		g_object_unref(input_stream);
+	if (catalog)
+		g_object_unref(catalog);
+	if (args->catalog_file)
+		g_object_unref(args->catalog_file);
+	g_free(args->catalogStars);
 	siril_add_idle(end_plate_solver, args);
 	return GINT_TO_POINTER(args->ret);
 }
@@ -2005,7 +2003,6 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			croparea.y += (int) ((croparea.h - croparea.h * cropfactor) / 2);
 			croparea.w = (int) (cropfactor * croparea.w);
 			croparea.h = (int) (cropfactor * croparea.h);
-			// TODO calc center offset if need
 			siril_log_message(_("Auto-cropped factor: %.2f\n"), cropfactor);
 		}
 
@@ -2032,38 +2029,40 @@ void process_plate_solver_input(struct astrometry_data *args) {
 
 	if (croparea.w == args->fit->rx && croparea.h == args->fit->ry)
 		memset(&croparea, 0, sizeof(rectangle));
-	siril_debug_print("area for the solve: %d, %d, %d x %d )\n", croparea.x, croparea.y, croparea.w, croparea.h);
+	else siril_debug_print("reduced area for the solve: %d, %d, %d x %d\n", croparea.x, croparea.y, croparea.w, croparea.h);
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
-	compute_mag_limit(args);
+
+	compute_mag_limit(args); // to call after having set args->used_fov
 }
 
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
-	SirilWorldCS *catalog_center;
-
+	args->fit = &gfit;
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
+	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
+		get_online_catalog(args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 
-	args->autocrop = is_autocrop_activated();
-	args->manual = is_detection_manual();
-	args->downsample = is_downsample_activated();
-	args->use_cache = is_cache_activated();
-	args->fit = &gfit;
-	set_cursor_waiting(TRUE);
-
-	catalog_center = get_center_of_catalog();
-
+	SirilWorldCS *catalog_center = get_center_of_catalog();
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center) == 0.0) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), _("Please enter object coordinates."));
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
+	args->cat_center = catalog_center;
 
+	args->downsample = is_downsample_activated();
+	args->use_cache = is_cache_activated();
+	args->autocrop = is_autocrop_activated();
+	args->flip_image = flip_image_after_ps();
+	args->manual = is_detection_manual();
 	get_mag_from_GUI(args);
+
+	set_cursor_waiting(TRUE);
 
 	process_plate_solver_input(args);
 
-	/* Filling structure */
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_online_catalog(args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+	/* currently the GUI version downloads the catalog here, because
+	 * siril_message_dialog() doesn't use idle function, we could change that */
 	GFile *catalog_file = download_catalog(args->use_cache, args->onlineCatalog, catalog_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 	if (!catalog_file) {
 		siril_world_cs_unref(catalog_center);
@@ -2071,9 +2070,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		set_cursor_waiting(FALSE);
 		return 1;
 	}
-	args->cat_center = catalog_center; //for projection later on
 	args->catalog_file = catalog_file;
-	args->flip_image = flip_image_after_ps();
 
 	set_cursor_waiting(FALSE);
 	return 0;

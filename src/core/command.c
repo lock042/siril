@@ -5082,6 +5082,7 @@ int process_pcc(int nb) {
 			forced_focal = g_ascii_strtod(arg, NULL);
 			if (forced_focal <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				siril_world_cs_unref(target_coords);
 				return 1;
 			}
 		}
@@ -5090,11 +5091,13 @@ int process_pcc(int nb) {
 			forced_pixsize = g_ascii_strtod(arg, NULL);
 			if (forced_pixsize <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				siril_world_cs_unref(target_coords);
 				return 1;
 			}
 		}
 		else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+				siril_world_cs_unref(target_coords);
 			return 1;
 		}
 		next_arg++;
@@ -5112,6 +5115,7 @@ int process_pcc(int nb) {
 			//args->pixel_size = com.pref.pitch;
 			if (args->pixel_size <= 0.0) {
 				siril_log_message(_("Pixel size not found in image or in settings, cannot proceed\n"));
+				siril_world_cs_unref(target_coords);
 				free(args);
 				return 1;
 			}
@@ -5130,6 +5134,7 @@ int process_pcc(int nb) {
 			//args->focal_length = com.pref.focal;
 			if (args->focal_length <= 0.0) {
 				siril_log_message(_("Focal length not found in image or in settings, cannot proceed\n"));
+				siril_world_cs_unref(target_coords);
 				free(args);
 				return 1;
 			}

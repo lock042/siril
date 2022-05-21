@@ -56,7 +56,6 @@ struct astrometry_data {
 	gchar *catalogStars;	// file name of the transformed catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
-	fits *fit_backup;	// original image in case of downsample
 
 	/* results */
 	int ret;		// return value
