@@ -15,7 +15,14 @@
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
 #define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
 
-typedef struct image_solved_struct image_solved;
+typedef struct {
+	point size;
+	SirilWorldCS *px_cat_center;
+	SirilWorldCS *image_center;
+	double crpix[2];
+	double pixel_size, focal;
+	Homography H;
+} image_solved;
 
 typedef enum {
 	TYCHO2,
@@ -26,6 +33,21 @@ typedef enum {
 	BRIGHT_STARS,
 	APASS
 } online_catalog;
+
+typedef enum {
+	RESOLVER_UNSET = -1,
+	RESOLVER_NED = 0,
+	RESOLVER_SIMBAD,
+	RESOLVER_VIZIER,
+	RESOLVER_NUMBER,
+} resolver_t;
+
+
+typedef enum {
+	QUERY_SERVER_CDS,
+	QUERY_SERVER_VIZIER,
+	QUERY_SERVER_SIMBAD
+} query_server;
 
 enum {
 	WCS_FORMALISM_2,
@@ -63,8 +85,17 @@ struct astrometry_data {
 	image_solved *solution;	// the astrometry solution for the image
 };
 
+struct sky_object {
+	gchar *name;
+	double radius;
+	int maxRecords;
+	SirilWorldCS *world_cs;
+	point imageCenter;
+	gboolean south;
+};
+
 void open_astrometry_dialog();
-gchar *search_in_catalogs(const gchar *object);
+gchar *search_in_catalogs(const gchar *object, query_server server);
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
@@ -80,5 +111,18 @@ void crop_astrometry_data(fits *fit, point shift);
 SirilWorldCS *get_image_solved_px_cat_center(image_solved *image);
 SirilWorldCS *get_image_solved_image_center(image_solved *image);
 void set_focal_and_pixel_pitch();
+
+/* for the GUI */
+double get_resolution(double focal, double pixel);
+void free_Platedobject();
+int parse_content_buffer(char *buffer, struct sky_object *obj);
+gboolean has_nonzero_coords();
+gboolean has_any_keywords();
+GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag);
+
+/* from the GUI */
+void update_coords();
+gboolean end_plate_solver(gpointer p);
+
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */
