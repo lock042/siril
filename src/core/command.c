@@ -3772,8 +3772,8 @@ int process_register(int nb) {
 		return 1;
 	}
 
-	struct registration_args *reg_args;
-	struct registration_method *method;
+	struct registration_args *reg_args = NULL;
+	struct registration_method *method = NULL;
 	char *msg;
 
 	sequence *seq = load_sequence(word[1], NULL);
@@ -3841,7 +3841,7 @@ int process_register(int nb) {
 					continue;
 				}
 				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-				return 1;
+				goto terminate_register_on_error;
 			} else if (g_str_has_prefix(word[i], "-layer=")) {
 				if (reg_args->seq->nb_layers == 1) {  // handling mono case
 					siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
@@ -3973,8 +3973,126 @@ int process_register(int nb) {
 	return 0;
 
 terminate_register_on_error:
-	free(reg_args);
+	g_free(reg_args);
+	g_free(method);
+	return 1;
+}
+
+int process_seq_applyreg(int nb) {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	struct registration_args *reg_args = NULL;
+	struct registration_method *method = NULL;
+	char *msg;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return 1;
+
+	// TODO: check that registration exists first
+
+	/* getting the selected registration method */
+	method = malloc(sizeof(struct registration_method));
+	method->name = strdup(_("Apply registration"));
+	method->method_ptr = &register_apply_reg;
+	method->sel = REQUIRES_NO_SELECTION;
+	method->type = REGTYPE_DEEPSKY;
+
+	reg_args = calloc(1, sizeof(struct registration_args));
+
+	/* filling the arguments for registration */
+	reg_args->func = method->method_ptr;
+	reg_args->seq = seq;
+	reg_args->reference_image = sequence_find_refimage(seq);
+	reg_args->process_all_frames = TRUE;
+	reg_args->no_output = FALSE;
+	reg_args->x2upscale = FALSE;
+	reg_args->prefix = "r_";
+	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
+	reg_args->interpolation = OPENCV_AREA;
+
+	/* check for options */
+	for (int i = 2; i < nb; i++) {
+		if (word[i]) {
+			if (!strcmp(word[i], "-drizzle")) {
+				reg_args->x2upscale = TRUE;
+			} else if (g_str_has_prefix(word[i], "-selected")) {
+				reg_args->process_all_frames = FALSE;
+			} else if (g_str_has_prefix(word[i], "-prefix=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					goto terminate_register_on_error;
+				}
+				reg_args->prefix = strdup(value);
+			} else if (g_str_has_prefix(word[i], "-interp=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					goto terminate_register_on_error;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+					reg_args->interpolation = OPENCV_NEAREST;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+					reg_args->interpolation = OPENCV_CUBIC;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+					reg_args->interpolation = OPENCV_LANCZOS4;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+					reg_args->interpolation = OPENCV_LINEAR;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+					reg_args->interpolation = OPENCV_NONE;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+					reg_args->interpolation = OPENCV_AREA;
+					continue;
+				}
+				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+				goto terminate_register_on_error;
+			}
+		}
+	}
+
+	// Remove the files that we are about to create
+	remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
+
+	// testing free space
+	int nb_frames = reg_args->process_all_frames ? reg_args->seq->number : reg_args->seq->selnum;
+	int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
+	if (reg_args->x2upscale)
+		size *= 4;
+	if (test_available_space(size) > 0) {
+		goto terminate_register_on_error;
+	}
+
+	reg_args->run_in_thread = TRUE;
+	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+
+	msg = siril_log_color_message(
+			_("Registration: Applying existing data\n"), "green");
 	free(method);
+	msg[strlen(msg) - 1] = '\0';
+	set_progress_bar_data(msg, PROGRESS_RESET);
+
+	start_in_new_thread(register_thread_func, reg_args);
+	return 0;
+
+terminate_register_on_error:
+	g_free(reg_args);
+	g_free(method);
 	return 1;
 }
 

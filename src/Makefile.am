@@ -236,6 +236,7 @@ siril_common_SOURCES = \
 	pixelMath/pixel_math_runner.h \
 	pixelMath/tinyexpr.c \
 	pixelMath/tinyexpr.h \
+	registration/applyreg.c \
 	registration/3stars.c \
 	registration/comet.c \
 	registration/global.c \

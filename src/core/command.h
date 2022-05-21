@@ -106,6 +106,7 @@ int	process_set_compress(int nb);
 int	process_set_cpu(int nb);
 #endif
 int	process_set_ext(int nb);
+int process_seq_applyreg(int nb);
 int process_seq_clean(int nb);
 int	process_seq_extractHa(int nb);
 int	process_seq_extractGreen(int nb);

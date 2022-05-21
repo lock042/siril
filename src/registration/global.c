@@ -189,20 +189,22 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	/* copying refstars to com.stars for display */
-	com.stars = new_fitted_stars(MAX_STARS);
-	if (com.stars) {
-		i = 0;
-		while (i < MAX_STARS && sadata->refstars[i]) {
-			psf_star *tmp = new_psf_star();
-			if (!tmp) {
-				PRINT_ALLOC_ERR;
-				com.stars[i] = NULL;
-				break;
+	if (sequence_is_loaded()) {
+		com.stars = new_fitted_stars(MAX_STARS);
+		if (com.stars) {
+			i = 0;
+			while (i < MAX_STARS && sadata->refstars[i]) {
+				psf_star *tmp = new_psf_star();
+				if (!tmp) {
+					PRINT_ALLOC_ERR;
+					com.stars[i] = NULL;
+					break;
+				}
+				memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
+				com.stars[i] = tmp;
+				com.stars[i+1] = NULL;
+				i++;
 			}
-			memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
-			com.stars[i] = tmp;
-			com.stars[i+1] = NULL;
-			i++;
 		}
 	}
 
