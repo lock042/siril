@@ -188,6 +188,8 @@ int process_seq_clean(int nb) {
 			siril_log_message(_("Statistics data cleared for layer %d\n"), i);
 		}
 	}
+	// unsetting ref image
+	seq->reference_image = -1;
 	writeseqfile(seq);
 	free_sequence(seq, FALSE);
 	return 0;

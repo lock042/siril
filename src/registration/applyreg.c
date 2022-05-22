@@ -123,6 +123,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct registration_args *regargs = sadata->regargs;
 
 	Homography H = { 0 };
+	Homography Href = { 0 };
+	Homography Himg = { 0 };
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 
 	if (in_index != regargs->reference_image) {
@@ -133,8 +135,10 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-
-		H = regargs->seq->regparam[regargs->layer][in_index].H;
+		// Composing transformation wrt reference image
+		Himg = regargs->seq->regparam[regargs->layer][in_index].H;
+		Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+		cvTransfH(Himg, Href, &H);
 
 		if (regargs->interpolation <= OPENCV_LANCZOS4) {
 			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
@@ -192,8 +196,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	} else {
 		// reference image
-		cvGetEye(&H);
-		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
@@ -414,8 +416,8 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.type = args->seq->type;
 	seq.current = -1;
 	seq.is_variable = args->seq->is_variable;
-	// don't copy from old sequence, it may not be the same image
-	seq.reference_image = sequence_find_refimage(&seq);
+	// Copy from old sequence, we want to keep them consistent
+	seq.reference_image = args->seq->reference_image;
 	seq.needs_saving = TRUE;
 	writeseqfile(&seq);
 	free_sequence(&seq, FALSE);
