@@ -365,7 +365,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].number_of_stars = nb_stars;
 		sadata->current_regdata[in_index].H = H;
 
-		// TODO - will need to extract this bit and make it available for all the registration methods
+		// TODO - will need to extract this bit and make it available for all the registration methods ?
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {

@@ -137,6 +137,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 #endif
 		// Composing transformation wrt reference image
 		Himg = regargs->seq->regparam[regargs->layer][in_index].H;
+		if (guess_transform_from_H(Himg) == -2)  return 1; // in case H is null and -selected was not passed
 		Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 		cvTransfH(Himg, Href, &H);
 
@@ -277,7 +278,7 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 	args->user = NULL;
 
 	if (!args->retval) {
-		siril_log_message(_("Applying transformation completed.\n"));
+		siril_log_message(_("Applying registration completed.\n"));
 		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
 		str = g_strdup_printf(str, args->nb_filtered_images);
 		siril_log_color_message(str, "green");
@@ -423,7 +424,8 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	free_sequence(&seq, FALSE);
 }
 
-static int guess_transform_from_H(Homography H) {
+int guess_transform_from_H(Homography H) {
+	if ((H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__) return -2; //null matrix
 	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__) return HOMOGRAPHY_TRANSFORMATION;
 	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ && fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
 		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__) return SHIFT_TRANSFORMATION;
@@ -434,7 +436,7 @@ static int guess_transform_from_H(Homography H) {
 }
 
 int guess_transform_from_seq(sequence *seq, int layer) {
-	int retval = -2, val;
+	int retval = -3, val;
 
 	if (!seq->regparam && !seq->regparam[layer]) {
 		siril_debug_print("No registration data found in sequence or layer\n");
