@@ -4087,6 +4087,12 @@ int process_seq_applyreg(int nb) {
 		}
 	}
 
+	// check the reference image matrix is not null
+	int checkH = guess_transform_from_H(seq->regparam[layer][seq->reference_image].H);
+	if (checkH == -2) {
+		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, aborting\n"), "red");
+		goto terminate_register_on_error;
+	}
 	// check the number of dof if -interp=none
 	int dof = guess_transform_from_seq(seq, layer);
 	if (dof > SHIFT_TRANSFORMATION && reg_args->interpolation == OPENCV_NONE) {
