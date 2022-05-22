@@ -4079,12 +4079,24 @@ int process_seq_applyreg(int nb) {
 				gchar *end;
 				int layer2 = g_ascii_strtoull(value, &end, 10);
 				if (!(seq->regparam[layer2])) {
-					siril_log_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), layer2, layer);
+					siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
 					continue;
 				}
 				reg_args->layer = layer2;
 			}
 		}
+	}
+
+	// check the number of dof if -interp=none
+	int dof = guess_transform_from_seq(seq, layer);
+	if (dof > SHIFT_TRANSFORMATION && reg_args->interpolation == OPENCV_NONE) {
+		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", (dof + 1) * 2);
+		goto terminate_register_on_error;
+	}
+	// check that we are not trying to apply identity transform to all the images
+	if (dof == -1) {
+		siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
+		goto terminate_register_on_error;
 	}
 
 	// Remove the files that we are about to create

@@ -423,4 +423,29 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	free_sequence(&seq, FALSE);
 }
 
+static int guess_transform_from_H(Homography H) {
+	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__) return HOMOGRAPHY_TRANSFORMATION;
+	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ && fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
+		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__) return SHIFT_TRANSFORMATION;
+		return -1; //identity matrix
+	}
+	if (fabs(H.h10 / (H.h00 + __DBL_EPSILON__) + H.h01 / (H.h11 + __DBL_EPSILON__)) < __DBL_EPSILON__) return SIMILARITY_TRANSFORMATION;
+	return AFFINE_TRANSFORMATION;
+}
+
+int guess_transform_from_seq(sequence *seq, int layer) {
+	int retval = -2, val;
+
+	if (!seq->regparam && !seq->regparam[layer]) {
+		siril_debug_print("No registration data found in sequence or layer\n");
+		return retval;
+	}
+	for (int i = 0; i < seq->number; i++){
+		if (!(&seq->regparam[layer][i])) continue;
+		val = guess_transform_from_H(seq->regparam[layer][i].H);
+		siril_debug_print("Image #%d - transf = %d\n", i+1, val);
+		if (retval < val) retval = val;
+	}
+	return retval;
+}
 

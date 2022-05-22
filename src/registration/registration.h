@@ -120,6 +120,7 @@ int star_align_finalize_hook(struct generic_seq_args *args);
 const char *describe_transformation_type(transformation_type type);
 
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
+int guess_transform_from_seq(sequence *seq, int layer);
 
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
