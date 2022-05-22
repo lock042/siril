@@ -3792,7 +3792,7 @@ int process_register(int nb) {
 	reg_args = calloc(1, sizeof(struct registration_args));
 
 	/* filling the arguments for registration */
-	reg_args->func = &register_star_alignment;
+	reg_args->func = method->method_ptr;
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->process_all_frames = TRUE;
@@ -4018,7 +4018,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
-	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
+	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_AREA;
 
 	/* check for options */
@@ -4069,6 +4069,20 @@ int process_seq_applyreg(int nb) {
 				}
 				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 				goto terminate_register_on_error;
+			} else if (g_str_has_prefix(word[i], "-layer=")) {
+				if (reg_args->seq->nb_layers == 1) {  // handling mono case
+					siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
+					continue;
+				}
+				char *current = word[i], *value;
+				value = current + 7;
+				gchar *end;
+				int layer2 = g_ascii_strtoull(value, &end, 10);
+				if (!(seq->regparam[layer2])) {
+					siril_log_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), layer2, layer);
+					continue;
+				}
+				reg_args->layer = layer2;
 			}
 		}
 	}

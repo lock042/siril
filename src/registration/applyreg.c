@@ -49,7 +49,7 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
 	if (regargs->seq->regparam[regargs->layer]) {
 		siril_log_message(
-				_("Applying existing registration for this layer to transform the images\n"));
+				_("Applying existing registration from layer #%d to transform the images\n"), regargs->layer);
 		current_regdata = regargs->seq->regparam[regargs->layer];
 	} else {
 		siril_log_message(
