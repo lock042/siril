@@ -3792,7 +3792,7 @@ int process_register(int nb) {
 	reg_args = calloc(1, sizeof(struct registration_args));
 
 	/* filling the arguments for registration */
-	reg_args->func = method->method_ptr;
+	reg_args->func = &register_star_alignment;
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->process_all_frames = TRUE;
@@ -3987,26 +3987,31 @@ int process_seq_applyreg(int nb) {
 	}
 
 	struct registration_args *reg_args = NULL;
-	struct registration_method *method = NULL;
 	char *msg;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return 1;
 
-	// TODO: check that registration exists first
-
-	/* getting the selected registration method */
-	method = malloc(sizeof(struct registration_method));
-	method->name = strdup(_("Apply registration"));
-	method->method_ptr = &register_apply_reg;
-	method->sel = REQUIRES_NO_SELECTION;
-	method->type = REGTYPE_DEEPSKY;
-
 	reg_args = calloc(1, sizeof(struct registration_args));
 
+	// check that registration exists for one layer at least
+	int layer = -1;
+	if (seq->regparam){
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam[i]) {
+				layer = i;
+				break;
+			}
+		}
+	}
+	if (layer == -1) {
+		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
+		goto terminate_register_on_error; 
+	}
+
 	/* filling the arguments for registration */
-	reg_args->func = method->method_ptr;
+	reg_args->func = &register_apply_reg;
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->process_all_frames = TRUE;
@@ -4085,7 +4090,6 @@ int process_seq_applyreg(int nb) {
 
 	msg = siril_log_color_message(
 			_("Registration: Applying existing data\n"), "green");
-	free(method);
 	msg[strlen(msg) - 1] = '\0';
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
@@ -4094,7 +4098,6 @@ int process_seq_applyreg(int nb) {
 
 terminate_register_on_error:
 	g_free(reg_args);
-	g_free(method);
 	return 1;
 }
 

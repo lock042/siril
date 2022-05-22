@@ -365,7 +365,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->image_hook = apply_reg_image_hook;
 	args->finalize_hook = apply_reg_finalize_hook;
 	args->stop_on_error = FALSE;
-	args->description = _("Global star registration");
+	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
