@@ -1109,10 +1109,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
 	start_in_reserved_thread(register_thread_func, reg_args);
 }
-/* callback for 'Apply existing registration' button, GTK thread */
-void on_applyregister_button_clicked(GtkButton *button, gpointer user_data) {
-	//TODO - apply existing registration
-}
 
 // worker thread function for the registration
 gpointer register_thread_func(gpointer p) {
