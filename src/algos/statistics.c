@@ -955,7 +955,9 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 			}
 		}
 
+#ifdef _OPENMP
 		free(threads_per_thread);
+#endif
 
 		if (seq->type != SEQ_INTERNAL && fit == &local_fit)
 			clearfits(&local_fit);
@@ -1014,7 +1016,9 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 			retval = -1;
 	}
 
+#ifdef _OPENMP
 	free(threads_per_thread);
+#endif
 
 	return retval;
 }

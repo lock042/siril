@@ -1261,7 +1261,7 @@ int process_autostretch(int nb) {
 		linked = TRUE;
 		arg_index++;
 	}
-	gchar *end;
+	gchar *end = NULL;
 	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
 	if (nb > arg_index)
 		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
@@ -2336,7 +2336,7 @@ int process_findhot(int nb){
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			siril_log_message(_("Cauld not open file: %s\n"), filename);
+			siril_log_message(_("Could not open file: %s\n"), filename);
 		}
 		g_object_unref(file);
 		return 1;
@@ -3184,6 +3184,7 @@ int process_seq_mtf(int nb) {
 			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		free(args);
 		return 1;
 	}
 
@@ -5208,9 +5209,9 @@ int process_rgbcomp(int nb) {
 			gdouble h, s, el, rd, gd, bd;
 			rgb_to_hsl(r.fdata[i], g.fdata[i], b.fdata[i], &h, &s, &el);
 			hsl_to_rgb(h, s, l.fdata[i], &rd, &gd, &bd);
-			rgb.fpdata[0][i] = (float)rd;
-			rgb.fpdata[1][i] = (float)gd;
-			rgb.fpdata[1][i] = (float)bd;
+			rgb.fpdata[RLAYER][i] = (float)rd;
+			rgb.fpdata[GLAYER][i] = (float)gd;
+			rgb.fpdata[BLAYER][i] = (float)bd;
 		}
 		clearfits(&l);
 		default_result_name = "composed_lrgb";
@@ -5231,9 +5232,9 @@ int process_rgbcomp(int nb) {
 		}
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
-			rgb.fpdata[0][i] = r.fdata[i];
-			rgb.fpdata[1][i] = g.fdata[i];
-			rgb.fpdata[1][i] = b.fdata[i];
+			rgb.fpdata[RLAYER][i] = r.fdata[i];
+			rgb.fpdata[GLAYER][i] = g.fdata[i];
+			rgb.fpdata[BLAYER][i] = b.fdata[i];
 		}
 		next_arg = 4;
 		default_result_name = "composed_rgb";

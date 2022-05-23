@@ -255,7 +255,7 @@ static int affine_transform_hook(struct generic_seq_args *args, int out_index, i
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int refimage = regargs->reference_image;
-	Homography H;
+	Homography H = { 0 };
 	int nb_stars = 3;
 	if (!results[refimage].stars[2])
 		nb_stars = 2;
