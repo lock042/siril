@@ -435,19 +435,24 @@ int guess_transform_from_H(Homography H) {
 	return AFFINE_TRANSFORMATION;
 }
 
-int guess_transform_from_seq(sequence *seq, int layer) {
-	int retval = -3, val;
+void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboolean excludenull) {
+	int val;
+	*min = HOMOGRAPHY_TRANSFORMATION;
+	*max = -3;
 
 	if (!seq->regparam && !seq->regparam[layer]) {
 		siril_debug_print("No registration data found in sequence or layer\n");
-		return retval;
+		return;
 	}
 	for (int i = 0; i < seq->number; i++){
 		if (!(&seq->regparam[layer][i])) continue;
 		val = guess_transform_from_H(seq->regparam[layer][i].H);
 		siril_debug_print("Image #%d - transf = %d\n", i+1, val);
-		if (retval < val) retval = val;
+		if (*max < val) *max = val;
+		if (*min > val) *min = val;
+		if ((val == -2) && excludenull) {
+			seq->imgparam[i].incl = FALSE;
+		}
 	}
-	return retval;
 }
 
