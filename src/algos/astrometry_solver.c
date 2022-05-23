@@ -294,7 +294,7 @@ static char *fetch_url(const char *url) {
 		case 502:
 		case 503:
 		case 504:
-			siril_log_message("Fetch failed with code %ld for URL %s\n", code, url);
+			siril_log_message(_("Failed to download page %s (error %ld)\n"), url, code);
 
 			if (retries) {
 				s = 2 * (DEFAULT_FETCH_RETRIES - retries) + 2;
@@ -396,7 +396,7 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 			fields = g_strsplit(token[i], " ", -1);
 			sscanf(fields[1], "%lf", &center.x);
 			sscanf(fields[2], "%lf", &center.y);
-			if (resolver != -1) {
+			if (resolver != RESOLVER_UNSET) {
 				platedObject[resolver].world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
 
 				/* others */
@@ -405,14 +405,14 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 			}
 			g_strfreev(fields);
 		} else if (g_str_has_prefix (token[i], "%I.0 ")) {
-			if (resolver != -1) {
+			if (resolver != RESOLVER_UNSET) {
 				gchar *name = g_strstr_len(token[i], strlen(token[i]), "%I.0 ");
 				gchar *realname;
 				realname = g_strdup(name + 5);
 				platedObject[resolver].name = realname;
 			}
 		} else if (g_str_has_prefix (token[i], "%I NAME ")) {
-			if (resolver != -1) {
+			if (resolver != RESOLVER_UNSET) {
 				gchar *name = g_strstr_len(token[i], strlen(token[i]), "%I NAME ");
 				gchar *realname;
 				realname = g_strdup(name + 5 + 3);
@@ -422,7 +422,7 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 		} else if (SIMBAD_alternative) {
 			fields = g_strsplit(token[i], "\t", -1);
 			guint n = g_strv_length(token);
-			if (n > 2) {
+			if (n > 2 && resolver != RESOLVER_UNSET) {
 				sscanf(fields[1], "%lf", &center.x);
 				sscanf(fields[2], "%lf", &center.y);
 				gchar *realname = g_shell_unquote(fields[3], NULL);
@@ -573,13 +573,13 @@ static void print_platesolving_results(image_solved *image, gboolean downsample)
 	siril_log_message(str);
 	g_free(str);
 	inliers = 1.0 - (((double) H.pair_matched - (double) H.Inliers) / (double) H.pair_matched);
-	siril_log_message(_("Inliers: %*.3f\n"), 14, inliers);
+	siril_log_message(_("Inliers:%*.3f\n"), 14, inliers);
 
 	/* Plate Solving */
 	scaleX = sqrt(H.h00 * H.h00 + H.h01 * H.h01);
 	scaleY = sqrt(H.h10 * H.h10 + H.h11 * H.h11);
 	resolution = (scaleX + scaleY) * 0.5 * factor; // we assume square pixels
-	siril_log_message(_("Resolution: %*.3lf arcsec/px\n"), 11, resolution);
+	siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
 
 	/* rotation */
 	rotation = atan2(H.h00 + H.h01, H.h10 + H.h11) * RADTODEG + 135.0;
@@ -593,15 +593,15 @@ static void print_platesolving_results(image_solved *image, gboolean downsample)
 		rotation += 360.0;
 	if (rotation > 180.0)
 		rotation -= 360.0;
-	siril_log_message(_("Rotation: %+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
+	siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
 
 	fov.x = get_fov(resolution, image->size.x);
 	fov.y = get_fov(resolution, image->size.y);
-	siril_log_message(_("Focal length: %*.2lf mm\n"), 8, RADCONV * image->pixel_size / resolution);
-	siril_log_message(_("Pixel size: %*.2lf µm\n"), 10, image->pixel_size);
+	siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * image->pixel_size / resolution);
+	siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, image->pixel_size);
 	fov_in_DHMS(fov.x / 60.0, field_x);
 	fov_in_DHMS(fov.y / 60.0, field_y);
-	siril_log_message(_("Field of view: %s x %s\n"), field_x, field_y);
+	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
 
 	alpha = siril_world_cs_alpha_format(image->image_center, " %02dh%02dm%02ds");
 	delta = siril_world_cs_delta_format(image->image_center, "%c%02d°%02d\'%02d\"");

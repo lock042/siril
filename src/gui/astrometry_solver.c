@@ -385,6 +385,8 @@ static void add_object_in_tree_view(const gchar *object) {
 	struct sky_object obj;
 	GtkTreeView *GtkTreeViewIPS;
 	GtkTreeViewIPS = GTK_TREE_VIEW(lookup_widget("GtkTreeViewIPS"));
+	if (!object || object[0] == '\0')
+		return;
 
 	set_cursor_waiting(TRUE);
 
