@@ -5147,7 +5147,6 @@ int process_pcc(int nb) {
 	args->for_photometry_cc = TRUE;
 	args->cat_center = target_coords;
 	args->downsample = gfit.rx > 6000;
-	args->use_cache = TRUE;
 	args->autocrop = TRUE;
 	args->flip_image = !noflip;
 	args->manual = FALSE;

@@ -116,7 +116,7 @@ static void compute_mag_limit(struct astrometry_data *args) {
 		args->limit_mag = round(100.0 * min(20.0, max(7.0, m))) / 100;
 	}
 	else args->limit_mag = args->forced_magnitude;
-	siril_debug_print("limit magnitude set to %f\n", args->limit_mag);
+	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
 }
 
 static gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type) {
@@ -441,7 +441,7 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 }
 
 
-GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag) {
+GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag) {
 	gchar *buffer = NULL;
 	GError *error = NULL;
 
@@ -459,37 +459,28 @@ GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog, SirilW
 
 	GOutputStream *output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
 
-	if (output_stream == NULL) {
-		if (error != NULL) {
+	if (!output_stream) {
+		if (error) {
 			/* if file exist and user uses cache */
 			if (error->code == G_IO_ERROR_EXISTS) {
-				if (use_cache) {
-					siril_log_color_message(_("Using data in cache\n"), "salmon");
-				} else {
-					/* file exist but we don't want to use cache */
-					output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
-					if (output_stream == NULL) {
-						if (error != NULL) {
-							g_warning("%s\n", error->message);
-							g_clear_error(&error);
-							fprintf(stderr, "astrometry_solver: Cannot open catalogue\n");
-							g_object_unref(file);
-							return NULL;
-						}
-					}
-				}
+				siril_log_message(_("Using already downloaded star catalogue\n"));
 				g_clear_error(&error);
 			} else {
 				g_warning("%s\n", error->message);
+				siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
 				g_clear_error(&error);
-				fprintf(stderr, "astrometry_solver: Cannot open catalogue\n");
 				g_object_unref(file);
 				return NULL;
 			}
+		} else {
+			siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), "unknown error");
+			g_object_unref(file);
+			return NULL;
 		}
 	}
 
-	if (output_stream != NULL || !use_cache) {
+	if (output_stream) {
+		/* download and save */
 		gchar *url = get_catalog_url(catalog_center, mag, fov, onlineCatalog);
 		buffer = fetch_url(url);
 		g_free(url);
@@ -1081,6 +1072,7 @@ void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 	cd[1][1] = pc[1][1] * cdelt[1];
 }
 
+/* entry point for plate solving */
 gpointer match_catalog(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	GError *error = NULL;
@@ -1098,11 +1090,15 @@ gpointer match_catalog(gpointer p) {
 	args->message = NULL;
 	args->solution = NULL;
 
+	siril_log_message(_("Plate solving image from an online catalogue for %s field of view of %.2f degrees,"
+			       " using a limit magnitude of %.2f\n"),
+			args->uncentered ? _("an uncentered") : _("a"), args->used_fov / 60.0, args->limit_mag);
+
 	if (!args->catalog_file) {
-		args->catalog_file = download_catalog(args->use_cache, args->onlineCatalog,
-				args->cat_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
+				args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 		if (!args->catalog_file) {
-			args->message = g_strdup(_("Cannot download the online star catalog."));
+			args->message = g_strdup(_("Could not download the online star catalog."));
 			goto clearup;
 		}
 	}
@@ -1112,7 +1108,7 @@ gpointer match_catalog(gpointer p) {
 		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
 	}
 
-	psf_star **stars;
+	psf_star **stars = NULL;
 	if (!args->manual) {
 		com.starfinder_conf.pixel_size_x = com.pref.focal;
 		com.starfinder_conf.focal_length = com.pref.pitch;
@@ -1152,9 +1148,10 @@ gpointer match_catalog(gpointer p) {
 	input_stream = (GInputStream*) g_file_read(catalog, NULL, &error);
 	if (!input_stream) {
 		if (error != NULL) {
-			g_warning("%s\n", error->message);
+			args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), error->message);
 			g_clear_error(&error);
 		}
+		args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), "generic error");
 		goto clearup;
 	}
 
@@ -1179,7 +1176,7 @@ gpointer match_catalog(gpointer p) {
 		}
 		attempt++;
 	}
-	if (args->ret)
+	if (args->ret)	// give generic error message
 		goto clearup;
 
 	double conv = DBL_MAX;
@@ -1240,7 +1237,7 @@ gpointer match_catalog(gpointer p) {
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
 		if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
-			siril_log_color_message(_("Updating homography failed.\n"), "red");
+			args->message = g_strdup(_("Updating homography failed."));
 			args->ret = 1;
 			break;
 		}
@@ -1252,6 +1249,8 @@ gpointer match_catalog(gpointer p) {
 
 		trial++;
 	}
+	if (args->ret)	// after the break
+		goto clearup;
 
 	double scaleX = sqrt(solution->H.h00 * solution->H.h00 + solution->H.h01 * solution->H.h01);
 	double scaleY = sqrt(solution->H.h10 * solution->H.h10 + solution->H.h11 * solution->H.h11);
@@ -1393,6 +1392,11 @@ clearup:
 		clearfits(args->fit);
 		memcpy(args->fit, &fit_backup, sizeof(fits));
 	}
+	if (stars && args->manual) {
+		for (int i = 0; i < MAX_STARS && stars[i]; i++)
+			free_psf(stars[i]);
+		free(stars);
+	}
 	/* free data */
 	siril_world_cs_unref(args->cat_center);
 	if (cstars)
@@ -1405,6 +1409,8 @@ clearup:
 		g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
 	siril_add_idle(end_plate_solver, args);
+	if (com.script && args->ret)
+		siril_log_message(_("Plate solving failed: %s\n"), args->message);
 	return GINT_TO_POINTER(args->ret);
 }
 
@@ -1423,6 +1429,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			croparea.h = args->fit->ry;
 		}
 		double fov = get_fov(args->scale, max(croparea.w, croparea.h));
+		siril_debug_print("image fov for given sampling: %f arcmin\n", fov);
 		// then apply or not autocropping to 5deg (300 arcmin)
 		args->used_fov = args->autocrop ? min(fov, 300.) : fov;
 
@@ -1432,7 +1439,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			croparea.y += (int) ((croparea.h - croparea.h * cropfactor) / 2);
 			croparea.w = (int) (cropfactor * croparea.w);
 			croparea.h = (int) (cropfactor * croparea.h);
-			siril_log_message(_("Auto-cropped factor: %.2f\n"), cropfactor);
+			siril_debug_print("Auto-crop factor: %.2f\n", cropfactor);
 		}
 
 		if (com.selection.w != 0 && com.selection.h != 0) {
@@ -1441,6 +1448,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			args->uncentered =
 				abs(croparea.x + 0.5 * croparea.w - 0.5 * args->fit->rx) > thr ||
 				abs(croparea.y + 0.5 * croparea.h - 0.5 * args->fit->ry) > thr;
+			siril_debug_print("detected uncentered selection\n");
 		} else {
 			args->uncentered = FALSE;
 		}
@@ -1458,7 +1466,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 
 	if (croparea.w == args->fit->rx && croparea.h == args->fit->ry)
 		memset(&croparea, 0, sizeof(rectangle));
-	else siril_debug_print("reduced area for the solve: %d, %d, %d x %d\n", croparea.x, croparea.y, croparea.w, croparea.h);
+	else siril_debug_print("reduced area for the solve: %d, %d, %d x %d%s\n", croparea.x, croparea.y, croparea.w, croparea.h, args->downsample ? " (down-sampled)" : "");
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_mag_limit(args); // to call after having set args->used_fov

@@ -7,7 +7,7 @@
 
 #define BRIGHTEST_STARS 2500
 #define AT_MATCH_CATALOG_NBRIGHT   60
-#define CROP_ALLOWANCE 1.2
+#define CROP_ALLOWANCE 1.25
 
 #define RADtoASEC (3600.0 * 180.0 / M_PI)
 
@@ -59,11 +59,10 @@ struct astrometry_data {
 	fits *fit;		// the image
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
-	online_catalog onlineCatalog;	// choice of catalog for the plate-solve
-	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate-solve
+	online_catalog onlineCatalog;	// choice of catalog for the plate solve
+	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	SirilWorldCS *cat_center;	// starting point for the search
 	gboolean downsample;	// downsample mage before solving
-	gboolean use_cache;	// avoid downloading an already existing catalog
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
 	gboolean flip_image;	// Flip at the end if detected mirrored
 	gboolean manual;	// use stars already detected by user, in com.stars
@@ -118,7 +117,7 @@ void free_Platedobject();
 int parse_content_buffer(char *buffer, struct sky_object *obj);
 gboolean has_nonzero_coords();
 gboolean has_any_keywords();
-GFile *download_catalog(gboolean use_cache, online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag);
+GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag);
 
 /* from the GUI */
 void update_coords();

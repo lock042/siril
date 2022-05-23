@@ -182,13 +182,6 @@ static gboolean is_downsample_activated() {
 	return gtk_toggle_button_get_active(button);
 }
 
-static gboolean is_cache_activated() {
-	GtkToggleButton *button;
-
-	button = GTK_TOGGLE_BUTTON(lookup_widget("use_cache_ips"));
-	return gtk_toggle_button_get_active(button);
-}
-
 static gboolean is_autocrop_activated() {
 	GtkToggleButton *button;
 
@@ -555,8 +548,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->fit = &gfit;
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
-		get_online_catalog(args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+	// args->onlineCatalog requires processed arguments in automatic mode, setting later
 
 	SirilWorldCS *catalog_center = get_center_of_catalog();
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center) == 0.0) {
@@ -567,7 +559,6 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->cat_center = catalog_center;
 
 	args->downsample = is_downsample_activated();
-	args->use_cache = is_cache_activated();
 	args->autocrop = is_autocrop_activated();
 	args->flip_image = flip_image_after_ps();
 	args->manual = is_detection_manual();
@@ -577,9 +568,12 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 
 	process_plate_solver_input(args);
 
+	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
+		get_online_catalog(args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+
 	/* currently the GUI version downloads the catalog here, because
 	 * siril_message_dialog() doesn't use idle function, we could change that */
-	GFile *catalog_file = download_catalog(args->use_cache, args->onlineCatalog, catalog_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+	GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 	if (!catalog_file) {
 		siril_world_cs_unref(catalog_center);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
