@@ -122,6 +122,7 @@ const char *describe_transformation_type(transformation_type type);
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
 void guess_transform_from_seq(sequence *seq, int layer, int *mindof, int *maxdof, gboolean excludenull);
 int guess_transform_from_H(Homography H);
+gboolean check_before_applyreg(struct registration_args *regargs);
 
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);

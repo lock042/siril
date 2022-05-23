@@ -357,6 +357,13 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 
 int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
+
+	// need to do the checks before prepare_hook as they may alter regargs->process_all_frames
+	if (!check_before_applyreg(regargs)) {
+		free(args);
+		return -1;
+	}
+
 	if (!regargs->process_all_frames) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
@@ -454,5 +461,46 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 			seq->imgparam[i].incl = FALSE;
 		}
 	}
+}
+
+gboolean check_before_applyreg(struct registration_args *regargs) {
+		// check the reference image matrix is not null
+	int checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
+	if (checkH == -2) {
+		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
+		return FALSE;
+	}
+	// check the number of dof if -interp=none
+	int min, max; 
+	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
+	if (max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
+		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", (max + 1) * 2);
+		return FALSE;
+	}
+	// check that we are not trying to apply identity transform to all the images
+	if (max == -1) {
+		siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
+		return FALSE;
+	}
+
+	// force -selected if some matrices were null
+	if (min == -2) {
+		siril_log_message(_("Some images were not registered, excluding them\n"));
+		regargs->process_all_frames = FALSE;
+		fix_selnum(regargs->seq, FALSE); // recomputing the number of selected images
+	}
+
+	// Remove the files that we are about to create
+	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+
+	// testing free space
+	int nb_frames = regargs->process_all_frames ? regargs->seq->number : regargs->seq->selnum;
+	int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
+	if (regargs->x2upscale)
+		size *= 4;
+	if (test_available_space(size) > 0) {
+		return FALSE;
+	}
+	return TRUE;
 }
 
