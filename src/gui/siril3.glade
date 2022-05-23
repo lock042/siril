@@ -15938,26 +15938,6 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="position">5</property>
                                                             </packing>
                                                             </child>
-                                                            <child>
-                                                            <object class="GtkButton" id="applyregister_button">
-                                                            <property name="label" translatable="yes">Apply existing registration</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="sensitive">False</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Applyt the registration process if data already exists. It will register images in the loaded sequence using the selected method and reference layer (loaded in the 'Image sequences' tab, current sequence name is at the bottom of the window too).</property>
-                                                            <property name="use-underline">True</property>
-                                                            <signal name="clicked" handler="on_applyregister_button_clicked" swapped="no"/>
-                                                            <style>
-                                                            <class name="suggested-action"/>
-                                                            </style>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">6</property>
-                                                            </packing>
-                                                            </child>
                                                             </object>
                                                             </child>
                                                           </object>

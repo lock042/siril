@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 6
+#define NUMBER_OF_METHODS 7
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -17,7 +17,7 @@ typedef enum {
 } selection_type;
 
 typedef enum {
-	REGTYPE_DEEPSKY, REGTYPE_PLANETARY
+	REGTYPE_DEEPSKY, REGTYPE_PLANETARY, REGTYPE_APPLY
 } registration_type;
 
 typedef enum {

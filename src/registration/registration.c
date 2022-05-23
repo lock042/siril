@@ -75,7 +75,10 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		" to align them accordingly. Only translation is taken into account yet."),
 		N_("<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet and asteroid registration. It is necessary to have timestamps "
 		"stored in FITS header and to load a sequence of star aligned images. This methods makes a translation of a certain number of pixels depending on "
-		"the timestamp of each images and the global shift of the object between the first and the last image.")
+		"the timestamp of each images and the global shift of the object between the first and the last image."),
+		N_("<b>Apply existing registration</b>: This is not an alogorithm but rather a commodity to apply previously computed registration data "
+		"stored in the sequence file. The interpolation method and simplified drizzle can be selected in the Output Registration section and it can be applied "
+		"on selected images only, to avoid saving unnecessary images.")
 };
 
 /*Possible values for max stars combo box
@@ -121,6 +124,8 @@ void initialize_registration_methods() {
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
+			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i] = NULL;
 
 	tip = g_string_new ("");
@@ -739,7 +744,8 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 
 	com.reg_settings = index;
 	update_reg_interface(TRUE);
-	writeinitfile();
+	if (index != (NUMBER_OF_METHODS - 1)) // do not save to init file when apply registration method is selected TODO: must be written someplace else as initfile is updated nonetheless
+		writeinitfile();
 }
 
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
@@ -782,6 +788,11 @@ int get_registration_layer(sequence *seq) {
 	}
 }
 
+gboolean layer_has_registration(sequence *seq, int layer) {
+	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || !seq->regparam[layer] ) return FALSE;
+	return TRUE;
+}
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -789,11 +800,12 @@ int get_registration_layer(sequence *seq) {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL;
 	static GtkLabel *labelreginfo = NULL;
-	static GtkComboBox *reg_all_sel_box = NULL;
+	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
 	gboolean selection_is_done;
+	gboolean has_reg;
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
@@ -803,6 +815,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
 		cumul_data = lookup_widget("check_button_comet");
 		noout = lookup_widget("regNoOutput");
+		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	}
 
 	if (!dont_change_reg_radio) {
@@ -824,7 +837,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* number of registered image */
 	nb_images_reg = gtk_combo_box_get_active(reg_all_sel_box) == 0 ? com.seq.number : com.seq.selnum;
 
-	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION)) {
+	/* registration data exists for the selected layer */
+	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
+
+	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
 		if (method->method_ptr == &register_star_alignment) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
 		} else if (method->method_ptr == &register_comet) {
@@ -858,6 +874,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			}
 		} else if (nb_images_reg <= 1) {
 			gtk_label_set_text(labelreginfo, _("Select images in the sequence"));
+		} else if (REGTYPE_APPLY && !has_reg){
+			gtk_label_set_text(labelreginfo, _("Select a layer with existing registration"));
 		} else {
 			gtk_label_set_text(labelreginfo, _("Select an area in image first"));
 		}
@@ -865,6 +883,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 	if ((method->method_ptr == &register_comet) || (method->method_ptr == &register_kombat) || (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_shift_dft)) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
+		gtk_widget_set_sensitive(noout, FALSE);
+	} else if (method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
