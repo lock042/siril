@@ -60,7 +60,6 @@ struct astrometry_data {
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
 	online_catalog onlineCatalog;	// choice of catalog for the plate solve
-	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	SirilWorldCS *cat_center;	// starting point for the search
 	gboolean downsample;	// downsample mage before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
@@ -68,6 +67,8 @@ struct astrometry_data {
 	gboolean manual;	// use stars already detected by user, in com.stars
 	gboolean auto_magnitude;// automatically limit magnitude of the catalog
 	double forced_magnitude;// if not automatic, use this limit magnitude
+	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
+	struct photometric_cc_data *pcc;// PCC configuration
 
 	/* program-processed input, by process_plate_solver_input() */
 	double limit_mag;	// limit magnitude to sear for in the catalog

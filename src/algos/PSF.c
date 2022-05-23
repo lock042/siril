@@ -520,12 +520,11 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_ph
 		psf_angle->phot_is_valid = FALSE;
 	}
 	// Magnitude
-	if (psf_angle->phot != NULL) {
+	if (psf_angle->phot && psf_angle->phot->valid) {
 		psf_angle->mag = psf_angle->phot->mag;
 		psf_angle->s_mag = psf_angle->phot->s_mag;
 		psf_angle->SNR = psf_angle->phot->SNR;
 		psf_angle->phot_is_valid = psf_angle->phot->valid;
-
 	} else {
 		psf_angle->mag = psf_get_mag(z, psf_angle->B);
 		psf_angle->s_mag = 9.999;

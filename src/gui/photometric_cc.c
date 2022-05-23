@@ -55,10 +55,23 @@ enum {
 	RED, GREEN, BLUE
 };
 
+static rectangle get_bkg_selection();
+
 static void start_photometric_cc() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 
 	args->for_photometry_cc = TRUE;
+
+	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
+	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
+
+	args->pcc = malloc(sizeof(struct photometric_cc_data));
+	args->pcc->fit = &gfit;
+	args->pcc->bv_stream = NULL;	// set in apply_photometric_cc()
+	args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
+	args->pcc->bg_area = get_bkg_selection();
+	args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
+
 	if (!fill_plate_solver_structure_from_GUI(args)) {
 		set_cursor_waiting(TRUE);
 		start_in_new_thread(match_catalog, args);
@@ -76,6 +89,7 @@ static void read_photometry_cc_file(GInputStream *stream, psf_star **stars, int 
 		int tmp;
 		psf_star *star = new_psf_star();
 
+		/* file written in registration/matching/atpmatch.c, atPrepareHomography() */
 		sscanf(line, "%d %lf %lf %lf\n", &tmp, &(star->xpos), &(star->ypos), &(star->BV));
 
 		stars[i] = star;
@@ -237,8 +251,10 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 
 	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
 
-	// transform to a for loop and parallelize
+	// TODO: transform to a for loop and parallelize
 	while (stars[i]) {
+		if (!get_thread_run())
+			break;
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
@@ -283,6 +299,8 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 		i++;
 		ngood++;
 	}
+	if (!get_thread_run())
+		return 1;
 	int excl = nb_stars - ngood;
 	str = ngettext("%d star excluded from the calculation\n", "%d stars excluded from the calculation\n", excl);
 	str = g_strdup_printf(str, excl);
@@ -297,7 +315,7 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 		return 1;
 	}
 	/* sort in ascending order before using siril_stats_mean_from_linearFit
-	 Hence, DBL_MAX are at the end of the tab */
+	 * Hence, DBL_MAX are at the end of the tab */
 	quicksort_f(data[RED], nb_stars);
 	quicksort_f(data[GREEN], nb_stars);
 	quicksort_f(data[BLUE], nb_stars);
@@ -329,7 +347,7 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 	return 0;
 }
 
-static void get_background_coefficients(fits *fit, rectangle *area, coeff bg[], gboolean verbose) {
+static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], gboolean verbose) {
 
 	if (verbose) siril_log_message(_("Background reference:\n"));
 	// we cannot use compute_all_channels_statistics_single_image because of the area
@@ -337,13 +355,14 @@ static void get_background_coefficients(fits *fit, rectangle *area, coeff bg[], 
 		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
-			return;
+			return 1;
 		}
 		bg[chan].value = stat->median / stat->normValue;
 		bg[chan].channel = chan;
 		if (verbose) siril_log_message("B%d: %.5e\n", chan, bg[chan].value);
 		free_stats(stat);
 	}
+	return 0;
 }
 
 static int apply_white_balance(fits *fit, const float kw[]) {
@@ -406,7 +425,7 @@ static int cmp_coeff(const void *a, const void *b) {
 	return 0;
 }
 
-static int determine_chan_for_norm(coeff bg[], int n_channel) {
+static int determine_chan_for_norm(coeff bg[], normalization_channel n_channel) {
 	/* make a copy of bg coefficients because we don't
 	 * want to sort original data */
 	coeff tmp[3];
@@ -414,27 +433,27 @@ static int determine_chan_for_norm(coeff bg[], int n_channel) {
 	/* ascending order */
 	qsort(tmp, 3, sizeof(tmp[0]), cmp_coeff);
 
-	if (n_channel == 0)	/* on highest */
+	if (n_channel == CHANNEL_HIGHEST)
 		return tmp[2].channel;
-	if (n_channel == 1)	/* on middle */
+	if (n_channel == CHANNEL_MIDDLE)
 		return tmp[1].channel;
 	/* on lowest */
 	return tmp[0].channel;
 }
 
-/* run the PCC for gfit, using the existing star list of the image from the provided file */
+/* run the PCC using the existing star list of the image from the provided file */
 static gpointer photometric_cc(gpointer p) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *) p;
 	float kw[3];
 	coeff bg[3];
 
-	if (!isrgb(&gfit)) {
+	if (!isrgb(args->fit)) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
 		return GINT_TO_POINTER(0);
 	}
 
 	/* make sure parameters are initialized */
-	if (com.pref.phot_set.outer == 0.0) {
+	if (com.pref.phot_set.outer <= 0.0) {
 		siril_log_message(_("Using default values for photometry settings\n"));
 		initialize_photometric_param();
 	}
@@ -443,29 +462,40 @@ static gpointer photometric_cc(gpointer p) {
 	if (!args->bg_auto)
 		bkg_sel = &(args->bg_area);
 
+	psf_star **stars = new_fitted_stars(MAX_STARS);
+	if (!stars) {
+		PRINT_ALLOC_ERR;
+		free(args);
+		return GINT_TO_POINTER(1);
+	}
 	int nb_stars;
-	read_photometry_cc_file(args->bv_stream, args->stars, &nb_stars);
+	read_photometry_cc_file(args->bv_stream, stars, &nb_stars);
 	g_object_unref(args->bv_stream);
 
-	get_background_coefficients(&gfit, bkg_sel, bg, FALSE);
+	/* we use the median of each channel to sort them by level and select the reference channel expressed in terms of  */
+	if (get_background_coefficients(args->fit, bkg_sel, bg, FALSE)) {
+		siril_log_message(_("failed to compute statistics on image, aborting\n"));
+		free_fitted_stars(stars);
+		free(args);
+		return GINT_TO_POINTER(1);
+	}
 	int chan = determine_chan_for_norm(bg, args->n_channel);
 	siril_log_message(_("Normalizing on %s channel.\n"), (chan == 0) ? _("red") : ((chan == 1) ? _("green") : _("blue")));
 
-	int ret = get_white_balance_coeff(args->stars, nb_stars, &gfit, kw, chan);
+	int ret = get_white_balance_coeff(stars, nb_stars, args->fit, kw, chan);
 	if (!ret) {
-		double norm = get_normalized_value(&gfit);
-		apply_white_balance(&gfit, kw);
-		get_background_coefficients(&gfit, bkg_sel, bg, TRUE);
-		background_neutralize(&gfit, bg, chan, norm);
+		double norm = get_normalized_value(args->fit);
+		apply_white_balance(args->fit, kw);
+
+		get_background_coefficients(args->fit, bkg_sel, bg, TRUE);
+		background_neutralize(args->fit, bg, chan, norm);
 		set_progress_bar_data(_("Photometric Color Calibration applied"), PROGRESS_DONE);
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
 
-	free_fitted_stars(args->stars);
+	free_fitted_stars(stars);
 	free(args);
-	notify_gfit_modified();
-
 	return GINT_TO_POINTER(ret);
 }
 
@@ -542,16 +572,19 @@ void initialize_photometric_cc_dialog() {
 
 }
 
-int apply_photometric_cc() {
+int apply_photometric_cc(struct photometric_cc_data *args) {
 	GError *error = NULL;
-
-	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
-	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 
 	//invalidate_stats_from_fit(&gfit);
 	//invalidate_gfit_histogram();
+	//set_cursor_waiting(TRUE);
 
-	set_cursor_waiting(TRUE);
+	/* take B-V data from a file created during plate solving, containing
+	 * star coordinates and their B-V index. The fact that this is created
+	 * during plate solving ensures we have direct matching between stars
+	 * from the catalogue and stars in the image
+	 * (see registration/matching/atpmatch.c, atPrepareHomography()
+	 */
 	GFile *BV_file = g_file_new_build_filename(g_get_tmp_dir(), "photometric_cc.dat", NULL);
 	GInputStream *bv_stream = (GInputStream *)g_file_read(BV_file, NULL, &error);
 
@@ -566,22 +599,10 @@ int apply_photometric_cc() {
 	}
 	g_object_unref(BV_file);
 
-	psf_star **stars = new_fitted_stars(MAX_STARS);
-	if (!stars) {
-		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
-		return 1;
-	}
-
-	struct photometric_cc_data *args = malloc(sizeof(struct photometric_cc_data));
-	args->stars = stars;
 	args->bv_stream = bv_stream;
-	args->n_channel = gtk_combo_box_get_active(norm_box);
-	args->bg_area = get_bkg_selection();
-	args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 
-	start_in_new_thread(photometric_cc, args);
-	return 0;
+	//start_in_new_thread(photometric_cc, args);
+	return GPOINTER_TO_INT(photometric_cc(args));
 }
 
 int get_photometry_catalog() {

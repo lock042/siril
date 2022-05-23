@@ -62,6 +62,7 @@
 #include "gui/siril_preview.h"
 #include "gui/script_menu.h"
 #include "gui/registration_preview.h"
+#include "gui/photometric_cc.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/clahe.h"
@@ -5151,8 +5152,13 @@ int process_pcc(int nb) {
 	args->flip_image = !noflip;
 	args->manual = FALSE;
 	args->auto_magnitude = TRUE;
-
 	process_plate_solver_input(args);
+
+	args->pcc = calloc(1, sizeof(struct photometric_cc_data));
+	args->pcc->fit = args->fit;
+	args->pcc->bg_auto = TRUE;
+	args->pcc->n_channel = CHANNEL_MIDDLE;
+
 	start_in_new_thread(match_catalog, args);
 
 	return 0;

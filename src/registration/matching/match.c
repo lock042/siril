@@ -122,7 +122,7 @@ static int prepare_to_recalc(int num_matched_A,
 		TRANS *trans);
 
 int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
-		double s_min, double s_max, Homography *H, gboolean print_output,
+		double s_min, double s_max, Homography *H, gboolean save_photometric_data,
 		transformation_type type, s_star *out_list_A, s_star *out_list_B) {
 	int ret;
 	int numA, numB;
@@ -420,8 +420,8 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	Hom->pair_matched = num_matches;
 
 	if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
-			matched_list_B, Hom, print_output, type)) {
-		fprintf(stderr,"atPrepareHomography fails on computing H\n");
+			matched_list_B, Hom, save_photometric_data, type)) {
+		fprintf(stderr, "atPrepareHomography failed to compute H\n");
 		/** */
 		atTransDel(trans);
 		atHDel(Hom);

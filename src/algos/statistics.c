@@ -927,11 +927,11 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 				omp_set_nested(1);	// to be done at each level
 				if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
 					siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
-				else siril_debug_print(_("threading statistics computation per channel (at most %d threads each)\n"), threads_per_thread[0]);
+				else siril_debug_print("threading statistics computation per channel (at most %d threads each)\n", threads_per_thread[0]);
 			}
 			else {
 				threads_per_thread = compute_thread_distribution(1, threading);
-				siril_debug_print(_("threading statistics computation of channels (%d threads)\n"), threads_per_thread[0]);
+				siril_debug_print("threading statistics computation of channels (%d threads)\n", threads_per_thread[0]);
 			}
 		}
 
@@ -989,11 +989,11 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 			omp_set_nested(1);	// to be done at each level
 			if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
 				siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
-			else siril_log_message(_("threading statistics computation per channel (at most %d threads each)\n"), threads_per_thread[0]);
+			else siril_debug_print("threading statistics computation per channel (at most %d threads each)\n", threads_per_thread[0]);
 		}
 		else {
 			threads_per_thread = compute_thread_distribution(1, threading);
-			siril_log_message(_("threading statistics computation of channels (%d threads)\n"), threads_per_thread[0]);
+			siril_debug_print("threading statistics computation of channels (%d threads)\n", threads_per_thread[0]);
 		}
 	}
 
