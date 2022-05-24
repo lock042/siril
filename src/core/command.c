@@ -99,6 +99,7 @@
 #include "algos/fix_xtrans_af.h"
 #include "algos/annotate.h"
 #include "livestacking/livestacking.h"
+#include "pixelMath/pixel_math_runner.h"
 
 #include "command.h"
 #include "command_def.h"
@@ -1699,6 +1700,135 @@ int process_unset_mag_seq(int nb) {
 	com.seq.reference_mag = -1001.0;
 	siril_log_message(_("Reference magnitude unset for sequence\n"));
 	drawPlot();
+	return 0;
+}
+
+static void remove_char_from_str(char *str, const char toRemove) {
+	int i, j;
+	int len = strlen(str);
+
+	for (i = 0; i < len; i++) {
+		/*
+		 * If the character to remove is found then shift all characters to one
+		 * place left and decrement the length of string by 1.
+		 */
+		if (str[i] == toRemove) {
+			for (j = i; j < len; j++) {
+				str[j] = str[j + 1];
+			}
+
+			len--;
+			// If a character is removed then make sure i doesn't increments
+			i--;
+		}
+	}
+}
+
+int process_pm(int nb) {
+	/* First we want to replace all variable by filename if exist. Return error if not
+	 * Variables start and end by $ token.
+	 */
+	gchar *expression = g_shell_unquote(word[1], NULL);
+	gchar *next, *cur;
+	int count = 0;
+
+	cur = expression;
+	while ((next = strchr(cur, '$')) != NULL) {
+		cur = next + 1;
+		count++;
+	}
+
+	if (count == 0) {
+		siril_log_message(_("You need to add at least one image as variable. Use $ tokens to surround the file names .\n"));
+		return 1;
+	} else if (count % 2 != 0) {
+		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
+		return 1;
+	}
+
+	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
+	args->nb_rows = count / 2; // this is the number of variable
+	args->varname = malloc(args->nb_rows * sizeof(gchar *));
+
+	cur = expression;
+
+	/* List all variables */
+	char *start = cur;
+	char *end = cur;
+	gboolean first = TRUE;
+	int i = 0;
+	while (*cur) {
+		if (*cur == '$') {
+			if (first) {
+				start = cur;
+				first = FALSE;
+			} else {
+				end = cur;
+				first = TRUE;
+			}
+		}
+		if (start < end && *start) {
+			*end = 0;
+			args->varname[i] = g_strdup(start + 1);
+			start = cur = end;
+			i++;
+		}
+		cur++;
+	}
+
+	int width = -1;
+	int height = -1;
+	int channel = -1;
+
+	for (int j = 0; j < args->nb_rows; j++) {
+		int w, h, c;
+		if (load_pm_var(args->varname[j], j, &w, &h, &c)) {
+			if (j > 0)
+				free_pm_var(j - 1);
+			free(args->varname);
+			free(args);
+			return 1;
+		}
+
+		if (channel == -1) {
+			width = w;
+			height = h;
+			channel = c;
+		} else {
+			if (w != width || height != h || channel != c) {
+				siril_log_message(_("Image must have same dimension\n"));
+				free_pm_var(args->nb_rows);
+				free(args->varname);
+				free(args);
+				return 1;
+			}
+		}
+	}
+
+	/* remove tokens */
+	g_free(expression);
+	expression = g_shell_unquote(word[1], NULL);
+	remove_char_from_str(expression, '$');
+	remove_spaces_from_str(expression);
+
+	fits *fit = NULL;
+	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+		free_pm_var(args->nb_rows);
+		free(args->varname);
+		free(args);
+		return 1;
+	}
+
+	args->expression1 = expression;
+	args->expression2 = NULL;
+	args->expression3 = NULL;
+	args->single_rgb = TRUE;
+	args->fit = fit;
+	args->ret = 0;
+	args->from_ui = FALSE;
+
+	start_in_new_thread(apply_pixel_math_operation, args);
+
 	return 0;
 }
 

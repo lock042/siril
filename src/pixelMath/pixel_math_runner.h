@@ -25,11 +25,17 @@
 struct pixel_math_data {
 	fits *fit;
 	int nb_rows;
+	gchar **varname;
 	int ret;
+	gboolean from_ui;
 	gchar *expression1;
 	gchar *expression2;
 	gchar *expression3;
-	gboolean  single_rgb;
+	gboolean single_rgb;
 };
+
+int load_pm_var(const gchar *var, int index, int *w, int *h, int *c);
+void free_pm_var(int nb);
+gpointer apply_pixel_math_operation(gpointer p);
 
 #endif /* SRC_PIXELMATH_PIXEL_MATH_RUNNER_H_ */

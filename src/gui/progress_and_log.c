@@ -260,7 +260,7 @@ static gboolean idle_set_cursor(gpointer garg) {
 
 	if (arg->change) {
 		if (!current_name ||
-				(current_name && arg->cursor_name && g_strcmp0(current_name, arg->cursor_name))) {
+				(arg->cursor_name && g_strcmp0(current_name, arg->cursor_name))) {
 			cursor = gdk_cursor_new_from_name(display, arg->cursor_name);
 			current_name = arg->cursor_name;
 		}
