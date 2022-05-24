@@ -423,7 +423,7 @@ int guess_transform_from_H(Homography H) {
 		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__) return SHIFT_TRANSFORMATION;
 		return -1; //identity matrix
 	}
-	if (fabs(H.h10 / (H.h00 + __DBL_EPSILON__) + H.h01 / (H.h11 + __DBL_EPSILON__)) < __DBL_EPSILON__) return SIMILARITY_TRANSFORMATION;
+	if (fabs(H.h10 - H.h00  + H.h01 + H.h11) < __DBL_EPSILON__) return SIMILARITY_TRANSFORMATION;
 	return AFFINE_TRANSFORMATION;
 }
 
