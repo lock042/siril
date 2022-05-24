@@ -1170,7 +1170,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 static gchar *create_sequence_filename(sequence_type output_type, const char *destroot, int index) {
 	char *destroot_noext = remove_ext_from_filename(destroot);
 	char dest_end = destroot_noext[strlen(destroot_noext)-1];
-	gchar *output;
+	gchar *output = NULL;
 	gboolean append_underscore = dest_end != '_' && dest_end != '-' && (dest_end < '0' || dest_end > '9');
 	switch (output_type) {
 		case SEQ_REGULAR:

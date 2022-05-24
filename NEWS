@@ -16,6 +16,14 @@ v1.2.0 mmm dd, 2022
 * Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
 
+v1.0.3 June --, 2022
+
+* Fixed memory leak in PixelMath
+* Fixed error in seqsubsky
+* Fixed the start of two scripts from @ in succession
+* Fixed homogeneous image bitpix detection on stacking
+* Added new thread for background extraction that does not freeze UI, with a progressbar for RBF
+
 v1.0.2 May 16, 2022
 
 * Added new RBF interpolation method in the background extraction tool
