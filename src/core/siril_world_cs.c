@@ -103,25 +103,42 @@ SirilWorldCS* siril_world_cs_new_from_ra_dec(gdouble ra_h, gdouble ra_m, gdouble
 	return world_cs;
 }
 
+/* parses RA and DEC as strings to create a new world_cs object
+ * Format of the strings can be decimal values in degrees or
+ * 'hours minutes seconds' for RA and 'degrees minutes seconds' for DEC or 
+ * 'hours:minutes:seconds' for RA and 'degrees:minutes:seconds' for DEC
+ */
 SirilWorldCS* siril_world_cs_new_from_objct_ra_dec(gchar *objctra, gchar *objctdec) {
-	SirilWorldCS *world_cs;
 	int ra_h, ra_m, dec_deg, dec_m;
 	gdouble ra_s, dec_s;
 	gboolean south;
 
-	sscanf(objctra, "%d %d %lf", &ra_h, &ra_m, &ra_s);
-	sscanf(objctdec, "%d %d %lf", &dec_deg, &dec_m, &dec_s);
-	south = objctdec[0] == '-';
-
-	world_cs = siril_world_cs_alloc();
-
-	world_cs->alpha = ra_h * 15.0 + ra_m * 15.0 / 60.0 + ra_s * 15.0 / 3600.0;
-	if ((dec_deg == 0 && !south) || dec_deg > 0) {
-		world_cs->delta = ((dec_s / 3600.0) + (dec_m / 60.0) + dec_deg);
-	} else {
-		world_cs->delta = (-(dec_s / 3600.0) - (dec_m / 60.0) + dec_deg);
+	if (!objctra || objctra[0] == '\0' || !objctdec || objctdec[0] == '\0')
+		return NULL;
+	gchar *end;
+	double ra = g_ascii_strtod(objctra, &end);
+	if (end - objctra != strlen(objctra)) {
+		ra = NAN;
+		if (sscanf(objctra, "%d %d %lf", &ra_h, &ra_m, &ra_s) == 3 ||
+				sscanf(objctra, "%d:%d:%lf", &ra_h, &ra_m, &ra_s) == 3)
+			ra = ra_h * 15.0 + ra_m * 15.0 / 60.0 + ra_s * 15.0 / 3600.0;
 	}
-	return world_cs;
+
+	south = objctdec[0] == '-';
+	double dec = g_ascii_strtod(objctdec, &end);
+	if (end - objctdec != strlen(objctdec)) {
+		dec = NAN;
+		if (sscanf(objctdec, "%d %d %lf", &dec_deg, &dec_m, &dec_s) == 3 ||
+				sscanf(objctdec, "%d:%d:%lf", &dec_deg, &dec_m, &dec_s) == 3) {
+			if ((dec_deg == 0 && !south) || dec_deg > 0)
+				dec = ((dec_s / 3600.0) + (dec_m / 60.0) + dec_deg);
+			else dec = (-(dec_s / 3600.0) - (dec_m / 60.0) + dec_deg);
+		}
+	}
+
+	if (isnan(ra) || isnan(dec))
+		return NULL;
+	return siril_world_cs_new_from_a_d(ra, dec);
 }
 
 gdouble siril_world_cs_get_alpha(SirilWorldCS *world_cs) {

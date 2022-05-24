@@ -9,8 +9,7 @@
 
 
 int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
-		double s_min, double s_max,
-		Homography *H, gboolean print_output, transformation_type type,
-		s_star *out_list_A, s_star *out_list_B);
+		double s_min, double s_max, Homography *H, gboolean save_photometric_data,
+		transformation_type type, s_star *out_list_A, s_star *out_list_B);
 
 #endif   /* MATCH_H */

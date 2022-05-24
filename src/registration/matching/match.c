@@ -122,8 +122,8 @@ static int prepare_to_recalc(int num_matched_A,
 		TRANS *trans);
 
 int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
-		double s_min, double s_max,
-		Homography *H, gboolean print_output, transformation_type type, s_star *out_list_A, s_star *out_list_B) {
+		double s_min, double s_max, Homography *H, gboolean save_photometric_data,
+		transformation_type type, s_star *out_list_A, s_star *out_list_B) {
 	int ret;
 	int numA, numB;
 	int num_matched_A, num_matched_B;
@@ -156,14 +156,14 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	 * a pair of "min_scale" and "max_scale" limits.  We'll always
 	 * pass these limits to the matching procedures.
 	 */
-	if ((scale == -1) && (min_scale == -1) && (max_scale == -1)) {
+	if (scale == -1 && min_scale == -1 && max_scale == -1) {
 		/* okay */
 		;
-	} else if ((scale != -1) && (min_scale == -1) && (max_scale == -1)) {
+	} else if (scale != -1 && min_scale == -1 && max_scale == -1) {
 		/* okay */
 		min_scale = scale - (0.01 * AT_MATCH_PERCENT * scale);
 		max_scale = scale + (0.01 * AT_MATCH_PERCENT * scale);
-	} else if ((scale == -1) && (min_scale != -1) && (max_scale != -1)) {
+	} else if (scale == -1 && min_scale != -1 && max_scale != -1) {
 		/* okay */
 		if (min_scale > max_scale) {
 			fprintf(stderr,"min_scale must be smaller than max_scale\n");
@@ -175,13 +175,14 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		return (SH_GENERIC_ERROR);
 	}
 #ifdef DEBUG
-	if ((scale == -1) && (min_scale == -1) && (max_scale == -1)) {
+	if (scale == -1 && min_scale == -1 && max_scale == -1) {
 		printf("No limits set on relative scales for matching. \n");
 	} else {
-		printf("using min_scale %f  max_scale %f \n", min_scale, max_scale);
+		printf("using min_scale %f, max_scale %f \n", min_scale, max_scale);
 	}
 #endif
-	if (nobj_override > 0) nobj = nobj_override;
+	if (nobj_override > 0)
+		nobj = nobj_override;
 
 	/*
 	 * Check to make sure that the user specified
@@ -190,10 +191,10 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	 *   or
 	 *       b)   both "rotangle" and "rottol"
 	 */
-	if ((rot_angle == AT_MATCH_NOANGLE) && (rot_tol == AT_MATCH_NOANGLE)) {
+	if (rot_angle == AT_MATCH_NOANGLE && rot_tol == AT_MATCH_NOANGLE) {
 		/* this is okay */
-	} else if ((rot_angle != AT_MATCH_NOANGLE)
-			&& (rot_tol != AT_MATCH_NOANGLE)) {
+	} else if (rot_angle != AT_MATCH_NOANGLE
+			&& rot_tol != AT_MATCH_NOANGLE) {
 		/* this is okay */
 	} else {
 		/* this is NOT okay */
@@ -419,8 +420,8 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	Hom->pair_matched = num_matches;
 
 	if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
-			matched_list_B, Hom, print_output, type)) {
-		fprintf(stderr,"atPrepareHomography fails on computing H\n");
+			matched_list_B, Hom, save_photometric_data, type)) {
+		fprintf(stderr, "atPrepareHomography failed to compute H\n");
 		/** */
 		atTransDel(trans);
 		atHDel(Hom);

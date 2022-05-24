@@ -15,14 +15,18 @@ struct fwhm_struct {
 	double fwhmx, fwhmy; /* FWHM in x and y axis */
 	double fwhmx_arcsec, fwhmy_arcsec; /* FWHM in x and y axis in arc second */
 	double angle; /* angle of the axis x,y with respect to the image's */
-	double mag; /* magnitude of the star : this parameter is not fitted but calculated with the vector G and the parameter B */
-	double s_mag; /* error on the magnitude */
-	double SNR; /* SNR of the star */
+	double rmse; /* RMSE of the minimization */
+
+	double xpos, ypos; /* position of the star in the image, not set by Minimization */
+
+	/* photometry data - mag, s_mag and SNR are copied from phot if phot_is_valid,
+	 * otherwise mag is approximate (computed from G and B) and the others are not set */
+	double mag;	/* magnitude, approximate or accurate depending on phot_is_valid */
+	double s_mag;	/* error on the magnitude, defaults to 9.9999 */
+	double SNR;	/* SNR of the star, defaults to 0 */
 	photometry *phot; /* photometry data */
 	gboolean phot_is_valid; /* valid if computed by photometry and no saturated pixel detected */
-	double xpos, ypos; /* position of the star in the image, not set by Minimization */
-	double rmse; /* RMSE of the minimization */
-	double BV; /* only use in BV calibration */
+	double BV; /* only used to pass data in photometric color calibration */
 
 	/* uncertainties */
 	double B_err;
@@ -30,6 +34,7 @@ struct fwhm_struct {
 	double x_err, y_err;
 	double sx_err, sy_err;
 	double ang_err;
+
 	int layer;
 	char* units;
 };

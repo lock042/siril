@@ -184,16 +184,6 @@ static int robustmean(int n, double *x, double *mean, double *stdev)
 	return 0;
 }
 
-static photometry *phot_alloc() {
-	photometry *phot;
-
-	phot = (photometry*) calloc(sizeof(photometry), 1);
-	if (phot == NULL) {
-		PRINT_ALLOC_ERR;
-	}
-	return phot;
-}
-
 static double getMagnitude(double intensity) {
 	return -2.5 * log10(intensity);
 }
@@ -347,8 +337,10 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolea
 	if (ret > 0)
 		return NULL;
 
-	phot = phot_alloc();
-	if (phot) {
+	phot = calloc(1, sizeof(photometry));
+	if (!phot)
+		PRINT_ALLOC_ERR;
+	else {
 		double SNR = 0.0;
 		double signalIntensity = apmag - (area * mean);
 
