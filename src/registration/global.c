@@ -230,7 +230,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 		/* if "translation only", we choose to initialize all frames
 		 * to exclude status. If registration is ok, the status is
 		 * set to include */
-		args->seq->imgparam[out_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 
 	if (in_index != regargs->reference_image) {
@@ -377,7 +377,7 @@ static int star_align_image_hook(struct generic_seq_args *args, int out_index, i
 	} else {
 		set_shifts(args->seq, in_index, regargs->layer, (float) H.h02,
 				(float) -H.h12, fit->top_down);
-		args->seq->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;
 	return 0;
