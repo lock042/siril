@@ -431,6 +431,7 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 	int val;
 	*min = HOMOGRAPHY_TRANSFORMATION;
 	*max = -3;
+	gboolean needs_sel_update = FALSE;
 
 	if (!seq->regparam && !seq->regparam[layer]) {
 		siril_debug_print("No registration data found in sequence or layer\n");
@@ -444,8 +445,11 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 		if (*min > val) *min = val;
 		if ((val == -2) && excludenull) {
 			seq->imgparam[i].incl = FALSE;
+			needs_sel_update = TRUE;
 		}
 	}
+	if (excludenull && needs_sel_update)
+		fix_selnum(seq, FALSE);
 }
 
 gboolean check_before_applyreg(struct registration_args *regargs) {
@@ -472,7 +476,6 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	if (min == -2) {
 		siril_log_message(_("Some images were not registered, excluding them\n"));
 		regargs->process_all_frames = FALSE;
-		fix_selnum(regargs->seq, FALSE); // recomputing the number of selected images
 	}
 
 	// Remove the files that we are about to create
