@@ -62,6 +62,7 @@
 #include "gui/siril_preview.h"
 #include "gui/script_menu.h"
 #include "gui/registration_preview.h"
+#include "gui/photometric_cc.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/clahe.h"
@@ -75,6 +76,7 @@
 #include "filters/scnr.h"
 #include "filters/wavelets.h"
 #include "algos/PSF.h"
+#include "algos/astrometry_solver.h"
 #include "algos/star_finder.h"
 #include "algos/Def_Math.h"
 #include "algos/Def_Wavelet.h"
@@ -97,6 +99,7 @@
 #include "algos/fix_xtrans_af.h"
 #include "algos/annotate.h"
 #include "livestacking/livestacking.h"
+#include "pixelMath/pixel_math_runner.h"
 
 #include "command.h"
 #include "command_def.h"
@@ -1743,6 +1746,135 @@ int process_unset_mag_seq(int nb) {
 	com.seq.reference_mag = -1001.0;
 	siril_log_message(_("Reference magnitude unset for sequence\n"));
 	drawPlot();
+	return 0;
+}
+
+static void remove_char_from_str(char *str, const char toRemove) {
+	int i, j;
+	int len = strlen(str);
+
+	for (i = 0; i < len; i++) {
+		/*
+		 * If the character to remove is found then shift all characters to one
+		 * place left and decrement the length of string by 1.
+		 */
+		if (str[i] == toRemove) {
+			for (j = i; j < len; j++) {
+				str[j] = str[j + 1];
+			}
+
+			len--;
+			// If a character is removed then make sure i doesn't increments
+			i--;
+		}
+	}
+}
+
+int process_pm(int nb) {
+	/* First we want to replace all variable by filename if exist. Return error if not
+	 * Variables start and end by $ token.
+	 */
+	gchar *expression = g_shell_unquote(word[1], NULL);
+	gchar *next, *cur;
+	int count = 0;
+
+	cur = expression;
+	while ((next = strchr(cur, '$')) != NULL) {
+		cur = next + 1;
+		count++;
+	}
+
+	if (count == 0) {
+		siril_log_message(_("You need to add at least one image as variable. Use $ tokens to surround the file names .\n"));
+		return 1;
+	} else if (count % 2 != 0) {
+		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
+		return 1;
+	}
+
+	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
+	args->nb_rows = count / 2; // this is the number of variable
+	args->varname = malloc(args->nb_rows * sizeof(gchar *));
+
+	cur = expression;
+
+	/* List all variables */
+	char *start = cur;
+	char *end = cur;
+	gboolean first = TRUE;
+	int i = 0;
+	while (*cur) {
+		if (*cur == '$') {
+			if (first) {
+				start = cur;
+				first = FALSE;
+			} else {
+				end = cur;
+				first = TRUE;
+			}
+		}
+		if (start < end && *start) {
+			*end = 0;
+			args->varname[i] = g_strdup(start + 1);
+			start = cur = end;
+			i++;
+		}
+		cur++;
+	}
+
+	int width = -1;
+	int height = -1;
+	int channel = -1;
+
+	for (int j = 0; j < args->nb_rows; j++) {
+		int w, h, c;
+		if (load_pm_var(args->varname[j], j, &w, &h, &c)) {
+			if (j > 0)
+				free_pm_var(j - 1);
+			free(args->varname);
+			free(args);
+			return 1;
+		}
+
+		if (channel == -1) {
+			width = w;
+			height = h;
+			channel = c;
+		} else {
+			if (w != width || height != h || channel != c) {
+				siril_log_message(_("Image must have same dimension\n"));
+				free_pm_var(args->nb_rows);
+				free(args->varname);
+				free(args);
+				return 1;
+			}
+		}
+	}
+
+	/* remove tokens */
+	g_free(expression);
+	expression = g_shell_unquote(word[1], NULL);
+	remove_char_from_str(expression, '$');
+	remove_spaces_from_str(expression);
+
+	fits *fit = NULL;
+	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+		free_pm_var(args->nb_rows);
+		free(args->varname);
+		free(args);
+		return 1;
+	}
+
+	args->expression1 = expression;
+	args->expression2 = NULL;
+	args->expression3 = NULL;
+	args->single_rgb = TRUE;
+	args->fit = fit;
+	args->ret = 0;
+	args->from_ui = FALSE;
+
+	start_in_new_thread(apply_pixel_math_operation, args);
+
 	return 0;
 }
 
@@ -5255,6 +5387,122 @@ int process_rgbcomp(int nb) {
 	clearfits(rgbptr);
 
 	return retval;
+}
+
+int process_pcc(int nb) {
+	if (!single_image_is_loaded()) {
+		PRINT_NOT_FOR_SEQUENCE;
+		return 1;
+	}
+
+	gboolean noflip = FALSE;
+	SirilWorldCS *target_coords = NULL;
+	double forced_focal = -1.0, forced_pixsize = -1.0;
+	// parse args: target_coords [-noflip] [-focal=len] [-pixelsize=ps]
+	char *sep = strchr(word[1], ',');
+	int next_arg = 2;
+	if (!sep) {
+		if (nb > 1) {
+			target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], word[2]);
+			next_arg = 3;
+		}
+	}
+	else {
+		*sep++ = '\0';
+		target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], sep);
+	}
+	if (!target_coords) {
+		siril_log_message(_("Could not parse target coordinates\n"));
+		return 1;
+	}
+
+	while (nb > next_arg && word[next_arg]) {
+		if (!strcmp(word[next_arg], "-noflip"))
+			noflip = TRUE;
+		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
+			char *arg = word[next_arg] + 7;
+			forced_focal = g_ascii_strtod(arg, NULL);
+			if (forced_focal <= 0.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				siril_world_cs_unref(target_coords);
+				return 1;
+			}
+		}
+		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
+			char *arg = word[next_arg] + 11;
+			forced_pixsize = g_ascii_strtod(arg, NULL);
+			if (forced_pixsize <= 0.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				siril_world_cs_unref(target_coords);
+				return 1;
+			}
+		}
+		else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+				siril_world_cs_unref(target_coords);
+			return 1;
+		}
+		next_arg++;
+	}
+
+	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+	args->fit = &gfit;
+	if (forced_pixsize > 0.0) {
+		args->pixel_size = forced_pixsize;
+		siril_log_message(_("Using provided pixel size: %f\n"), args->pixel_size);
+	} else {
+		args->pixel_size = max(gfit.pixel_size_x, gfit.pixel_size_y);
+		if (args->pixel_size <= 0.0) {
+			args->pixel_size = com.starfinder_conf.pixel_size_x;
+			//args->pixel_size = com.pref.pitch;
+			if (args->pixel_size <= 0.0) {
+				siril_log_message(_("Pixel size not found in image or in settings, cannot proceed\n"));
+				siril_world_cs_unref(target_coords);
+				free(args);
+				return 1;
+			}
+			siril_log_message(_("Using pixel size from preferences: %f\n"), args->pixel_size);
+		}
+		else siril_log_message(_("Using pixel size from image: %f\n"), args->pixel_size);
+	}
+	if (forced_focal > 0.0) {
+		args->focal_length = forced_focal;
+		siril_log_message(_("Using provided focal length: %f\n"), args->focal_length);
+	} else {
+		args->focal_length = gfit.focal_length;
+		if (args->focal_length <= 0.0) {
+			// TODO: which one should we use here?
+			args->focal_length = com.starfinder_conf.focal_length;
+			//args->focal_length = com.pref.focal;
+			if (args->focal_length <= 0.0) {
+				siril_log_message(_("Focal length not found in image or in settings, cannot proceed\n"));
+				siril_world_cs_unref(target_coords);
+				free(args);
+				return 1;
+			}
+			siril_log_message(_("Using focal length from preferences: %f\n"), args->focal_length);
+		}
+		else siril_log_message(_("Using focal length from image: %f\n"), args->focal_length);
+	}
+
+	args->onlineCatalog = NOMAD;
+	args->for_photometry_cc = TRUE;
+	args->cat_center = target_coords;
+	args->downsample = gfit.rx > 6000;
+	args->autocrop = TRUE;
+	args->flip_image = !noflip;
+	args->manual = FALSE;
+	args->auto_magnitude = TRUE;
+	process_plate_solver_input(args);
+
+	args->pcc = calloc(1, sizeof(struct photometric_cc_data));
+	args->pcc->fit = args->fit;
+	args->pcc->bg_auto = TRUE;
+	args->pcc->n_channel = CHANNEL_MIDDLE;
+
+	start_in_new_thread(match_catalog, args);
+
+	return 0;
 }
 
 int process_start_ls(int nb) {

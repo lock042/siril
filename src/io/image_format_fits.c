@@ -2697,6 +2697,7 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 	return 0;
 }
 
+/* use for type change, it doesn't free old data if it's the same type */
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	fit->type = newtype;
 	invalidate_stats_from_fit(fit);
