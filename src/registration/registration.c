@@ -789,7 +789,7 @@ int get_registration_layer(sequence *seq) {
 }
 
 gboolean layer_has_registration(sequence *seq, int layer) {
-	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || layer > seq->nb_layers || !seq->regparam[layer] ) return FALSE;
+	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || layer >= seq->nb_layers || !seq->regparam[layer] ) return FALSE;
 	return TRUE;
 }
 

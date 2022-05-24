@@ -433,7 +433,7 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 	*max = -3;
 	gboolean needs_sel_update = FALSE;
 
-	if (!seq->regparam && !seq->regparam[layer]) {
+	if (!layer_has_registration(seq, layer)) {
 		siril_debug_print("No registration data found in sequence or layer\n");
 		return;
 	}
