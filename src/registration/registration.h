@@ -123,6 +123,7 @@ void selection_H_transform(rectangle *selection, Homography Href, Homography Him
 void guess_transform_from_seq(sequence *seq, int layer, int *mindof, int *maxdof, gboolean excludenull);
 int guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
+gboolean layer_has_registration(sequence *seq, int layer);
 
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
