@@ -394,7 +394,7 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 		double *x = malloc(nb_rows * sizeof(double));
 
 		for (int i = 0; i < nb_rows; i++) {
-			vars[i].name = get_pixel_math_var_name(i);
+			vars[i].name = args->varname[i];
 			vars[i].address = &x[i];
 			vars[i].context = NULL;
 			vars[i].type = 0;
@@ -603,6 +603,11 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->fit = fit;
 	args->nb_rows = nb_rows;
 	args->ret = 0;
+	
+	args->varname = malloc(nb_rows * sizeof(gchar *));
+	for (int i = 0; i < nb_rows; i++) {
+		args->varname[i] = get_pixel_math_var_name(i);
+	}
 
 	start_in_new_thread(apply_pixel_math_operation, args);
 

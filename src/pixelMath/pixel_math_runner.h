@@ -25,6 +25,7 @@
 struct pixel_math_data {
 	fits *fit;
 	int nb_rows;
+	const gchar **varname;
 	int ret;
 	gchar *expression1;
 	gchar *expression2;
