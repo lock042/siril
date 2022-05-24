@@ -284,10 +284,16 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	if (args->from_ui)
 		output_status_bar(args->ret);
 	else {
+		/* in this case char* are not constant and must be freed */
 		for (int i = 0; i < args->nb_rows; i++)
 			g_free(args->varname[i]);
 	}
 
+	for (int i = 0; i < args->nb_rows; i++) {
+		printf("Clear fits %d\n", i);
+		clearfits(&var_fit[i]);
+	}
+	clearfits(args->fit);
 	free(args->varname);
 	free(args);
 	return FALSE;
@@ -584,6 +590,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
 		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) return -1;
+		printf("Create fits %d\n", nb_rows);
 		if (channel == - 1) {
 			width = var_fit[nb_rows].rx;
 			height = var_fit[nb_rows].ry;
