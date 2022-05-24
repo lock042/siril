@@ -1737,10 +1737,10 @@ int process_pm(int nb) {
 	}
 
 	if (count == 0) {
-		siril_log_message(_("You need to add at least one image as variable. Use $ tokens to surround the variables.\n"));
+		siril_log_message(_("You need to add at least one image as variable. Use $ tokens to surround the file names .\n"));
 		return 1;
 	} else if (count % 2 != 0) {
-		siril_log_message(_("There is an error in the '$' count.\n"));
+		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
 		return 1;
 	}
 
@@ -1756,15 +1756,15 @@ int process_pm(int nb) {
 	gboolean first = TRUE;
 	int i = 0;
 	while (*cur) {
-        if(*cur == '$')  {
-        	if (first) {
-        		start = cur;
-        		first = FALSE;
-        	} else {
-        		end = cur;
-        		first = TRUE;
-        	}
-        }
+		if (*cur == '$') {
+			if (first) {
+				start = cur;
+				first = FALSE;
+			} else {
+				end = cur;
+				first = TRUE;
+			}
+		}
 		if (start < end && *start) {
 			*end = 0;
 			args->varname[i] = g_strdup(start + 1);
@@ -1781,7 +1781,8 @@ int process_pm(int nb) {
 	for (int j = 0; j < args->nb_rows; j++) {
 		int w, h, c;
 		if (load_pm_var(args->varname[j], j, &w, &h, &c)) {
-			free_pm_var(j - 1);
+			if (j > 0)
+				free_pm_var(j - 1);
 			free(args->varname);
 			free(args);
 			return 1;
