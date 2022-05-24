@@ -263,7 +263,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
 
-		//	/* Create new image */
+		/* Create new image */
 		com.seq.current = UNRELATED_IMAGE;
 		com.uniq = calloc(1, sizeof(single));
 		com.uniq->filename = strdup(_("new empty image"));
@@ -281,8 +281,14 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		g_free(args->expression2);
 		g_free(args->expression3);
 	}
-	output_status_bar(args->ret);
+	if (args->from_ui)
+		output_status_bar(args->ret);
+	else {
+		for (int i = 0; i < args->nb_rows; i++)
+			g_free(args->varname[i]);
+	}
 
+	free(args->varname);
 	free(args);
 	return FALSE;
 }
@@ -374,7 +380,7 @@ static gboolean is_pm_use_rgb_button_checked() {
 	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pm_use_rgb_button")));
 }
 
-static gpointer apply_pixel_math_operation(gpointer p) {
+gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
 	fits *fit = args->fit;
@@ -394,7 +400,7 @@ static gpointer apply_pixel_math_operation(gpointer p) {
 		double *x = malloc(nb_rows * sizeof(double));
 
 		for (int i = 0; i < nb_rows; i++) {
-			vars[i].name = get_pixel_math_var_name(i);
+			vars[i].name = args->varname[i];
 			vars[i].address = &x[i];
 			vars[i].context = NULL;
 			vars[i].type = 0;
@@ -551,6 +557,21 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 	return 0;
 }
 
+int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
+	if (index > MAX_IMAGES) {
+
+		return 1;
+	}
+	if (readfits(var, &var_fit[index], NULL, TRUE)) {
+		*w = *h = *c = -1;
+		return -1;
+	}
+	*w = var_fit[index].rx;
+	*h = var_fit[index].ry;
+	*c = var_fit[index].naxes[2];
+	return 0;
+}
+
 static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {
 	int nb_rows = 0;
 
@@ -603,6 +624,12 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->fit = fit;
 	args->nb_rows = nb_rows;
 	args->ret = 0;
+	args->from_ui = TRUE;
+
+	args->varname = malloc(nb_rows * sizeof(gchar *));
+	for (int i = 0; i < nb_rows; i++) {
+		args->varname[i] = (gchar *)get_pixel_math_var_name(i);
+	}
 
 	start_in_new_thread(apply_pixel_math_operation, args);
 

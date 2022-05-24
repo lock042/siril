@@ -73,6 +73,7 @@ int	process_offset(int nb);
 
 int	process_preprocess(int nb);
 int	process_preprocess_single(int nb);
+int process_pm(int nb);
 int	process_psf(int nb);
 
 int	process_register(int nb);
