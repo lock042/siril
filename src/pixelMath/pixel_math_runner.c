@@ -562,12 +562,12 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 	if (index > MAX_IMAGES) {
-
+		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
 		return 1;
 	}
 	if (readfits(var, &var_fit[index], NULL, TRUE)) {
 		*w = *h = *c = -1;
-		return -1;
+		return 1;
 	}
 	*w = var_fit[index].rx;
 	*h = var_fit[index].ry;

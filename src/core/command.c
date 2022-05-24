@@ -1753,16 +1753,16 @@ int process_pm(int nb) {
 	/* List all variables */
 	char *start = cur;
 	char *end = cur;
-	gboolean first = FALSE;
+	gboolean first = TRUE;
 	int i = 0;
 	while (*cur) {
         if(*cur == '$')  {
-        	if (!first) {
+        	if (first) {
         		start = cur;
-        		first = TRUE;
+        		first = FALSE;
         	} else {
         		end = cur;
-        		first = FALSE;
+        		first = TRUE;
         	}
         }
 		if (start < end && *start) {
