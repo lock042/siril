@@ -38,11 +38,6 @@
 #include "opencv/opencv.h"
 
 
-/* TODO:
- * check usage of openmp in functions called by these ones (to be disabled)
- * compact and clarify console output
- */
-
 static void create_output_sequence_for_apply_reg(struct registration_args *args);
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
@@ -63,18 +58,16 @@ int apply_reg_prepare_results(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 
-	if (!regargs->no_output) {
-		// allocate destination sequence data
-		regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
-		regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
-		if (!regargs->imgparam  || !regargs->regparam) {
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-
-		if (seq_prepare_hook(args))
-			return 1;
+	// allocate destination sequence data
+	regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
+	regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
+	if (!regargs->imgparam  || !regargs->regparam) {
+		PRINT_ALLOC_ERR;
+		return 1;
 	}
+
+	if (seq_prepare_hook(args))
+		return 1;
 
 	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
 	if (!sadata->success) {
@@ -95,7 +88,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	if (!sadata->current_regdata) return -2;
 	
 
-	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
+	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
@@ -132,9 +125,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
 		}
 
-#ifdef _OPENMP
-#pragma omp critical
-#endif
 		// Composing transformation wrt reference image
 		Himg = regargs->seq->regparam[regargs->layer][in_index].H;
 		if (guess_transform_from_H(Himg) == -2)  return 1; // in case H is null and -selected was not passed
@@ -146,11 +136,11 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 				return 1;
 			}
 		} else {
-			fits *destfit = NULL; // TODO: could we realloc like in sequence_export, unless not possible with generic sequence worker?
+			fits *destfit = NULL;
 			if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
 				return 1;
 			}
-			destfit->bitpix = fit->type;
+			destfit->bitpix = fit->bitpix;
 			destfit->orig_bitpix = fit->orig_bitpix;
 			int nbpix = fit->naxes[0] * fit->naxes[1] * (regargs->x2upscale ? 4 : 1);
 			if (destfit->type == DATA_FLOAT) {
@@ -197,7 +187,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	} else {
 		// reference image
-		if (regargs->x2upscale && !regargs->no_output) {
+		if (regargs->x2upscale) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
 		}
@@ -239,23 +229,19 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
-
-		if (!regargs->no_output) {
-			if (failed) {
-				// regargs->imgparam and regargs->regparam may have holes caused by images
-				// that failed to be registered - compact them
-				for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
-					while (!sadata->success[j] && j < args->nb_filtered_images) j++;
-					g_assert(sadata->success[j]);
-					if (i != j) {
-						regargs->imgparam[i] = regargs->imgparam[j];
-						regargs->regparam[i] = regargs->regparam[j];
-					}
+		if (failed) {
+			// regargs->imgparam and regargs->regparam may have holes caused by images
+			// that failed to be registered - compact them
+			for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
+				while (!sadata->success[j] && j < args->nb_filtered_images) j++;
+				g_assert(sadata->success[j]);
+				if (i != j) {
+					regargs->imgparam[i] = regargs->imgparam[j];
+					regargs->regparam[i] = regargs->regparam[j];
 				}
 			}
-
-			seq_finalize_hook(args);
 		}
+		seq_finalize_hook(args);
 	} else {
 		regargs->new_total = 0;
 		free(args->seq->regparam[regargs->layer]);
@@ -285,12 +271,12 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-		if (!regargs->no_output) {
-			// explicit sequence creation to copy imgparam and regparam
-			create_output_sequence_for_apply_reg(regargs);
-			// will be loaded in the idle function if (load_new_sequence)
-			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
-		}
+		
+		// explicit sequence creation to copy imgparam and regparam
+		create_output_sequence_for_apply_reg(regargs);
+		// will be loaded in the idle function if (load_new_sequence)
+		regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
+
 	}
 	else {
 		siril_log_message(_("Transformation aborted.\n"));
@@ -306,14 +292,13 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
-	unsigned int required = MB_per_scaled_image;
+	
+	/* The transformation memory consumption is:
+		* the original image
+		* the transformed image, including upscale if required (4x)
+		*/
+	unsigned int required = MB_per_orig_image + MB_per_scaled_image;
 	if (limit > 0) {
-		/* The transformation memory consumption is:
-		 * the original image
-		 * the transformed image, including upscale if required (4x)
-		 */
-
-		required = MB_per_orig_image * ((args->upscale_ratio == 2.0) ? 5 : 1);
 
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)

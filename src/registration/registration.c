@@ -76,7 +76,7 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		N_("<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet and asteroid registration. It is necessary to have timestamps "
 		"stored in FITS header and to load a sequence of star aligned images. This methods makes a translation of a certain number of pixels depending on "
 		"the timestamp of each images and the global shift of the object between the first and the last image."),
-		N_("<b>Apply existing registration</b>: This is not an alogorithm but rather a commodity to apply previously computed registration data "
+		N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to apply previously computed registration data "
 		"stored in the sequence file. The interpolation method and simplified drizzle can be selected in the Output Registration section and it can be applied "
 		"on selected images only, to avoid saving unnecessary images.")
 };
@@ -789,7 +789,7 @@ int get_registration_layer(sequence *seq) {
 }
 
 gboolean layer_has_registration(sequence *seq, int layer) {
-	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || !seq->regparam[layer] ) return FALSE;
+	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || layer > seq->nb_layers || !seq->regparam[layer] ) return FALSE;
 	return TRUE;
 }
 
