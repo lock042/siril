@@ -417,7 +417,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 }
 
 int guess_transform_from_H(Homography H) {
-	if ((H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__) return -2; //null matrix
+	if (fabs(H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__) return -2; //null matrix
 	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__) return HOMOGRAPHY_TRANSFORMATION;
 	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ && fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
 		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__) return SHIFT_TRANSFORMATION;
