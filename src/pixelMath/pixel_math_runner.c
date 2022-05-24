@@ -289,9 +289,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 			g_free(args->varname[i]);
 	}
 
-	for (int i = 0; i < args->nb_rows; i++) {
-		clearfits(&var_fit[i]);
-	}
+	free_pm_var(args->nb_rows);
 	clearfits(args->fit);
 	free(args->varname);
 	free(args);
@@ -575,6 +573,12 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 	*h = var_fit[index].ry;
 	*c = var_fit[index].naxes[2];
 	return 0;
+}
+
+void free_pm_var(int nb) {
+	for (int i = 0; i < nb; i++) {
+		clearfits(&var_fit[i]);
+	}
 }
 
 static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {

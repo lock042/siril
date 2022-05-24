@@ -1781,6 +1781,7 @@ int process_pm(int nb) {
 	for (int j = 0; j < args->nb_rows; j++) {
 		int w, h, c;
 		if (load_pm_var(args->varname[j], j, &w, &h, &c)) {
+			free_pm_var(j - 1);
 			free(args->varname);
 			free(args);
 			return 1;
@@ -1793,8 +1794,7 @@ int process_pm(int nb) {
 		} else {
 			if (w != width || height != h || channel != c) {
 				siril_log_message(_("Image must have same dimension\n"));
-				// TODO: free everything
-
+				free_pm_var(args->nb_rows);
 				free(args->varname);
 				free(args);
 				return 1;
@@ -1808,10 +1808,9 @@ int process_pm(int nb) {
 	remove_char_from_str(expression, '$');
 	remove_spaces_from_str(expression);
 
-	printf("expression = %s\n", expression);
-
 	fits *fit = NULL;
 	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+		free_pm_var(args->nb_rows);
 		free(args->varname);
 		free(args);
 		return 1;
@@ -1820,8 +1819,6 @@ int process_pm(int nb) {
 	args->expression1 = expression;
 	args->expression2 = NULL;
 	args->expression3 = NULL;
-//	args->expression2 = single_rgb ? NULL : expression2;
-//	args->expression3 = single_rgb ? NULL : expression3;
 	args->single_rgb = TRUE;
 	args->fit = fit;
 	args->ret = 0;
