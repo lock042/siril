@@ -246,7 +246,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		/* if "save transformation only", we choose to initialize all frames
 		 * to exclude status. If registration is ok, the status is
 		 * set to include */
-		args->seq->imgparam[out_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 
 	if (in_index != regargs->reference_image) {
@@ -452,7 +452,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
 		// seems like not but this could backfire at some point
-		args->seq->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;
 	return 0;
