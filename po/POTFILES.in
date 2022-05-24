@@ -59,6 +59,7 @@ src/filters/saturation.c
 src/filters/scnr.c
 src/filters/wavelets.c
 src/gui/about_dialog.c
+src/gui/astrometry_solver.c
 src/gui/callbacks.c
 src/gui/conversion.c
 src/gui/dialog_preview.c

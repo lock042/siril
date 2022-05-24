@@ -592,7 +592,7 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 		int numB, /* I: number of stars in list B */
 		struct s_star *listB, /* I: match this set of objects with list A */
 		Homography *H,
-		gboolean print_output,
+		gboolean save_photometric_data,
 		transformation_type type
 ) {
 	int ret = 0;
@@ -610,22 +610,22 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 	g_assert(star_array_B != NULL);
 
 	mask = cvCalculH(star_array_A, star_array_B, num_stars_B, H, type);
-	ret = (mask == NULL ? 1 : 0);
+	ret = mask == NULL;
 
-	if (print_output) {
+	if (save_photometric_data) {
 		GError *error = NULL;
 		int i;
 		s_star *starA, *starB;
 		GFile *BV_file = g_file_new_build_filename(g_get_tmp_dir(), "photometric_cc.dat", NULL);
 		GOutputStream *output_stream = (GOutputStream*) g_file_replace(BV_file, NULL, FALSE,
 				G_FILE_CREATE_NONE, NULL, &error);
+		g_object_unref(BV_file);
 
-		if (output_stream == NULL) {
-			if (error != NULL) {
+		if (!output_stream) {
+			if (error) {
 				g_warning("%s\n", error->message);
 				g_clear_error(&error);
 			}
-			g_object_unref(BV_file);
 			return 1;
 		}
 
@@ -644,7 +644,6 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 			}
 		}
 		g_object_unref(output_stream);
-		g_object_unref(BV_file);
 	}
 
 	/*

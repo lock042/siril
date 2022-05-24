@@ -338,6 +338,8 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 				plot->data[j].y = psfs[i]->A;
 				break;
 			case MAGNITUDE:
+				if (!psfs[i]->phot_is_valid)
+					continue;
 				plot->data[j].y = psfs[i]->mag;
 				plot->err[j].y = psfs[i]->s_mag;
 
