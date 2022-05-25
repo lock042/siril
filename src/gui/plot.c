@@ -457,7 +457,7 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 		return -1;
 	}
 	for (i = 0, j = 0; i < plot->nb; i++) {
-		if (!seq->imgparam[i].incl)
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		double cmag = 0.0, cerr = 0.0;
 
@@ -478,20 +478,22 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 		/* Warning: first data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
 		while ((n + 1) < MAX_SEQPSF && seq->photometry[n + 1]) {
-			/* variable data, inversion of Pogson's law
-			 * Flux = 10^(-0.4 * mag)
-			 */
-			cmag += pow(10, -0.4 * tmp_plot->data[j].y);
-			/* when data are sorted we need to check order
-			 * by matching timestamps in order
-			 * to sort uncertainties as well
-			 */
-			for (k = 0; k < plot->nb; k++) {
-				if (tmp_plot->err[k].x == tmp_plot->data[j].x)
-					cerr += tmp_plot->err[k].y;
+			if (seq->photometry[n + 1][i]->phot_is_valid) {
+				/* variable data, inversion of Pogson's law
+				 * Flux = 10^(-0.4 * mag)
+				 */
+				cmag += pow(10, -0.4 * tmp_plot->data[j].y);
+				/* when data are sorted we need to check order
+				 * by matching timestamps in order
+				 * to sort uncertainties as well
+				 */
+				for (k = 0; k < plot->nb; k++) {
+					if (tmp_plot->err[k].x == tmp_plot->data[j].x)
+						cerr += tmp_plot->err[k].y;
+				}
+				tmp_plot = tmp_plot->next;
+				++n;
 			}
-			tmp_plot = tmp_plot->next;
-			++n;
 		}
 		/* Converting back to magnitude */
 		if (n > 0) {
