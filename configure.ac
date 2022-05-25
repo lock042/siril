@@ -37,7 +37,6 @@ AC_SUBST(SIRIL_UNSTABLE)
 remember_set_CFLAGS="$CFLAGS"
 
 AC_PROG_CC
-AC_HEADER_STDC
 
 m4_include(m4/openmp.m4)
 AC_OPENMP
@@ -256,7 +255,7 @@ dnl ================================================================
 dnl Collect some arguments.
 dnl ================================================================
 AC_ARG_ENABLE(debug,
-		[AC_HELP_STRING([--enable-debug],
+		[AS_HELP_STRING([--enable-debug],
 		[enable debug build [default=no]])],,
 		[enable_debug="no"])
 		
