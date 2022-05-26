@@ -1100,7 +1100,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE; // only TRUE for global registration. Will be updated in this case
 
-	clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
+	if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);

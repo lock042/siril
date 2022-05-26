@@ -365,14 +365,13 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].number_of_stars = nb_stars;
 		sadata->current_regdata[in_index].H = H;
 
-		// TODO - will need to extract this bit and make it available for all the registration methods ?
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
 					return 1;
 				}
 			} else {
-				fits *destfit = NULL; // TODO: could we realloc like in sequence_export, unless not possible with generic sequence worker?
+				fits *destfit = NULL;
 				if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
 					return 1;
 				}
@@ -646,7 +645,7 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;
-	args->load_new_sequence = TRUE;
+	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
