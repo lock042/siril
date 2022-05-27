@@ -38,6 +38,9 @@ static int awaiting_star = 0;
 static int selected_stars = 0;
 
 static GtkWidget *three_buttons[3] = { 0 };
+static GtkWidget *go_register = NULL;
+static GtkLabel *labelreginfo = NULL;
+static GtkImage *image_3stars[3] = { NULL };
 
 struct _3psf {
 	psf_star *stars[3];
@@ -50,22 +53,18 @@ static int results_size;
 static int rotate_images(struct registration_args *regargs, regdata *current_regdata);
 
 static void set_registration_ready(gboolean ready) {
-	static GtkWidget *go_register = NULL;
 	if (!go_register)
 		go_register = lookup_widget("goregister_button");
 	gtk_widget_set_sensitive(go_register, ready);
 }
 
 static void update_label(gchar* str) {
-	static GtkLabel *labelreginfo = NULL;
 	if (!labelreginfo)
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 	gtk_label_set_text(labelreginfo, str);
 }
 
 static void update_icons(int idx, gboolean OK) {
-	static GtkImage *image_3stars[3] = { NULL };
-
 	if (!image_3stars[0]) {
 		image_3stars[0] = GTK_IMAGE(lookup_widget("3stars-image1"));
 		image_3stars[1] = GTK_IMAGE(lookup_widget("3stars-image2"));
@@ -82,9 +81,7 @@ static void reset_icons() {
 	}
 }
 
-static gboolean _3stars_seqpsf_end(struct generic_seq_args *args) {
-	/* the fun part, synchronizing the three threads */
-//	struct generic_seq_args *args = (struct generic_seq_args *)p;
+static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 
 	if (args->retval) {
@@ -100,56 +97,43 @@ static gboolean _3stars_seqpsf_end(struct generic_seq_args *args) {
 		results[data->image_index].stars[awaiting_star - 1] = data->psf;
 	}
 	g_slist_free(spsfargs->list);
+
+	//should not happen as the stars were confirmed through psf on the ref image
 	int refimage = sequence_find_refimage(&com.seq);
 	if (!results[refimage].stars[awaiting_star - 1]) {
 		siril_log_color_message(_("The star was not found in the reference image. Change the selection or the reference image\n"), "red");
 		for (int i = 0 ; i < com.seq.number; i++)
 			results[i].stars[awaiting_star - 1] = NULL;
+		args->retval = 1;
 		goto psf_end;
 	}
-
-	// unset_suggested(three_buttons[awaiting_star - 1]);
-	// int i;
-	// for (i = 0; i < 3 && results[args->seq->current].stars[i]; i++);
-	// if (i < 3) {
-	// 	set_suggested(three_buttons[i]);
-	// 	set_registration_ready(i == 2);
-	// } else {
-	// 	set_registration_ready(TRUE);
-	// }
-	// update_icons(awaiting_star - 1, TRUE);
 
 	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
 	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
 
 psf_end:
-	memset(&com.selection, 0, sizeof(rectangle));
-	redraw(REDRAW_OVERLAY);
-
-	// awaiting_star = 0;
 	free(args);
 	free(spsfargs);
-	set_cursor_waiting(FALSE);
-	return FALSE;
-	// TODO - add a way to stop processing if one of the seqpsf fails
-	// return end_generic(NULL);
+	return args->retval;
 }
 
-static void start_seqpsf() {
+static void start_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 	spsfargs->for_registration = TRUE; // if false, photometry is computed
 	spsfargs->framing = FOLLOW_STAR_FRAME;
 	spsfargs->list = NULL;	// GSList init is NULL
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
+	if (!regargs->process_all_frames) {
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = regargs->seq->selnum;
+	}
 	args->seq = &com.seq;
 	args->partial_image = TRUE;
 	args->layer_for_partial = get_registration_layer(&com.seq);
 	args->regdata_for_partial = FALSE;
 	args->get_photometry_data_for_partial = FALSE;
-	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = com.seq.selnum;
 	args->image_hook = seqpsf_image_hook;
-	args->finalize_hook = _3stars_seqpsf_end;
+	args->finalize_hook = _3stars_seqpsf_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("PSF on area for 2 or 3 stars");
 	args->upscale_ratio = 1.0;
@@ -158,14 +142,14 @@ static void start_seqpsf() {
 	args->parallel = FALSE;	// follow star implies not parallel
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (!results) {
-		results = calloc(com.seq.selnum, sizeof(struct _3psf));
+		results = calloc(com.seq.number, sizeof(struct _3psf));
 		if (!results) {
 			PRINT_ALLOC_ERR;
 			free(spsfargs);
 			free(args);
 			return;
 		}
-		results_size = com.seq.selnum;
+		results_size = com.seq.number;
 	}
 
 	generic_sequence_worker(args);
@@ -224,10 +208,11 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 
 int register_3stars(struct registration_args *regargs) {
 
-	// we need first to run seqpsf for the 2 or 3 stars selected in ht efirst images
+	// we need first to run seqpsf for the 2 or 3 stars selected in the first images
 	// and then to proceed with the registration (matching + saving images if !no_ouput)
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
+		// TODO - save initial selection in case the boxes were made larger to avoid follow_star
 		delete_selected_area();
 		com.selection.w = (int)com.stars[i]->fwhmx * 4;
 		com.selection.h = (int)com.stars[i]->fwhmx * 4;
@@ -235,9 +220,10 @@ int register_3stars(struct registration_args *regargs) {
 		com.selection.y = com.stars[i]->ypos - com.selection.w * 0.5;
 		new_selection_zone();
 		awaiting_star = i + 1;
-		siril_log_color_message(_("Processing star#%d\n"), "salmon", awaiting_star);
-		start_seqpsf();
+		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
+		start_seqpsf(regargs);
 	}
+	delete_selected_area();
 
 	int refimage = regargs->reference_image;
 	if (!results[refimage].stars[0] || !results[refimage].stars[1]) {
@@ -247,14 +233,6 @@ int register_3stars(struct registration_args *regargs) {
 
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
-
-	/* used to compute weighted_FWHM
-	we assume the number of stars in the reference image is the number of selected stars
-	which is valid as we run a single psf upon initial selection*/
-	int nb_selected_stars = 0;
-	if (results[regargs->seq->reference_image].stars[0]) nb_selected_stars++;
-	if (results[regargs->seq->reference_image].stars[1]) nb_selected_stars++;
-	if (results[regargs->seq->reference_image].stars[2]) nb_selected_stars++;
 
 	/* set regparams for current sequence before closing it */
 	for (int i = 0; i < regargs->seq->number; i++) {
@@ -278,12 +256,14 @@ int register_3stars(struct registration_args *regargs) {
 			sumb += results[i].stars[2]->B;
 			nb_stars++;
 		}
-		double fwhm = sumx / nb_stars;
-		current_regdata[i].roundness = sumy / sumx;
-		current_regdata[i].fwhm = fwhm;
-		current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_selected_stars - nb_stars) / (double)nb_stars + fwhm; 
-		current_regdata[i].background_lvl = sumb / nb_stars;
-		current_regdata[i].number_of_stars = nb_stars;
+		if (nb_stars > 0) {
+			double fwhm = sumx / nb_stars;
+			current_regdata[i].roundness = sumy / sumx;
+			current_regdata[i].fwhm = fwhm;
+			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(selected_stars - nb_stars) / (double)nb_stars + fwhm; 
+			current_regdata[i].background_lvl = sumb / nb_stars;
+			current_regdata[i].number_of_stars = nb_stars;
+		}
 	}
 
 	return rotate_images(regargs, current_regdata);

@@ -93,7 +93,7 @@ void _reg_selected_area_callback() {
 		update_reg_interface(TRUE);
 }
 
-static struct registration_method *reg_methods[NUMBER_OF_METHODS];
+static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 static gboolean end_register_idle(gpointer p);
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
@@ -786,6 +786,15 @@ int get_registration_layer(sequence *seq) {
 				return i;
 		return -1;
 	}
+}
+
+int get_first_selected(sequence *seq) {
+	if (!seq || !seq->imgparam) return -1;
+	fix_selnum(seq, TRUE);
+	for (int i = 0; i < seq->number; i++)
+		if (seq->imgparam[i].incl)
+			return i;
+	return -1;
 }
 
 gboolean layer_has_registration(sequence *seq, int layer) {

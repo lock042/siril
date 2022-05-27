@@ -388,7 +388,7 @@ static void sequence_setselect_all(gboolean include_all) {
 		sequence_list_change_reference();
 		adjust_refimage(com.seq.current);
 	}
-	update_reg_interface(FALSE);
+	update_reg_interface(TRUE);
 	update_stack_interface(TRUE);
 	writeseqfile(&com.seq);
 	redraw(REDRAW_OVERLAY);
@@ -423,6 +423,7 @@ void on_treeview1_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 	}
 	g_list_free_full(list, (GDestroyNotify) gtk_tree_path_free);
 	display_status();
+	update_reg_interface(FALSE);
 }
 
 void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data) {
@@ -789,6 +790,7 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 
 	if (do_load_image) {
 		seq_load_image(&com.seq, index, TRUE);
+		update_reg_interface(FALSE);
 		redraw(REDRAW_OVERLAY);
 	}
 }

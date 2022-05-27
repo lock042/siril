@@ -124,6 +124,7 @@ void guess_transform_from_seq(sequence *seq, int layer, int *mindof, int *maxdof
 int guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(sequence *seq, int layer);
+int get_first_selected(sequence *seq);
 
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);

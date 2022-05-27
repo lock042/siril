@@ -1682,7 +1682,7 @@ void on_comboboxreglayer_changed(GtkComboBox *widget, gpointer user_data) {
 		return;
 	free_reference_image();
 	update_stack_interface(TRUE);
-	update_reg_interface(TRUE);
+	update_reg_interface(FALSE);
 }
 
 void on_spinCPU_value_changed (GtkSpinButton *spinbutton, gpointer user_data) {
