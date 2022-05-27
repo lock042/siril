@@ -49,9 +49,7 @@ struct _3psf {
 static struct _3psf *results;
 static int results_size;
 
-// local functions
-static int _3stars_alignment(struct registration_args *regargs, regdata *current_regdata);
-
+/* UI functions */
 static void set_registration_ready(gboolean ready) {
 	if (!go_register)
 		go_register = lookup_widget("goregister_button");
@@ -81,81 +79,15 @@ static void reset_icons() {
 	}
 }
 
-static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
-	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
-
-	if (args->retval) {
-		if (args->seq->current != 0)
-			update_label(_("Make sure you load the first image"));
-		else update_label(_("Star analysis failed"));
-		goto psf_end;
-	}
-
-	GSList *iterator;
-	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
-		struct seqpsf_data *data = iterator->data;
-		results[data->image_index].stars[awaiting_star - 1] = data->psf;
-	}
-	g_slist_free(spsfargs->list);
-
-	//should not happen as the stars were confirmed through psf on the ref image
-	int refimage = sequence_find_refimage(&com.seq);
-	if (!results[refimage].stars[awaiting_star - 1]) {
-		siril_log_color_message(_("The star was not found in the reference image. Change the selection or the reference image\n"), "red");
-		for (int i = 0 ; i < com.seq.number; i++)
-			results[i].stars[awaiting_star - 1] = NULL;
-		args->retval = 1;
-		goto psf_end;
-	}
-
-	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
-	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
-
-
-psf_end:
-	free(spsfargs);
-	return args->retval;
-}
-
-static int start_seqpsf(struct registration_args *regargs) {
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
-	spsfargs->for_registration = TRUE; // if false, photometry is computed
-	spsfargs->framing = FOLLOW_STAR_FRAME;
-	spsfargs->list = NULL;	// GSList init is NULL
-	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
-	if (!regargs->process_all_frames) {
-		args->filtering_criterion = seq_filter_included;
-		args->nb_filtered_images = regargs->seq->selnum;
-	}
-	args->seq = &com.seq;
-	args->partial_image = TRUE;
-	args->layer_for_partial = get_registration_layer(&com.seq);
-	args->regdata_for_partial = FALSE;
-	args->get_photometry_data_for_partial = FALSE;
-	args->image_hook = seqpsf_image_hook;
-	args->finalize_hook = _3stars_seqpsf_finalize_hook;
-	args->stop_on_error = FALSE;
-	args->description = _("PSF on area for 2 or 3 stars");
-	args->upscale_ratio = 1.0;
-	args->user = spsfargs;
-	args->already_in_a_thread = TRUE;
-	args->parallel = FALSE;	// follow star implies not parallel
-	memcpy(&args->area, &com.selection, sizeof(rectangle));
-	if (!results) {
-		results = calloc(com.seq.number, sizeof(struct _3psf));
-		if (!results) {
-			PRINT_ALLOC_ERR;
-			free(spsfargs);
-			free(args);
-			return 1;
-		}
-		results_size = com.seq.number;
-	}
-
-	generic_sequence_worker(args);
-	regargs->retval = args->retval;
-	free(args);
-	return regargs->retval;
+void reset_3stars(){
+    if (!GTK_IS_WIDGET(three_buttons[0])) return;
+    reset_icons();
+    for (int i = 0; i < 3; i++)
+        unset_suggested(three_buttons[i]);
+    set_suggested(three_buttons[0]);
+    set_registration_ready(FALSE);
+	awaiting_star = 0;
+	selected_stars = 0;
 }
 
 void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
@@ -206,73 +138,87 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		delete_selected_area();
 		set_registration_ready((awaiting_star >= 2) ? TRUE : FALSE);
 	}
-
 }
 
-int register_3stars(struct registration_args *regargs) {
+/* seqpsf hooks and main process */
+static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
+	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 
-	// we need first to run seqpsf for the 2 or 3 stars selected in the first images
-	// and then to proceed with the registration (matching + saving images if !no_ouput)
-	// for the selection, we use the com.stars x/y pos to redraw a box
-	for (int i = 0; i < selected_stars; i++) {
-		// TODO - save initial selection in case the boxes were made larger to avoid follow_star
-		delete_selected_area();
-		com.selection.w = (int)com.stars[i]->fwhmx * 4;
-		com.selection.h = (int)com.stars[i]->fwhmx * 4;
-		com.selection.x = com.stars[i]->xpos - com.selection.w * 0.5;
-		com.selection.y = com.stars[i]->ypos - com.selection.w * 0.5;
-		new_selection_zone();
-		awaiting_star = i + 1;
-		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
-		if (start_seqpsf(regargs)) return 1;
-	}
-	delete_selected_area();
-
-	int refimage = regargs->reference_image;
-	if (!results[refimage].stars[0] || !results[refimage].stars[1]) {
-		siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
-		return 1;
+	if (args->retval) {
+		if (args->seq->current != 0)
+			update_label(_("Make sure you load the first image"));
+		else update_label(_("Star analysis failed"));
+		goto psf_end;
 	}
 
-	regdata *current_regdata = star_align_get_current_regdata(regargs);
-	if (!current_regdata) return -2;
+	GSList *iterator;
+	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
+		struct seqpsf_data *data = iterator->data;
+		results[data->image_index].stars[awaiting_star - 1] = data->psf;
+	}
+	g_slist_free(spsfargs->list);
 
-	/* set regparams for current sequence before closing it */
-	for (int i = 0; i < regargs->seq->number; i++) {
-		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
-		int nb_stars = 0;
-		if (results[i].stars[0]) {
-			sumx += results[i].stars[0]->fwhmx;
-			sumy += results[i].stars[0]->fwhmy;
-			sumb += results[i].stars[0]->B;
-			nb_stars++;
-		}
-		if (results[i].stars[1]) {
-			sumx += results[i].stars[1]->fwhmx;
-			sumy += results[i].stars[1]->fwhmy;
-			sumb += results[i].stars[1]->B;
-			nb_stars++;
-		}
-		if (results[i].stars[2]) {
-			sumx += results[i].stars[2]->fwhmx;
-			sumy += results[i].stars[2]->fwhmy;
-			sumb += results[i].stars[2]->B;
-			nb_stars++;
-		}
-		if (nb_stars >= 2) {
-			double fwhm = sumx / nb_stars;
-			current_regdata[i].roundness = sumy / sumx;
-			current_regdata[i].fwhm = fwhm;
-			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(selected_stars - nb_stars) / (double)nb_stars + fwhm; 
-			current_regdata[i].background_lvl = sumb / nb_stars;
-			current_regdata[i].number_of_stars = nb_stars;
-		}
+	//should not happen as the stars were confirmed through psf on the ref image
+	int refimage = sequence_find_refimage(&com.seq);
+	if (!results[refimage].stars[awaiting_star - 1]) {
+		siril_log_color_message(_("The star was not found in the reference image. Change the selection or the reference image\n"), "red");
+		for (int i = 0 ; i < com.seq.number; i++)
+			results[i].stars[awaiting_star - 1] = NULL;
+		args->retval = 1;
+		goto psf_end;
 	}
 
-	return _3stars_alignment(regargs, current_regdata);
+	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
+	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
+
+
+psf_end:
+	free(spsfargs);
+	return args->retval;
 }
 
-/* image sequence processing */
+static int _3stars_seqpsf(struct registration_args *regargs) {
+	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+	spsfargs->for_registration = TRUE; // if false, photometry is computed
+	spsfargs->framing = FOLLOW_STAR_FRAME;
+	spsfargs->list = NULL;	// GSList init is NULL
+	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
+	if (!regargs->process_all_frames) {
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = regargs->seq->selnum;
+	}
+	args->seq = &com.seq;
+	args->partial_image = TRUE;
+	args->layer_for_partial = get_registration_layer(&com.seq);
+	args->regdata_for_partial = FALSE;
+	args->get_photometry_data_for_partial = FALSE;
+	args->image_hook = seqpsf_image_hook;
+	args->finalize_hook = _3stars_seqpsf_finalize_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("PSF on area for 2 or 3 stars");
+	args->upscale_ratio = 1.0;
+	args->user = spsfargs;
+	args->already_in_a_thread = TRUE;
+	args->parallel = FALSE;	// follow star implies not parallel
+	memcpy(&args->area, &com.selection, sizeof(rectangle));
+	if (!results) {
+		results = calloc(com.seq.number, sizeof(struct _3psf));
+		if (!results) {
+			PRINT_ALLOC_ERR;
+			free(spsfargs);
+			free(args);
+			return 1;
+		}
+		results_size = com.seq.number;
+	}
+
+	generic_sequence_worker(args);
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
+}
+
+/* image alignment hooks and main process */
 static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
@@ -286,7 +232,10 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	}
 	int nb_stars = sadata->current_regdata[in_index].number_of_stars;
 	if (in_index != refimage) {
-		if (nb_stars < 2) return 1;
+		if (nb_stars < 2) {
+			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  args->seq->imgparam[in_index].filenum);
+			return 1;
+		}
 		struct s_star *arrayref, *arraycur, *starsin, *starsout;
 		arrayref = (s_star *) shMalloc(nb_stars * sizeof(s_star));
 		arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
@@ -336,8 +285,8 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	if (!regargs->no_output) {
 		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
-		regargs->imgparam[out_index].ry = args->seq->imgparam[in_index].ry;
+		regargs->imgparam[out_index].rx = sadata->ref.x;
+		regargs->imgparam[out_index].ry = sadata->ref.y;
 		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
@@ -429,7 +378,6 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 
 static int _3stars_alignment(struct registration_args *regargs, regdata *current_regdata) {
 	struct generic_seq_args *args = create_default_seqargs(&com.seq);
-	args->stop_on_error = FALSE;
 	if (!regargs->process_all_frames) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
@@ -490,14 +438,69 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	return args->retval;
 }
 
-void reset_3stars(){
-    if (!GTK_IS_WIDGET(three_buttons[0])) return;
-    reset_icons();
-    for (int i = 0; i < 3; i++)
-        unset_suggested(three_buttons[i]);
-    set_suggested(three_buttons[0]);
-    set_registration_ready(FALSE);
-	awaiting_star = 0;
-	selected_stars = 0;
-}
+/*
+This function runs seqpsfs on 2/3 stars as selected by the user
+then computes transformation matrix to the ref image
+and finally applies this transform if !no_output
+Registration data is saved to the input sequence in any case
+*/
+int register_3stars(struct registration_args *regargs) {
 
+	// for the selection, we use the com.stars x/y pos to redraw a box
+	for (int i = 0; i < selected_stars; i++) {
+		// TODO - save initial selection in case the boxes were made larger to avoid follow_star
+		delete_selected_area();
+		com.selection.w = (int)com.stars[i]->fwhmx * 4;
+		com.selection.h = (int)com.stars[i]->fwhmx * 4;
+		com.selection.x = com.stars[i]->xpos - com.selection.w * 0.5;
+		com.selection.y = com.stars[i]->ypos - com.selection.w * 0.5;
+		new_selection_zone();
+		awaiting_star = i + 1;
+		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
+		if (_3stars_seqpsf(regargs)) return 1;
+	}
+	delete_selected_area();
+
+	int refimage = regargs->reference_image;
+	if (!results[refimage].stars[0] || !results[refimage].stars[1]) {
+		siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
+		return 1;
+	}
+
+	regdata *current_regdata = star_align_get_current_regdata(regargs);
+	if (!current_regdata) return -2;
+
+	/* set regparams for current sequence before closing it */
+	for (int i = 0; i < regargs->seq->number; i++) {
+		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
+		int nb_stars = 0;
+		if (results[i].stars[0]) {
+			sumx += results[i].stars[0]->fwhmx;
+			sumy += results[i].stars[0]->fwhmy;
+			sumb += results[i].stars[0]->B;
+			nb_stars++;
+		}
+		if (results[i].stars[1]) {
+			sumx += results[i].stars[1]->fwhmx;
+			sumy += results[i].stars[1]->fwhmy;
+			sumb += results[i].stars[1]->B;
+			nb_stars++;
+		}
+		if (results[i].stars[2]) {
+			sumx += results[i].stars[2]->fwhmx;
+			sumy += results[i].stars[2]->fwhmy;
+			sumb += results[i].stars[2]->B;
+			nb_stars++;
+		}
+		if (nb_stars >= 2) {
+			double fwhm = sumx / nb_stars;
+			current_regdata[i].roundness = sumy / sumx;
+			current_regdata[i].fwhm = fwhm;
+			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(selected_stars - nb_stars) / (double)nb_stars + fwhm; 
+			current_regdata[i].background_lvl = sumb / nb_stars;
+			current_regdata[i].number_of_stars = nb_stars;
+		}
+	}
+
+	return _3stars_alignment(regargs, current_regdata);
+}

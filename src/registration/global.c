@@ -389,8 +389,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	if (!regargs->no_output) {
 		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
-		regargs->imgparam[out_index].ry = args->seq->imgparam[in_index].ry;
+		regargs->imgparam[out_index].rx = sadata->ref.x;
+		regargs->imgparam[out_index].ry = sadata->ref.y;
 		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
