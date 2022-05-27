@@ -128,5 +128,6 @@ int get_first_selected(sequence *seq);
 
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
+int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography H);
 
 #endif

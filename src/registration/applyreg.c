@@ -136,55 +136,10 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 				return 1;
 			}
 		} else {
-			fits *destfit = NULL;
-			if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
+			if (shift_fit_from_reg(fit, regargs, H)) {
 				return 1;
 			}
-			destfit->bitpix = fit->bitpix;
-			destfit->orig_bitpix = fit->orig_bitpix;
-			int nbpix = fit->naxes[0] * fit->naxes[1] * (regargs->x2upscale ? 4 : 1);
-			if (destfit->type == DATA_FLOAT) {
-				memset(destfit->fdata, 0, nbpix * fit->naxes[2] * sizeof(float));
-				if (fit->naxes[2] == 3) {
-					destfit->fpdata[1] = destfit->fdata + nbpix;
-					destfit->fpdata[2] = destfit->fdata + nbpix * 2;
-				}
-			} else {
-				memset(destfit->data, 0, nbpix * fit->naxes[2] * sizeof(WORD));
-				if (fit->naxes[2] == 3) {
-					destfit->pdata[1] = destfit->data + nbpix;
-					destfit->pdata[2] = destfit->data + nbpix * 2;
-				}
-			}
-			copy_fits_metadata(fit, destfit);
-			double scale = regargs->x2upscale ? 2. : 1.;
-			destfit->rx = destfit->naxes[0] = fit->rx * scale;
-			destfit->ry = destfit->naxes[1] = fit->ry * scale;
-			int shiftx, shifty;
-			/* load registration data for current image */
-			double dx, dy;
-			translation_from_H(H, &dx, &dy);
-			shiftx = round_to_int(dx * scale);
-			shifty = round_to_int(dy * scale);
-			for (int layer = 0; layer < fit->naxes[2]; ++layer) {
-				for (int y = 0; y < destfit->ry; ++y) {
-					for (int x = 0; x < destfit->rx; ++x) {
-						int nx = x + shiftx;
-						int ny = y + shifty;
-						if (nx >= 0 && nx < destfit->rx && ny >= 0 && ny < destfit->ry) {
-							if (destfit->type == DATA_USHORT) {
-								destfit->pdata[layer][nx + ny * destfit->rx] = fit->pdata[layer][x + y * fit->rx];
-							} else if (destfit->type == DATA_FLOAT) {
-								destfit->fpdata[layer][nx + ny * destfit->rx] = fit->fpdata[layer][x + y * fit->rx];
-							}
-						}
-					}
-				}
-			}
-			copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-			clearfits(destfit);
 		}
-
 	} else {
 		// reference image
 		if (regargs->x2upscale) {
