@@ -293,11 +293,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		double scale_min = 0.9;
 		double scale_max = 1.1;
 		retvalue = 1;
-		s_star star_list_A, star_list_B;
 		while (retvalue && attempt < NB_OF_MATCHING_TRY) {
 			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj,
-					scale_min, scale_max, &H, FALSE, regargs->type,
-					&star_list_A, &star_list_B);
+					scale_min, scale_max, &H, FALSE, NULL, NULL, regargs->type,
+					NULL, NULL);
 			if (attempt == 1) {
 				scale_min = -1.0;
 				scale_max = -1.0;

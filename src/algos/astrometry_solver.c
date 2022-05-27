@@ -1087,16 +1087,19 @@ gpointer match_catalog(gpointer p) {
 	int max_trials = 0;
 	GFile *catalog = NULL;
 	GInputStream *input_stream = NULL;
-	s_star star_list_A, star_list_B;
+	s_star *star_list_A, *star_list_B;
+	pcc_star *pcc_stars = NULL;
+	int nb_pcc_stars;
 	fits fit_backup = { 0 };
 
 	args->ret = 1;
 	args->message = NULL;
 	args->solution = NULL;
 
-	siril_log_message(_("Plate solving image from an online catalogue for %s field of view of %.2f"
-			       " degrees, using a limit magnitude of %.2f\n"),
-			args->uncentered ? _("an uncentered") : _("a"), args->used_fov / 60.0, args->limit_mag);
+	siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
+			       " degrees%s, using a limit magnitude of %.2f\n"),
+			args->used_fov / 60.0,
+			args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
 
 	if (!args->catalog_file) {
 		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
@@ -1135,6 +1138,7 @@ gpointer match_catalog(gpointer p) {
 				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
 		goto clearup;
 	}
+	siril_debug_print("using %d detected stars from image\n", n_fit);
 	if (args->uncentered)
 		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
@@ -1173,8 +1177,9 @@ gpointer match_catalog(gpointer p) {
 	double scale_max = args->scale + 0.2;
 	int attempt = 1;
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
-		args->ret = new_star_match(stars, cstars, n, nobj, scale_min,
-				scale_max, &H, args->for_photometry_cc,
+		args->ret = new_star_match(stars, cstars, n, nobj,
+				scale_min, scale_max, &H,
+				args->for_photometry_cc, &pcc_stars, &nb_pcc_stars,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
 			scale_min = -1.0;
@@ -1226,14 +1231,14 @@ gpointer match_catalog(gpointer p) {
 		double orig_ra0 = ra0;
 		double orig_dec0 = dec0;
 
-		deproject_starlist(num_matched, &star_list_B, rainit, decinit, 1);
+		deproject_starlist(num_matched, star_list_B, rainit, decinit, 1);
 		siril_debug_print("Deprojecting from: alpha: %s, delta: %s\n",
 				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
 				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
 		args->cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
 		solution->px_cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
 
-		project_starlist(num_matched, &star_list_B, ra0, dec0, 1);
+		project_starlist(num_matched, star_list_B, ra0, dec0, 1);
 		siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
 				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
 				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
@@ -1245,7 +1250,7 @@ gpointer match_catalog(gpointer p) {
 		double focal = RADCONV * solution->pixel_size / resolution;
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
-		if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
+		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, FALSE, NULL, NULL, AFFINE_TRANSFORMATION)){
 			args->message = g_strdup(_("Updating homography failed."));
 			args->ret = 1;
 			break;
@@ -1259,6 +1264,8 @@ gpointer match_catalog(gpointer p) {
 		trial++;
 		CHECK_FOR_CANCELLATION;
 	}
+	free_stars(star_list_A);
+	free_stars(star_list_B);
 	if (args->ret)	// after the break
 		goto clearup;
 
@@ -1391,14 +1398,22 @@ gpointer match_catalog(gpointer p) {
 	load_WCS_from_memory(args->fit);
 	print_platesolving_results(solution, args->downsample);
 	if (args->for_photometry_cc) {
-		if ((args->ret = apply_photometric_cc(args->pcc)))
-			goto clearup;
+		args->pcc->stars = pcc_stars;
+		args->pcc->nb_stars = nb_pcc_stars;
+		args->ret = photometric_cc(args->pcc);
 		args->pcc = NULL; // freed in PCC code
+		free(pcc_stars);
+		pcc_stars = NULL;
+		if (args->ret) {
+			args->message = g_strdup_printf(_("An astrometric solution was found but photometry analysis of the %d stars failed. This happens if they are saturated in the image or if they are too faint to have B-V index information (mag > 18)\n"), nb_pcc_stars);
+			goto clearup;
+		}
 	}
 	if (args->flip_image && image_is_flipped(solution->H)) {
 		siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
 		flip_bottom_up_astrometry_data(args->fit);
+		args->image_flipped = TRUE;
 	}
 	/* TODO: what do we do with solution ? */
 
@@ -1407,7 +1422,7 @@ clearup:
 		clearfits(args->fit);
 		memcpy(args->fit, &fit_backup, sizeof(fits));
 	}
-	if (stars && args->manual) {
+	if (stars && !args->manual) {
 		for (int i = 0; i < MAX_STARS && stars[i]; i++)
 			free_psf(stars[i]);
 		free(stars);
@@ -1423,6 +1438,8 @@ clearup:
 	if (args->catalog_file)
 		g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
+	if (pcc_stars)
+		free(pcc_stars);
 	siril_add_idle(end_plate_solver, args);
 	if (com.script && args->ret)
 		siril_log_message(_("Plate solving failed: %s\n"), args->message);

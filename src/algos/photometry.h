@@ -11,6 +11,12 @@ struct photometry_struct {
 };
 typedef struct photometry_struct photometry;
 
+typedef struct {
+	float x, y;// in image pixels coordinates
+	float mag; // visible magnitude (V filter), for sorting and debug
+	float BV;
+} pcc_star;
+
 double get_camera_gain(fits *fit);
 
 photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolean force_radius, gboolean verbose);

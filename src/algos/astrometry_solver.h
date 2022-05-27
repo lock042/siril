@@ -83,6 +83,7 @@ struct astrometry_data {
 	int ret;		// return value
 	gchar *message;		// error message
 	image_solved *solution;	// the astrometry solution for the image
+	gboolean image_flipped;	// image has been flipped
 };
 
 struct sky_object {

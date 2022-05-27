@@ -324,6 +324,8 @@ gboolean end_plate_solver(gpointer p) {
 		siril_world_cs_unref(solution->image_center);
 		free(solution);
 	}
+	if (args->image_flipped)
+		clear_stars_list(TRUE);
 	update_MenuItem();
 	free(args);
 	return FALSE;
