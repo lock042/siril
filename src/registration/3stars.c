@@ -50,7 +50,7 @@ static struct _3psf *results;
 static int results_size;
 
 // local functions
-static int rotate_images(struct registration_args *regargs, regdata *current_regdata);
+static int _3stars_alignment(struct registration_args *regargs, regdata *current_regdata);
 
 static void set_registration_ready(gboolean ready) {
 	if (!go_register)
@@ -111,8 +111,8 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
 	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
 
+
 psf_end:
-	free(args);
 	free(spsfargs);
 	return args->retval;
 }
@@ -153,7 +153,9 @@ static int start_seqpsf(struct registration_args *regargs) {
 	}
 
 	generic_sequence_worker(args);
-	return (args->retval);
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
 }
 
 void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
@@ -257,7 +259,7 @@ int register_3stars(struct registration_args *regargs) {
 			sumb += results[i].stars[2]->B;
 			nb_stars++;
 		}
-		if (nb_stars > 0) {
+		if (nb_stars >= 2) {
 			double fwhm = sumx / nb_stars;
 			current_regdata[i].roundness = sumy / sumx;
 			current_regdata[i].fwhm = fwhm;
@@ -267,98 +269,142 @@ int register_3stars(struct registration_args *regargs) {
 		}
 	}
 
-	return rotate_images(regargs, current_regdata);
+	return _3stars_alignment(regargs, current_regdata);
 }
 
-/* image rotation sequence processing */
-static int affine_transform_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *area, int threads) {
+/* image sequence processing */
+static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int refimage = regargs->reference_image;
 	Homography H = { 0 };
-	int nb_stars = 3;
-	if (!results[refimage].stars[2])
-		nb_stars = 2;
-	if (nb_stars == 2 && (!results[in_index].stars[0] || !results[in_index].stars[1]))
-		return 1;
-	if (nb_stars == 2 || (nb_stars == 3 && results[in_index].stars[0] && results[in_index].stars[1] && results[in_index].stars[2])) {
-		if (regargs->x2upscale || in_index != refimage) {
-			pointf ref[3] = {
-				{ results[refimage].stars[0]->xpos, results[refimage].stars[0]->ypos },
-				{ results[refimage].stars[1]->xpos, results[refimage].stars[1]->ypos },
-				{ 0, 0 }
-			};
-			if (nb_stars == 3) {
-				ref[2].x = results[refimage].stars[2]->xpos;
-				ref[2].y = results[refimage].stars[2]->ypos;
+	if (regargs->no_output) {
+		/* if "save transformation only", we choose to initialize all frames
+		 * to exclude status. If registration is ok, the status is
+		 * set to include */
+		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+	}
+	int nb_stars = sadata->current_regdata[in_index].number_of_stars;
+	if (in_index != refimage) {
+		if (nb_stars < 2) return 1;
+		struct s_star *arrayref, *arraycur, *starsin, *starsout;
+		arrayref = (s_star *) shMalloc(nb_stars * sizeof(s_star));
+		arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
+		int j = 0;
+		unsigned char *mask;
+		for (int i = 0; i < 3; i++) {
+			starsin = &(arrayref[j]);
+			starsout = &(arraycur[j]);
+			g_assert(starsin != NULL);
+			g_assert(starsout != NULL);
+			if (results[in_index].stars[i] != NULL && results[refimage].stars[i] != NULL) {
+				starsin->x = results[refimage].stars[i]->xpos;
+				starsin->y = results[refimage].stars[i]->ypos;
+				starsout->x = results[in_index].stars[i]->xpos;
+				starsout->y = results[in_index].stars[i]->ypos;
+				j++;
 			}
-			pointf cur[3] = {
-				{ results[in_index].stars[0]->xpos, results[in_index].stars[0]->ypos },
-				{ results[in_index].stars[1]->xpos, results[in_index].stars[1]->ypos },
-				{ 0, 0 }
-			};
-			if (nb_stars == 3) {
-				cur[2].x = results[in_index].stars[2]->xpos;
-				cur[2].y = results[in_index].stars[2]->ypos;
+		}
+		mask = cvCalculH(arraycur, arrayref, nb_stars, &H, SIMILARITY_TRANSFORMATION);
+		if (!mask || H.Inliers < 2) {
+			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  args->seq->imgparam[in_index].filenum);
+			return 1;
+		}
+		sadata->current_regdata[in_index].H = H;
+
+		if (!regargs->no_output) {
+			if (regargs->interpolation <= OPENCV_LANCZOS4) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+					return 1;
+				}
+			} else {
+				fits *destfit = NULL;
+				if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
+					return 1;
+				}
+				destfit->bitpix = fit->type;
+				destfit->orig_bitpix = fit->orig_bitpix;
+				int nbpix = fit->naxes[0] * fit->naxes[1] * (regargs->x2upscale ? 4 : 1);
+				if (destfit->type == DATA_FLOAT) {
+					memset(destfit->fdata, 0, nbpix * fit->naxes[2] * sizeof(float));
+					if (fit->naxes[2] == 3) {
+						destfit->fpdata[1] = destfit->fdata + nbpix;
+						destfit->fpdata[2] = destfit->fdata + nbpix * 2;
+					}
+				} else {
+					memset(destfit->data, 0, nbpix * fit->naxes[2] * sizeof(WORD));
+					if (fit->naxes[2] == 3) {
+						destfit->pdata[1] = destfit->data + nbpix;
+						destfit->pdata[2] = destfit->data + nbpix * 2;
+					}
+				}
+				copy_fits_metadata(fit, destfit);
+				double scale = regargs->x2upscale ? 2. : 1.;
+				destfit->rx = destfit->naxes[0] = fit->rx * scale;
+				destfit->ry = destfit->naxes[1] = fit->ry * scale;
+				int shiftx, shifty;
+				/* load registration data for current image */
+				double dx, dy;
+				translation_from_H(H, &dx, &dy);
+				shiftx = round_to_int(dx * scale);
+				shifty = round_to_int(dy * scale);
+				for (int layer = 0; layer < fit->naxes[2]; ++layer) {
+					for (int y = 0; y < destfit->ry; ++y) {
+						for (int x = 0; x < destfit->rx; ++x) {
+							int nx = x + shiftx;
+							int ny = y + shifty;
+							if (nx >= 0 && nx < destfit->rx && ny >= 0 && ny < destfit->ry) {
+								if (destfit->type == DATA_USHORT) {
+									destfit->pdata[layer][nx + ny * destfit->rx] = fit->pdata[layer][x + y * fit->rx];
+								} else if (destfit->type == DATA_FLOAT) {
+									destfit->fpdata[layer][nx + ny * destfit->rx] = fit->fpdata[layer][x + y * fit->rx];
+								}
+							}
+						}
+					}
+				}
+				copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+				clearfits(destfit);
 			}
-			if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation, &H))
+		}
+	} else {
+		// reference image
+		cvGetEye(&H);
+		sadata->current_regdata[in_index].H = H;
+		if (regargs->x2upscale && !regargs->no_output) {
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
 		}
 	}
-	else {
-		int in_stars = (results[in_index].stars[0] != NULL) +
-			(results[in_index].stars[1] != NULL) + (results[in_index].stars[2] != NULL);
-		if (in_stars != 2)
-			return 1;
-		pointf ref[2] = { 0 };
-		pointf cur[2] = { 0 };
-		int star = 0;
-		if (results[in_index].stars[0]) {
-			ref[star].x = results[refimage].stars[0]->xpos;
-			ref[star].y = results[refimage].stars[0]->ypos;
-			cur[star].x = results[in_index].stars[0]->xpos;
-			cur[star].y = results[in_index].stars[0]->ypos;
-			star++;
-		}
-		if (results[in_index].stars[1]) {
-			ref[star].x = results[refimage].stars[1]->xpos;
-			ref[star].y = results[refimage].stars[1]->ypos;
-			cur[star].x = results[in_index].stars[1]->xpos;
-			cur[star].y = results[in_index].stars[1]->ypos;
-			star++;
-		}
-		if (results[in_index].stars[2]) {
-			ref[star].x = results[refimage].stars[2]->xpos;
-			ref[star].y = results[refimage].stars[2]->ypos;
-			cur[star].x = results[in_index].stars[2]->xpos;
-			cur[star].y = results[in_index].stars[2]->ypos;
-		}
 
-		if (cvAffineTransformation(fit, ref, cur, nb_stars, regargs->x2upscale, regargs->interpolation, &H))
-			return 1;
+	if (!regargs->no_output) {
+		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
+		regargs->imgparam[out_index].ry = args->seq->imgparam[in_index].ry;
+		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
+		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
+		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+		cvGetEye(&regargs->regparam[out_index].H);
+
+		if (regargs->x2upscale) {
+			fit->pixel_size_x /= 2;
+			fit->pixel_size_y /= 2;
+			regargs->regparam[out_index].fwhm *= 2.0;
+			regargs->regparam[out_index].weighted_fwhm *= 2.0;
+		}
+	} else {
+		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
+		// seems like not but this could backfire at some point
+		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
-
 	sadata->success[out_index] = 1;
-	sadata->current_regdata[in_index].H = H;
-	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-	cvGetEye(&regargs->regparam[out_index].H);
-
-	if (regargs->x2upscale) {
-		fit->pixel_size_x /= 2;
-		fit->pixel_size_y /= 2;
-		regargs->regparam[out_index].fwhm *= 2.0;
-		regargs->regparam[out_index].weighted_fwhm *= 2.0;
-	}
 	return 0;
 }
 
-static int affine_transform_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -425,18 +471,19 @@ static int affine_transform_compute_mem_limits(struct generic_seq_args *args, gb
 	return limit;
 }
 
-static int rotate_images(struct registration_args *regargs, regdata *current_regdata) {
+static int _3stars_alignment(struct registration_args *regargs, regdata *current_regdata) {
 	struct generic_seq_args *args = create_default_seqargs(&com.seq);
 	args->stop_on_error = FALSE;
 	if (!regargs->process_all_frames) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	args->compute_mem_limits_hook = affine_transform_compute_mem_limits;
+	args->compute_mem_limits_hook = _3stars_align_compute_mem_limits;
 	args->prepare_hook = star_align_prepare_results;
-	args->image_hook = affine_transform_hook;
+	args->image_hook = _3stars_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;	// from global registration
-	args->description = _("Creating the rotated image sequence");
+	args->stop_on_error = FALSE;
+	args->description = (!regargs->no_output) ? _("Creating the rotated image sequence") : _("Saving the transformation matrices");
 	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
@@ -453,6 +500,26 @@ static int rotate_images(struct registration_args *regargs, regdata *current_reg
 	// we pass the regdata just to avoid recomputing it for the new sequence
 	sadata->current_regdata = current_regdata; 
 	args->user = sadata;
+
+	// some prep work done in star_align_prepare_hook for global
+	// need to duplicate it here
+	int refimage = args->seq->reference_image;
+	sadata->ref.x = args->seq->imgparam[refimage].rx;
+	sadata->ref.y = args->seq->imgparam[refimage].ry;
+
+	if (regargs->x2upscale) {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 2.0;
+		} else {
+			sadata->ref.x *= 2.0;
+			sadata->ref.y *= 2.0;
+		}
+	}
+	else {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 1.0;
+		}
+	}
 
 	generic_sequence_worker(args);
 	
