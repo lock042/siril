@@ -103,9 +103,8 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 	double xx, yy, xi, eta;
 
 	input_stream = (GInputStream*) g_file_read(file_in, NULL, &error);
-
-	if (input_stream == NULL) {
-		if (error != NULL) {
+	if (!input_stream) {
+		if (error) {
 			shError("proc_star_file: can't open file %s for input", g_file_peek_path(file_in));
 			g_clear_error(&error);
 		}

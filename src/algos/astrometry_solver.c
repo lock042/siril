@@ -61,7 +61,7 @@
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-8
 
-#undef DEBUG           /* get some of diagnostic output */
+#undef DEBUG		/* get some of diagnostic output */
 
 struct sky_object platedObject[RESOLVER_NUMBER];
 
@@ -104,19 +104,22 @@ static double get_fov(double resolution, int image_size) {
 	return (resolution * (double)image_size) / 60.0;
 }
 
+double compute_mag_limit_from_fov(double fov_degrees) {
+	// Empiric formula for 1000 stars at 20 deg of galactic latitude
+	double autoLimitMagnitudeFactor = 14.5;
+	double m = autoLimitMagnitudeFactor * pow(fov_degrees, -0.179);
+	// for astrometry, it can be useful to go down to mag 20, for
+	// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
+	return round(100.0 * min(20.0, max(7.0, m))) / 100;
+}
+
 static void compute_mag_limit(struct astrometry_data *args) {
-	// limit magnitude should depend on image fov, not selection's
-	double fov = get_fov(args->scale, max(args->fit->rx, args->fit->ry)) * CROP_ALLOWANCE;
-	//double fov = args->used_fov * CROP_ALLOWANCE;
 	if (args->auto_magnitude) {
-		// Empiric formula for 1000 stars at 20 deg of galactic latitude
-		double autoLimitMagnitudeFactor = 14.5;
-		/* convert fov in degree */
-		fov /= 60.0;
-		double m = autoLimitMagnitudeFactor * pow(fov, -0.179);
-		// for astrometry, it can be useful to go down to mag 20, for
-		// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
-		args->limit_mag = round(100.0 * min(20.0, max(7.0, m))) / 100;
+		// limit magnitude should depend on image fov, not selection's
+		double fov = get_fov(args->scale, max(args->fit->rx, args->fit->ry)) * CROP_ALLOWANCE;
+		//double fov = args->used_fov * CROP_ALLOWANCE;
+
+		args->limit_mag = compute_mag_limit_from_fov(fov / 60.0);
 	}
 	else args->limit_mag = args->forced_magnitude;
 	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
@@ -541,6 +544,18 @@ gboolean has_any_keywords() {
 			(gfit.wcsdata.crval[0] > 0.0 && gfit.wcsdata.crval[1] != 0.0) ||
 			(gfit.wcsdata.objctra[0] != '\0' && gfit.wcsdata.objctdec[0] != '\0') ||
 			(gfit.wcsdata.ra != 0.0 && gfit.wcsdata.dec != 0.0));
+}
+
+SirilWorldCS *get_eqs_from_header(fits *fit) {
+	if (fit->wcsdata.ra != 0.0 && fit->wcsdata.dec != 0.0)
+		return siril_world_cs_new_from_a_d(fit->wcsdata.ra, fit->wcsdata.dec);
+
+	else if (fit->wcsdata.objctra[0] != '\0' && fit->wcsdata.objctdec[0] != '\0')
+		return siril_world_cs_new_from_objct_ra_dec(fit->wcsdata.objctra, fit->wcsdata.objctdec);
+
+	else if (fit->wcsdata.crval[0] != 0.0 && fit->wcsdata.crval[1] != 0.0)
+		return siril_world_cs_new_from_a_d(fit->wcsdata.crval[0], fit->wcsdata.crval[1]);
+	return NULL;
 }
 
 /* Extract CDELT from CD matrix.*/

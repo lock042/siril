@@ -122,10 +122,10 @@ char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
 int process_load(int nb){
 	char filename[256];
-	
+
 	strncpy(filename, word[1], 250);
 	filename[250] = '\0';
-	
+
 	for (int i = 1; i < nb - 1; ++i) {
 		strcat(filename, " ");
 		strcat(filename, word[i + 1]);
@@ -606,7 +606,7 @@ int process_crop(int nb) {
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
-	
+
 	return 0;
 }
 
@@ -679,7 +679,7 @@ int process_wavelet(int nb) {
 
 	Nbr_Plan = g_ascii_strtoull(word[1], NULL, 10);
 	Type_Transform = g_ascii_strtoull(word[2], NULL, 10);
-	
+
 	nb_chan = gfit.naxes[2];
 	g_assert(nb_chan <= 3);
 
@@ -836,14 +836,14 @@ int process_clahe(int nb) {
 
 int process_ls(int nb){
 	gchar *path = NULL;
-	
+
 	/* If a path is given in argument */
 	if (nb > 1) {
 		if (word[1][0] != '\0') {
 			/* Absolute path */
 			if (word[1][0] == G_DIR_SEPARATOR || word[1][0] == '~') {
 				char filename[256];
-				
+
 				g_strlcpy(filename, word[1], 250);
 				filename[250] = '\0';
 				expand_home_in_filename(filename, 256);
@@ -1266,10 +1266,10 @@ int process_resample(int nb) {
 	}
 	int toX = round_to_int(factor * gfit.rx);
 	int toY = round_to_int(factor * gfit.ry);
-	
+
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA);
-	
+
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
@@ -1936,7 +1936,7 @@ int process_seq_psf(int nb) {
 
 		double start = 1.5 * com.pref.phot_set.outer;
 		double size = 3 * com.pref.phot_set.outer;
-	
+
 		com.selection.x = x - start;
 		com.selection.y = y - start;
 		com.selection.w = size;
@@ -2034,7 +2034,7 @@ int process_seq_crop(int nb) {
 	args->seq = seq;
 	args->area = area;
 	args->prefix = "cropped_";
-	
+
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
@@ -2275,7 +2275,7 @@ int process_ddp(int nb) {
 
 int process_new(int nb){
 	int width, height, layers;
-	
+
 	width = g_ascii_strtod(word[1], NULL);
 	height = g_ascii_strtod(word[2], NULL);
 	layers = g_ascii_strtoull(word[3], NULL, 10);
@@ -2569,7 +2569,7 @@ int process_fmedian(int nb){
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
-	
+
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
@@ -2579,7 +2579,7 @@ int process_fmedian(int nb){
 	args->ksize = g_ascii_strtoull(word[1], NULL, 10);
 	args->amount = g_ascii_strtod(word[2], NULL);
 	args->iterations = 1;
-	
+
 	if (!(args->ksize & 1) || args->ksize < 2 || args->ksize > 15) {
 		siril_log_message(_("The size of the kernel MUST be odd and in the range [3, 15].\n"));
 		free(args);
@@ -2593,7 +2593,7 @@ int process_fmedian(int nb){
 	args->fit = &gfit;
 
 	start_in_new_thread(median_filter, args);
-	
+
 	return 0;
 }
 
@@ -2710,7 +2710,7 @@ int process_scnr(int nb){
 	}
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
-	
+
 	args->type = 0;
 	if (nb > 1) {
 		gchar *end;
@@ -2741,15 +2741,15 @@ int process_fft(int nb){
 	}
 
 	struct fft_data *args = malloc(sizeof(struct fft_data));
-	
+
 	args->fit = &gfit;
 	args->type = strdup(word[0]);
 	args->modulus = strdup(word[1]);
 	args->phase = strdup(word[2]);
 	args->type_order = 0;
-	
+
 	start_in_new_thread(fourier_transform, args);
-	
+
 	return 0;
 }
 
@@ -2772,7 +2772,7 @@ int process_fixbanding(int nb) {
 	args->fit = &gfit;
 
 	start_in_new_thread(BandingEngineThreaded, args);
-	
+
 	return 0;
 }
 
@@ -4936,7 +4936,7 @@ int process_exit(int nb){
 
 int process_extract(int nb) {
 	int Nbr_Plan, maxplan, mins;
-	
+
 	if (!single_image_is_loaded()) {
 		PRINT_NOT_FOR_SEQUENCE;
 		return 1;
@@ -4952,7 +4952,7 @@ int process_extract(int nb) {
 				maxplan);
 		return 1;
 	}
-	
+
 	struct wavelets_filter_data *args = malloc(sizeof(struct wavelets_filter_data));
 
 	args->Type = TO_PAVE_BSPLINE;
@@ -5185,30 +5185,37 @@ int process_pcc(int nb) {
 		return 1;
 	}
 
-	gboolean noflip = FALSE;
+	gboolean noflip = FALSE, plate_solve = !has_wcs(&gfit);
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
-	// parse args: target_coords [-noflip] [-focal=len] [-pixelsize=ps]
-	char *sep = strchr(word[1], ',');
-	int next_arg = 2;
-	if (!sep) {
-		if (nb > 1) {
-			target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], word[2]);
-			next_arg = 3;
+	// parse args: [target_coords] [-noflip] [-platesolve] [-focal=len] [-pixelsize=ps]
+
+	// check if we have target_coords
+	int next_arg = 1;
+	if (nb > 1 && (word[1][0] != '-' || (word[1][1] >= '0' && word[1][1] <= '9'))) {
+		char *sep = strchr(word[1], ',');
+		next_arg = 2;
+		if (!sep) {
+			if (nb > 1) {
+				target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], word[2]);
+				next_arg = 3;
+			}
 		}
-	}
-	else {
-		*sep++ = '\0';
-		target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], sep);
-	}
-	if (!target_coords) {
-		siril_log_message(_("Could not parse target coordinates\n"));
-		return 1;
+		else {
+			*sep++ = '\0';
+			target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], sep);
+		}
+		if (!target_coords) {
+			siril_log_message(_("Could not parse target coordinates\n"));
+			return 1;
+		}
 	}
 
 	while (nb > next_arg && word[next_arg]) {
 		if (!strcmp(word[next_arg], "-noflip"))
 			noflip = TRUE;
+		else if (!strcmp(word[next_arg], "-platesolve"))
+			plate_solve = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
 			forced_focal = g_ascii_strtod(arg, NULL);
@@ -5235,12 +5242,34 @@ int process_pcc(int nb) {
 		next_arg++;
 	}
 
-	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
-	args->fit = &gfit;
+	if (plate_solve && !target_coords) {
+		target_coords = get_eqs_from_header(&gfit);
+		if (!target_coords) {
+			siril_log_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"));
+			return 1;
+		}
+		siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
+				siril_world_cs_get_alpha(target_coords), siril_world_cs_get_delta(target_coords));
+	}
+
+	if (plate_solve)
+		siril_log_message(_("Photometric color correction will use plate solving first\n"));
+	else  siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
+
+	struct astrometry_data *args = NULL;
+	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	if (plate_solve) {
+		args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+	}
 	if (forced_pixsize > 0.0) {
-		args->pixel_size = forced_pixsize;
-		siril_log_message(_("Using provided pixel size: %f\n"), args->pixel_size);
-	} else {
+		if (!plate_solve)
+			siril_log_message(_("focal length and pixel size are only used for plate solving, ignored now\n"));
+		else {
+			args->pixel_size = forced_pixsize;
+			siril_log_message(_("Using provided pixel size: %f\n"), args->pixel_size);
+		}
+	} else if (plate_solve) {
 		args->pixel_size = max(gfit.pixel_size_x, gfit.pixel_size_y);
 		if (args->pixel_size <= 0.0) {
 			args->pixel_size = com.starfinder_conf.pixel_size_x;
@@ -5256,9 +5285,14 @@ int process_pcc(int nb) {
 		else siril_log_message(_("Using pixel size from image: %f\n"), args->pixel_size);
 	}
 	if (forced_focal > 0.0) {
-		args->focal_length = forced_focal;
-		siril_log_message(_("Using provided focal length: %f\n"), args->focal_length);
-	} else {
+		if (!plate_solve) {
+			if (forced_pixsize <= 0.0)
+				siril_log_message(_("focal length and pixel size are only used for plate solving, ignored now\n"));
+		} else {
+			args->focal_length = forced_focal;
+			siril_log_message(_("Using provided focal length: %f\n"), args->focal_length);
+		}
+	} else if (plate_solve) {
 		args->focal_length = gfit.focal_length;
 		if (args->focal_length <= 0.0) {
 			// TODO: which one should we use here?
@@ -5275,23 +5309,28 @@ int process_pcc(int nb) {
 		else siril_log_message(_("Using focal length from image: %f\n"), args->focal_length);
 	}
 
-	args->onlineCatalog = NOMAD;
-	args->for_photometry_cc = TRUE;
-	args->cat_center = target_coords;
-	args->downsample = gfit.rx > 6000;
-	args->autocrop = TRUE;
-	args->flip_image = !noflip;
-	args->manual = FALSE;
-	args->auto_magnitude = TRUE;
-	process_plate_solver_input(args);
+	if (plate_solve) {
+		args->onlineCatalog = NOMAD;
+		args->for_photometry_cc = TRUE;
+		args->cat_center = target_coords;
+		args->downsample = gfit.rx > 6000;
+		args->autocrop = TRUE;
+		args->flip_image = !noflip;
+		args->manual = FALSE;
+		args->auto_magnitude = TRUE;
+		args->pcc = pcc_args;
+		process_plate_solver_input(args);
+	}
 
-	args->pcc = calloc(1, sizeof(struct photometric_cc_data));
-	args->pcc->fit = args->fit;
-	args->pcc->bg_auto = TRUE;
-	args->pcc->n_channel = CHANNEL_MIDDLE;
+	pcc_args->fit = &gfit;
+	pcc_args->bg_auto = TRUE;
+	pcc_args->n_channel = CHANNEL_MIDDLE;
 
-	start_in_new_thread(match_catalog, args);
-
+	if (plate_solve)
+		start_in_new_thread(match_catalog, args);
+	else {
+		start_in_new_thread(photometric_cc_standalone, pcc_args);
+	}
 	return 0;
 }
 

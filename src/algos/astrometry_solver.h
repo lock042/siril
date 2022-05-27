@@ -102,6 +102,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer match_catalog(gpointer p);
+double compute_mag_limit_from_fov(double fov_degrees);
 
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void flip_bottom_up_astrometry_data(fits *fit);
@@ -119,6 +120,7 @@ void free_Platedobject();
 int parse_content_buffer(char *buffer, struct sky_object *obj);
 gboolean has_nonzero_coords();
 gboolean has_any_keywords();
+SirilWorldCS *get_eqs_from_header(fits *fit);
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag);
 
 /* from the GUI */

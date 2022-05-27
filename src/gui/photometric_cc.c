@@ -50,12 +50,15 @@
 #include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "photometric_cc.h"
+#include "registration/matching/misc.h" // for catalogue parsing helpers
+#include "algos/siril_wcs.h"
 
 enum {
 	RED, GREEN, BLUE
 };
 
 static rectangle get_bkg_selection();
+static int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars);
 
 static void start_photometric_cc() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
@@ -230,7 +233,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 #endif
 	for (int i = 0; i < nb_stars; i++) {
 		if (!get_thread_run())
-			continue; // XXX
+			continue;
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
@@ -309,7 +312,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	kw[RED] /= (kw[n_channel]);
 	kw[GREEN] /= (kw[n_channel]);
 	kw[BLUE] /= (kw[n_channel]);
-	siril_log_message(_("Color calibration factors:\n"));
+	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("K%d: %5.3lf\n", chan, kw[chan]);
 	}
@@ -440,7 +443,8 @@ int photometric_cc(struct photometric_cc_data *args) {
 	if (!args->bg_auto)
 		bkg_sel = &(args->bg_area);
 
-	/* we use the median of each channel to sort them by level and select the reference channel expressed in terms of  */
+	/* we use the median of each channel to sort them by level and select
+	 * the reference channel expressed in terms of order of median value */
 	if (get_background_coefficients(args->fit, bkg_sel, bg, FALSE)) {
 		siril_log_message(_("failed to compute statistics on image, aborting\n"));
 		free(args);
@@ -463,6 +467,115 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	free(args);
 	return ret;
+}
+
+/* photometric_cc is the entry point for the PCC following the call to the
+ * plate solver which gives the star list. We can also run the PCC on a
+ * plate-solved image without running plate solving again, this is what this
+ * function does.
+ */
+gpointer photometric_cc_standalone(gpointer p) {
+	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
+	if (!has_wcs(args->fit)) {
+		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		return GINT_TO_POINTER(1);
+	}
+
+	/* get stars from a photometric catalog */
+	double ra, dec;
+	center2wcs(args->fit, &ra, &dec);
+	double resolution = get_wcs_image_resolution(args->fit);
+	if ((ra == -1.0 && dec == -1.0) || resolution == -1.0) {
+		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		return GINT_TO_POINTER(1);
+	}
+
+	/* for now, only from online sources */
+	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
+	double fov = resolution  * args->fit->rx;	// fov in degrees
+	double mag = compute_mag_limit_from_fov(fov);
+	mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
+	siril_log_message(_("Image has a field of view of %f degrees, using a limit magnitude of %.2f\n"), fov, mag);
+
+	GFile *catalog_file = download_catalog(NOMAD, center, fov*60.0, mag);
+	siril_world_cs_unref(center);
+	if (!catalog_file) {
+		siril_log_message(_("Could not download the online star catalog."));
+		return GINT_TO_POINTER(1);
+	}
+
+	/* project using WCS */
+	pcc_star *stars;
+	int nb_stars;
+	int retval = project_catalog_with_WCS(catalog_file, args->fit, &stars, &nb_stars);
+	if (!retval) {
+		args->stars = stars;
+		args->nb_stars = nb_stars;
+		retval = photometric_cc(args);
+	}
+	if (args->fit == &gfit)
+		notify_gfit_modified();
+	return GINT_TO_POINTER(retval);
+}
+
+static int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars) {
+	GError *error = NULL;
+	GInputStream *input_stream = NULL;
+	/* catalog format should be 5 columns: distance from centre, RA, Dec, V, B */
+	if (!(input_stream = (GInputStream*) g_file_read(catalog_file, NULL, &error))) {
+		if (error) {
+			siril_log_message(_("Can't open catalog file %s for PCC: %s\n"), g_file_peek_path(catalog_file), error->message);
+			g_clear_error(&error);
+		}
+		*ret_stars = NULL;
+		*ret_nb_stars = 0;
+		return 1;
+	}
+
+	int nb_alloc = 1200, nb_stars = 0;
+	pcc_star *stars = malloc(nb_alloc * sizeof(pcc_star));
+
+	/* see also proc_star_file() or read_NOMAD_catalog() */
+	// TODO: merge the three codes? they are not quite the same
+	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	gchar *line;
+	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
+		if (line[0] == COMMENT_CHAR || is_blank(line) || g_str_has_prefix(line, "---")) {
+			g_free(line);
+			continue;
+		}
+		double r = 0.0, ra = 0.0, dec = 0.0, Vmag = 0.0, Bmag = 0.0;
+		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &ra, &dec, &Vmag, &Bmag);
+		g_free(line);
+		if (n == 5 && Bmag < 30.0) {	// 30 sometimes means not available in NOMAD
+			if (nb_stars >= nb_alloc) {
+				nb_alloc *= 2;
+				pcc_star *new_array = realloc(stars, nb_alloc * sizeof(pcc_star));
+				if (!new_array) {
+					free(stars);
+					*ret_stars = NULL;
+					*ret_nb_stars = 0;
+					return 1;
+				}
+				stars = new_array;
+			}
+
+			double x, y;
+			wcs2pix(fit, ra, dec, &x, &y);
+			if (x >= 0.0 && y >= 0.0 && x < fit->rx && y < fit->ry) {
+				stars[nb_stars].x = x;
+				stars[nb_stars].y = fit->top_down ? y : fit->ry - y - 1;
+				stars[nb_stars].mag = Vmag;
+				stars[nb_stars].BV = Bmag - Vmag;
+				nb_stars++;
+			}
+		}
+	}
+
+	siril_debug_print("projected %d stars from the provided catalogue\n", nb_stars);
+	*ret_stars = stars;
+	*ret_nb_stars = nb_stars;
+	return 0;
 }
 
 static rectangle get_bkg_selection() {

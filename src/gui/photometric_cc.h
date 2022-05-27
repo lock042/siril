@@ -30,6 +30,7 @@ struct photometric_cc_data {
 
 void initialize_photometric_cc_dialog();
 int photometric_cc(struct photometric_cc_data *args);
+gpointer photometric_cc_standalone(gpointer p);
 int get_photometry_catalog();
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
