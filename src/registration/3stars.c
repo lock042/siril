@@ -117,7 +117,7 @@ psf_end:
 	return args->retval;
 }
 
-static void start_seqpsf(struct registration_args *regargs) {
+static int start_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 	spsfargs->for_registration = TRUE; // if false, photometry is computed
 	spsfargs->framing = FOLLOW_STAR_FRAME;
@@ -147,12 +147,13 @@ static void start_seqpsf(struct registration_args *regargs) {
 			PRINT_ALLOC_ERR;
 			free(spsfargs);
 			free(args);
-			return;
+			return 1;
 		}
 		results_size = com.seq.number;
 	}
 
 	generic_sequence_worker(args);
+	return (args->retval);
 }
 
 void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
@@ -221,7 +222,7 @@ int register_3stars(struct registration_args *regargs) {
 		new_selection_zone();
 		awaiting_star = i + 1;
 		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
-		start_seqpsf(regargs);
+		if (start_seqpsf(regargs)) return 1;
 	}
 	delete_selected_area();
 
