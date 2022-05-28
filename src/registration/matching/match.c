@@ -379,12 +379,16 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 
 	Hom = atHNew();
 	Hom->pair_matched = num_matches;
-	if (save_photometric_data)
+
+	pcc_star *stars = NULL;
+	if (save_photometric_data) {
 		*photometric_data = calloc(num_matched_B, sizeof(pcc_star));
+		stars = *photometric_data;
+	}
 
 	if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
 			matched_list_B, Hom,
-			save_photometric_data, *photometric_data, nb_photometric_stars, type)) {
+			save_photometric_data, stars, nb_photometric_stars, type)) {
 		fprintf(stderr, "atPrepareHomography failed to compute H\n");
 		/** */
 		atTransDel(trans);
