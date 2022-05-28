@@ -174,7 +174,7 @@ static float Qn0(const float sorted_data[], const size_t stride, const size_t n)
 }
 
 static float siril_stats_robust_mean(const float sorted_data[],
-		const size_t stride, const size_t size) {
+		const size_t stride, const size_t size, double *deviation) {
 	float mx = (float) gsl_stats_float_median_from_sorted_data(sorted_data, stride, size);
 	float qn0 = Qn0(sorted_data, 1, size);
 	if (qn0 < 0)
@@ -190,10 +190,11 @@ static float siril_stats_robust_mean(const float sorted_data[],
 	}
 
 	for (i = 0, j = 0; i < size; ++i) {
-		if (fabsf(sorted_data[i] - (float) mx) < 3 * (float) sx) {
+		if (fabsf(sorted_data[i] - (float) mx) < 3.f * (float) sx) {
 			x[j++] = sorted_data[i];
 		}
 	}
+	siril_debug_print("keeping %d samples on %ld for the robust mean\n", j, size);
 	/* not enough stars, try something anyway */
 	if (j < 5) {
 		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);
@@ -201,6 +202,22 @@ static float siril_stats_robust_mean(const float sorted_data[],
 		mean = (float) gsl_stats_float_mean(x, stride, j);
 	}
 	free(x);
+
+	/* compute the deviation of the mean against the values */
+	if (deviation) {
+		double dev = 0.0;
+		int inliers = 0;
+		for (i = 0, j = 0; i < size; ++i) {
+			if (fabsf(sorted_data[i] - (float) mx) < 3.f * (float) sx) {
+				dev += abs(sorted_data[i] - mean);
+				inliers++;
+			}
+		}
+		if (inliers)
+			*deviation = dev / inliers;
+		else *deviation = 1.0;
+	}
+
 	return mean;
 }
 
@@ -297,10 +314,11 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	quicksort_f(data[GREEN], nb_stars);
 	quicksort_f(data[BLUE], nb_stars);
 
+	double deviation[3];
 	/* we do not take into account FLT_MAX values */
-	kw[RED] = siril_stats_robust_mean(data[RED], 1, ngood);
-	kw[GREEN] = siril_stats_robust_mean(data[GREEN], 1, ngood);
-	kw[BLUE] = siril_stats_robust_mean(data[BLUE], 1, ngood);
+	kw[RED] = siril_stats_robust_mean(data[RED], 1, ngood, &(deviation[RED]));
+	kw[GREEN] = siril_stats_robust_mean(data[GREEN], 1, ngood, &(deviation[GREEN]));
+	kw[BLUE] = siril_stats_robust_mean(data[BLUE], 1, ngood, &(deviation[BLUE]));
 	if (kw[RED] < 0.f || kw[GREEN] < 0.f || kw[BLUE] < 0.f) {
 		free(data[RED]);
 		free(data[GREEN]);
@@ -314,7 +332,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	kw[BLUE] /= (kw[n_channel]);
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
-		siril_log_message("K%d: %5.3lf\n", chan, kw[chan]);
+		siril_log_message("K%d: %5.3lf\t(deviation: %.2f)\n", chan, kw[chan], deviation[chan]);
 	}
 
 	free(data[RED]);
@@ -478,6 +496,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
 	if (!has_wcs(args->fit)) {
 		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -487,6 +506,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	double resolution = get_wcs_image_resolution(args->fit);
 	if ((ra == -1.0 && dec == -1.0) || resolution == -1.0) {
 		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -495,12 +515,13 @@ gpointer photometric_cc_standalone(gpointer p) {
 	double fov = resolution  * args->fit->rx;	// fov in degrees
 	double mag = compute_mag_limit_from_fov(fov);
 	mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
-	siril_log_message(_("Image has a field of view of %f degrees, using a limit magnitude of %.2f\n"), fov, mag);
+	siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), fov, mag);
 
 	GFile *catalog_file = download_catalog(NOMAD, center, fov*60.0, mag);
 	siril_world_cs_unref(center);
 	if (!catalog_file) {
 		siril_log_message(_("Could not download the online star catalog."));
+		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -513,8 +534,9 @@ gpointer photometric_cc_standalone(gpointer p) {
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);
 	}
-	if (args->fit == &gfit)
+	if (!retval && args->fit == &gfit)
 		notify_gfit_modified();
+	else siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
