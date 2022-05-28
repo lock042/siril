@@ -5115,7 +5115,7 @@ int process_rgbcomp(int nb) {
 			next_arg = 5;
 		}
 
-		if (l.naxes[2] != 1 || check_loaded_fits_params(&l, &r, &g, &b)) {
+		if (l.naxes[2] != 1 || check_loaded_fits_params(&l, &r, &g, &b, NULL)) {
 			clearfits(&l); clearfits(&r); clearfits(&g); clearfits(&b);
 			siril_log_message(_("Image must all have the same dimensions and be monochrome\n"));
 			return 1;
@@ -5141,7 +5141,7 @@ int process_rgbcomp(int nb) {
 		if (readfits(word[1], &r, NULL, TRUE)) return -1;
 		if (readfits(word[2], &g, NULL, TRUE)) { clearfits(&r); return -1; }
 		if (readfits(word[3], &b, NULL, TRUE)) { clearfits(&r); clearfits(&g); return -1; }
-		if (r.naxes[2] != 1 || check_loaded_fits_params(&r, &g, &b)) {
+		if (r.naxes[2] != 1 || check_loaded_fits_params(&r, &g, &b, NULL)) {
 			clearfits(&r); clearfits(&g); clearfits(&b);
 			siril_log_message(_("Image must all have the same dimensions and be monochrome\n"));
 			return 1;
