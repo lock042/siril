@@ -772,6 +772,22 @@ void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **u
 	}
 }
 
+float filtered_FWHM_average(psf_star **stars, int nb) {
+	if (!stars || !stars[0])
+		return 0.0f;
+	float *fwhms = malloc(nb * sizeof(float));
+	if (!fwhms) {
+		PRINT_ALLOC_ERR;
+		return 0.0f;
+	}
+	for (int i = 0; i < nb; i++)
+		fwhms[i] = stars[i]->fwhmx;
+
+	float retval = siril_stats_trmean_from_sorted_data(0.25, fwhms, 1, nb);
+	free(fwhms);
+	return retval;
+}
+
 static gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();

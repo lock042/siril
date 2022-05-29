@@ -1106,6 +1106,7 @@ gpointer match_catalog(gpointer p) {
 	pcc_star *pcc_stars = NULL;
 	int nb_pcc_stars;
 	fits fit_backup = { 0 };
+	psf_star **stars = NULL;
 
 	args->ret = 1;
 	args->message = NULL;
@@ -1131,7 +1132,6 @@ gpointer match_catalog(gpointer p) {
 		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
 	}
 
-	psf_star **stars = NULL;
 	if (!args->manual) {
 		com.starfinder_conf.pixel_size_x = com.pref.focal;
 		com.starfinder_conf.focal_length = com.pref.pitch;
@@ -1415,13 +1415,14 @@ gpointer match_catalog(gpointer p) {
 	if (args->for_photometry_cc) {
 		args->pcc->stars = pcc_stars;
 		args->pcc->nb_stars = nb_pcc_stars;
+		args->pcc->fwhm = filtered_FWHM_average(stars, n_fit);
 		args->ret = photometric_cc(args->pcc);
 		args->pcc = NULL; // freed in PCC code
 		free(pcc_stars);
 		pcc_stars = NULL;
 		if (args->ret) {
-			args->message = g_strdup_printf(_("An astrometric solution was found but photometry analysis of the %d stars failed. This happens if they are saturated in the image or if they are too faint to have B-V index information (mag > 18)\n"), nb_pcc_stars);
-			goto clearup;
+			args->message = g_strdup_printf(_("An astrometric solution was found but photometry analysis of the %d stars failed. This generally happens if they are saturated in the image or if they are too faint to have B-V index information (mag > 18)\n"), nb_pcc_stars);
+			//goto clearup; // still flip
 		}
 	}
 	if (args->flip_image && image_is_flipped(solution->H)) {

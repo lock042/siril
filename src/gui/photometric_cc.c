@@ -127,21 +127,13 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	double outer = com.pref.phot_set.outer;
 	area->x = round_to_int(star.x - outer);
 	area->y = round_to_int(star.y - outer);
-	area->w = area->h = round_to_int(outer * 2.0);
+	area->w = area->h = (int)ceil(outer * 2.0);
 
 	/* Don't want stars too close to the edge */
-	if (area->x + area->w >= fit->rx) {
+	if (area->x <= 0 || area->x + area->w >= fit->rx - 1)
 		return 1;
-	}
-	if (area->x - area->w <= 0) {
+	if (area->y <= 0 || area->y + area->h >= fit->ry - 1)
 		return 1;
-	}
-	if (area->y + area->h >= fit->ry) {
-		return 1;
-	}
-	if (area->y - area->h <= 0) {
-		return 1;
-	}
 
 	return 0;
 }
@@ -194,7 +186,7 @@ static float siril_stats_robust_mean(const float sorted_data[],
 			x[j++] = sorted_data[i];
 		}
 	}
-	siril_debug_print("keeping %d samples on %ld for the robust mean\n", j, size);
+	siril_debug_print("keeping %d samples on %zu for the robust mean\n", j, size);
 	/* not enough stars, try something anyway */
 	if (j < 5) {
 		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);
@@ -259,7 +251,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		g_atomic_int_inc(&progress);
 
 		if (make_selection_around_a_star(stars[i], &area, fit)) {
-			siril_debug_print("star %d is outside image\n", i);
+			siril_debug_print("star %d is outside image or too close to border\n", i);
 			continue;
 		}
 
@@ -332,9 +324,11 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	kw[BLUE] /= (kw[n_channel]);
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
-		siril_log_message("K%d: %5.3lf\t(deviation: %.2f)\n", chan, kw[chan], deviation[chan]);
+		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
 	}
 
+	if ((deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1) && ngood > 20)
+		siril_log_message(_("The photometric color correction seem to have found an imprecise solution, consider correcting the image gradient first\n"));
 	free(data[RED]);
 	free(data[GREEN]);
 	free(data[BLUE]);
@@ -451,12 +445,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 				args->stars[i].x, args->stars[i].y,
 				args->stars[i].mag, args->stars[i].BV);
 
-	/* make sure parameters are initialized */
-	if (com.pref.phot_set.outer <= 0.0) {
-		siril_log_message(_("Using default values for photometry settings\n"));
-		initialize_photometric_param();
-	}
-
 	rectangle *bkg_sel = NULL;
 	if (!args->bg_auto)
 		bkg_sel = &(args->bg_area);
@@ -471,6 +459,13 @@ int photometric_cc(struct photometric_cc_data *args) {
 	int chan = determine_chan_for_norm(bg, args->n_channel);
 	siril_log_message(_("Normalizing on %s channel.\n"), (chan == 0) ? _("red") : ((chan == 1) ? _("green") : _("blue")));
 
+	/* set photometry parameters to values adapted to the image */
+	struct phot_config backup = com.pref.phot_set;
+	com.pref.phot_set.force_radius = FALSE;
+	com.pref.phot_set.inner = 2.0 * args->fwhm;
+	com.pref.phot_set.outer = com.pref.phot_set.inner + 10;
+	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
+
 	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, chan);
 	if (!ret) {
 		double norm = get_normalized_value(args->fit);
@@ -483,8 +478,34 @@ int photometric_cc(struct photometric_cc_data *args) {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
 
+	com.pref.phot_set = backup;
 	free(args);
 	return ret;
+}
+
+float measure_image_FWHM(fits *fit) {
+	float fwhm[3];
+	/*fits downsampled = { 0 };
+	copyfits(fit, &downsampled, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	cvResizeGaussian(&downsampled, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);*/
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+
+	for (int chan = 0; chan < 3; chan++) {
+		int nb_stars;
+		psf_star **stars = peaker(&im, chan, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, com.max_thread);
+		if (stars) {
+			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
+			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);
+
+			for (int i = 0; i < MAX_STARS && stars[i]; i++)
+				free_psf(stars[i]);
+			free(stars);
+		}
+		else return 0.0f;
+	}
+
+	// clearfits(&downsampled);
+	return max(fwhm[0], max(fwhm[1], fwhm[2]));
 }
 
 /* photometric_cc is the entry point for the PCC following the call to the
@@ -496,6 +517,14 @@ gpointer photometric_cc_standalone(gpointer p) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
 	if (!has_wcs(args->fit)) {
 		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+
+	/* run peaker to measure FWHM of the image to adjust photometry settings */
+	args->fwhm = measure_image_FWHM(args->fit);
+	if (args->fwhm <= 0.0f) {
+		siril_log_message(_("Error computing FWHM for photometry settings adjustment\n"));
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
@@ -586,7 +615,7 @@ static int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **r
 			wcs2pix(fit, ra, dec, &x, &y);
 			if (x >= 0.0 && y >= 0.0 && x < fit->rx && y < fit->ry) {
 				stars[nb_stars].x = x;
-				stars[nb_stars].y = fit->top_down ? y : fit->ry - y - 1;
+				stars[nb_stars].y = fit->ry - y - 1;
 				stars[nb_stars].mag = Vmag;
 				stars[nb_stars].BV = Bmag - Vmag;
 				nb_stars++;
