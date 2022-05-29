@@ -236,6 +236,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 
 	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
 	gint ngood = 0, progress = 0;
+	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
@@ -252,6 +253,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 
 		if (make_selection_around_a_star(stars[i], &area, fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
+			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
 		}
 
@@ -259,6 +261,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
 			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE, &error);
+			g_atomic_int_inc(errors+error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
 			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
@@ -293,6 +296,8 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	str = g_strdup_printf(str, excl);
 	siril_log_message(str);
 	g_free(str);
+	if (excl > 0)
+		print_psf_error_summary(errors);
 
 	if (ngood == 0) {
 		siril_log_message(_("No valid stars found.\n"));

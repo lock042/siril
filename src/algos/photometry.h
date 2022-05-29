@@ -30,7 +30,9 @@ typedef enum {
 	PSF_ERR_INVALID_STD_ERROR = 11,
 	PSF_ERR_INVALID_PIX_VALUE = 12,
 	PSF_ERR_WINDOW_TOO_SMALL = 13,
-	PSF_ERR_INVALID_IMAGE = 14
+	PSF_ERR_INVALID_IMAGE = 14,
+	PSF_ERR_OUT_OF_IMAGE = 15,
+	PSF_ERR_MAX_VALUE = 16	// keep last
 } psf_error;
 
 double get_camera_gain(fits *fit);
@@ -39,5 +41,7 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain,
 		gboolean force_radius, gboolean verbose, psf_error *error);
 
 void initialize_photometric_param();
+
+void print_psf_error_summary(gint *code_sums);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

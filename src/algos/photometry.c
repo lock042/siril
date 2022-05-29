@@ -383,3 +383,59 @@ void initialize_photometric_param() {
 	com.pref.phot_set.minval = 0;
 	com.pref.phot_set.maxval = 60000;
 }
+
+static const char *psf_error_to_string(psf_error err) {
+	switch (err) {
+		case PSF_NO_ERR:
+			return _("no error");
+		case PSF_ERR_ALLOC:
+			return _("memory allocation");
+		case PSF_ERR_UNSUPPORTED:
+			return _("unsupported image type");
+		case PSF_ERR_DIVERGED:
+			return _("Gaussian fit failed");
+		case PSF_ERR_OUT_OF_WINDOW:
+			return _("not in area");
+		case PSF_ERR_INNER_TOO_SMALL:
+			return _("inner radius too small");
+		case PSF_ERR_APERTURE_TOO_SMALL:
+			return _("aperture too small");
+		case PSF_ERR_TOO_FEW_BG_PIX:
+			return _("not enough background");
+		case PSF_ERR_MEAN_FAILED:
+			return _("statistics failed");
+		case PSF_ERR_INVALID_STD_ERROR:
+			return _("invalid measurement error");
+		case PSF_ERR_INVALID_PIX_VALUE:
+			return _("pixel out of range");
+		case PSF_ERR_WINDOW_TOO_SMALL:
+			return _("area too small");
+		case PSF_ERR_INVALID_IMAGE:
+			return _("image is invalid");
+		case PSF_ERR_OUT_OF_IMAGE:
+			return _("not in image");
+		default:
+			return _("unknown error");
+	}
+}
+
+void print_psf_error_summary(gint *code_sums) {
+	GString *msg = g_string_new("distribution of errors: ");
+	gboolean first = TRUE;
+	for (int i = 0; i < PSF_ERR_MAX_VALUE; i++) {
+		if (code_sums[i] > 0) {
+			gchar nb_str[15];
+			if (!first)
+				msg = g_string_append(msg, ", ");
+			msg = g_string_append(msg, psf_error_to_string(i));
+			msg = g_string_append(msg, ": ");
+			sprintf(nb_str, "%d", code_sums[i]);
+			msg = g_string_append(msg, nb_str);
+			first = FALSE;
+		}
+	}
+
+	gchar *str = g_string_free(msg, FALSE);
+	siril_log_message("%s\n", str);
+	g_free(str);
+}
