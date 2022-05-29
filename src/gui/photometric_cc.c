@@ -337,8 +337,8 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 }
 
 static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], gboolean verbose) {
-
-	if (verbose) siril_log_message(_("Background reference:\n"));
+	if (verbose)
+		siril_log_message(_("Background reference:\n"));
 	// we cannot use compute_all_channels_statistics_single_image because of the area
 	for (int chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
@@ -348,7 +348,8 @@ static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], g
 		}
 		bg[chan].value = stat->median / stat->normValue;
 		bg[chan].channel = chan;
-		if (verbose) siril_log_message("B%d: %.5e\n", chan, bg[chan].value);
+		if (verbose)
+			siril_log_message("B%d: %.5e\n", chan, bg[chan].value);
 		free_stats(stat);
 	}
 	return 0;
@@ -462,7 +463,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	/* set photometry parameters to values adapted to the image */
 	struct phot_config backup = com.pref.phot_set;
 	com.pref.phot_set.force_radius = FALSE;
-	com.pref.phot_set.inner = 2.0 * args->fwhm;
+	com.pref.phot_set.inner = 3.0 * args->fwhm;
 	com.pref.phot_set.outer = com.pref.phot_set.inner + 10;
 	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
 
