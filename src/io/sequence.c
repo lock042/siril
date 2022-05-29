@@ -1554,7 +1554,8 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	data->image_index = index;
 
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, !spsfargs->for_registration, com.pref.phot_set.force_radius, TRUE);
+	psf_error error;
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, !spsfargs->for_registration, com.pref.phot_set.force_radius, TRUE, &error);
 	if (data->psf) {
 		/* for photometry ? */
 		if (!spsfargs->for_registration) {
@@ -1582,13 +1583,13 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
-			siril_log_color_message(_("No star found in the area image %d around %d,%d"
-						" (use a larger area?)\n"),
-					"red", index, area->x, area->y);
+			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
+						" error %d (use a larger area?)\n"),
+					"red", index, area->x, area->y, error);
 		} else {
-			siril_log_color_message(_("No star found in the area image %d around %d,%d"
-					" (use 'follow star' option?)\n"),
-				"red", index, area->x, area->y);
+			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
+					" error %d (use 'follow star' option?)\n"),
+				"red", index, area->x, area->y, error);
 		}
 	}
 

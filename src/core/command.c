@@ -1374,12 +1374,14 @@ int process_set_mag(int nb) {
 			siril_log_message(_("Select an area first\n"));
 			return 1;
 		}
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
+		psf_error error;
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, &error);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
 			free_psf(result);
 		}
+		else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	}
 	if (found) {
 		com.magOffset = mag_reference - mag;
@@ -1862,11 +1864,13 @@ int process_psf(int nb){
 		}
 	}
 
-	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
+	psf_error error;
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, &error);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
 	}
+	else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	return 0;
 }
 

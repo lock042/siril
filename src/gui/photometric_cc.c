@@ -256,16 +256,17 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 
 		gboolean no_phot = FALSE;
+		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE);
-			if (!photometry || !photometry->phot_is_valid)
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE, &error);
+			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
 			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
 			if (photometry)
 				free_psf(photometry);
 		}
 		if (no_phot) {
-			siril_debug_print("photometry failed for star %d\n", i);
+			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
 		/* get r g b coefficient from bv color index */
