@@ -132,6 +132,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			size = args->compute_size_hook(args, nb_frames);
 		else size = seq_compute_size(args->seq, nb_frames, args->output_type);
 		if (test_available_space(size)) {
+			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			args->retval = 1;
 			goto the_end;
 		}

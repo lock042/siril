@@ -156,6 +156,8 @@ int process_dumpheader(int nb) {
 int process_seq_clean(int nb) {
 	gboolean cleanreg = FALSE, cleanstat = FALSE;
 
+	//TODO - should we close before just to be sure bkp values are not written back in .seq?
+	//TODO - should we also clear includes?
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return 1;
@@ -4068,9 +4070,7 @@ int process_register(int nb) {
 	}
 
 	// testing free space
-	if (reg_args->x2upscale ||
-			(method->method_ptr == register_star_alignment &&
-			 !reg_args->no_output)) {
+	if (!reg_args->no_output) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
@@ -4078,7 +4078,8 @@ int process_register(int nb) {
 		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
-		if (test_available_space(size) > 0) {
+		if (test_available_space(size)) {
+			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;
 		}
 	}

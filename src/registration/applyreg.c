@@ -427,6 +427,12 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		return FALSE;
 	}
 
+	// check that we are not trying to apply null transform to all the images
+	if (max == -2 || (regargs->seq->selnum <= 1) ) {
+		siril_log_color_message(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"), "red");
+		return FALSE;
+	}
+
 	// force -selected if some matrices were null
 	if (min == -2) {
 		siril_log_message(_("Some images were not registered, excluding them\n"));
@@ -441,7 +447,8 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
 	if (regargs->x2upscale)
 		size *= 4;
-	if (test_available_space(size) > 0) {
+	if (test_available_space(size)) {
+		siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 		return FALSE;
 	}
 	return TRUE;

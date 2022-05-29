@@ -235,7 +235,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	}
 	// Determine number of stars present in both in image and ref
 	int nb_stars = 0;
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < selected_stars; i++) {
 		if (results[in_index].stars[i] != NULL && results[refimage].stars[i] != NULL) nb_stars++;
 	}
 	if (in_index != refimage) {
@@ -248,7 +248,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 		arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
 		int j = 0;
 		unsigned char *mask;
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < selected_stars; i++) {
 			starsin = &(arrayref[j]);
 			starsout = &(arraycur[j]);
 			g_assert(starsin != NULL);

@@ -1090,7 +1090,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
-		if (test_available_space(size) > 0) {
+		if (test_available_space(size)) {
+			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			free(reg_args);
 			unreserve_thread();
 			return;
