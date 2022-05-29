@@ -233,7 +233,11 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 		 * set to include */
 		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
-	int nb_stars = sadata->current_regdata[in_index].number_of_stars;
+	// Determine number of stars present in both in image and ref
+	int nb_stars = 0;
+	for (int i = 0; i < 3; i++) {
+		if (results[in_index].stars[i] != NULL && results[refimage].stars[i] != NULL) nb_stars++;
+	}
 	if (in_index != refimage) {
 		if (nb_stars < 2) {
 			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  args->seq->imgparam[in_index].filenum);
@@ -317,6 +321,7 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	unsigned int required = MB_per_scaled_image;
+	// TODO - need to include the case with no output
 	if (limit > 0) {
 		/* The registration memory consumption, n is original image size:
 		 * Monochrome: O(n) for loaded image, O(nscaled) for output image,
@@ -449,6 +454,8 @@ Registration data is saved to the input sequence in any case
 */
 int register_3stars(struct registration_args *regargs) {
 
+	int nb_stars_ref = 0;
+	int refimage = regargs->reference_image;
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
 		// TODO - save initial selection in case the boxes were made larger to avoid follow_star
@@ -461,14 +468,15 @@ int register_3stars(struct registration_args *regargs) {
 		awaiting_star = i + 1;
 		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
 		if (_3stars_seqpsf(regargs)) return 1;
+		if (results[refimage].stars[i] != NULL) nb_stars_ref++;
+		// Determine if it's worth going on, i.e. if enough stars were found in ref image
+		// before we proceed with next star
+		if ((selected_stars == 2 && nb_stars_ref <= i) || (selected_stars == 3 && i == 1 && nb_stars_ref == 0)) {
+			siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
+			return 1;
+		}
 	}
 	delete_selected_area();
-
-	int refimage = regargs->reference_image;
-	if (!results[refimage].stars[0] || !results[refimage].stars[1]) {
-		siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
-		return 1;
-	}
 
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
@@ -499,7 +507,7 @@ int register_3stars(struct registration_args *regargs) {
 			double fwhm = sumx / nb_stars;
 			current_regdata[i].roundness = sumy / sumx;
 			current_regdata[i].fwhm = fwhm;
-			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(selected_stars - nb_stars) / (double)nb_stars + fwhm; 
+			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm; 
 			current_regdata[i].background_lvl = sumb / nb_stars;
 			current_regdata[i].number_of_stars = nb_stars;
 		}

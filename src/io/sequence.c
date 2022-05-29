@@ -1679,6 +1679,7 @@ gboolean end_seqpsf(gpointer p) {
 
 		if (!spsfargs->for_registration && !seq->regparam[layer]) {
 			if (has_any_regdata) {
+				// TODO - shouldn't we handle the headless case here?
 				saveregdata = siril_confirm_dialog(_("No registration data stored for this layer"),
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
