@@ -186,6 +186,9 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	if (!regargs->process_all_frames) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
+	} else {
+		args->filtering_criterion = seq_filter_all;
+		args->nb_filtered_images = regargs->seq->number;
 	}
 	args->seq = &com.seq;
 	args->partial_image = TRUE;
