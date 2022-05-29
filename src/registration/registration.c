@@ -699,8 +699,12 @@ int register_shift_fwhm(struct registration_args *args) {
 	for (frame = 0; frame < args->seq->number; frame++) {
 		if (args->run_in_thread && !get_thread_run())
 			break;
-		if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
+		if (!args->process_all_frames && !args->seq->imgparam[frame].incl) {
+			// current_regdata was set with identity matrices
+			// need to return null matcices for unselected frames
+			SetNullH(&current_regdata[frame].H);
 			continue;
+		}
 		if (frame == ref_image || !current_regdata[frame].fwhm_data) {
 			set_shifts(args->seq, frame, args->layer, 0.0, 0.0, FALSE);
 			continue;
@@ -883,7 +887,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			}
 		} else if (nb_images_reg <= 1) {
 			gtk_label_set_text(labelreginfo, _("Select images in the sequence"));
-		} else if (REGTYPE_APPLY && !has_reg){
+		} else if (method->type == REGTYPE_APPLY && !has_reg){
 			gtk_label_set_text(labelreginfo, _("Select a layer with existing registration"));
 		} else {
 			gtk_label_set_text(labelreginfo, _("Select an area in image first"));
@@ -1001,7 +1005,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	char *msg;
 	GtkToggleButton *follow, *matchSel, *no_output, *x2upscale,
 			*cumul;
-	GtkComboBox *cbbt_layers;
+	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
 	GtkSpinButton *minpairs, *percent_moved;
 
@@ -1045,6 +1049,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
+	reg_all_sel_box= GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
@@ -1060,6 +1065,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
+	reg_args->process_all_frames = !gtk_combo_box_get_active(reg_all_sel_box);
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
@@ -1192,6 +1198,13 @@ Homography H_from_translation(double dx, double dy) {
 	H.h02 = dx;
 	H.h12 = -dy;
 	return H;
+}
+
+void SetNullH(Homography *H) {
+	cvGetEye(H);
+	H->h00 = 0.0;
+	H->h11 = 0.0;
+	H->h22 = 0.0;
 }
 
 int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography H) {
