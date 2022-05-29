@@ -153,7 +153,7 @@ void test_photometry_float() {
 	double bg = BG;
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_FLOAT);
-	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, com.pref.phot_set.gain, FALSE, FALSE);
+	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, com.pref.phot_set.gain, FALSE, FALSE, NULL);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
@@ -179,11 +179,13 @@ void test_photometry_ushort() {
 	double bg = BG;
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_USHORT);
-	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, com.pref.phot_set.gain, FALSE, FALSE);
+	psf_error error;
+	psf_star *psf = psf_global_minimisation(matrix, bg, TRUE, TRUE, com.pref.phot_set.gain, FALSE, FALSE, &error);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
 	cr_assert(psf->phot_is_valid, "photometry is not valid");
+	cr_assert(error == PSF_NO_ERR, "error was set"
 
 	/* These values are different from float case. This
 	 * is perfectly normal.
