@@ -185,7 +185,7 @@ void test_photometry_ushort() {
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
 	cr_assert(psf->phot_is_valid, "photometry is not valid");
-	cr_assert(error == PSF_NO_ERR, "error was set"
+	cr_assert(error == PSF_NO_ERR, "error was set");
 
 	/* These values are different from float case. This
 	 * is perfectly normal.
