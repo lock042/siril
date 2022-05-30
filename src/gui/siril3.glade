@@ -18436,7 +18436,7 @@ WARNING: This option should not be checked for master stacking.</property>
                   <object class="GtkToggleToolButton" id="photometry_button">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Switch to PSF/photometry mode</property>
+                    <property name="tooltip-text" translatable="yes">Switch to PSF/photometry mode. If a sequence is loaded, a right click on the displayed image applies the PSF/Photometry on the whole sequence.</property>
                     <property name="action-name">win.photometry</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">photometry</property>
