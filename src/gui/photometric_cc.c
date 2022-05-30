@@ -182,11 +182,11 @@ static float siril_stats_robust_mean(const float sorted_data[],
 	}
 
 	for (i = 0, j = 0; i < size; ++i) {
-		if (fabsf(sorted_data[i] - (float) mx) < 3.f * (float) sx) {
+		if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
 			x[j++] = sorted_data[i];
 		}
 	}
-	siril_debug_print("keeping %d samples on %zu for the robust mean\n", j, size);
+	siril_debug_print("keeping %d samples on %zu for the robust mean (mx: %f, sx: %f)\n", j, size, mx, sx);
 	/* not enough stars, try something anyway */
 	if (j < 5) {
 		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);
@@ -200,7 +200,7 @@ static float siril_stats_robust_mean(const float sorted_data[],
 		double dev = 0.0;
 		int inliers = 0;
 		for (i = 0, j = 0; i < size; ++i) {
-			if (fabsf(sorted_data[i] - (float) mx) < 3.f * (float) sx) {
+			if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
 				dev += abs(sorted_data[i] - mean);
 				inliers++;
 			}

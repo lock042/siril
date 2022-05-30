@@ -5317,7 +5317,7 @@ int process_pcc(int nb) {
 		args->onlineCatalog = NOMAD;
 		args->for_photometry_cc = TRUE;
 		args->cat_center = target_coords;
-		args->downsample = gfit.rx > 6000;
+		args->downsample = FALSE;//gfit.rx > 6000;
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
