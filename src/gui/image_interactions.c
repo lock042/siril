@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/command.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/siril_world_cs.h"
@@ -431,7 +432,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					redraw_previews();
 				}
 			} else if (mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-				int s = com.pref.phot_set.outer;
+				int s = com.pref.phot_set.outer * 1.2;
 				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
 				if (area.x - area.w > 0 && area.x + area.w < gfit.rx
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
@@ -461,6 +462,17 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 
 					redraw(REDRAW_OVERLAY);
 					redraw_previews();
+				}
+			} else if (mouse_status == MOUSE_ACTION_PHOTOMETRY) {
+				if (sequence_is_loaded()) {
+					int s = com.pref.phot_set.outer * 1.2;
+					rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
+					if (area.x - area.w > 0 && area.x + area.w < gfit.rx
+							&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
+						memcpy(&com.selection, &area, sizeof(rectangle));
+						process_seq_psf(0);
+						delete_selected_area();
+					}
 				}
 			}
 		}
@@ -548,7 +560,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		}
 
 	} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
-		if (mouse_status != MOUSE_ACTION_DRAW_SAMPLES) {
+		if (mouse_status != MOUSE_ACTION_DRAW_SAMPLES && mouse_status != MOUSE_ACTION_PHOTOMETRY) {
 			do_popup_graymenu(widget, NULL);
 		}
 	}
