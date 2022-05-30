@@ -199,15 +199,24 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
 	// making sure we can use registration data - maybe we could have done that beforehand...
-	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_registration(regargs->seq, regargs->layer))
+	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_usable_registration(regargs->seq, regargs->layer))
 		spsfargs->framing = ORIGINAL_FRAME;
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
 		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == -2) {
-			spsfargs->framing = ORIGINAL_FRAME;
+			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
+			free(args);
+			free(spsfargs);
+			return 1;
 		}
-		if (spsfargs->framing == REGISTERED_FRAME && regargs->seq->current != regargs->seq->reference_image) {
+		if (regargs->seq->current != regargs->seq->reference_image) {
 			// transform selection back from current to ref frame coordinates
+			if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->current].H) == -2) {
+				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"), "red");
+				free(args);
+				free(spsfargs);
+				return 1;
+			}
 			selection_H_transform(&args->area, regargs->seq->regparam[regargs->layer][regargs->seq->current].H, regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
 			if (args->area.x < 0 || args-> area.x > regargs->seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > regargs->seq->ry - args->area.h) {
@@ -489,7 +498,7 @@ and finally applies this transform if !no_output
 Registration data is saved to the input sequence in any case
 */
 int register_3stars(struct registration_args *regargs) {
-
+	// TODO: we should reset_3stars at all possible escapes alomg the process
 	int nb_stars_ref = 0;
 	int refimage = regargs->reference_image;
 	// for the selection, we use the com.stars x/y pos to redraw a box
