@@ -423,7 +423,7 @@ void on_treeview1_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 	}
 	g_list_free_full(list, (GDestroyNotify) gtk_tree_path_free);
 	display_status();
-	update_reg_interface(FALSE);
+	update_reg_interface(TRUE);
 }
 
 void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data) {

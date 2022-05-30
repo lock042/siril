@@ -15047,6 +15047,23 @@ When processing images, registration data is taken from the default layer if ava
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkCheckButton" id="followStarCheckButton">
+                                                            <property name="label" translatable="yes">Follow star movement</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Use this option to use the position of the star found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
+WARNING: enabling this option requires the registration to not be parallelized, it will run on one CPU core only.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">16</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkNotebook" id="notebook_registration">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -15650,21 +15667,7 @@ numbers lead to faster computations.</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="followStarCheckButton">
-                                                            <property name="label" translatable="yes">Follow star movement</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Use this option to use the position of the star found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
-WARNING: enabling this option requires the registration to not be parallelized, it will run on one CPU core only.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">16</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
+                                                            <placeholder/>
                                                             </child>
                                                             </object>
                                                             <packing>
@@ -15731,6 +15734,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <item translatable="yes">Register all images from sequence</item>
                                                             <item translatable="yes">Register selected images only</item>
                                                             </items>
+                                                            <signal name="changed" handler="on_comboreg_sel_all_combobox_changed" swapped="no"/>
                                                             </object>
                                                             </child>
                                                           </object>

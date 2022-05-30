@@ -1775,16 +1775,24 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
-	if (seq->regparam[layer] && seq->current >= 0) {
-		// transform selection back from current to ref frame coordinates
+	if (framing == REGISTERED_FRAME) {
 		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
-		selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
-		if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
-				args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
-			siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
-			free(args);
-			free(spsfargs);
-			return 1;
+		if (seq->current != seq->reference_image) {
+			if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == -2) {
+				siril_log_color_message(_("The reference image has a null matrix. Please select another one.\n"), "red");
+				free(args);
+				free(spsfargs);
+				return 1;
+			}
+			// transform selection back from current to ref frame coordinates
+			selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
+			if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
+					args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
+				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
+				free(args);
+				free(spsfargs);
+				return 1;
+			}
 		}
 	}
 	args->layer_for_partial = layer;

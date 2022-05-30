@@ -747,8 +747,9 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	g_free(text);
 
 	com.reg_settings = index;
+	reset_3stars();
 	update_reg_interface(TRUE);
-	if (index != (NUMBER_OF_METHODS - 1)) // do not save to init file when apply registration method is selected TODO: must be written someplace else as initfile is updated nonetheless
+	if (index != (NUMBER_OF_METHODS - 1))
 		writeinitfile();
 }
 
@@ -770,6 +771,10 @@ void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
 	default:
 		printf("on_comboreg_transfo_changed: Value not handled.\n");
 	}
+}
+
+void on_comboreg_sel_all_combobox_changed(GtkComboBox *box, gpointer user_data) {
+	update_reg_interface(TRUE);
 }
 
 /* for now, the sequence argument is used only when executing a script */
@@ -818,7 +823,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
 	gboolean selection_is_done;
-	gboolean has_reg;
+	gboolean has_reg, dofollow, doall;
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
@@ -863,10 +868,19 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		} else if (method->method_ptr == &register_kombat) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
 		}
-		gtk_widget_set_visible(follow, method->method_ptr == &register_shift_fwhm);
+		gtk_widget_set_visible(follow, (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_3stars));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
-		if (method->method_ptr == &register_3stars && com.seq.current != 0)
-			gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
+		if (method->method_ptr == &register_3stars || method->method_ptr == &register_shift_fwhm) {
+			dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
+			doall = !gtk_combo_box_get_active(reg_all_sel_box);
+			if (dofollow) {
+				if (doall && com.seq.current != 0)
+					gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
+				else if (!doall && com.seq.current != get_first_selected(&com.seq))
+					gtk_label_set_text(labelreginfo, _("Make sure you load the first selected image"));
+				else gtk_label_set_text(labelreginfo, "");
+			} else gtk_label_set_text(labelreginfo, "");
+		}
 		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0')
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
 		else gtk_label_set_text(labelreginfo, "");

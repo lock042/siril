@@ -33,6 +33,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
+#include "gui/PSF_list.h"	// clear_stars_list
 
 static int awaiting_star = 0;
 static int selected_stars = 0;
@@ -41,6 +42,8 @@ static GtkWidget *three_buttons[3] = { 0 };
 static GtkWidget *go_register = NULL;
 static GtkLabel *labelreginfo = NULL;
 static GtkImage *image_3stars[3] = { NULL };
+static GtkWidget *follow = NULL;
+static GtkComboBox *reg_all_sel_box = NULL;
 
 struct _3psf {
 	psf_star *stars[3];
@@ -86,6 +89,7 @@ void reset_3stars(){
         unset_suggested(three_buttons[i]);
     set_suggested(three_buttons[0]);
     set_registration_ready(FALSE);
+	clear_stars_list(TRUE);
 	awaiting_star = 0;
 	selected_stars = 0;
 }
@@ -100,13 +104,24 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		update_label(_("Draw a selection around the star"));
 		return;
 	}
-	/* for now we force the first image to be loaded - will need to update
-	this if we allow to use exsting registration data
-	We may want to force the first selected image instead, in case we need
-	to discard a few images at the beginning of the series
-	*/
-	if (com.seq.current != 0) { 
-		update_label(_("Make sure you load the first image"));
+	if (!follow) {
+		follow = lookup_widget("followStarCheckButton");
+		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+	}
+
+	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
+	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
+	if (dofollow) {
+		if (doall && com.seq.current != 0) {
+			update_label(_("Make sure you load the first image"));
+			return;
+		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
+			update_label(_("Make sure you load the first selected image"));
+			return;
+		}
+	}
+	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
+		update_label(_("Make sure you load an image which is included"));
 		return;
 	}
 
@@ -179,10 +194,31 @@ psf_end:
 
 static int _3stars_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
-	spsfargs->for_registration = TRUE; // if false, photometry is computed
-	spsfargs->framing = FOLLOW_STAR_FRAME;
-	spsfargs->list = NULL;	// GSList init is NULL
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
+	spsfargs->for_registration = TRUE; // if false, photometry is computed
+	spsfargs->list = NULL;	// GSList init is NULL
+	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
+	// making sure we can use registration data - maybe we could have done that beforehand...
+	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_registration(regargs->seq, regargs->layer))
+		spsfargs->framing = ORIGINAL_FRAME;
+	if (spsfargs->framing == REGISTERED_FRAME) {
+		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
+		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == -2) {
+			spsfargs->framing = ORIGINAL_FRAME;
+		}
+		if (spsfargs->framing == REGISTERED_FRAME && regargs->seq->current != regargs->seq->reference_image) {
+			// transform selection back from current to ref frame coordinates
+			selection_H_transform(&args->area, regargs->seq->regparam[regargs->layer][regargs->seq->current].H, regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
+			if (args->area.x < 0 || args-> area.x > regargs->seq->rx - args->area.w ||
+					args->area.y < 0 || args->area.y > regargs->seq->ry - args->area.h) {
+				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
+				free(args);
+				free(spsfargs);
+				return 1;
+			}
+		}
+	}
+
 	if (!regargs->process_all_frames) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
@@ -190,10 +226,10 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		args->filtering_criterion = seq_filter_all;
 		args->nb_filtered_images = regargs->seq->number;
 	}
-	args->seq = &com.seq;
+	args->seq = regargs->seq;
 	args->partial_image = TRUE;
 	args->layer_for_partial = get_registration_layer(&com.seq);
-	args->regdata_for_partial = FALSE;
+	args->regdata_for_partial = spsfargs->framing == REGISTERED_FRAME;
 	args->get_photometry_data_for_partial = FALSE;
 	args->image_hook = seqpsf_image_hook;
 	args->finalize_hook = _3stars_seqpsf_finalize_hook;
@@ -202,7 +238,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	args->upscale_ratio = 1.0;
 	args->user = spsfargs;
 	args->already_in_a_thread = TRUE;
-	args->parallel = FALSE;	// follow star implies not parallel
+	args->parallel = !regargs->follow_star;	// follow star implies not parallel
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (!results) {
 		results = calloc(com.seq.number, sizeof(struct _3psf));
