@@ -15796,11 +15796,13 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             </child>
                                                             <child>
                                                             <object class="GtkCheckButton" id="regNoOutput">
-                                                            <property name="label" translatable="yes">Save transformation in seq file</property>
+                                                            <property name="label" translatable="yes">Save transformation in seq file only</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">to be updated</property>
+                                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are not saved as a newly registered sequence.
+
+In both cases, the transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_regNoOutput_toggled" swapped="no"/>
