@@ -234,7 +234,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	siril_log_message(str);
 	g_free(str);
 
-	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
@@ -473,14 +472,19 @@ int photometric_cc(struct photometric_cc_data *args) {
 	com.pref.phot_set.outer = com.pref.phot_set.inner + 10;
 	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
 
+	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
 	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, chan);
 	if (!ret) {
 		double norm = get_normalized_value(args->fit);
 		apply_white_balance(args->fit, kw);
 
-		get_background_coefficients(args->fit, bkg_sel, bg, TRUE);
-		background_neutralize(args->fit, bg, chan, norm);
-		set_progress_bar_data(_("Photometric Color Calibration applied"), PROGRESS_DONE);
+		if ((ret = get_background_coefficients(args->fit, bkg_sel, bg, TRUE))) {
+			siril_log_message(_("failed to compute statistics on image, aborting\n"));
+			set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
+		} else {
+			background_neutralize(args->fit, bg, chan, norm);
+			set_progress_bar_data(_("Photometric Color Calibration applied"), PROGRESS_DONE);
+		}
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
@@ -564,13 +568,15 @@ gpointer photometric_cc_standalone(gpointer p) {
 	/* project using WCS */
 	pcc_star *stars;
 	int nb_stars;
+	gboolean image_is_gfit = args->fit == &gfit;
 	int retval = project_catalog_with_WCS(catalog_file, args->fit, &stars, &nb_stars);
 	if (!retval) {
 		args->stars = stars;
 		args->nb_stars = nb_stars;
-		retval = photometric_cc(args);
+		retval = photometric_cc(args);	// args is freed from here
+		args = NULL;
 	}
-	if (!retval && args->fit == &gfit)
+	if (!retval && image_is_gfit)
 		notify_gfit_modified();
 	else siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
