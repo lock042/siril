@@ -1416,6 +1416,8 @@ gpointer match_catalog(gpointer p) {
 		args->pcc->stars = pcc_stars;
 		args->pcc->nb_stars = nb_pcc_stars;
 		args->pcc->fwhm = filtered_FWHM_average(stars, n_fit);
+		if (args->downsample)
+			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
 		args->ret = photometric_cc(args->pcc);
 		args->pcc = NULL; // freed in PCC code
 		free(pcc_stars);

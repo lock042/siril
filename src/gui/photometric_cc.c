@@ -332,7 +332,9 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
 	}
 
-	if ((deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1) && ngood > 20)
+	if (ngood < 20)
+		siril_log_color_message(_("The photometric color correction has found a solution which may not be perfect because it did not rely on many stars\n"), "salmon");
+	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
 		siril_log_message(_("The photometric color correction seem to have found an imprecise solution, consider correcting the image gradient first\n"));
 	free(data[RED]);
 	free(data[GREEN]);
@@ -468,7 +470,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	/* set photometry parameters to values adapted to the image */
 	struct phot_config backup = com.pref.phot_set;
 	com.pref.phot_set.force_radius = FALSE;
-	com.pref.phot_set.inner = 3.0 * args->fwhm;
+	com.pref.phot_set.inner = max(7.0, 3.0 * args->fwhm);
 	com.pref.phot_set.outer = com.pref.phot_set.inner + 10;
 	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
 

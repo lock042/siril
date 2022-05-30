@@ -669,11 +669,16 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 				// Photometry
 				if (for_photometry && (!error || *error == PSF_NO_ERR)) {
 					psf->phot = getPhotometryData(z, psf, gain, force_radius, verbose, error);
-					if (psf->phot != NULL) {
+					if (psf->phot) {
 						psf->mag = psf->phot->mag;
 						psf->s_mag = psf->phot->s_mag;
 						psf->SNR = psf->phot->SNR;
 						psf->phot_is_valid = psf->phot->valid;
+					}
+					else {
+						psf->phot_is_valid = FALSE;
+						psf->s_mag = 9.999;
+						psf->SNR = 0;
 					}
 				} else {
 					psf->phot = NULL;
@@ -704,8 +709,9 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 		if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
 				psf->fwhmx <= 0.0 || psf->fwhmy <= 0.0) {
 			free_psf(psf);
-			if (error) *error = PSF_ERR_DIVERGED;
 			psf = NULL;
+			if (error && *error == PSF_NO_ERR)
+				*error = PSF_ERR_DIVERGED;
 		}
 	}
 	/* When the first minimization gives NULL value, it's probably because the selected
