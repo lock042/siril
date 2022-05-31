@@ -243,14 +243,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	float **smooth_image;
 	fits smooth_fit = { 0 };
 	starc *candidates;
-
 	struct timeval t_start, t_end;
 
 	assert(nx > 0 && ny > 0);
 
-	siril_log_color_message(_("Findstar: processing...\n"), "green");
-	if (showtime)
+	if (showtime) {
+		siril_log_color_message(_("Findstar: processing for channel %d...\n"), "green", layer);
 		gettimeofday(&t_start, NULL);
+	}
+	else siril_log_message(_("Findstar: processing for channel %d...\n"), layer);
 
 	/* running statistics on the input image is best as it caches them */
 	threshold = compute_threshold(image, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise, threads);
