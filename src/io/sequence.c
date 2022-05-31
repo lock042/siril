@@ -593,6 +593,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		update_display_fwhm();
 		update_gfit_histogram_if_needed();
 		set_cursor_waiting(FALSE);
+		reset_3stars();
 	}
 
 	update_MenuItem();		// initialize menu gui
@@ -1316,6 +1317,7 @@ gboolean close_sequence_idle(gpointer data) {
 	free_cbbt_layers();
 	clear_sequence_list();
 	clear_stars_list(TRUE);
+	reset_3stars();
 	clear_previews();
 	free_reference_image();
 	update_stack_interface(TRUE);
