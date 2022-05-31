@@ -208,7 +208,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		spsfargs->framing = ORIGINAL_FRAME;
 		// if framing is original, we want to keep the original drawn boxes
 		delete_selected_area();
-		memcpy(&com.selection, &_3boxes[selected_stars], sizeof(rectangle));
+		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
 		new_selection_zone();
 	}
 	if (spsfargs->framing == REGISTERED_FRAME) {
