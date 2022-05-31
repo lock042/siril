@@ -376,7 +376,6 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	unsigned int required = MB_per_scaled_image;
-	// TODO - need to include the case with no output
 	if (limit > 0) {
 		/* The registration memory consumption, n is original image size:
 		 * Monochrome: O(n) for loaded image, O(nscaled) for output image,
@@ -445,7 +444,7 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	args->compute_mem_limits_hook = _3stars_align_compute_mem_limits;
+	args->compute_mem_limits_hook = (regargs->no_output) ? NULL : _3stars_align_compute_mem_limits;
 	args->prepare_hook = star_align_prepare_results;
 	args->image_hook = _3stars_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;	// from global registration

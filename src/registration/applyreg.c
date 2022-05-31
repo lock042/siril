@@ -435,7 +435,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 
 	// force -selected if some matrices were null
 	if (min == -2) {
-		siril_log_message(_("Some images were not registered, excluding them\n"));
+		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
 		regargs->process_all_frames = FALSE;
 	}
 
