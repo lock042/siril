@@ -203,12 +203,14 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	spsfargs->for_registration = TRUE; // if false, photometry is computed
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
+	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	// making sure we can use registration data - maybe we could have done that beforehand...
 	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_usable_registration(regargs->seq, regargs->layer)) {
 		spsfargs->framing = ORIGINAL_FRAME;
 		// if framing is original, we want to keep the original drawn boxes
 		delete_selected_area();
 		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
+		memcpy(&args->area, &com.selection, sizeof(rectangle));
 		new_selection_zone();
 	}
 	if (spsfargs->framing == REGISTERED_FRAME) {
@@ -258,7 +260,6 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	args->user = spsfargs;
 	args->already_in_a_thread = TRUE;
 	args->parallel = !regargs->follow_star;	// follow star implies not parallel
-	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (!results) {
 		results = calloc(com.seq.number, sizeof(struct _3psf));
 		if (!results) {
