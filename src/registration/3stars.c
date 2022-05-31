@@ -52,6 +52,8 @@ struct _3psf {
 static struct _3psf *results;
 static int results_size;
 
+static rectangle _3boxes[3];
+
 /* UI functions */
 static void set_registration_ready(gboolean ready) {
 	if (!go_register)
@@ -126,9 +128,12 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	GtkWidget *widget = GTK_WIDGET(button);
-	if (three_buttons[0] == widget)
+	if (three_buttons[0] == widget) {
+		reset_icons();
+		clear_stars_list(TRUE);
+		selected_stars = 0;
 		awaiting_star = 1;
-	else if (three_buttons[1] == widget)
+	} else if (three_buttons[1] == widget)
 		awaiting_star = 2;
 	else if (three_buttons[2] == widget)
 		awaiting_star = 3;
@@ -146,6 +151,7 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 	if (index == -1) {
 		update_label(_("No star found, make another selection"));
 	} else {
+		memcpy(&_3boxes[selected_stars], &com.selection, sizeof(rectangle));
 		selected_stars ++;
 		unset_suggested(three_buttons[awaiting_star - 1]);
 		if (awaiting_star < 3) set_suggested(three_buttons[awaiting_star]);
@@ -173,7 +179,6 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 	}
 	g_slist_free(spsfargs->list);
 
-	//should not happen as the stars were confirmed through psf on the ref image
 	int refimage = sequence_find_refimage(&com.seq);
 	if (!results[refimage].stars[awaiting_star - 1]) {
 		siril_log_color_message(_("The star was not found in the reference image. Change the selection or the reference image\n"), "red");
@@ -199,8 +204,13 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
 	// making sure we can use registration data - maybe we could have done that beforehand...
-	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_usable_registration(regargs->seq, regargs->layer))
+	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_usable_registration(regargs->seq, regargs->layer)) {
 		spsfargs->framing = ORIGINAL_FRAME;
+		// if framing is original, we want to keep the original drawn boxes
+		delete_selected_area();
+		memcpy(&com.selection, &_3boxes[selected_stars], sizeof(rectangle));
+		new_selection_zone();
+	}
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
 		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == -2) {
@@ -503,7 +513,6 @@ int register_3stars(struct registration_args *regargs) {
 	int refimage = regargs->reference_image;
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
-		// TODO - save initial selection in case the boxes were made larger to avoid follow_star
 		delete_selected_area();
 		com.selection.w = (int)com.stars[i]->fwhmx * 4;
 		com.selection.h = (int)com.stars[i]->fwhmx * 4;
