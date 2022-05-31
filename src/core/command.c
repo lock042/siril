@@ -137,8 +137,8 @@ int process_load(int nb){
 }
 
 int process_dumpheader(int nb) {
-	if (!single_image_is_loaded()) {
-		PRINT_NOT_FOR_SEQUENCE;
+	if (!sequence_is_loaded() && !single_image_is_loaded()) {
+		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
 	}
 	if (!gfit.header || gfit.header[0] == '\0') {
@@ -148,7 +148,6 @@ int process_dumpheader(int nb) {
 		char *header = strdup(gfit.header);
 		log_several_lines(header);
 		free(header);
-		siril_log_message("END\n");
 	}
 	return 0;
 }
@@ -205,8 +204,10 @@ int process_satu(int nb){
 }
 
 int process_save(int nb){
-	if (!sequence_is_loaded() && !single_image_is_loaded())
+	if (!sequence_is_loaded() && !single_image_is_loaded()) {
+		PRINT_LOAD_IMAGE_FIRST;
 		return 1;
+	}
 
 	gchar *filename = g_strdup(word[1]);
 	set_cursor_waiting(TRUE);
