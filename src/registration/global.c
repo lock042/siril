@@ -502,9 +502,9 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 * First, a threshold is computed for star pixel value, using statistics:
 		 *	O(m), data is duplicated for median computation if
 		 *	there are nil values, O(1) otherwise
-		 * Then, still in peaker(), image is filtered using unsharp filter, duplicating
-		 * the reference channel to act as input and output of the filter as float O(2m
-		 * as float).
+		 * Then, still in peaker(), image is filtered using Gaussian blur, duplicating
+		 * the reference channel to act as input and output of the filter as float O(m
+		 * as float for RT, current), O(2m as float for openCV).
 		 * Then, the image is rotated and upscaled by the generic function if enabled:
 		 * cvTransformImage is O(n) in mem for unscaled, O(nscaled)=O(4m) for
 		 * monochrome scaled and O(2nscaled)=O(21m) for color scaled
@@ -514,12 +514,12 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 * Since these three operations are in sequence, we need room only for the
 		 * largest.
 		 * rotated color scaled float	mem needed
-		 *       0     0      0     0	O(2m as float)
-		 *       1     0      0     0	O(2m as float)
-		 *       1     0      0     1	O(2m as float, same as 2n)
+		 *       0     0      0     0	O(m as float)
+		 *       1     0      0     0	O(m as float)
+		 *       1     0      0     1	O(m as float, same as n)
 		 *       1     0      1     0	O(4m, same as 2m as float)
 		 *       1     0      1     1	O(4m)
-		 *       1     1      0     0	O(2m as float)
+		 *       1     1      0     0	O(n)
 		 *       1     1      0     1	O(n)
 		 *       1     1      1     0	O(8n or 2nscaled)
 		 *       1     1      1     1	O(8n or 2nscaled)
@@ -533,13 +533,13 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		unsigned int MB_per_orig_channel = is_color ? MB_per_orig_image / 3 : MB_per_float_image;
 		MB_per_float_channel = min(1, MB_per_float_channel);
 		MB_per_orig_channel = min(1, MB_per_orig_channel);
-		if (!args->has_output || (!is_scaled && (!is_color || !is_float))) {
-			required = MB_per_orig_image + MB_per_float_channel * 2;
+		if (!args->has_output || (!is_scaled && !is_color)) {
+			required = MB_per_orig_image + MB_per_float_channel;
 		}
 		else if (args->has_output && !is_color && is_scaled) {
 			required = MB_per_orig_image + 4 * MB_per_orig_channel;
 		}
-		else if (args->has_output && is_color && !is_scaled && is_float) {
+		else if (args->has_output && is_color && !is_scaled) {
 			required = 2 * MB_per_orig_image;
 		}
 		else {
