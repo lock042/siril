@@ -111,12 +111,12 @@
  * they return 0 on success
  */
 
-#define PRINT_LOAD_IMAGE_FIRST siril_log_message(_("Load an image or a sequence first.\n"))
-#define PRINT_NOT_FOR_SEQUENCE siril_log_message(_("Single image must be loaded, and this command cannot be applied on a sequence.\n"))
-#define PRINT_NOT_FOR_SINGLE siril_log_message(_("This command can only be used when a sequence is loaded.\n"))
-#define PRINT_NOT_FOR_MONO siril_log_message(_("This command cannot be applied on monochrome images.\n"))
-#define PRINT_NOT_FOR_RGB siril_log_message(_("This command cannot be applied on rgb images.\n"))
-#define PRINT_FOR_CFA_IMAGE PRINT_NOT_FOR_RGB; siril_log_message(_("Make sure your image is in CFA mode.\n"))
+#define PRINT_LOAD_IMAGE_FIRST siril_log_color_message(_("Load an image or a sequence first.\n"), "red")
+#define PRINT_NOT_FOR_SEQUENCE siril_log_color_message(_("Single image must be loaded, and this command cannot be applied on a sequence.\n"), "red")
+#define PRINT_NOT_FOR_SINGLE siril_log_color_message(_("This command can only be used when a sequence is loaded.\n"), "red")
+#define PRINT_NOT_FOR_MONO siril_log_color_message(_("This command cannot be applied on monochrome images.\n"), "red")
+#define PRINT_NOT_FOR_RGB siril_log_color_message(_("This command cannot be applied on rgb images.\n"), "red")
+#define PRINT_FOR_CFA_IMAGE PRINT_NOT_FOR_RGB; siril_log_color_message(_("Make sure your image is in CFA mode.\n"), "red")
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
@@ -5249,7 +5249,7 @@ int process_pcc(int nb) {
 	if (plate_solve && !target_coords) {
 		target_coords = get_eqs_from_header(&gfit);
 		if (!target_coords) {
-			siril_log_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"));
+			siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
 			return 1;
 		}
 		siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
@@ -5279,7 +5279,7 @@ int process_pcc(int nb) {
 			args->pixel_size = com.starfinder_conf.pixel_size_x;
 			//args->pixel_size = com.pref.pitch;
 			if (args->pixel_size <= 0.0) {
-				siril_log_message(_("Pixel size not found in image or in settings, cannot proceed\n"));
+				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
 				siril_world_cs_unref(target_coords);
 				free(args);
 				return 1;
@@ -5303,7 +5303,7 @@ int process_pcc(int nb) {
 			args->focal_length = com.starfinder_conf.focal_length;
 			//args->focal_length = com.pref.focal;
 			if (args->focal_length <= 0.0) {
-				siril_log_message(_("Focal length not found in image or in settings, cannot proceed\n"));
+				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
 				siril_world_cs_unref(target_coords);
 				free(args);
 				return 1;

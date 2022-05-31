@@ -420,7 +420,7 @@ static const char *psf_error_to_string(psf_error err) {
 }
 
 void print_psf_error_summary(gint *code_sums) {
-	GString *msg = g_string_new("distribution of errors: ");
+	GString *msg = g_string_new("Distribution of errors: ");
 	gboolean first = TRUE;
 	for (int i = 0; i < PSF_ERR_MAX_VALUE; i++) {
 		if (code_sums[i] > 0) {
