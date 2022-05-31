@@ -1362,8 +1362,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	if (args->use_32bit_output && args->output_norm)
 		norm_to_0_1_range(&fit);
-	memcpy(&args->result, &fit, sizeof(fits));
 	compute_date_time_keywords(list_date, &fit);
+	memcpy(&args->result, &fit, sizeof(fits));
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);
