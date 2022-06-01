@@ -7,8 +7,9 @@ v1.2.0 mmm dd, 2022
 * Added bap pixel map option for preprocess, both in GUI and command
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
+* Refactored registration and added Apply Existing Registration method
 * Added background level and number of stars to stored registation data and plots
-* Added commands: seqtilt, autostretch, autostretch_linked, dumpheader, psf
+* Added commands: seqtilt, autostretch, autostretch_linked, dumpheader, psf, seqclean, seqapplyreg
 * Added KOMBAT alogrithm for registration and removed deprecated ECC
 * Added chosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)

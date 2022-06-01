@@ -454,7 +454,7 @@ static int start_global_registration(sequence *seq) {
 	reg_args.x2upscale = FALSE;
 	reg_args.cumul = FALSE;
 	reg_args.min_pairs = 10;
-	reg_args.translation_only = FALSE;
+	reg_args.no_output = FALSE;
 	reg_args.prefix = "r_";
 	reg_args.load_new_sequence = FALSE;
 	reg_args.interpolation = REGISTRATION_INTERPOLATION;

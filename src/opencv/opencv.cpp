@@ -419,6 +419,19 @@ void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
 	*y = dst(1,0);
 }
 
+void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
+	Mat_<double> ref(3,1);
+	Mat_<double> dst;
+	Mat H0 = Mat(3, 3, CV_64FC1);
+	Mat H1 = Mat(3, 3, CV_64FC1);
+	Mat H2 = Mat(3, 3, CV_64FC1);
+
+	convert_H_to_MatH(&Href, H0);
+	convert_H_to_MatH(&Himg, H1);
+	H2 = H1.inv() * H0;
+	convert_MatH_to_H(H2, Hres);
+}
+
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type) {
 
