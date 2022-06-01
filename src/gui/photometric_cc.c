@@ -58,7 +58,6 @@ enum {
 };
 
 static rectangle get_bkg_selection();
-static int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars);
 
 static void start_photometric_cc() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
@@ -584,7 +583,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-static int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars) {
+int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars) {
 	GError *error = NULL;
 	GInputStream *input_stream = NULL;
 	/* catalog format should be 5 columns: distance from centre, RA, Dec, V, B */

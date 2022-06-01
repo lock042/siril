@@ -2,6 +2,7 @@
 #define SRC_GUI_PHOTOMETRIC_CC_H_
 
 #include <stdio.h>
+#include <glib.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -33,6 +34,7 @@ struct photometric_cc_data {
 void initialize_photometric_cc_dialog();
 int photometric_cc(struct photometric_cc_data *args);
 gpointer photometric_cc_standalone(gpointer p);
+int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars);
 int get_photometry_catalog();
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
