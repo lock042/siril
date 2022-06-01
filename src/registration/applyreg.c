@@ -39,6 +39,7 @@
 
 
 static void create_output_sequence_for_apply_reg(struct registration_args *args);
+static int new_ref_index = -1;
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
@@ -146,6 +147,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
 		}
+		new_ref_index = out_index; // keeping track of the new ref index in output sequence
 	}
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
@@ -364,11 +366,12 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.type = args->seq->type;
 	seq.current = -1;
 	seq.is_variable = args->seq->is_variable;
-	// Copy from old sequence, we want to keep them consistent
-	seq.reference_image = args->seq->reference_image;
+	// update with the new numbering
+	seq.reference_image = new_ref_index;
 	seq.needs_saving = TRUE;
 	writeseqfile(&seq);
 	free_sequence(&seq, FALSE);
+	new_ref_index = -1; // resetting
 }
 
 int guess_transform_from_H(Homography H) {
