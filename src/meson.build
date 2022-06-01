@@ -165,6 +165,7 @@ src_files = [
   'registration/matching/project_coords.c',
   'registration/matching/apply_match.c',
   'registration/registration.c',
+  'registration/applyreg.c',
 
   'stacking/median_and_mean.c',
   'stacking/rejection_float.c',

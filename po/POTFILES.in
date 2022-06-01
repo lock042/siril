@@ -110,6 +110,7 @@ src/registration/3stars.c
 src/registration/comet.c
 src/registration/global.c
 src/registration/registration.c
+src/registration/applyreg.c
 src/stacking/median_and_mean.c
 src/stacking/normalization.c
 src/stacking/rejection_float.c

@@ -593,6 +593,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		update_display_fwhm();
 		update_gfit_histogram_if_needed();
 		set_cursor_waiting(FALSE);
+		reset_3stars();
 	}
 
 	update_MenuItem();		// initialize menu gui
@@ -1316,6 +1317,7 @@ gboolean close_sequence_idle(gpointer data) {
 	free_cbbt_layers();
 	clear_sequence_list();
 	clear_stars_list(TRUE);
+	reset_3stars();
 	clear_previews();
 	free_reference_image();
 	update_stack_interface(TRUE);
@@ -1680,6 +1682,7 @@ gboolean end_seqpsf(gpointer p) {
 
 		if (!spsfargs->for_registration && !seq->regparam[layer]) {
 			if (has_any_regdata) {
+				// TODO - shouldn't we handle the headless case here?
 				saveregdata = siril_confirm_dialog(_("No registration data stored for this layer"),
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
@@ -1706,6 +1709,8 @@ gboolean end_seqpsf(gpointer p) {
 				seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
 				seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
 				seq->regparam[layer][data->image_index].number_of_stars = 1;
+				//TODO need to update the H matrix with shifts computed from psf diff to refimage
+				//seq->regparam[layer][data->image_index].H = H_from_translation(shiftx, shifty);
 			}
 		}
 	}
@@ -1752,17 +1757,13 @@ proper_ending:
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		framing_mode framing, gboolean run_in_thread) {
 
-	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
+	if (framing == REGISTERED_FRAME && !layer_has_usable_registration(seq, layer))
 		framing = ORIGINAL_FRAME;
 
 	if (com.selection.w <= 0 || com.selection.h <= 0){
 		siril_log_message(_("Select an area first\n"));
 		return 1;
 	}
-	if (framing == FOLLOW_STAR_FRAME)
-		siril_log_color_message(_("The sequence analysis of the PSF will use a sliding selection area centred on the previous found star; this disables parallel processing.\n"), "salmon");
-	else if (framing == REGISTERED_FRAME)
-		siril_log_color_message(_("The sequence analysis of the PSF will use registration data to move the selection area for each image; this is compatible with parallel processing.\n"), "salmon");
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
@@ -1773,18 +1774,37 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
-	if (seq->regparam[layer] && seq->current >= 0) {
-		// transform selection back from current to ref frame coordinates
+	if (framing == REGISTERED_FRAME) {
 		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
-		selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
-		if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
-				args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
-			siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
+		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == -2) {
+			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
 			free(spsfargs);
 			return 1;
 		}
+		// transform selection back from current to ref frame coordinates
+		if (seq->current != seq->reference_image) {
+			if (guess_transform_from_H(seq->regparam[layer][seq->current].H) == -2) {
+				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the star.\n"), "red");
+				free(args);
+				free(spsfargs);
+				return 1;
+			}
+			selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
+			if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
+					args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
+				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
+				free(args);
+				free(spsfargs);
+				return 1;
+			}
+		}
 	}
+
+	if (framing == FOLLOW_STAR_FRAME)
+		siril_log_color_message(_("The sequence analysis of the PSF will use a sliding selection area centred on the previous found star; this disables parallel processing.\n"), "salmon");
+	else if (framing == REGISTERED_FRAME)
+		siril_log_color_message(_("The sequence analysis of the PSF will use registration data to move the selection area for each image; this is compatible with parallel processing.\n"), "salmon");
 	args->layer_for_partial = layer;
 	args->regdata_for_partial = framing == REGISTERED_FRAME;
 	args->get_photometry_data_for_partial = !for_registration;
