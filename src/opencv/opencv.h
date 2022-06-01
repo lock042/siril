@@ -43,6 +43,8 @@ void cvGetEye(Homography *H);
 
 void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg);
 
+void cvTransfH(Homography Href, Homography Himg, Homography *Hres);
+
 #ifdef __cplusplus
 }
 #endif

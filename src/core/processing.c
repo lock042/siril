@@ -132,6 +132,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			size = args->compute_size_hook(args, nb_frames);
 		else size = seq_compute_size(args->seq, nb_frames, args->output_type);
 		if (test_available_space(size)) {
+			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			args->retval = 1;
 			goto the_end;
 		}
@@ -197,10 +198,11 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 
 		if (args->partial_image) {
-			if (args->regdata_for_partial)
+			if (args->regdata_for_partial && (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][input_idx].H) > -2)) { // do not try to transform area if img matrix is null
 				selection_H_transform(&area,
 						args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H,
 						args->seq->regparam[args->layer_for_partial][input_idx].H);
+			}
 			// args->area may be modified in hooks
 
 			/* We need to detect if the box has crossed the borders to invalidate

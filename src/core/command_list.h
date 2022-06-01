@@ -109,7 +109,7 @@ static command commands[] = {
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE},
 
-	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=]", process_register, STR_REGISTER, TRUE},
+	{"register", 1, "register sequence [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-interp=]", process_register, STR_REGISTER, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE},
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE},
@@ -136,6 +136,8 @@ static command commands[] = {
 	{"savetif8", 1, "savetif8 filename", process_savetif, STR_SAVETIF8, TRUE},
 #endif
 	{"select", 2, "select from to", process_select, STR_SELECT, FALSE},
+	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-selected] [-layer=]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE},
+	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] ", process_seq_clean, STR_SEQCLEAN, TRUE},
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=]", process_seq_extractHa, STR_SEQEXTRACTHA, TRUE},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN, TRUE},
 	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII, TRUE},
