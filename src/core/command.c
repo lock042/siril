@@ -389,7 +389,6 @@ int process_gauss(int nb){
 
 int process_grey_flat(int nb) {
 	if (isrgb(&gfit)) {
-		PRINT_FOR_CFA_IMAGE;
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -1689,7 +1688,6 @@ int process_seq_tilt(int nb) {
 		seq = load_sequence(word[1], NULL);
 	} else {
 		if (!sequence_is_loaded()) {
-			PRINT_NOT_FOR_SINGLE;
 			return CMD_NOT_FOR_SINGLE;
 		}
 		seq = &com.seq;
@@ -1711,7 +1709,6 @@ int process_seq_psf(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	if (!com.headless && !sequence_is_loaded()) {
-		PRINT_NOT_FOR_SINGLE;
 		return CMD_NOT_FOR_SINGLE;
 	}
 	if (nb < 3) {
@@ -2887,7 +2884,6 @@ int process_seq_split_cfa(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
-		PRINT_FOR_CFA_IMAGE;
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -2926,7 +2922,6 @@ int process_seq_extractHa(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
-		PRINT_FOR_CFA_IMAGE;
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -2964,7 +2959,6 @@ int process_seq_extractGreen(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
-		PRINT_FOR_CFA_IMAGE;
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -3002,7 +2996,6 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
-		PRINT_FOR_CFA_IMAGE;
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -4620,7 +4613,6 @@ int process_rgbcomp(int nb) {
 	if (g_str_has_prefix(word[1], "-lum=")) {
 		char *lum_file = word[1] + 5;
 		if (nb < 4) {
-			siril_log_message(_("Incorrect number of arguments\n"));
 			return CMD_WRONG_N_ARG;
 		}
 
@@ -4635,7 +4627,6 @@ int process_rgbcomp(int nb) {
 			next_arg = 3;
 		} else {
 			if (nb < 5) {
-				siril_log_message(_("Incorrect number of arguments\n"));
 				return CMD_WRONG_N_ARG;
 			}
 			if (readfits(word[3], &g, NULL, TRUE)) { clearfits(&l); clearfits(&r); return CMD_INVALID_IMAGE; }
@@ -4651,7 +4642,7 @@ int process_rgbcomp(int nb) {
 
 		if (new_fit_image(&rgbptr, l.rx, l.ry, 3, DATA_FLOAT)) {
 			clearfits(&l); clearfits(&r); clearfits(&g); clearfits(&b);
-			siril_log_message(_("Memory allocation for the result failed\n"));
+			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
 		size_t nbpix = l.naxes[0] * l.naxes[1];
@@ -4677,7 +4668,7 @@ int process_rgbcomp(int nb) {
 
 		if (new_fit_image(&rgbptr, r.rx, r.ry, 3, DATA_FLOAT)) {
 			clearfits(&r); clearfits(&g); clearfits(&b);
-			siril_log_message(_("Memory allocation for the result failed\n"));
+			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
 		size_t nbpix = r.naxes[0] * r.naxes[1];

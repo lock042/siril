@@ -1,14 +1,9 @@
 #ifndef SRC_CORE_COMMAND_LINE_PROCESSOR_H_
 #define SRC_CORE_COMMAND_LINE_PROCESSOR_H_
 
-#define PRINT_LOAD_IMAGE_FIRST siril_log_color_message(_("Load an image or a sequence first.\n"), "red")
-#define PRINT_ONLY_SINGLE_IMAGE siril_log_color_message(_("Single image must be loaded, and this command cannot be applied on a sequence.\n"), "red")
-#define PRINT_NOT_FOR_SINGLE siril_log_color_message(_("This command can only be used when a sequence is loaded.\n"), "red")
-#define PRINT_NOT_FOR_MONO siril_log_color_message(_("This command cannot be applied on monochrome images.\n"), "red")
-#define PRINT_NOT_FOR_RGB siril_log_color_message(_("This command cannot be applied on rgb images.\n"), "red")
-#define PRINT_FOR_CFA_IMAGE PRINT_NOT_FOR_RGB; siril_log_color_message(_("Make sure your image is in CFA mode.\n"), "red")
+//#define PRINT_FOR_CFA_IMAGE PRINT_NOT_FOR_RGB; siril_log_color_message(_("Make sure your image is in CFA mode.\n"), "red")
 
-enum {
+typedef enum {
 	CMD_NOT_FOUND = -999,
 	CMD_NO_WAIT = -667,
 	CMD_NO_CWD = -500,
@@ -31,7 +26,7 @@ enum {
 	CMD_NEED_INIT_FIRST = 100,
 	CMD_ALLOC_ERROR = 666,
 	CMD_THREAD_RUNNING = 999
-};
+} cmd_errors;
 
 void parse_line(char *myline, int len, int *nb);
 void remove_trailing_cr(char *str);

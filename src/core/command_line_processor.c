@@ -107,41 +107,34 @@ int execute_command(int wordnb) {
 	/* we check that (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE) is inside the bitmask */
 	if ((commands[i].prerequires & (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE)) == (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE)) {
 		if (!single_image_is_loaded() && !sequence_is_loaded()) {
-			PRINT_LOAD_IMAGE_FIRST;
 			return CMD_LOAD_IMAGE_FIRST;
 		}
 	} else if ((commands[i].prerequires & REQ_CMD_SINGLE_IMAGE) == REQ_CMD_SINGLE_IMAGE) {
 		if (!single_image_is_loaded()) {
-			PRINT_ONLY_SINGLE_IMAGE;
 			return CMD_ONLY_SINGLE_IMAGE;
 		}
 	} else if ((commands[i].prerequires & REQ_CMD_SEQUENCE) == REQ_CMD_SEQUENCE) {
 		if (!sequence_is_loaded()) {
-			PRINT_NOT_FOR_SINGLE;
 			return CMD_NOT_FOR_SINGLE;
 		}
 	}
 
 	if ((commands[i].prerequires & (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) == (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) {
 		if (isrgb(&gfit)) {
-			PRINT_FOR_CFA_IMAGE;
 			return CMD_FOR_CFA_IMAGE;
 		}
 	} else if ((commands[i].prerequires & REQ_CMD_FOR_MONO) != 0) {
 		if (isrgb(&gfit)) {
-			PRINT_NOT_FOR_RGB;
 			return CMD_NOT_FOR_RGB;
 		}
 	} else if ((commands[i].prerequires & REQ_CMD_FOR_RGB) != 0) {
 		if (!isrgb(&gfit)) {
-			PRINT_NOT_FOR_MONO;
 			return CMD_NOT_FOR_MONO;
 		}
 	}
 
 	if ((commands[i].prerequires & REQ_CMD_NO_THREAD) != 0) {
 		if (get_thread_run()) {
-			PRINT_ANOTHER_THREAD_RUNNING;
 			return CMD_THREAD_RUNNING;
 		}
 	}
@@ -484,6 +477,35 @@ static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event
 	return (handled == 1);
 }
 
+static const char *cmd_error_to_string(cmd_errors err) {
+	switch (err) {
+	case CMD_LOAD_IMAGE_FIRST:
+		return "Load an image or a sequence first.\n";
+		break;
+	case CMD_ONLY_SINGLE_IMAGE:
+		return "Single image must be loaded, and this command cannot be applied on a sequence.\n";
+		break;
+	case CMD_NOT_FOR_SINGLE:
+		return "This command can only be used when a sequence is loaded.\n";
+		break;
+	case CMD_NOT_FOR_MONO:
+		return "This command cannot be applied on monochrome images.\n";
+		break;
+	case CMD_NOT_FOR_RGB:
+		return "This command cannot be applied on rgb images.\n";
+		break;
+	case CMD_FOR_CFA_IMAGE:
+		return "Make sure your image is in CFA mode.\n";
+		break;
+	case CMD_WRONG_N_ARG:
+		return "Incorrect number of arguments\n";
+	case CMD_THREAD_RUNNING:
+		return PRINT_ANOTHER_THREAD_RUNNING;
+	default:
+		return NULL;
+	}
+}
+
 int processcommand(const char *line) {
 	int wordnb = 0;
 	GError *error = NULL;
@@ -533,6 +555,9 @@ int processcommand(const char *line) {
 		int ret = execute_command(wordnb);
 		if (ret) {
 			siril_log_color_message(_("Command execution failed with error code: %d.\n"), "red", ret);
+			const char *msg = cmd_error_to_string(ret);
+			if (msg)
+				siril_log_color_message(msg, "red");
 			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
 			}
