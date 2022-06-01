@@ -55,6 +55,8 @@
 #include "opencv/opencv.h"
 #include "opencv/kombat/kombat.h"
 
+static gboolean keep_noout_state = FALSE;
+
 #undef DEBUG
 
 static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the simplest method to register deep-sky images. "
@@ -913,6 +915,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelreginfo, _("Select an area in image first"));
 		}
 	}
+	/* we temporary save value as keep_noout_state will be changed in the callback */
+	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 	if ((method->method_ptr == &register_comet) || (method->method_ptr == &register_kombat) || (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_shift_dft)) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
@@ -921,10 +925,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 	} else {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
 		gtk_widget_set_sensitive(noout, TRUE);
 	}
-
+	keep_noout_state  = save_state;
 }
 
 /* try to maximize the area within the image size (based on gfit)
@@ -1018,13 +1022,25 @@ void get_the_registration_area(struct registration_args *reg_args,
 	}
 }
 
+/* callback for no output button */
+void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
+	GtkWidget *Prefix = lookup_widget("regseqname_entry");
+
+	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
+
+	gtk_widget_set_sensitive(Algo, !toggled);
+	gtk_widget_set_sensitive(Prefix, !toggled);
+
+	keep_noout_state = toggled;
+}
+
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
 	struct registration_method *method;
 	char *msg;
-	GtkToggleButton *follow, *matchSel, *no_output, *x2upscale,
-			*cumul;
+	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul;
 	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
 	GtkSpinButton *minpairs, *percent_moved;
@@ -1060,7 +1076,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	/* filling the arguments for registration */
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
-	no_output = GTK_TOGGLE_BUTTON(lookup_widget("regNoOutput"));
 	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
 	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
@@ -1076,7 +1091,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
-	reg_args->no_output = gtk_toggle_button_get_active(no_output);
+	reg_args->no_output = keep_noout_state;
 	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));

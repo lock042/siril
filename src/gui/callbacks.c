@@ -1575,14 +1575,6 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 	}
 }
 
-void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
-	GtkWidget *Prefix = lookup_widget("regseqname_entry");
-
-	gtk_widget_set_sensitive(Algo, !gtk_toggle_button_get_active(togglebutton));
-	gtk_widget_set_sensitive(Prefix, !gtk_toggle_button_get_active(togglebutton));
-}
-
 void on_seqproc_entry_changed(GtkComboBox *widget, gpointer user_data) {
 	gchar *name = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(widget));
 	if (name && name[0] != '\0') {
