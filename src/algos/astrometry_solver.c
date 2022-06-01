@@ -1192,7 +1192,7 @@ gpointer match_catalog(gpointer p) {
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
 		args->ret = new_star_match(stars, cstars, n, nobj,
 				scale_min, scale_max, &H,
-				args->for_photometry_cc, NULL, NULL,
+				FALSE, NULL, NULL,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
 			scale_min = -1.0;
