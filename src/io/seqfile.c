@@ -684,12 +684,14 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
 			for (i=0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %g %g %g %g H %g %g %g %g %g %g %g %g %g\n",
+				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
 						seq->regparam_bkp[layer][i].fwhm,
 						seq->regparam_bkp[layer][i].weighted_fwhm,
 						seq->regparam_bkp[layer][i].roundness,
 						seq->regparam_bkp[layer][i].quality,
+						seq->regparam_bkp[layer][i].background_lvl,
+						seq->regparam_bkp[layer][i].number_of_stars,
 						seq->regparam_bkp[layer][i].H.h00,
 						seq->regparam_bkp[layer][i].H.h01,
 						seq->regparam_bkp[layer][i].H.h02,
