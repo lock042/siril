@@ -428,9 +428,20 @@ gchar *siril_win_get_gnuplot_path() {
 #endif
 }
 
+static double get_error_for_time(pldata *plot, double time) {
+	/* when data are sorted we need to check order by matching
+	 * timestamps in order to sort uncertainties as well
+	 */
+	for (int k = 0; k < plot->nb; k++) {
+		if (plot->err[k].x == time)
+			return plot->err[k].y;
+	}
+	return 0.0;
+}
+
+
 static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
-	int i, j, k, nbImages = 0, ret = 0;
-	pldata *tmp_plot = plot;
+	int i, j, nbImages = 0, ret = 0;
 	double *vmag, *err, *x, *real_x;
 
 	if (!gnuplot_is_available()) {
@@ -441,8 +452,8 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 
 	/* get number of data */
-	for (i = 0, j = 0; i < plot->nb; i++) {
-		if (!seq->imgparam[i].incl)
+	for (i = 0; i < plot->nb; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
 	}
@@ -456,54 +467,40 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
+	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		double cmag = 0.0, cerr = 0.0;
 
-		vmag[j] = tmp_plot->data[j].y;
-		/* when data are sorted we need to check order
-		 * by matching timestamps in order
-		 * to sort uncertainties as well
-		 */
-		for (k = 0; k < plot->nb; k++) {
-			if (tmp_plot->err[k].x == tmp_plot->data[j].x)
-				err[j] = tmp_plot->err[k].y;
-		}
+		x[j] = plot->data[j].x;			// relative date
+		real_x[j] = x[j] + (double) julian0;	// absolute date
+		vmag[j] = plot->data[j].y;		// magnitude
+		err[j] = get_error_for_time(plot, x[j]);// error of the magnitude
 
-		x[j] = tmp_plot->data[j].x;
-		real_x[j] = x[j] + (double) julian0;
-		tmp_plot = tmp_plot->next;
-		int n = 0;
-		/* Warning: first data plotted are variable data, others are references
+		int nb_ref = 0;
+		pldata *cur_plot = plot->next;
+		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-		while ((n + 1) < MAX_SEQPSF && seq->photometry[n + 1]) {
-			if (seq->photometry[n + 1][i]->phot_is_valid) {
+		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+			if (seq->photometry[ref][i]->phot_is_valid) {
 				/* variable data, inversion of Pogson's law
 				 * Flux = 10^(-0.4 * mag)
 				 */
-				cmag += pow(10, -0.4 * tmp_plot->data[j].y);
-				/* when data are sorted we need to check order
-				 * by matching timestamps in order
-				 * to sort uncertainties as well
-				 */
-				for (k = 0; k < plot->nb; k++) {
-					if (tmp_plot->err[k].x == tmp_plot->data[j].x)
-						cerr += tmp_plot->err[k].y;
-				}
-				tmp_plot = tmp_plot->next;
-				++n;
+				cmag += pow(10, -0.4 * cur_plot->data[j].y);
+				cerr += get_error_for_time(cur_plot, x[j]);
+				++nb_ref;
 			}
+			cur_plot = cur_plot->next;
 		}
 		/* Converting back to magnitude */
-		if (n > 0) {
-			cmag = -2.5 * log10(cmag / n);
-			cerr = (cerr / n) / sqrt((double) n);
+		if (nb_ref > 0) {
+			cmag = -2.5 * log10(cmag / nb_ref);
+			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
 
 			vmag[j] = vmag[j] - cmag;
 			err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
 		}
-		tmp_plot = plot;
 		j++;
 	}
 
