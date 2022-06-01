@@ -328,7 +328,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		return;
 	if (!(com.selection.h && com.selection.w))
 		return;
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, NULL);
 	if (!result)
 		return;
 

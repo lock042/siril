@@ -2,10 +2,12 @@
 #define SRC_GUI_PHOTOMETRIC_CC_H_
 
 #include <stdio.h>
+#include <glib.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/PSF.h"
+#include "algos/photometry.h"
 
 typedef struct struct_coeff {
 	float value;
@@ -20,14 +22,19 @@ typedef enum {
 
 struct photometric_cc_data {
 	fits *fit;			// the image to process
-	GInputStream *bv_stream;	// the stream containing the star list with B-V values
 	gboolean bg_auto;		// automatically select an area for bkg neutralization
 	rectangle bg_area;		// the area for background if not bg_auto
 	normalization_channel n_channel;// the reference channel for the white balance
+
+	pcc_star *stars;		// the list of stars with BV index in the image
+	int nb_stars;			// the number of stars in the array
+	float fwhm;			// representative FWHM for stars
 };
 
 void initialize_photometric_cc_dialog();
-int apply_photometric_cc(struct photometric_cc_data *args);
+int photometric_cc(struct photometric_cc_data *args);
+gpointer photometric_cc_standalone(gpointer p);
+int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars);
 int get_photometry_catalog();
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */

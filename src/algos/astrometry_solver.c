@@ -61,7 +61,7 @@
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-8
 
-#undef DEBUG           /* get some of diagnostic output */
+#undef DEBUG		/* get some of diagnostic output */
 
 struct sky_object platedObject[RESOLVER_NUMBER];
 
@@ -104,19 +104,22 @@ static double get_fov(double resolution, int image_size) {
 	return (resolution * (double)image_size) / 60.0;
 }
 
+double compute_mag_limit_from_fov(double fov_degrees) {
+	// Empiric formula for 1000 stars at 20 deg of galactic latitude
+	double autoLimitMagnitudeFactor = 14.5;
+	double m = autoLimitMagnitudeFactor * pow(fov_degrees, -0.179);
+	// for astrometry, it can be useful to go down to mag 20, for
+	// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
+	return round(100.0 * min(20.0, max(7.0, m))) / 100;
+}
+
 static void compute_mag_limit(struct astrometry_data *args) {
-	// limit magnitude should depend on image fov, not selection's
-	double fov = get_fov(args->scale, max(args->fit->rx, args->fit->ry)) * CROP_ALLOWANCE;
-	//double fov = args->used_fov * CROP_ALLOWANCE;
 	if (args->auto_magnitude) {
-		// Empiric formula for 1000 stars at 20 deg of galactic latitude
-		double autoLimitMagnitudeFactor = 14.5;
-		/* convert fov in degree */
-		fov /= 60.0;
-		double m = autoLimitMagnitudeFactor * pow(fov, -0.179);
-		// for astrometry, it can be useful to go down to mag 20, for
-		// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
-		args->limit_mag = round(100.0 * min(20.0, max(7.0, m))) / 100;
+		// limit magnitude should depend on image fov, not selection's
+		double fov = get_fov(args->scale, max(args->fit->rx, args->fit->ry)) * CROP_ALLOWANCE;
+		//double fov = args->used_fov * CROP_ALLOWANCE;
+
+		args->limit_mag = compute_mag_limit_from_fov(fov / 60.0);
 	}
 	else args->limit_mag = args->forced_magnitude;
 	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
@@ -541,6 +544,18 @@ gboolean has_any_keywords() {
 			(gfit.wcsdata.crval[0] > 0.0 && gfit.wcsdata.crval[1] != 0.0) ||
 			(gfit.wcsdata.objctra[0] != '\0' && gfit.wcsdata.objctdec[0] != '\0') ||
 			(gfit.wcsdata.ra != 0.0 && gfit.wcsdata.dec != 0.0));
+}
+
+SirilWorldCS *get_eqs_from_header(fits *fit) {
+	if (fit->wcsdata.ra != 0.0 && fit->wcsdata.dec != 0.0)
+		return siril_world_cs_new_from_a_d(fit->wcsdata.ra, fit->wcsdata.dec);
+
+	else if (fit->wcsdata.objctra[0] != '\0' && fit->wcsdata.objctdec[0] != '\0')
+		return siril_world_cs_new_from_objct_ra_dec(fit->wcsdata.objctra, fit->wcsdata.objctdec);
+
+	else if (fit->wcsdata.crval[0] != 0.0 && fit->wcsdata.crval[1] != 0.0)
+		return siril_world_cs_new_from_a_d(fit->wcsdata.crval[0], fit->wcsdata.crval[1]);
+	return NULL;
 }
 
 /* Extract CDELT from CD matrix.*/
@@ -1087,16 +1102,18 @@ gpointer match_catalog(gpointer p) {
 	int max_trials = 0;
 	GFile *catalog = NULL;
 	GInputStream *input_stream = NULL;
-	s_star star_list_A, star_list_B;
+	s_star *star_list_A, *star_list_B;
 	fits fit_backup = { 0 };
+	psf_star **stars = NULL;
 
 	args->ret = 1;
 	args->message = NULL;
 	args->solution = NULL;
 
-	siril_log_message(_("Plate solving image from an online catalogue for %s field of view of %.2f"
-			       " degrees, using a limit magnitude of %.2f\n"),
-			args->uncentered ? _("an uncentered") : _("a"), args->used_fov / 60.0, args->limit_mag);
+	siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
+			       " degrees%s, using a limit magnitude of %.2f\n"),
+			args->used_fov / 60.0,
+			args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
 
 	if (!args->catalog_file) {
 		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
@@ -1113,7 +1130,6 @@ gpointer match_catalog(gpointer p) {
 		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
 	}
 
-	psf_star **stars = NULL;
 	if (!args->manual) {
 		com.starfinder_conf.pixel_size_x = com.pref.focal;
 		com.starfinder_conf.focal_length = com.pref.pitch;
@@ -1135,6 +1151,7 @@ gpointer match_catalog(gpointer p) {
 				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
 		goto clearup;
 	}
+	siril_debug_print("using %d detected stars from image\n", n_fit);
 	if (args->uncentered)
 		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
@@ -1173,8 +1190,9 @@ gpointer match_catalog(gpointer p) {
 	double scale_max = args->scale + 0.2;
 	int attempt = 1;
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
-		args->ret = new_star_match(stars, cstars, n, nobj, scale_min,
-				scale_max, &H, args->for_photometry_cc,
+		args->ret = new_star_match(stars, cstars, n, nobj,
+				scale_min, scale_max, &H,
+				FALSE, NULL, NULL,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
 			scale_min = -1.0;
@@ -1226,14 +1244,14 @@ gpointer match_catalog(gpointer p) {
 		double orig_ra0 = ra0;
 		double orig_dec0 = dec0;
 
-		deproject_starlist(num_matched, &star_list_B, rainit, decinit, 1);
+		deproject_starlist(num_matched, star_list_B, rainit, decinit, 1);
 		siril_debug_print("Deprojecting from: alpha: %s, delta: %s\n",
 				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
 				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
 		args->cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
 		solution->px_cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
 
-		project_starlist(num_matched, &star_list_B, ra0, dec0, 1);
+		project_starlist(num_matched, star_list_B, ra0, dec0, 1);
 		siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
 				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
 				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
@@ -1245,7 +1263,7 @@ gpointer match_catalog(gpointer p) {
 		double focal = RADCONV * solution->pixel_size / resolution;
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
-		if (atPrepareHomography(num_matched, &star_list_A, num_matched, &star_list_B, &H, FALSE, AFFINE_TRANSFORMATION)){
+		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, FALSE, NULL, NULL, AFFINE_TRANSFORMATION)){
 			args->message = g_strdup(_("Updating homography failed."));
 			args->ret = 1;
 			break;
@@ -1259,6 +1277,8 @@ gpointer match_catalog(gpointer p) {
 		trial++;
 		CHECK_FOR_CANCELLATION;
 	}
+	free_stars(star_list_A);
+	free_stars(star_list_B);
 	if (args->ret)	// after the break
 		goto clearup;
 
@@ -1391,14 +1411,33 @@ gpointer match_catalog(gpointer p) {
 	load_WCS_from_memory(args->fit);
 	print_platesolving_results(solution, args->downsample);
 	if (args->for_photometry_cc) {
-		if ((args->ret = apply_photometric_cc(args->pcc)))
+		pcc_star *pcc_stars = NULL;
+		int nb_pcc_stars;
+		args->ret = project_catalog_with_WCS(args->catalog_file, args->fit,
+				&pcc_stars, &nb_pcc_stars);
+		if (args->ret) {
+			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
 			goto clearup;
+		}
+		args->pcc->stars = pcc_stars;
+		args->pcc->nb_stars = nb_pcc_stars;
+		args->pcc->fwhm = filtered_FWHM_average(stars, n_fit);
+		if (args->downsample)
+			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
+		args->ret = photometric_cc(args->pcc);
 		args->pcc = NULL; // freed in PCC code
+		free(pcc_stars);
+		pcc_stars = NULL;
+		if (args->ret) {
+			args->message = g_strdup_printf(_("An astrometric solution was found but photometry analysis of the %d stars failed. This generally happens if they are saturated in the image or if they are too faint to have B-V index information (mag > 18)\n"), nb_pcc_stars);
+			//goto clearup; // still flip
+		}
 	}
 	if (args->flip_image && image_is_flipped(solution->H)) {
 		siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
 		flip_bottom_up_astrometry_data(args->fit);
+		args->image_flipped = TRUE;
 	}
 	/* TODO: what do we do with solution ? */
 
@@ -1407,7 +1446,7 @@ clearup:
 		clearfits(args->fit);
 		memcpy(args->fit, &fit_backup, sizeof(fits));
 	}
-	if (stars && args->manual) {
+	if (stars && !args->manual) {
 		for (int i = 0; i < MAX_STARS && stars[i]; i++)
 			free_psf(stars[i]);
 		free(stars);

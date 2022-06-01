@@ -243,14 +243,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	float **smooth_image;
 	fits smooth_fit = { 0 };
 	starc *candidates;
-
 	struct timeval t_start, t_end;
 
 	assert(nx > 0 && ny > 0);
 
-	siril_log_color_message(_("Findstar: processing...\n"), "green");
-	if (showtime)
+	if (showtime) {
+		siril_log_color_message(_("Findstar: processing for channel %d...\n"), "green", layer);
 		gettimeofday(&t_start, NULL);
+	}
+	else siril_log_message(_("Findstar: processing for channel %d...\n"), layer);
 
 	/* running statistics on the input image is best as it caches them */
 	threshold = compute_threshold(image, sf->sigma * 5.0, layer, area, &norm, &bg, &bgnoise, threads);
@@ -590,7 +591,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				}
 			}
 
-			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, 1.0, FALSE, FALSE);
+			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, 1.0, FALSE, FALSE, NULL);
 			gsl_matrix_free(z);
 			if (cur_star) {
 				if (is_star(cur_star, sf, &candidates[candidate])) {
@@ -647,7 +648,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	gboolean already_found = FALSE;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE, FALSE);
 	if (!result)
 		return NULL;
 	/* We do not check if it's matching with the "is_star()" criteria.
@@ -770,6 +771,22 @@ void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **u
 		*FWHMy = (float)(fwhmy / (double)nb);
 		*B = (float)(b / (double)nb);
 	}
+}
+
+float filtered_FWHM_average(psf_star **stars, int nb) {
+	if (!stars || !stars[0])
+		return 0.0f;
+	float *fwhms = malloc(nb * sizeof(float));
+	if (!fwhms) {
+		PRINT_ALLOC_ERR;
+		return 0.0f;
+	}
+	for (int i = 0; i < nb; i++)
+		fwhms[i] = stars[i]->fwhmx;
+
+	float retval = siril_stats_trmean_from_sorted_data(0.15, fwhms, 1, nb);
+	free(fwhms);
+	return retval;
 }
 
 static gboolean end_findstar(gpointer p) {

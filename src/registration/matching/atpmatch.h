@@ -186,7 +186,7 @@ typedef struct s_star {
 	double mag;             /* some measure of star's brightness */
 	double BV;              /* only used for BV calibration */
 	int match_id;           /* ID of star in other list which matches */
-struct s_star *next;    /* we use linked lists internally */
+	struct s_star *next;    /* we use linked lists internally */
 } s_star;
 
 
@@ -237,7 +237,9 @@ atRecalcTrans(int numA, struct s_star *listA,
               int max_iter, double halt_sigma, TRANS *trans);
 
 int atPrepareHomography(int numA, struct s_star *listA, int numB,
-		struct s_star *listB, Homography *H, gboolean save_photometric_data, transformation_type type);
+		struct s_star *listB, Homography *H, gboolean save_photometric_data,
+		pcc_star *photometric_data, int *nb_photometric_stars,
+		transformation_type type);
 
 int
 atCalcRMS(int num_A, struct s_star *mlistA,

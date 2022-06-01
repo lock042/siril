@@ -2,7 +2,7 @@
 #define PSF_H_
 
 #include <gsl/gsl_matrix.h>
-#include <algos/photometry.h>
+#include "algos/photometry.h"
 #include "algos/star_finder.h"
 
 //in siril.h: typedef struct fwhm_struct psf_star;
@@ -49,8 +49,14 @@ struct PSF_data {
 };
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
-psf_star *psf_get_minimisation(fits *, int, rectangle *, gboolean, gboolean, gboolean);
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, gboolean fit_angle, gboolean for_photometry, double gain, gboolean force_radius, gboolean verbose);
+psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
+		gboolean for_photometry, gboolean force_radius,
+		gboolean verbose, psf_error *error);
+
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, 
+		gboolean fit_angle, gboolean for_photometry, double gain,
+		gboolean force_radius, gboolean verbose, psf_error *error);
+
 void psf_display_result(psf_star *, rectangle *);
 void fwhm_to_arcsec_if_needed(fits*, psf_star*);
 void fwhm_to_pixels(psf_star *result);

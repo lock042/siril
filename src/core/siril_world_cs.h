@@ -16,16 +16,17 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
- *
- *
- * This is an implementation of the equatorial coordinate system, consisting of
- * a couple or RA and DEC coordinates, with their parsing and transformation
- * tools.
  */
 #ifndef SRC_CORE_SIRIL_WORLD_CS_H_
 #define SRC_CORE_SIRIL_WORLD_CS_H_
 
 #include <glib.h>
+
+/* This is an implementation of the equatorial coordinate system, consisting of
+ * a couple or RA and DEC coordinates, with their parsing and transformation
+ * tools.
+ * Internal data is stored in degrees.
+ */
 
 typedef struct _SirilWorldCS SirilWorldCS;
 

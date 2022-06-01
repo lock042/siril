@@ -261,7 +261,7 @@ void center2wcs(fits *fit, double *r, double *d) {
 #endif
 }
 
-/* get resolution in arcsec/pixel */
+/* get resolution in degree/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
 #ifdef HAVE_WCSLIB
