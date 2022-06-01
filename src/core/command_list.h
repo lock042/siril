@@ -128,7 +128,7 @@ static command commands[] = {
 	{"rgbcomp", 2, "rgbcomp [-lum=image [rgb_image]] [red green blue] [-out=result_filename]", process_rgbcomp, STR_RGBCOMP, TRUE, REQ_CMD_NONE},
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"rl", 3, "rl sigma corner_radius_boost iterations", process_rl, STR_RL, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
-	{"rmgreen", 0, "rmgreen [type]", process_scnr, STR_RMGREEN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_MONO | REQ_CMD_NO_THREAD},
+	{"rmgreen", 0, "rmgreen [type]", process_scnr, STR_RMGREEN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"rotate", 1, "rotate degree [-nocrop]", process_rotate, STR_ROTATE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"rotatePi", 0, "rotatePi", process_rotatepi, STR_ROTATEPI, TRUE, REQ_CMD_SINGLE_IMAGE},
 
