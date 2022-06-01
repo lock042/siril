@@ -443,7 +443,7 @@ double background(fits* fit, int reqlayer, rectangle *selection, threading_type 
 	imstats* stat = statistics(NULL, -1, fit, layer, selection, STATS_BASIC, threading);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
-		return 0.0;
+		return -1.0;
 	}
 	double bg = stat->median;
 	free_stats(stat);

@@ -386,6 +386,7 @@ get_value
 /**********************************************************************
  * ROUTINE: get_stars
  *
+ * Converts an array of psf_stars to a s_star list.
  *
  * Return 0 if all goes well.
  * Return 1 if there is an error.

@@ -252,37 +252,17 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 }
 
 void update_coords() {
-	SirilWorldCS *world_cs = NULL;
-	fits *fit = &gfit;
-
-	if (fit->wcsdata.ra != 0.0 && fit->wcsdata.dec != 0.0) {
-
-		world_cs = siril_world_cs_new_from_a_d(fit->wcsdata.ra, fit->wcsdata.dec);
-
+	SirilWorldCS *world_cs = get_eqs_from_header(&gfit);
+	if (world_cs) {
 		update_coordinates(world_cs);
 		unselect_all_items();
-	} else if (fit->wcsdata.objctra[0] != '\0' && fit->wcsdata.objctdec[0] != '\0') {
-
-		world_cs = siril_world_cs_new_from_objct_ra_dec(fit->wcsdata.objctra, fit->wcsdata.objctdec);
-
-		update_coordinates(world_cs);
-		unselect_all_items();
-	} else if (fit->wcsdata.crval[0] != 0.0 && fit->wcsdata.crval[1] != 0.0) {
-
-		// first transform coords to alpha and delta
-		world_cs = siril_world_cs_new_from_a_d(fit->wcsdata.crval[0], fit->wcsdata.crval[1]);
-
-		update_coordinates(world_cs);
-		unselect_all_items();
-	}
-	if (world_cs)
 		siril_world_cs_unref(world_cs);
+	}
 }
 
 static void update_image_parameters_GUI() {
-	/* update all fields. Resolution is updated as well
-	 thanks to the Entry and combo changed signal
-	  */
+	/* update all fields. Resolution is updated as well thanks to the Entry
+	 * and combo changed signal */
 	update_focal();
 	update_pixel_size();
 	update_coords();
@@ -324,6 +304,8 @@ gboolean end_plate_solver(gpointer p) {
 		siril_world_cs_unref(solution->image_center);
 		free(solution);
 	}
+	if (args->image_flipped)
+		clear_stars_list(TRUE);
 	update_MenuItem();
 	free(args);
 	return FALSE;

@@ -50,6 +50,8 @@
 #include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "photometric_cc.h"
+#include "registration/matching/misc.h" // for catalogue parsing helpers
+#include "algos/siril_wcs.h"
 
 enum {
 	RED, GREEN, BLUE
@@ -67,7 +69,6 @@ static void start_photometric_cc() {
 
 	args->pcc = malloc(sizeof(struct photometric_cc_data));
 	args->pcc->fit = &gfit;
-	args->pcc->bv_stream = NULL;	// set in apply_photometric_cc()
 	args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 	args->pcc->bg_area = get_bkg_selection();
 	args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
@@ -76,29 +77,6 @@ static void start_photometric_cc() {
 		set_cursor_waiting(TRUE);
 		start_in_new_thread(match_catalog, args);
 	}
-}
-
-/* reads the content of the file to populate the stars list, only with their position and B-V */
-static void read_photometry_cc_file(GInputStream *stream, psf_star **stars, int *nb_stars) {
-	gchar *line;
-	int i = 0;
-
-	GDataInputStream *data_input = g_data_input_stream_new(stream);
-	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
-				NULL, NULL))) {
-		int tmp;
-		psf_star *star = new_psf_star();
-
-		/* file written in registration/matching/atpmatch.c, atPrepareHomography() */
-		sscanf(line, "%d %lf %lf %lf\n", &tmp, &(star->xpos), &(star->ypos), &(star->BV));
-
-		stars[i] = star;
-		stars[i + 1] = NULL;
-		i++;
-	}
-	*nb_stars = i;
-
-	g_object_unref(data_input);
 }
 
 static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
@@ -143,26 +121,18 @@ static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV 
 	}
 }
 
-static int make_selection_around_a_star(psf_star *star, rectangle *area, fits *fit) {
+static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
 	/* make a selection around the star */
 	double outer = com.pref.phot_set.outer;
-	area->x = round_to_int(star->xpos - outer);
-	area->y = round_to_int(star->ypos - outer);
-	area->w = area->h = round_to_int(outer * 2.0);
+	area->x = round_to_int(star.x - outer);
+	area->y = round_to_int(star.y - outer);
+	area->w = area->h = (int)ceil(outer * 2.0);
 
 	/* Don't want stars too close to the edge */
-	if (area->x + area->w >= fit->rx) {
+	if (area->x <= 0 || area->x + area->w >= fit->rx - 1)
 		return 1;
-	}
-	if (area->x - area->w <= 0) {
+	if (area->y <= 0 || area->y + area->h >= fit->ry - 1)
 		return 1;
-	}
-	if (area->y + area->h >= fit->ry) {
-		return 1;
-	}
-	if (area->y - area->h <= 0) {
-		return 1;
-	}
 
 	return 0;
 }
@@ -195,7 +165,7 @@ static float Qn0(const float sorted_data[], const size_t stride, const size_t n)
 }
 
 static float siril_stats_robust_mean(const float sorted_data[],
-		const size_t stride, const size_t size) {
+		const size_t stride, const size_t size, double *deviation) {
 	float mx = (float) gsl_stats_float_median_from_sorted_data(sorted_data, stride, size);
 	float qn0 = Qn0(sorted_data, 1, size);
 	if (qn0 < 0)
@@ -211,10 +181,11 @@ static float siril_stats_robust_mean(const float sorted_data[],
 	}
 
 	for (i = 0, j = 0; i < size; ++i) {
-		if (fabsf(sorted_data[i] - (float) mx) < 3 * (float) sx) {
+		if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
 			x[j++] = sorted_data[i];
 		}
 	}
+	siril_debug_print("keeping %d samples on %zu for the robust mean (mx: %f, sx: %f)\n", j, size, mx, sx);
 	/* not enough stars, try something anyway */
 	if (j < 5) {
 		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);
@@ -222,14 +193,27 @@ static float siril_stats_robust_mean(const float sorted_data[],
 		mean = (float) gsl_stats_float_mean(x, stride, j);
 	}
 	free(x);
+
+	/* compute the deviation of the mean against the values */
+	if (deviation) {
+		double dev = 0.0;
+		int inliers = 0;
+		for (i = 0, j = 0; i < size; ++i) {
+			if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
+				dev += abs(sorted_data[i] - mean);
+				inliers++;
+			}
+		}
+		if (inliers)
+			*deviation = dev / inliers;
+		else *deviation = 1.0;
+	}
+
 	return mean;
 }
 
-static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, float kw[], int n_channel) {
-	int i = 0, ngood = 0;
-	int progress = 0;
+static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float kw[], int n_channel) {
 	float *data[3];
-
 	data[RED] = malloc(sizeof(float) * nb_stars);
 	data[GREEN] = malloc(sizeof(float) * nb_stars);
 	data[BLUE] = malloc(sizeof(float) * nb_stars);
@@ -249,39 +233,45 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 	siril_log_message(str);
 	g_free(str);
 
-	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
+	gint ngood = 0, progress = 0;
+	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
-	// TODO: transform to a for loop and parallelize
-	while (stars[i]) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
+#endif
+	for (int i = 0; i < nb_stars; i++) {
 		if (!get_thread_run())
-			break;
+			continue;
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
 		if (!(i % 16))	// every 16 iterations
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
-		progress++;
+		g_atomic_int_inc(&progress);
 
 		if (make_selection_around_a_star(stars[i], &area, fit)) {
-			i++;
+			siril_debug_print("star %d is outside image or too close to border\n", i);
+			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
 		}
 
 		gboolean no_phot = FALSE;
+		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE);
-			if (!photometry || !photometry->phot_is_valid)
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE, &error);
+			g_atomic_int_inc(errors+error);
+			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
 			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
 			if (photometry)
 				free_psf(photometry);
 		}
 		if (no_phot) {
-			i++;
+			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
 		/* get r g b coefficient from bv color index */
-		bv = stars[i]->BV;
+		bv = stars[i].BV;
 		bv2rgb(&r, &g, &b, bv);
 
 		/* get Color calibration factors for current star */
@@ -293,11 +283,9 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 			data[RED][i] = FLT_MAX;
 			data[GREEN][i] = FLT_MAX;
 			data[BLUE][i] = FLT_MAX;
-			i++;
 			continue;
 		}
-		i++;
-		ngood++;
+		g_atomic_int_inc(&ngood);
 	}
 	if (!get_thread_run())
 		return 1;
@@ -306,6 +294,8 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 	str = g_strdup_printf(str, excl);
 	siril_log_message(str);
 	g_free(str);
+	if (excl > 0)
+		print_psf_error_summary(errors);
 
 	if (ngood == 0) {
 		siril_log_message(_("No valid stars found.\n"));
@@ -320,10 +310,11 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 	quicksort_f(data[GREEN], nb_stars);
 	quicksort_f(data[BLUE], nb_stars);
 
+	double deviation[3];
 	/* we do not take into account FLT_MAX values */
-	kw[RED] = siril_stats_robust_mean(data[RED], 1, ngood);
-	kw[GREEN] = siril_stats_robust_mean(data[GREEN], 1, ngood);
-	kw[BLUE] = siril_stats_robust_mean(data[BLUE], 1, ngood);
+	kw[RED] = siril_stats_robust_mean(data[RED], 1, ngood, &(deviation[RED]));
+	kw[GREEN] = siril_stats_robust_mean(data[GREEN], 1, ngood, &(deviation[GREEN]));
+	kw[BLUE] = siril_stats_robust_mean(data[BLUE], 1, ngood, &(deviation[BLUE]));
 	if (kw[RED] < 0.f || kw[GREEN] < 0.f || kw[BLUE] < 0.f) {
 		free(data[RED]);
 		free(data[GREEN]);
@@ -335,11 +326,15 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 	kw[RED] /= (kw[n_channel]);
 	kw[GREEN] /= (kw[n_channel]);
 	kw[BLUE] /= (kw[n_channel]);
-	siril_log_message(_("Color calibration factors:\n"));
+	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
-		siril_log_message("K%d: %5.3lf\n", chan, kw[chan]);
+		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
 	}
 
+	if (ngood < 20)
+		siril_log_color_message(_("The photometric color correction has found a solution which may not be perfect because it did not rely on many stars\n"), "salmon");
+	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
+		siril_log_message(_("The photometric color correction seem to have found an imprecise solution, consider correcting the image gradient first\n"));
 	free(data[RED]);
 	free(data[GREEN]);
 	free(data[BLUE]);
@@ -348,8 +343,8 @@ static int get_white_balance_coeff(psf_star **stars, int nb_stars, fits *fit, fl
 }
 
 static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], gboolean verbose) {
-
-	if (verbose) siril_log_message(_("Background reference:\n"));
+	if (verbose)
+		siril_log_message(_("Background reference:\n"));
 	// we cannot use compute_all_channels_statistics_single_image because of the area
 	for (int chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
@@ -359,7 +354,8 @@ static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], g
 		}
 		bg[chan].value = stat->median / stat->normValue;
 		bg[chan].channel = chan;
-		if (verbose) siril_log_message("B%d: %.5e\n", chan, bg[chan].value);
+		if (verbose)
+			siril_log_message("B%d: %.5e\n", chan, bg[chan].value);
 		free_stats(stat);
 	}
 	return 0;
@@ -442,61 +438,209 @@ static int determine_chan_for_norm(coeff bg[], normalization_channel n_channel) 
 }
 
 /* run the PCC using the existing star list of the image from the provided file */
-static gpointer photometric_cc(gpointer p) {
-	struct photometric_cc_data *args = (struct photometric_cc_data *) p;
+int photometric_cc(struct photometric_cc_data *args) {
 	float kw[3];
 	coeff bg[3];
 
 	if (!isrgb(args->fit)) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
-		return GINT_TO_POINTER(0);
+		return 0;
 	}
 
-	/* make sure parameters are initialized */
-	if (com.pref.phot_set.outer <= 0.0) {
-		siril_log_message(_("Using default values for photometry settings\n"));
-		initialize_photometric_param();
-	}
+	for (int i = 0; i < args->nb_stars && i < 40; i++)
+		siril_debug_print("star %d: %.2f, %.2f\tmag %.3f, BV %3f\n", i,
+				args->stars[i].x, args->stars[i].y,
+				args->stars[i].mag, args->stars[i].BV);
 
 	rectangle *bkg_sel = NULL;
 	if (!args->bg_auto)
 		bkg_sel = &(args->bg_area);
 
-	psf_star **stars = new_fitted_stars(MAX_STARS);
-	if (!stars) {
-		PRINT_ALLOC_ERR;
-		free(args);
-		return GINT_TO_POINTER(1);
-	}
-	int nb_stars;
-	read_photometry_cc_file(args->bv_stream, stars, &nb_stars);
-	g_object_unref(args->bv_stream);
-
-	/* we use the median of each channel to sort them by level and select the reference channel expressed in terms of  */
+	/* we use the median of each channel to sort them by level and select
+	 * the reference channel expressed in terms of order of median value */
 	if (get_background_coefficients(args->fit, bkg_sel, bg, FALSE)) {
 		siril_log_message(_("failed to compute statistics on image, aborting\n"));
-		free_fitted_stars(stars);
 		free(args);
-		return GINT_TO_POINTER(1);
+		return 1;
 	}
 	int chan = determine_chan_for_norm(bg, args->n_channel);
 	siril_log_message(_("Normalizing on %s channel.\n"), (chan == 0) ? _("red") : ((chan == 1) ? _("green") : _("blue")));
 
-	int ret = get_white_balance_coeff(stars, nb_stars, args->fit, kw, chan);
+	/* set photometry parameters to values adapted to the image */
+	struct phot_config backup = com.pref.phot_set;
+	com.pref.phot_set.force_radius = FALSE;
+	com.pref.phot_set.inner = max(7.0, 3.0 * args->fwhm);
+	com.pref.phot_set.outer = com.pref.phot_set.inner + 10;
+	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
+
+	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
+	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, chan);
 	if (!ret) {
 		double norm = get_normalized_value(args->fit);
 		apply_white_balance(args->fit, kw);
 
-		get_background_coefficients(args->fit, bkg_sel, bg, TRUE);
-		background_neutralize(args->fit, bg, chan, norm);
-		set_progress_bar_data(_("Photometric Color Calibration applied"), PROGRESS_DONE);
+		if ((ret = get_background_coefficients(args->fit, bkg_sel, bg, TRUE))) {
+			siril_log_message(_("failed to compute statistics on image, aborting\n"));
+			set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
+		} else {
+			background_neutralize(args->fit, bg, chan, norm);
+			set_progress_bar_data(_("Photometric Color Calibration applied"), PROGRESS_DONE);
+		}
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
 
-	free_fitted_stars(stars);
+	com.pref.phot_set = backup;
 	free(args);
-	return GINT_TO_POINTER(ret);
+	return ret;
+}
+
+float measure_image_FWHM(fits *fit) {
+	float fwhm[3];
+	/*fits downsampled = { 0 };
+	copyfits(fit, &downsampled, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	cvResizeGaussian(&downsampled, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);*/
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+
+	for (int chan = 0; chan < 3; chan++) {
+		int nb_stars;
+		psf_star **stars = peaker(&im, chan, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, com.max_thread);
+		if (stars) {
+			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
+			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);
+
+			for (int i = 0; i < MAX_STARS && stars[i]; i++)
+				free_psf(stars[i]);
+			free(stars);
+		}
+		else return 0.0f;
+	}
+
+	// clearfits(&downsampled);
+	return max(fwhm[0], max(fwhm[1], fwhm[2]));
+}
+
+/* photometric_cc is the entry point for the PCC following the call to the
+ * plate solver which gives the star list. We can also run the PCC on a
+ * plate-solved image without running plate solving again, this is what this
+ * function does.
+ */
+gpointer photometric_cc_standalone(gpointer p) {
+	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
+	if (!has_wcs(args->fit)) {
+		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+
+	/* run peaker to measure FWHM of the image to adjust photometry settings */
+	args->fwhm = measure_image_FWHM(args->fit);
+	if (args->fwhm <= 0.0f) {
+		siril_log_message(_("Error computing FWHM for photometry settings adjustment\n"));
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+
+	/* get stars from a photometric catalog */
+	double ra, dec;
+	center2wcs(args->fit, &ra, &dec);
+	double resolution = get_wcs_image_resolution(args->fit);
+	if ((ra == -1.0 && dec == -1.0) || resolution == -1.0) {
+		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+
+	/* for now, only from online sources */
+	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
+	double fov = resolution  * args->fit->rx;	// fov in degrees
+	double mag = compute_mag_limit_from_fov(fov);
+	mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
+	siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), fov, mag);
+
+	GFile *catalog_file = download_catalog(NOMAD, center, fov*60.0, mag);
+	siril_world_cs_unref(center);
+	if (!catalog_file) {
+		siril_log_message(_("Could not download the online star catalog."));
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+
+	/* project using WCS */
+	pcc_star *stars;
+	int nb_stars;
+	gboolean image_is_gfit = args->fit == &gfit;
+	int retval = project_catalog_with_WCS(catalog_file, args->fit, &stars, &nb_stars);
+	if (!retval) {
+		args->stars = stars;
+		args->nb_stars = nb_stars;
+		retval = photometric_cc(args);	// args is freed from here
+		args = NULL;
+	}
+	if (!retval && image_is_gfit)
+		notify_gfit_modified();
+	else siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(retval);
+}
+
+int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars) {
+	GError *error = NULL;
+	GInputStream *input_stream = NULL;
+	/* catalog format should be 5 columns: distance from centre, RA, Dec, V, B */
+	if (!(input_stream = (GInputStream*) g_file_read(catalog_file, NULL, &error))) {
+		if (error) {
+			siril_log_message(_("Can't open catalog file %s for PCC: %s\n"), g_file_peek_path(catalog_file), error->message);
+			g_clear_error(&error);
+		}
+		*ret_stars = NULL;
+		*ret_nb_stars = 0;
+		return 1;
+	}
+
+	int nb_alloc = 1200, nb_stars = 0;
+	pcc_star *stars = malloc(nb_alloc * sizeof(pcc_star));
+
+	/* see also proc_star_file() or read_NOMAD_catalog() */
+	// TODO: merge the three codes? they are not quite the same
+	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	gchar *line;
+	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
+		if (line[0] == COMMENT_CHAR || is_blank(line) || g_str_has_prefix(line, "---")) {
+			g_free(line);
+			continue;
+		}
+		double r = 0.0, ra = 0.0, dec = 0.0, Vmag = 0.0, Bmag = 0.0;
+		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &ra, &dec, &Vmag, &Bmag);
+		g_free(line);
+		if (n == 5 && Bmag < 30.0) {	// 30 sometimes means not available in NOMAD
+			if (nb_stars >= nb_alloc) {
+				nb_alloc *= 2;
+				pcc_star *new_array = realloc(stars, nb_alloc * sizeof(pcc_star));
+				if (!new_array) {
+					free(stars);
+					*ret_stars = NULL;
+					*ret_nb_stars = 0;
+					return 1;
+				}
+				stars = new_array;
+			}
+
+			double x, y;
+			wcs2pix(fit, ra, dec, &x, &y);
+			if (x >= 0.0 && y >= 0.0 && x < fit->rx && y < fit->ry) {
+				stars[nb_stars].x = x;
+				stars[nb_stars].y = fit->ry - y - 1;
+				stars[nb_stars].mag = Vmag;
+				stars[nb_stars].BV = Bmag - Vmag;
+				nb_stars++;
+			}
+		}
+	}
+
+	siril_debug_print("projected %d stars from the provided catalogue\n", nb_stars);
+	*ret_stars = stars;
+	*ret_nb_stars = nb_stars;
+	return 0;
 }
 
 static rectangle get_bkg_selection() {
@@ -570,39 +714,6 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
-}
-
-int apply_photometric_cc(struct photometric_cc_data *args) {
-	GError *error = NULL;
-
-	//invalidate_stats_from_fit(&gfit);
-	//invalidate_gfit_histogram();
-	//set_cursor_waiting(TRUE);
-
-	/* take B-V data from a file created during plate solving, containing
-	 * star coordinates and their B-V index. The fact that this is created
-	 * during plate solving ensures we have direct matching between stars
-	 * from the catalogue and stars in the image
-	 * (see registration/matching/atpmatch.c, atPrepareHomography()
-	 */
-	GFile *BV_file = g_file_new_build_filename(g_get_tmp_dir(), "photometric_cc.dat", NULL);
-	GInputStream *bv_stream = (GInputStream *)g_file_read(BV_file, NULL, &error);
-
-	if (!bv_stream) {
-		if (error) {
-			g_clear_error(&error);
-			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(BV_file));
-		}
-
-		g_object_unref(BV_file);
-		return 1;
-	}
-	g_object_unref(BV_file);
-
-	args->bv_stream = bv_stream;
-
-	//start_in_new_thread(photometric_cc, args);
-	return GPOINTER_TO_INT(photometric_cc(args));
 }
 
 int get_photometry_catalog() {

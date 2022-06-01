@@ -71,7 +71,11 @@ static gsl_matrix *removeHotPixels(gsl_matrix *in) {
 
 /* Compute initial values for the algorithm from data in the pixel value matrix */
 static gsl_vector* psf_init_data(gsl_matrix* z, double bg) {
-	gsl_vector * MaxV = gsl_vector_alloc(5);
+	gsl_vector *MaxV = gsl_vector_alloc(5);
+	if (!MaxV) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	double max;
 	size_t NbRows = z->size1;
 	size_t NbCols = z->size2;
@@ -291,15 +295,17 @@ static int psf_Gaussian_fdf_an(const gsl_vector * x, void *PSF_data,
 /* The function returns the fitted parameters without angle. However it
  * returns NULL if the number of parameters is => to the pixel number.
  */
-static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background) {
+static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_error *error) {
 	size_t i, j;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
 	const size_t p = 6;			// Number of parameters fitted
 	const size_t n = NbRows * NbCols;
 	gsl_vector *MaxV = psf_init_data(z, background);
-	if (!MaxV)
+	if (!MaxV) {
+		if (error) *error = PSF_ERR_ALLOC;
 		return NULL;
+	}
 	int status;
 	unsigned int iter = 0;
 	gsl_matrix *covar = gsl_matrix_alloc(p, p);
@@ -308,6 +314,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background) {
 	psf_star *psf = new_psf_star();
 	if (!y || !sigma || !psf) {
 		PRINT_ALLOC_ERR;
+		if (error) *error = PSF_ERR_ALLOC;
 		return NULL;
 	}
 	struct PSF_data d = { n, y, sigma, NbRows, NbCols, 0 };
@@ -334,6 +341,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background) {
 		free_psf(psf);
 		free(y);
 		free(sigma);
+		if (error) *error = PSF_ERR_WINDOW_TOO_SMALL;
 		return NULL;
 	}
 	f.p = p;
@@ -357,6 +365,11 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background) {
 			break;
 		status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
 	} while (status == GSL_CONTINUE && iter < MAX_ITER_NO_ANGLE);
+	if (error) {
+		if (status != GSL_CONTINUE)
+			*error = PSF_ERR_DIVERGED;
+		else *error = PSF_NO_ERR;
+	}
 
 #if HAVE_GSL_1
 	gsl_multifit_covar(s->J, 0.0, covar);
@@ -416,7 +429,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background) {
  * NULL if the number of parameters is => to the pixel number.
  * This should not happen because this case is already treated by the
  * minimiz_no_angle function */
-static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_photometry, double gain, gboolean force_radius, gboolean verbose) {
+static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_photometry, double gain, gboolean force_radius, gboolean verbose, psf_error *error) {
 	size_t i, j;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
@@ -514,7 +527,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_ph
 	psf_angle->units = "px";
 	// Photometry
 	if (for_photometry)
-		psf_angle->phot = getPhotometryData(z, psf_angle, gain, force_radius, verbose);
+		psf_angle->phot = getPhotometryData(z, psf_angle, gain, force_radius, verbose, error);
 	else {
 		psf_angle->phot = NULL;
 		psf_angle->phot_is_valid = FALSE;
@@ -556,7 +569,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_ph
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, TRUE);
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, TRUE, NULL);
 	if (result == NULL) {
 		*roundness = 0.0;
 		return 0.0;
@@ -574,10 +587,15 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
  * Return value is a structure, type psf_star, that has to be freed after use.
  */
 psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
-		gboolean for_photometry, gboolean force_radius, gboolean verbose) {
+		gboolean for_photometry, gboolean force_radius,
+		gboolean verbose, psf_error *error) {
 	int stridefrom, i, j;
 	psf_star *result;
 	double bg = background(fit, layer, area, SINGLE_THREADED);
+	if (bg == 1.0) {
+		if (error) *error = PSF_ERR_INVALID_IMAGE;
+		return NULL;
+	}
 
 	// fprintf(stdout, "background: %g\n", bg);
 	gsl_matrix *z = gsl_matrix_alloc(area->h, area->w);
@@ -610,11 +628,12 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 	}
 	else {
 		gsl_matrix_free(z);
+		if (error) *error = PSF_ERR_UNSUPPORTED;
 		return NULL;
 	}
 
 	double gain = get_camera_gain(fit);
-	result = psf_global_minimisation(z, bg, TRUE, for_photometry, gain, force_radius, verbose);
+	result = psf_global_minimisation(z, bg, TRUE, for_photometry, gain, force_radius, verbose, error);
 	if (result) {
 		fwhm_to_arcsec_if_needed(fit, result);
 		result->layer = layer;
@@ -635,11 +654,12 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
  */
 psf_star *psf_global_minimisation(gsl_matrix* z, double bg, 
 		gboolean fit_angle, gboolean for_photometry, double gain,
-		gboolean force_radius, gboolean verbose) {
+		gboolean force_radius, gboolean verbose, psf_error *error) {
 	psf_star *psf;
+	if (error) *error = PSF_NO_ERR;
 
 	// To compute good starting values, we first compute with no angle
-	if ((psf = psf_minimiz_no_angle(z, bg)) != NULL) {
+	if ((psf = psf_minimiz_no_angle(z, bg, error))) {
 		if (fit_angle) {
 			/* This next check is to avoid possible angle divergence
 			 * when sx and sy are too close (star is quite round).
@@ -647,13 +667,18 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 			 */
 			if ((fabs(psf->sx - psf->sy) < EPSILON)) {
 				// Photometry
-				if (for_photometry) {
-					psf->phot = getPhotometryData(z, psf, gain, force_radius, verbose);
-					if (psf->phot != NULL) {
+				if (for_photometry && (!error || *error == PSF_NO_ERR)) {
+					psf->phot = getPhotometryData(z, psf, gain, force_radius, verbose, error);
+					if (psf->phot) {
 						psf->mag = psf->phot->mag;
 						psf->s_mag = psf->phot->s_mag;
 						psf->SNR = psf->phot->SNR;
 						psf->phot_is_valid = psf->phot->valid;
+					}
+					else {
+						psf->phot_is_valid = FALSE;
+						psf->s_mag = 9.999;
+						psf->SNR = 0;
 					}
 				} else {
 					psf->phot = NULL;
@@ -661,8 +686,7 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 				}
 			} else {
 				psf_star *tmp_psf;
-				if ((tmp_psf = psf_minimiz_angle(z, psf, for_photometry, gain, force_radius, verbose))
-						== NULL) {
+				if (!(tmp_psf = psf_minimiz_angle(z, psf, for_photometry, gain, force_radius, verbose, error))) {
 					free_psf(psf);
 					return NULL;
 				}
@@ -686,6 +710,8 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 				psf->fwhmx <= 0.0 || psf->fwhmy <= 0.0) {
 			free_psf(psf);
 			psf = NULL;
+			if (error && *error == PSF_NO_ERR)
+				*error = PSF_ERR_DIVERGED;
 		}
 	}
 	/* When the first minimization gives NULL value, it's probably because the selected

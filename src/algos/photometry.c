@@ -239,7 +239,8 @@ static double hi_data() {
 }
 
 /* Function that compute all photometric data. The result must be freed */
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolean force_radius, gboolean verbose) {
+photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain,
+		gboolean force_radius, gboolean verbose, psf_error *error) {
 	int width = z->size2;
 	int height = z->size1;
 	int n_sky = 0, ret;
@@ -252,7 +253,10 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolea
 	double xc = psf->x0 - 1;
 	double yc = psf->y0 - 1;
 
-	if (xc <= 0.0 || yc <= 0.0 || xc >= width || yc >= height) return NULL;
+	if (xc <= 0.0 || yc <= 0.0 || xc >= width || yc >= height) {
+		if (error) *error = PSF_ERR_OUT_OF_WINDOW;
+		return NULL;
+	}
 
 	r1 = getInnerRadius();
 	r2 = getOuterRadius();
@@ -262,6 +266,7 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolea
 			/* Translator note: radii is plural for radius */
 			siril_log_message(_("Inner and outer radii are too small (%d required for inner). Please update values in preferences or with setphot.\n"), round_to_int(appRadius));
 		}
+		if (error) *error = PSF_ERR_INNER_TOO_SMALL;
 		return NULL;
 	}
 
@@ -282,11 +287,13 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolea
 	int ndata = (y2 - y1) * (x2 - x1);
 	if (ndata <= 0) {
 		siril_log_color_message(_("An error occurred in your selection. Please make another selection.\n"), "red");
+		if (error) *error = PSF_ERR_OUT_OF_WINDOW;
 		return NULL;
 	}
 	double *data = calloc(ndata, sizeof(double));
 	if (!data) {
 		PRINT_ALLOC_ERR;
+		if (error) *error = PSF_ERR_ALLOC;
 		return NULL;
 	}
 
@@ -316,38 +323,51 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain, gboolea
 				}
 			} else {
 				valid = FALSE;
+				if (error) *error = PSF_ERR_INVALID_PIX_VALUE;
 			}
 		}
 	}
 	if (area < 1.0) {
 		siril_debug_print("area is < 1: not enough pixels of star data, too small aperture?\n");
 		free(data);
+		if (error) *error = PSF_ERR_APERTURE_TOO_SMALL;
 		return NULL;
 	}
 	if (n_sky < min_sky) {
 		if (verbose)
 			siril_log_message(_("Warning: There aren't enough pixels"
 						" in the sky annulus. You need to make a larger selection.\n"));
+		if (error) *error = PSF_ERR_TOO_FEW_BG_PIX;
 		free(data);
 		return NULL;
 	}
 
 	ret = robustmean(n_sky, data, &mean, &stdev);
 	free(data);
-	if (ret > 0)
+	if (ret > 0) {
+		if (error) *error = PSF_ERR_MEAN_FAILED;
 		return NULL;
+	}
 
 	phot = calloc(1, sizeof(photometry));
-	if (!phot)
+	if (!phot) {
+		if (error) *error = PSF_ERR_ALLOC;
 		PRINT_ALLOC_ERR;
+	}
 	else {
 		double SNR = 0.0;
 		double signalIntensity = apmag - (area * mean);
 
 		phot->mag = getMagnitude(signalIntensity);
 		phot->s_mag = getMagErr(signalIntensity, area, n_sky, stdev, gain, &SNR);
-		phot->SNR = phot->s_mag < 9.999 ? SNR : 0.0;
-		valid = phot->s_mag < 9.999 ? valid : FALSE;
+		if (phot->s_mag < 9.999) {
+			phot->SNR = SNR;
+			if (valid && error) *error = PSF_NO_ERR;
+		} else {
+			phot->SNR = 0.0;
+			valid = FALSE;
+			if (error) *error = PSF_ERR_INVALID_STD_ERROR;
+		}
 		phot->valid = valid;
 	}
 
@@ -362,4 +382,60 @@ void initialize_photometric_param() {
 	com.pref.phot_set.gain = 2.3;
 	com.pref.phot_set.minval = 0;
 	com.pref.phot_set.maxval = 60000;
+}
+
+static const char *psf_error_to_string(psf_error err) {
+	switch (err) {
+		case PSF_NO_ERR:
+			return _("no error");
+		case PSF_ERR_ALLOC:
+			return _("memory allocation");
+		case PSF_ERR_UNSUPPORTED:
+			return _("unsupported image type");
+		case PSF_ERR_DIVERGED:
+			return _("Gaussian fit failed");
+		case PSF_ERR_OUT_OF_WINDOW:
+			return _("not in area");
+		case PSF_ERR_INNER_TOO_SMALL:
+			return _("inner radius too small");
+		case PSF_ERR_APERTURE_TOO_SMALL:
+			return _("aperture too small");
+		case PSF_ERR_TOO_FEW_BG_PIX:
+			return _("not enough background");
+		case PSF_ERR_MEAN_FAILED:
+			return _("statistics failed");
+		case PSF_ERR_INVALID_STD_ERROR:
+			return _("invalid measurement error");
+		case PSF_ERR_INVALID_PIX_VALUE:
+			return _("pixel out of range");
+		case PSF_ERR_WINDOW_TOO_SMALL:
+			return _("area too small");
+		case PSF_ERR_INVALID_IMAGE:
+			return _("image is invalid");
+		case PSF_ERR_OUT_OF_IMAGE:
+			return _("not in image");
+		default:
+			return _("unknown error");
+	}
+}
+
+void print_psf_error_summary(gint *code_sums) {
+	GString *msg = g_string_new("Distribution of errors: ");
+	gboolean first = TRUE;
+	for (int i = 0; i < PSF_ERR_MAX_VALUE; i++) {
+		if (code_sums[i] > 0) {
+			gchar nb_str[15];
+			if (!first)
+				msg = g_string_append(msg, ", ");
+			msg = g_string_append(msg, psf_error_to_string(i));
+			msg = g_string_append(msg, ": ");
+			sprintf(nb_str, "%d", code_sums[i]);
+			msg = g_string_append(msg, nb_str);
+			first = FALSE;
+		}
+	}
+
+	gchar *str = g_string_free(msg, FALSE);
+	siril_log_message("%s\n", str);
+	g_free(str);
 }
