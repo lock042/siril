@@ -1103,8 +1103,6 @@ gpointer match_catalog(gpointer p) {
 	GFile *catalog = NULL;
 	GInputStream *input_stream = NULL;
 	s_star *star_list_A, *star_list_B;
-	pcc_star *pcc_stars = NULL;
-	int nb_pcc_stars;
 	fits fit_backup = { 0 };
 	psf_star **stars = NULL;
 
@@ -1194,7 +1192,7 @@ gpointer match_catalog(gpointer p) {
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
 		args->ret = new_star_match(stars, cstars, n, nobj,
 				scale_min, scale_max, &H,
-				args->for_photometry_cc, &pcc_stars, &nb_pcc_stars,
+				args->for_photometry_cc, NULL, NULL,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
 			scale_min = -1.0;
@@ -1413,6 +1411,14 @@ gpointer match_catalog(gpointer p) {
 	load_WCS_from_memory(args->fit);
 	print_platesolving_results(solution, args->downsample);
 	if (args->for_photometry_cc) {
+		pcc_star *pcc_stars = NULL;
+		int nb_pcc_stars;
+		args->ret = project_catalog_with_WCS(args->catalog_file, args->fit,
+				&pcc_stars, &nb_pcc_stars);
+		if (args->ret) {
+			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
+			goto clearup;
+		}
 		args->pcc->stars = pcc_stars;
 		args->pcc->nb_stars = nb_pcc_stars;
 		args->pcc->fwhm = filtered_FWHM_average(stars, n_fit);
@@ -1456,8 +1462,6 @@ clearup:
 	if (args->catalog_file)
 		g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
-	if (pcc_stars)
-		free(pcc_stars);
 	siril_add_idle(end_plate_solver, args);
 	if (com.script && args->ret)
 		siril_log_message(_("Plate solving failed: %s\n"), args->message);
