@@ -85,21 +85,64 @@ int execute_command(int wordnb) {
 	while (g_ascii_strcasecmp(commands[--i].name, word[0])) {
 		if (i == 0) {
 			siril_log_message(_("Unknown command: '%s' or not implemented yet\n"), word[0]);
-			return 1 ;
+			return CMD_NOT_FOUND;
 		}
 	}
 
 	// verify argument count
 	if (wordnb - 1 < commands[i].nbarg) {
 		siril_log_message(_("Usage: %s\n"), commands[i].usage);
-		return 1;
+		return CMD_WRONG_N_ARG;
 	}
 
 	// verify if command is scriptable
 	if (com.script) {
 		if (!commands[i].scriptable) {
 			siril_log_message(_("This command cannot be used in a script: %s\n"), commands[i].name);
-			return 1;
+			return CMD_NOT_SCRIPTABLE;
+		}
+	}
+
+	/* verify prerequires */
+	/* we check that (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE) is inside the bitmask */
+	if ((commands[i].prerequires & (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE)) == (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE)) {
+		if (!single_image_is_loaded() && !sequence_is_loaded()) {
+			PRINT_LOAD_IMAGE_FIRST;
+			return CMD_LOAD_IMAGE_FIRST;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_SINGLE_IMAGE) == REQ_CMD_SINGLE_IMAGE) {
+		if (!single_image_is_loaded()) {
+			PRINT_ONLY_SINGLE_IMAGE;
+			return CMD_ONLY_SINGLE_IMAGE;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_SEQUENCE) == REQ_CMD_SEQUENCE) {
+		if (!sequence_is_loaded()) {
+			PRINT_NOT_FOR_SINGLE;
+			return CMD_NOT_FOR_SINGLE;
+		}
+	}
+
+	if ((commands[i].prerequires & (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) == (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) {
+		if (isrgb(&gfit)) {
+			PRINT_FOR_CFA_IMAGE;
+			return CMD_FOR_CFA_IMAGE;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_FOR_MONO) != 0) {
+		if (isrgb(&gfit)) {
+			PRINT_NOT_FOR_RGB;
+			return CMD_NOT_FOR_RGB;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_FOR_RGB) != 0) {
+		if (!isrgb(&gfit)) {
+			PRINT_NOT_FOR_MONO;
+			return CMD_NOT_FOR_MONO;
+		}
+	}
+
+	if ((commands[i].prerequires & REQ_CMD_NO_THREAD) != 0) {
+		if (get_thread_run()) {
+			PRINT_ANOTHER_THREAD_RUNNING;
+			return CMD_THREAD_RUNNING;
 		}
 	}
 
@@ -180,14 +223,14 @@ static gboolean end_script(gpointer p) {
 }
 
 int check_requires(gboolean *checked_requires) {
-	int retval = 0;
+	int retval = CMD_OK;
 	/* check for requires command */
 	if (!g_ascii_strcasecmp(word[0], "requires")) {
 		*checked_requires = TRUE;
 	} else if (com.pref.script_check_requires && !*checked_requires) {
 		siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
 					" This command is needed to check script compatibility.\n"), "red");
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	}
 	return retval;
 }
@@ -487,9 +530,10 @@ int processcommand(const char *line) {
 		gchar *myline = strdup(line);
 		int len = strlen(line);
 		parse_line(myline, len, &wordnb);
-		if (execute_command(wordnb)) {
-			siril_log_color_message(_("Command execution failed.\n"), "red");
-			if (!com.script && !com.headless) {
+		int ret = execute_command(wordnb);
+		if (ret) {
+			siril_log_color_message(_("Command execution failed with error code: %d.\n"), "red", ret);
+			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
 			}
 			free(myline);

@@ -1639,15 +1639,15 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	if (com.headless) {
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
-		for (int i = 0; i < seq->number; i++) {
-			if (seq->photometry[photometry_index][i]) {
-				psf_star *psf = seq->photometry[photometry_index][i];
+		for (int j = 0; j < seq->number; j++) {
+			if (seq->photometry[photometry_index][j]) {
+				psf_star *psf = seq->photometry[photometry_index][j];
 				if (first) {
-					siril_log_message(_("Photometry for star at %.1f, %.1f in image %d\n"), psf->xpos, psf->ypos, i);
+					siril_log_message(_("Photometry for star at %.1f, %.1f in image %d\n"), psf->xpos, psf->ypos, j);
 					siril_log_message("image_index magnitude error fwhm amplitude background\n");
 					first = FALSE;
 				}
-				siril_log_message("%d %f %f %f %f %f\n", i, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
+				siril_log_message("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
 			}
 		}
 
