@@ -556,7 +556,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 
 	int round = 0;
 	siril_debug_print("limiting stars (%d) to %d for %d candidates\n", limit_nbstars, maxstars, nb_candidates);
-	int number_per_round = limit_nbstars ? maxstars + maxstars / 3 : nb_candidates;
+	int number_per_round = limit_nbstars ? maxstars + maxstars / 4 : nb_candidates;
 	int lower_limit_for_this_round, upper_limit;
 	do {
 		lower_limit_for_this_round = round * number_per_round;
@@ -616,8 +616,11 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 		if (threads > 1) {
 			// we kept the candidates at the same indices to keep the list ordered, now we compact it
 			for (int candidate = lower_limit_for_this_round; candidate < upper_limit; candidate++) {
-				if (limit_nbstars && nbstars >= maxstars)
-					break;
+				if (limit_nbstars && nbstars >= maxstars) {
+					if (results[candidate])
+						free_psf(results[candidate]);
+					continue;
+				}
 				if (results[candidate] && candidate >= nbstars)
 					results[nbstars++] = results[candidate];
 			}

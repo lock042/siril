@@ -525,22 +525,31 @@ float measure_image_FWHM(fits *fit) {
 	copyfits(fit, &downsampled, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	cvResizeGaussian(&downsampled, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);*/
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-
+	gboolean failed = FALSE;
+#ifdef _OPENMP
+	int *threads = compute_thread_distribution(3, com.max_thread);
+#pragma omp parallel for num_threads(com.max_thread)
+#endif
 	for (int chan = 0; chan < 3; chan++) {
 		int nb_stars;
-		psf_star **stars = peaker(&im, chan, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, com.max_thread);
+		int nb_subthreads = com.max_thread;
+#ifdef _OPENMP
+		nb_subthreads = threads[chan];
+#endif
+		psf_star **stars = peaker(&im, chan, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, nb_subthreads);
 		if (stars) {
 			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
 			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);
 
-			for (int i = 0; i < MAX_STARS && stars[i]; i++)
+			for (int i = 0; i < nb_stars; i++)
 				free_psf(stars[i]);
 			free(stars);
 		}
-		else return 0.0f;
+		else failed = TRUE;
 	}
-
 	// clearfits(&downsampled);
+	if (failed)
+		return 0.0f;
 	return max(fwhm[0], max(fwhm[1], fwhm[2]));
 }
 
@@ -599,6 +608,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		args->stars = stars;
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);	// args is freed from here
+		free(stars);
 		args = NULL;
 	}
 	if (!retval && image_is_gfit)
@@ -641,6 +651,8 @@ int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_star
 				nb_alloc *= 2;
 				pcc_star *new_array = realloc(stars, nb_alloc * sizeof(pcc_star));
 				if (!new_array) {
+					PRINT_ALLOC_ERR;
+					g_object_unref(data_input);
 					free(stars);
 					*ret_stars = NULL;
 					*ret_nb_stars = 0;
@@ -661,6 +673,7 @@ int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_star
 		}
 	}
 
+	g_object_unref(data_input);
 	siril_debug_print("projected %d stars from the provided catalogue\n", nb_stars);
 	*ret_stars = stars;
 	*ret_nb_stars = nb_stars;

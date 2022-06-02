@@ -314,6 +314,9 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_erro
 	psf_star *psf = new_psf_star();
 	if (!y || !sigma || !psf) {
 		PRINT_ALLOC_ERR;
+		if (y) free(y);
+		if (sigma) free(sigma);
+		if (psf) free_psf(psf);
 		if (error) *error = PSF_ERR_ALLOC;
 		return NULL;
 	}
