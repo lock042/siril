@@ -173,7 +173,7 @@ int
 get_stars(psf_star **s, int n, int *num_stars, struct s_star **list);
 
 void
-free_stars(struct s_star *head);
+free_stars(struct s_star **head);
 
 int
 is_blank(char *line);

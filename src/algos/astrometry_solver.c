@@ -316,6 +316,7 @@ static char *fetch_url(const char *url) {
 		}
 	}
 
+	curl_easy_cleanup(curl);
 	if (!result)
 		free(content->data);
 
@@ -1102,7 +1103,7 @@ gpointer match_catalog(gpointer p) {
 	int max_trials = 0;
 	GFile *catalog = NULL;
 	GInputStream *input_stream = NULL;
-	s_star *star_list_A, *star_list_B;
+	s_star *star_list_A = NULL, *star_list_B = NULL;
 	fits fit_backup = { 0 };
 	psf_star **stars = NULL;
 
@@ -1190,6 +1191,8 @@ gpointer match_catalog(gpointer p) {
 	double scale_max = args->scale + 0.2;
 	int attempt = 1;
 	while (args->ret && attempt < NB_OF_MATCHING_TRY) {
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
 		args->ret = new_star_match(stars, cstars, n, nobj,
 				scale_min, scale_max, &H,
 				FALSE, NULL, NULL,
@@ -1277,8 +1280,6 @@ gpointer match_catalog(gpointer p) {
 		trial++;
 		CHECK_FOR_CANCELLATION;
 	}
-	free_stars(star_list_A);
-	free_stars(star_list_B);
 	if (args->ret)	// after the break
 		goto clearup;
 
@@ -1447,11 +1448,12 @@ clearup:
 		memcpy(args->fit, &fit_backup, sizeof(fits));
 	}
 	if (stars && !args->manual) {
-		for (int i = 0; i < MAX_STARS && stars[i]; i++)
+		for (int i = 0; i < n_fit; i++)
 			free_psf(stars[i]);
 		free(stars);
 	}
-	/* free data */
+	free_stars(&star_list_A);
+	free_stars(&star_list_B);
 	siril_world_cs_unref(args->cat_center);
 	if (cstars)
 		free_fitted_stars(cstars);
@@ -1463,9 +1465,13 @@ clearup:
 		g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
 	siril_add_idle(end_plate_solver, args);
-	if (com.script && args->ret)
-		siril_log_message(_("Plate solving failed: %s\n"), args->message);
-	return GINT_TO_POINTER(args->ret);
+	int retval = args->ret;
+	if (com.script) {
+		if (args->ret)
+			siril_log_message(_("Plate solving failed: %s\n"), args->message);
+		free(args);
+	}
+	return GINT_TO_POINTER(retval);
 }
 
 void process_plate_solver_input(struct astrometry_data *args) {

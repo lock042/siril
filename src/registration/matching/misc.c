@@ -419,12 +419,14 @@ int get_stars(psf_star **s, int n, int *num_stars, struct s_star **list) {
 	return (SH_SUCCESS);
 }
 
-void free_stars(struct s_star *head) {
+void free_stars(struct s_star **list) {
+	struct s_star *head = *list;
 	while (head != NULL) {
 		struct s_star* tmp = head;
 		head = head->next;
 		shFree(tmp);
 	}
+	*list = NULL;
 }
 
 void print_H(Homography *H) {

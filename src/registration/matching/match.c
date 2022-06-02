@@ -138,9 +138,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	double halt_sigma = AT_MATCH_HALTSIGMA;
 	int nobj = AT_MATCH_NBRIGHT;
 	int num_matches = 0; /* number of matching pairs */
-	struct s_star *star_list_A, *star_list_B;
-	struct s_star *star_list_A_copy;
-	struct s_star *matched_list_A, *matched_list_B;
+	struct s_star *star_list_A = NULL, *star_list_B = NULL;
+	struct s_star *star_list_A_copy = NULL;
+	struct s_star *matched_list_A = NULL, *matched_list_B = NULL;
 	TRANS *trans;
 	Homography *Hom;
 
@@ -201,7 +201,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	 */
 	if (get_stars(s1, n, &numA_copy, &star_list_A_copy)) {
 		atTransDel(trans);
-		free_stars(star_list_A);
+		free_stars(&star_list_A);
 		fprintf(stderr,"can't read data\n");
 		return (SH_GENERIC_ERROR);
 	}
@@ -217,8 +217,8 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	/* read information from the second list */
 	if (get_stars(s2, n, &numB, &star_list_B)) {
 		atTransDel(trans);
-		free_stars(star_list_A);
-		free_stars(star_list_A_copy);
+		free_stars(&star_list_A);
+		free_stars(&star_list_A_copy);
 		printf("can't read data\n");
 		return (SH_GENERIC_ERROR);
 	}
@@ -233,9 +233,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		fprintf(stderr,"initial call to atFindTrans fails\n");
 		/** */
 		atTransDel(trans);
-		free_stars(star_list_A);
-		free_stars(star_list_A_copy);
-		free_stars(star_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_A_copy);
+		free_stars(&star_list_B);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -285,11 +285,11 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		fprintf(stderr,"prepare_to_recalc fails\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -299,11 +299,11 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -348,11 +348,11 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		fprintf(stderr,"prepare_to_recalc fails\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -363,11 +363,11 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -393,11 +393,11 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		/** */
 		atTransDel(trans);
 		atHDel(Hom);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -407,17 +407,17 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 
 	if (out_list_A)
 		*out_list_A = matched_list_A;
-	else free_stars(matched_list_A);
+	else free_stars(&matched_list_A);
 	if (out_list_B)
 		*out_list_B = matched_list_B;
-	else free_stars(matched_list_B);
+	else free_stars(&matched_list_B);
 
 	/* clean up memory */
 	atTransDel(trans);
 	atHDel(Hom);
-	free_stars(star_list_A);
-	free_stars(star_list_B);
-	free_stars(star_list_A_copy);
+	free_stars(&star_list_A);
+	free_stars(&star_list_B);
+	free_stars(&star_list_A_copy);
 
 	return 0;
 }
