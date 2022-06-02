@@ -7249,7 +7249,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=5 n-rows=12 -->
+                  <!-- n-columns=5 n-rows=13 -->
                   <object class="GtkGrid" id="GtkGridIPS">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -7629,7 +7629,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">10</property>
+                        <property name="top-attach">11</property>
                         <property name="width">5</property>
                       </packing>
                     </child>
@@ -7646,7 +7646,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">11</property>
+                        <property name="top-attach">12</property>
                         <property name="width">5</property>
                       </packing>
                     </child>
@@ -7678,6 +7678,23 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="use_wcs_ips_button">
+                        <property name="label" translatable="yes">Use WCS header information if any</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">This will use the WCS information that are stored in the the header if any.</property>
+                        <property name="halign">start</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">10</property>
+                        <property name="width">5</property>
                       </packing>
                     </child>
                     <child>
