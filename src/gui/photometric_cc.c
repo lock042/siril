@@ -60,22 +60,46 @@ enum {
 static rectangle get_bkg_selection();
 
 static void start_photometric_cc() {
-	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
-
-	args->for_photometry_cc = TRUE;
-
 	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
+	GtkToggleButton *use_wcs_ips_button = GTK_TOGGLE_BUTTON(lookup_widget("use_wcs_ips_button"));
+	gboolean plate_solve;
 
-	args->pcc = malloc(sizeof(struct photometric_cc_data));
-	args->pcc->fit = &gfit;
-	args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-	args->pcc->bg_area = get_bkg_selection();
-	args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
+	plate_solve = !gtk_toggle_button_get_active(use_wcs_ips_button);
 
-	if (!fill_plate_solver_structure_from_GUI(args)) {
-		set_cursor_waiting(TRUE);
-		start_in_new_thread(match_catalog, args);
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("There is no valid WCS information in the header. Let's make a plate solving.\n"), "salmon");
+		plate_solve = TRUE;
+	}
+
+	struct astrometry_data *args = NULL;
+	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	if (plate_solve) {
+		args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+
+		args->for_photometry_cc = TRUE;
+
+		args->pcc = malloc(sizeof(struct photometric_cc_data));
+		args->pcc->fit = &gfit;
+		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
+		args->pcc->bg_area = get_bkg_selection();
+		args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
+		args->pcc = pcc_args;
+	}
+
+	pcc_args->fit = &gfit;
+	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);;
+	pcc_args->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);;
+
+	set_cursor_waiting(TRUE);
+
+	if (plate_solve) {
+		if (!fill_plate_solver_structure_from_GUI(args)) {
+			start_in_new_thread(match_catalog, args);
+		}
+	} else {
+		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
 }
 
