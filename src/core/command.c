@@ -156,8 +156,12 @@ int process_seq_clean(int nb) {
 				if (!strcmp(word[i], "-reg")) {
 					cleanreg = TRUE;
 				}
-				if (!strcmp(word[i], "-stat")) {
+				else if (!strcmp(word[i], "-stat")) {
 					cleanstat = TRUE;
+				}
+				else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					return CMD_ARG_ERROR;
 				}
 			}
 		}
@@ -1310,6 +1314,10 @@ int process_set_photometry(int nb) {
 				else if (*arg == 'n')
 					force = 0;
 				else error = TRUE;
+			}
+			else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+				return CMD_ARG_ERROR;
 			}
 		}
 
@@ -2545,6 +2553,10 @@ int process_subsky(int nb) {
 			if (interp != BACKGROUND_INTER_RBF)
 				siril_log_color_message(_("smooth parameter is unused with the polynomial model, ignoring.\n"), "salmon");
 		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
 		arg_index++;
 	}
 
@@ -2948,11 +2960,15 @@ int process_seq_split_cfa(int nb) {
 					char *current = word[i], *value;
 					value = current + 8;
 					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
 				}
+			}
+			else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+				return CMD_ARG_ERROR;
 			}
 		}
 	}
@@ -2985,10 +3001,14 @@ int process_seq_extractHa(int nb) {
 					char *current = word[i], *value;
 					value = current + 8;
 					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
+				}
+				else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					return CMD_ARG_ERROR;
 				}
 			}
 		}
@@ -3022,10 +3042,14 @@ int process_seq_extractGreen(int nb) {
 					char *current = word[i], *value;
 					value = current + 8;
 					if (value[0] == '\0') {
-						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
+				}
+				else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					return CMD_ARG_ERROR;
 				}
 			}
 		}
@@ -3183,6 +3207,10 @@ int process_convertraw(int nb) {
 			g_free(destroot);
 			destroot = filename;
 		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
@@ -3274,6 +3302,10 @@ int process_link(int nb) {
 			g_free(destroot);
 			destroot = filename;
 		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
@@ -3309,7 +3341,6 @@ int process_link(int nb) {
 	str = g_strdup_printf(str, count);
 	siril_log_color_message(str, "green");
 	g_free(str);
-
 
 	if (!com.wd) {
 		siril_log_message(_("Link: no working directory set.\n"));
@@ -3380,6 +3411,10 @@ int process_convert(int nb) {
 			gchar *filename = g_build_filename(value, destroot, NULL);
 			g_free(destroot);
 			destroot = filename;
+		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
 		}
 	}
 
@@ -3480,128 +3515,130 @@ int process_register(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (word[i]) {
-			if (!strcmp(word[i], "-drizzle")) {
-				reg_args->x2upscale = TRUE;
-			} else if (!strcmp(word[i], "-noout")) {
-				reg_args->no_output = TRUE;
-			} else if (g_str_has_prefix(word[i], "-transf=")) {
-				char *current = word[i], *value;
-				value = current + 8;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					goto terminate_register_on_error;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
-#ifdef HAVE_CV44
-					reg_args->type = SHIFT_TRANSFORMATION;
-					continue;
-#else
-					siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
-					goto terminate_register_on_error;
-#endif
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
-					reg_args->type = SIMILARITY_TRANSFORMATION;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"affine")) {
-					reg_args->type = AFFINE_TRANSFORMATION;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"homography")) {
-					reg_args->type = HOMOGRAPHY_TRANSFORMATION;
-					continue;
-				}
-				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-				goto terminate_register_on_error;
-			} else if (g_str_has_prefix(word[i], "-layer=")) {
-				if (reg_args->seq->nb_layers == 1) {  // handling mono case
-					siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
-					continue;
-				}
-				char *current = word[i], *value;
-				value = current + 7;
-				gchar *end;
-				int layer = g_ascii_strtoull(value, &end, 10);
-				if (end == value || layer < 0 || layer > 2) {
-					siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
-					if (end == value) break;
-					else continue;
-				}
-				reg_args->layer = layer;
-			} else if (g_str_has_prefix(word[i], "-prefix=")) {
-				char *current = word[i], *value;
-				value = current + 8;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					goto terminate_register_on_error;
-				}
-				reg_args->prefix = strdup(value);
-			} else if (g_str_has_prefix(word[i], "-minpairs=")) {
-				char *current = word[i], *value;
-				value = current + 10;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					goto terminate_register_on_error;
-				}
-				int min_pairs = g_ascii_strtoull(value, NULL, 10);
-				if (min_pairs < 4) { // using absolute min_pairs required by homography
-					gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
-					siril_log_message(str);
-					g_free(str);
-					goto terminate_register_on_error;
-				}
-				reg_args->min_pairs = min_pairs;
-			} else if (g_str_has_prefix(word[i], "-maxstars=")) {
-				char *current = word[i], *value;
-				value = current + 10;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					goto terminate_register_on_error;
-				}
-				gchar *end;
-				int max_stars = g_ascii_strtoull(value, &end, 10);
-				if (end == value || max_stars > MAX_STARS_FITTED || max_stars < MIN_STARS_FITTED) {
-					// limiting values to avoid too long computation or too low number of candidates
-					siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
-					goto terminate_register_on_error;
-				}
-				reg_args->max_stars_candidates = max_stars;
-			} else if (g_str_has_prefix(word[i], "-interp=")) {
-				char *current = word[i], *value;
-				value = current + 8;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					goto terminate_register_on_error;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
-					reg_args->interpolation = OPENCV_NEAREST;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
-					reg_args->interpolation = OPENCV_CUBIC;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
-					reg_args->interpolation = OPENCV_LANCZOS4;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
-					reg_args->interpolation = OPENCV_LINEAR;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
-					reg_args->interpolation = OPENCV_NONE;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
-					reg_args->interpolation = OPENCV_AREA;
-					continue;
-				}
-				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+		if (!strcmp(word[i], "-drizzle")) {
+			reg_args->x2upscale = TRUE;
+		} else if (!strcmp(word[i], "-noout")) {
+			reg_args->no_output = TRUE;
+		} else if (g_str_has_prefix(word[i], "-transf=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
+#ifdef HAVE_CV44
+				reg_args->type = SHIFT_TRANSFORMATION;
+				continue;
+#else
+				siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+				goto terminate_register_on_error;
+#endif
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
+				reg_args->type = SIMILARITY_TRANSFORMATION;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"affine")) {
+				reg_args->type = AFFINE_TRANSFORMATION;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"homography")) {
+				reg_args->type = HOMOGRAPHY_TRANSFORMATION;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+		} else if (g_str_has_prefix(word[i], "-layer=")) {
+			if (reg_args->seq->nb_layers == 1) {  // handling mono case
+				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
+				continue;
+			}
+			char *current = word[i], *value;
+			value = current + 7;
+			gchar *end;
+			int layer = g_ascii_strtoull(value, &end, 10);
+			if (end == value || layer < 0 || layer > 2) {
+				siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
+				if (end == value) break;
+				else continue;
+			}
+			reg_args->layer = layer;
+		} else if (g_str_has_prefix(word[i], "-prefix=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			reg_args->prefix = strdup(value);
+		} else if (g_str_has_prefix(word[i], "-minpairs=")) {
+			char *current = word[i], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			int min_pairs = g_ascii_strtoull(value, NULL, 10);
+			if (min_pairs < 4) { // using absolute min_pairs required by homography
+				gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
+				siril_log_message(str);
+				g_free(str);
+				goto terminate_register_on_error;
+			}
+			reg_args->min_pairs = min_pairs;
+		} else if (g_str_has_prefix(word[i], "-maxstars=")) {
+			char *current = word[i], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			gchar *end;
+			int max_stars = g_ascii_strtoull(value, &end, 10);
+			if (end == value || max_stars > MAX_STARS_FITTED || max_stars < MIN_STARS_FITTED) {
+				// limiting values to avoid too long computation or too low number of candidates
+				siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
+				goto terminate_register_on_error;
+			}
+			reg_args->max_stars_candidates = max_stars;
+		} else if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				reg_args->interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				reg_args->interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				reg_args->interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				reg_args->interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+				reg_args->interpolation = OPENCV_NONE;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				reg_args->interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			goto terminate_register_on_error;
 		}
 	}
 
@@ -3685,67 +3722,69 @@ int process_seq_applyreg(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (word[i]) {
-			if (!strcmp(word[i], "-drizzle")) {
-				reg_args->x2upscale = TRUE;
-			} else if (g_str_has_prefix(word[i], "-selected")) {
-				reg_args->process_all_frames = FALSE;
-			} else if (g_str_has_prefix(word[i], "-prefix=")) {
-				char *current = word[i], *value;
-				value = current + 8;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					goto terminate_register_on_error;
-				}
-				reg_args->prefix = strdup(value);
-			} else if (g_str_has_prefix(word[i], "-interp=")) {
-				char *current = word[i], *value;
-				value = current + 8;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					goto terminate_register_on_error;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
-					reg_args->interpolation = OPENCV_NEAREST;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
-					reg_args->interpolation = OPENCV_CUBIC;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
-					reg_args->interpolation = OPENCV_LANCZOS4;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
-					reg_args->interpolation = OPENCV_LINEAR;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
-					reg_args->interpolation = OPENCV_NONE;
-					continue;
-				}
-				if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
-					reg_args->interpolation = OPENCV_AREA;
-					continue;
-				}
-				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+		if (!strcmp(word[i], "-drizzle")) {
+			reg_args->x2upscale = TRUE;
+		} else if (g_str_has_prefix(word[i], "-selected")) {
+			reg_args->process_all_frames = FALSE;
+		} else if (g_str_has_prefix(word[i], "-prefix=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
-			} else if (g_str_has_prefix(word[i], "-layer=")) {
-				if (reg_args->seq->nb_layers == 1) {  // handling mono case
-					siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
-					continue;
-				}
-				char *current = word[i], *value;
-				value = current + 7;
-				gchar *end;
-				int layer2 = g_ascii_strtoull(value, &end, 10);
-				if (!(seq->regparam[layer2])) {
-					siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
-					continue;
-				}
-				reg_args->layer = layer2;
 			}
+			reg_args->prefix = strdup(value);
+		} else if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				reg_args->interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				reg_args->interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				reg_args->interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				reg_args->interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+				reg_args->interpolation = OPENCV_NONE;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				reg_args->interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+		} else if (g_str_has_prefix(word[i], "-layer=")) {
+			if (reg_args->seq->nb_layers == 1) {  // handling mono case
+				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
+				continue;
+			}
+			char *current = word[i], *value;
+			value = current + 7;
+			gchar *end;
+			int layer2 = g_ascii_strtoull(value, &end, 10);
+			if (!(seq->regparam[layer2])) {
+				siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
+				continue;
+			}
+			reg_args->layer = layer2;
+		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			goto terminate_register_on_error;
 		}
 	}
 
@@ -4315,160 +4354,163 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 
 	/* checking for options */
 	for (int i = 2; i < nb; i++) {
-		if (word[i]) {
-			if (g_str_has_prefix(word[i], "-bias=")) {
-				gchar *expression = g_shell_unquote(word[i] + 6, NULL);
-				if (expression && expression[0] == '=') {
-					if (seq) {
-						// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
-						int image_to_load = sequence_find_refimage(seq);
-						if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-							siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-							g_free(expression);
-							retvalue = CMD_INVALID_IMAGE;
-							break;
-						}
-					}
-					// parsing offset level
-					int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
-					if (!offsetlevel) {
-						siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
-						retvalue = 1;
+		if (g_str_has_prefix(word[i], "-bias=")) {
+			gchar *expression = g_shell_unquote(word[i] + 6, NULL);
+			if (expression && expression[0] == '=') {
+				if (seq) {
+					// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
+					int image_to_load = sequence_find_refimage(seq);
+					if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+						siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
 						g_free(expression);
+						retvalue = CMD_INVALID_IMAGE;
 						break;
-					} else {
-						g_free(expression);
-						siril_log_message(_("Synthetic offset: Level = %d\n"), offsetlevel);
-						int maxlevel = (bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-						if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
-							siril_log_message(_("The offset value is out of allowable bounds [-%d,%d], aborting.\n"), maxlevel, maxlevel);
-							retvalue = CMD_ARG_ERROR;
-							break;
-						} else {
-							args->bias_level = (float)offsetlevel;
-							args->bias_level *= (bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
-							args->use_bias = TRUE;
-						}
 					}
+				}
+				// parsing offset level
+				int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
+				if (!offsetlevel) {
+					siril_log_message(_("The offset value could not be parsed from expression: %s, aborting.\n"), expression +1);
+					retvalue = 1;
+					g_free(expression);
+					break;
 				} else {
 					g_free(expression);
-					args->bias = calloc(1, sizeof(fits));
-					if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_to_16bit)) {
+					siril_log_message(_("Synthetic offset: Level = %d\n"), offsetlevel);
+					int maxlevel = (bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+					if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
+						siril_log_message(_("The offset value is out of allowable bounds [-%d,%d], aborting.\n"), maxlevel, maxlevel);
+						retvalue = CMD_ARG_ERROR;
+						break;
+					} else {
+						args->bias_level = (float)offsetlevel;
+						args->bias_level *= (bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 						args->use_bias = TRUE;
-						// if input is 8b, we assume 32b master needs to be rescaled
-						if ((args->bias->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
-							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
-						}
-					} else {
-						retvalue = CMD_INVALID_IMAGE;
-						free(args->bias);
-						break;
 					}
 				}
-			} else if (g_str_has_prefix(word[i], "-dark=")) {
-				args->dark = calloc(1, sizeof(fits));
-				if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
-					args->use_dark = TRUE;
+			} else {
+				g_free(expression);
+				args->bias = calloc(1, sizeof(fits));
+				if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_to_16bit)) {
+					args->use_bias = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
-						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+					if ((args->bias->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
+						soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 					}
 				} else {
 					retvalue = CMD_INVALID_IMAGE;
-					free(args->dark);
-					break;
-				}
-			} else if (g_str_has_prefix(word[i], "-flat=")) {
-				args->flat = calloc(1, sizeof(fits));
-				if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
-					args->use_flat = TRUE;
-					// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
-				} else {
-					retvalue = CMD_INVALID_IMAGE;
-					free(args->flat);
-					break;
-				}
-			} else if (g_str_has_prefix(word[i], "-prefix=")) {
-				char *current = word[i], *value;
-				value = current + 8;
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					retvalue = CMD_ARG_ERROR;
-					break;
-				}
-				args->ppprefix = strdup(value);
-			} else if (!strcmp(word[i], "-opt")) {
-				if (bitpix == BYTE_IMG) {
-					siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
-					retvalue = CMD_INVALID_IMAGE;
-					break;
-				}
-				args->use_dark_optim = TRUE;
-			} else if (!strcmp(word[i], "-fix_xtrans")) {
-				args->fix_xtrans = TRUE;
-			} else if (!strcmp(word[i], "-cfa")) {
-				args->is_cfa = TRUE;
-			} else if (!strcmp(word[i], "-debayer")) {
-				args->debayer = TRUE;
-			} else if (!strcmp(word[i], "-equalize_cfa")) {
-				args->equalize_cfa = TRUE;
-			} else if (seq && !strcmp(word[i], "-fitseq")) {
-				args->output_seqtype = SEQ_FITSEQ;
-			} else if (g_str_has_prefix(word[i], "-cc=")) {
-				char *current = word[i], *value;
-				value = current + 4;
-				args->use_cosmetic_correction = TRUE;// dy default, CC is not activated
-				if (value[0] == '\0') {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					retvalue = CMD_ARG_ERROR;
-					break;
-				}
-				if (!strcmp(value, "dark")) {
-					if (!args->use_dark){
-						siril_log_message(_("You must specify a masterdark with -dark= before activating this option, aborting.\n"));
-						retvalue = CMD_ARG_ERROR;
-						break;
-					}
-					args->cc_from_dark = TRUE;
-					//either we use the default sigmas or we try to read the next two checking for sigma low and high
-					if (word[i + 1] && word[i + 2] && (args->sigma[0] = g_ascii_strtod(word[i + 1], NULL)) < 0.0
-							&& (args->sigma[1] = g_ascii_strtod(word[i + 2], NULL)) < 0.0) {
-						i+= 2;
-					} 
-					if (args->sigma[0] == 0) args->sigma[0] = -1.00;
-					if (args->sigma[1] == 0) args->sigma[1] = -1.00;
-					if (args->sigma[0] > 0)
-						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
-					else
-						siril_log_message(_("Cosmetic correction from masterdark: deactivated for cold pixels.\n"));
-					if (args->sigma[1] > 0)
-						siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"), args->sigma[1]);
-					else
-						siril_log_message(_("Cosmetic correction from masterdark: deactivated for hot pixels.\n"));
-				} else if (!strcmp(value, "bpm")) {
-					if (word[i + 1] && word[i + 1][0] != '\0') {
-						args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
-						if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-							g_object_unref(args->bad_pixel_map_file);
-							args->bad_pixel_map_file = NULL;
-							siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
-							retvalue = 1;
-							break;
-						} else {
-							siril_log_message(_("Cosmetic correction from Bad Pixel Map: %s.\n"), word[i + 1]);
-							i++;
-						}
-					} else {
-						siril_log_message(_("You must specify a bad pixel map file with -cc=bpm option, aborting.\n"));
-						retvalue = CMD_ARG_ERROR;
-						break;
-					}
-				} else {
-					siril_log_message(_("Unknown argument %s, aborting.\n"), word[i + 1]);
-					retvalue = CMD_ARG_ERROR;
+					free(args->bias);
 					break;
 				}
 			}
+		} else if (g_str_has_prefix(word[i], "-dark=")) {
+			args->dark = calloc(1, sizeof(fits));
+			if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
+				args->use_dark = TRUE;
+				// if input is 8b, we assume 32b master needs to be rescaled
+				if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
+					soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+				}
+			} else {
+				retvalue = CMD_INVALID_IMAGE;
+				free(args->dark);
+				break;
+			}
+		} else if (g_str_has_prefix(word[i], "-flat=")) {
+			args->flat = calloc(1, sizeof(fits));
+			if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
+				args->use_flat = TRUE;
+				// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
+			} else {
+				retvalue = CMD_INVALID_IMAGE;
+				free(args->flat);
+				break;
+			}
+		} else if (g_str_has_prefix(word[i], "-prefix=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				retvalue = CMD_ARG_ERROR;
+				break;
+			}
+			args->ppprefix = strdup(value);
+		} else if (!strcmp(word[i], "-opt")) {
+			if (bitpix == BYTE_IMG) {
+				siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
+				retvalue = CMD_INVALID_IMAGE;
+				break;
+			}
+			args->use_dark_optim = TRUE;
+		} else if (!strcmp(word[i], "-fix_xtrans")) {
+			args->fix_xtrans = TRUE;
+		} else if (!strcmp(word[i], "-cfa")) {
+			args->is_cfa = TRUE;
+		} else if (!strcmp(word[i], "-debayer")) {
+			args->debayer = TRUE;
+		} else if (!strcmp(word[i], "-equalize_cfa")) {
+			args->equalize_cfa = TRUE;
+		} else if (seq && !strcmp(word[i], "-fitseq")) {
+			args->output_seqtype = SEQ_FITSEQ;
+		} else if (g_str_has_prefix(word[i], "-cc=")) {
+			char *current = word[i], *value;
+			value = current + 4;
+			args->use_cosmetic_correction = TRUE;// dy default, CC is not activated
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				retvalue = CMD_ARG_ERROR;
+				break;
+			}
+			if (!strcmp(value, "dark")) {
+				if (!args->use_dark){
+					siril_log_message(_("You must specify a masterdark with -dark= before activating this option, aborting.\n"));
+					retvalue = CMD_ARG_ERROR;
+					break;
+				}
+				args->cc_from_dark = TRUE;
+				//either we use the default sigmas or we try to read the next two checking for sigma low and high
+				if (word[i + 1] && word[i + 2] && (args->sigma[0] = g_ascii_strtod(word[i + 1], NULL)) < 0.0
+						&& (args->sigma[1] = g_ascii_strtod(word[i + 2], NULL)) < 0.0) {
+					i+= 2;
+				} 
+				if (args->sigma[0] == 0) args->sigma[0] = -1.00;
+				if (args->sigma[1] == 0) args->sigma[1] = -1.00;
+				if (args->sigma[0] > 0)
+					siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
+				else
+					siril_log_message(_("Cosmetic correction from masterdark: deactivated for cold pixels.\n"));
+				if (args->sigma[1] > 0)
+					siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"), args->sigma[1]);
+				else
+					siril_log_message(_("Cosmetic correction from masterdark: deactivated for hot pixels.\n"));
+			} else if (!strcmp(value, "bpm")) {
+				if (word[i + 1] && word[i + 1][0] != '\0') {
+					args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
+					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
+						g_object_unref(args->bad_pixel_map_file);
+						args->bad_pixel_map_file = NULL;
+						siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
+						retvalue = 1;
+						break;
+					} else {
+						siril_log_message(_("Cosmetic correction from Bad Pixel Map: %s.\n"), word[i + 1]);
+						i++;
+					}
+				} else {
+					siril_log_message(_("You must specify a bad pixel map file with -cc=bpm option, aborting.\n"));
+					retvalue = CMD_ARG_ERROR;
+					break;
+				}
+			} else {
+				siril_log_message(_("Unknown argument %s, aborting.\n"), word[i + 1]);
+				retvalue = CMD_ARG_ERROR;
+				break;
+			}
+		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			retvalue = CMD_ARG_ERROR;
+			break;
 		}
 	}
 
