@@ -103,7 +103,7 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 
-	if (!regargs->translation_only) {
+	if (!regargs->no_output) {
 		// allocate destination sequence data
 		regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
 		regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
@@ -175,7 +175,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	clearfits(&fit);
 
 	if (regargs->x2upscale) {
-		if (regargs->translation_only) {
+		if (regargs->no_output) {
 			args->seq->upscale_at_stacking = 2.0;
 		} else {
 			sadata->ref.x *= 2.0;
@@ -183,26 +183,28 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		}
 	}
 	else {
-		if (regargs->translation_only) {
+		if (regargs->no_output) {
 			args->seq->upscale_at_stacking = 1.0;
 		}
 	}
 
 	/* copying refstars to com.stars for display */
-	com.stars = new_fitted_stars(MAX_STARS);
-	if (com.stars) {
-		i = 0;
-		while (i < MAX_STARS && sadata->refstars[i]) {
-			psf_star *tmp = new_psf_star();
-			if (!tmp) {
-				PRINT_ALLOC_ERR;
-				com.stars[i] = NULL;
-				break;
+	if (sequence_is_loaded()) {
+		com.stars = new_fitted_stars(MAX_STARS);
+		if (com.stars) {
+			i = 0;
+			while (i < MAX_STARS && sadata->refstars[i]) {
+				psf_star *tmp = new_psf_star();
+				if (!tmp) {
+					PRINT_ALLOC_ERR;
+					com.stars[i] = NULL;
+					break;
+				}
+				memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
+				com.stars[i] = tmp;
+				com.stars[i+1] = NULL;
+				i++;
 			}
-			memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
-			com.stars[i] = tmp;
-			com.stars[i+1] = NULL;
-			i++;
 		}
 	}
 
@@ -240,11 +242,11 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 	siril_debug_print("registration of image %d using %d threads\n", in_index, threads);
 
-	if (regargs->translation_only) {
-		/* if "translation only", we choose to initialize all frames
+	if (regargs->no_output) {
+		/* if "save transformation only", we choose to initialize all frames
 		 * to exclude status. If registration is ok, the status is
 		 * set to include */
-		args->seq->imgparam[out_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 
 	if (in_index != regargs->reference_image) {
@@ -362,27 +364,32 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].number_of_stars = nb_stars;
 		sadata->current_regdata[in_index].H = H;
 
-		if (!regargs->translation_only) {
-			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
-				return 1;
+		if (!regargs->no_output) {
+			if (regargs->interpolation <= OPENCV_LANCZOS4) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+					return 1;
+				}
+			} else {
+				if (shift_fit_from_reg(fit, regargs, H)) {
+					return 1;
+				}
 			}
 		}
-	}
-	else {
+	} else {
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
-		if (regargs->x2upscale && !regargs->translation_only) {
+		if (regargs->x2upscale && !regargs->no_output) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
 		}
 	}
 
-	if (!regargs->translation_only) {
+	if (!regargs->no_output) {
 		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
-		regargs->imgparam[out_index].ry = args->seq->imgparam[in_index].ry;
+		regargs->imgparam[out_index].rx = sadata->ref.x;
+		regargs->imgparam[out_index].ry = sadata->ref.y;
 		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
@@ -395,13 +402,11 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			fit->pixel_size_y /= 2;
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
-			//TODO: do we need to scale-up the H matrix here?
 		}
 	} else {
-		double dx, dy;
-		translation_from_H(H, &dx, &dy);
-		set_shifts(args->seq, in_index, regargs->layer, dx, dy, fit->top_down);
-		args->seq->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
+		// seems like not but this could backfire at some point
+		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;
 	return 0;
@@ -423,7 +428,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
 
-		if (!regargs->translation_only) {
+		if (!regargs->no_output) {
 			if (failed) {
 				// regargs->imgparam and regargs->regparam may have holes caused by images
 				// that failed to be registered - compact them
@@ -469,7 +474,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-		if (!regargs->translation_only) {
+		if (!regargs->no_output) {
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_global_star(regargs);
 			// will be loaded in the idle function if (load_new_sequence)
@@ -496,9 +501,9 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 * First, a threshold is computed for star pixel value, using statistics:
 		 *	O(m), data is duplicated for median computation if
 		 *	there are nil values, O(1) otherwise
-		 * Then, still in peaker(), image is filtered using unsharp filter, duplicating
-		 * the reference channel to act as input and output of the filter as float O(2m
-		 * as float).
+		 * Then, still in peaker(), image is filtered using Gaussian blur, duplicating
+		 * the reference channel to act as input and output of the filter as float O(m
+		 * as float for RT, current), O(2m as float for openCV).
 		 * Then, the image is rotated and upscaled by the generic function if enabled:
 		 * cvTransformImage is O(n) in mem for unscaled, O(nscaled)=O(4m) for
 		 * monochrome scaled and O(2nscaled)=O(21m) for color scaled
@@ -508,12 +513,12 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 * Since these three operations are in sequence, we need room only for the
 		 * largest.
 		 * rotated color scaled float	mem needed
-		 *       0     0      0     0	O(2m as float)
-		 *       1     0      0     0	O(2m as float)
-		 *       1     0      0     1	O(2m as float, same as 2n)
+		 *       0     0      0     0	O(m as float)
+		 *       1     0      0     0	O(m as float)
+		 *       1     0      0     1	O(m as float, same as n)
 		 *       1     0      1     0	O(4m, same as 2m as float)
 		 *       1     0      1     1	O(4m)
-		 *       1     1      0     0	O(2m as float)
+		 *       1     1      0     0	O(n)
 		 *       1     1      0     1	O(n)
 		 *       1     1      1     0	O(8n or 2nscaled)
 		 *       1     1      1     1	O(8n or 2nscaled)
@@ -527,13 +532,13 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		unsigned int MB_per_orig_channel = is_color ? MB_per_orig_image / 3 : MB_per_float_image;
 		MB_per_float_channel = min(1, MB_per_float_channel);
 		MB_per_orig_channel = min(1, MB_per_orig_channel);
-		if (!args->has_output || (!is_scaled && (!is_color || !is_float))) {
-			required = MB_per_orig_image + MB_per_float_channel * 2;
+		if (!args->has_output || (!is_scaled && !is_color)) {
+			required = MB_per_orig_image + MB_per_float_channel;
 		}
 		else if (args->has_output && !is_color && is_scaled) {
 			required = MB_per_orig_image + 4 * MB_per_orig_channel;
 		}
-		else if (args->has_output && is_color && !is_scaled && is_float) {
+		else if (args->has_output && is_color && !is_scaled) {
 			required = 2 * MB_per_orig_image;
 		}
 		else {
@@ -591,11 +596,11 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->finalize_hook = star_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Global star registration");
-	args->has_output = !regargs->translation_only;
+	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;
-	args->load_new_sequence = TRUE;
+	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));

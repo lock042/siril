@@ -51,6 +51,7 @@
 #include "core/undo.h"
 #include "core/processing.h"
 #include "compositing/compositing.h"
+#include "registration/registration.h"
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
@@ -77,6 +78,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	update_display_fwhm();
 	adjust_sellabel();
 	update_MenuItem();
+	reset_3stars();
 	close_tab();	// close Green and Blue tabs
 
 	GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));

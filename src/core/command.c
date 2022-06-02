@@ -108,7 +108,7 @@
 
 /* process_command functions take the number of arguments (like argc) as
  * parameter and will be able to access the equivalent of argv with `word'
- * they return 0 on success
+ * they return CMD_OK on success
  */
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
@@ -137,10 +137,57 @@ int process_dumpheader(int nb) {
 		char *header = strdup(gfit.header);
 		log_several_lines(header);
 		free(header);
-		siril_log_message("END\n");
 	}
 	return CMD_OK;
 }
+
+int process_seq_clean(int nb) {
+	gboolean cleanreg = FALSE, cleanstat = FALSE;
+
+	//TODO - should we close before just to be sure bkp values are not written back in .seq?
+	//TODO - should we also clear includes?
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+
+	if (nb > 2) {
+		for (int i = 2; i < nb; i++) {
+			if (word[i]) {
+				if (!strcmp(word[i], "-reg")) {
+					cleanreg = TRUE;
+				}
+				if (!strcmp(word[i], "-stat")) {
+					cleanstat = TRUE;
+				}
+			}
+		}
+	} else {
+		cleanreg = TRUE;
+		cleanstat = TRUE;
+	}
+
+	if (cleanreg && seq->regparam) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam[i]) {
+				free(seq->regparam[i]);
+				seq->regparam[i] = NULL;
+				siril_log_message(_("Registration data cleared for layer %d\n"), i);
+			}
+		}
+	}
+	if (cleanstat && seq->stats) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			clear_stats(seq, i);
+			siril_log_message(_("Statistics data cleared for layer %d\n"), i);
+		}
+	}
+	// unsetting ref image
+	seq->reference_image = -1;
+	writeseqfile(seq);
+	free_sequence(seq, FALSE);
+	return CMD_OK;
+}
+
 
 int process_satu(int nb){
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
@@ -1172,7 +1219,7 @@ int process_rotatepi(int nb){
 int process_set_mag(int nb) {
 	if (gui.cvport >= MAXGRAYVPORT) {
 		siril_log_color_message(_("Please display the channel on which you set the reference magnitude\n"), "red");
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	double mag_reference = g_ascii_strtod(word[1], NULL);
@@ -1656,7 +1703,7 @@ int process_psf(int nb){
 
 	if (gfit.naxes[2] > 1 && nb == 1 && (com.headless || gui.cvport >= MAXGRAYVPORT)) {
 		siril_log_color_message(_("Please display the channel on which you want to compute the PSF or use -channel argument\n"), "red");
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	int channel = com.headless ? 0 : gui.cvport;
@@ -1746,7 +1793,7 @@ int process_seq_psf(int nb) {
 
 	if (!com.headless && nb < 2 && gui.cvport >= MAXGRAYVPORT) {
 		siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	sequence *seq;
@@ -1909,7 +1956,7 @@ int process_histo(int nb) {
 			g_clear_error(&error);
 			g_object_unref(output_stream);
 			g_object_unref(file);
-			return 1;
+			return CMD_GENERIC_ERROR;
 		}
 		g_free(buffer);
 	}
@@ -2173,7 +2220,7 @@ int process_findhot(int nb){
 			g_clear_error(&error);
 			g_object_unref(output_stream);
 			g_object_unref(file);
-			return 1;
+			return CMD_GENERIC_ERROR;
 		}
 		g_free(buffer);
 	}
@@ -3129,7 +3176,7 @@ int process_convertraw(int nb) {
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
 				if (g_mkdir_with_parents(value, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
-					return 1;
+					return CMD_GENERIC_ERROR;
 				}
 			}
 			gchar *filename = g_build_filename(value, destroot, NULL);
@@ -3155,7 +3202,7 @@ int process_convertraw(int nb) {
 			if (output == SEQ_SER && !g_ascii_strcasecmp(ext, "raf") && !debayer) {
 				siril_log_message(_("FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. You may use FITS sequences instead."));
 				g_list_free_full(list, g_free);
-				return 1;
+				return CMD_GENERIC_ERROR;
 			}
 			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
 			count++;
@@ -3165,7 +3212,7 @@ int process_convertraw(int nb) {
 	if (!count) {
 		siril_log_message(_("No RAW files were found for conversion\n"));
 		g_list_free_full(list, g_free);
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
@@ -3220,7 +3267,7 @@ int process_link(int nb) {
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
 				if (g_mkdir_with_parents(value, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
-					return 1;
+					return CMD_GENERIC_ERROR;
 				}
 			}
 			gchar *filename = g_build_filename(value, destroot, NULL);
@@ -3234,7 +3281,7 @@ int process_link(int nb) {
 		fprintf (stderr, "Link: %s\n", error->message);
 		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	int count = 0;
@@ -3251,7 +3298,7 @@ int process_link(int nb) {
 	g_dir_close(dir);
 	if (!count) {
 		siril_log_message(_("No FITS files were found for link\n"));
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
@@ -3266,7 +3313,7 @@ int process_link(int nb) {
 
 	if (!com.wd) {
 		siril_log_message(_("Link: no working directory set.\n"));
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
@@ -3327,7 +3374,7 @@ int process_convert(int nb) {
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
 				if (g_mkdir_with_parents(value, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
-					return 1;
+					return CMD_GENERIC_ERROR;
 				}
 			}
 			gchar *filename = g_build_filename(value, destroot, NULL);
@@ -3341,7 +3388,7 @@ int process_convert(int nb) {
 		fprintf (stderr, "Convert: %s\n", error->message);
 		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	int count = 0;
@@ -3358,7 +3405,7 @@ int process_convert(int nb) {
 	g_dir_close(dir);
 	if (!count) {
 		siril_log_message(_("No files were found for convert\n"));
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
@@ -3397,8 +3444,8 @@ int process_convert(int nb) {
 }
 
 int process_register(int nb) {
-	struct registration_args *reg_args;
-	struct registration_method *method;
+	struct registration_args *reg_args = NULL;
+	struct registration_method *method = NULL;
 	char *msg;
 
 	sequence *seq = load_sequence(word[1], NULL);
@@ -3422,28 +3469,28 @@ int process_register(int nb) {
 	reg_args->process_all_frames = TRUE;
 	reg_args->follow_star = FALSE;
 	reg_args->matchSelection = FALSE;
-	reg_args->translation_only = FALSE;
+	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
+	reg_args->interpolation = OPENCV_AREA;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
 		if (word[i]) {
 			if (!strcmp(word[i], "-drizzle")) {
 				reg_args->x2upscale = TRUE;
-			} else if (!strcmp(word[i], "-norot")) {
-				reg_args->translation_only = TRUE;
-				reg_args->type = SHIFT_TRANSFORMATION; //using most rigid model as default if -norot
+			} else if (!strcmp(word[i], "-noout")) {
+				reg_args->no_output = TRUE;
 			} else if (g_str_has_prefix(word[i], "-transf=")) {
 				char *current = word[i], *value;
 				value = current + 8;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return CMD_ARG_ERROR;
+					goto terminate_register_on_error;
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
 #ifdef HAVE_CV44
@@ -3451,7 +3498,7 @@ int process_register(int nb) {
 					continue;
 #else
 					siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
-					return CMD_GENERIC_ERROR;
+					goto terminate_register_on_error;
 #endif
 				}
 				if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
@@ -3467,7 +3514,7 @@ int process_register(int nb) {
 					continue;
 				}
 				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-				return CMD_ARG_ERROR;
+				goto terminate_register_on_error;
 			} else if (g_str_has_prefix(word[i], "-layer=")) {
 				if (reg_args->seq->nb_layers == 1) {  // handling mono case
 					siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
@@ -3488,7 +3535,7 @@ int process_register(int nb) {
 				value = current + 8;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return CMD_ARG_ERROR;
+					goto terminate_register_on_error;
 				}
 				reg_args->prefix = strdup(value);
 			} else if (g_str_has_prefix(word[i], "-minpairs=")) {
@@ -3496,15 +3543,14 @@ int process_register(int nb) {
 				value = current + 10;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return CMD_ARG_ERROR;
+					goto terminate_register_on_error;
 				}
 				int min_pairs = g_ascii_strtoull(value, NULL, 10);
 				if (min_pairs < 4) { // using absolute min_pairs required by homography
 					gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
 					siril_log_message(str);
 					g_free(str);
-
-					return CMD_ARG_ERROR;
+					goto terminate_register_on_error;
 				}
 				reg_args->min_pairs = min_pairs;
 			} else if (g_str_has_prefix(word[i], "-maxstars=")) {
@@ -3512,24 +3558,55 @@ int process_register(int nb) {
 				value = current + 10;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-					return CMD_ARG_ERROR;
+					goto terminate_register_on_error;
 				}
 				gchar *end;
 				int max_stars = g_ascii_strtoull(value, &end, 10);
 				if (end == value || max_stars > MAX_STARS_FITTED || max_stars < MIN_STARS_FITTED) {
 					// limiting values to avoid too long computation or too low number of candidates
 					siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
-					return CMD_ARG_ERROR;
+					goto terminate_register_on_error;
 				}
 				reg_args->max_stars_candidates = max_stars;
+			} else if (g_str_has_prefix(word[i], "-interp=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					goto terminate_register_on_error;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+					reg_args->interpolation = OPENCV_NEAREST;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+					reg_args->interpolation = OPENCV_CUBIC;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+					reg_args->interpolation = OPENCV_LANCZOS4;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+					reg_args->interpolation = OPENCV_LINEAR;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+					reg_args->interpolation = OPENCV_NONE;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+					reg_args->interpolation = OPENCV_AREA;
+					continue;
+				}
+				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+				goto terminate_register_on_error;
 			}
 		}
 	}
 
 	// testing free space
-	if (reg_args->x2upscale ||
-			(method->method_ptr == register_star_alignment &&
-			 !reg_args->translation_only)) {
+	if (!reg_args->no_output) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
@@ -3537,15 +3614,22 @@ int process_register(int nb) {
 		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
-		if (test_available_space(size) > 0) {
-			free(reg_args);
-			free(method);
-			return CMD_GENERIC_ERROR;
+		if (test_available_space(size)) {
+			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
+			goto terminate_register_on_error;
 		}
 	}
+	if (reg_args->interpolation == OPENCV_NONE && !(reg_args->type == SHIFT_TRANSFORMATION)) {
+#ifdef HAVE_CV44
+		reg_args->type = SHIFT_TRANSFORMATION;
+		siril_log_color_message(_("Forcing the registration transformation to shift, which is the only transformation compatible with no interpolation\n"), "salmon");
+					
+#else
+		siril_log_color_message(_("Forcing the registration transformation to shift, which is the only transformation compatible with no interpolation, is not compatible with OpenCV below 4.4. Aborting\n"), "red");
+		goto terminate_register_on_error;
+#endif
+	}
 
-
-	reg_args->interpolation = OPENCV_AREA;
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
@@ -3557,6 +3641,127 @@ int process_register(int nb) {
 
 	start_in_new_thread(register_thread_func, reg_args);
 	return CMD_OK;
+
+terminate_register_on_error:
+	g_free(reg_args);
+	g_free(method);
+	return CMD_ARG_ERROR;
+}
+
+int process_seq_applyreg(int nb) {
+	struct registration_args *reg_args = NULL;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+
+	reg_args = calloc(1, sizeof(struct registration_args));
+
+	// check that registration exists for one layer at least
+	int layer = -1;
+	if (seq->regparam){
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam[i]) {
+				layer = i;
+				break;
+			}
+		}
+	}
+	if (layer == -1) {
+		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
+		goto terminate_register_on_error; 
+	}
+
+	/* filling the arguments for registration */
+	reg_args->func = &register_apply_reg;
+	reg_args->seq = seq;
+	reg_args->reference_image = sequence_find_refimage(seq);
+	reg_args->process_all_frames = TRUE;
+	reg_args->no_output = FALSE;
+	reg_args->x2upscale = FALSE;
+	reg_args->prefix = "r_";
+	reg_args->layer = layer;
+	reg_args->interpolation = OPENCV_AREA;
+
+	/* check for options */
+	for (int i = 2; i < nb; i++) {
+		if (word[i]) {
+			if (!strcmp(word[i], "-drizzle")) {
+				reg_args->x2upscale = TRUE;
+			} else if (g_str_has_prefix(word[i], "-selected")) {
+				reg_args->process_all_frames = FALSE;
+			} else if (g_str_has_prefix(word[i], "-prefix=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					goto terminate_register_on_error;
+				}
+				reg_args->prefix = strdup(value);
+			} else if (g_str_has_prefix(word[i], "-interp=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					goto terminate_register_on_error;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+					reg_args->interpolation = OPENCV_NEAREST;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+					reg_args->interpolation = OPENCV_CUBIC;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+					reg_args->interpolation = OPENCV_LANCZOS4;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+					reg_args->interpolation = OPENCV_LINEAR;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+					reg_args->interpolation = OPENCV_NONE;
+					continue;
+				}
+				if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+					reg_args->interpolation = OPENCV_AREA;
+					continue;
+				}
+				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+				goto terminate_register_on_error;
+			} else if (g_str_has_prefix(word[i], "-layer=")) {
+				if (reg_args->seq->nb_layers == 1) {  // handling mono case
+					siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
+					continue;
+				}
+				char *current = word[i], *value;
+				value = current + 7;
+				gchar *end;
+				int layer2 = g_ascii_strtoull(value, &end, 10);
+				if (!(seq->regparam[layer2])) {
+					siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
+					continue;
+				}
+				reg_args->layer = layer2;
+			}
+		}
+	}
+
+	// sanity checks are done in register_apply_reg
+
+	reg_args->run_in_thread = TRUE;
+	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+
+	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
+
+	start_in_new_thread(register_thread_func, reg_args);
+	return CMD_OK;
+
+terminate_register_on_error:
+	g_free(reg_args);
+	return CMD_ARG_ERROR;
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'
@@ -3700,7 +3905,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				if (g_mkdir_with_parents(dirname, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
 					g_free(dirname);
-					return 1;
+					return CMD_GENERIC_ERROR;
 				}
 
 				g_free(dirname);
@@ -3728,7 +3933,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		gchar *error = NULL;
 		if (seq_check_basic_data(seq, FALSE) == -1) {
 			free(seq);
-			return 1;
+			return CMD_GENERIC_ERROR;
 		}
 		siril_log_message(_("Stacking sequence %s\n"), seq->seqname);
 		args.seq = seq;
@@ -3762,7 +3967,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		if (convert_stack_data_to_filter(arg, &args) ||
 				setup_filtered_data(&args)) {
 			free_sequence(seq, TRUE);
-			return 1;
+			return CMD_GENERIC_ERROR;
 		}
 		args.description = describe_filter(seq, args.filtering_criterion, args.filtering_parameter);
 		args.use_32bit_output = evaluate_stacking_should_output_32bits(args.method,
@@ -3770,7 +3975,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		if (error) {
 			siril_log_color_message(error, "red");
 			free_sequence(seq, TRUE);
-			return 1;
+			return CMD_GENERIC_ERROR;
 		}
 
 		if (!arg->result_file) {
@@ -4357,7 +4562,7 @@ int process_set_compress(int nb) {
 			if (!word[4]) {
 				siril_log_message(_("Please specify the value of hcompress scale factor.\n"));
 				g_free(comp);
-				return 1;
+				return CMD_GENERIC_ERROR;
 			}
 			hscale = g_ascii_strtod(word[4], NULL);
 			comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);

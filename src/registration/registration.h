@@ -17,7 +17,7 @@ typedef enum {
 } selection_type;
 
 typedef enum {
-	REGTYPE_DEEPSKY, REGTYPE_PLANETARY
+	REGTYPE_DEEPSKY, REGTYPE_PLANETARY, REGTYPE_APPLY
 } registration_type;
 
 typedef enum {
@@ -59,7 +59,7 @@ struct registration_args {
 	float percent_moved; // for KOMBAT algorithm
 
 	/* data for generated sequence, for star alignment registration */
-	gboolean translation_only;	// don't rotate images => no new sequence
+	gboolean no_output;	// write transformation to .seq
 	int new_total;                  // remaining images after registration
 	imgdata *imgparam;		// imgparam for the new sequence
 	regdata *regparam;		// regparam for the new sequence
@@ -86,6 +86,7 @@ int register_shift_fwhm(struct registration_args *args);
 int register_star_alignment(struct registration_args *args);
 int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
+int register_apply_reg(struct registration_args *regargs);
 void reset_3stars();
 
 pointf get_velocity();
@@ -119,8 +120,16 @@ int star_align_finalize_hook(struct generic_seq_args *args);
 const char *describe_transformation_type(transformation_type type);
 
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
+void guess_transform_from_seq(sequence *seq, int layer, int *mindof, int *maxdof, gboolean excludenull);
+int guess_transform_from_H(Homography H);
+gboolean check_before_applyreg(struct registration_args *regargs);
+gboolean layer_has_registration(sequence *seq, int layer);
+gboolean layer_has_usable_registration(sequence *seq, int layer);
+int get_first_selected(sequence *seq);
 
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
+void SetNullH(Homography *H);
+int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography H);
 
 #endif

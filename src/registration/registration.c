@@ -55,6 +55,8 @@
 #include "opencv/opencv.h"
 #include "opencv/kombat/kombat.h"
 
+static gboolean keep_noout_state = FALSE;
+
 #undef DEBUG
 
 static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the simplest method to register deep-sky images. "
@@ -73,13 +75,12 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		"Shifts at pixel precision are saved in seq file."),
 		N_("<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on images and"
 		" to align them accordingly. Only translation is taken into account yet."),
-		N_("<b>Enhanced Correlation Coefficient Maximization</b>: It is based on the enhanced correlation "
-		"coefficient maximization algorithm. This method is more complex and slower than Image Pattern Alignment "
-		"but no selection is required. It is good for moon surface images registration. Only translation is taken "
-		"into account yet."),
 		N_("<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet and asteroid registration. It is necessary to have timestamps "
 		"stored in FITS header and to load a sequence of star aligned images. This methods makes a translation of a certain number of pixels depending on "
-		"the timestamp of each images and the global shift of the object between the first and the last image.")
+		"the timestamp of each images and the global shift of the object between the first and the last image."),
+		N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to apply previously computed registration data "
+		"stored in the sequence file. The interpolation method and simplified drizzle can be selected in the Output Registration section and it can be applied "
+		"on selected images only, to avoid saving unnecessary images.")
 };
 
 /*Possible values for max stars combo box
@@ -94,7 +95,7 @@ void _reg_selected_area_callback() {
 		update_reg_interface(TRUE);
 }
 
-static struct registration_method *reg_methods[NUMBER_OF_METHODS];
+static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 static gboolean end_register_idle(gpointer p);
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
@@ -125,6 +126,8 @@ void initialize_registration_methods() {
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
+			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i] = NULL;
 
 	tip = g_string_new ("");
@@ -698,8 +701,12 @@ int register_shift_fwhm(struct registration_args *args) {
 	for (frame = 0; frame < args->seq->number; frame++) {
 		if (args->run_in_thread && !get_thread_run())
 			break;
-		if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
+		if (!args->process_all_frames && !args->seq->imgparam[frame].incl) {
+			// current_regdata was set with identity matrices
+			// need to return null matcices for unselected frames
+			SetNullH(&current_regdata[frame].H);
 			continue;
+		}
 		if (frame == ref_image || !current_regdata[frame].fwhm_data) {
 			set_shifts(args->seq, frame, args->layer, 0.0, 0.0, FALSE);
 			continue;
@@ -742,8 +749,10 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	g_free(text);
 
 	com.reg_settings = index;
+	reset_3stars();
 	update_reg_interface(TRUE);
-	writeinitfile();
+	if (index != (NUMBER_OF_METHODS - 1))
+		writeinitfile();
 }
 
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
@@ -766,6 +775,10 @@ void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
 	}
 }
 
+void on_comboreg_sel_all_combobox_changed(GtkComboBox *box, gpointer user_data) {
+	update_reg_interface(TRUE);
+}
+
 /* for now, the sequence argument is used only when executing a script */
 int get_registration_layer(sequence *seq) {
 	if (!com.script) {
@@ -786,18 +799,39 @@ int get_registration_layer(sequence *seq) {
 	}
 }
 
+int get_first_selected(sequence *seq) {
+	if (!seq || !seq->imgparam) return -1;
+	fix_selnum(seq, TRUE);
+	for (int i = 0; i < seq->number; i++)
+		if (seq->imgparam[i].incl)
+			return i;
+	return -1;
+}
+
+gboolean layer_has_registration(sequence *seq, int layer) {
+	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || layer >= seq->nb_layers || !seq->regparam[layer] ) return FALSE;
+	return TRUE;
+}
+gboolean layer_has_usable_registration(sequence *seq, int layer) {
+	int min, max;
+	guess_transform_from_seq(seq, layer, &min, &max, FALSE); // will check first that layer_has_registration
+	if (max <= -1) return FALSE; // max <= -1 means all H matrices are identity or null
+	return TRUE;
+}
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL;
+	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL;
 	static GtkLabel *labelreginfo = NULL;
-	static GtkComboBox *reg_all_sel_box = NULL;
+	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
 	gboolean selection_is_done;
+	gboolean has_reg, dofollow, doall;
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
@@ -806,6 +840,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
 		cumul_data = lookup_widget("check_button_comet");
+		noout = lookup_widget("regNoOutput");
+		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	}
 
 	if (!dont_change_reg_radio) {
@@ -827,7 +863,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* number of registered image */
 	nb_images_reg = gtk_combo_box_get_active(reg_all_sel_box) == 0 ? com.seq.number : com.seq.selnum;
 
-	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION)) {
+	/* registration data exists for the selected layer */
+	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
+
+	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
 		if (method->method_ptr == &register_star_alignment) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
 		} else if (method->method_ptr == &register_comet) {
@@ -837,10 +876,19 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		} else if (method->method_ptr == &register_kombat) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
 		}
-		gtk_widget_set_visible(follow, method->method_ptr == &register_shift_fwhm);
+		gtk_widget_set_visible(follow, (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_3stars));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
-		if (method->method_ptr == &register_3stars && com.seq.current != 0)
-			gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
+		if (method->method_ptr == &register_3stars || method->method_ptr == &register_shift_fwhm) {
+			dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
+			doall = !gtk_combo_box_get_active(reg_all_sel_box);
+			if (dofollow) {
+				if (doall && com.seq.current != 0)
+					gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
+				else if (!doall && com.seq.current != get_first_selected(&com.seq))
+					gtk_label_set_text(labelreginfo, _("Make sure you load the first selected image"));
+				else gtk_label_set_text(labelreginfo, "");
+			} else gtk_label_set_text(labelreginfo, "");
+		}
 		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0')
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
 		else gtk_label_set_text(labelreginfo, "");
@@ -861,10 +909,26 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			}
 		} else if (nb_images_reg <= 1) {
 			gtk_label_set_text(labelreginfo, _("Select images in the sequence"));
+		} else if (method->type == REGTYPE_APPLY && !has_reg){
+			gtk_label_set_text(labelreginfo, _("Select a layer with existing registration"));
 		} else {
 			gtk_label_set_text(labelreginfo, _("Select an area in image first"));
 		}
 	}
+	/* we temporary save value as keep_noout_state will be changed in the callback */
+	gboolean save_state = keep_noout_state;
+	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
+	if ((method->method_ptr == &register_comet) || (method->method_ptr == &register_kombat) || (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_shift_dft)) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
+		gtk_widget_set_sensitive(noout, FALSE);
+	} else if (method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
+		gtk_widget_set_sensitive(noout, FALSE);
+	} else {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
+		gtk_widget_set_sensitive(noout, TRUE);
+	}
+	keep_noout_state  = save_state;
 }
 
 /* try to maximize the area within the image size (based on gfit)
@@ -958,14 +1022,26 @@ void get_the_registration_area(struct registration_args *reg_args,
 	}
 }
 
+/* callback for no output button */
+void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
+	GtkWidget *Prefix = lookup_widget("regseqname_entry");
+
+	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
+
+	gtk_widget_set_sensitive(Algo, !toggled);
+	gtk_widget_set_sensitive(Prefix, !toggled);
+
+	keep_noout_state = toggled;
+}
+
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
 	struct registration_method *method;
 	char *msg;
-	GtkToggleButton *follow, *matchSel, *no_translate, *x2upscale,
-			*cumul;
-	GtkComboBox *cbbt_layers;
+	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul;
+	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
 	GtkSpinButton *minpairs, *percent_moved;
 
@@ -1000,7 +1076,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	/* filling the arguments for registration */
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
-	no_translate = GTK_TOGGLE_BUTTON(lookup_widget("regTranslationOnly"));
 	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
 	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
@@ -1009,13 +1084,14 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
+	reg_all_sel_box= GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
-	reg_args->translation_only = gtk_toggle_button_get_active(no_translate);
+	reg_args->no_output = keep_noout_state;
 	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
@@ -1024,6 +1100,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
+	reg_args->process_all_frames = !gtk_combo_box_get_active(reg_all_sel_box);
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
@@ -1033,14 +1110,10 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 #endif
 
-	/* We check that available disk space is enough when:
-	 * - activating the subpixel alignment, which requires generating a new
-	 *   sequence with bigger images
-	 * - using global star registration with rotation enabled, also generating a
-	 *   new sequence */
-	if (reg_args->x2upscale ||
-			(method->method_ptr == register_star_alignment &&
-			 !reg_args->translation_only)) {
+	/* We check that available disk space is enough when
+	the registration method produces a new sequence
+	*/
+	if (!reg_args->no_output) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
@@ -1048,7 +1121,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
-		if (test_available_space(size) > 0) {
+		if (test_available_space(size)) {
+			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			free(reg_args);
 			unreserve_thread();
 			return;
@@ -1073,7 +1147,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE; // only TRUE for global registration. Will be updated in this case
 
-	clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
+	if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
@@ -1111,7 +1185,7 @@ static gboolean end_register_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (!args->retval) {
-		if (!args->load_new_sequence) {
+		if (!args->load_new_sequence && sequence_is_loaded()) {
 			int chan = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboboxreglayer")));
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
@@ -1156,4 +1230,62 @@ Homography H_from_translation(double dx, double dy) {
 	H.h02 = dx;
 	H.h12 = -dy;
 	return H;
+}
+
+void SetNullH(Homography *H) {
+	cvGetEye(H);
+	H->h00 = 0.0;
+	H->h11 = 0.0;
+	H->h22 = 0.0;
+}
+
+int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography H) {
+	fits *destfit = NULL;
+	if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
+		return 1;
+	}
+	destfit->bitpix = fit->type;
+	destfit->orig_bitpix = fit->orig_bitpix;
+	int nbpix = fit->naxes[0] * fit->naxes[1] * (regargs->x2upscale ? 4 : 1);
+	if (destfit->type == DATA_FLOAT) {
+		memset(destfit->fdata, 0, nbpix * fit->naxes[2] * sizeof(float));
+		if (fit->naxes[2] == 3) {
+			destfit->fpdata[1] = destfit->fdata + nbpix;
+			destfit->fpdata[2] = destfit->fdata + nbpix * 2;
+		}
+	} else {
+		memset(destfit->data, 0, nbpix * fit->naxes[2] * sizeof(WORD));
+		if (fit->naxes[2] == 3) {
+			destfit->pdata[1] = destfit->data + nbpix;
+			destfit->pdata[2] = destfit->data + nbpix * 2;
+		}
+	}
+	copy_fits_metadata(fit, destfit);
+	double scale = regargs->x2upscale ? 2. : 1.;
+	destfit->rx = destfit->naxes[0] = fit->rx * scale;
+	destfit->ry = destfit->naxes[1] = fit->ry * scale;
+	int shiftx, shifty;
+	/* load registration data for current image */
+	double dx, dy;
+	translation_from_H(H, &dx, &dy);
+	shiftx = round_to_int(dx * scale);
+	shifty = round_to_int(dy * scale);
+	for (int layer = 0; layer < fit->naxes[2]; ++layer) {
+		for (int y = 0; y < destfit->ry; ++y) {
+			for (int x = 0; x < destfit->rx; ++x) {
+				int nx = x + shiftx;
+				int ny = y + shifty;
+				if (nx >= 0 && nx < destfit->rx && ny >= 0 && ny < destfit->ry) {
+					if (destfit->type == DATA_USHORT) {
+						destfit->pdata[layer][nx + ny * destfit->rx] = fit->pdata[layer][x + y * fit->rx];
+					} else if (destfit->type == DATA_FLOAT) {
+						destfit->fpdata[layer][nx + ny * destfit->rx] = fit->fpdata[layer][x + y * fit->rx];
+					}
+				}
+			}
+		}
+	}
+	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	clearfits(destfit);
+	return 0;
 }
