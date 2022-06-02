@@ -1116,20 +1116,22 @@ int process_autostretch(int nb) {
 	}
 	gchar *end = NULL;
 	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
-	if (nb > arg_index)
+	if (nb > arg_index) {
 		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
-	if (end == word[arg_index]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_index]);
-		return CMD_ARG_ERROR;
+		if (end == word[arg_index]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_index]);
+			return CMD_ARG_ERROR;
+		}
+		arg_index++;
 	}
-	arg_index++;
 
 	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
-	if (nb > arg_index)
+	if (nb > arg_index) {
 		target_bg = g_ascii_strtod(word[arg_index], &end);
-	if (end == word[arg_index] || target_bg < 0.0f || target_bg > 1.0f) {
-		siril_log_message(_("The target background value must be in the [0, 1] range\n"));
-		return CMD_ARG_ERROR;
+		if (end == word[arg_index] || target_bg < 0.0f || target_bg > 1.0f) {
+			siril_log_message(_("The target background value must be in the [0, 1] range\n"));
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
