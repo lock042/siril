@@ -282,63 +282,23 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int refimage = regargs->reference_image;
-	Homography H = { 0 };
-	if (regargs->no_output) {
-		/* if "save transformation only", we choose to initialize all frames
-		 * to exclude status. If registration is ok, the status is
-		 * set to include */
-		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
-	}
-	// Determine number of stars present in both in image and ref
-	int nb_stars = 0;
-	for (int i = 0; i < selected_stars; i++) {
-		if (results[in_index].stars[i] != NULL && results[refimage].stars[i] != NULL) nb_stars++;
-	}
-	if (in_index != refimage) {
-		if (nb_stars < 2) {
-			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  args->seq->imgparam[in_index].filenum);
-			return 1;
-		}
-		struct s_star *arrayref, *arraycur, *starsin, *starsout;
-		arrayref = (s_star *) shMalloc(nb_stars * sizeof(s_star));
-		arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
-		int j = 0;
-		unsigned char *mask;
-		for (int i = 0; i < selected_stars; i++) {
-			starsin = &(arrayref[j]);
-			starsout = &(arraycur[j]);
-			g_assert(starsin != NULL);
-			g_assert(starsout != NULL);
-			if (results[in_index].stars[i] != NULL && results[refimage].stars[i] != NULL) {
-				starsin->x = results[refimage].stars[i]->xpos;
-				starsin->y = results[refimage].stars[i]->ypos;
-				starsout->x = results[in_index].stars[i]->xpos;
-				starsout->y = results[in_index].stars[i]->ypos;
-				j++;
-			}
-		}
-		mask = cvCalculH(arraycur, arrayref, nb_stars, &H, SIMILARITY_TRANSFORMATION);
-		if (!mask || H.Inliers < 2) {
-			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  args->seq->imgparam[in_index].filenum);
-			return 1;
-		}
-		sadata->current_regdata[in_index].H = H;
 
-		if (!regargs->no_output) {
+	sadata->success[out_index] = 0;
+
+	if (in_index != refimage) {
+		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > -2) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation)) {
 					return 1;
 				}
 			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
-				if (shift_fit_from_reg(fit, regargs, H)) {
+				if (shift_fit_from_reg(fit, regargs, sadata->current_regdata[in_index].H)) {
 					return 1;
 				}
 			}
 		}
 	} else {
 		// reference image
-		cvGetEye(&H);
-		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
@@ -363,10 +323,6 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
 		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;
 	return 0;
@@ -475,17 +431,8 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	sadata->ref.y = args->seq->imgparam[refimage].ry;
 
 	if (regargs->x2upscale) {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 2.0;
-		} else {
-			sadata->ref.x *= 2.0;
-			sadata->ref.y *= 2.0;
-		}
-	}
-	else {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 1.0;
-		}
+		sadata->ref.x *= 2.0;
+		sadata->ref.y *= 2.0;
 	}
 
 	generic_sequence_worker(args);
@@ -511,6 +458,8 @@ int register_3stars(struct registration_args *regargs) {
 	// TODO: we should reset_3stars at all possible escapes alomg the process
 	int nb_stars_ref = 0;
 	int refimage = regargs->reference_image;
+	Homography H = { 0 };
+
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
 		delete_selected_area();
@@ -539,6 +488,12 @@ int register_3stars(struct registration_args *regargs) {
 	for (int i = 0; i < regargs->seq->number; i++) {
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
+
+		/* we choose to initialize all frames
+		* to exclude status. If registration is ok, the status is
+		* set to include */
+		regargs->seq->imgparam[i].incl = !SEQUENCE_DEFAULT_INCLUDE;
+
 		if (results[i].stars[0]) {
 			sumx += results[i].stars[0]->fwhmx;
 			sumy += results[i].stars[0]->fwhmy;
@@ -564,8 +519,73 @@ int register_3stars(struct registration_args *regargs) {
 			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm; 
 			current_regdata[i].background_lvl = sumb / nb_stars;
 			current_regdata[i].number_of_stars = nb_stars;
-		}
-	}
+		} else {
+			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+			continue;
+		} 
 
-	return _3stars_alignment(regargs, current_regdata);
+		// computing the transformation matrices
+
+		// Determine number of stars present in both in image and ref
+		nb_stars = 0;
+		for (int j = 0; j < selected_stars; j++) {
+			if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) nb_stars++;
+		}
+		if (i != refimage) {
+			if (nb_stars < 2) {
+				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+				continue;
+			}
+			struct s_star *arrayref, *arraycur, *starsin, *starsout;
+			arrayref = (s_star *) shMalloc(nb_stars * sizeof(s_star));
+			arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
+			int k = 0;
+			unsigned char *mask;
+			for (int j = 0; j < selected_stars; j++) {
+				starsin = &(arrayref[k]);
+				starsout = &(arraycur[k]);
+				g_assert(starsin != NULL);
+				g_assert(starsout != NULL);
+				if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) {
+					starsin->x = results[refimage].stars[j]->xpos;
+					starsin->y = results[refimage].stars[j]->ypos;
+					starsout->x = results[i].stars[j]->xpos;
+					starsout->y = results[i].stars[j]->ypos;
+					k++;
+				}
+			}
+			mask = cvCalculH(arraycur, arrayref, nb_stars, &H, SIMILARITY_TRANSFORMATION);
+			if (!mask || H.Inliers < 2) {
+				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+				continue;
+			}
+			current_regdata[i].H = H;
+		} else {
+			cvGetEye(&current_regdata[i].H);
+		}
+		// H computation was sucessful, include the image
+		regargs->seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
+	}
+	if (!regargs->no_output) {
+		return _3stars_alignment(regargs, current_regdata);
+	} else {
+		for (int i = 0; i < results_size; i++) {
+			for (int s = 0; s < 3; s++)
+				if (results[i].stars[s])
+					free(results[i].stars[s]);
+		}
+		free(results);
+		results = NULL;
+		reset_3stars();
+
+		// fix_selnum(regargs->seq, FALSE);
+		// siril_log_message(_("Registration finished.\n"));
+		// gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", regargs->seq->selnum);
+		// str = g_strdup_printf(str, args->nb_filtered_images);
+		// siril_log_color_message(str, "green");
+		// siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+
+		// g_free(str);
+		return 0;
+	}
 }
