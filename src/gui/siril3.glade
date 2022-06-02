@@ -7688,7 +7688,6 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="receives-default">False</property>
                         <property name="tooltip-text" translatable="yes">This will use the WCS information that are stored in the the header if any.</property>
                         <property name="halign">start</property>
-                        <property name="active">True</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
