@@ -1,8 +1,6 @@
 #ifndef SRC_CORE_COMMAND_LINE_PROCESSOR_H_
 #define SRC_CORE_COMMAND_LINE_PROCESSOR_H_
 
-//#define PRINT_FOR_CFA_IMAGE PRINT_NOT_FOR_RGB; siril_log_color_message(_("Make sure your image is in CFA mode.\n"), "red")
-
 typedef enum {
 	CMD_NOT_FOUND = -999,
 	CMD_NO_WAIT = -667,
