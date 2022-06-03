@@ -262,36 +262,13 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	if (!args->ret) {
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
-
-		/* Create new image */
-		com.seq.current = UNRELATED_IMAGE;
-		com.uniq = calloc(1, sizeof(single));
-		com.uniq->filename = strdup(_("Pixel Math result"));
-		com.uniq->fileexist = FALSE;
-		com.uniq->nb_layers = args->fit->naxes[2];
-		com.uniq->fit = args->fit;
-		clearfits(&gfit);
-		copyfits(args->fit, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		invalidate_gfit_histogram();
 		open_single_image_from_gfit();
 	}
 	set_cursor_waiting(FALSE);
-	g_free(args->expression1);
-	if (args->single_rgb) {
-		g_free(args->expression2);
-		g_free(args->expression3);
-	}
 	if (args->from_ui)
 		output_status_bar(args->ret);
-	else {
-		/* in this case char* are not constant and must be freed */
-		for (int i = 0; i < args->nb_rows; i++)
-			g_free(args->varname[i]);
-	}
 
-	free_pm_var(args->nb_rows);
-	clearfits(args->fit);
-	free(args->varname);
 	free(args);
 	return FALSE;
 }
@@ -450,10 +427,42 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	}
 	if (failed) {
 		args->ret = err;
+	} else {
+		/* Create new image */
+		clearfits(&gfit);
+		copyfits(args->fit, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+
+		com.seq.current = UNRELATED_IMAGE;
+		com.uniq = calloc(1, sizeof(single));
+		com.uniq->filename = strdup(_("Pixel Math result"));
+		com.uniq->fileexist = FALSE;
+		com.uniq->nb_layers = gfit.naxes[2];
+		com.uniq->fit = &gfit;
 	}
 
-	siril_add_idle(end_pixel_math_operation, args);
-	return GINT_TO_POINTER(args->ret);
+	/* free memory */
+	g_free(args->expression1);
+	if (args->single_rgb) {
+		g_free(args->expression2);
+		g_free(args->expression3);
+	}
+
+	if (!args->from_ui) {
+		/* in this case char* are not constant and must be freed */
+		for (int i = 0; i < args->nb_rows; i++)
+			g_free(args->varname[i]);
+	}
+
+	free_pm_var(args->nb_rows);
+	clearfits(args->fit);
+	free(args->varname);
+
+	/* call idle */
+	if (com.script && !com.headless)
+		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
+	else
+		siril_add_idle(end_pixel_math_operation, args);
+	return 0;
 }
 
 static gboolean is_op_or_null(const gchar c) {
