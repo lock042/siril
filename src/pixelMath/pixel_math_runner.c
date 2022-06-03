@@ -266,7 +266,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		/* Create new image */
 		com.seq.current = UNRELATED_IMAGE;
 		com.uniq = calloc(1, sizeof(single));
-		com.uniq->filename = strdup(_("new empty image"));
+		com.uniq->filename = strdup(_("Pixel Math result"));
 		com.uniq->fileexist = FALSE;
 		com.uniq->nb_layers = args->fit->naxes[2];
 		com.uniq->fit = args->fit;
