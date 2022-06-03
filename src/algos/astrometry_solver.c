@@ -276,7 +276,8 @@ static char *fetch_url(const char *url) {
 
 	retries = DEFAULT_FETCH_RETRIES;
 
-	retrieve: content->data = malloc(1);
+retrieve:
+	content->data = malloc(1);
 	content->data[0] = '\0';
 	content->len = 0;
 
@@ -317,6 +318,7 @@ static char *fetch_url(const char *url) {
 	}
 
 	curl_easy_cleanup(curl);
+	curl = NULL;
 	if (!result)
 		free(content->data);
 
