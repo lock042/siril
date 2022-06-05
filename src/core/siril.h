@@ -186,6 +186,7 @@ typedef struct tilt_struct sensor_tilt;
 typedef struct star_finder_struct star_finder_params;
 typedef struct pref_struct preferences;
 typedef struct save_config_struct save_config;
+typedef struct regframe_struct regframe;
 
 /* global structures */
 

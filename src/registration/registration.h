@@ -77,6 +77,11 @@ struct registration_method {
 	registration_type type;
 };
 
+/* used to draw framing in image_display */
+struct regframe_struct {
+	point pt[4];
+};
+
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
 void initialize_registration_methods();

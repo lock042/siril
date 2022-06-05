@@ -42,6 +42,8 @@
 #include "gui/utils.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
+#include "registration/registration.h"
+#include "opencv/opencv.h"
 #include "git-version.h"
 
 #ifdef HAVE_WCSLIB
@@ -1215,6 +1217,43 @@ static void draw_analysis(const draw_data_t* dd) {
 	}
 }
 
+static void draw_regframe(const draw_data_t* dd) {
+	if (!com.script && !sequence_is_loaded()) return;
+	if (!&com.seq) return;
+	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
+	int activelayer = gtk_combo_box_get_active(GTK_COMBO_BOX(seqcombo));
+	if (!layer_has_registration(&com.seq, activelayer)) return;
+	if (com.seq.current == com.seq.reference_image) return;
+
+	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == -2) return; // reference image H matrix is null matrix
+	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == -2) return; // current image H matrix is null or identity
+
+	regframe framing = { 0 };
+	framing.pt[0].x = 0.;
+	framing.pt[0].y = 0.;
+	framing.pt[1].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
+	framing.pt[1].y = 0.;
+	framing.pt[2].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
+	framing.pt[2].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	framing.pt[3].x = 0.;
+	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	for (int i = 0; i < 4; i++)
+		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H);
+
+	cairo_t *cr = dd->cr;
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_rectangle(cr, 0., 0., (double)com.seq.imgparam[com.seq.current].rx, (double)com.seq.imgparam[com.seq.current].ry); // to clip the framing
+	cairo_clip(cr);
+	cairo_set_source_rgb(cr, 1.0, 0.8, 0.7);
+	cairo_set_line_width(cr, 2.0 / dd->zoom);
+	cairo_move_to(cr, framing.pt[0].x, framing.pt[0].y);
+	cairo_line_to(cr, framing.pt[1].x, framing.pt[1].y);
+	cairo_line_to(cr, framing.pt[2].x, framing.pt[2].y);
+	cairo_line_to(cr, framing.pt[3].x, framing.pt[3].y);
+	cairo_line_to(cr, framing.pt[0].x, framing.pt[0].y);
+	cairo_stroke(cr);
+}
+
 void initialize_image_display() {
 	int i;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
@@ -1400,6 +1439,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* background removal gradient selection boxes */
 	draw_brg_boxes(&dd);
+
+	/* registration framing*/
+	draw_regframe(&dd);
 
 	return FALSE;
 }
