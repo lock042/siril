@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "core/siril.h"
 #include "core/proto.h"
 
@@ -296,7 +297,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 					return 1;
 				}
 			}
-		}
+		} else return 1;
 	} else {
 		// reference image
 		if (regargs->x2upscale && !regargs->no_output) {
@@ -458,7 +459,6 @@ int register_3stars(struct registration_args *regargs) {
 	// TODO: we should reset_3stars at all possible escapes alomg the process
 	int nb_stars_ref = 0;
 	int refimage = regargs->reference_image;
-	Homography H = { 0 };
 
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
@@ -488,6 +488,7 @@ int register_3stars(struct registration_args *regargs) {
 	for (int i = 0; i < regargs->seq->number; i++) {
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
+		Homography H = { 0 };
 
 		/* we choose to initialize all frames
 		* to exclude status. If registration is ok, the status is
@@ -540,7 +541,6 @@ int register_3stars(struct registration_args *regargs) {
 			arrayref = (s_star *) shMalloc(nb_stars * sizeof(s_star));
 			arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
 			int k = 0;
-			unsigned char *mask;
 			for (int j = 0; j < selected_stars; j++) {
 				starsin = &(arrayref[k]);
 				starsout = &(arraycur[k]);
@@ -554,8 +554,10 @@ int register_3stars(struct registration_args *regargs) {
 					k++;
 				}
 			}
-			mask = cvCalculH(arraycur, arrayref, nb_stars, &H, SIMILARITY_TRANSFORMATION);
-			if (!mask || H.Inliers < 2) {
+			int test = cvCalculRigidTransform(arrayref, arraycur, nb_stars, &H);
+			free(arrayref);
+			free(arraycur);
+			if (test) {
 				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 				continue;
 			}

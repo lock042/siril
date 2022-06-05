@@ -792,3 +792,107 @@ int cvClahe(fits *image, double clip_limit, int size) {
 }
 
 
+int cvCalculRigidTransform(s_star *star_array_in,
+		struct s_star *star_array_out, int n, Homography *Hom) {
+
+	Mat out = Mat(2, n, CV_64FC1);
+	Mat in = Mat(2, n, CV_64FC1);
+	Mat A = Mat(2, 2, CV_64FC1);
+	Mat B = Mat(2, 2, CV_64FC1);
+	Mat U = Mat(2, 2, CV_64FC1);
+	Mat V = Mat(2, 2, CV_64FC1);
+	Mat S = Mat(2, 2, CV_64FC1);
+	Mat T = Mat(2, 2, CV_64FC1);
+	Mat R = Mat(2, 2, CV_64FC1);
+	Mat H = Mat(3, 3, CV_64FC1);
+	Mat outC = Mat(2, 1, CV_64FC1);
+	Mat inC = Mat(2, 1, CV_64FC1);
+	Mat shift = Mat(2, 1, CV_64FC1);
+
+	double outCx = 0., outCy = 0., inCx = 0., inCy = 0.;
+	for (int i = 0; i < n; i++) {
+		outCx += star_array_out[i].x;
+		outCy += star_array_out[i].y;
+		inCx += star_array_in[i].x;
+		inCy += star_array_in[i].y;
+		out.at<double>(0,i) = star_array_out[i].x;
+		out.at<double>(1,i) = star_array_out[i].y;
+		in.at<double>(0,i) = star_array_in[i].x;
+		in.at<double>(1,i) = star_array_in[i].y;
+	}
+	outCx /= n;
+	outCy /= n;
+	inCx /= n;
+	inCy /= n;
+	outC.at<double>(0,0) = outCx;
+	outC.at<double>(1,0) = outCy;
+	inC.at<double>(0,0) = inCx;
+	inC.at<double>(1,0) = inCy;	
+
+	for (int i = 0; i < n; i++) {
+		out.at<double>(0,i) -= outCx;
+		out.at<double>(1,i) -= outCy;
+		in.at<double>(0,i) -= inCx;
+		in.at<double>(1,i) -= inCy;
+	}
+	// std::cout << "out\n" << out << std::endl;
+	// std::cout << "in\n" << in << std::endl;
+
+	A = out * Mat::eye(n, n, CV_64FC1) * in.t();
+	B = A.t() * A;
+
+	// std::cout << "A\n" << A << std::endl;
+	// std::cout << "B\n" << B << std::endl;
+
+	double b = -(B.at<double>(0,0) + B.at<double>(1,1));
+	double c = cv::determinant(B);
+
+	double l1 = (-b + sqrt(b * b - 4 *c)) * 0.5;
+	double l2 = (-b - sqrt(b * b - 4 *c)) * 0.5;
+
+	double v1 = B.at<double>(0,1) / (l1 - B.at<double>(0,0));
+	double v2 = B.at<double>(0,1) / (l2 - B.at<double>(0,0));
+
+	double n1 = sqrt( 1 + v1 * v1);
+	double n2 = sqrt( 1 + v2 * v2);
+
+	V.at<double>(0,0) = v1 / n1;
+	V.at<double>(1,0) = 1. / n1;
+	V.at<double>(0,1) = v2 / n2;
+	V.at<double>(1,1) = 1. / n2;
+	// std::cout << "V\n" << V << std::endl;
+
+	if (n == 3) {
+		S.at<double>(0,0) = 1. / sqrt(l1);
+		S.at<double>(1,1) = 1. / sqrt(l2);
+		// std::cout << "S\n" << S << std::endl;
+		U = (S * (A * V).t()).t();
+	} else {
+		U = A * V / sqrt(l1);
+		U.at<double>(0,1) = U.at<double>(1,0);
+		U.at<double>(1,1) = -U.at<double>(0,0);
+	}
+	// std::cout << "U\n" << U << std::endl;
+
+	T = Mat::eye(2, 2, CV_64FC1);
+	T.at<double>(1,1) = cv:: determinant(V * U.t());
+	// std::cout << "T\n" << T << std::endl;
+
+	R = V * T * U.t();
+	// std::cout << "R\n" << R << std::endl;
+	shift = inC - R * outC;
+	// std::cout << "s\n" << shift << std::endl;
+
+
+	H = Mat::eye(3, 3, CV_64FC1);
+	R.copyTo(H(cv::Rect_<int>(0,0,2,2)));
+	H.at<double>(0,2) = shift.at<double>(0,0);
+	H.at<double>(1,2) = shift.at<double>(1,0);
+	// std::cout << "H\n" << H << std::endl;
+
+	Hom->Inliers = n;
+	convert_MatH_to_H(H, Hom);
+
+	return 0;
+
+}
