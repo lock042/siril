@@ -24,6 +24,8 @@ siril 1.0.3
 * Fixed error in seqsubsky
 * Fixed the start of two scripts from @ in succession
 * Fixed homogeneous image bitpix detection on stacking
+* Fixed dates in median and mean stack results
+* Fixed bug in stack of some float images
 * Added new thread for background extraction that does not freeze UI, with a progressbar for RBF
 
 siril 1.0.2
