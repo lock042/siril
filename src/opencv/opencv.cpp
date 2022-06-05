@@ -791,7 +791,7 @@ int cvClahe(fits *image, double clip_limit, int size) {
 	return -1;
 }
 
-
+// https://igl.ethz.ch/projects/ARAP/svd_rot.pdf
 int cvCalculRigidTransform(s_star *star_array_in,
 		struct s_star *star_array_out, int n, Homography *Hom) {
 
@@ -852,6 +852,8 @@ int cvCalculRigidTransform(s_star *star_array_in,
 
 	double v1 = B.at<double>(0,1) / (l1 - B.at<double>(0,0));
 	double v2 = B.at<double>(0,1) / (l2 - B.at<double>(0,0));
+	// std::cout << "l1\n" << l1 << std::endl;
+	// std::cout << "l2\n" << l2 << std::endl;
 
 	double n1 = sqrt( 1 + v1 * v1);
 	double n2 = sqrt( 1 + v2 * v2);
@@ -863,6 +865,7 @@ int cvCalculRigidTransform(s_star *star_array_in,
 	// std::cout << "V\n" << V << std::endl;
 
 	if (n == 3) {
+		S = Mat::eye(2, 2, CV_64FC1);
 		S.at<double>(0,0) = 1. / sqrt(l1);
 		S.at<double>(1,1) = 1. / sqrt(l2);
 		// std::cout << "S\n" << S << std::endl;

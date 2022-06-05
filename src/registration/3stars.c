@@ -208,11 +208,6 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	// making sure we can use registration data - maybe we could have done that beforehand...
 	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_usable_registration(regargs->seq, regargs->layer)) {
 		spsfargs->framing = ORIGINAL_FRAME;
-		// if framing is original, we want to keep the original drawn boxes
-		delete_selected_area();
-		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
-		memcpy(&args->area, &com.selection, sizeof(rectangle));
-		new_selection_zone();
 	}
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
@@ -459,15 +454,13 @@ int register_3stars(struct registration_args *regargs) {
 	// TODO: we should reset_3stars at all possible escapes alomg the process
 	int nb_stars_ref = 0;
 	int refimage = regargs->reference_image;
-
+	Homography H = { 0 };
+	delete_selected_area();
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
-		delete_selected_area();
-		com.selection.w = (int)com.stars[i]->fwhmx * 4;
-		com.selection.h = (int)com.stars[i]->fwhmx * 4;
-		com.selection.x = com.stars[i]->xpos - com.selection.w * 0.5;
-		com.selection.y = com.stars[i]->ypos - com.selection.w * 0.5;
-		new_selection_zone();
+		// delete_selected_area();
+		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
+		// new_selection_zone();
 		awaiting_star = i + 1;
 		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
 		if (_3stars_seqpsf(regargs)) return 1;
@@ -479,16 +472,23 @@ int register_3stars(struct registration_args *regargs) {
 			return 1;
 		}
 	}
-	delete_selected_area();
+
 
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
+
+	char *msg;
+	msg = siril_log_message(_("Saving the transformation matrices\n"));
+	msg[strlen(msg)-1] = '\0';
+	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	/* set regparams for current sequence before closing it */
 	for (int i = 0; i < regargs->seq->number; i++) {
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
-		Homography H = { 0 };
+		if (!(i % 32)) {
+			set_progress_bar_data(NULL, (double)i / regargs->seq->number);
+		}
 
 		/* we choose to initialize all frames
 		* to exclude status. If registration is ok, the status is
@@ -568,6 +568,7 @@ int register_3stars(struct registration_args *regargs) {
 		// H computation was sucessful, include the image
 		regargs->seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
+	set_progress_bar_data(NULL, PROGRESS_DONE);
 	if (!regargs->no_output) {
 		return _3stars_alignment(regargs, current_regdata);
 	} else {
