@@ -659,7 +659,7 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 	gboolean sensitive = TRUE;
 
 	if (!use_photometry) {
-		GtkTreePath* path = gtk_tree_model_get_path (tree_model, iter);
+		GtkTreePath* path = gtk_tree_model_get_path(tree_model, iter);
 		if (!path) return;
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (index) {
@@ -669,6 +669,7 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM || index[0] == r_WFWHM || index[0] == r_ROUNDNESS || index[0] == r_BACKGROUND || index[0] == r_NBSTARS);
 			}
 		}
+		gtk_tree_path_free(path);
 	}
 	g_object_set(cell, "sensitive", sensitive, NULL);
 }
