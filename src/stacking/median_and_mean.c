@@ -307,7 +307,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	return ST_OK;
 }
 
-static void stack_read_block_data(struct stacking_args *args, int use_regdata,
+static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 		struct _image_block *my_block, struct _data_block *data,
 		long *naxes, data_type itype, int thread_id) {
 
@@ -321,9 +321,9 @@ static void stack_read_block_data(struct stacking_args *args, int use_regdata,
 		/* area in C coordinates, starting with 0, not cfitsio coordinates. */
 		rectangle area = {0, my_block->start_row, naxes[0], my_block->height};
 
-		if (!get_thread_run()) {
-			return;
-		}
+		if (!get_thread_run())
+			return ST_CANCEL;
+
 		if (use_regdata && args->reglayer >= 0) {
 			/* Load registration data for current image and modify area.
 			 * Here, only the y shift is managed. If possible, the remaining part
@@ -382,10 +382,11 @@ static void stack_read_block_data(struct stacking_args *args, int use_regdata,
 				if (tid == 0)
 #endif
 					siril_log_color_message(_("Error reading one of the image areas\n"), "red");
-				break;
+				return ST_SEQUENCE_ERROR;
 			}
 		}
 	}
+	return ST_OK;
 }
 
 static void normalize_to16bit(int bitpix, double *mean) {
@@ -1172,7 +1173,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		int data_idx = 0;
 		long x, y;
 
-		if (!get_thread_run()) retval = ST_GENERIC_ERROR;
+		if (!get_thread_run()) retval = ST_CANCEL;
 		if (retval) continue;
 #ifdef _OPENMP
 		data_idx = omp_get_thread_num();
@@ -1185,7 +1186,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data = &data_pool[data_idx];
 
 		/**** Step 2: load image data for the corresponding image block ****/
-		stack_read_block_data(args, use_regdata, my_block, data, naxes, itype, data_idx);
+		retval = stack_read_block_data(args, use_regdata, my_block, data, naxes, itype, data_idx);
+		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
 		{
@@ -1218,7 +1220,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			cur_nb++;
 
 			if (!get_thread_run()) {
-				retval = ST_GENERIC_ERROR;
+				retval = ST_CANCEL;
 				break;
 			}
 			if (!(cur_nb % 16))	// every 16 iterations
@@ -1394,7 +1396,9 @@ free_and_close:
 		if (is_mean)
 			set_progress_bar_data(_("Rejection stacking failed. Check the log."), PROGRESS_RESET);
 		else	set_progress_bar_data(_("Median stacking failed. Check the log."), PROGRESS_RESET);
-		siril_log_message(_("Stacking failed.\n"));
+		if (retval == ST_CANCEL)
+			siril_log_message(_("Stacking operation was cancelled.\n"));
+		else siril_log_message(_("Stacking failed.\n"));
 	} else {
 		if (is_mean) {
 			set_progress_bar_data(_("Rejection stacking complete."), PROGRESS_DONE);
