@@ -1083,6 +1083,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
  * convert it to siril's format (USHORT) */
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area) {
+	double data_max = -1.0;
 	int datatype;
 	BYTE *data8;
 	long *pixels_long;
@@ -1136,6 +1137,12 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		case FLOAT_IMG:		// 32-bit floating point pixels
 			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest,
 					&zero, &status);
+
+			status = 0;
+			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
+			if (status == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
+				convert_floats(bitpix, dest, nbdata);
+			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
 		default:
