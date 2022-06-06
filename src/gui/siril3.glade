@@ -7086,7 +7086,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -7105,6 +7105,28 @@ Modifying parameters in this windows afterward will void the colour balance, and
                   </object>
                 </child>
                 <accelerator key="space" signal="clicked"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="drawframe_check">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">When toggled, the outline of the reference image as transformed with registration data is drawn on each image to review image position wrt. reference.</property>
+                <property name="active">True</property>
+                <signal name="toggled" handler="on_draw_frame_toggled" swapped="no"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="pixbuf">pixmaps/frame_dark.svg</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -7148,22 +7170,6 @@ If not set manually, the first image of the sequence is taken as reference.</pro
           <packing>
             <property name="pack-type">end</property>
             <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkCheckButton" id="drawframe_check">
-            <property name="label" translatable="yes">Draw framing</property>
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="tooltip-text" translatable="yes">When checked, the outline of the reference image as transformed with registration data is drawn on each image to review image position wrt. reference.</property>
-            <property name="active">True</property>
-            <property name="draw-indicator">True</property>
-            <signal name="toggled" handler="on_draw_frame_toggled" swapped="no"/>
-          </object>
-          <packing>
-            <property name="pack-type">end</property>
-            <property name="position">4</property>
           </packing>
         </child>
       </object>

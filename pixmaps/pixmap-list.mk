@@ -7,6 +7,8 @@ pixmaps = \
 	curve.svg \
 	export.svg \
 	export_dark.svg \
+	frame.svg \
+	frame_dark.svg \
 	g.svg \
 	grid.svg \
 	histo.svg \

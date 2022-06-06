@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_app_dirs.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -801,4 +802,18 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 		update_reg_interface(FALSE);
 		redraw(REDRAW_OVERLAY);
 	}
+}
+
+void update_icons_sequence_list(gboolean is_dark) {
+	gchar *image;
+	GtkWidget *w;
+	if (is_dark) {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame_dark.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	} else {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	}
+	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
+	gtk_widget_show(w);
 }
