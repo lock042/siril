@@ -472,7 +472,7 @@ int register_3stars(struct registration_args *regargs) {
 			return 1;
 		}
 	}
-
+	delete_selected_area();
 
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
@@ -554,11 +554,12 @@ int register_3stars(struct registration_args *regargs) {
 					k++;
 				}
 			}
-			int test = cvCalculRigidTransform(arrayref, arraycur, nb_stars, &H);
+			double err = cvCalculRigidTransform(arrayref, arraycur, nb_stars, &H);
 			free(arrayref);
 			free(arraycur);
-			if (test) {
+			if (err > current_regdata[i].fwhm) {
 				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+				printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
 				continue;
 			}
 			current_regdata[i].H = H;

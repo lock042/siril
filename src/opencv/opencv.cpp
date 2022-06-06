@@ -792,7 +792,7 @@ int cvClahe(fits *image, double clip_limit, int size) {
 }
 
 // https://igl.ethz.ch/projects/ARAP/svd_rot.pdf
-int cvCalculRigidTransform(s_star *star_array_in,
+double cvCalculRigidTransform(s_star *star_array_in,
 		struct s_star *star_array_out, int n, Homography *Hom) {
 
 	Mat out = Mat(2, n, CV_64FC1);
@@ -805,6 +805,7 @@ int cvCalculRigidTransform(s_star *star_array_in,
 	Mat T = Mat(2, 2, CV_64FC1);
 	Mat R = Mat(2, 2, CV_64FC1);
 	Mat H = Mat(3, 3, CV_64FC1);
+	Mat res = Mat(3, 1, CV_64FC1);
 	Mat outC = Mat(2, 1, CV_64FC1);
 	Mat inC = Mat(2, 1, CV_64FC1);
 	Mat shift = Mat(2, 1, CV_64FC1);
@@ -893,9 +894,17 @@ int cvCalculRigidTransform(s_star *star_array_in,
 	H.at<double>(1,2) = shift.at<double>(1,0);
 	// std::cout << "H\n" << H << std::endl;
 
+	// computing the maximum error
+	double err = 0., norm2;
+	for (int i = 0; i < n; i++) {
+		res = H * (Mat_<double>(3,1) << star_array_out[i].x, star_array_out[i].y, 1) - (Mat_<double>(3,1) << star_array_in[i].x, star_array_in[i].y, 1);
+		norm2 = cv::norm(res);
+		if (norm2 > err) err = norm2;
+	}
+
 	Hom->Inliers = n;
 	convert_MatH_to_H(H, Hom);
 
-	return 0;
+	return err;
 
 }
