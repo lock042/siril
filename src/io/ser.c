@@ -1326,6 +1326,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	for (i = 0; i < sz; i++) {
 		ima_data[i + 0] = (float)fit.pdata[RLAYER][i];
 	}
+	clearfits(&fit);
 
 	i = (int) ceil((float) w / MAX_SIZE);
 	j = (int) ceil((float) h / MAX_SIZE);
