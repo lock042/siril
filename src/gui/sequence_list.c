@@ -688,6 +688,12 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	drawPlot();		// update plots
 }
 
+void on_draw_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	if (!sequence_is_loaded())
+		return;
+	redraw(REDRAW_OVERLAY);
+}
+
 /****************** modification of the list store (tree model) ******************/
 
 void sequence_list_change_selection_index(int index_in_list, int real_index) {

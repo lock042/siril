@@ -1220,6 +1220,8 @@ static void draw_analysis(const draw_data_t* dd) {
 static void draw_regframe(const draw_data_t* dd) {
 	if (!com.script && !sequence_is_loaded()) return;
 	if (!&com.seq) return;
+	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check")))) return;
+	
 	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
 	int activelayer = gtk_combo_box_get_active(GTK_COMBO_BOX(seqcombo));
 	if (!layer_has_registration(&com.seq, activelayer)) return;
