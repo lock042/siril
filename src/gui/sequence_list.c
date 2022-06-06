@@ -682,6 +682,7 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	}
 
 	g_list_free(references);
+	redraw(REDRAW_OVERLAY);
 	sequence_list_change_reference();
 	update_stack_interface(FALSE);// get stacking info and enable the Go button
 	adjust_sellabel();	// reference image is named in the label

@@ -16490,9 +16490,9 @@ Cross marker: the value for the currently loaded frame.</property>
                                                       <item translatable="yes">wFWHM</item>
                                                       <item translatable="yes">Background</item>
                                                       <item translatable="yes"># Stars</item>
-                                                      <item translatable="yes">Quality</item>
                                                       <item translatable="yes">X Position</item>
                                                       <item translatable="yes">Y Position</item>
+                                                      <item translatable="yes">Quality</item>
                                                       <item translatable="yes">Frame</item>
                                                     </items>
                                                     <signal name="changed" handler="on_plotComboX_changed" swapped="no"/>

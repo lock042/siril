@@ -48,6 +48,7 @@
 #include "io/sequence.h"
 #include "gui/gnuplot_i/gnuplot_i.h"
 #include "gui/PSF_list.h"
+#include "opencv/opencv.h"
 
 #define XLABELSIZE 15
 
@@ -95,9 +96,9 @@ static const gchar *registration_labels[] = {
 		N_("wFWHM"),
 		N_("Background"),
 		N_("# Stars"),
-		N_("Quality"),
 		N_("X Position"),
 		N_("Y Position"),
+		N_("Quality"),
 		N_("Frame"),
 };
 
@@ -149,6 +150,10 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double dx, dy;
 	curr.x = -1.0;
 	curr.y = -1.0;
+	double cx,cy;
+	cx = (double)seq->imgparam[ref_image].rx * 0.5;
+	cy = (double)seq->imgparam[ref_image].ry * 0.5;
+	Homography Href = seq->regparam[layer][ref_image].H;
 
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl)
@@ -167,12 +172,11 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				plot->data[j].x = fwhm;
 				break;
 			case r_X_POSITION:
-				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
-				plot->data[j].x = dx;
-				break;
 			case r_Y_POSITION:
-				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
-				plot->data[j].x = dy;
+				dx = cx;
+				dy = cy;
+				cvTransfPoint(&dx, &dy, Href, seq->regparam[layer][i].H);
+				plot->data[j].x = (X_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
@@ -213,12 +217,11 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				plot->data[j].y = fwhm;
 				break;
 			case r_X_POSITION:
-				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
-				plot->data[j].y = dx;
-				break;
 			case r_Y_POSITION:
-				translation_from_H(seq->regparam[layer][i].H, &dx, &dy);
-				plot->data[j].y = dy;
+				dx = cx;
+				dy = cy;
+				cvTransfPoint(&dx, &dy, Href, seq->regparam[layer][i].H);
+				plot->data[j].y = (registration_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
@@ -666,7 +669,7 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 			if (!is_fwhm) {
 				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY || index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
 			} else {
-				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM || index[0] == r_WFWHM || index[0] == r_ROUNDNESS || index[0] == r_BACKGROUND || index[0] == r_NBSTARS);
+				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM || index[0] == r_WFWHM || index[0] == r_ROUNDNESS || index[0] == r_BACKGROUND || index[0] == r_NBSTARS || index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
 			}
 		}
 		gtk_tree_path_free(path);
@@ -726,10 +729,10 @@ static void validate_combos() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), X_selected_source);
 		gtk_widget_set_sensitive(comboX, TRUE);
-		if ((!is_fwhm) && registration_selected_source < r_QUALITY) {
+		if ((!is_fwhm) && registration_selected_source < r_X_POSITION) {
 			registration_selected_source = r_QUALITY;
 		}
-		if ((is_fwhm) && registration_selected_source > r_NBSTARS) {
+		if ((is_fwhm) && registration_selected_source > r_Y_POSITION) {
 			registration_selected_source = r_FWHM;
 		}
 	}
@@ -836,10 +839,10 @@ void drawPlot() {
 		pldata *plot;
 		gtk_widget_set_visible(arcsec, current_selected_source == FWHM && arcsec_is_ok);
 		update_ylabel();
-		ref.x = -1.0;
-		ref.y = -1.0;
-		curr.x = -1.0;
-		curr.y = -1.0;
+		ref.x = -DBL_MAX;
+		ref.y = -DBL_MAX;
+		curr.x = -DBL_MAX;
+		curr.y = -DBL_MAX;
 
 		plot = alloc_plot_data(seq->number);
 		plot_data = plot;
@@ -1052,11 +1055,11 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 			free(avg);
 		}
 
-		if (ref.x >= 0.0 && ref.y >= 0.0) {
+		if (ref.x >= -DBL_MAX && ref.y >= -DBL_MAX) {
 			ref_d = kdata_array_alloc(&ref, 1);
 			kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
 		}
-		if (curr.x >= 0.0 && curr.y >= 0.0) {
+		if (curr.x >= -DBL_MAX && curr.y >= -DBL_MAX) {
 			curr_d = kdata_array_alloc(&curr, 1);
 			kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
 		}
@@ -1181,10 +1184,10 @@ static void update_ylabel() {
 				ylabel = (is_arcsec) ? _("wFWHM ('')") : _("wFWHM (px)");
 				break;
 			case r_X_POSITION:
-				ylabel = _("Star position on X axis");
+				ylabel = _("Shift on X axis");
 				break;
 			case r_Y_POSITION:
-				ylabel = _("Star position on Y axis");
+				ylabel = _("Shift on Y axis");
 				break;
 			case r_QUALITY:
 				ylabel = _("Quality");
@@ -1209,10 +1212,10 @@ static void update_ylabel() {
 				xlabel = (is_arcsec) ? _("wFWHM ('')") : _("wFWHM (px)");
 				break;
 			case r_X_POSITION:
-				xlabel = _("Star position on X axis");
+				xlabel = _("Shift on X axis");
 				break;
 			case r_Y_POSITION:
-				xlabel = _("Star position on Y axis");
+				xlabel = _("Shift on Y axis");
 				break;
 			case r_QUALITY:
 				xlabel = _("Quality");
