@@ -1,6 +1,7 @@
 v1.0.3 June --, 2022
 
 * Fixed memory leak in PixelMath
+* Fixed memory leak in SER preview
 * Fixed error in seqsubsky
 * Fixed the start of two scripts from @ in succession
 * Fixed homogeneous image bitpix detection on stacking
