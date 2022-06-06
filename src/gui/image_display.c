@@ -1225,8 +1225,11 @@ static void draw_regframe(const draw_data_t* dd) {
 	if (!layer_has_registration(&com.seq, activelayer)) return;
 	if (com.seq.current == com.seq.reference_image) return;
 
-	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == -2) return; // reference image H matrix is null matrix
-	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == -2) return; // current image H matrix is null or identity
+	int Htyperef = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H);
+	int Htypecur = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H);
+	if (Htyperef == -2) return; // reference image H matrix is null matrix
+	if (Htypecur == -2) return; // current image H matrix is null
+	if ((Htyperef == -1) && (Htypecur == -1)) return; // both matrices are identity, avoid showing frames on r_ type sequences
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;
@@ -1242,8 +1245,6 @@ static void draw_regframe(const draw_data_t* dd) {
 
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_rectangle(cr, 0., 0., (double)com.seq.imgparam[com.seq.current].rx, (double)com.seq.imgparam[com.seq.current].ry); // to clip the framing
-	cairo_clip(cr);
 	cairo_set_source_rgb(cr, 1.0, 0.8, 0.7);
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	cairo_move_to(cr, framing.pt[0].x, framing.pt[0].y);
