@@ -173,9 +173,14 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_X_POSITION:
 			case r_Y_POSITION:
+				// compute the center of image i in the axes of the reference frame
+				// TODO - check if we need to pass the size of current image
+				// dx = (double)seq->imgparam[i].rx * 0.5;
+				// dy = (double)seq->imgparam[i].ry * 0.5;
 				dx = cx;
 				dy = cy;
-				cvTransfPoint(&dx, &dy, Href, seq->regparam[layer][i].H);
+				// TODO - add check on validity of H
+				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href);
 				plot->data[j].x = (X_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:
@@ -218,9 +223,12 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_X_POSITION:
 			case r_Y_POSITION:
+				// compute the center of image i in the axes of the reference frame
+				// dx = (double)seq->imgparam[i].rx * 0.5;
+				// dy = (double)seq->imgparam[i].ry * 0.5;
 				dx = cx;
 				dy = cy;
-				cvTransfPoint(&dx, &dy, Href, seq->regparam[layer][i].H);
+				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href);
 				plot->data[j].y = (registration_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:

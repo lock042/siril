@@ -414,6 +414,7 @@ void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
 	ref(2,0) = 1.;
 	convert_H_to_MatH(&Href, H0);
 	convert_H_to_MatH(&Himg, H1);
+	if (cv::determinant(H1) == 0) return;
 	dst = H1.inv() * H0 * ref;
 	*x = dst(0,0);
 	*y = dst(1,0);
