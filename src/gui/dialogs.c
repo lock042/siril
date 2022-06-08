@@ -26,6 +26,7 @@
 #include "filters/asinh.h"
 #include "filters/deconv.h"
 #include "filters/clahe.h"
+#include "filters/payne.h"
 #include "filters/saturation.h"
 #include "filters/wavelets.h"
 
@@ -50,6 +51,7 @@ static const SirilDialogEntry entries[] =
 		{"ImagePlateSolver_Dial", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"linearmatch_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"Median_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+		{"payne_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_payne_cancel},
 		{"pixel_math_dialog", OTHER_DIALOG, FALSE, NULL},
 		{"resample_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"rgradient_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},

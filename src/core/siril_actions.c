@@ -479,6 +479,10 @@ void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer
 	siril_open_dialog("deconvolution_dialog");
 }
 
+void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("payne_dialog");
+}
+
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("resample_dialog");
 }

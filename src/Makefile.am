@@ -139,6 +139,8 @@ siril_common_SOURCES = \
 	filters/median.h \
 	filters/mtf.c \
 	filters/mtf.h \
+	filters/payne.c \
+	filters/payne.h \
 	filters/rgradient.c \
 	filters/rgradient.h \
 	filters/saturation.c \

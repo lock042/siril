@@ -100,6 +100,7 @@ static GActionEntry any_mono_processing_entries[] = {
 
 static GActionEntry single_processing_entries[] = {
 		{ "asinh-processing", asinh_activate },
+		{ "payne-processing", payne_activate },
 		{ "deconvolution-processing", deconvolution_activate },
 		{ "resample-processing", resample_activate },
 		{ "rotation-processing", rotation_activate },
