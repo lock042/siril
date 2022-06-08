@@ -68,6 +68,7 @@ static command commands[] = {
 	{"fmul", 1, "fmul scalar", process_fmul, STR_FMUL, TRUE},
 
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE},
+	{"genhyp", 5, "genhyp [-human] [-inverse] stretch_factor stretch_intensity shadow_preservation stretch_focal_point headroom_preservation [black_point_offset]", process_payne, STR_PAYNE, TRUE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE},
 
 	{"help", 0, "help", process_help, STR_HELP, FALSE},
@@ -103,7 +104,6 @@ static command commands[] = {
 
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess, STR_PREPROCESS, TRUE},
 	{"psf", 0, "psf", process_psf, STR_PSF, FALSE},
-
 	{"register", 1, "register sequence [-norot] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=]", process_register, STR_REGISTER, TRUE},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE},
 	{"requires", 1, "requires", process_requires, STR_REQUIRES, TRUE},

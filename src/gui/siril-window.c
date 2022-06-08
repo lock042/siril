@@ -98,6 +98,7 @@ static GActionEntry any_mono_processing_entries[] = {
 
 static GActionEntry single_processing_entries[] = {
 		{ "asinh-processing", asinh_activate },
+		{ "payne-processing", payne_activate },
 		{ "deconvolution-processing", deconvolution_activate },
 		{ "resample-processing", resample_activate },
 		{ "rotation-processing", rotation_activate },
@@ -190,6 +191,7 @@ void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gbo
 void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *single_processing_actions[] = {
 		"asinh-processing",
+		"payne-processing",
 		"deconvolution-processing",
 		"resample-processing",
 		"rotation-processing",

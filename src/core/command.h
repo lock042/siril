@@ -69,6 +69,7 @@ int	process_nozero(int nb);
 
 int	process_offset(int nb);
 
+int	process_payne(int nb);
 int	process_preprocess(int nb);
 int	process_psf(int nb);
 

@@ -107,6 +107,6 @@ void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-
+void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

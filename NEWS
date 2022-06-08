@@ -8,6 +8,7 @@ v1.0.3 June --, 2022
 * Fixed dates in median and mean stack results
 * Fixed bug in stack of some float images
 * Added new thread for background extraction that does not freeze UI, with a progressbar for RBF
+* Added generalised hyperbolic transform stretch method in Image Processing menu, based on algorithms proposed by David Payne in the astrobin forums
 
 v1.0.2 May 16, 2022
 

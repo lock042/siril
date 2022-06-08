@@ -69,6 +69,7 @@
 #include "filters/deconv.h"
 #include "filters/median.h"
 #include "filters/fft.h"
+#include "filters/payne.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
 #include "filters/scnr.h"
@@ -587,6 +588,74 @@ int process_wrecons(int nb) {
 		else return 1;
 		g_free(dir[i]);
 	}
+
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	return 0;
+}
+
+int process_payne(int nb) {
+	gboolean human_luminance = FALSE;
+	gboolean payne_inverse = FALSE;
+	int arg_offset = 0;
+	if (!strcmp(word[1], "-human")) {
+		human_luminance = TRUE;
+		arg_offset = 1;
+	}
+	if (!strcmp(word[1], "-inverse")) {
+		payne_inverse = TRUE;
+		arg_offset = 1;
+	}
+	if (!strcmp(word[2], "-inverse")) {
+		payne_inverse = TRUE;
+		arg_offset++;
+	}
+	if (nb <= arg_offset + 5)
+		return 1;
+
+	double D = g_ascii_strtod(word[arg_offset+1], NULL);
+	if ((D < 0.0) || (D > 10.0)) {
+		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
+		return 1;
+	}
+
+	double B = g_ascii_strtod(word[arg_offset+2],NULL);
+	if ((B < -5.0) || (B > 15.0)) {
+		siril_log_message(_("Stretch intensity B must be between -5 and +15\\n"));
+		return 1;
+	}
+
+	double SP = g_ascii_strtod(word[arg_offset+4],NULL);
+	if ((SP < 0.0) || (SP > 1.0)) {
+		siril_log_message(_("Stretch focal point SP must be between 0 and 1\\n"));
+		return 1;
+	}
+
+	double LP = g_ascii_strtod(word[arg_offset+3],NULL);
+	if ((LP < 0.0) || (LP > SP)) {
+		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\\n"));
+		return 1;
+	}
+
+	double HP = g_ascii_strtod(word[arg_offset+5],NULL);
+	if ((HP < SP) || (HP > 1.0)) {
+		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\\n"));
+		return 1;
+	}
+
+	double BP = 0.0;
+	gchar *end;
+	if (nb > 6 + arg_offset) {
+		BP = g_ascii_strtod(word[6+arg_offset], &end);
+		if (end == word[2+arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2+arg_offset]);
+			return 1;
+		}
+	}
+
+	set_cursor_waiting(TRUE);
+	paynelut(&gfit, D, B, LP, SP, HP, BP, human_luminance, payne_inverse);
 
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -4226,3 +4295,4 @@ int process_boxselect(int nb){
 	}
 	return 0;
 }
+
