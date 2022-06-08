@@ -54,6 +54,7 @@ src/filters/deconv.c
 src/filters/fft.c
 src/filters/median.c
 src/filters/mtf.c
+src/filters/payne.c
 src/filters/rgradient.c
 src/filters/saturation.c
 src/filters/scnr.c
