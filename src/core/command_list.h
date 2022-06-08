@@ -115,6 +115,7 @@ static command commands[] = {
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"genhyp", 5, "genhyp [-human] [-inverse] stretch_factor stretch_intensity shadow_preservation stretch_focal_point headroom_preservation [black_point_offset]", process_payne, STR_PAYNE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pm", 1, "pm \"expression\"", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE, REQ_CMD_NONE},

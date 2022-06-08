@@ -10,7 +10,8 @@ xx/xx/22
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored registration and added Apply Existing Registration method
 * Added background level and number of stars to stored registation data and plots
-* Added commands: seqtilt, autostretch, autostretch_linked, dumpheader, psf, seqclean, seqapplyreg
+* Added generalised hyperbolic transform stretch method in Image Processing menu, based on algorithms proposed by David Payne in the astrobin forums
+* Added commands: seqtilt, autostretch, autostretch_linked, dumpheader, psf, seqclean, seqapplyreg, genhyp
 * Added KOMBAT alogrithm for registration and removed deprecated ECC
 * Added chosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)
