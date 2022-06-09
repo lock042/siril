@@ -1242,18 +1242,54 @@ static void draw_regframe(const draw_data_t* dd) {
 	framing.pt[2].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
 	framing.pt[3].x = 0.;
 	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
-	for (int i = 0; i < 4; i++)
+	double cogx = 0., cogy = 0., cx, cy;
+	for (int i = 0; i < 4; i++) {
 		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H);
+		cogx += framing.pt[i].x;
+		cogy += framing.pt[i].y;
+	}
+	cogx *= 0.25;
+	cogy *= 0.25;
+	cx = (com.seq.is_variable) ? (double)com.seq.imgparam[com.seq.current].rx * 0.5 : (double)com.seq.rx * 0.5;
+	cy = (com.seq.is_variable) ? (double)com.seq.imgparam[com.seq.current].ry * 0.5 : (double)com.seq.ry * 0.5;
 
 	cairo_t *cr = dd->cr;
+	double size = 10. / dd->zoom;
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_source_rgb(cr, 1.0, 0.8, 0.7);
+	cairo_set_source_rgb(cr, 1., 0., 0.);
+
+	// reference frame
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	cairo_move_to(cr, framing.pt[0].x, framing.pt[0].y);
 	cairo_line_to(cr, framing.pt[1].x, framing.pt[1].y);
 	cairo_line_to(cr, framing.pt[2].x, framing.pt[2].y);
 	cairo_line_to(cr, framing.pt[3].x, framing.pt[3].y);
 	cairo_line_to(cr, framing.pt[0].x, framing.pt[0].y);
+	cairo_stroke(cr);
+	// reference origin
+	double dx1 = framing.pt[1].x - framing.pt[0].x;
+	double dy1 = framing.pt[1].y - framing.pt[0].y;
+	double dx2 = framing.pt[3].x - framing.pt[0].x;
+	double dy2 = framing.pt[3].y - framing.pt[0].y;
+
+	double l1 = sqrt(pow(dx1, 2.0) + pow(dy1, 2.));
+	double l2 = sqrt(pow(dx2, 2.0) + pow(dy2, 2.));
+	cairo_move_to(cr, framing.pt[0].x, framing.pt[0].y);
+	cairo_line_to(cr, framing.pt[0].x + dx1 / l1 * size, framing.pt[0].y + dy1 / l1 * size);
+	cairo_line_to(cr, framing.pt[0].x + dx2 / l2 * size, framing.pt[0].y + dy2 / l2 * size);
+	cairo_line_to(cr, framing.pt[0].x, framing.pt[0].y);
+	cairo_stroke(cr);
+
+	// reference center
+	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * M_PI);
+	cairo_stroke(cr);
+	// current center
+	cairo_set_source_rgb(cr, 0., 1., 0.);
+	cairo_move_to(cr, cx - size * 0.5, cy);
+	cairo_rel_line_to(cr, size, 0.);
+	cairo_stroke(cr);
+	cairo_move_to(cr, cx, cy - size * 0.5);
+	cairo_rel_line_to(cr, 0., size);
 	cairo_stroke(cr);
 }
 
