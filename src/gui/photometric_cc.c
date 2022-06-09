@@ -89,8 +89,9 @@ static void start_photometric_cc() {
 	}
 
 	pcc_args->fit = &gfit;
-	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);;
-	pcc_args->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);;
+	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
+	pcc_args->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
+	pcc_args->catalog = get_photometry_catalog();
 
 	set_cursor_waiting(TRUE);
 
@@ -99,6 +100,7 @@ static void start_photometric_cc() {
 			start_in_new_thread(match_catalog, args);
 		}
 	} else {
+		control_window_switch_to_tab(OUTPUT_LOGS);
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
 }
@@ -585,19 +587,34 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 
 	/* for now, only from online sources */
+	const gchar *cat = NULL;
 	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
 	double fov = resolution  * args->fit->rx;	// fov in degrees
 	double mag = compute_mag_limit_from_fov(fov);
-	mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
+
+	switch(args->catalog) {
+	case APASS:
+		cat = "APASS";
+		mag = min(mag, 17.0);	// in APASS, B is available for V < 17
+		break;
+	case NOMAD:
+		cat = "NOMAD";
+		mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
+		break;
+	default:
+		siril_log_color_message(_("No valid catalog found.\n"), "red");
+		return GINT_TO_POINTER(1);
+	}
 	siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), fov, mag);
 
-	GFile *catalog_file = download_catalog(NOMAD, center, fov*60.0, mag);
+	GFile *catalog_file = download_catalog(args->catalog, center, fov * 60.0, mag);
 	siril_world_cs_unref(center);
 	if (!catalog_file) {
 		siril_log_message(_("Could not download the online star catalog."));
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
+	siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
 
 	/* project using WCS */
 	pcc_star *stars;
