@@ -72,6 +72,8 @@ gboolean forcecwd = FALSE;
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
 static gchar *main_option_initfile = NULL;
+static gchar *main_option_rpipe_path = NULL;
+static gchar *main_option_wpipe_path = NULL;
 static gboolean main_option_pipe = FALSE;
 
 static gboolean _print_version_and_exit(const gchar *option_name,
@@ -104,6 +106,8 @@ static GOptionEntry main_option[] = {
 	{ "script", 's', 0, G_OPTION_ARG_FILENAME, &main_option_script, N_("run the siril commands script in console mode. If argument is equal to \"-\", then siril will read stdin input"), NULL },
 	{ "initfile", 'i', 0, G_OPTION_ARG_FILENAME, &main_option_initfile, N_("load configuration from file name instead of the default configuration file"), NULL },
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
+	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe"), NULL },
+	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
 	{ "copyright", 'c', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_copyright_and_exit, N_("print the copyright"), NULL},
@@ -287,8 +291,8 @@ static void siril_app_activate(GApplication *application) {
 				exit(EXIT_FAILURE);
 			}
 		} else {
-			pipe_start();
-			read_pipe(NULL);
+			pipe_start(main_option_rpipe_path, main_option_wpipe_path);
+			read_pipe(main_option_rpipe_path);
 		}
 	}
 	if (!com.headless) {
