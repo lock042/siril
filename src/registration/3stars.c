@@ -198,6 +198,17 @@ psf_end:
 	return args->retval;
 }
 
+static void _3stars_free_results() {
+	if (!results) return;
+	for (int i = 0; i < results_size; i++) {
+		for (int s = 0; s < 3; s++)
+			if (results[i].stars[s])
+				free(results[i].stars[s]);
+	}
+	free(results);
+	results = NULL;
+}
+
 static int _3stars_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
@@ -433,13 +444,6 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 
 	generic_sequence_worker(args);
 	
-	for (int i = 0; i < results_size; i++) {
-		for (int s = 0; s < 3; s++)
-			if (results[i].stars[s])
-				free(results[i].stars[s]);
-	}
-	free(results);
-	results = NULL;
 	reset_3stars();
 	return args->retval;
 }
@@ -452,6 +456,8 @@ Registration data is saved to the input sequence in any case
 */
 int register_3stars(struct registration_args *regargs) {
 	// TODO: we should reset_3stars at all possible escapes alomg the process
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	int nb_stars_ref = 0;
 	int refimage = regargs->reference_image;
 	Homography H = { 0 };
@@ -469,6 +475,7 @@ int register_3stars(struct registration_args *regargs) {
 		// before we proceed with next star
 		if ((selected_stars == 2 && nb_stars_ref <= i) || (selected_stars == 3 && i == 1 && nb_stars_ref == 0)) {
 			siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
+			_3stars_free_results();
 			return 1;
 		}
 	}
@@ -481,9 +488,12 @@ int register_3stars(struct registration_args *regargs) {
 	msg = siril_log_message(_("Saving the transformation matrices\n"));
 	msg[strlen(msg)-1] = '\0';
 	set_progress_bar_data(msg, PROGRESS_RESET);
+	int processed = 0, failed = 0;
 
 	/* set regparams for current sequence before closing it */
 	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+		processed++;
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
 		if (!(i % 32)) {
@@ -522,6 +532,7 @@ int register_3stars(struct registration_args *regargs) {
 			current_regdata[i].number_of_stars = nb_stars;
 		} else {
 			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+			failed++;
 			continue;
 		} 
 
@@ -535,6 +546,7 @@ int register_3stars(struct registration_args *regargs) {
 		if (i != refimage) {
 			if (nb_stars < 2) {
 				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+				failed++;
 				continue;
 			}
 			struct s_star *arrayref, *arraycur, *starsin, *starsout;
@@ -560,6 +572,7 @@ int register_3stars(struct registration_args *regargs) {
 			if (err > current_regdata[i].fwhm) {
 				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 				printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
+				failed++;
 				continue;
 			}
 			current_regdata[i].H = H;
@@ -569,27 +582,19 @@ int register_3stars(struct registration_args *regargs) {
 		// H computation was sucessful, include the image
 		regargs->seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	// cleaning
+	regargs->new_total = processed - failed;
+	_3stars_free_results();
+
 	if (!regargs->no_output) {
 		return _3stars_alignment(regargs, current_regdata);
 	} else {
-		for (int i = 0; i < results_size; i++) {
-			for (int s = 0; s < 3; s++)
-				if (results[i].stars[s])
-					free(results[i].stars[s]);
-		}
-		free(results);
-		results = NULL;
 		reset_3stars();
-
-		// fix_selnum(regargs->seq, FALSE);
-		// siril_log_message(_("Registration finished.\n"));
-		// gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", regargs->seq->selnum);
-		// str = g_strdup_printf(str, args->nb_filtered_images);
-		// siril_log_color_message(str, "green");
-		// siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
-
-		// g_free(str);
+		fix_selnum(regargs->seq, FALSE);
+		siril_log_message(_("Registration finished.\n"));
+		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
 		return 0;
 	}
 }
