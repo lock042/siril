@@ -1225,13 +1225,11 @@ static void draw_regframe(const draw_data_t* dd) {
 	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
 	int activelayer = gtk_combo_box_get_active(GTK_COMBO_BOX(seqcombo));
 	if (!layer_has_registration(&com.seq, activelayer)) return;
-	if (com.seq.current == com.seq.reference_image) return;
 
 	int Htyperef = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H);
 	int Htypecur = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H);
 	if (Htyperef == -2) return; // reference image H matrix is null matrix
 	if (Htypecur == -2) return; // current image H matrix is null
-	if ((Htyperef == -1) && (Htypecur == -1)) return; // both matrices are identity, avoid showing frames on r_ type sequences
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;
@@ -1274,10 +1272,8 @@ static void draw_regframe(const draw_data_t* dd) {
 
 	double l1 = sqrt(pow(dx1, 2.0) + pow(dy1, 2.));
 	double l2 = sqrt(pow(dx2, 2.0) + pow(dy2, 2.));
-	cairo_move_to(cr, framing.pt[0].x, framing.pt[0].y);
-	cairo_line_to(cr, framing.pt[0].x + dx1 / l1 * size, framing.pt[0].y + dy1 / l1 * size);
+	cairo_move_to(cr, framing.pt[0].x + dx1 / l1 * size, framing.pt[0].y + dy1 / l1 * size);
 	cairo_line_to(cr, framing.pt[0].x + dx2 / l2 * size, framing.pt[0].y + dy2 / l2 * size);
-	cairo_line_to(cr, framing.pt[0].x, framing.pt[0].y);
 	cairo_stroke(cr);
 
 	// reference center
