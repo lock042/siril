@@ -36,7 +36,7 @@
 static gboolean payne_rgb_space = FALSE;
 static double payne_b = 0.5, payne_D = 0.0, payne_SP = 0.00, payne_LP = 0.0, payne_HP = 1.00, payne_black_value = 0.0;
 static gboolean payne_show_preview;
-static gboolean payne_inverse = FALSE;
+static int payne_stretchtype = STRETCH_PAYNE_NORMAL;
 // Set up intermediate variables for stretch calculations
 static double qlp = 0.0, q0 = 0.0, qwp = 0.0, q1 = 0.0, q = 0.0, b1 = 0.0, a1 = 0.0, a2 = 0.0, b2 = 0.0, c2 = 0.0, d2 = 0.0, e2 = 0.0, a3 = 0.0, b3 = 0.0, c3 = 0.0, d3 = 0.0, e3 = 0.0, a4 = 0.0, b4 = 0.0, LPT = 0.0, SPT = 0.0, HPT = 0.0;
 
@@ -59,7 +59,7 @@ static void payne_close(gboolean revert) {
 
 static int payne_update_preview() {
 	copy_backup_to_gfit();
-	paynelut(&gfit, payne_b, payne_D, payne_LP, payne_SP, payne_HP, payne_black_value, payne_rgb_space, payne_inverse);
+	paynelut(&gfit, payne_b, payne_D, payne_LP, payne_SP, payne_HP, payne_black_value, payne_rgb_space, payne_stretchtype);
 	return 0;
 }
 
@@ -234,48 +234,49 @@ static int payne_precompute(double B, double D, double LP, double SP, double HP,
 	return 0;
 }
 
-static double payne_compute(double in, double x, double B, double D, double LP, double SP, double HP, int stretchtype) {
+static double payne_compute(double in, double x, double B, double D, double LP, double SP, double HP, double BP, int stretchtype) {
 	double out;
 	if (stretchtype == STRETCH_PAYNE_NORMAL || stretchtype == STRETCH_PAYNE_INVERSE) {
+		in = max (0, in - BP);
 		if (D == 0.0) {
 		out = in;
 		} else if (stretchtype == STRETCH_PAYNE_NORMAL) {
 			if (B == -1.0) {
-				if (x < LP) {
+				if (in < LP) {
 					out = b1 * in;
-				} else if (x < SP) {
+				} else if (in < SP) {
 					out = a2 + b2 * log(c2 + d2 * in);
-				} else if (x < HP) {
+				} else if (in < HP) {
 					out = a3 + b3 * log(c3 + d3 * in);
 				} else {
 					out = a4 + b4 * in;
 				}
 			} else if ((B != -1.0) && (B < 0)) {
-				if (x < LP) {
+				if (in < LP) {
 					out = b1 * in;
-				} else if (x < SP) {
+				} else if (in < SP) {
 					out = a2 + b2 * pow((c2 + d2 * in), e2);
-				} else if (x < HP) {
+				} else if (in < HP) {
 					out = a3 + b3 * pow((c3 + d3 * in), e3);
 				} else {
 					out = a4 + b4 * in;
 				}
 			} else if (B == 0) {
-				if (x < LP) {
+				if (in < LP) {
 					out = a1 + b1 * in;
-				} else if (x < SP) {
+				} else if (in < SP) {
 					out = a2 + b2 * exp(c2 + d2 * in);
-				} else if (x < HP) {
+				} else if (in < HP) {
 					out = a3 + b3 * exp(c3 + d3 * in);
 				} else {
 					out = a4 + b4 * in;
 				}
 			} else if (B > 0) {
-				if (x < LP) {
+				if (in < LP) {
 					out = b1 * in;
-				} else if (x < SP) {
+				} else if (in < SP) {
 					out = a2 + b2 * pow((c2 + d2 * in), e2);
-				} else if (x < HP) {
+				} else if (in < HP) {
 					out = a3 + b3 * pow((c3 + d3 * in), e3);
 				} else {
 					out = a4 + b4 * in;
@@ -283,44 +284,44 @@ static double payne_compute(double in, double x, double B, double D, double LP, 
 			}
 		} else if (stretchtype == STRETCH_PAYNE_INVERSE) {
 			if (B == -1.0) {
-				if (x < LPT) {
-					out = b1 * x;
-				} else if (x < SPT) {
-					out = a2 + b2 * exp(c2 + d2 * x);
-				} else if (x < HPT) {
-					out = a3 + b3 * exp(c3 + d3 * x);
+				if (in < LPT) {
+					out = b1 * in;
+				} else if (in < SPT) {
+					out = a2 + b2 * exp(c2 + d2 * in);
+				} else if (in < HPT) {
+					out = a3 + b3 * exp(c3 + d3 * in);
 				} else {
-					out = a4 + b4 * x;
+					out = a4 + b4 * in;
 				}
 			} else if ((B != -1.0) && (B < 0)) {
-				if (x < LPT) {
-					out = b1 * x;
-				} else if (x < SPT) {
-					out = a2 + b2 * pow((c2 + d2 * x), e2);
-				} else if (x < HPT) {
-					out = a3 + b3 * pow((c3 + d3 * x), e3);
+				if (in < LPT) {
+					out = b1 * in;
+				} else if (in < SPT) {
+					out = a2 + b2 * pow((c2 + d2 * in), e2);
+				} else if (in < HPT) {
+					out = a3 + b3 * pow((c3 + d3 * in), e3);
 				} else {
-					out = a4 + b4 * x;
+					out = a4 + b4 * in;
 				}
 			} else if (B == 0) {
-				if (x < LPT) {
-					out = a1 + b1 * x;
-				} else if (x < SPT) {
-					out = a2 + b2 * log(c2 + d2 * x);
-				} else if (x < HPT) {
-					out = a3 + b3 * log(c3 + d3 * x);
+				if (in < LPT) {
+					out = a1 + b1 * in;
+				} else if (in < SPT) {
+					out = a2 + b2 * log(c2 + d2 * in);
+				} else if (in < HPT) {
+					out = a3 + b3 * log(c3 + d3 * in);
 				} else {
-					out = a4 + b4 * x;
+					out = a4 + b4 * in;
 				}
 			} else if (B > 0) {
-				if (x < LPT) {
-					out = b1 * x;
-				} else if (x < SPT) {
-					out = a2 + b2 * pow((c2 + d2 * x), e2);
-				} else if (x < HPT) {
-					out = a3 + b3 * pow((c3 + d3 * x), e3);
+				if (in < LPT) {
+					out = b1 * in;
+				} else if (in < SPT) {
+					out = a2 + b2 * pow((c2 + d2 * in), e2);
+				} else if (in < HPT) {
+					out = a3 + b3 * pow((c3 + d3 * in), e3);
 				} else {
-					out = a4 + b4 * x;
+					out = a4 + b4 * in;
 				}
 			}
 		}
@@ -347,13 +348,14 @@ static int paynelut_ushort(fits *fit, double B, double D, double LP, double SP, 
 #endif
 		for (i = 0; i < n; i++) {
 
-			double r = buf[RLAYER][i]*invnorm - BP;
-			double g = buf[GLAYER][i]*invnorm - BP;
-			double b = buf[BLAYER][i]*invnorm - BP;
+			double r = buf[RLAYER][i]*invnorm;
+			double g = buf[GLAYER][i]*invnorm;
+			double b = buf[BLAYER][i]*invnorm;
 			double x = factor_red * r + factor_green * g + factor_blue * b;
-			buf[RLAYER][i] = round_to_WORD(payne_compute(r, x, B, expD, LP, SP, HP, stretchtype) * norm);
-			buf[GLAYER][i] = round_to_WORD(payne_compute(g, x, B, expD, LP, SP, HP, stretchtype) * norm);
-			buf[BLAYER][i] = round_to_WORD(payne_compute(b, x, B, expD, LP, SP, HP, stretchtype) * norm);
+			double z = payne_compute(x, x, B, expD, LP, SP, HP, BP, stretchtype);
+			buf[RLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(min(1.0, max(0.0, r * (z / x) * norm)));
+			buf[GLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(min(1.0, max(0.0, g * (z / x) * norm)));
+			buf[BLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(min(1.0, max(0.0, b * (z / x) * norm)));
 		}
 	} else {
 #ifdef _OPENMP
@@ -361,8 +363,8 @@ static int paynelut_ushort(fits *fit, double B, double D, double LP, double SP, 
 #endif
 		for (i = 0; i < n; i++) {
 
-			double x = buf[RLAYER][i]*invnorm - BP;
-			buf[RLAYER][i] = round_to_WORD(payne_compute(x, x, B, expD, LP, SP, HP, stretchtype) * norm);
+			double x = buf[RLAYER][i]*invnorm;
+			buf[RLAYER][i] = round_to_WORD(payne_compute(x, x, B, expD, LP, SP, HP, BP, stretchtype) * norm);
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -386,34 +388,29 @@ static int paynelut_float(fits *fit, double B, double D, double LP, double SP, d
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double r = buf[RLAYER][i] - BP;
-			double g = buf[GLAYER][i] - BP;
-			double b = buf[BLAYER][i] - BP;
+			double r = buf[RLAYER][i];
+			double g = buf[GLAYER][i];
+			double b = buf[BLAYER][i];
 			double x = factor_red * r + factor_green * g + factor_blue * b;
-			buf[RLAYER][i] = payne_compute(r, x, B, expD, LP, SP, HP, stretchtype);
-			buf[GLAYER][i] = payne_compute(g, x, B, expD, LP, SP, HP, stretchtype);
-			buf[BLAYER][i] = payne_compute(b, x, B, expD, LP, SP, HP, stretchtype);
+			double z = payne_compute(x, x, B, expD, LP, SP, HP, BP, stretchtype);
+			buf[RLAYER][i] = (x == 0.0) ? 0.0 : min(1.0, max(0.0, r * (z / x)));
+			buf[GLAYER][i] = (x == 0.0) ? 0.0 : min(1.0, max(0.0, g * (z / x)));
+			buf[BLAYER][i] = (x == 0.0) ? 0.0 :min(1.0, max(0.0, b * (z / x)));
 		}
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x = buf[RLAYER][i] - BP;
-			buf[RLAYER][i] = payne_compute(x, x, B, expD, LP, SP, HP, stretchtype);
+			double x = buf[RLAYER][i];
+			buf[RLAYER][i] = payne_compute(x, x, B, expD, LP, SP, HP, BP, stretchtype);
 		}
 	}
 	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
-int paynelut(fits *fit, double beta, double intensity, double lower, double shoulder, double headroom, double offset, gboolean human_luminance, gboolean inverted) {
-	int stretchtype;
-	if (!inverted) {
-		stretchtype = STRETCH_PAYNE_NORMAL;
-	} else {
-		stretchtype = STRETCH_PAYNE_INVERSE;
-	}
+int paynelut(fits *fit, double beta, double intensity, double lower, double shoulder, double headroom, double offset, gboolean human_luminance, int stretchtype) {
 	if (fit->type == DATA_USHORT)
 		return paynelut_ushort(fit, beta, intensity, lower, shoulder, headroom, offset, human_luminance, stretchtype);
 	if (fit->type == DATA_FLOAT)
@@ -422,7 +419,7 @@ int paynelut(fits *fit, double beta, double intensity, double lower, double shou
 }
 
 static void apply_payne_changes() {
-	gboolean status = (payne_b != 0.5) || (payne_D != 0.0) || (payne_SP != 0.0) || (payne_HP != 1.0) || (payne_LP != 0.0) || !payne_rgb_space || payne_inverse;
+	gboolean status = (payne_b != 0.5) || (payne_D != 0.0) || (payne_SP != 0.0) || (payne_HP != 1.0) || (payne_LP != 0.0) || !payne_rgb_space;
 	payne_close(!status);
 }
 
@@ -449,7 +446,6 @@ void on_payne_dialog_show(GtkWidget *widget, gpointer user_data) {
 	payne_LP = 0.0;
 	payne_black_value = 0.0;
 	payne_rgb_space = TRUE;
-//	payne_show_preview = TRUE;
 
 	set_notify_block(TRUE);
 	gtk_toggle_button_set_active(toggle_rgb, payne_rgb_space);
@@ -610,9 +606,6 @@ void on_payne_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void on_payne_inverse_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (payne_inverse == TRUE) {
-		payne_inverse = FALSE;
-	} else payne_inverse = TRUE;
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = payne_update_preview;
 	param->show_preview = payne_show_preview;

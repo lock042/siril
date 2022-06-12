@@ -88,9 +88,9 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean RGBspace) {
 
 			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
 
-			buf[RLAYER][i] = round_to_WORD((r - offset) * k * norm);
-			buf[GLAYER][i] = round_to_WORD((g - offset) * k * norm);
-			buf[BLAYER][i] = round_to_WORD((b - offset) * k * norm);
+			buf[RLAYER][i] = round_to_WORD(min(1.0, max(0.0,(r - offset) * k * norm)));
+			buf[GLAYER][i] = round_to_WORD(min(1.0, max(0.0,(g - offset) * k * norm)));
+			buf[BLAYER][i] = round_to_WORD(min(1.0, max(0.0,(b - offset) * k * norm)));
 		}
 	} else {
 #ifdef _OPENMP
@@ -125,9 +125,9 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean RGBspa
 			double x, k;
 			float r, g, b;
 
-			r = buf[RLAYER][i];
-			g = buf[GLAYER][i];
-			b = buf[BLAYER][i];
+			buf[RLAYER][i] = min(1.0, max(0.0, (r - offset) * k));
+			buf[GLAYER][i] = min(1.0, max(0.0, (g - offset) * k));
+			buf[BLAYER][i] = min(1.0, max(0.0, (b - offset) * k));
 
 			x = factor_red * r + factor_green * g + factor_blue * b;
 
