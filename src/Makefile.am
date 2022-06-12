@@ -207,6 +207,10 @@ siril_common_SOURCES = \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \
+	io/catalogues.c \
+	io/catalogues.h \
+	io/kstars/binfile.h \
+      	io/kstars/byteorder.h \
 	io/conversion.c \
 	io/conversion.h \
 	io/films.c \
@@ -281,6 +285,9 @@ AM_CPPFLAGS += -I$(top_srcdir)/subprojects/librtprocess/src/include
 librtprocesslibs = $(top_builddir)/subprojects/librtprocess/build/src/librtprocess.a
 endif
 
+AM_CPPFLAGS += -I$(top_srcdir)/subprojects/htmesh
+libhtmeshlibs = $(top_builddir)/subprojects/htmesh/libhtmesh.a
+
 siril_common_LDADD = \
 	$(top_builddir)/subprojects/kplot/libkplot.a \
 	$(FFMPEG_LIBS) \
@@ -320,10 +327,13 @@ siril_common_SOURCES += \
 	opencv/kombat/kombat.cpp \
 	opencv/kombat/kombat.h \
 	core/exif.cpp \
-	core/exif.h
+	core/exif.h \
+	io/kstars/htmesh_wrapper.cpp \
+	io/kstars/htmesh_wrapper.h
 
 siril_common_LDADD += $(OPENCV_LIBS) \
-		      $(EXIV2_LIBS)
+		      $(EXIV2_LIBS) \
+		      $(libhtmeshlibs)
 
 siril_SOURCES = $(siril_common_SOURCES) main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c

@@ -222,15 +222,15 @@ void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 #endif
 }
 
-void wcs2pix(fits *fit, double r, double d, double *x, double *y) {
+void wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	*x = -1.0;
 	*y = -1.0;
 #ifdef HAVE_WCSLIB
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
-	world[0] = r;
-	world[1] = d;
+	world[0] = ra;
+	world[1] = dec;
 
 	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
 	if (status != 0)

@@ -49,6 +49,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/catalogues.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -5163,6 +5164,45 @@ int process_pcc(int nb) {
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
 	return CMD_OK;
+}
+
+int process_nomad(int nb) {
+	pcc_star *stars;
+	int nb_stars;
+	double ra, dec;
+	float limit_mag = 12.5f;
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return 1;
+	}
+	center2wcs(&gfit, &ra, &dec);
+	siril_debug_print("centre coords: %f, %f\n", ra, dec);
+	if (get_stars_from_local_nomad(ra, dec, &gfit, limit_mag, &stars, &nb_stars)) {
+		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
+		return 1;
+	}
+
+	siril_log_message("Read %d stars from the trixel of this target (mag limit %.2f\n", nb_stars, limit_mag);
+	clear_stars_list(FALSE);
+	int j = 0;
+	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
+		if (stars[i].x < 0.0 || stars[i].x >= gfit.rx ||
+				stars[i].y < 0.0 || stars[i].y >= gfit.ry)
+			continue;
+		if (!com.stars)
+			com.stars = new_fitted_stars(MAX_STARS);
+		com.stars[i] = new_psf_star();
+		com.stars[j]->xpos = stars[i].x;
+		com.stars[j]->ypos = stars[i].y;
+		com.stars[j]->fwhmx = 5.0f;
+		com.stars[j]->layer = 0;
+		j++;
+	}
+	if (j > 0)
+		com.stars[j] = NULL;
+	siril_log_message("got %d stars from the trixel\n", j);
+	redraw(REDRAW_OVERLAY);
+	return 0;
 }
 
 int process_start_ls(int nb) {
