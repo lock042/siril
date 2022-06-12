@@ -148,8 +148,6 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	int i, j;
 	double fwhm;
 	double dx, dy;
-	curr.x = -1.0;
-	curr.y = -1.0;
 	double cx,cy;
 	cx = (double)seq->imgparam[ref_image].rx * 0.5;
 	cy = (double)seq->imgparam[ref_image].ry * 0.5;
@@ -306,8 +304,6 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	psf_star **psfs = seq->photometry[dataset], *ref_psf;
 	if (seq->reference_star >= 0 && !seq->photometry[seq->reference_star])
 		seq->reference_star = -1;
-	curr.x = -1.0;
-	curr.y = -1.0;
 
 	for (i = 0, j = 0; i < size; i++) {
 		if (!seq->imgparam[i].incl || !psfs[i])
@@ -844,15 +840,16 @@ void drawPlot() {
 		is_arcsec = FALSE;
 	}
 
+	ref.x = -DBL_MAX;
+	ref.y = -DBL_MAX;
+	curr.x = -DBL_MAX;
+	curr.y = -DBL_MAX;
+
 	if (use_photometry) {
 		// photometry data display
 		pldata *plot;
 		gtk_widget_set_visible(arcsec, current_selected_source == FWHM && arcsec_is_ok);
 		update_ylabel();
-		ref.x = -DBL_MAX;
-		ref.y = -DBL_MAX;
-		curr.x = -DBL_MAX;
-		curr.y = -DBL_MAX;
 
 		plot = alloc_plot_data(seq->number);
 		plot_data = plot;
@@ -1065,11 +1062,11 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 			free(avg);
 		}
 
-		if (ref.x >= -DBL_MAX && ref.y >= -DBL_MAX) {
+		if (ref.x > -DBL_MAX && ref.y > -DBL_MAX) {
 			ref_d = kdata_array_alloc(&ref, 1);
 			kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
 		}
-		if (curr.x >= -DBL_MAX && curr.y >= -DBL_MAX) {
+		if (curr.x > -DBL_MAX && curr.y > -DBL_MAX) {
 			curr_d = kdata_array_alloc(&curr, 1);
 			kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
 		}

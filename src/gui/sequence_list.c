@@ -573,10 +573,19 @@ void exclude_single_frame(int index) {
 			com.seq.imgparam[index].incl ? _("Excluding") : _("Including"),
 			index + 1, com.seq.seqname);
 
+
 	com.seq.imgparam[index].incl = !com.seq.imgparam[index].incl;
 	if (com.seq.imgparam[index].incl)
 		com.seq.selnum++;
-	else 	com.seq.selnum--;
+	else {
+		com.seq.selnum--;
+		if (com.seq.reference_image == index) {
+			com.seq.reference_image = -1;
+			com.seq.reference_image = sequence_find_refimage(&com.seq);
+			adjust_refimage(index);
+			sequence_list_change_reference();
+		}
+	}
 	update_reg_interface(FALSE);
 	update_stack_interface(FALSE);
 	redraw(REDRAW_OVERLAY);
