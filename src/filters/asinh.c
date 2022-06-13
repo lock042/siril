@@ -34,7 +34,7 @@
 #include "asinh.h"
 
 static gboolean asinh_rgb_space = FALSE;
-static double asinh_stretch_value = 1.0, asinh_black_value = 0.0;
+static double asinh_stretch_value = 0.0, asinh_black_value = 0.0;
 static gboolean asinh_show_preview;
 
 static void asinh_startup() {
@@ -80,14 +80,17 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 			double r = buf[RLAYER][i] * invnorm;
 			double g = buf[GLAYER][i] * invnorm;
 			double b = buf[BLAYER][i] * invnorm;
+			double rprime = max(0, (r - offset) / (1.0 - offset));
+			double gprime = max(0, (g - offset) / (1.0 - offset));
+			double bprime = max(0, (b - offset) / (1.0 - offset));
 
-			double x = factor_red * r + factor_green * g + factor_blue * b;
+			double x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			double k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
+			double k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
 
-			buf[RLAYER][i] = round_to_WORD((r - offset) * k * norm);
-			buf[GLAYER][i] = round_to_WORD((g - offset) * k * norm);
-			buf[BLAYER][i] = round_to_WORD((b - offset) * k * norm);
+			buf[RLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(rprime) * k)));
+			buf[GLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(gprime) * k)));
+			buf[BLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(bprime) * k)));
 		}
 	} else {
 #ifdef _OPENMP
@@ -95,8 +98,9 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 #endif
 		for (i = 0; i < n; i++) {
 			double x = buf[RLAYER][i] * invnorm;
-			double k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
-			buf[RLAYER][i] = round_to_WORD((x - offset) * k * norm);
+			double xprime = max(0, (x - offset) / (1.0 - offset));
+			double k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(xprime) * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -120,14 +124,17 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_
 			double r = buf[RLAYER][i];
 			double g = buf[GLAYER][i];
 			double b = buf[BLAYER][i];
+			double rprime = max(0, (r - offset) / (1.0 - offset));
+			double gprime = max(0, (g - offset) / (1.0 - offset));
+			double bprime = max(0, (b - offset) / (1.0 - offset));
 
-			double x = factor_red * r + factor_green * g + factor_blue * b;
+			double x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			double k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
+			double k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
 
-			buf[RLAYER][i] = (r - offset) * k;
-			buf[GLAYER][i] = (g - offset) * k;
-			buf[BLAYER][i] = (b - offset) * k;
+			buf[RLAYER][i] = min(1.0, max(0.0, (rprime * k)));
+			buf[GLAYER][i] = min(1.0, max(0.0, (gprime * k)));
+			buf[BLAYER][i] = min(1.0, max(0.0, (bprime * k)));
 		}
 	} else {
 #ifdef _OPENMP
@@ -136,8 +143,9 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_
 		for (i = 0; i < n; i++) {
 			double x, k;
 			x = buf[RLAYER][i];
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
-			buf[RLAYER][i] = (x - offset) * k;
+			double xprime = max(0, (x - offset) / (1.0 - offset));
+			k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = min(1.0, max(0.0,(x * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -171,7 +179,7 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
 
 	asinh_startup();
-	asinh_stretch_value = 1.0;
+	asinh_stretch_value = 0.0;
 	asinh_black_value = 0.0;
 	asinh_rgb_space = TRUE;
 
@@ -215,7 +223,7 @@ void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_stretch = GTK_SPIN_BUTTON(lookup_widget("spin_asinh"));
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
-	asinh_stretch_value = 1.0;
+	asinh_stretch_value = 0.0;
 	asinh_black_value = 0.0;
 	asinh_rgb_space = TRUE;
 
