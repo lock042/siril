@@ -909,3 +909,13 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	return err;
 
 }
+
+void multH(Homography H1, Homography H2, Homography *Hout) {
+	Mat _H1 = Mat(3, 3, CV_64FC1);
+	Mat _H2 = Mat(3, 3, CV_64FC1);
+	Mat _H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(&H1, _H1);
+	convert_H_to_MatH(&H2, _H2);
+	_H = _H1 * _H2;
+	convert_MatH_to_H(_H, Hout);
+}

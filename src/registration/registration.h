@@ -39,6 +39,13 @@ typedef enum {
 	HOMOGRAPHY_TRANSFORMATION
 } transformation_type;
 
+typedef enum {
+	CENTERING_CURRENT,
+	CENTERING_COG,
+	CENTERING_MIN,
+	CENTERING_MAX
+} centering_type;
+
 /* arguments passed to registration functions */
 struct registration_args {
 	registration_function func;	// the registration function
@@ -67,6 +74,7 @@ struct registration_args {
 	gboolean load_new_sequence;	// load the new sequence if success
 	const gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
+	centering_type centering; // used by seqapplyreg to determine framing
 };
 
 /* used to register a registration method */

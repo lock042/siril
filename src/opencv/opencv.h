@@ -48,6 +48,8 @@ void cvTransfH(Homography Href, Homography Himg, Homography *Hres);
 double cvCalculRigidTransform(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom);
 
+void multH(Homography H1, Homography H2, Homography *Hout);
+
 #ifdef __cplusplus
 }
 #endif
