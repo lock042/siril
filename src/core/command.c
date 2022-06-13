@@ -652,25 +652,25 @@ int process_ght(int nb) {
 
 	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
 	if ((B < -5.0) || (B > 15.0)) {
-		siril_log_message(_("Stretch intensity B must be between -5 and +15\\n"));
+		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double SP = g_ascii_strtod(word[4 + arg_offset],NULL);
 	if ((SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("Stretch focal point SP must be between 0 and 1\\n"));
+		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double LP = g_ascii_strtod(word[3 + arg_offset],NULL);
 	if ((LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\\n"));
+		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double HP = g_ascii_strtod(word[5 + arg_offset],NULL);
 	if ((HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\\n"));
+		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
@@ -718,25 +718,25 @@ int process_invght(int nb) {
 
 	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
 	if ((B < -5.0) || (B > 15.0)) {
-		siril_log_message(_("Stretch intensity B must be between -5 and +15\\n"));
+		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double SP = g_ascii_strtod(word[4 + arg_offset],NULL);
 	if ((SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("Stretch focal point SP must be between 0 and 1\\n"));
+		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double LP = g_ascii_strtod(word[3 + arg_offset],NULL);
 	if ((LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\\n"));
+		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double HP = g_ascii_strtod(word[5 + arg_offset],NULL);
 	if ((HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\\n"));
+		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
@@ -783,19 +783,19 @@ int process_genasinh(int nb) {
 
 	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
 	if ((SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("SP must be between 0 and 1\\n"));
+		siril_log_message(_("SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double LP = g_ascii_strtod(word[arg_offset+2],NULL);
 	if ((LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("LP must be between 0 and stretch focal point\\n"));
+		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double HP = g_ascii_strtod(word[arg_offset+4],NULL);
 	if ((HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("HP must be between stretch focal point and 1\\n"));
+		siril_log_message(_("HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
@@ -842,19 +842,19 @@ int process_invgenasinh(int nb) {
 
 	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
 	if ((SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("SP must be between 0 and 1\\n"));
+		siril_log_message(_("SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double LP = g_ascii_strtod(word[arg_offset+2],NULL);
 	if ((LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("LP must be between 0 and stretch focal point\\n"));
+		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double HP = g_ascii_strtod(word[arg_offset+4],NULL);
 	if ((HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("HP must be between stretch focal point and 1\\n"));
+		siril_log_message(_("HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
