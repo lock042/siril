@@ -214,10 +214,32 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 	/* Solve K*coef = f for coef */
 
-	int s;
+	int s, status;
 	gsl_permutation *p = gsl_permutation_alloc(n + 1);
-	gsl_linalg_LU_decomp(K, p, &s);
-	gsl_linalg_LU_solve(K, p, f, coef);
+	status = gsl_linalg_LU_decomp(K, p, &s);
+	if (status) {
+		siril_log_color_message("Error in RBF algorithm: %s\n", "red", gsl_strerror(status));
+		gsl_permutation_free(p);
+		gsl_matrix_free(K);
+		gsl_vector_free(f);
+		gsl_vector_free(coef);
+		free(background_scaled);
+		free(kernel_scaled);
+		free(list_array);
+		return FALSE;
+	}
+	status = gsl_linalg_LU_solve(K, p, f, coef);
+	if (status) {
+		siril_log_color_message("Error in RBF algorithm: %s\n", "red", gsl_strerror(status));
+		gsl_permutation_free(p);
+		gsl_matrix_free(K);
+		gsl_vector_free(f);
+		gsl_vector_free(coef);
+		free(background_scaled);
+		free(kernel_scaled);
+		free(list_array);
+		return FALSE;
+	}
 
 	/* precompute the kernel in the x>0, y>0 plane */
 	for (int i = 0; i < height_scaled; i++) {
