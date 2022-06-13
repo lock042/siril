@@ -5170,7 +5170,7 @@ int process_nomad(int nb) {
 	pcc_star *stars;
 	int nb_stars;
 	double ra, dec;
-	float limit_mag = 12.1f;
+	float limit_mag = 13.5f;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return 1;
@@ -5179,12 +5179,12 @@ int process_nomad(int nb) {
 	double resolution = get_wcs_image_resolution(&gfit);
 	double fov = resolution * gfit.rx;	// fov in degrees
 	siril_debug_print("centre coords: %f, %f, fov: %f\n", ra, dec, fov);
-	if (get_stars_from_local_nomad(ra, dec, fov*0.5, &gfit, limit_mag, &stars, &nb_stars)) {
+	if (get_stars_from_local_catalogues(ra, dec, fov*0.5, &gfit, limit_mag, &stars, &nb_stars)) {
 		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 		return 1;
 	}
 
-	siril_log_message("Read %d stars from the trixel of this target (mag limit %.2f)\n", nb_stars, limit_mag);
+	siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
 	clear_stars_list(FALSE);
 	int j = 0;
 	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
@@ -5202,7 +5202,7 @@ int process_nomad(int nb) {
 	}
 	if (j > 0)
 		com.stars[j] = NULL;
-	siril_log_message("got %d stars from the trixel\n", j);
+	siril_log_message("%d stars from local catalogues found in the image (mag limit %.2f)\n", j, limit_mag);
 	redraw(REDRAW_OVERLAY);
 	return 0;
 }

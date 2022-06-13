@@ -36,7 +36,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define NAMEDSTARS_DAT "~/.local/share/kstars/namedstars.dat"
+#define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
+#define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
+const char *catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
 
 struct catalogue_index {
 	uint32_t trixelID;
@@ -61,35 +65,46 @@ struct expansion_field {
 	uint16_t max_stars;
 };
 
-typedef struct
-{
-    int32_t RA;
-    int32_t Dec;
-    int16_t dRA;
-    int16_t dDec;
-    int16_t B;
-    int16_t V;
+// the 16-byte struct
+typedef struct {
+	int32_t RA;
+	int32_t Dec;
+	int16_t dRA;
+	int16_t dDec;
+	int16_t B;
+	int16_t V;
 } deepStarData;
+
+// the 32-byte struct
+typedef struct {
+	int32_t RA;
+	int32_t Dec;
+	int32_t dRA;
+	int32_t dDec;
+	int32_t parallax;
+	uint32_t HD;	// unsigned 32-bit Henry Draper Index.
+	int16_t mag;
+	int16_t bv_index;
+	char spec_type[2];
+	char flags;
+	char unused;
+} shallowStarData;
 
 static struct catalogue_file *catalogue_read_header(FILE *f);
 //static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 
-static void bswap_stardata(deepStarData *stardata)
-{
-    stardata->RA   = bswap_32(stardata->RA);
-    stardata->Dec  = bswap_32(stardata->Dec);
-    stardata->dRA  = bswap_16(stardata->dRA);
+static void bswap_stardata(deepStarData *stardata) {
+    stardata->RA = bswap_32(stardata->RA);
+    stardata->Dec = bswap_32(stardata->Dec);
+    stardata->dRA = bswap_16(stardata->dRA);
     stardata->dDec = bswap_16(stardata->dDec);
-    stardata->B    = bswap_16(stardata->B);
-    stardata->V    = bswap_16(stardata->V);
+    stardata->B = bswap_16(stardata->B);
+    stardata->V = bswap_16(stardata->V);
 }
 
-int get_stars_from_local_nomad(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
-	char path[1024];
-	strcpy(path, NOMAD_DAT);
-	expand_home_in_filename(path, 1024);
+static int get_stars_from_local_catalogue(const char *path, double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
 	FILE *f = fopen(path, "r");
 	if (!f) {
 		siril_log_message(_("Could not open local NOMAD catalogue\n"));
@@ -105,6 +120,7 @@ int get_stars_from_local_nomad(double ra, double dec, double radius, fits *fit, 
 
 	deepStarData *trixel_stars;
 	uint32_t trixel_nb_stars;
+	//if (read_trixel_of_target(ra, dec, cat, &trixel_stars, &trixel_nb_stars)) {
 	if (read_trixels_of_target(ra, dec, radius, cat, &trixel_stars, &trixel_nb_stars)) {
 		free(cat);
 		fclose(f);
@@ -125,6 +141,7 @@ int get_stars_from_local_nomad(double ra, double dec, double radius, fits *fit, 
 			continue;
 		if (trixel_stars[i].V >= (int16_t)roundf(max_mag * 1000.f))
 			continue;
+		// TODO: filter stars based on radius?
 		// catalogue has RA in hours, hence the x15
 		double ra = trixel_stars[i].RA / 1000000.0 * 15.0;
 		double dec= trixel_stars[i].Dec / 100000.0;
@@ -146,6 +163,47 @@ int get_stars_from_local_nomad(double ra, double dec, double radius, fits *fit, 
 
 	return 0;
 }
+
+int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
+	int nb_catalogues = sizeof(catalogues_paths) / sizeof(const char *);
+	pcc_star **catalogue_stars = malloc(nb_catalogues * sizeof(pcc_star *));
+	int *catalogue_nb_stars = malloc(nb_catalogues * sizeof(int));
+	int total_nb_stars = 0, retval = 0, catalogue = 0;
+
+	for (; catalogue < nb_catalogues; catalogue++) {
+		char path[1024];
+		strcpy(path, catalogues_paths[catalogue]);
+		expand_home_in_filename(path, 1024);
+		retval = get_stars_from_local_catalogue(path, ra, dec, radius, fit, max_mag,
+				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
+		if (retval)
+			break;
+		total_nb_stars += catalogue_nb_stars[catalogue];
+		siril_debug_print("%d stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
+	}
+
+	if (catalogue == nb_catalogues) {
+		// aggregate
+		*stars = malloc(total_nb_stars * sizeof(pcc_star));
+		if (!*stars) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+		} else {
+			uint32_t offset = 0;
+			*nb_stars = total_nb_stars;
+			for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+				memcpy(*stars + offset, catalogue_stars[catalogue],
+						catalogue_nb_stars[catalogue] * sizeof(pcc_star));
+				offset += catalogue_nb_stars[catalogue];
+			}
+		}
+	}
+
+	free(catalogue_nb_stars);
+	free(catalogue_stars);
+	return 0;
+}
+
 
 struct top_header {
 	char description[124];
@@ -169,6 +227,10 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		return NULL;
 	}
 	if (top.endian_id != 0x4B53) {
+		if (top.endian_id != 0x534B) {
+			siril_debug_print("invalid endian ID in header\n");
+			return NULL;
+		}
 		siril_debug_print("Byteswapping required\n");
 		cat->byteswap = 1;
 	}
@@ -198,6 +260,12 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		if (cat->byteswap)
 			cat->de[i].scale = bswap_32(cat->de[i].scale);
 		displayDataElementDescription(&(cat->de[i]));
+	}
+
+	if (cat->nfields != 6 && cat->nfields != 11) {
+		siril_debug_print("the number of field is not recognized as one of the main catalogues\n");
+		free(cat);
+		return NULL;
 	}
 
 	/* reading the trixel index table */
@@ -333,6 +401,8 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 	return 0;
 }
 
+/* this function reads all stars of a trixel and returns them as deep star data
+ * (the 16-byte struct) even if this is a 32-byte catalog */
 static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
 	struct catalogue_index *index = cat->indices + trixel;
 	if (index->trixelID != trixel) {
@@ -361,10 +431,39 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	*stars = trix_stars;
 	*nb_stars = index->nrecs;
 
-	if (fread(trix_stars, sizeof(deepStarData), index->nrecs, cat->f) < index->nrecs) {
-		siril_debug_print("error reading trixel data\n");
-		free(trix_stars);
-		return 1;
+	if (cat->nfields == 6) {
+		if (fread(trix_stars, sizeof(deepStarData), index->nrecs, cat->f) < index->nrecs) {
+			siril_debug_print("error reading trixel data\n");
+			free(trix_stars);
+			return 1;
+		}
+	} else {
+		shallowStarData *read_stars = malloc(index->nrecs * sizeof(shallowStarData));
+		if (!read_stars) {
+			PRINT_ALLOC_ERR;
+			free(trix_stars);
+			return 1;
+		}
+		if (fread(read_stars, sizeof(shallowStarData), index->nrecs, cat->f) < index->nrecs) {
+			siril_debug_print("error reading trixel data\n");
+			free(read_stars);
+			free(trix_stars);
+			return 1;
+		}
+		for (uint32_t i = 0; i < index->nrecs; ++i) {
+			trix_stars[i].RA = read_stars[i].RA;
+			trix_stars[i].Dec = read_stars[i].Dec;
+			trix_stars[i].dRA = read_stars[i].dRA;
+			trix_stars[i].dDec = read_stars[i].dDec;
+			trix_stars[i].V = read_stars[i].mag * 10;
+			trix_stars[i].B = (read_stars[i].bv_index + read_stars[i].mag) * 10;
+			/* the BV - mag trick may not be correct, but we only use the V and
+			 * B fields to compute B-V anyway */
+			/* the * 10 trick is because the scaling is 100 for this catalogue,
+			 * while it is 1000 for the deep star catalogue, but we don't know
+			 * where they come from after it has returned */
+		}
+		free(read_stars);
 	}
 
 	if (cat->byteswap) {

@@ -3,6 +3,6 @@
 
 #include "core/siril.h"
 
-int get_stars_from_local_nomad(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars);
+int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars);
 
 #endif
