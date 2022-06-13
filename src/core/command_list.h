@@ -82,6 +82,8 @@ static command commands[] = {
 	{"fmul", 1, "fmul scalar", process_fmul, STR_FMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"genasinh", 4, "genasinh [-human | -even | -independent] D LP SP HP [BP]", process_genasinh, STR_GENASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"ght", 5, "ght [-human | -even | -independent] D B LP SP HP [BP]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
@@ -93,8 +95,12 @@ static command commands[] = {
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP [BP]", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invgenasinh", 4, "invgenasinh [-human | -even | -independent] D LP SP HP [BP]", process_invgenasinh, STR_GENASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
+	{"linstretch", 1, "linstretch BP", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE, REQ_CMD_NONE},
 	// specific loads are not required, but could be used to force the
 	// extension to a higher priority in case two files with same basename
@@ -115,7 +121,6 @@ static command commands[] = {
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"genhyp", 5, "genhyp [-human] [-inverse] stretch_factor stretch_intensity shadow_preservation stretch_focal_point headroom_preservation [black_point_offset]", process_payne, STR_PAYNE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pm", 1, "pm \"expression\"", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE, REQ_CMD_NONE},
