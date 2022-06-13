@@ -3891,6 +3891,481 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="step-increment">0.10</property>
     <property name="page-increment">1</property>
   </object>
+  <object class="GtkDialog" id="payne_dialog">
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Generalised Hyperbolic Transformation</property>
+    <property name="resizable">False</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="close" handler="on_payne_dialog_close" swapped="no"/>
+    <signal name="delete-event" handler="on_payne_cancel_clicked" swapped="no"/>
+    <signal name="show" handler="on_payne_dialog_show" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="payne_undo">
+                <property name="label" translatable="yes">Reset</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_payne_undo_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="payne_cancel">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_payne_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="payne_Apply">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_payne_apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">9</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label1112">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Stretch factor (ln(D+1))</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_payneD">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">1,000</property>
+                <property name="progress-fraction">0.01</property>
+                <property name="progress-pulse-step">0.01</property>
+                <property name="adjustment">adjustment_payneD</property>
+                <property name="digits">3</property>
+                <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spin_payneD_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_payneD">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at the stretch focal point, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with stretch intensity to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_payneD</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label1113">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Local stretch intensity (b)</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_payneb">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">0,500</property>
+                <property name="progress-fraction">0.01</property>
+                <property name="progress-pulse-step">0.01</property>
+                <property name="adjustment">adjustment_payneb</property>
+                <property name="digits">5</property>
+                <property name="numeric">True</property>
+                <property name="value">0.5</property>
+                <signal name="value-changed" handler="on_spin_payneb_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_payneb">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjsutment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of this parameter will decrease as a stretch sequence nears completion, although larger values (with small stretch amount) can still be used for precise placement of additional contrast.</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_payneb</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label1124">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Symmetry point (SP)</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_payneSP">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">0,000</property>
+                <property name="progress-fraction">0.01</property>
+                <property name="progress-pulse-step">0.01</property>
+                <property name="adjustment">adjustment_payneSP</property>
+                <property name="digits">3</property>
+                <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spin_payneSP_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_payneSP">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Sets the focus point around which the stretch is applied - contrast will be distributed symmetrically around the focal point. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. Pixel values will move away from the stretch focal point. This parameter must be greater than or equal to the shadow preservation point and less than or equal to the headroom preservation point..</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_payneSP</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label1114">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Shadow protection point (LP)</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_payneLP">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">0,000</property>
+                <property name="progress-fraction">0.01</property>
+                <property name="progress-pulse-step">0.01</property>
+                <property name="adjustment">adjustment_payneLP</property>
+                <property name="digits">3</property>
+                <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spin_payneLP_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">7</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_payneLP">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below the shadow preservation level by reserving contrast from the rest of the image. Moving the parameter towards the stretch focal point changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than the stretch focal point.</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_payneLP</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">8</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label1115">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Highlight protection point (HP)</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_payneHP">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">1,000</property>
+                <property name="progress-fraction">0.01</property>
+                <property name="progress-pulse-step">0.01</property>
+                <property name="adjustment">adjustment_payneHP</property>
+                <property name="digits">3</property>
+                <property name="numeric">True</property>
+                <property name="value">1</property>
+                <signal name="value-changed" handler="on_spin_payneHP_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">9</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_payneHP">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is dne by performing a linear stretc of the data above the highlight preservation level by reserving contrast from the rest of the image. Moving the level towards the stretch focal point inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than the stretch focal point.</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_payneHP</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">10</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label110">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Black Point (BP)</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="black_point_spin_payne">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">0,00000</property>
+                <property name="adjustment">adj_black_point_payne</property>
+                <property name="digits">5</property>
+                <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_blackpoint_spin_payne_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">11</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="black_point_payne">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image.</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adj_black_point_payne</property>
+            <property name="digits">5</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">12</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="checkbutton_payneRGBspace">
+            <property name="label" translatable="yes">Human-weighted luminance</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">For colour images, use human eye luminous efficiency weights to compute the luminance used to compute the stretch for each pixel.</property>
+            <property name="halign">end</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">13</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="payne_preview">
+            <property name="label" translatable="yes">Preview</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="halign">start</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_payne_preview_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">14</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="0">payne_Apply</action-widget>
+    </action-widgets>
+  </object>
   <object class="GtkAdjustment" id="adjustment_quality">
     <property name="lower">10</property>
     <property name="upper">100</property>
@@ -10224,493 +10699,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkDialog" id="payne_dialog">
-    <property name="width-request">400</property>
-    <property name="height-request">200</property>
-    <property name="can-focus">False</property>
-    <property name="border-width">5</property>
-    <property name="title" translatable="yes">Generalised Hyperbolic Transformation</property>
-    <property name="resizable">False</property>
-    <property name="window-position">center</property>
-    <property name="type-hint">dialog</property>
-    <signal name="close" handler="on_payne_dialog_close" swapped="no"/>
-    <signal name="delete-event" handler="on_payne_cancel_clicked" swapped="no"/>
-    <signal name="show" handler="on_payne_dialog_show" swapped="no"/>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">10</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can-focus">False</property>
-            <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="payne_undo">
-                <property name="label" translatable="yes">Reset</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_payne_undo_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="payne_cancel">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_payne_cancel_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="payne_Apply">
-                <property name="label" translatable="yes">Apply</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_payne_apply_clicked" swapped="no"/>
-                <style>
-                  <class name="suggested-action"/>
-                </style>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack-type">end</property>
-            <property name="position">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel" id="label1112">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Stretch amount</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_payneD">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="text" translatable="yes">1,000</property>
-                <property name="progress-fraction">0.01</property>
-                <property name="progress-pulse-step">0.01</property>
-                <property name="adjustment">adjustment_payneD</property>
-                <property name="digits">3</property>
-                <property name="numeric">True</property>
-                <property name="value">1</property>
-                <signal name="value-changed" handler="on_spin_payneD_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScale" id="scale_payneD">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at the stretch focal point, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with stretch intensity to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
-            <property name="hexpand">True</property>
-            <property name="adjustment">adjustment_payneD</property>
-            <property name="draw-value">False</property>
-            <property name="value-pos">bottom</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel" id="label1113">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Stretch intensity</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_payneb">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="text" translatable="yes">0,500</property>
-                <property name="progress-fraction">0.01</property>
-                <property name="progress-pulse-step">0.01</property>
-                <property name="adjustment">adjustment_payneb</property>
-                <property name="digits">3</property>
-                <property name="numeric">True</property>
-                <property name="value">0.5</property>
-                <signal name="value-changed" handler="on_spin_payneb_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScale" id="scale_payneb">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjsutment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of this parameter will decrease as a stretch sequence nears completion, although larger values (with small stretch amount) can still be used for precise placement of additional contrast.</property>
-            <property name="hexpand">True</property>
-            <property name="adjustment">adjustment_payneb</property>
-            <property name="draw-value">False</property>
-            <property name="value-pos">bottom</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel" id="label1114">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Shadow preservation point</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_payneLP">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="text" translatable="yes">0,000</property>
-                <property name="progress-fraction">0.01</property>
-                <property name="progress-pulse-step">0.01</property>
-                <property name="adjustment">adjustment_payneLP</property>
-                <property name="digits">3</property>
-                <property name="numeric">True</property>
-                <signal name="value-changed" handler="on_spin_payneLP_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScale" id="scale_payneLP">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below the shadow preservation level by reserving contrast from the rest of the image. Moving the parameter towards the stretch focal point changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than the stretch focal point.</property>
-            <property name="hexpand">True</property>
-            <property name="adjustment">adjustment_payneLP</property>
-            <property name="draw-value">False</property>
-            <property name="value-pos">bottom</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel" id="label1124">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Stretch focal point</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_payneSP">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="text" translatable="yes">0,000</property>
-                <property name="progress-fraction">0.01</property>
-                <property name="progress-pulse-step">0.01</property>
-                <property name="adjustment">adjustment_payneSP</property>
-                <property name="digits">3</property>
-                <property name="numeric">True</property>
-                <signal name="value-changed" handler="on_spin_payneSP_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">7</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScale" id="scale_payneSP">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Sets the focus point around which the stretch is applied - contrast will be distributed symmetrically around the focal point. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. Pixel values will move away from the stretch focal point. This parameter must be greater than or equal to the shadow preservation point and less than or equal to the headroom preservation point..</property>
-            <property name="hexpand">True</property>
-            <property name="adjustment">adjustment_payneSP</property>
-            <property name="draw-value">False</property>
-            <property name="value-pos">bottom</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">8</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel" id="label1115">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Headroom preservation point</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_payneHP">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="text" translatable="yes">1,000</property>
-                <property name="progress-fraction">0.01</property>
-                <property name="progress-pulse-step">0.01</property>
-                <property name="adjustment">adjustment_payneHP</property>
-                <property name="digits">3</property>
-                <property name="numeric">True</property>
-                <property name="value">1</property>
-                <signal name="value-changed" handler="on_spin_payneHP_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScale" id="scale_payneHP">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is dne by performing a linear stretc of the data above the highlight preservation level by reserving contrast from the rest of the image. Moving the level towards the stretch focal point inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than the stretch focal point.</property>
-            <property name="hexpand">True</property>
-            <property name="adjustment">adjustment_payneHP</property>
-            <property name="draw-value">False</property>
-            <property name="value-pos">bottom</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">10</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel" id="label110">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Black Point</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="black_point_spin_payne">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="width-chars">8</property>
-                <property name="text" translatable="yes">0,00000</property>
-                <property name="adjustment">adj_black_point_payne</property>
-                <property name="digits">5</property>
-                <property name="numeric">True</property>
-                <signal name="value-changed" handler="on_blackpoint_spin_payne_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">11</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScale" id="black_point_payne">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image.</property>
-            <property name="hexpand">True</property>
-            <property name="adjustment">adj_black_point_payne</property>
-            <property name="digits">5</property>
-            <property name="draw-value">False</property>
-            <property name="value-pos">bottom</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">12</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkCheckButton" id="checkbutton_payneRGBspace">
-            <property name="label" translatable="yes">Human-weighted luminance</property>
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="tooltip-text" translatable="yes">For colour images, use human eye luminous efficiency weights to compute the luminance used to compute the stretch for each pixel.</property>
-            <property name="halign">end</property>
-            <property name="active">True</property>
-            <property name="draw-indicator">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">13</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkCheckButton" id="payne_inverse">
-            <property name="label" translatable="yes">Inverse stretch</property>
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="halign">start</property>
-            <property name="draw-indicator">True</property>
-            <signal name="toggled" handler="on_payne_inverse_toggled" swapped="no"/>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">14</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkCheckButton" id="payne_preview">
-            <property name="label" translatable="yes">Preview</property>
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="halign">start</property>
-            <property name="active">True</property>
-            <property name="draw-indicator">True</property>
-            <signal name="toggled" handler="on_payne_preview_toggled" swapped="no"/>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">14</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="0">payne_Apply</action-widget>
-    </action-widgets>
   </object>
   <object class="GtkImage" id="photometry">
     <property name="visible">True</property>

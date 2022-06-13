@@ -604,10 +604,3 @@ void on_payne_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	}
 	payne_show_preview = !payne_show_preview;
 }
-
-void on_payne_inverse_toggled(GtkToggleButton *button, gpointer user_data) {
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = payne_update_preview;
-	param->show_preview = payne_show_preview;
-	notify_update((gpointer) param);
-}
