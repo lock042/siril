@@ -23,6 +23,7 @@
  * than the actual C++ implementation of KStars for catalogue access.
  * The structure of the file is documented at
  * https://api.kde.org/kstars/html/Stars.html#BinaryFormat
+ * See also ../subprojects/htmesh/README for complete information.
  */
 
 #include "io/kstars/binfile.h"
@@ -71,7 +72,9 @@ typedef struct
 } deepStarData;
 
 static struct catalogue_file *catalogue_read_header(FILE *f);
-static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
+//static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
+static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
+static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 
 static void bswap_stardata(deepStarData *stardata)
 {
@@ -83,7 +86,7 @@ static void bswap_stardata(deepStarData *stardata)
     stardata->V    = bswap_16(stardata->V);
 }
 
-int get_stars_from_local_nomad(double ra, double dec, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
+int get_stars_from_local_nomad(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
 	char path[1024];
 	strcpy(path, NOMAD_DAT);
 	expand_home_in_filename(path, 1024);
@@ -102,7 +105,7 @@ int get_stars_from_local_nomad(double ra, double dec, fits *fit, float max_mag, 
 
 	deepStarData *trixel_stars;
 	uint32_t trixel_nb_stars;
-	if (read_trixel_of_target(ra, dec, cat, &trixel_stars, &trixel_nb_stars)) {
+	if (read_trixels_of_target(ra, dec, radius, cat, &trixel_stars, &trixel_nb_stars)) {
 		free(cat);
 		fclose(f);
 		return 1;
@@ -122,7 +125,8 @@ int get_stars_from_local_nomad(double ra, double dec, fits *fit, float max_mag, 
 			continue;
 		if (trixel_stars[i].V >= (int16_t)roundf(max_mag * 1000.f))
 			continue;
-		double ra = trixel_stars[i].RA / 1000000.0 * 15.0;	// x15 because it's in hours
+		// catalogue has RA in hours, hence the x15
+		double ra = trixel_stars[i].RA / 1000000.0 * 15.0;
 		double dec= trixel_stars[i].Dec / 100000.0;
 		double Bmag = trixel_stars[i].B / 1000.0;
 		double Vmag = trixel_stars[i].V / 1000.0;
@@ -136,7 +140,7 @@ int get_stars_from_local_nomad(double ra, double dec, fits *fit, float max_mag, 
 		(*stars)[j].mag = Vmag;
 		(*stars)[j].BV = Bmag - Vmag;
 		j++;
-		siril_debug_print("star at %f,\t%f,\tV=%.2f B=%.2f\timage coords (%.1f, %.1f)\n", ra, dec, Vmag, Bmag, (*stars)[j].x, (*stars)[j].y);
+		//siril_debug_print("star at %f,\t%f,\tV=%.2f B=%.2f\timage coords (%.1f, %.1f)\n", ra, dec, Vmag, Bmag, (*stars)[j].x, (*stars)[j].y);
 	}
 	*nb_stars = j;
 
@@ -208,15 +212,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	uint32_t ntrixels = cat->ntrixels;
 	cat->HTM_Level = -1;
 	while (ntrixels >>= 2) ++cat->HTM_Level;
-	/*if (cat->ntrixels == 512)
-		cat->HTM_Level = 3;
-	else if (cat->ntrixels == 8192)
-		cat->HTM_Level = 6;
-	else {
-		siril_debug_print("number of trixels untested (%u), might need some work\n", cat->ntrixels);
-		free(cat);
-		return NULL;
-	}*/
+	/* 512 should be for level 3, 8192 for 6, but it's not quite the case (32768 for NOMAD level 6) */
 	siril_debug_print("Number of trixels reported = %d (levels: %d)\n",
 			cat->ntrixels, cat->HTM_Level);
 
@@ -270,23 +266,81 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	return cat;
 }
 
-static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
-	// 1. find trixel HTM ID
-	uint32_t trixelID = get_htm_index_for_coords(ra, dec, cat->HTM_Level);
+/*static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
+	int trixelID = get_htm_index_for_coords(ra, dec, cat->HTM_Level);
 
 	if (trixelID > cat->ntrixels) {
 		siril_debug_print("invalid trixel number %u for %u available\n", trixelID, cat->ntrixels);
 		return 1;
 	}
 
-	// 2. read the trixel, convert star data
-	struct catalogue_index *index = cat->indices + trixelID;
-	if (index->trixelID != trixelID) {
+	return read_trixel(trixelID, cat, stars, nb_stars);
+}*/
+
+/* radius is in degrees */
+static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
+	int *trixels;
+	int nb_trixels;
+	if (!get_htm_indices_around_target(ra, dec, radius, cat->HTM_Level, &trixels, &nb_trixels)) {
+		siril_debug_print("trixel search found %d trixels\n", nb_trixels);
+		deepStarData **stars_list;
+		uint32_t *nb_stars_list;
+		stars_list = malloc(nb_trixels * sizeof(deepStarData *));
+		if (!stars_list) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		nb_stars_list = malloc(nb_trixels * sizeof(uint32_t *));
+		if (!nb_stars_list) {
+			free(stars_list);
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		int retval = 0;
+		uint32_t total_star_count = 0;
+		for (int i = 0; i < nb_trixels; i++) {
+			retval = read_trixel(trixels[i], cat, stars_list + i, nb_stars_list + i);
+			if (retval) break;
+			siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
+			total_star_count += nb_stars_list[i];
+		}
+		free(trixels);
+
+		if (!retval) {
+			// aggregate
+			*stars = malloc(total_star_count * sizeof(deepStarData));
+			if (!*stars) {
+				free(stars_list);
+				free(nb_stars_list);
+				PRINT_ALLOC_ERR;
+				return -1;
+			}
+			*nb_stars = total_star_count;
+			uint32_t offset = 0;
+			for (int i = 0; i < nb_trixels; i++) {
+				memcpy(*stars + offset, stars_list[i], nb_stars_list[i] * sizeof(deepStarData));
+				offset += nb_stars_list[i];
+				free(stars_list[i]);
+			}
+		}
+		free(stars_list);
+		free(nb_stars_list);
+	}
+	else {
+		*stars = NULL;
+		*nb_stars = 0;
+	}
+	return 0;
+}
+
+static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
+	struct catalogue_index *index = cat->indices + trixel;
+	if (index->trixelID != trixel) {
 		siril_debug_print("INDEX IS WRONG, trixel ID did not match\n");
 		return 1;
 	}
 
-	siril_debug_print("offset for trixel %u: %u\n", trixelID, index->offset);
+	//siril_debug_print("offset for trixel %u: %u\n", trixel, index->offset);
 	int fseek_retval;
 	/* If offset > 2^31 - 1, do the fseek in two steps */
 	if (index->offset > INT_MAX) {

@@ -79,15 +79,33 @@ void charv2str(char *str, char *charv, int n)
 	*str = '\0';
 }
 
+const char *data_element_type_to_string(u_int8_t type) {
+	switch (type) {
+		case DT_CHAR:   return "Character";
+		case DT_INT8:   return "8-bit Integer";
+		case DT_UINT8:  return "8-bit Unsigned Integer";
+		case DT_INT16:  return "16-bit Integer";
+		case DT_UINT16: return "16-bit Unsigned Integer";
+		case DT_INT32:  return "32-bit Integer";
+		case DT_UINT32: return "32-bit Unsigned Integer";
+		case DT_CHARV:  return "Fixed-length array of characters";
+		case DT_STR:    return "String";
+		case DT_SPCL:	return "Special type";
+		default:	return "Unknown type";
+	}
+}
+
 void displayDataElementDescription(dataElement *e)
 {
 	char str[11];
 	charv2str(str, e->name, 10);
-	printf("\nData Field:\n");
+	const char *type = data_element_type_to_string(e->type);
+	fprintf(stdout, "Data field %s of type %s, size %d, scale %d\n", str, type, e->size, e->scale);
+	/*printf("\nData Field:\n");
 	printf("  Name: %s\n", str);
 	printf("  Size: %d\n", e->size);
 	printf("  Type: %d\n", e->type);
-	printf("  Scale: %d\n", e->scale);
+	printf("  Scale: %d\n", e->scale);*/
 }
 
 // NOTE: Ineffecient. Not to be used for high-productivity
@@ -114,45 +132,6 @@ void swapbytes(char byteswap, void *ptr, int nbytes)
 	memcpy(ptr, (void *)destptr, nbytes);
 	free(destptr);
 }
-
-/*
-u_int32_t trixel2number(char *trixel)
-{
-    int index;
-    u_int32_t id = 0;
-    for (index = HTM_LEVEL + 1; index >= 1; --index)
-    {
-        id += (trixel[index] - '0') * (u_int16_t)round(pow(4, (HTM_LEVEL + 1 - index)));
-    }
-    id += ((trixel[0] == 'S') ? round(pow(4, HTM_LEVEL + 1)) + 1 : 0);
-    return id;
-}
-
-char *number2trixel(char *trixel, u_int16_t number)
-{
-    int index;
-    u_int16_t hpv = (u_int16_t)round(pow(4, HTM_LEVEL)) * 2;
-    if (number >= hpv)
-    {
-        trixel[0] = 'S';
-        number -= hpv;
-    }
-    else
-        trixel[0] = 'N';
-    hpv /= 2;
-
-    for (index = 1; index < HTM_LEVEL + 2; ++index)
-    {
-        trixel[index] = (number - (number % hpv)) / hpv + '0';
-        number        = number % hpv;
-        hpv /= 4;
-    }
-
-    trixel[HTM_LEVEL + 2] = '\0';
-
-    return trixel;
-}
-*/
 
 /*
  * Convert a string to an int32_t with a double as an intermediate
@@ -262,27 +241,4 @@ int writeIndexEntry(FILE *hf, u_int32_t trixel_id, u_int32_t offset, u_int32_t n
 	return 1;
 }
 
-/*
- * "Increments" a trixel
- *
- * str : String to hold the incremented trixel
- */
-/*
-void nextTrixel(char *trixel) {
-
-  char *ptr = trixel + HTM_LEVEL + 1;
-  while(ptr > trixel) {
-    *ptr = *ptr + 1;
-    if(*ptr != '4')
-      break;
-    *ptr = '0';
-    ptr--;
-  }
-  if(*ptr == 'N')
-    *ptr = 'S';
-  else if(*ptr == 'S')
-    *ptr = '0';
-}
-
-*/
 #endif
