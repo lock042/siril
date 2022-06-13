@@ -3985,7 +3985,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="width-chars">10</property>
-                <property name="text" translatable="yes">1,000</property>
+                <property name="text">1,000</property>
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
                 <property name="adjustment">adjustment_payneD</property>
@@ -4045,7 +4045,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="width-chars">10</property>
-                <property name="text" translatable="yes">0,500</property>
+                <property name="text">0,500</property>
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
                 <property name="adjustment">adjustment_payneb</property>
@@ -4106,7 +4106,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="width-chars">10</property>
-                <property name="text" translatable="yes">0,000</property>
+                <property name="text">0,000</property>
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
                 <property name="adjustment">adjustment_payneSP</property>
@@ -4166,7 +4166,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="width-chars">10</property>
-                <property name="text" translatable="yes">0,000</property>
+                <property name="text">0,000</property>
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
                 <property name="adjustment">adjustment_payneLP</property>
@@ -4226,7 +4226,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="width-chars">10</property>
-                <property name="text" translatable="yes">1,000</property>
+                <property name="text">1,000</property>
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
                 <property name="adjustment">adjustment_payneHP</property>
@@ -4287,7 +4287,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="width-chars">10</property>
-                <property name="text" translatable="yes">0,00000</property>
+                <property name="text">0,00000</property>
                 <property name="adjustment">adj_black_point_payne</property>
                 <property name="digits">5</property>
                 <property name="numeric">True</property>
