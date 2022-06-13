@@ -4407,6 +4407,8 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="hexpand">True</property>
+            <property name="row-spacing">5</property>
+            <property name="column-spacing">5</property>
             <child>
               <object class="GtkComboBoxText" id="combo_payne_colour_stretch_model">
                 <property name="visible">True</property>
