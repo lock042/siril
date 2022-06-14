@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -3874,27 +3874,23 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_payneD">
-    <property name="lower">0</property>
     <property name="upper">10</property>
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.5</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_payneHP">
-    <property name="lower">0</property>
     <property name="upper">1</property>
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_payneLP">
-    <property name="lower">0</property>
     <property name="upper">1</property>
     <property name="step-increment">0.005</property>
     <property name="page-increment">0.05</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_payneSP">
-    <property name="lower">0</property>
     <property name="upper">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
@@ -4374,9 +4370,9 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
             <property name="label" translatable="yes">Preview</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="active">True</property>
             <property name="receives-default">False</property>
             <property name="halign">start</property>
+            <property name="active">True</property>
             <property name="draw-indicator">True</property>
             <signal name="toggled" handler="on_payne_preview_toggled" swapped="no"/>
           </object>
@@ -16141,7 +16137,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel">
+                                                            <object class="GtkLabel" id="notebook_reg_page3">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="label">page 3</property>
@@ -16214,7 +16210,7 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel">
+                                                            <object class="GtkLabel" id="notebook_reg_page4">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="label" translatable="yes">page 4</property>
@@ -16232,19 +16228,91 @@ numbers lead to faster computations.</property>
                                                             <child>
                                                             <placeholder/>
                                                             </child>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkLabel" id="framing_lbl">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Framing method</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">5</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="comboreg_framing">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Specifies the framing method to be used:
+- "current" uses the current reference image
+- "max" (bounding box) adds a black border around each image as required so that no part of the image is cropped when registered.
+- "min" (common area) crops each image to the area it has in common with all images of the sequence.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">current</item>
+                                                            <item translatable="yes">max</item>
+                                                            <item translatable="yes">min</item>
+                                                            <item translatable="yes">cog</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
                                                             </object>
                                                             <packing>
                                                             <property name="position">4</property>
                                                             </packing>
                                                             </child>
-                                                            <child type="tab">
-                                                            <object class="GtkLabel">
+                                                            <child>
+                                                            <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="label">page 4</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
                                                             </object>
                                                             <packing>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child type="tab">
+                                                            <object class="GtkLabel" id="notebook_reg_page5">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">page 5</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="position">5</property>
                                                             <property name="tab-fill">False</property>
                                                             </packing>
                                                             </child>

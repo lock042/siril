@@ -59,14 +59,14 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	return current_regdata;
 }
 
-static void compute_framing(struct registration_args *regargs) {
+static gboolean compute_framing(struct registration_args *regargs) {
 
 	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	Homography Hshift = {0};
 	cvGetEye(&Hshift);
 	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-	int x0, y0, rx_0, ry_0;
+	int x0, y0, rx_0 = 0, ry_0 = 0;
 	double xmin, xmax, ymin, ymax;
 
 	regframe framing = { 0 };
@@ -79,12 +79,12 @@ static void compute_framing(struct registration_args *regargs) {
 	framing.pt[3].x = 0.;
 	framing.pt[3].y = (double)ry;
 
-	switch (regargs->centering) {
-		case CENTERING_CURRENT:
+	switch (regargs->framing) {
+		case FRAMING_CURRENT:
 			rx_0 = rx;
 			ry_0 = ry;
 			break;
-		case CENTERING_MAX:
+		case FRAMING_MAX:
 			xmin = DBL_MAX;
 			xmax = -DBL_MAX;
 			ymin = DBL_MAX;
@@ -112,7 +112,7 @@ static void compute_framing(struct registration_args *regargs) {
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
 			break;
-		case CENTERING_MIN:
+		case FRAMING_MIN:
 			xmin = -DBL_MAX;
 			xmax = DBL_MAX;
 			ymin = -DBL_MAX;
@@ -144,12 +144,14 @@ static void compute_framing(struct registration_args *regargs) {
 			siril_debug_print("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
-		default:
 			break;
+		default:
+			return FALSE;
 	}
 	multH(Href, Hshift, &Htransf);
 	rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
 	ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
+	return TRUE;
 }
 
 int apply_reg_prepare_results(struct generic_seq_args *args) {
@@ -527,7 +529,10 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	// determines the reference homography (including framing shift) and output size
-	compute_framing(regargs);
+	if (!compute_framing(regargs)) {
+		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
+		return FALSE;
+	}
 
 	// Remove the files that we are about to create
 	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);

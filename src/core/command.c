@@ -3788,7 +3788,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->prefix = "r_";
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_AREA;
-	reg_args->centering = CENTERING_CURRENT;
+	reg_args->framing = FRAMING_CURRENT;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -3837,26 +3837,26 @@ int process_seq_applyreg(int nb) {
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
-			} else if (g_str_has_prefix(word[i], "-center=")) {
+			} else if (g_str_has_prefix(word[i], "-framing=")) {
 			char *current = word[i], *value;
-			value = current + 8;
+			value = current + 9;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
 			if(!g_strcmp0(g_ascii_strdown(value, -1),"current")) {
-				reg_args->centering = CENTERING_CURRENT;
+				reg_args->framing = FRAMING_CURRENT;
 				continue;
 			}
 			if(!g_strcmp0(g_ascii_strdown(value, -1),"min")) {
-				reg_args->centering = CENTERING_MIN;
+				reg_args->framing = FRAMING_MIN;
 				continue;
 			}
 			if(!g_strcmp0(g_ascii_strdown(value, -1),"max")) {
-				reg_args->centering = CENTERING_MAX;
+				reg_args->framing = FRAMING_MAX;
 				continue;
 			}
-			siril_log_message(_("Unknown centering type %s, aborting.\n"), value);
+			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
 			if (reg_args->seq->nb_layers == 1) {  // handling mono case

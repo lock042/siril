@@ -29,6 +29,7 @@ typedef enum {
 	REG_PAGE_COMET,
 	REG_PAGE_3_STARS,
 	REG_PAGE_KOMBAT,
+	REG_PAGE_APPLYREG,
 	REG_PAGE_MISC
 } reg_notebook_page;
 
@@ -40,11 +41,11 @@ typedef enum {
 } transformation_type;
 
 typedef enum {
-	CENTERING_CURRENT,
-	CENTERING_COG,
-	CENTERING_MIN,
-	CENTERING_MAX
-} centering_type;
+	FRAMING_CURRENT,
+	FRAMING_MAX,
+	FRAMING_MIN,
+	FRAMING_COG,
+} framing_type;
 
 /* arguments passed to registration functions */
 struct registration_args {
@@ -74,7 +75,7 @@ struct registration_args {
 	gboolean load_new_sequence;	// load the new sequence if success
 	const gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
-	centering_type centering; // used by seqapplyreg to determine framing
+	framing_type framing; // used by seqapplyreg to determine framing
 };
 
 /* used to register a registration method */

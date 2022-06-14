@@ -875,6 +875,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
 		} else if (method->method_ptr == &register_kombat) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
+		} else if (method->method_ptr == &register_apply_reg) {
+			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
 		}
 		gtk_widget_set_visible(follow, (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_3stars));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
@@ -1042,7 +1044,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	char *msg;
 	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul;
 	GtkComboBox *cbbt_layers, *reg_all_sel_box;
-	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
+	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved;
 
 	if (!reserve_thread()) {	// reentrant from here
@@ -1084,6 +1086,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
+	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box= GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 
 	reg_args->func = method->method_ptr;
@@ -1101,6 +1104,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
 	reg_args->process_all_frames = !gtk_combo_box_get_active(reg_all_sel_box);
+	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
