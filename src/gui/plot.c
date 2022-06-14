@@ -149,8 +149,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double fwhm;
 	double dx, dy;
 	double cx,cy;
-	cx = (double)seq->imgparam[ref_image].rx * 0.5;
-	cy = (double)seq->imgparam[ref_image].ry * 0.5;
+	cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
+	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
 	Homography Href = seq->regparam[layer][ref_image].H;
 
 	for (i = 0, j = 0; i < plot->nb; i++) {
