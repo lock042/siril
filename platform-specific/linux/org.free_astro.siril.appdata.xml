@@ -90,6 +90,16 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+      <release version="1.0.3" type="stable" date="2022-06-28">
+      <url type="details">https://www.siril.org/download/1.0.3</url>
+      <description>
+        <p>
+          Siril 1.0.3 is a bug fix release, containing dozens of fixes. In
+          addition, it comes with a new stretching tool: the Generalised
+          Hyperbolic Transformation
+        </p>
+      </description>
+    </release>
       <release version="1.0.2" type="stable" date="2022-05-16">
       <url type="details">https://www.siril.org/download/1.0.2</url>
       <description>
