@@ -166,7 +166,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			cogy /= (double)n;
 			x0 = (int)(cogx - (double)rx * 0.5);
 			y0 = (int)(cogy - (double)ry * 0.5);
-			siril_log_message("Framing: Shift from reference origin: %d, %d\n", x0, y0);
+			siril_log_message(_("Framing: Shift from reference origin: %d, %d\n"), x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
 			break;
