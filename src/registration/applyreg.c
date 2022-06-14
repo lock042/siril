@@ -95,7 +95,7 @@ static void compute_framing(struct registration_args *regargs) {
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, com.seq.regparam[regargs->layer][i].H, Href);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, regargs->seq->regparam[regargs->layer][i].H, Href);
 					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
 					if (ymin > current_framing.pt[j].y) ymin = current_framing.pt[j].y;
 					if (xmax < current_framing.pt[j].x) xmax = current_framing.pt[j].x;
@@ -124,7 +124,7 @@ static void compute_framing(struct registration_args *regargs) {
 				memcpy(&current_framing, &framing, sizeof(regframe));
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, com.seq.regparam[regargs->layer][i].H, Href);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
