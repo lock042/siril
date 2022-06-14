@@ -66,8 +66,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	cvGetEye(&Hshift);
 	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-	int x0, y0, rx_0 = rx, ry_0 = ry;
-	double xmin, xmax, ymin, ymax;
+	int x0, y0, rx_0 = rx, ry_0 = ry, n;
+	double xmin, xmax, ymin, ymax, cogx, cogy;
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;
@@ -144,8 +144,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			Hshift.h12 = (double)y0;
 			break;
 		case FRAMING_COG:
-			double cogx = 0., cogy = 0;
-			int n = 0;
+			cogx = 0.;
+			cogy = 0;
+			n = 0;
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
 				siril_debug_print("Image #%d:\n", i);
