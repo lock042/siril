@@ -3856,6 +3856,10 @@ int process_seq_applyreg(int nb) {
 				reg_args->framing = FRAMING_MAX;
 				continue;
 			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cog")) {
+				reg_args->framing = FRAMING_COG;
+				continue;
+			}
 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {

@@ -16253,7 +16253,8 @@ numbers lead to faster computations.</property>
                                                             <property name="tooltip-text" translatable="yes">Specifies the framing method to be used:
 - "current" uses the current reference image
 - "max" (bounding box) adds a black border around each image as required so that no part of the image is cropped when registered.
-- "min" (common area) crops each image to the area it has in common with all images of the sequence.</property>
+- "min" (common area) crops each image to the area it has in common with all images of the sequence.
+- "cog" determines the best framing position as the center of gravity (cog) of all the images</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">current</item>

@@ -66,7 +66,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	cvGetEye(&Hshift);
 	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-	int x0, y0, rx_0 = 0, ry_0 = 0;
+	int x0, y0, rx_0 = rx, ry_0 = ry;
 	double xmin, xmax, ymin, ymax;
 
 	regframe framing = { 0 };
@@ -81,8 +81,6 @@ static gboolean compute_framing(struct registration_args *regargs) {
 
 	switch (regargs->framing) {
 		case FRAMING_CURRENT:
-			rx_0 = rx;
-			ry_0 = ry;
 			break;
 		case FRAMING_MAX:
 			xmin = DBL_MAX;
@@ -142,6 +140,33 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			y0 = ceil(ymin);
 			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
 			siril_debug_print("new origin: %d %d\n", x0, y0);
+			Hshift.h02 = (double)x0;
+			Hshift.h12 = (double)y0;
+			break;
+		case FRAMING_COG:
+			double cogx = 0., cogy = 0;
+			int n = 0;
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+				siril_debug_print("Image #%d:\n", i);
+				regframe current_framing = {0};
+				memcpy(&current_framing, &framing, sizeof(regframe));
+				double currcogx = 0., currcogy = 0.;
+				for (int j = 0; j < 4; j++) {
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
+					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					currcogx += current_framing.pt[j].x;
+					currcogy += current_framing.pt[j].y;
+				}
+				cogx += currcogx * 0.25;
+				cogy += currcogy * 0.25;
+				n++;
+			}
+			cogx /= (double)n;
+			cogy /= (double)n;
+			x0 = (int)(cogx - (double)rx * 0.5);
+			y0 = (int)(cogy - (double)ry * 0.5);
+			siril_log_message("Framing: Shift from reference origin: %d, %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
 			break;
@@ -526,6 +551,12 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	if (min == -2) {
 		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
 		regargs->process_all_frames = FALSE;
+	}
+
+	// cog frmaing method requires all images to be of same size
+	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
+		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
+		return FALSE;
 	}
 
 	// determines the reference homography (including framing shift) and output size
