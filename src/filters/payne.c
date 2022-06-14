@@ -436,7 +436,6 @@ void on_payne_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_SP = GTK_SPIN_BUTTON(lookup_widget("spin_payneSP"));
 	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_payneHP"));
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_payne"));
-	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
 
 	payne_startup();
 	payne_D = 0.0;
@@ -448,7 +447,6 @@ void on_payne_dialog_show(GtkWidget *widget, gpointer user_data) {
 	payne_rgb_space = TRUE;
 
 	set_notify_block(TRUE);
-	gtk_toggle_button_set_active(toggle_rgb, payne_rgb_space);
 	gtk_spin_button_set_value(spin_D, payne_D);
 	gtk_spin_button_set_value(spin_b, payne_b);
 	gtk_spin_button_set_value(spin_SP, payne_SP);
@@ -492,7 +490,6 @@ void on_payne_undo_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_SP = GTK_SPIN_BUTTON(lookup_widget("spin_payneSP"));
 	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_payneHP"));
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_payne"));
-	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_payneRGBspace"));
 	payne_D = 0.0;
 	payne_b = 0.5;
 	payne_black_value = 0.0;
@@ -501,7 +498,6 @@ void on_payne_undo_clicked(GtkButton *button, gpointer user_data) {
 	payne_rgb_space = TRUE;
 
 	set_notify_block(TRUE);
-	gtk_toggle_button_set_active(toggle_rgb, payne_rgb_space);
 	gtk_spin_button_set_value(spin_d, payne_D);
 	gtk_spin_button_set_value(spin_b, payne_b);
 	gtk_spin_button_set_value(spin_SP, payne_SP);
