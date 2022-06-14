@@ -113,7 +113,6 @@ static void compute_framing(struct registration_args *regargs) {
 			Hshift.h12 = (double)y0;
 			break;
 		case CENTERING_MIN:
-			double xs[4], ys[4];
 			xmin = -DBL_MAX;
 			xmax = DBL_MAX;
 			ymin = -DBL_MAX;
@@ -123,6 +122,7 @@ static void compute_framing(struct registration_args *regargs) {
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
+				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, com.seq.regparam[regargs->layer][i].H, Href);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
