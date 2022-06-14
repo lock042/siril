@@ -29,9 +29,11 @@
 #include "io/kstars/binfile.h"
 #include "io/kstars/htmesh_wrapper.h"
 #include "core/siril_log.h"
+#include "core/siril_date.h"
 #include "core/proto.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
+#include "registration/matching/degtorad.h"
 #include "catalogues.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,6 +96,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f);
 //static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
+static void update_coords_with_proper_motion(double *ra, double *dec, double dRA, double dDec, double jmillenia);
 
 static void bswap_stardata(deepStarData *stardata) {
     stardata->RA = bswap_32(stardata->RA);
@@ -135,6 +138,12 @@ static int get_stars_from_local_catalogue(const char *path, double ra, double de
 		return 1;
 	}
 
+	GDateTime *dt = g_date_time_new_now_utc();
+	gdouble jd = date_time_to_Julian(dt);
+	g_date_time_unref(dt);
+	double J2000 = 2451545.0;
+	double jmillenia = (jd - J2000) / 365250.;
+
 	int j = 0;
 	for (int i = 0; i < trixel_nb_stars; i++) {
 		if (trixel_stars[i].B >= 30000)
@@ -144,10 +153,10 @@ static int get_stars_from_local_catalogue(const char *path, double ra, double de
 		// TODO: filter stars based on radius?
 		// catalogue has RA in hours, hence the x15
 		double ra = trixel_stars[i].RA / 1000000.0 * 15.0;
-		double dec= trixel_stars[i].Dec / 100000.0;
+		double dec = trixel_stars[i].Dec / 100000.0;
 		double Bmag = trixel_stars[i].B / 1000.0;
 		double Vmag = trixel_stars[i].V / 1000.0;
-		// TODO: manage dRA and dDec
+		update_coords_with_proper_motion(&ra, &dec, trixel_stars[i].dRA, trixel_stars[i].dDec, jmillenia);
 
 		double x, y;
 		wcs2pix(fit, ra, dec, &x, &y);
@@ -162,6 +171,36 @@ static int get_stars_from_local_catalogue(const char *path, double ra, double de
 	*nb_stars = j;
 
 	return 0;
+}
+
+/* ra and dec in degrees, dRA and dDec in mas/decade, jmillenia in thousand years
+ * ra and dec are input and output */
+static void update_coords_with_proper_motion(double *ra, double *dec, double dRA, double dDec, double jmillenia) {
+	double pmms = dRA * dRA + dDec * dDec;
+	if (pmms * jmillenia * jmillenia < .01)
+		return;
+	double ra_rad = *ra * DEGTORAD, dec_rad = *dec * DEGTORAD;
+	double cosRa = cos(ra_rad), sinRa = sin(ra_rad);
+	double cosDec = cos(dec_rad), sinDec = sin(dec_rad);
+	double scale = jmillenia * (M_PI / (180.0 * 3600.0));
+
+	// Note: Below assumes that dRA is already pre-scaled by cos(delta), as it is for Hipparcos
+	double net_pmRA = dRA * scale, net_pmDec = dDec * scale;
+
+	double x0 = cosDec * cosRa, y0 = cosDec * sinRa, z0 = sinDec;
+	double dX = - net_pmRA * sinRa - net_pmDec * sinDec * cosRa;
+	double dY = net_pmRA * cosRa - net_pmDec * sinDec * sinRa;
+	double dZ = net_pmDec * cosDec;
+	double x = x0 + dX, y = y0 + dY, z = z0 + dZ;
+
+	double alpha = atan2(y, x) * RADTODEG;
+	double delta = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
+	alpha = alpha - 360.0 * floor(alpha / 360.0);
+
+	if (abs(*ra - alpha) > .0001388 || abs(*dec - delta) > .0001388)
+		siril_debug_print("star moved from more than half an arcsec (%f, %f)\n", *ra, *dec);
+	*ra = alpha;
+	*dec = delta;
 }
 
 int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
