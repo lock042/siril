@@ -40,6 +40,7 @@
 #include "gui/sequence_list.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
+#include "core/siril_app_dirs.h"
 #include "registration/registration.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/match.h"
@@ -81,6 +82,13 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to apply previously computed registration data "
 		"stored in the sequence file. The interpolation method and simplified drizzle can be selected in the Output Registration section and it can be applied "
 		"on selected images only, to avoid saving unnecessary images.")
+};
+
+static char *reg_frame_registration[] = {
+		"framing-default.svg",
+		"framing-max.svg",
+		"framing-min.svg",
+		"framing-cog.svg"
 };
 
 /*Possible values for max stars combo box
@@ -1292,4 +1300,17 @@ int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography 
 	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	clearfits(destfit);
 	return 0;
+}
+
+void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
+	gchar *name;
+	GtkImage *image = GTK_IMAGE(lookup_widget("framing-image"));
+	int i = gtk_combo_box_get_active(box);
+
+	if (i >= 0 && i < G_N_ELEMENTS(reg_frame_registration)) {
+		name = g_build_filename(siril_get_system_data_dir(), "pixmaps", reg_frame_registration[i], NULL);
+		gtk_image_set_from_file(image, name);
+
+		g_free(name);
+	}
 }

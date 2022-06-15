@@ -16237,6 +16237,7 @@ numbers lead to faster computations.</property>
                                                             <object class="GtkLabel" id="framing_lbl">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">center</property>
                                                             <property name="label" translatable="yes">Framing method</property>
                                                             </object>
                                                             <packing>
@@ -16252,16 +16253,18 @@ numbers lead to faster computations.</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Specifies the framing method to be used:
 - "current" uses the current reference image
-- "max" (bounding box) adds a black border around each image as required so that no part of the image is cropped when registered.
-- "min" (common area) crops each image to the area it has in common with all images of the sequence.
-- "cog" determines the best framing position as the center of gravity (cog) of all the images</property>
+- "maximum" (bounding box) adds a black border around each image as required so that no part of the image is cropped when registered.
+- "minimum" (common area) crops each image to the area it has in common with all images of the sequence.
+- "center of gravity" determines the best framing position as the center of gravity (cog) of all the images</property>
+                                                            <property name="valign">center</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">current</item>
-                                                            <item translatable="yes">max</item>
-                                                            <item translatable="yes">min</item>
-                                                            <item translatable="yes">cog</item>
+                                                            <item translatable="yes">maximum</item>
+                                                            <item translatable="yes">minimum</item>
+                                                            <item translatable="yes">center of gravity</item>
                                                             </items>
+                                                            <signal name="changed" handler="on_comboreg_framing_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -16270,7 +16273,17 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <placeholder/>
+                                                            <object class="GtkImage" id="framing-image">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="pixbuf">pixmaps/frame-default.svg</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="pack-type">end</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
