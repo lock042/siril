@@ -1173,6 +1173,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 gpointer register_thread_func(gpointer p) {
 	struct registration_args *args = (struct registration_args *) p;
 	int retval;
+	args->seq->reg_invalidated = TRUE;
 
 	args->retval = args->func(args);
 
@@ -1209,7 +1210,7 @@ static gboolean end_register_idle(gpointer p) {
 		}
 	}
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
-
+	args->seq->reg_invalidated = FALSE;
 	drawPlot();
 	update_stack_interface(TRUE);
 	adjust_sellabel();

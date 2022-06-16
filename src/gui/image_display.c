@@ -1220,11 +1220,13 @@ static void draw_analysis(const draw_data_t* dd) {
 static void draw_regframe(const draw_data_t* dd) {
 	if (!com.script && !sequence_is_loaded()) return;
 	if (!&com.seq) return;
+	if (com.seq.current == RESULT_IMAGE) return;
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check")))) return;
 	
 	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
 	int activelayer = gtk_combo_box_get_active(GTK_COMBO_BOX(seqcombo));
 	if (!layer_has_registration(&com.seq, activelayer)) return;
+	if (com.seq.reg_invalidated) return;
 
 	int Htyperef = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H);
 	int Htypecur = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H);
