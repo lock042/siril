@@ -1216,6 +1216,7 @@ static gboolean end_register_idle(gpointer p) {
 	adjust_sellabel();
 
 	set_cursor_waiting(FALSE);
+	if (args->func == &register_3stars) reset_3stars();
 
 	free(args);
 	return FALSE;

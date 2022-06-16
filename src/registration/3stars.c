@@ -444,7 +444,6 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 
 	generic_sequence_worker(args);
 	
-	reset_3stars();
 	return args->retval;
 }
 
@@ -455,7 +454,6 @@ and finally applies this transform if !no_output
 Registration data is saved to the input sequence in any case
 */
 int register_3stars(struct registration_args *regargs) {
-	// TODO: we should reset_3stars at all possible escapes alomg the process
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	int nb_stars_ref = 0;
@@ -589,7 +587,6 @@ int register_3stars(struct registration_args *regargs) {
 	if (!regargs->no_output) {
 		return _3stars_alignment(regargs, current_regdata);
 	} else {
-		reset_3stars();
 		fix_selnum(regargs->seq, FALSE);
 		siril_log_message(_("Registration finished.\n"));
 		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
