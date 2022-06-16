@@ -16276,7 +16276,7 @@ numbers lead to faster computations.</property>
                                                             <object class="GtkImage" id="framing-image">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="pixbuf">pixmaps/frame-default.svg</property>
+                                                            <property name="pixbuf">pixmaps/framing-default.svg</property>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>

@@ -1256,24 +1256,18 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_source_rgb(cr, 1., 0., 0.);
 
-	// reference frame
+
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
+	// reference origin
+	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * M_PI);
+	cairo_stroke_preserve(cr);
+	cairo_fill(cr);
+	// reference frame
 	cairo_move_to(cr, framing.pt[0].x, framing.pt[0].y);
 	cairo_line_to(cr, framing.pt[1].x, framing.pt[1].y);
 	cairo_line_to(cr, framing.pt[2].x, framing.pt[2].y);
 	cairo_line_to(cr, framing.pt[3].x, framing.pt[3].y);
 	cairo_line_to(cr, framing.pt[0].x, framing.pt[0].y);
-	cairo_stroke(cr);
-	// reference origin
-	double dx1 = framing.pt[1].x - framing.pt[0].x;
-	double dy1 = framing.pt[1].y - framing.pt[0].y;
-	double dx2 = framing.pt[3].x - framing.pt[0].x;
-	double dy2 = framing.pt[3].y - framing.pt[0].y;
-
-	double l1 = sqrt(pow(dx1, 2.0) + pow(dy1, 2.));
-	double l2 = sqrt(pow(dx2, 2.0) + pow(dy2, 2.));
-	cairo_move_to(cr, framing.pt[0].x + dx1 / l1 * size, framing.pt[0].y + dy1 / l1 * size);
-	cairo_line_to(cr, framing.pt[0].x + dx2 / l2 * size, framing.pt[0].y + dy2 / l2 * size);
 	cairo_stroke(cr);
 
 	// reference center
