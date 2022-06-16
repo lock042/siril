@@ -2,7 +2,11 @@
 #define _CATALOGUES_H
 
 #include "core/siril.h"
+#include "core/siril_world_cs.h"
 
 int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars);
+
+gboolean local_catalogues_available();
+gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius, double max_mag, gboolean for_photometry);
 
 #endif

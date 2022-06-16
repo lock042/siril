@@ -33,6 +33,7 @@
 #include "gui/photometric_cc.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/catalogues.h"
 
 enum {
 	COLUMN_RESOLVER,// string
@@ -555,16 +556,22 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
 		get_online_catalog(args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 
-	/* currently the GUI version downloads the catalog here, because
-	 * siril_message_dialog() doesn't use idle function, we could change that */
-	GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
-	if (!catalog_file) {
-		siril_world_cs_unref(catalog_center);
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
-		set_cursor_waiting(FALSE);
-		return 1;
+	if (local_catalogues_available()) {
+		siril_debug_print("using local star catalogues\n");
+		args->use_local_cat = TRUE;
+		args->catalog_file = NULL;
+	} else {
+		/* currently the GUI version downloads the catalog here, because
+		 * siril_message_dialog() doesn't use idle function, we could change that */
+		GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+		if (!catalog_file) {
+			siril_world_cs_unref(catalog_center);
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
+			set_cursor_waiting(FALSE);
+			return 1;
+		}
+		args->catalog_file = catalog_file;
 	}
-	args->catalog_file = catalog_file;
 
 	set_cursor_waiting(FALSE);
 	return 0;

@@ -37,6 +37,7 @@
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/ccd-inspector.h"
+#include "algos/astrometry_solver.h"
 
 static GtkListStore *liststore_stars = NULL;
 
@@ -563,6 +564,8 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 			gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
 
 			url = build_wcs_url(ra, dec);
+			// TODO: change with vizier
+			// TODO: use box size as radius
 
 			g_free(ra);
 			g_free(dec);

@@ -589,7 +589,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 	/* for now, only from online sources */
 	const gchar *cat = NULL;
 	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-	double fov = resolution * args->fit->rx;	// fov in degrees
+	uint64_t sqr_radius = (args->fit->rx * args->fit->rx + args->fit->ry * args->fit->ry) / 4;
+	double fov = resolution * sqrt((double)sqr_radius); // diagonal in degrees
 	double mag = compute_mag_limit_from_fov(fov);
 
 	switch(args->catalog) {

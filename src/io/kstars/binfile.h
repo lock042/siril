@@ -100,7 +100,7 @@ void displayDataElementDescription(dataElement *e)
 	char str[11];
 	charv2str(str, e->name, 10);
 	const char *type = data_element_type_to_string(e->type);
-	fprintf(stdout, "Data field %s of type %s, size %d, scale %d\n", str, type, e->size, e->scale);
+	fprintf(stdout, "\tData field %s of type %s, size %d, scale %d\n", str, type, e->size, e->scale);
 	/*printf("\nData Field:\n");
 	printf("  Name: %s\n", str);
 	printf("  Size: %d\n", e->size);

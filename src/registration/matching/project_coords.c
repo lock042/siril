@@ -119,7 +119,7 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 	GOutputStream *output_stream = (GOutputStream *)g_file_append_to(file_out, G_FILE_CREATE_NONE, NULL, &error);
 	if (!output_stream) {
 		if (error != NULL) {
-			siril_debug_print("proc_star_file: can't open file %s for input. [%s]", g_file_peek_path(file_in), error->message);
+			siril_debug_print("proc_star_file: can't open file %s for input. [%s]", g_file_peek_path(file_out), error->message);
 			g_clear_error(&error);
 			g_object_unref(input_stream);
 			return SH_GENERIC_ERROR;

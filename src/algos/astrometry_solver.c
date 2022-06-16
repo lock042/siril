@@ -46,6 +46,7 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/catalogues.h"
 #include "opencv/opencv.h"
 #include "registration/registration.h"
 #include "registration/matching/match.h"
@@ -99,9 +100,11 @@ double get_resolution(double focal, double pixel) {
 	return RADCONV / focal * pixel;
 }
 
-/* get field of view in arcmin */
-static double get_fov(double resolution, int image_size) {
-	return (resolution * (double)image_size) / 60.0;
+/* get field of view in arcmin, resolution in arcsec/px */
+static double get_fov(double resolution, int rx, int ry) {
+	uint64_t sqr_radius = (rx * rx + ry * ry) / 4;
+	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
+	return radius / 60.0;	// in arcminutes
 }
 
 double compute_mag_limit_from_fov(double fov_degrees) {
@@ -116,7 +119,7 @@ double compute_mag_limit_from_fov(double fov_degrees) {
 static void compute_mag_limit(struct astrometry_data *args) {
 	if (args->auto_magnitude) {
 		// limit magnitude should depend on image fov, not selection's
-		double fov = get_fov(args->scale, max(args->fit->rx, args->fit->ry)) * CROP_ALLOWANCE;
+		double fov = get_fov(args->scale, args->fit->rx, args->fit->ry);// * CROP_ALLOWANCE;
 		//double fov = args->used_fov * CROP_ALLOWANCE;
 
 		args->limit_mag = compute_mag_limit_from_fov(fov / 60.0);
@@ -125,7 +128,7 @@ static void compute_mag_limit(struct astrometry_data *args) {
 	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
 }
 
-static gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type) {
+gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type) {
 	GString *url;
 	gchar *coordinates;
 	gchar *mag;
@@ -511,7 +514,6 @@ GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_cent
 	return file;
 }
 
-
 static gchar *project_catalog(GFile *catalogue_name, SirilWorldCS *catalog_center) {
 	GError *error = NULL;
 	gchar *foutput = NULL;
@@ -580,7 +582,6 @@ static void print_platesolving_results(image_solved *image, gboolean downsample)
 	gchar *alpha, *delta;
 	char field_x[256] = { 0 };
 	char field_y[256] = { 0 };
-	point fov;
 
 	float factor = (downsample) ? DOWNSAMPLE_FACTOR : 1.0;
 	Homography H = image->H;
@@ -613,12 +614,10 @@ static void print_platesolving_results(image_solved *image, gboolean downsample)
 		rotation -= 360.0;
 	siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
 
-	fov.x = get_fov(resolution, image->size.x);
-	fov.y = get_fov(resolution, image->size.y);
 	siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * image->pixel_size / resolution);
 	siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, image->pixel_size);
-	fov_in_DHMS(fov.x / 60.0, field_x);
-	fov_in_DHMS(fov.y / 60.0, field_y);
+	fov_in_DHMS(resolution * image->size.x / 3600.0, field_x);
+	fov_in_DHMS(resolution * image->size.y / 3600.0, field_y);
 	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
 
 	alpha = siril_world_cs_alpha_format(image->image_center, " %02dh%02dm%02ds");
@@ -1118,7 +1117,7 @@ gpointer match_catalog(gpointer p) {
 			args->used_fov / 60.0,
 			args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
 
-	if (!args->catalog_file) {
+	if (!args->catalog_file && !args->use_local_cat) {
 		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
 				args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 		if (!args->catalog_file) {
@@ -1165,10 +1164,15 @@ gpointer match_catalog(gpointer p) {
 	}
 
 	/* project and open the file */
-	args->catalogStars = project_catalog(args->catalog_file, args->cat_center);
-	if (!args->catalogStars) {
-		args->message = g_strdup(_("Cannot project the star catalog."));
-		goto clearup;
+	if (args->use_local_cat) {
+		args->catalogStars = get_and_project_local_catalog(args->cat_center,
+				(args->used_fov * CROP_ALLOWANCE) / 120.0, args->limit_mag, FALSE);
+	} else {
+		args->catalogStars = project_catalog(args->catalog_file, args->cat_center);
+		if (!args->catalogStars) {
+			args->message = g_strdup(_("Cannot project the star catalog."));
+			goto clearup;
+		}
 	}
 	CHECK_FOR_CANCELLATION;
 	catalog = g_file_new_for_path(args->catalogStars);
@@ -1490,7 +1494,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			croparea.w = args->fit->rx;
 			croparea.h = args->fit->ry;
 		}
-		double fov = get_fov(args->scale, max(croparea.w, croparea.h));
+		double fov = get_fov(args->scale, croparea.w, croparea.h);
 		siril_debug_print("image fov for given sampling: %f arcmin\n", fov);
 		// then apply or not autocropping to 5deg (300 arcmin)
 		args->used_fov = args->autocrop ? min(fov, 300.) : fov;
@@ -1522,7 +1526,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			croparea.y *= DOWNSAMPLE_FACTOR;
 		}
 	} else { //stars manual selection - use full field centered
-		args->used_fov = get_fov(args->scale, max(args->fit->rx, args->fit->ry));
+		args->used_fov = get_fov(args->scale, args->fit->rx, args->fit->ry);
 		args->uncentered = FALSE;
 	}
 

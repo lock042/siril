@@ -7,7 +7,7 @@
 
 #define BRIGHTEST_STARS 2500
 #define AT_MATCH_CATALOG_NBRIGHT   60
-#define CROP_ALLOWANCE 1.25
+#define CROP_ALLOWANCE 1.20
 
 #define RADtoASEC (3600.0 * 180.0 / M_PI)
 
@@ -74,8 +74,9 @@ struct astrometry_data {
 	double limit_mag;	// limit magnitude to sear for in the catalog
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
-	GFile *catalog_file;	// file containing raw catalog data
-	gchar *catalogStars;	// file name of the transformed catalog
+	gboolean use_local_cat;	// use local catalogues if installed
+	GFile *catalog_file;	// downloaded file containing raw catalog data
+	gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
 
@@ -122,6 +123,7 @@ gboolean has_nonzero_coords();
 gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag);
+gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
 
 /* from the GUI */
 void update_coords();

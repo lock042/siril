@@ -5141,6 +5141,10 @@ int process_pcc(int nb) {
 	}
 
 	if (plate_solve) {
+		if (local_catalogues_available()) {
+			siril_debug_print("using local star catalogues\n");
+			args->use_local_cat = TRUE;
+		}
 		args->onlineCatalog = NOMAD;
 		args->for_photometry_cc = TRUE;
 		args->cat_center = target_coords;
@@ -5177,9 +5181,10 @@ int process_nomad(int nb) {
 	}
 	center2wcs(&gfit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(&gfit);
-	double fov = resolution * gfit.rx;	// fov in degrees
-	siril_debug_print("centre coords: %f, %f, fov: %f\n", ra, dec, fov);
-	if (get_stars_from_local_catalogues(ra, dec, fov*0.5, &gfit, limit_mag, &stars, &nb_stars)) {
+	uint64_t sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
+	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
+	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
+	if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
 		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 		return 1;
 	}
@@ -5202,7 +5207,7 @@ int process_nomad(int nb) {
 	}
 	if (j > 0)
 		com.stars[j] = NULL;
-	siril_log_message("%d stars from local catalogues found in the image (mag limit %.2f)\n", j, limit_mag);
+	siril_log_message("%d stars from local catalogues found with valid photometry data in the image (mag limit %.2f)\n", j, limit_mag);
 	redraw(REDRAW_OVERLAY);
 	return 0;
 }
