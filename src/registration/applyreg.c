@@ -258,8 +258,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
-	regargs->imgparam[out_index].ry = args->seq->imgparam[in_index].ry;
+	regargs->imgparam[out_index].rx = rx_out;
+	regargs->imgparam[out_index].ry = ry_out;
 	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
@@ -272,6 +272,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fit->pixel_size_y /= 2;
 		regargs->regparam[out_index].fwhm *= 2.0;
 		regargs->regparam[out_index].weighted_fwhm *= 2.0;
+		regargs->imgparam[out_index].rx *= 2.0;
+		regargs->imgparam[out_index].ry *= 2.0;
 	}
 
 	sadata->success[out_index] = 1;
