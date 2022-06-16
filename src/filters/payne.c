@@ -439,9 +439,9 @@ static int paynelut_ushort(fits *fit, double B, double D, double LP, double SP, 
 			} else {
 				double x = factor_red * r + factor_green * g + factor_blue * b;
 				double z = payne_compute(x, B, expD, LP, SP, HP, BP, stretchtype);
-				buf[RLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(min(1.0, max(0.0, ((r - BP) / (1 - BP)) * (z / x) * norm)));
-				buf[GLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(min(1.0, max(0.0, ((g - BP) / (1 - BP)) * (z / x) * norm)));
-				buf[BLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(min(1.0, max(0.0, ((b - BP) / (1 - BP)) * (z / x) * norm)));
+				buf[RLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(norm * min(1.0, max(0.0, ((r - BP) / (1 - BP)) * (z / x))));
+				buf[GLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(norm * min(1.0, max(0.0, ((g - BP) / (1 - BP)) * (z / x))));
+				buf[BLAYER][i] = (x == 0.0) ? 0.0 : round_to_WORD(norm * min(1.0, max(0.0, ((b - BP) / (1 - BP)) * (z / x))));
 			}
 		}
 	} else {
