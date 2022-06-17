@@ -117,12 +117,13 @@ void set_focal_and_pixel_pitch();
 
 /* for the GUI */
 double get_resolution(double focal, double pixel);
+double get_radius_deg(double resolution, int rx, int ry);
 void free_Platedobject();
 int parse_content_buffer(char *buffer, struct sky_object *obj);
 gboolean has_nonzero_coords();
 gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
-GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag);
+GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
 gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
 
 /* from the GUI */

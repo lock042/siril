@@ -100,11 +100,18 @@ double get_resolution(double focal, double pixel) {
 	return RADCONV / focal * pixel;
 }
 
-/* get field of view in arcmin, resolution in arcsec/px */
-static double get_fov(double resolution, int rx, int ry) {
-	uint64_t sqr_radius = (rx * rx + ry * ry) / 4;
+/* get diagonal field of view in arcmin, resolution in arcsec/px */
+static double get_fov_arcmin(double resolution, int rx, int ry) {
+	uint64_t sqr_radius = rx * rx + ry * ry;
 	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
 	return radius / 60.0;	// in arcminutes
+}
+
+/* get half field of view in arcmin, or angle from image centre, resolution in arcsec/px */
+double get_radius_deg(double resolution, int rx, int ry) {
+	uint64_t sqr_radius = (rx * rx + ry * ry) / 4;
+	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
+	return radius / 3600.0;	// in degrees
 }
 
 double compute_mag_limit_from_fov(double fov_degrees) {
@@ -119,7 +126,7 @@ double compute_mag_limit_from_fov(double fov_degrees) {
 static void compute_mag_limit(struct astrometry_data *args) {
 	if (args->auto_magnitude) {
 		// limit magnitude should depend on image fov, not selection's
-		double fov = get_fov(args->scale, args->fit->rx, args->fit->ry);// * CROP_ALLOWANCE;
+		double fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);// * CROP_ALLOWANCE;
 		//double fov = args->used_fov * CROP_ALLOWANCE;
 
 		args->limit_mag = compute_mag_limit_from_fov(fov / 60.0);
@@ -128,7 +135,7 @@ static void compute_mag_limit(struct astrometry_data *args) {
 	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
 }
 
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type) {
+gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, int type) {
 	GString *url;
 	gchar *coordinates;
 	gchar *mag;
@@ -136,7 +143,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int 
 
 	coordinates = g_strdup_printf("%f+%f", siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center));
 	mag = g_strdup_printf("%2.2lf", mag_limit);
-	fov = g_strdup_printf("%2.1lf", dfov / 2.0);
+	fov = g_strdup_printf("%2.1lf", radius);
 
 	url = g_string_new("http://vizier.u-strasbg.fr/viz-bin/asu-tsv?-source=");
 	switch (type) {
@@ -453,7 +460,7 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 }
 
 
-GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double fov, double mag) {
+GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag) {
 	gchar *buffer = NULL;
 	GError *error = NULL;
 
@@ -464,7 +471,7 @@ GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_cent
 			(int) onlineCatalog,
 			siril_world_cs_get_alpha(catalog_center),
 			siril_world_cs_get_delta(catalog_center),
-			fov, mag);
+			radius, mag);
 	siril_debug_print("Catalogue file: %s\n", str);
 	GFile *file = g_file_new_build_filename(g_get_tmp_dir(), str, NULL);
 	g_free(str);
@@ -493,7 +500,7 @@ GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_cent
 
 	if (output_stream) {
 		/* download and save */
-		gchar *url = get_catalog_url(catalog_center, mag, fov, onlineCatalog);
+		gchar *url = get_catalog_url(catalog_center, mag, radius, onlineCatalog);
 		buffer = fetch_url(url);
 		g_free(url);
 
@@ -1119,7 +1126,7 @@ gpointer match_catalog(gpointer p) {
 
 	if (!args->catalog_file && !args->use_local_cat) {
 		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
-				args->used_fov * CROP_ALLOWANCE, args->limit_mag);
+				args->used_fov * 0.5 * CROP_ALLOWANCE, args->limit_mag);
 		if (!args->catalog_file) {
 			args->message = g_strdup(_("Could not download the online star catalog."));
 			goto clearup;
@@ -1420,8 +1427,22 @@ gpointer match_catalog(gpointer p) {
 	if (args->for_photometry_cc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
-		args->ret = project_catalog_with_WCS(args->catalog_file, args->fit,
-				&pcc_stars, &nb_pcc_stars);
+		if (args->use_local_cat) {
+			double tra = siril_world_cs_get_alpha(solution->image_center);
+			double tdec = siril_world_cs_get_delta(solution->image_center);
+			double resolution = get_resolution(solution->focal, args->pixel_size);
+			double radius = get_radius_deg(resolution, args->fit->rx, args->fit->ry);
+			double mag = compute_mag_limit_from_fov(radius * 1.5);
+			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
+			siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), mag);
+			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, mag, &pcc_stars, &nb_pcc_stars)) {
+				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
+				args->ret = 1;
+			}
+		} else {
+			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit,
+					&pcc_stars, &nb_pcc_stars);
+		}
 		if (args->ret) {
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
 			goto clearup;
@@ -1431,7 +1452,9 @@ gpointer match_catalog(gpointer p) {
 		args->pcc->fwhm = filtered_FWHM_average(stars, n_fit);
 		if (args->downsample)
 			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
+
 		args->ret = photometric_cc(args->pcc);
+
 		args->pcc = NULL; // freed in PCC code
 		free(pcc_stars);
 		pcc_stars = NULL;
@@ -1494,7 +1517,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			croparea.w = args->fit->rx;
 			croparea.h = args->fit->ry;
 		}
-		double fov = get_fov(args->scale, croparea.w, croparea.h);
+		double fov = get_fov_arcmin(args->scale, croparea.w, croparea.h);
 		siril_debug_print("image fov for given sampling: %f arcmin\n", fov);
 		// then apply or not autocropping to 5deg (300 arcmin)
 		args->used_fov = args->autocrop ? min(fov, 300.) : fov;
@@ -1526,7 +1549,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			croparea.y *= DOWNSAMPLE_FACTOR;
 		}
 	} else { //stars manual selection - use full field centered
-		args->used_fov = get_fov(args->scale, args->fit->rx, args->fit->ry);
+		args->used_fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
 		args->uncentered = FALSE;
 	}
 

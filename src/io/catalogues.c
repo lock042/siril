@@ -171,7 +171,6 @@ static int get_projected_stars_from_local_catalogue(const char *path, double ra,
 			continue;
 		if (trixel_stars[i].V >= mag_threshold)
 			continue;
-		// TODO: filter stars based on radius?
 		// catalogue has RA in hours, hence the x15
 		double ra = trixel_stars[i].RA * .000015;
 		double dec = trixel_stars[i].Dec * .00001;
@@ -234,7 +233,12 @@ static int update_coords_with_proper_motion(double *ra, double *dec, double dRA,
 	return 1;
 }
 
+/* get stars with coordinates projected on image (pcc_star), only those that
+ * have B-V photometric information, up to the max_mag magnitude.
+ * fit must have WCS inforation */
 int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
+	if (!has_wcs(fit))
+		return 1;
 	int nb_catalogues = sizeof(catalogues_paths) / sizeof(const char *);
 	pcc_star **catalogue_stars = malloc(nb_catalogues * sizeof(pcc_star *));
 	int *catalogue_nb_stars = malloc(nb_catalogues * sizeof(int));
@@ -244,8 +248,9 @@ int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *
 		char path[1024];
 		strcpy(path, catalogues_paths[catalogue]);
 		expand_home_in_filename(path, 1024);
-		// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
-		retval = get_projected_stars_from_local_catalogue(path, ra, dec, radius, catalogue != 2, fit, max_mag,
+		retval = get_projected_stars_from_local_catalogue(path, ra, dec, radius,
+				// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
+				/* catalogue != 2 */ FALSE, fit, max_mag,
 				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
 		if (retval)
 			break;
@@ -420,55 +425,55 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
 	int *trixels;
 	int nb_trixels;
-	if (!get_htm_indices_around_target(ra, dec, radius, cat->HTM_Level, &trixels, &nb_trixels)) {
-		siril_debug_print("trixel search found %d trixels\n", nb_trixels);
-		deepStarData **stars_list;
-		uint32_t *nb_stars_list;
-		stars_list = malloc(nb_trixels * sizeof(deepStarData *));
-		if (!stars_list) {
-			PRINT_ALLOC_ERR;
-			return -1;
-		}
-		nb_stars_list = malloc(nb_trixels * sizeof(uint32_t *));
-		if (!nb_stars_list) {
-			free(stars_list);
-			PRINT_ALLOC_ERR;
-			return -1;
-		}
-		int retval = 0;
-		uint32_t total_star_count = 0;
-		for (int i = 0; i < nb_trixels; i++) {
-			retval = read_trixel(trixels[i], cat, stars_list + i, nb_stars_list + i);
-			if (retval) break;
-			siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
-			total_star_count += nb_stars_list[i];
-		}
-		free(trixels);
-
-		if (!retval) {
-			// aggregate
-			*stars = malloc(total_star_count * sizeof(deepStarData));
-			if (!*stars) {
-				free(stars_list);
-				free(nb_stars_list);
-				PRINT_ALLOC_ERR;
-				return -1;
-			}
-			*nb_stars = total_star_count;
-			uint32_t offset = 0;
-			for (int i = 0; i < nb_trixels; i++) {
-				memcpy(*stars + offset, stars_list[i], nb_stars_list[i] * sizeof(deepStarData));
-				offset += nb_stars_list[i];
-				free(stars_list[i]);
-			}
-		}
-		free(stars_list);
-		free(nb_stars_list);
-	}
-	else {
+	if (get_htm_indices_around_target(ra, dec, radius, cat->HTM_Level, &trixels, &nb_trixels)) {
 		*stars = NULL;
 		*nb_stars = 0;
+		return 0;
 	}
+
+	siril_debug_print("trixel search found %d trixels\n", nb_trixels);
+	deepStarData **stars_list;
+	uint32_t *nb_stars_list;
+	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
+	if (!stars_list) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	nb_stars_list = malloc(nb_trixels * sizeof(uint32_t *));
+	if (!nb_stars_list) {
+		free(stars_list);
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	int retval = 0;
+	uint32_t total_star_count = 0;
+	for (int i = 0; i < nb_trixels; i++) {
+		retval = read_trixel(trixels[i], cat, stars_list + i, nb_stars_list + i);
+		if (retval) break;
+		siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
+		total_star_count += nb_stars_list[i];
+	}
+	free(trixels);
+
+	if (!retval) {
+		// aggregate
+		*stars = malloc(total_star_count * sizeof(deepStarData));
+		if (!*stars) {
+			free(stars_list);
+			free(nb_stars_list);
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		*nb_stars = total_star_count;
+		uint32_t offset = 0;
+		for (int i = 0; i < nb_trixels; i++) {
+			memcpy(*stars + offset, stars_list[i], nb_stars_list[i] * sizeof(deepStarData));
+			offset += nb_stars_list[i];
+			free(stars_list[i]);
+		}
+	}
+	free(stars_list);
+	free(nb_stars_list);
 	return 0;
 }
 
@@ -664,7 +669,8 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	return retval;
 }
 
-/* see registration/matching/project_coords.c proc_star_file() for original
+/* project a list of stars for plate solving
+ * see registration/matching/project_coords.c proc_star_file() for original
  * code, based on a downloaded text file catalog */
 static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, double center_ra, double center_dec, GFile *file_out, int doASEC) {
 	double xx, yy, xi, eta;
@@ -726,7 +732,8 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 	return 0;
 }
 
-/* copied from project_catalog() in algos/astrometry_solver.c
+/* project a list of stars into /tmp/catalog.proj for plate solving (function managing the file)
+ * copied from project_catalog() in algos/astrometry_solver.c
  * radius is in degrees */
 gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius, double max_mag,
 		gboolean for_photometry) {
@@ -760,3 +767,17 @@ gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius
 	return foutput;
 }
 
+#if 0
+void filter_deepStars_for_photometry(deepStarData_dist *stars, uint32_t nb_stars) {
+	uint32_t j = 0;
+	for (uint32_t i = 0; i < nb_stars; i++) {
+		if (stars[i].B >= 30000 || stars[i].V >= 30000)
+			continue;
+		if (i == j)
+			continue;
+		stars[j] = stars[i];
+		j++;
+	}
+	// realloc?
+}
+#endif

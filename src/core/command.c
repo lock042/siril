@@ -5140,11 +5140,12 @@ int process_pcc(int nb) {
 		else siril_log_message(_("Using focal length from image: %f\n"), args->focal_length);
 	}
 
+	if (local_catalogues_available()) {
+		siril_debug_print("using local star catalogues\n");
+		pcc_args->use_local_cat = TRUE;
+	}
 	if (plate_solve) {
-		if (local_catalogues_available()) {
-			siril_debug_print("using local star catalogues\n");
-			args->use_local_cat = TRUE;
-		}
+		args->use_local_cat = pcc_args->use_local_cat;
 		args->onlineCatalog = NOMAD;
 		args->for_photometry_cc = TRUE;
 		args->cat_center = target_coords;
@@ -5174,7 +5175,7 @@ int process_nomad(int nb) {
 	pcc_star *stars;
 	int nb_stars;
 	double ra, dec;
-	float limit_mag = 13.5f;
+	float limit_mag = 13.0f;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return 1;
