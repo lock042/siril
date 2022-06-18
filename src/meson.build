@@ -98,6 +98,8 @@ src_files = [
   'io/avi_pipp/pipp_video_write.h',
   'io/avi_pipp/avi_writer.cpp',
   'io/avi_pipp/avi_writer.h',
+  'io/kstars/htmesh_wrapper.cpp',
+  'io/catalogues.c',
   'io/conversion.c',
   'io/films.c',
   'io/fits_sequence.c',

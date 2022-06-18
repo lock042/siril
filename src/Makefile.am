@@ -286,7 +286,7 @@ librtprocesslibs = $(top_builddir)/subprojects/librtprocess/build/src/librtproce
 endif
 
 AM_CPPFLAGS += -I$(top_srcdir)/subprojects/htmesh
-libhtmeshlibs = $(top_builddir)/subprojects/htmesh/libhtmesh.a
+libhtmeshlibs = $(top_builddir)/subprojects/htmesh/build/libhtmesh.a
 
 siril_common_LDADD = \
 	$(top_builddir)/subprojects/kplot/libkplot.a \

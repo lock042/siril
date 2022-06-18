@@ -15,5 +15,7 @@ For more information see:
 - How to install the USNO-NOMAD simplified catalogue in KStars: http://knro.blogspot.com/2017/03/how-to-get-100-million-stars-in-kstars.html
 
 Build this project with the following commands:
-$ cmake -DCMAKE_CXX_FLAGS="-I. " .
+$ mkdir build
+$ cd build
+$ cmake -DCMAKE_CXX_FLAGS="-I.. " ..
 $ make

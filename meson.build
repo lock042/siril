@@ -247,6 +247,22 @@ else
   siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
 endif
 
+htmesh_dep = dependency('htmesh', required : false)
+if not htmesh_dep.found()
+  opt_var = cmake.subproject_options()
+
+  # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
+  opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
+  #opt_var.append_compile_args(
+  sub_proj = cmake.subproject('htmesh', options: opt_var)
+  
+  htmesh_dep = sub_proj.dependency('htmesh')
+  htmesh_inc = sub_proj.include_directories('htmesh')
+else
+  siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
+endif
+
+
 ## Optionnal dependencies
 
 openmp_dep = []
@@ -451,6 +467,7 @@ externals_dep = declare_dependency(
     gsl_dep,
     opencv4_dep,
     rtprocess_dep,
+    htmesh_dep,
     exiv_dep,
     wcslib_dep,
     libconfig_dep,

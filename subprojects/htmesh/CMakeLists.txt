@@ -1,4 +1,8 @@
+# This project has been copied from
+# https://invent.kde.org/education/kstars/-/tree/master/kstars/htmesh
+# and was slightly modified to compile on its own
 project(htmesh)
+cmake_minimum_required(VERSION 3.5.0)
 
 INCLUDE(CheckFunctionExists)
 check_function_exists(drand48 HAVE_DRAND48)

@@ -202,6 +202,27 @@ if test "x$have_rtprocess" = "xno"; then
 fi
 AM_CONDITIONAL(HAVE_LIBRTPROCESS, test "x$have_rtprocess" = "xyes")
 
+if test "$cross_compiling" != "yes"; then
+	dnl check CMake used for htmesh
+	AC_PATH_PROG(CMAKE, cmake, no)
+	if test "x$CMAKE" = xno; then
+		AC_MSG_ERROR([CMAKE not found (needed to built internal htmesh)])
+	fi
+
+	CMAKE_GENERATOR=
+	if test "$platform_win32" = "yes"; then
+		CMAKE_GENERATOR="-G \"MSYS Makefiles\""
+	fi
+	AC_SUBST([CMAKE_GENERATOR])
+
+	AC_MSG_NOTICE([htmesh will be built statically])
+else
+	# When cross-compiling, you should build rtprocess yourself and
+	# install it yourself.
+	AC_MSG_ERROR([htmesh cannot be built])
+fi
+AM_CONDITIONAL(HAVE_HTMESH, test "x$have_htmesh" = "xyes")
+
 dnl ================ OPTIONAL DEPENDECIES ================
 
 dnl check raw lib
