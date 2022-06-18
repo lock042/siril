@@ -4405,14 +4405,6 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           <!-- n-columns=2 n-rows=2 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
-<<<<<<< HEAD
-            <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="halign">start</property>
-            <property name="active">True</property>
-            <property name="draw-indicator">True</property>
-            <signal name="toggled" handler="on_payne_preview_toggled" swapped="no"/>
-=======
             <property name="can-focus">False</property>
             <property name="hexpand">True</property>
             <property name="row-spacing">5</property>
@@ -4467,7 +4459,6 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
             <child>
               <placeholder/>
             </child>
->>>>>>> master
           </object>
           <packing>
             <property name="expand">False</property>
