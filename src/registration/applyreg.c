@@ -309,18 +309,16 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		seq_finalize_hook(args);
 	} else {
 		regargs->new_total = 0;
-		free(args->seq->regparam[regargs->layer]);
-		args->seq->regparam[regargs->layer] = NULL;
 
-		// args->new_ser can be null if stars were not detected in the reference image
 		// same as seq_finalize_hook but with file deletion
 		if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
 			ser_close_and_delete_file(args->new_ser);
 			free(args->new_ser);
-		}
-		else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
+		} else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
 			free(args->new_fitseq);
+		} else if (args->seq->type == SEQ_REGULAR) {
+			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
 		}
 	}
 
