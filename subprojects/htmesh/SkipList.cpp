@@ -18,7 +18,7 @@
 
 #include <config-htmesh.h>
 
-#ifndef HAVE_DRAND48
+#if !defined HAVE_DRAND48 || HAVE_DRAND48 == 0
 double drand48()
 {
     double result;

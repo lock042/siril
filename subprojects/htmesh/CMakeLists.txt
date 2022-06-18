@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.5.0)
 INCLUDE(CheckFunctionExists)
 check_function_exists(drand48 HAVE_DRAND48)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-htmesh.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-htmesh.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-htmesh.h.cmake ${CMAKE_CURRENT_SOURCE_DIR}/config-htmesh.h )
 
 ### HTMesh library
 SET(HTMesh_LIB_SRC
