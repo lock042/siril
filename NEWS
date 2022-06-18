@@ -9,13 +9,13 @@ v1.2.0 mmm dd, 2022
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored registration and added Apply Existing Registration method
 * Added background level and number of stars to stored registation data and plots
-* Added new generalised hyperbolic transform stretch method in Image Processing menu, based on algorithms proposed by David Payne in the astrobin forums
 * Added commands: seqtilt, autostretch, autostretch_linked, dumpheader, psf, seqclean, seqapplyreg, genhyp
 * Added KOMBAT alogrithm for registration and removed deprecated ECC
 * Added chosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)
 * Added option "full" to export all possible stats in seqstat command
 * Replaced Libraw with RT debayering
+* Replaced generalized hyperbolic transform stretch method by more general algorithms
 * Fixed comet registration when registration was accumulated over existing data
 
 v1.0.3 June --, 2022
@@ -27,7 +27,9 @@ v1.0.3 June --, 2022
 * Fixed homogeneous image bitpix detection on stacking
 * Fixed dates in median and mean stack results
 * Fixed bug in stack of some float images
+* Fixed black point and clipping in asinh stretch function
 * Added new thread for background extraction that does not freeze UI, with a progressbar for RBF
+* Added generalised hyperbolic transform stretch method in Image Processing menu, based on algorithms proposed by David Payne in the astrobin forums
 
 v1.0.2 May 16, 2022
 

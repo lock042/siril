@@ -25,6 +25,7 @@ struct photometric_cc_data {
 	gboolean bg_auto;		// automatically select an area for bkg neutralization
 	rectangle bg_area;		// the area for background if not bg_auto
 	normalization_channel n_channel;// the reference channel for the white balance
+	int catalog; // catalog used for photometry
 
 	pcc_star *stars;		// the list of stars with BV index in the image
 	int nb_stars;			// the number of stars in the array
