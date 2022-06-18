@@ -491,7 +491,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	/* If offset > 2^31 - 1, do the fseek in two steps */
 	if (index->offset > INT_MAX) {
 		if ((fseek_retval = fseek(cat->f, INT_MAX, SEEK_SET)))
-			fseek_retval = fseek(cat->f, index->offset - ((u_int32_t)1 << 31) + 1, SEEK_CUR);
+			fseek_retval = fseek(cat->f, index->offset - ((uint32_t)1 << 31) + 1, SEEK_CUR);
 	}
 	else fseek_retval = fseek(cat->f, index->offset, SEEK_SET);
         if (fseek_retval) {

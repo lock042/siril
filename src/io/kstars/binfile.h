@@ -23,6 +23,7 @@
 #ifndef BINFILE_H
 #define BINFILE_H
 
+#include <stdint.h>
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
@@ -63,7 +64,7 @@ typedef struct
 {
 	char name[10];
 	int8_t size;
-	u_int8_t type;
+	uint8_t type;
 	int32_t scale;
 } dataElement;
 
@@ -79,7 +80,7 @@ void charv2str(char *str, char *charv, int n)
 	*str = '\0';
 }
 
-const char *data_element_type_to_string(u_int8_t type) {
+const char *data_element_type_to_string(uint8_t type) {
 	switch (type) {
 		case DT_CHAR:   return "Character";
 		case DT_INT8:   return "8-bit Integer";
@@ -223,7 +224,7 @@ int writeDataElementDescription(FILE *f, char *name, int8_t size, enum dataType 
 	return 1;
 }
 
-int writeIndexEntry(FILE *hf, u_int32_t trixel_id, u_int32_t offset, u_int32_t nrec)
+int writeIndexEntry(FILE *hf, uint32_t trixel_id, uint32_t offset, uint32_t nrec)
 {
 	if (!hf)
 		return 0;
