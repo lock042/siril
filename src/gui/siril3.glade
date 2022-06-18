@@ -18657,6 +18657,7 @@ WARNING: This option should not be checked for master stacking.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="label">seq, 5 images selected (filled at runtime)</property>
+                <property name="selectable">True</property>
                 <property name="ellipsize">start</property>
               </object>
               <packing>
