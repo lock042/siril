@@ -155,7 +155,7 @@ static command commands[] = {
 #endif
 	{"select", 2, "select from to", process_select, STR_SELECT, FALSE, REQ_CMD_SEQUENCE},
 	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-selected] [-layer=] [-framing=]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
-	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] ", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
+	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] [-sel]", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=]", process_seq_extractHa, STR_SEQEXTRACTHA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII, TRUE, REQ_CMD_NO_THREAD},
