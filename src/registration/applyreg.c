@@ -464,8 +464,8 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = args->seq->nb_layers;
-	seq.rx = args->seq->rx;
-	seq.ry = args->seq->ry;
+	seq.rx = rx_out;
+	seq.ry = ry_out;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
@@ -473,7 +473,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
 	seq.current = -1;
-	seq.is_variable = args->seq->is_variable;
+	seq.is_variable = FALSE;
 	// update with the new numbering
 	seq.reference_image = new_ref_index;
 	seq.needs_saving = TRUE;
@@ -571,12 +571,20 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	// Remove the files that we are about to create
 	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
 
-	// TODO: recompute the size of the output sequence based on rx_out/ry_out
-	// testing free space
+	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
+	// rx_out/ry_out already account for 2x upscale if any
 	int nb_frames = regargs->process_all_frames ? regargs->seq->number : regargs->seq->selnum;
-	int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
-	if (regargs->x2upscale)
-		size *= 4;
+	int64_t size = rx_out * ry_out * regargs->seq->nb_layers;
+	if (regargs->seq->type == SEQ_SER) {
+		size *= regargs->seq->ser_file->byte_pixel_depth;
+		size *= nb_frames;
+		size += SER_HEADER_LEN;
+	} else {
+		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
+		size += 5760; // FITS double HDU size
+		size *= nb_frames;
+	}
+	siril_debug_print("Apply Registration: sequence out size: %s\n",  g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS));
 	if (test_available_space(size)) {
 		siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 		return FALSE;
