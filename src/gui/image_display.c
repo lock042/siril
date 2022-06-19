@@ -1218,8 +1218,8 @@ static void draw_analysis(const draw_data_t* dd) {
 }
 
 static void draw_regframe(const draw_data_t* dd) {
-	if (!com.script && !sequence_is_loaded()) return;
-	if (!&com.seq) return;
+	if (com.script || com.headless) return;
+	if (!sequence_is_loaded()) return;
 	if (com.seq.current == RESULT_IMAGE) return;
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check")))) return;
 	
