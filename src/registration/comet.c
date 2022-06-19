@@ -119,7 +119,9 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 		if (result) {
 			pos_of_image1.x = result->x0 + com.selection.x;
 			pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
-			if ((com.seq.regparam) && (com.seq.regparam[layer])) {
+			if (layer_has_registration(&com.seq, layer) && 
+			(guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > -2) &&
+			(guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > -2)) {
 				cvTransfPoint(&pos_of_image1.x, &pos_of_image1.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
 			}
 			free_psf(result);
@@ -154,7 +156,9 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 		if (result) {
 			pos_of_image2.x = result->x0 + com.selection.x;
 			pos_of_image2.y = com.selection.y + com.selection.h - result->y0;
-			if ((com.seq.regparam) && (com.seq.regparam[layer])) {
+			if (layer_has_registration(&com.seq, layer) && 
+			(guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > -2) &&
+			(guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > -2)) {
 				cvTransfPoint(&pos_of_image2.x, &pos_of_image2.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
 			}
 			free_psf(result);

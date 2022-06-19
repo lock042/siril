@@ -60,7 +60,8 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 }
 
 static gboolean compute_framing(struct registration_args *regargs) {
-
+	// validity of matrices has already been checked before this call
+	// and null matrices ahve been discarded
 	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	Homography Hshift = {0};
 	cvGetEye(&Hshift);
