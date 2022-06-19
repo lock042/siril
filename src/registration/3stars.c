@@ -86,12 +86,12 @@ static void reset_icons() {
 }
 
 void reset_3stars(){
-    if (!GTK_IS_WIDGET(three_buttons[0])) return;
-    reset_icons();
-    for (int i = 0; i < 3; i++)
-        unset_suggested(three_buttons[i]);
-    set_suggested(three_buttons[0]);
-    set_registration_ready(FALSE);
+	if (!GTK_IS_WIDGET(three_buttons[0])) return;
+	reset_icons();
+	for (int i = 0; i < 3; i++)
+		unset_suggested(three_buttons[i]);
+	set_suggested(three_buttons[0]);
+	set_registration_ready(FALSE);
 	clear_stars_list(TRUE);
 	awaiting_star = 0;
 	selected_stars = 0;
