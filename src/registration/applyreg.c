@@ -504,7 +504,7 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 	}
 	for (int i = 0; i < seq->number; i++){
 		val = guess_transform_from_H(seq->regparam[layer][i].H);
-		siril_debug_print("Image #%d - transf = %d\n", i+1, val);
+		//siril_debug_print("Image #%d - transf = %d\n", i+1, val);
 		if (*max < val) *max = val;
 		if (*min > val) *min = val;
 		if ((val == -2) && excludenull) {
