@@ -4,7 +4,7 @@ v1.2.0 mmm dd, 2022
 * Added unlinking channels in autostretch preview
 * Added RGB equalization and lightweight (faster) normalisation in stacking options
 * Added specifying max number of stars for registration
-* Added bap pixel map option for preprocess, both in GUI and command
+* Added bad pixel map option for preprocess, both in GUI and command
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored registration and added Apply Existing Registration method
