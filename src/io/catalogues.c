@@ -148,7 +148,8 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 static int get_projected_stars_from_local_catalogue(const char *path, double ra, double dec, double radius, gboolean use_proper_motion, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
 	deepStarData *trixel_stars;
 	uint32_t trixel_nb_stars;
-	read_trixels_from_catalogue(path, ra, dec, radius, &trixel_stars, &trixel_nb_stars);
+	if (read_trixels_from_catalogue(path, ra, dec, radius, &trixel_stars, &trixel_nb_stars))
+		return 1;
 
 	// project to image
 	*stars = malloc(sizeof(pcc_star) * trixel_nb_stars);
@@ -258,7 +259,7 @@ int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *
 		siril_debug_print("%d stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
 	}
 
-	if (catalogue == nb_catalogues) {
+	if (!retval) {
 		// aggregate
 		*stars = malloc(total_nb_stars * sizeof(pcc_star));
 		if (!*stars) {

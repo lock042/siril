@@ -287,12 +287,10 @@ gboolean end_plate_solver(gpointer p) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 		g_free(args->message);
 	} else {
-		image_solved *solution = args->solution;
-
 		/* update UI */
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
-		update_coordinates(solution->image_center);
+		update_coordinates(args->new_center);
 		delete_selected_area();
 		/* ****** */
 
@@ -301,9 +299,7 @@ gboolean end_plate_solver(gpointer p) {
 			redraw(REMAP_ALL);
 		else redraw(REDRAW_OVERLAY);
 
-		siril_world_cs_unref(solution->px_cat_center);
-		siril_world_cs_unref(solution->image_center);
-		free(solution);
+		siril_world_cs_unref(args->new_center);
 	}
 	if (args->image_flipped)
 		clear_stars_list(TRUE);

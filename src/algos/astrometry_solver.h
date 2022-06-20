@@ -15,15 +15,6 @@
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
 #define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
 
-typedef struct {
-	point size;
-	SirilWorldCS *px_cat_center;
-	SirilWorldCS *image_center;
-	double crpix[2];
-	double pixel_size, focal;
-	Homography H;
-} image_solved;
-
 typedef enum {
 	TYCHO2,
 	NOMAD,
@@ -83,8 +74,8 @@ struct astrometry_data {
 	/* results */
 	int ret;		// return value
 	gchar *message;		// error message
-	image_solved *solution;	// the astrometry solution for the image
 	gboolean image_flipped;	// image has been flipped
+	SirilWorldCS *new_center; // the image center found by the solve
 };
 
 struct sky_object {
@@ -111,8 +102,6 @@ void flip_left_right_astrometry_data(fits *fit);
 void rotate_astrometry_data(fits *fit, point center, double angle, gboolean cropped);
 void crop_astrometry_data(fits *fit, point shift);
 
-SirilWorldCS *get_image_solved_px_cat_center(image_solved *image);
-SirilWorldCS *get_image_solved_image_center(image_solved *image);
 void set_focal_and_pixel_pitch();
 
 /* for the GUI */

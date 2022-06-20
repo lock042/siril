@@ -156,7 +156,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	}
 #endif
 	if (nobj_override > 0)
-		nobj = nobj_override;
+		nobj = min(n, nobj_override);
 
 	/* Check to make sure that the user specified
 	 *
@@ -204,7 +204,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		free_stars(&star_list_A);
 		fprintf(stderr,"can't read data\n");
 		return (SH_GENERIC_ERROR);
-	}
+}
 
 	/* sanity check */
 	g_assert(numA_copy == numA);
@@ -230,7 +230,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 			nobj, min_scale, max_scale, rot_angle, rot_tol, max_iter,
 			halt_sigma, trans);
 	if (ret != SH_SUCCESS) {
-		fprintf(stderr,"initial call to atFindTrans fails\n");
+		fprintf(stderr, "initial call to atFindTrans failed\n");
 		/** */
 		atTransDel(trans);
 		free_stars(&star_list_A);

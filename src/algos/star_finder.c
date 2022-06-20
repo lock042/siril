@@ -513,7 +513,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, &results, limit_nbstars, maxstars, threads);
 	if (nbstars == 0)
 		results = NULL;
-	sort_stars(results, nbstars);
+	sort_stars_by_mag(results, nbstars);
 	free(candidates);
 
 	if (showtime) {
@@ -726,21 +726,19 @@ int remove_star(int index) {
 	return 0;
 }
 
-int compare_stars(const void* star1, const void* star2) {
+int compare_stars_by_mag(const void* star1, const void* star2) {
 	psf_star *s1 = *(psf_star**) star1;
 	psf_star *s2 = *(psf_star**) star2;
-
 	if (s1->mag < s2->mag)
 		return -1;
-	else if (s1->mag > s2->mag)
+	if (s1->mag > s2->mag)
 		return 1;
-	else
-		return 0;
+	return 0;
 }
 
-void sort_stars(psf_star **stars, int total) {
+void sort_stars_by_mag(psf_star **stars, int total) {
 	if (*(&stars))
-		qsort(*(&stars), total, sizeof(psf_star*), compare_stars);
+		qsort(*(&stars), total, sizeof(psf_star*), compare_stars_by_mag);
 }
 
 /* allocates a new psf_star structure with a size of n + 1. First element is initialized to NULL */
