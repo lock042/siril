@@ -1463,6 +1463,7 @@ gpointer match_catalog(gpointer p) {
 		siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
 		flip_bottom_up_astrometry_data(args->fit);
+		load_WCS_from_memory(args->fit);
 		args->image_flipped = TRUE;
 	}
 	/* free solution */

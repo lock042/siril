@@ -111,7 +111,7 @@ static command commands[] = {
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
-	{"nomad", 0, "nomad", process_nomad, STR_NOMAD, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"nomad", 0, "nomad [limit_magnitude]", process_nomad, STR_NOMAD, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE, REQ_CMD_SINGLE_IMAGE}, /* replaces null values by level */
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},

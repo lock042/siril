@@ -4929,7 +4929,7 @@ int process_rgbcomp(int nb) {
 
 	if (g_str_has_prefix(word[1], "-lum=")) {
 		char *lum_file = word[1] + 5;
-		if (nb < 4) {
+		if (nb < 3) {
 			return CMD_WRONG_N_ARG;
 		}
 
@@ -5179,6 +5179,14 @@ int process_nomad(int nb) {
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return 1;
+	}
+	if (nb == 2) {
+		gchar *end;
+		limit_mag = g_ascii_strtod(word[1], &end);
+		if (end == word[1]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+			return 1;
+		}
 	}
 	center2wcs(&gfit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(&gfit);
