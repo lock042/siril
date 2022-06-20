@@ -839,7 +839,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
 	gboolean selection_is_done;
-	gboolean has_reg, dofollow, doall;
+	gboolean has_reg, ready;
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
@@ -888,22 +888,20 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		}
 		gtk_widget_set_visible(follow, (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_3stars));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
+		ready = TRUE;
 		if (method->method_ptr == &register_3stars || method->method_ptr == &register_shift_fwhm) {
-			dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
-			doall = !gtk_combo_box_get_active(reg_all_sel_box);
-			if (dofollow) {
-				if (doall && com.seq.current != 0)
-					gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
-				else if (!doall && com.seq.current != get_first_selected(&com.seq))
-					gtk_label_set_text(labelreginfo, _("Make sure you load the first selected image"));
-				else gtk_label_set_text(labelreginfo, "");
-			} else gtk_label_set_text(labelreginfo, "");
+			ready = _3stars_check_selection(); // cehcks that the right image is loaded based on doall and dofollow
 		}
-		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0')
+		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
+			ready = FALSE;
+		}
 		else gtk_label_set_text(labelreginfo, "");
 		// the 3 stars method has special GUI requirements
-		gtk_widget_set_sensitive(go_register, (method->method_ptr != &register_3stars));
+		if (method->method_ptr == &register_3stars) {
+			if (!ready) gtk_widget_set_sensitive(go_register,FALSE);
+			else _3stars_check_registration_ready();
+		} else gtk_widget_set_sensitive(go_register, ready);
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
@@ -1043,6 +1041,10 @@ void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gtk_widget_set_sensitive(Prefix, !toggled);
 
 	keep_noout_state = toggled;
+}
+
+void on_regfollowStar_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	update_reg_interface(TRUE);
 }
 
 /* callback for 'Go register' button, GTK thread */

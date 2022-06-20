@@ -88,13 +88,46 @@ static void reset_icons() {
 void reset_3stars(){
 	if (!GTK_IS_WIDGET(three_buttons[0])) return;
 	reset_icons();
-	for (int i = 0; i < 3; i++)
+	for (int i = 1; i < 3; i++) {
 		unset_suggested(three_buttons[i]);
+		gtk_widget_set_sensitive(three_buttons[i], FALSE);
+	}
 	set_suggested(three_buttons[0]);
+	gtk_widget_set_sensitive(three_buttons[0], TRUE);
 	set_registration_ready(FALSE);
 	clear_stars_list(TRUE);
 	awaiting_star = 0;
 	selected_stars = 0;
+}
+
+void _3stars_check_registration_ready() {
+	set_registration_ready((selected_stars >= 2) ? TRUE : FALSE);
+}
+
+gboolean _3stars_check_selection() {
+	if (!follow) {
+		follow = lookup_widget("followStarCheckButton");
+		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
+	}
+	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
+	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
+
+	if (dofollow) {
+		if (doall && com.seq.current != 0) {
+			gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
+			return FALSE;
+		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
+			gtk_label_set_text(labelreginfo, _("Make sure you load the first selected image"));
+			return FALSE;
+		}
+	}
+	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
+		update_label(_("Make sure you load an image which is included"));
+		return FALSE;
+	}
+	gtk_label_set_text(labelreginfo, "");
+	return TRUE;
 }
 
 void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
@@ -107,26 +140,8 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		update_label(_("Draw a selection around the star"));
 		return;
 	}
-	if (!follow) {
-		follow = lookup_widget("followStarCheckButton");
-		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
-	}
 
-	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
-	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
-	if (dofollow) {
-		if (doall && com.seq.current != 0) {
-			update_label(_("Make sure you load the first image"));
-			return;
-		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
-			update_label(_("Make sure you load the first selected image"));
-			return;
-		}
-	}
-	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
-		update_label(_("Make sure you load an image which is included"));
-		return;
-	}
+	if (!_3stars_check_selection()) return;
 
 	GtkWidget *widget = GTK_WIDGET(button);
 	if (three_buttons[0] == widget) {
@@ -155,10 +170,14 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(&_3boxes[selected_stars], &com.selection, sizeof(rectangle));
 		selected_stars ++;
 		unset_suggested(three_buttons[awaiting_star - 1]);
-		if (awaiting_star < 3) set_suggested(three_buttons[awaiting_star]);
+		gtk_widget_set_sensitive(three_buttons[awaiting_star - 1], FALSE);
+		if (awaiting_star < 3) {
+			set_suggested(three_buttons[awaiting_star]);
+			gtk_widget_set_sensitive(three_buttons[awaiting_star], TRUE);
+		}
 		update_icons(awaiting_star - 1, TRUE);
 		delete_selected_area();
-		set_registration_ready((awaiting_star >= 2) ? TRUE : FALSE);
+		_3stars_check_registration_ready();
 	}
 }
 

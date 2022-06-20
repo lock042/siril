@@ -15698,6 +15698,7 @@ When processing images, registration data is taken from the default layer if ava
 WARNING: enabling this option requires the registration to not be parallelized, it will run on one CPU core only.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_regfollowStar_toggled" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>

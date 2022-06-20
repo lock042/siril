@@ -102,6 +102,8 @@ int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 void reset_3stars();
+void _3stars_check_registration_ready();
+gboolean _3stars_check_selection();
 
 pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
