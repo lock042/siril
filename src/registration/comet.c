@@ -176,6 +176,11 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 							_("Unable to convert DATE-OBS to a valid date"),
 							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
 				}
+				if (g_date_time_difference(t_of_image_2, t_of_image_1) == 0) {
+					siril_message_dialog(GTK_MESSAGE_ERROR,
+							_("Dates of the two images are identical"),
+							_("Siril cannot compute the velocity needed for the alignment."));
+				}
 				update_entry2(pos_of_image2);
 			}
 		}
