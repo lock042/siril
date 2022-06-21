@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_app_dirs.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -94,11 +95,13 @@ static void set_sensitive_layers(GtkCellLayout *cell_layout,
 
 	if (sequence_is_loaded() && !use_photometry) {
 		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
+		if (!path) return;
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (!(com.seq.regparam))
 			return;
 		if (com.seq.regparam[*index] == NULL)
 			sensitive = FALSE;
+		gtk_tree_path_free(path);
 	}
 	g_object_set(cell, "sensitive", sensitive, NULL);
 }
@@ -570,10 +573,19 @@ void exclude_single_frame(int index) {
 			com.seq.imgparam[index].incl ? _("Excluding") : _("Including"),
 			index + 1, com.seq.seqname);
 
+
 	com.seq.imgparam[index].incl = !com.seq.imgparam[index].incl;
 	if (com.seq.imgparam[index].incl)
 		com.seq.selnum++;
-	else 	com.seq.selnum--;
+	else {
+		com.seq.selnum--;
+		if (com.seq.reference_image == index) {
+			com.seq.reference_image = -1;
+			com.seq.reference_image = sequence_find_refimage(&com.seq);
+			adjust_refimage(index);
+			sequence_list_change_reference();
+		}
+	}
 	update_reg_interface(FALSE);
 	update_stack_interface(FALSE);
 	redraw(REDRAW_OVERLAY);
@@ -679,11 +691,18 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	}
 
 	g_list_free(references);
+	redraw(REDRAW_OVERLAY);
 	sequence_list_change_reference();
 	update_stack_interface(FALSE);// get stacking info and enable the Go button
 	adjust_sellabel();	// reference image is named in the label
 	writeseqfile(&com.seq);
 	drawPlot();		// update plots
+}
+
+void on_draw_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	if (!sequence_is_loaded())
+		return;
+	redraw(REDRAW_OVERLAY);
 }
 
 /****************** modification of the list store (tree model) ******************/
@@ -793,4 +812,18 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 		update_reg_interface(FALSE);
 		redraw(REDRAW_OVERLAY);
 	}
+}
+
+void update_icons_sequence_list(gboolean is_dark) {
+	gchar *image;
+	GtkWidget *w;
+	if (is_dark) {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame_dark.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	} else {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	}
+	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
+	gtk_widget_show(w);
 }

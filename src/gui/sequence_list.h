@@ -33,6 +33,7 @@ void exclude_single_frame(int index);
 void toggle_image_selection(int index_in_list, int real_index, gboolean initvalue);
 void adjust_refimage(int n);
 void sequence_list_select_row_from_index(int index, gboolean do_load_image);
+void update_icons_sequence_list(gboolean is_dark);
 
 
 #endif /* SRC_GUI_SEQUENCE_LIST_H_ */

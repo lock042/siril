@@ -42,6 +42,8 @@
 #include "gui/utils.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
+#include "registration/registration.h"
+#include "opencv/opencv.h"
 #include "git-version.h"
 
 #ifdef HAVE_WCSLIB
@@ -59,6 +61,10 @@ static display_mode last_mode;
 /* STF (auto-stretch) data */
 static gboolean stf_computed = FALSE; // Flag to know if STF parameters are available
 struct mtf_params stf[3];
+
+/* widgets for draw_reg_data*/
+GtkComboBox *seqcombo;
+GtkToggleButton *drawframe;
 
 static void invalidate_image_render_cache(int vport);
 
@@ -1215,6 +1221,79 @@ static void draw_analysis(const draw_data_t* dd) {
 	}
 }
 
+static void draw_regframe(const draw_data_t* dd) {
+	if (com.script || com.headless) return;
+	if (!sequence_is_loaded()) return;
+	if (com.seq.current == RESULT_IMAGE) return;
+	if (!drawframe) {
+		drawframe = GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"));
+		seqcombo = GTK_COMBO_BOX(lookup_widget("seqlist_dialog_combo"));
+	}
+	if (!gtk_toggle_button_get_active(drawframe)) return;
+	int activelayer = gtk_combo_box_get_active(seqcombo);
+	if (!layer_has_registration(&com.seq, activelayer)) return;
+	if (com.seq.reg_invalidated) return;
+	int min, max; 
+	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
+	if (max <= -1) return;
+
+	int Htyperef = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H);
+	int Htypecur = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H);
+	if (Htyperef == -2) return; // reference image H matrix is null matrix
+	if (Htypecur == -2) return; // current image H matrix is null
+
+	regframe framing = { 0 };
+	framing.pt[0].x = 0.;
+	framing.pt[0].y = 0.;
+	framing.pt[1].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
+	framing.pt[1].y = 0.;
+	framing.pt[2].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
+	framing.pt[2].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	framing.pt[3].x = 0.;
+	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	double cogx = 0., cogy = 0., cx, cy;
+	for (int i = 0; i < 4; i++) {
+		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H);
+		cogx += framing.pt[i].x;
+		cogy += framing.pt[i].y;
+	}
+	cogx *= 0.25;
+	cogy *= 0.25;
+	cx = (com.seq.is_variable) ? (double)com.seq.imgparam[com.seq.current].rx * 0.5 : (double)com.seq.rx * 0.5;
+	cy = (com.seq.is_variable) ? (double)com.seq.imgparam[com.seq.current].ry * 0.5 : (double)com.seq.ry * 0.5;
+
+	cairo_t *cr = dd->cr;
+	double size = 10. / dd->zoom;
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_set_source_rgb(cr, 1., 0., 0.);
+
+
+	cairo_set_line_width(cr, 2.0 / dd->zoom);
+	// reference origin
+	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * M_PI);
+	cairo_stroke_preserve(cr);
+	cairo_fill(cr);
+	// reference frame
+	cairo_move_to(cr, framing.pt[0].x, framing.pt[0].y);
+	cairo_line_to(cr, framing.pt[1].x, framing.pt[1].y);
+	cairo_line_to(cr, framing.pt[2].x, framing.pt[2].y);
+	cairo_line_to(cr, framing.pt[3].x, framing.pt[3].y);
+	cairo_line_to(cr, framing.pt[0].x, framing.pt[0].y);
+	cairo_stroke(cr);
+
+	// reference center
+	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * M_PI);
+	cairo_stroke(cr);
+	// current center
+	cairo_set_source_rgb(cr, 0., 1., 0.);
+	cairo_move_to(cr, cx - size * 0.5, cy);
+	cairo_rel_line_to(cr, size, 0.);
+	cairo_stroke(cr);
+	cairo_move_to(cr, cx, cy - size * 0.5);
+	cairo_rel_line_to(cr, 0., size);
+	cairo_stroke(cr);
+}
+
 void initialize_image_display() {
 	int i;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
@@ -1400,6 +1479,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* background removal gradient selection boxes */
 	draw_brg_boxes(&dd);
+
+	/* registration framing*/
+	draw_regframe(&dd);
 
 	return FALSE;
 }
