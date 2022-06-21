@@ -84,7 +84,7 @@ typedef struct {
 typedef struct {
 	int32_t RA;	// hours times 1000000
 	int32_t Dec;	// degrees times 100000
-	float distance;	// for catalogue queries, distance from target
+	float distance;	// for catalogue queries, distance from target, in arcmin
 	int16_t B;	// mag times 1000
 	int16_t V;
 } deepStarData_dist;
@@ -357,7 +357,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	uint32_t ntrixels = cat->ntrixels;
 	cat->HTM_Level = -1;
 	while (ntrixels >>= 2) ++cat->HTM_Level;
-	/* 512 should be for level 3, 8192 for 6, but it's not quite the case (32768 for NOMAD level 6) */
+	/* 512 for level 3, 32768 for NOMAD level 6 */
 	siril_debug_print("Number of trixels reported = %d (levels: %d)\n",
 			cat->ntrixels, cat->HTM_Level);
 
@@ -654,7 +654,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 						continue;
 					// a bit of fun, storing the distance in the struct
 					deepStarData_dist *sdd = (deepStarData_dist*)&cat_stars[i];
-					sdd->distance = (float)dist;
+					sdd->distance = (float)(dist * 60.0);
 					(*stars)[j] = *sdd;
 					j++;
 				}
@@ -680,7 +680,7 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 	GOutputStream *output_stream = (GOutputStream *)g_file_append_to(file_out, G_FILE_CREATE_NONE, NULL, &error);
 	if (!output_stream) {
 		if (error != NULL) {
-			siril_debug_print("proc_star_file: can't open file %s for input. [%s]", g_file_peek_path(file_out), error->message);
+			siril_debug_print("project_local_catalog: can't open file %s for output. [%s]", g_file_peek_path(file_out), error->message);
 			g_clear_error(&error);
 			return 1;
 		}
@@ -725,7 +725,6 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 		if (doASEC)
 			sprintf(line, "%f %12.5f %12.5f %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
 		else 	sprintf(line, "%f %13.6e %13.6e %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
-		/* 0.0 is the distance from centre, do we need it? */
 
 		g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL);
 	}

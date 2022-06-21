@@ -97,7 +97,7 @@ static void start_photometric_cc() {
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 	pcc_args->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
-	pcc_args->catalog = get_photometry_catalog();
+	pcc_args->catalog = pcc_args->use_local_cat ? NOMAD : get_photometry_catalog();
 
 	set_cursor_waiting(TRUE);
 

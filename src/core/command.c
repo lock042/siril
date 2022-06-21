@@ -5146,7 +5146,7 @@ int process_pcc(int nb) {
 	}
 	if (plate_solve) {
 		args->use_local_cat = pcc_args->use_local_cat;
-		args->onlineCatalog = NOMAD;
+		args->onlineCatalog = NOMAD;	// could also be APASS if !use_local_cat
 		args->for_photometry_cc = TRUE;
 		args->cat_center = target_coords;
 		args->downsample = gfit.rx > 6000;

@@ -204,7 +204,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		free_stars(&star_list_A);
 		fprintf(stderr,"can't read data\n");
 		return (SH_GENERIC_ERROR);
-}
+	}
 
 	/* sanity check */
 	g_assert(numA_copy == numA);

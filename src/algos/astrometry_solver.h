@@ -7,7 +7,7 @@
 
 #define BRIGHTEST_STARS 2500
 #define AT_MATCH_CATALOG_NBRIGHT   60
-#define CROP_ALLOWANCE 1.20
+//#define CROP_ALLOWANCE 1.20
 
 #define RADtoASEC (3600.0 * 180.0 / M_PI)
 

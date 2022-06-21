@@ -36,7 +36,7 @@ build-htmesh:
 	mkdir -p $(abs_builddir)/htmesh/build && \
 	cd $(abs_builddir)/htmesh/build && \
 	ls $(abs_srcdir)/htmesh/ && \
-	$(CMAKE) $(CMAKE_GENERATOR) -DCMAKE_BUILD_TYPE="Release" -DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh" -DBUILD_SHARED_LIBS=OFF -DOPTION_OMP=OFF $(abs_srcdir)/htmesh/ && \
+	$(CMAKE) $(CMAKE_GENERATOR) -DCMAKE_BUILD_TYPE="Release" -DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh" $(abs_srcdir)/htmesh/ && \
 	$(MAKE)
 
 all: build-htmesh

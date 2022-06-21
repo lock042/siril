@@ -135,7 +135,7 @@ double compute_mag_limit_from_fov(double fov_degrees) {
 static void compute_mag_limit(struct astrometry_data *args) {
 	if (args->auto_magnitude) {
 		// limit magnitude should depend on image fov, not selection's args->used_fov
-		double fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);// * CROP_ALLOWANCE;
+		double fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
 
 		args->limit_mag = compute_mag_limit_from_fov(fov / 60.0);
 	}
@@ -469,7 +469,6 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
 	gchar *buffer = NULL;
 	GError *error = NULL;
-
 	/* ------------------- get Vizier catalog in catalog.dat -------------------------- */
 
 	/* check if catalogue already exist in cache */
@@ -1119,16 +1118,23 @@ gpointer match_catalog(gpointer p) {
 	args->ret = 1;
 	args->message = NULL;
 
-	siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
-			       " degrees%s, using a limit magnitude of %.2f\n"),
-			args->used_fov / 60.0,
-			args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+	if (args->use_local_cat) {
+		siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f"
+					" degrees%s, using a limit magnitude of %.2f\n"),
+				args->used_fov / 60.0,
+				args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+	} else {
+		siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
+					" degrees%s, using a limit magnitude of %.2f\n"),
+				args->used_fov / 60.0,
+				args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+	}
 
 	if (!args->catalog_file && !args->use_local_cat) {
 		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
-				args->used_fov * 0.5 /** CROP_ALLOWANCE*/, args->limit_mag);
+				args->used_fov * 0.5, args->limit_mag);
 		if (!args->catalog_file) {
-			args->message = g_strdup(_("Could not download the online star catalog."));
+			args->message = g_strdup(_("Could not download the online star catalogue."));
 			goto clearup;
 		}
 	}
@@ -1173,7 +1179,7 @@ gpointer match_catalog(gpointer p) {
 	/* project and open the file */
 	if (args->use_local_cat) {
 		args->catalogStars = get_and_project_local_catalog(args->cat_center,
-				(args->used_fov /** CROP_ALLOWANCE*/) / 120.0, args->limit_mag, FALSE);
+				args->used_fov / 120.0, args->limit_mag, FALSE);
 	} else {
 		args->catalogStars = project_catalog(args->catalog_file, args->cat_center);
 		if (!args->catalogStars) {
