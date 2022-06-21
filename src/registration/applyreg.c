@@ -23,6 +23,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "algos/sorting.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -41,6 +42,9 @@
 static void create_output_sequence_for_apply_reg(struct registration_args *args);
 static int new_ref_index = -1;
 
+static Homography Htransf = {0};
+static int rx_out, ry_out;
+
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
 	if (regargs->seq->regparam[regargs->layer]) {
@@ -53,6 +57,128 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 		return NULL;
 	}
 	return current_regdata;
+}
+
+static gboolean compute_framing(struct registration_args *regargs) {
+	// validity of matrices has already been checked before this call
+	// and null matrices ahve been discarded
+	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+	Homography Hshift = {0};
+	cvGetEye(&Hshift);
+	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	int x0, y0, rx_0 = rx, ry_0 = ry, n;
+	double xmin, xmax, ymin, ymax, cogx, cogy;
+
+	regframe framing = { 0 };
+	framing.pt[0].x = 0.;
+	framing.pt[0].y = 0.;
+	framing.pt[1].x = (double)rx;
+	framing.pt[1].y = 0.;
+	framing.pt[2].x = (double)rx;
+	framing.pt[2].y = (double)ry;
+	framing.pt[3].x = 0.;
+	framing.pt[3].y = (double)ry;
+
+	switch (regargs->framing) {
+		case FRAMING_CURRENT:
+			break;
+		case FRAMING_MAX:
+			xmin = DBL_MAX;
+			xmax = -DBL_MAX;
+			ymin = DBL_MAX;
+			ymax = -DBL_MAX;
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+				siril_debug_print("Image #%d:\n", i);
+				regframe current_framing = {0};
+				memcpy(&current_framing, &framing, sizeof(regframe));
+				for (int j = 0; j < 4; j++) {
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, regargs->seq->regparam[regargs->layer][i].H, Href);
+					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
+					if (ymin > current_framing.pt[j].y) ymin = current_framing.pt[j].y;
+					if (xmax < current_framing.pt[j].x) xmax = current_framing.pt[j].x;
+					if (ymax < current_framing.pt[j].y) ymax = current_framing.pt[j].y;
+					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+				}
+			}
+			rx_0 = (int)(ceil(xmax) - floor(xmin));
+			ry_0 = (int)(ceil(ymax) - floor(ymin));
+			x0 = floor(xmin);
+			y0 = floor(ymin);
+			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
+			siril_debug_print("new origin: %d %d\n", x0, y0);
+			Hshift.h02 = (double)x0;
+			Hshift.h12 = (double)y0;
+			break;
+		case FRAMING_MIN:
+			xmin = -DBL_MAX;
+			xmax = DBL_MAX;
+			ymin = -DBL_MAX;
+			ymax = DBL_MAX;
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+				siril_debug_print("Image #%d:\n", i);
+				regframe current_framing = {0};
+				memcpy(&current_framing, &framing, sizeof(regframe));
+				double xs[4], ys[4];
+				for (int j = 0; j < 4; j++) {
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
+					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					xs[j] = current_framing.pt[j].x;
+					ys[j] = current_framing.pt[j].y;
+				}
+				quicksort_d(&xs[0], 4);
+				quicksort_d(&ys[0], 4);
+				if (xmin < xs[1]) xmin = xs[1];
+				if (ymin < ys[1]) ymin = ys[1];
+				if (xmax > xs[2]) xmax = xs[2];
+				if (ymax > ys[2]) ymax = ys[2];
+			}
+			rx_0 = (int)(floor(xmax) - ceil(xmin));
+			ry_0 = (int)(floor(ymax) - ceil(ymin));
+			x0 = ceil(xmin);
+			y0 = ceil(ymin);
+			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
+			siril_debug_print("new origin: %d %d\n", x0, y0);
+			Hshift.h02 = (double)x0;
+			Hshift.h12 = (double)y0;
+			break;
+		case FRAMING_COG:
+			cogx = 0.;
+			cogy = 0;
+			n = 0;
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+				siril_debug_print("Image #%d:\n", i);
+				regframe current_framing = {0};
+				memcpy(&current_framing, &framing, sizeof(regframe));
+				double currcogx = 0., currcogy = 0.;
+				for (int j = 0; j < 4; j++) {
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
+					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					currcogx += current_framing.pt[j].x;
+					currcogy += current_framing.pt[j].y;
+				}
+				cogx += currcogx * 0.25;
+				cogy += currcogy * 0.25;
+				n++;
+			}
+			cogx /= (double)n;
+			cogy /= (double)n;
+			x0 = (int)(cogx - (double)rx * 0.5);
+			y0 = (int)(cogy - (double)ry * 0.5);
+			siril_log_message(_("Framing: Shift from reference origin: %d, %d\n"), x0, y0);
+			Hshift.h02 = (double)x0;
+			Hshift.h12 = (double)y0;
+			break;
+		default:
+			return FALSE;
+	}
+	multH(Href, Hshift, &Htransf);
+	rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
+	ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
+	return TRUE;
 }
 
 int apply_reg_prepare_results(struct generic_seq_args *args) {
@@ -98,16 +224,6 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
 
-
-	sadata->ref.x = fit.rx;
-	sadata->ref.y = fit.ry;
-
-	clearfits(&fit);
-
-	if (regargs->x2upscale) {
-			sadata->ref.x *= 2.0;
-			sadata->ref.y *= 2.0;
-	}
 	return apply_reg_prepare_results(args);
 }
 
@@ -117,43 +233,34 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct registration_args *regargs = sadata->regargs;
 
 	Homography H = { 0 };
-	Homography Href = { 0 };
 	Homography Himg = { 0 };
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 
-	if (in_index != regargs->reference_image) {
-		if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
-			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
-		}
+	if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
+		siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
+	}
 
-		// Composing transformation wrt reference image
-		Himg = regargs->seq->regparam[regargs->layer][in_index].H;
-		if (guess_transform_from_H(Himg) == -2)  return 1; // in case H is null and -selected was not passed
-		Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
-		cvTransfH(Himg, Href, &H);
+	// Composing transformation wrt reference image
+	Himg = regargs->seq->regparam[regargs->layer][in_index].H;
+	if (guess_transform_from_H(Himg) == -2)  return 1; // in case H is null and -selected was not passed
+	cvTransfH(Himg, Htransf, &H);
 
-		if (regargs->interpolation <= OPENCV_LANCZOS4) {
-			if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
-				return 1;
-			}
-		} else {
-			if (shift_fit_from_reg(fit, regargs, H)) {
-				return 1;
-			}
+	if (regargs->interpolation <= OPENCV_LANCZOS4) {
+		if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation)) {
+			return 1;
 		}
 	} else {
-		// reference image
-		if (regargs->x2upscale) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
-				return 1;
+		if (shift_fit_from_reg(fit, regargs, H)) {
+			return 1;
 		}
-		new_ref_index = out_index; // keeping track of the new ref index in output sequence
 	}
+	if (in_index == regargs->reference_image) new_ref_index = out_index; // keeping track of the new ref index in output sequence
+
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	regargs->imgparam[out_index].rx = args->seq->imgparam[in_index].rx;
-	regargs->imgparam[out_index].ry = args->seq->imgparam[in_index].ry;
+	regargs->imgparam[out_index].rx = rx_out;
+	regargs->imgparam[out_index].ry = ry_out;
 	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
@@ -166,6 +273,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fit->pixel_size_y /= 2;
 		regargs->regparam[out_index].fwhm *= 2.0;
 		regargs->regparam[out_index].weighted_fwhm *= 2.0;
+		regargs->imgparam[out_index].rx *= 2.0;
+		regargs->imgparam[out_index].ry *= 2.0;
 	}
 
 	sadata->success[out_index] = 1;
@@ -201,18 +310,16 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		seq_finalize_hook(args);
 	} else {
 		regargs->new_total = 0;
-		free(args->seq->regparam[regargs->layer]);
-		args->seq->regparam[regargs->layer] = NULL;
 
-		// args->new_ser can be null if stars were not detected in the reference image
 		// same as seq_finalize_hook but with file deletion
 		if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
 			ser_close_and_delete_file(args->new_ser);
 			free(args->new_ser);
-		}
-		else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
+		} else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
 			free(args->new_fitseq);
+		} else if (args->seq->type == SEQ_REGULAR) {
+			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
 		}
 	}
 
@@ -356,8 +463,8 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = args->seq->nb_layers;
-	seq.rx = args->seq->rx;
-	seq.ry = args->seq->ry;
+	seq.rx = rx_out;
+	seq.ry = ry_out;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
@@ -365,7 +472,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
 	seq.current = -1;
-	seq.is_variable = args->seq->is_variable;
+	seq.is_variable = FALSE;
 	// update with the new numbering
 	seq.reference_image = new_ref_index;
 	seq.needs_saving = TRUE;
@@ -396,9 +503,8 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 		return;
 	}
 	for (int i = 0; i < seq->number; i++){
-		if (!(&seq->regparam[layer][i])) continue;
 		val = guess_transform_from_H(seq->regparam[layer][i].H);
-		siril_debug_print("Image #%d - transf = %d\n", i+1, val);
+		//siril_debug_print("Image #%d - transf = %d\n", i+1, val);
 		if (*max < val) *max = val;
 		if (*min > val) *min = val;
 		if ((val == -2) && excludenull) {
@@ -424,6 +530,12 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", (max + 1) * 2);
 		return FALSE;
 	}
+	// check the consistency of images size if -interp=none
+	if (regargs->interpolation == OPENCV_NONE && regargs->seq->is_variable) {
+		siril_log_color_message(_("Applying registration on images with different sizes when interpolation is set to none is not allowed, aborting\n"), "red");
+		return FALSE;
+	}
+
 	// check that we are not trying to apply identity transform to all the images
 	if (max == -1) {
 		siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
@@ -442,14 +554,35 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		regargs->process_all_frames = FALSE;
 	}
 
+	// cog frmaing method requires all images to be of same size
+	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
+		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
+		return FALSE;
+	}
+
+	// determines the reference homography (including framing shift) and output size
+	if (!compute_framing(regargs)) {
+		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
+		return FALSE;
+	}
+
 	// Remove the files that we are about to create
 	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
 
-	// testing free space
+	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
+	// rx_out/ry_out already account for 2x upscale if any
 	int nb_frames = regargs->process_all_frames ? regargs->seq->number : regargs->seq->selnum;
-	int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
-	if (regargs->x2upscale)
-		size *= 4;
+	int64_t size = rx_out * ry_out * regargs->seq->nb_layers;
+	if (regargs->seq->type == SEQ_SER) {
+		size *= regargs->seq->ser_file->byte_pixel_depth;
+		size *= nb_frames;
+		size += SER_HEADER_LEN;
+	} else {
+		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
+		size += 5760; // FITS double HDU size
+		size *= nb_frames;
+	}
+	siril_debug_print("Apply Registration: sequence out size: %s\n",  g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS));
 	if (test_available_space(size)) {
 		siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 		return FALSE;

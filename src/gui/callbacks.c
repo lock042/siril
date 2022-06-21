@@ -45,6 +45,7 @@
 #include "image_display.h"
 #include "image_interactions.h"
 #include "single_image.h"
+#include "sequence_list.h"
 #include "callbacks.h"
 
 #include "algos/astrometry_solver.h"
@@ -113,7 +114,7 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("export_button", "export_dark.svg");
 
 		update_theme_button("histoToolAutoStretch", "mtf_dark.svg");
-	} else {
+} else {
 		update_theme_button("annotate_button", "astrometry.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid.svg");
 		update_theme_button("photometry_button", "photometry.svg");
@@ -136,6 +137,7 @@ void siril_set_theme(int active) {
 	GtkSettings *settings = gtk_settings_get_default();
 	g_object_set(settings, "gtk-application-prefer-dark-theme", active == 0, NULL);
 	update_icons_to_theme(active == 0);
+	update_icons_sequence_list(active == 0);
 }
 
 void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
@@ -153,6 +155,8 @@ static void initialize_theme_GUI() {
 	gtk_combo_box_set_active(box, com.pref.combo_theme);
 	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
 	update_icons_to_theme(com.pref.combo_theme == 0);
+	update_icons_sequence_list(com.pref.combo_theme == 0);
+
 }
 
 void load_prefered_theme(gint theme) {

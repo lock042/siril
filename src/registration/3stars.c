@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "core/siril.h"
 #include "core/proto.h"
 
@@ -85,15 +86,48 @@ static void reset_icons() {
 }
 
 void reset_3stars(){
-    if (!GTK_IS_WIDGET(three_buttons[0])) return;
-    reset_icons();
-    for (int i = 0; i < 3; i++)
-        unset_suggested(three_buttons[i]);
-    set_suggested(three_buttons[0]);
-    set_registration_ready(FALSE);
+	if (!GTK_IS_WIDGET(three_buttons[0])) return;
+	reset_icons();
+	for (int i = 1; i < 3; i++) {
+		unset_suggested(three_buttons[i]);
+		gtk_widget_set_sensitive(three_buttons[i], FALSE);
+	}
+	set_suggested(three_buttons[0]);
+	gtk_widget_set_sensitive(three_buttons[0], TRUE);
+	set_registration_ready(FALSE);
 	clear_stars_list(TRUE);
 	awaiting_star = 0;
 	selected_stars = 0;
+}
+
+void _3stars_check_registration_ready() {
+	set_registration_ready((selected_stars >= 2) ? TRUE : FALSE);
+}
+
+gboolean _3stars_check_selection() {
+	if (!follow) {
+		follow = lookup_widget("followStarCheckButton");
+		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
+	}
+	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
+	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
+
+	if (dofollow) {
+		if (doall && com.seq.current != 0) {
+			gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
+			return FALSE;
+		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
+			gtk_label_set_text(labelreginfo, _("Make sure you load the first selected image"));
+			return FALSE;
+		}
+	}
+	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
+		update_label(_("Make sure you load an image which is included"));
+		return FALSE;
+	}
+	gtk_label_set_text(labelreginfo, "");
+	return TRUE;
 }
 
 void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
@@ -106,26 +140,8 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		update_label(_("Draw a selection around the star"));
 		return;
 	}
-	if (!follow) {
-		follow = lookup_widget("followStarCheckButton");
-		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
-	}
 
-	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
-	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
-	if (dofollow) {
-		if (doall && com.seq.current != 0) {
-			update_label(_("Make sure you load the first image"));
-			return;
-		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
-			update_label(_("Make sure you load the first selected image"));
-			return;
-		}
-	}
-	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
-		update_label(_("Make sure you load an image which is included"));
-		return;
-	}
+	if (!_3stars_check_selection()) return;
 
 	GtkWidget *widget = GTK_WIDGET(button);
 	if (three_buttons[0] == widget) {
@@ -154,10 +170,14 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(&_3boxes[selected_stars], &com.selection, sizeof(rectangle));
 		selected_stars ++;
 		unset_suggested(three_buttons[awaiting_star - 1]);
-		if (awaiting_star < 3) set_suggested(three_buttons[awaiting_star]);
+		gtk_widget_set_sensitive(three_buttons[awaiting_star - 1], FALSE);
+		if (awaiting_star < 3) {
+			set_suggested(three_buttons[awaiting_star]);
+			gtk_widget_set_sensitive(three_buttons[awaiting_star], TRUE);
+		}
 		update_icons(awaiting_star - 1, TRUE);
 		delete_selected_area();
-		set_registration_ready((awaiting_star >= 2) ? TRUE : FALSE);
+		_3stars_check_registration_ready();
 	}
 }
 
@@ -197,6 +217,17 @@ psf_end:
 	return args->retval;
 }
 
+static void _3stars_free_results() {
+	if (!results) return;
+	for (int i = 0; i < results_size; i++) {
+		for (int s = 0; s < 3; s++)
+			if (results[i].stars[s])
+				free(results[i].stars[s]);
+	}
+	free(results);
+	results = NULL;
+}
+
 static int _3stars_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
@@ -207,11 +238,6 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	// making sure we can use registration data - maybe we could have done that beforehand...
 	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_usable_registration(regargs->seq, regargs->layer)) {
 		spsfargs->framing = ORIGINAL_FRAME;
-		// if framing is original, we want to keep the original drawn boxes
-		delete_selected_area();
-		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
-		memcpy(&args->area, &com.selection, sizeof(rectangle));
-		new_selection_zone();
 	}
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
@@ -282,63 +308,23 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int refimage = regargs->reference_image;
-	Homography H = { 0 };
-	if (regargs->no_output) {
-		/* if "save transformation only", we choose to initialize all frames
-		 * to exclude status. If registration is ok, the status is
-		 * set to include */
-		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
-	}
-	// Determine number of stars present in both in image and ref
-	int nb_stars = 0;
-	for (int i = 0; i < selected_stars; i++) {
-		if (results[in_index].stars[i] != NULL && results[refimage].stars[i] != NULL) nb_stars++;
-	}
-	if (in_index != refimage) {
-		if (nb_stars < 2) {
-			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  args->seq->imgparam[in_index].filenum);
-			return 1;
-		}
-		struct s_star *arrayref, *arraycur, *starsin, *starsout;
-		arrayref = (s_star *) shMalloc(nb_stars * sizeof(s_star));
-		arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
-		int j = 0;
-		unsigned char *mask;
-		for (int i = 0; i < selected_stars; i++) {
-			starsin = &(arrayref[j]);
-			starsout = &(arraycur[j]);
-			g_assert(starsin != NULL);
-			g_assert(starsout != NULL);
-			if (results[in_index].stars[i] != NULL && results[refimage].stars[i] != NULL) {
-				starsin->x = results[refimage].stars[i]->xpos;
-				starsin->y = results[refimage].stars[i]->ypos;
-				starsout->x = results[in_index].stars[i]->xpos;
-				starsout->y = results[in_index].stars[i]->ypos;
-				j++;
-			}
-		}
-		mask = cvCalculH(arraycur, arrayref, nb_stars, &H, SIMILARITY_TRANSFORMATION);
-		if (!mask || H.Inliers < 2) {
-			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  args->seq->imgparam[in_index].filenum);
-			return 1;
-		}
-		sadata->current_regdata[in_index].H = H;
 
-		if (!regargs->no_output) {
+	sadata->success[out_index] = 0;
+
+	if (in_index != refimage) {
+		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > -2) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation)) {
 					return 1;
 				}
 			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
-				if (shift_fit_from_reg(fit, regargs, H)) {
+				if (shift_fit_from_reg(fit, regargs, sadata->current_regdata[in_index].H)) {
 					return 1;
 				}
 			}
-		}
+		} else return 1;
 	} else {
 		// reference image
-		cvGetEye(&H);
-		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
 				return 1;
@@ -363,10 +349,6 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
 		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;
 	return 0;
@@ -475,29 +457,12 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	sadata->ref.y = args->seq->imgparam[refimage].ry;
 
 	if (regargs->x2upscale) {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 2.0;
-		} else {
-			sadata->ref.x *= 2.0;
-			sadata->ref.y *= 2.0;
-		}
-	}
-	else {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 1.0;
-		}
+		sadata->ref.x *= 2.0;
+		sadata->ref.y *= 2.0;
 	}
 
 	generic_sequence_worker(args);
 	
-	for (int i = 0; i < results_size; i++) {
-		for (int s = 0; s < 3; s++)
-			if (results[i].stars[s])
-				free(results[i].stars[s]);
-	}
-	free(results);
-	results = NULL;
-	reset_3stars();
 	return args->retval;
 }
 
@@ -508,17 +473,17 @@ and finally applies this transform if !no_output
 Registration data is saved to the input sequence in any case
 */
 int register_3stars(struct registration_args *regargs) {
-	// TODO: we should reset_3stars at all possible escapes alomg the process
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	int nb_stars_ref = 0;
 	int refimage = regargs->reference_image;
+	Homography H = { 0 };
+	delete_selected_area();
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
-		delete_selected_area();
-		com.selection.w = (int)com.stars[i]->fwhmx * 4;
-		com.selection.h = (int)com.stars[i]->fwhmx * 4;
-		com.selection.x = com.stars[i]->xpos - com.selection.w * 0.5;
-		com.selection.y = com.stars[i]->ypos - com.selection.w * 0.5;
-		new_selection_zone();
+		// delete_selected_area();
+		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
+		// new_selection_zone();
 		awaiting_star = i + 1;
 		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
 		if (_3stars_seqpsf(regargs)) return 1;
@@ -527,6 +492,7 @@ int register_3stars(struct registration_args *regargs) {
 		// before we proceed with next star
 		if ((selected_stars == 2 && nb_stars_ref <= i) || (selected_stars == 3 && i == 1 && nb_stars_ref == 0)) {
 			siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
+			_3stars_free_results();
 			return 1;
 		}
 	}
@@ -535,10 +501,27 @@ int register_3stars(struct registration_args *regargs) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
 
+	char *msg;
+	msg = siril_log_message(_("Saving the transformation matrices\n"));
+	msg[strlen(msg)-1] = '\0';
+	set_progress_bar_data(msg, PROGRESS_RESET);
+	int processed = 0, failed = 0;
+
 	/* set regparams for current sequence before closing it */
 	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+		processed++;
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
+		if (!(i % 32)) {
+			set_progress_bar_data(NULL, (double)i / regargs->seq->number);
+		}
+
+		/* we choose to initialize all frames
+		* to exclude status. If registration is ok, the status is
+		* set to include */
+		regargs->seq->imgparam[i].incl = !SEQUENCE_DEFAULT_INCLUDE;
+
 		if (results[i].stars[0]) {
 			sumx += results[i].stars[0]->fwhmx;
 			sumy += results[i].stars[0]->fwhmy;
@@ -564,8 +547,70 @@ int register_3stars(struct registration_args *regargs) {
 			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm; 
 			current_regdata[i].background_lvl = sumb / nb_stars;
 			current_regdata[i].number_of_stars = nb_stars;
-		}
-	}
+		} else {
+			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+			failed++;
+			continue;
+		} 
 
-	return _3stars_alignment(regargs, current_regdata);
+		// computing the transformation matrices
+
+		// Determine number of stars present in both in image and ref
+		nb_stars = 0;
+		for (int j = 0; j < selected_stars; j++) {
+			if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) nb_stars++;
+		}
+		if (i != refimage) {
+			if (nb_stars < 2) {
+				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+				failed++;
+				continue;
+			}
+			struct s_star *arrayref, *arraycur, *starsin, *starsout;
+			arrayref = (s_star *) shMalloc(nb_stars * sizeof(s_star));
+			arraycur = (s_star *) shMalloc(nb_stars * sizeof(s_star));
+			int k = 0;
+			for (int j = 0; j < selected_stars; j++) {
+				starsin = &(arrayref[k]);
+				starsout = &(arraycur[k]);
+				g_assert(starsin != NULL);
+				g_assert(starsout != NULL);
+				if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) {
+					starsin->x = results[refimage].stars[j]->xpos;
+					starsin->y = results[refimage].stars[j]->ypos;
+					starsout->x = results[i].stars[j]->xpos;
+					starsout->y = results[i].stars[j]->ypos;
+					k++;
+				}
+			}
+			double err = cvCalculRigidTransform(arrayref, arraycur, nb_stars, &H);
+			free(arrayref);
+			free(arraycur);
+			if (err > current_regdata[i].fwhm) {
+				siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+				printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
+				failed++;
+				continue;
+			}
+			current_regdata[i].H = H;
+		} else {
+			cvGetEye(&current_regdata[i].H);
+		}
+		// H computation was sucessful, include the image
+		regargs->seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
+	}
+	// cleaning
+	regargs->new_total = processed - failed;
+	_3stars_free_results();
+
+	if (!regargs->no_output) {
+		return _3stars_alignment(regargs, current_regdata);
+	} else {
+		fix_selnum(regargs->seq, FALSE);
+		siril_log_message(_("Registration finished.\n"));
+		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		return 0;
+	}
 }

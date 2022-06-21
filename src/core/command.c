@@ -143,10 +143,10 @@ int process_dumpheader(int nb) {
 }
 
 int process_seq_clean(int nb) {
-	gboolean cleanreg = FALSE, cleanstat = FALSE;
+	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
+	// TODO: if sequence is loaded in the UI, it needs to be closed first 
+	// to avoid rewriting again the .seq upon closing
 
-	//TODO - should we close before just to be sure bkp values are not written back in .seq?
-	//TODO - should we also clear includes?
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
@@ -160,6 +160,9 @@ int process_seq_clean(int nb) {
 				else if (!strcmp(word[i], "-stat")) {
 					cleanstat = TRUE;
 				}
+				else if (!strcmp(word[i], "-sel")) {
+					cleansel = TRUE;
+				}	
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -169,6 +172,7 @@ int process_seq_clean(int nb) {
 	} else {
 		cleanreg = TRUE;
 		cleanstat = TRUE;
+		cleansel = TRUE;
 	}
 
 	if (cleanreg && seq->regparam) {
@@ -180,11 +184,32 @@ int process_seq_clean(int nb) {
 			}
 		}
 	}
+	if (cleanreg && seq->regparam_bkp) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam_bkp[i]) {
+				free(seq->regparam_bkp[i]);
+				seq->regparam_bkp[i] = NULL;
+				siril_log_message(_("Registration (back-up) data cleared for layer %d\n"), i);
+			}
+		}
+	}
 	if (cleanstat && seq->stats) {
 		for (int i = 0; i < seq->nb_layers; i++) {
 			clear_stats(seq, i);
 			siril_log_message(_("Statistics data cleared for layer %d\n"), i);
 		}
+	}
+	if (cleanstat && seq->stats_bkp) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			clear_stats_bkp(seq, i);
+			siril_log_message(_("Statistics data (back-up) cleared for layer %d\n"), i);
+		}
+	}
+	if (cleansel && seq->imgparam) {
+		for (int i = 0; i < seq->number; i++) {
+			seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
+		}
+		fix_selnum(seq, TRUE);
 	}
 	// unsetting ref image
 	seq->reference_image = -1;
@@ -3789,6 +3814,8 @@ int process_register(int nb) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
+		} else if (!strcmp(word[i], "-selected")) {
+			reg_args->process_all_frames = FALSE;
 		} else if (g_str_has_prefix(word[i], "-transf=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -3989,6 +4016,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->prefix = "r_";
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_AREA;
+	reg_args->framing = FRAMING_CURRENT;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -4036,6 +4064,31 @@ int process_seq_applyreg(int nb) {
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+			} else if (g_str_has_prefix(word[i], "-framing=")) {
+			char *current = word[i], *value;
+			value = current + 9;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"current")) {
+				reg_args->framing = FRAMING_CURRENT;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"min")) {
+				reg_args->framing = FRAMING_MIN;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"max")) {
+				reg_args->framing = FRAMING_MAX;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cog")) {
+				reg_args->framing = FRAMING_COG;
+				continue;
+			}
+			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
 			if (reg_args->seq->nb_layers == 1) {  // handling mono case

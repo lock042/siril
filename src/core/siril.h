@@ -186,6 +186,7 @@ typedef struct tilt_struct sensor_tilt;
 typedef struct star_finder_struct star_finder_params;
 typedef struct pref_struct preferences;
 typedef struct save_config_struct save_config;
+typedef struct regframe_struct regframe;
 
 /* global structures */
 
@@ -354,6 +355,7 @@ struct sequ {
 	double upscale_at_stacking;// up-scale factor during stacking (see #215)
 	
 	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
+	gboolean reg_invalidated; // a flag to detect if regframe can be plotted
 
 	psf_star **photometry[MAX_SEQPSF];// psf for multiple stars for all images
 	int reference_star;	// reference star for apparent magnitude (index of photometry)

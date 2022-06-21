@@ -665,6 +665,20 @@ void clear_stats(sequence *seq, int layer) {
 	}
 }
 
+/* calls free_stats on all stats of a sequence */
+void clear_stats_bkp(sequence *seq, int layer) {
+	if (seq->stats_bkp && seq->stats_bkp[layer]) {
+		int i;
+		for (i = 0; i < seq->number; i++) {
+			if (seq->stats_bkp[layer][i]) {
+				siril_debug_print("- stats %p freed from seq %d (%d)\n", seq->stats_bkp[layer][i], i, layer);
+				free_stats(seq->stats_bkp[layer][i]);
+				seq->stats_bkp[layer][i] = NULL;
+			}
+		}
+	}
+}
+
 /** generic function for sequences */
 
 static void free_stat_list(gchar **list, int nb) {

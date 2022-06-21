@@ -7,6 +7,12 @@ pixmaps = \
 	curve.svg \
 	export.svg \
 	export_dark.svg \
+	frame.svg \
+	frame_dark.svg \
+	framing-cog.svg \
+	framing-default.svg \
+	framing-max.svg \
+	framing-min.svg \
 	g.svg \
 	grid.svg \
 	histo.svg \
