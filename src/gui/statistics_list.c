@@ -127,7 +127,7 @@ static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, 
 	char format[6];
 
 	for (int i = 0; i < G_N_ELEMENTS(statName); i++) {
-		double value[3];
+		double value[3] = { 0.0 };
 
 		value[RLAYER] = get_value_from_stat(stat[RLAYER], i);
 		if (nblayer > 1) {
