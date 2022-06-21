@@ -144,10 +144,10 @@ int process_dumpheader(int nb) {
 }
 
 int process_seq_clean(int nb) {
-	gboolean cleanreg = FALSE, cleanstat = FALSE;
+	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
+	// TODO: if sequence is loaded in the UI, it needs to be closed first 
+	// to avoid rewriting again the .seq upon closing
 
-	//TODO - should we close before just to be sure bkp values are not written back in .seq?
-	//TODO - should we also clear includes?
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
@@ -161,6 +161,9 @@ int process_seq_clean(int nb) {
 				else if (!strcmp(word[i], "-stat")) {
 					cleanstat = TRUE;
 				}
+				else if (!strcmp(word[i], "-sel")) {
+					cleansel = TRUE;
+				}	
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -170,6 +173,7 @@ int process_seq_clean(int nb) {
 	} else {
 		cleanreg = TRUE;
 		cleanstat = TRUE;
+		cleansel = TRUE;
 	}
 
 	if (cleanreg && seq->regparam) {
@@ -181,11 +185,32 @@ int process_seq_clean(int nb) {
 			}
 		}
 	}
+	if (cleanreg && seq->regparam_bkp) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam_bkp[i]) {
+				free(seq->regparam_bkp[i]);
+				seq->regparam_bkp[i] = NULL;
+				siril_log_message(_("Registration (back-up) data cleared for layer %d\n"), i);
+			}
+		}
+	}
 	if (cleanstat && seq->stats) {
 		for (int i = 0; i < seq->nb_layers; i++) {
 			clear_stats(seq, i);
 			siril_log_message(_("Statistics data cleared for layer %d\n"), i);
 		}
+	}
+	if (cleanstat && seq->stats_bkp) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			clear_stats_bkp(seq, i);
+			siril_log_message(_("Statistics data (back-up) cleared for layer %d\n"), i);
+		}
+	}
+	if (cleansel && seq->imgparam) {
+		for (int i = 0; i < seq->number; i++) {
+			seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
+		}
+		fix_selnum(seq, TRUE);
 	}
 	// unsetting ref image
 	seq->reference_image = -1;
@@ -608,68 +633,269 @@ int process_wrecons(int nb) {
 	redraw_previews();
 	return CMD_OK;
 }
+int process_linstretch(int nb) {
+	if (nb <= 0)
+	return CMD_ARG_ERROR;
 
-int process_payne(int nb) {
-	gboolean human_luminance = FALSE;
-	gboolean payne_inverse = FALSE;
+	double BP = 0.0;
+	BP = g_ascii_strtod(word[1], NULL);
+	if ((BP < 0.0) || (BP > 1.0)) {
+		siril_log_message(_("Black Point BP must be between 0 and 1\n"));
+	}
+	set_cursor_waiting(TRUE);
+	paynelut(&gfit, 0, 0, 0, 0, 0, BP, 0, STRETCH_LINEAR);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
+int process_ght(int nb) {
+	int stretch_colourmodel = COL_HUMANLUM;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
-		human_luminance = TRUE;
+		stretch_colourmodel = COL_HUMANLUM;
 		arg_offset = 1;
 	}
-	if (!strcmp(word[1], "-inverse")) {
-		payne_inverse = TRUE;
+	else if (!strcmp(word[1], "-even")) {
+		stretch_colourmodel = COL_EVENLUM;
 		arg_offset = 1;
 	}
-	if (!strcmp(word[2], "-inverse")) {
-		payne_inverse = TRUE;
-		arg_offset++;
+	else if (!strcmp(word[1], "-independent")) {
+		stretch_colourmodel = COL_INDEP;
+		arg_offset = 1;
 	}
-	if (nb <= arg_offset + 5)
-		return CMD_ARG_ERROR;
+	if (nb <= arg_offset + 3)
+		return CMD_WRONG_N_ARG;
 
-	double D = g_ascii_strtod(word[arg_offset+1], NULL);
+	if (nb <= 4 + arg_offset)
+	return CMD_ARG_ERROR;
+
+	double D = g_ascii_strtod(word[1 + arg_offset], NULL);
 	if ((D < 0.0) || (D > 10.0)) {
 		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double B = g_ascii_strtod(word[arg_offset+2],NULL);
+	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
 	if ((B < -5.0) || (B > 15.0)) {
-		siril_log_message(_("Stretch intensity B must be between -5 and +15\\n"));
+		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double SP = g_ascii_strtod(word[arg_offset+4],NULL);
+	double SP = g_ascii_strtod(word[4 + arg_offset],NULL);
 	if ((SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("Stretch focal point SP must be between 0 and 1\\n"));
+		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double LP = g_ascii_strtod(word[arg_offset+3],NULL);
+	double LP = g_ascii_strtod(word[3 + arg_offset],NULL);
 	if ((LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\\n"));
+		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double HP = g_ascii_strtod(word[arg_offset+5],NULL);
+	double HP = g_ascii_strtod(word[5 + arg_offset],NULL);
 	if ((HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\\n"));
+		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double BP = 0.0;
 	gchar *end;
-	if (nb > 6 + arg_offset) {
-		BP = g_ascii_strtod(word[6+arg_offset], &end);
-		if (end == word[2+arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2+arg_offset]);
+	if (nb > 5) {
+		BP = g_ascii_strtod(word[6 + arg_offset], &end);
+		if (end == word[6 + arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
 			return CMD_ARG_ERROR;
 		}
 	}
 
 	set_cursor_waiting(TRUE);
-	paynelut(&gfit, D, B, LP, SP, HP, BP, human_luminance, payne_inverse);
+	paynelut(&gfit, B, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_PAYNE_NORMAL);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
+int process_invght(int nb) {
+	int stretch_colourmodel = COL_HUMANLUM;
+	int arg_offset = 0;
+	if (!strcmp(word[1], "-human")) {
+		stretch_colourmodel = COL_HUMANLUM;
+		arg_offset = 1;
+	}
+	else if (!strcmp(word[1], "-even")) {
+		stretch_colourmodel = COL_EVENLUM;
+		arg_offset = 1;
+	}
+	else if (!strcmp(word[1], "-independent")) {
+		stretch_colourmodel = COL_INDEP;
+		arg_offset = 1;
+	}
+	if (nb <= 4 + arg_offset)
+
+		return CMD_ARG_ERROR;
+
+	double D = g_ascii_strtod(word[1 + arg_offset], NULL);
+	if ((D < 0.0) || (D > 10.0)) {
+		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
+	if ((B < -5.0) || (B > 15.0)) {
+		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double SP = g_ascii_strtod(word[4 + arg_offset],NULL);
+	if ((SP < 0.0) || (SP > 1.0)) {
+		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double LP = g_ascii_strtod(word[3 + arg_offset],NULL);
+	if ((LP < 0.0) || (LP > SP)) {
+		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double HP = g_ascii_strtod(word[5 + arg_offset],NULL);
+	if ((HP < SP) || (HP > 1.0)) {
+		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double BP = 0.0;
+	gchar *end;
+	if (nb > 5) {
+		BP = g_ascii_strtod(word[6 + arg_offset], &end);
+		if (end == word[6 + arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	set_cursor_waiting(TRUE);
+	paynelut(&gfit, B, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_PAYNE_INVERSE);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
+int process_genasinh(int nb) {
+	int stretch_colourmodel = COL_HUMANLUM;
+	int arg_offset = 0;
+	if (!strcmp(word[1], "-human")) {
+		stretch_colourmodel = COL_HUMANLUM;
+		arg_offset = 1;
+	}
+	else if (!strcmp(word[1], "-even")) {
+		stretch_colourmodel = COL_EVENLUM;
+		arg_offset = 1;
+	}
+	else if (!strcmp(word[1], "-independent")) {
+		stretch_colourmodel = COL_INDEP;
+		arg_offset = 1;
+	}
+	if (nb <= arg_offset + 3)
+	return CMD_WRONG_N_ARG;
+
+	double D = g_ascii_strtod(word[arg_offset+1], NULL);
+	if ((D < 0.0) || (D > 10.0)) {
+		siril_log_message(_("D must be between 0 and 10\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
+	if ((SP < 0.0) || (SP > 1.0)) {
+		siril_log_message(_("SP must be between 0 and 1\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double LP = g_ascii_strtod(word[arg_offset+2],NULL);
+	if ((LP < 0.0) || (LP > SP)) {
+		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double HP = g_ascii_strtod(word[arg_offset+4],NULL);
+	if ((HP < SP) || (HP > 1.0)) {
+		siril_log_message(_("HP must be between stretch focal point and 1\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double BP = 0.0;
+	gchar *end;
+	if (nb > 4 + arg_offset) {
+		BP = g_ascii_strtod(word[5+arg_offset], &end);
+		if (end == word[5+arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[5+arg_offset]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	set_cursor_waiting(TRUE);
+	paynelut(&gfit, 0.0, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_ASINH);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
+int process_invgenasinh(int nb) {
+	int stretch_colourmodel = COL_HUMANLUM;
+	int arg_offset = 0;
+	if (!strcmp(word[1], "-human")) {
+		stretch_colourmodel = COL_HUMANLUM;
+		arg_offset = 1;
+	}
+	else if (!strcmp(word[1], "-even")) {
+		stretch_colourmodel = COL_EVENLUM;
+		arg_offset = 1;
+	}
+	else if (!strcmp(word[1], "-independent")) {
+		stretch_colourmodel = COL_INDEP;
+		arg_offset = 1;
+	}
+	if (nb <= arg_offset + 3)
+	return CMD_WRONG_N_ARG;
+
+	double D = g_ascii_strtod(word[arg_offset+1], NULL);
+	if ((D < 0.0) || (D > 10.0)) {
+		siril_log_message(_("D must be between 0 and 10\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
+	if ((SP < 0.0) || (SP > 1.0)) {
+		siril_log_message(_("SP must be between 0 and 1\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double LP = g_ascii_strtod(word[arg_offset+2],NULL);
+	if ((LP < 0.0) || (LP > SP)) {
+		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double HP = g_ascii_strtod(word[arg_offset+4],NULL);
+	if ((HP < SP) || (HP > 1.0)) {
+		siril_log_message(_("HP must be between stretch focal point and 1\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	double BP = 0.0;
+	gchar *end;
+	if (nb > 4 + arg_offset) {
+		BP = g_ascii_strtod(word[5+arg_offset], &end);
+		if (end == word[5+arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[5+arg_offset]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	set_cursor_waiting(TRUE);
+	paynelut(&gfit, 0.0, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_INVASINH);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -3589,6 +3815,8 @@ int process_register(int nb) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
+		} else if (!strcmp(word[i], "-selected")) {
+			reg_args->process_all_frames = FALSE;
 		} else if (g_str_has_prefix(word[i], "-transf=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -3789,6 +4017,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->prefix = "r_";
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_AREA;
+	reg_args->framing = FRAMING_CURRENT;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -3836,6 +4065,31 @@ int process_seq_applyreg(int nb) {
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+			} else if (g_str_has_prefix(word[i], "-framing=")) {
+			char *current = word[i], *value;
+			value = current + 9;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"current")) {
+				reg_args->framing = FRAMING_CURRENT;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"min")) {
+				reg_args->framing = FRAMING_MIN;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"max")) {
+				reg_args->framing = FRAMING_MAX;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cog")) {
+				reg_args->framing = FRAMING_COG;
+				continue;
+			}
+			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
 			if (reg_args->seq->nb_layers == 1) {  // handling mono case

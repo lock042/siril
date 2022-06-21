@@ -201,6 +201,7 @@ void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gbo
 void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *single_processing_actions[] = {
 		"asinh-processing",
+		"payne-processing",
 		"deconvolution-processing",
 		"resample-processing",
 		"rotation-processing",

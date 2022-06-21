@@ -43,8 +43,6 @@ enum {
 };
 
 char *statName[] = {
-		N_("count (%)"),
-		N_("count (px)"),
 		N_("mean"),
 		N_("median"),
 		N_("sigma"),
@@ -53,193 +51,114 @@ char *statName[] = {
 		N_("sqrt(BWMV)"),
 		N_("min"),
 		N_("max"),
-		N_("normalization")
 };
 
 static void get_statlist_store() {
 	if (list_store == NULL)
 		list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststoreStat"));
 }
-/* Add a statistic to the list. If imstats is NULL, the list is cleared. */
-static void add_stats_to_list(imstats *stat[], int nblayer, data_type type, gboolean normalized) {
-	static GtkTreeSelection *selection = NULL;
-	GtkTreeIter iter;
-	char format[6];
-	char rvalue[20], gvalue[20], bvalue[20];
-	double normValue[] = { 1.0, 1.0, 1.0 };
-	int color;
 
+
+static void display_stat(double *value, double *normalization, char *format, int nblayer, int i, data_type type) {
+	char rvalue[20], gvalue[20], bvalue[20];
+	GtkTreeIter iter;
+	int color = (com.pref.combo_theme == 0) ? 1 : 0;
+
+	sprintf(rvalue, format, value[RLAYER] / normalization[RLAYER]);
+
+	if (nblayer > 1) {
+		sprintf(gvalue, format, value[GLAYER] / normalization[GLAYER]);
+		sprintf(bvalue, format, value[BLAYER] / normalization[BLAYER]);
+	} else {
+		sprintf(gvalue, "--");
+		sprintf(bvalue, "--");
+	}
+
+	gtk_list_store_append(list_store, &iter);
+	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[i]),
+			COLUMN_RVALUE, rvalue,
+			COLUMN_GVALUE, gvalue,
+			COLUMN_BVALUE, bvalue,
+			COLUMN_COLOR, i % 2 ? second_colour[color] : first_colour[color],
+			-1);
+}
+
+static double get_value_from_stat(imstats *stat, int index) {
+	switch (index) {
+	case 0:
+		return stat->mean;
+		break;
+	case 1:
+		return stat->median;
+		break;
+	case 2:
+		return stat->sigma;
+		break;
+	case 3:
+		return stat->avgDev;
+		break;
+	case 4:
+		return stat->mad;
+		break;
+	case 5:
+		return stat->sqrtbwmv;
+		break;
+	case 6:
+		return stat->min;
+		break;
+	case 7:
+		return stat->max;
+		break;
+	}
+	return 0.0;
+}
+
+static void init_dialog() {
+	static GtkTreeSelection *selection = NULL;
 	get_statlist_store();
 	if (!selection)
 		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection9"));
-	if (stat[RLAYER] == NULL) {
-		gtk_list_store_clear(list_store);
-		return;		// just clear the list
-	}
 
 	gtk_list_store_clear(list_store);
-	if (normalized) {
-		normValue[RLAYER] = stat[RLAYER]->normValue;
-		normValue[GLAYER] = stat[RLAYER]->normValue;
-		normValue[BLAYER] = stat[RLAYER]->normValue;
-		sprintf(format, "%%.5e");
-	}
-	else {
-		if (type == DATA_FLOAT) {
-			/* by default it is shown in ushort mode */
-			normValue[RLAYER] = 1.0 / USHRT_MAX_DOUBLE;
-			normValue[GLAYER] = 1.0 / USHRT_MAX_DOUBLE;
-			normValue[BLAYER] = 1.0 / USHRT_MAX_DOUBLE;
+}
+
+static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, gboolean normalized) {
+	double normalization[] = { 1.0, 1.0, 1.0 };
+	char format[6];
+
+	for (int i = 0; i < G_N_ELEMENTS(statName); i++) {
+		double value[3];
+
+		value[RLAYER] = get_value_from_stat(stat[RLAYER], i);
+		if (nblayer > 1) {
+			value[GLAYER] = get_value_from_stat(stat[GLAYER], i);
+			value[BLAYER] = get_value_from_stat(stat[BLAYER], i);
 		}
-		sprintf(format, "%%.1lf");
+
+		if (normalized) {
+			normalization[RLAYER] = stat[RLAYER]->normValue;
+			if (nblayer > 1) {
+				normalization[GLAYER] = stat[GLAYER]->normValue;
+				normalization[BLAYER] = stat[BLAYER]->normValue;
+			}
+			if (value[RLAYER] < 1E-5 && value[RLAYER] > 0.0) {
+				sprintf(format, "%%.5e");
+			} else {
+				sprintf(format, "%%.7lf");
+			}
+		} else {
+			if (type == DATA_FLOAT) {
+				/* by default it is shown in ushort mode */
+				normalization[RLAYER] = 1.0 / USHRT_MAX_DOUBLE;
+				if (nblayer > 1) {
+					normalization[GLAYER] = 1.0 / USHRT_MAX_DOUBLE;
+					normalization[BLAYER] = 1.0 / USHRT_MAX_DOUBLE;
+				}
+			}
+			sprintf(format, "%%.1lf");
+		}
+		display_stat(value, normalization, format, nblayer, i, type);
 	}
-
-	color = (com.pref.combo_theme == 0) ? 1 : 0;
-
-	/** Mean */
-	sprintf(rvalue, format, stat[RLAYER]->mean / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->mean / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->mean / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[2]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, first_colour[color],
-			-1);
-
-	/* median */
-	sprintf(rvalue, format, stat[RLAYER]->median / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->median / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->median / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[3]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, second_colour[color],
-			-1);
-
-	/* sigma */
-	sprintf(rvalue, format, stat[RLAYER]->sigma / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->sigma / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->sigma / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[4]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, first_colour[color],
-			-1);
-
-	/* avgDev */
-	sprintf(rvalue, format, stat[RLAYER]->avgDev / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->avgDev / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->avgDev / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[5]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, second_colour[color],
-			-1);
-
-	/* MAD */
-	sprintf(rvalue, format, stat[RLAYER]->mad / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->mad / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->mad / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[6]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, first_colour[color],
-			-1);
-
-	/* sqrt(BWMV) */
-	sprintf(rvalue, format, stat[RLAYER]->sqrtbwmv / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->sqrtbwmv / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->sqrtbwmv / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[7]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, second_colour[color],
-			-1);
-
-	/* min */
-	sprintf(rvalue, format, stat[RLAYER]->min / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->min / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->min / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[8]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, first_colour[color],
-			-1);
-
-	/* max */
-	sprintf(rvalue, format, stat[RLAYER]->max / normValue[RLAYER]);
-	if (nblayer > 1 && (stat[GLAYER] != NULL) && (stat[BLAYER]) != NULL) {
-		sprintf(gvalue, format, stat[GLAYER]->max / normValue[GLAYER]);
-		sprintf(bvalue, format, stat[BLAYER]->max / normValue[BLAYER]);
-	} else {
-		sprintf(gvalue, "--");
-		sprintf(bvalue, "--");
-	}
-
-	gtk_list_store_append(list_store, &iter);
-	gtk_list_store_set(list_store, &iter, COLUMN_NAME, _(statName[9]),
-			COLUMN_RVALUE, rvalue,
-			COLUMN_GVALUE, gvalue,
-			COLUMN_BVALUE, bvalue,
-			COLUMN_COLOR, second_colour[color],
-			-1);
-
 }
 
 void on_statButtonClose_clicked(GtkButton *button, gpointer user_data) {
@@ -252,7 +171,6 @@ void computeStat() {
 	gboolean normalized;
 	int channel;
 	gchar *name, *selection;
-	imstats *stat[3] = { NULL, NULL, NULL };
 
 	checkButton = GTK_TOGGLE_BUTTON(lookup_widget("statCheckButton"));
 	statNameLabel = GTK_LABEL(lookup_widget("statNameLabel"));
@@ -280,16 +198,19 @@ void computeStat() {
 	gtk_label_set_text(statSelecLabel, selection);
 	g_free(selection);
 
+	init_dialog();
+
+	imstats *stat[3] = { NULL, NULL, NULL };
 	for (channel = 0; channel < gfit.naxes[2]; channel++) {
 		stat[channel] = statistics(NULL, -1, &gfit, channel, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat[channel]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 		}
 	}
-	add_stats_to_list(stat, gfit.naxes[2], gfit.type, normalized);
-
-	for (channel = 0; channel < gfit.naxes[2]; channel++)
+	add_chan_stats_to_list(stat, gfit.naxes[2], gfit.type, normalized);
+	for (channel = 0; channel < gfit.naxes[2]; channel++) {
 		free_stats(stat[channel]);
+	}
 }
 
 void on_statCheckButton_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
