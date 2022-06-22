@@ -78,6 +78,8 @@ static void initialize_ips_dialog() {
 	gtk_widget_set_visible(force_platesolve, FALSE);
 	gtk_widget_grab_focus(button_ips_ok);
 
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
+
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
 
