@@ -119,5 +119,6 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int 
 void update_coords();
 gboolean end_plate_solver(gpointer p);
 
+void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */

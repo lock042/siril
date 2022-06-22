@@ -63,14 +63,17 @@ static rectangle get_bkg_selection();
 static void start_photometric_cc() {
 	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
-	GtkToggleButton *use_wcs_ips_button = GTK_TOGGLE_BUTTON(lookup_widget("use_wcs_ips_button"));
+	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
 	gboolean plate_solve;
-
-	plate_solve = !gtk_toggle_button_get_active(use_wcs_ips_button);
 
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("There is no valid WCS information in the header. Let's make a plate solving.\n"), "salmon");
 		plate_solve = TRUE;
+	} else {
+		plate_solve = gtk_toggle_button_get_active(force_platesolve_button);
+		if (plate_solve)
+			siril_log_message(_("Plate solving will be recomputed for image\n"));
+		else siril_log_message(_("Existing plate solve (WCS information) will be resused for image\n"));
 	}
 
 	struct astrometry_data *args = NULL;
@@ -742,7 +745,7 @@ static gboolean is_selection_ok() {
 void initialize_photometric_cc_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *frame_cc_norm,
-			*catalog_label_pcc;
+			*catalog_label_pcc, *force_platesolve;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -755,6 +758,7 @@ void initialize_photometric_cc_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	frame_cc_norm = lookup_widget("frame_cc_norm");
+	force_platesolve = lookup_widget("force_astrometry_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -772,6 +776,8 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(frame_cc_norm, TRUE);
+	gtk_widget_set_visible(force_platesolve, TRUE);
+	gtk_widget_grab_focus(button_cc_ok);
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));
 
@@ -783,7 +789,6 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
-
 }
 
 int get_photometry_catalog() {

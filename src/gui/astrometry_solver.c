@@ -50,7 +50,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 static void initialize_ips_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *frame_cc_norm,
-			*catalog_label_pcc;
+			*catalog_label_pcc, *force_platesolve;
 	GtkWindow *parent;
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
@@ -62,6 +62,7 @@ static void initialize_ips_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	frame_cc_norm = lookup_widget("frame_cc_norm");
+	force_platesolve = lookup_widget("force_astrometry_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -74,6 +75,8 @@ static void initialize_ips_dialog() {
 	gtk_widget_set_visible(catalog_auto, TRUE);
 	gtk_widget_set_visible(frame_cc_bkg, FALSE);
 	gtk_widget_set_visible(frame_cc_norm, FALSE);
+	gtk_widget_set_visible(force_platesolve, FALSE);
+	gtk_widget_grab_focus(button_ips_ok);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
@@ -522,6 +525,7 @@ void open_astrometry_dialog() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		initialize_ips_dialog();
 		siril_open_dialog("ImagePlateSolver_Dial");
+		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	}
 }
 
