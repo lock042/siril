@@ -464,7 +464,7 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 
 	/* get number of data */
 	for (i = 0; i < plot->nb; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i]->phot_is_valid)
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
 	}
@@ -480,7 +480,7 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < plot->nb; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i]->phot_is_valid)
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		double cmag = 0.0, cerr = 0.0;
 
