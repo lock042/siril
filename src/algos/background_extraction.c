@@ -862,6 +862,7 @@ static gboolean end_background(gpointer p) {
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
 	}
+gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	set_cursor_waiting(FALSE);
@@ -908,7 +909,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
+			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
 					error);
 			set_cursor_waiting(FALSE);
 			return NULL;
@@ -1221,9 +1222,11 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 
 	if (background_computed) {
 		siril_preview_hide();
+		background_computed = FALSE;
 	} else {
 		clear_backup();
 	}
+	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), FALSE);
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
