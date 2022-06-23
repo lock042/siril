@@ -3274,6 +3274,7 @@ If the parameters is null, so no filter is apply at all.</property>
               <object class="GtkButton" id="background_ok_button">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-markup" translatable="yes">This will confirm the background model previously applied with the &lt;b&gt;Compute Background&lt;/b&gt; button. However, in the case of a sequence, if the &lt;b&gt;Apply to sequence&lt;/b&gt; button is checked, this will compute the model and apply it to the whole sequence.</property>
