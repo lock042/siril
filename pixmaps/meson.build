@@ -23,6 +23,7 @@ siril_icons = [
   'g.svg',
   'grid.svg',
   'histo.svg',
+  'histo-orig.svg',
   'list.svg',
   'mirrorx_dark.svg',
   'mirrorx.svg',

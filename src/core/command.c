@@ -71,7 +71,6 @@
 #include "filters/median.h"
 #include "filters/mtf.h"
 #include "filters/fft.h"
-#include "filters/payne.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
 #include "filters/scnr.h"
@@ -144,7 +143,7 @@ int process_dumpheader(int nb) {
 
 int process_seq_clean(int nb) {
 	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
-	// TODO: if sequence is loaded in the UI, it needs to be closed first 
+	// TODO: if sequence is loaded in the UI, it needs to be closed first
 	// to avoid rewriting again the .seq upon closing
 
 	sequence *seq = load_sequence(word[1], NULL);
@@ -162,7 +161,7 @@ int process_seq_clean(int nb) {
 				}
 				else if (!strcmp(word[i], "-sel")) {
 					cleansel = TRUE;
-				}	
+				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -642,14 +641,17 @@ int process_linstretch(int nb) {
 		siril_log_message(_("Black Point BP must be between 0 and 1\n"));
 	}
 	set_cursor_waiting(TRUE);
-	paynelut(&gfit, 0, 0, 0, 0, 0, BP, 0, STRETCH_LINEAR);
+	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP};
+	ght_compute_params compute_params;
+	GHTsetup(&compute_params, 0.0, 0.0, 0.0, 0.0, 0.0, STRETCH_LINEAR);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_ght(int nb) {
-	int stretch_colourmodel = COL_HUMANLUM;
+	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
 		stretch_colourmodel = COL_HUMANLUM;
@@ -663,11 +665,8 @@ int process_ght(int nb) {
 		stretch_colourmodel = COL_INDEP;
 		arg_offset = 1;
 	}
-	if (nb <= arg_offset + 3)
-		return CMD_WRONG_N_ARG;
-
 	if (nb <= 4 + arg_offset)
-	return CMD_ARG_ERROR;
+	return CMD_WRONG_N_ARG;
 
 	double D = g_ascii_strtod(word[1 + arg_offset], NULL);
 	if ((D < 0.0) || (D > 10.0)) {
@@ -699,25 +698,18 @@ int process_ght(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	double BP = 0.0;
-	gchar *end;
-	if (nb > 5) {
-		BP = g_ascii_strtod(word[6 + arg_offset], &end);
-		if (end == word[6 + arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
-			return CMD_ARG_ERROR;
-		}
-	}
-
 	set_cursor_waiting(TRUE);
-	paynelut(&gfit, B, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_PAYNE_NORMAL);
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel};
+	ght_compute_params compute_params;
+	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_NORMAL);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_invght(int nb) {
-	int stretch_colourmodel = COL_HUMANLUM;
+	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
 		stretch_colourmodel = COL_HUMANLUM;
@@ -733,7 +725,7 @@ int process_invght(int nb) {
 	}
 	if (nb <= 4 + arg_offset)
 
-		return CMD_ARG_ERROR;
+		return CMD_WRONG_N_ARG;
 
 	double D = g_ascii_strtod(word[1 + arg_offset], NULL);
 	if ((D < 0.0) || (D > 10.0)) {
@@ -765,25 +757,18 @@ int process_invght(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	double BP = 0.0;
-	gchar *end;
-	if (nb > 5) {
-		BP = g_ascii_strtod(word[6 + arg_offset], &end);
-		if (end == word[6 + arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
-			return CMD_ARG_ERROR;
-		}
-	}
-
 	set_cursor_waiting(TRUE);
-	paynelut(&gfit, B, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_PAYNE_INVERSE);
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel};
+	ght_compute_params compute_params;
+	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_INVERSE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
-int process_genasinh(int nb) {
-	int stretch_colourmodel = COL_HUMANLUM;
+int process_modasinh(int nb) {
+	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
 		stretch_colourmodel = COL_HUMANLUM;
@@ -824,25 +809,18 @@ int process_genasinh(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	double BP = 0.0;
-	gchar *end;
-	if (nb > 4 + arg_offset) {
-		BP = g_ascii_strtod(word[5+arg_offset], &end);
-		if (end == word[5+arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[5+arg_offset]);
-			return CMD_ARG_ERROR;
-		}
-	}
-
 	set_cursor_waiting(TRUE);
-	paynelut(&gfit, 0.0, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_ASINH);
+	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel};
+	ght_compute_params compute_params;
+	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_ASINH);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
-int process_invgenasinh(int nb) {
-	int stretch_colourmodel = COL_HUMANLUM;
+int process_invmodasinh(int nb) {
+	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
 		stretch_colourmodel = COL_HUMANLUM;
@@ -883,18 +861,11 @@ int process_invgenasinh(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	double BP = 0.0;
-	gchar *end;
-	if (nb > 4 + arg_offset) {
-		BP = g_ascii_strtod(word[5+arg_offset], &end);
-		if (end == word[5+arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[5+arg_offset]);
-			return CMD_ARG_ERROR;
-		}
-	}
-
 	set_cursor_waiting(TRUE);
-	paynelut(&gfit, 0.0, D, LP, SP, HP, BP, stretch_colourmodel, STRETCH_INVASINH);
+	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel};
+	ght_compute_params compute_params;
+	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_INVASINH);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
 
 	notify_gfit_modified();
 	return CMD_OK;

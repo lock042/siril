@@ -456,7 +456,7 @@ void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	toggle_histogram_window_visibility();
+	toggle_histogram_window_visibility(1);
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -480,7 +480,7 @@ void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("payne_dialog");
+	toggle_histogram_window_visibility(2);
 }
 
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
