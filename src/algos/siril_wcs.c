@@ -236,8 +236,8 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 
 	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
 	if (status != 0) {
-		if (pixcrd[0] > 0.0 && pixcrd[0] > 0.0)
-			siril_debug_print("wcs2pix failed with valid coords: %d\n", status);
+		//if (pixcrd[0] > 0.0 && pixcrd[0] > 0.0)
+		//	siril_debug_print("wcs2pix failed with valid coords: %d\n", status);
 		return 1;
 	}
 

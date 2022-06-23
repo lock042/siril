@@ -296,7 +296,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	}
 	top.description[123] = '\0'; // we may lose a character, but it shouldn't be bad
 
-	siril_debug_print("Opened catalogue '%s'\n", top.description);
+	//siril_debug_print("Opened catalogue '%s'\n", top.description);
 
 	struct catalogue_file *cat = calloc(1, sizeof(struct catalogue_file));
 	if (!cat) {
@@ -311,7 +311,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		siril_debug_print("Byteswapping required\n");
 		cat->byteswap = 1;
 	}
-	siril_debug_print("Version number: %d\n", top.version_no);
+	//siril_debug_print("Version number: %d\n", top.version_no);
 
 	/* reading the fields */
 	if (!fread(&cat->nfields, 2, 1, f)) {
@@ -321,7 +321,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	}
 	if (cat->byteswap)
 		cat->nfields = bswap_16(cat->nfields);
-	siril_debug_print("%d fields reported:\n", cat->nfields);
+	//siril_debug_print("%d fields reported:\n", cat->nfields);
 	cat->de = malloc(cat->nfields * sizeof(dataElement));
 	if (!cat->de) {
 		PRINT_ALLOC_ERR;
@@ -336,7 +336,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		}
 		if (cat->byteswap)
 			cat->de[i].scale = bswap_32(cat->de[i].scale);
-		displayDataElementDescription(&(cat->de[i]));
+		//displayDataElementDescription(&(cat->de[i]));
 	}
 
 	if (cat->nfields != 6 && cat->nfields != 11) {
@@ -358,8 +358,8 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	cat->HTM_Level = -1;
 	while (ntrixels >>= 2) ++cat->HTM_Level;
 	/* 512 for level 3, 32768 for NOMAD level 6 */
-	siril_debug_print("Number of trixels reported = %d (levels: %d)\n",
-			cat->ntrixels, cat->HTM_Level);
+	//siril_debug_print("Number of trixels reported = %d (levels: %d)\n",
+	//		cat->ntrixels, cat->HTM_Level);
 
 	cat->index_offset = ftell(f);
 
@@ -407,7 +407,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		//siril_debug_print("faint magnitude: %.2f\n", header.faint_mag / 1000.0);
 	}
 
-	siril_debug_print("read the trixel index table, header read complete\n");
+	//siril_debug_print("read the trixel index table, header read complete\n");
 	return cat;
 }
 

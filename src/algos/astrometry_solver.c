@@ -133,12 +133,8 @@ double compute_mag_limit_from_fov(double fov_degrees) {
 }
 
 static void compute_mag_limit(struct astrometry_data *args) {
-	if (args->auto_magnitude) {
-		// limit magnitude should depend on image fov, not selection's args->used_fov
-		double fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
-
-		args->limit_mag = compute_mag_limit_from_fov(fov / 60.0);
-	}
+	if (args->auto_magnitude)
+		args->limit_mag = compute_mag_limit_from_fov(args->used_fov / 60.0);
 	else args->limit_mag = args->forced_magnitude;
 	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
 }
