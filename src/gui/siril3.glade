@@ -11967,7 +11967,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="action-name">win.payne-processing</property>
-            <property name="text" translatable="yes">GHSastro Stretch Transformations...</property>
+            <property name="text" translatable="yes">Generalised Hyperbolic Stretch Transformations...</property>
           </object>
           <packing>
             <property name="expand">False</property>
