@@ -807,7 +807,7 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		if (com.layers_hist[i]
 				&& (!toggles[i] || gtk_toggle_tool_button_get_active(toggles[i]))) {
 			if (gtk_toggle_tool_button_get_active(toggleOrig)) {
-				display_histo(*hist_backup, cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE);
+				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE);
 			}
 			display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
 		}
