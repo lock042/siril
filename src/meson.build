@@ -82,7 +82,7 @@ src_files = [
   'filters/fft.c',
   'filters/median.c',
   'filters/mtf.c',
-  'filters/payne.c',
+  'filters/ght.c',
   'filters/rgradient.c',
   'filters/saturation.c',
   'filters/scnr.c',

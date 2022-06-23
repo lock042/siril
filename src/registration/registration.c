@@ -40,6 +40,7 @@
 #include "gui/sequence_list.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
+#include "core/siril_app_dirs.h"
 #include "registration/registration.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/match.h"
@@ -81,6 +82,13 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to apply previously computed registration data "
 		"stored in the sequence file. The interpolation method and simplified drizzle can be selected in the Output Registration section and it can be applied "
 		"on selected images only, to avoid saving unnecessary images.")
+};
+
+static char *reg_frame_registration[] = {
+		"framing-default.svg",
+		"framing-max.svg",
+		"framing-min.svg",
+		"framing-cog.svg"
 };
 
 /*Possible values for max stars combo box
@@ -831,7 +839,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
 	gboolean selection_is_done;
-	gboolean has_reg, dofollow, doall;
+	gboolean has_reg, ready;
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
@@ -875,25 +883,25 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
 		} else if (method->method_ptr == &register_kombat) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
+		} else if (method->method_ptr == &register_apply_reg) {
+			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
 		}
 		gtk_widget_set_visible(follow, (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_3stars));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
+		ready = TRUE;
 		if (method->method_ptr == &register_3stars || method->method_ptr == &register_shift_fwhm) {
-			dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
-			doall = !gtk_combo_box_get_active(reg_all_sel_box);
-			if (dofollow) {
-				if (doall && com.seq.current != 0)
-					gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
-				else if (!doall && com.seq.current != get_first_selected(&com.seq))
-					gtk_label_set_text(labelreginfo, _("Make sure you load the first selected image"));
-				else gtk_label_set_text(labelreginfo, "");
-			} else gtk_label_set_text(labelreginfo, "");
+			ready = _3stars_check_selection(); // cehcks that the right image is loaded based on doall and dofollow
 		}
-		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0')
+		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
+			ready = FALSE;
+		}
 		else gtk_label_set_text(labelreginfo, "");
 		// the 3 stars method has special GUI requirements
-		gtk_widget_set_sensitive(go_register, (method->method_ptr != &register_3stars));
+		if (method->method_ptr == &register_3stars) {
+			if (!ready) gtk_widget_set_sensitive(go_register,FALSE);
+			else _3stars_check_registration_ready();
+		} else gtk_widget_set_sensitive(go_register, ready);
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
@@ -1035,6 +1043,10 @@ void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	keep_noout_state = toggled;
 }
 
+void on_regfollowStar_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	update_reg_interface(TRUE);
+}
+
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
@@ -1042,7 +1054,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	char *msg;
 	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul;
 	GtkComboBox *cbbt_layers, *reg_all_sel_box;
-	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars;
+	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved;
 
 	if (!reserve_thread()) {	// reentrant from here
@@ -1084,6 +1096,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
+	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box= GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 
 	reg_args->func = method->method_ptr;
@@ -1101,6 +1114,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
 	reg_args->process_all_frames = !gtk_combo_box_get_active(reg_all_sel_box);
+	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
@@ -1161,6 +1175,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 gpointer register_thread_func(gpointer p) {
 	struct registration_args *args = (struct registration_args *) p;
 	int retval;
+	args->seq->reg_invalidated = TRUE;
 
 	args->retval = args->func(args);
 
@@ -1197,12 +1212,13 @@ static gboolean end_register_idle(gpointer p) {
 		}
 	}
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
-
+	args->seq->reg_invalidated = FALSE;
 	drawPlot();
 	update_stack_interface(TRUE);
 	adjust_sellabel();
 
 	set_cursor_waiting(FALSE);
+	if (args->func == &register_3stars) reset_3stars();
 
 	free(args);
 	return FALSE;
@@ -1288,4 +1304,17 @@ int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography 
 	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	clearfits(destfit);
 	return 0;
+}
+
+void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
+	gchar *name;
+	GtkImage *image = GTK_IMAGE(lookup_widget("framing-image"));
+	int i = gtk_combo_box_get_active(box);
+
+	if (i >= 0 && i < G_N_ELEMENTS(reg_frame_registration)) {
+		name = g_build_filename(siril_get_system_data_dir(), "pixmaps", reg_frame_registration[i], NULL);
+		gtk_image_set_from_file(image, name);
+
+		g_free(name);
+	}
 }

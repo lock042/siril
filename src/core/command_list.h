@@ -82,6 +82,7 @@ static command commands[] = {
 	{"fmul", 1, "fmul scalar", process_fmul, STR_FMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"ght", 5, "ght [-human | -even | -independent] D B LP SP HP", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
@@ -93,8 +94,12 @@ static command commands[] = {
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
+	{"linstretch", 1, "linstretch BP", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE, REQ_CMD_NONE},
 	// specific loads are not required, but could be used to force the
 	// extension to a higher priority in case two files with same basename
@@ -107,6 +112,7 @@ static command commands[] = {
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
 	{"mirrorx", 0, "mirrorx", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"modasinh", 4, "modasinh [-human | -even | -independent] D LP SP HP", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mtf", 3, "mtf low mid high", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -115,14 +121,13 @@ static command commands[] = {
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"genhyp", 5, "genhyp [-human] [-inverse] stretch_factor stretch_intensity shadow_preservation stretch_focal_point headroom_preservation [black_point_offset]", process_payne, STR_PAYNE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pm", 1, "pm \"expression\"", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE, REQ_CMD_NONE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE, REQ_CMD_NONE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"register", 1, "register sequence [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-interp=]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
+	{"register", 1, "register sequence [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-interp=] [-selected]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample factor", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -149,8 +154,8 @@ static command commands[] = {
 	{"savetif8", 1, "savetif8 filename", process_savetif, STR_SAVETIF8, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 	{"select", 2, "select from to", process_select, STR_SELECT, FALSE, REQ_CMD_SEQUENCE},
-	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-selected] [-layer=]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
-	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] ", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
+	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-selected] [-layer=] [-framing=]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
+	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] [-sel]", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=]", process_seq_extractHa, STR_SEQEXTRACTHA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII, TRUE, REQ_CMD_NO_THREAD},

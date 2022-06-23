@@ -37,6 +37,7 @@ int compute_means_from_flat_cfa(fits *fit, double mean[36]);
 void allocate_stats(imstats **stat);
 imstats* free_stats(imstats *stat);
 void clear_stats(sequence *seq, int layer);
+void clear_stats_bkp(sequence *seq, int layer);
 
 void add_stats_to_fit(fits *fit, int layer, imstats *stat);
 void add_stats_to_seq(sequence *seq, int image_index, int layer, imstats *stat);

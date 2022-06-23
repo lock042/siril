@@ -29,6 +29,7 @@ typedef enum {
 	REG_PAGE_COMET,
 	REG_PAGE_3_STARS,
 	REG_PAGE_KOMBAT,
+	REG_PAGE_APPLYREG,
 	REG_PAGE_MISC
 } reg_notebook_page;
 
@@ -38,6 +39,13 @@ typedef enum {
 	AFFINE_TRANSFORMATION,
 	HOMOGRAPHY_TRANSFORMATION
 } transformation_type;
+
+typedef enum {
+	FRAMING_CURRENT,
+	FRAMING_MAX,
+	FRAMING_MIN,
+	FRAMING_COG,
+} framing_type;
 
 /* arguments passed to registration functions */
 struct registration_args {
@@ -67,6 +75,7 @@ struct registration_args {
 	gboolean load_new_sequence;	// load the new sequence if success
 	const gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
+	framing_type framing; // used by seqapplyreg to determine framing
 };
 
 /* used to register a registration method */
@@ -75,6 +84,11 @@ struct registration_method {
 	registration_function method_ptr;
 	selection_type sel;
 	registration_type type;
+};
+
+/* used to draw framing in image_display */
+struct regframe_struct {
+	point pt[4];
 };
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
@@ -88,6 +102,8 @@ int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 void reset_3stars();
+void _3stars_check_registration_ready();
+gboolean _3stars_check_selection();
 
 pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
