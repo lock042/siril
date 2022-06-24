@@ -25,6 +25,7 @@
 #endif
 #include "core/settings.h"
 #include "core/siril.h"
+#include "core/siril_log.h"
 
 /* the settings as initialized in static.
  * the dynamic fields are set in initialize_default_settings() */
@@ -195,7 +196,7 @@ struct settings_access all_settings[] = {
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };
 
-struct settings_access *get_key_settings(char *group, char *key) {
+struct settings_access *get_key_settings(const char *group, const char *key) {
 	int nb_settings = sizeof(all_settings) / sizeof(struct settings_access) - 1;
 	for (int i = 0; i < nb_settings; i++) {
 		if (!strcmp(all_settings[i].group, group) && !strcmp(all_settings[i].key, key))
@@ -206,4 +207,74 @@ struct settings_access *get_key_settings(char *group, char *key) {
 
 struct settings_access *get_all_settings() {
 	return all_settings;
+}
+
+static const char *settings_type_to_string(enum settings_type type) {
+	switch (type) {
+		case STYPE_BOOL:
+			return "boolean";
+		case STYPE_INT:
+			return "integer";
+		case STYPE_DOUBLE:
+			return "double";
+		case STYPE_STR:
+			return "string";
+		case STYPE_STRDIR:
+			return "directory";
+		case STYPE_STRLIST:
+			return "list of strings";
+		default:
+			return "unknown";
+	}
+}
+
+int print_settings_key(const char *group, const char *key, gboolean with_details) {
+	struct settings_access *desc = get_key_settings(group, key);
+	if (!desc) {
+		siril_log_message(_("unknown settings variable %s.%s\n"), group, key);
+		return 1;
+	}
+	GString *str = g_string_sized_new(120);
+	g_string_printf(str, "%s.%s = ", desc->group, desc->key);
+	GSList *list;
+	switch (desc->type) {
+		case STYPE_BOOL:
+			g_string_append(str, *((gboolean*)desc->data) ? "true" : "false");
+			break;
+		case STYPE_INT:
+			g_string_append_printf(str, "%d", *((int*)desc->data));
+			break;
+		case STYPE_DOUBLE:
+			g_string_append_printf(str, "%f", *((double*)desc->data));
+			break;
+		case STYPE_STR:
+		case STYPE_STRDIR:
+			g_string_append(str, *((gchar**)desc->data));
+			break;
+		case STYPE_STRLIST:
+			list = *((GSList**)desc->data);
+			while (list) {
+				if (list != *((GSList **)desc->data))
+					g_string_append(str, " ; ");
+				g_string_append(str, list->data);
+				list = list->next;
+			}
+			break;
+	}
+	if (with_details) {
+		g_string_append_printf(str, " (%s)", settings_type_to_string(desc->type));
+		g_string_append_printf(str, ", %s", desc->desc);
+		// TODO add the non working ranges
+	}
+	gchar *s = g_string_free(str, FALSE);
+	siril_log_message("%s\n", s);
+	return 0;
+}
+
+int print_all_settings(gboolean with_details) {
+	int nb_settings = sizeof(all_settings) / sizeof(struct settings_access) - 1;
+	for (int i = 0; i < nb_settings; i++) {
+		print_settings_key(all_settings[i].group, all_settings[i].key, with_details);
+	}
+	return 0;
 }

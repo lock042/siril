@@ -1490,6 +1490,20 @@ int process_rotatepi(int nb){
 
 int process_set(int nb) {
 	char *input = word[1];
+	if (input[0] == '-') {
+		if (word[0][0] == 'g') {
+			if (!strcmp(input, "-a"))
+				return print_all_settings(FALSE);
+			if (!strcmp(input, "-A"))
+				return print_all_settings(TRUE);
+			else return CMD_ARG_ERROR;
+		}
+		else {
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* parsing a single variable command */
 	int sep, len = strlen(input);
 	for (sep = 1; sep < len; sep++)
 		if (input[sep] == '.')
@@ -1499,11 +1513,17 @@ int process_set(int nb) {
 		return 1;
 	}
 	input[sep] = '\0';
-	char fakefile[1024];
-	int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
-	GKeyFile *kf = g_key_file_new();
-	g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
-	return read_keyfile(kf);
+	if (word[0][0] == 'g') {
+		print_settings_key(input, input+sep+1, FALSE);
+	} else {
+		/* set */
+		char fakefile[1024];
+		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
+		GKeyFile *kf = g_key_file_new();
+		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
+		return read_keyfile(kf);
+	}
+	return 0;
 }
 
 int process_set_mag(int nb) {

@@ -251,8 +251,10 @@ struct settings_access {
 };
 
 struct settings_access *get_all_settings();
-struct settings_access *get_key_settings(char *group, char *key);
+struct settings_access *get_key_settings(const char *group, const char *key);
 
+int print_settings_key(const char *group, const char *key, gboolean with_details);
+int print_all_settings(gboolean with_details);
 
 void free_preferences(preferences *pref);	// TODO check if they're used
 void initialize_default_settings();

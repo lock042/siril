@@ -82,6 +82,7 @@ static command commands[] = {
 	{"fmul", 1, "fmul scalar", process_fmul, STR_FMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"get", 1, "get { -a | -A | variable }", process_set, STR_GET, TRUE, REQ_CMD_NONE},
 	{"ght", 5, "ght [-human | -even | -independent] D B LP SP HP", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 

@@ -1508,8 +1508,8 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			// detect if the selection is not centered enough that it matters
 			double thr = max(args->fit->rx, args->fit->ry) / 10.0;
 			args->uncentered =
-				abs(croparea.x + 0.5 * croparea.w - 0.5 * args->fit->rx) > thr ||
-				abs(croparea.y + 0.5 * croparea.h - 0.5 * args->fit->ry) > thr;
+				fabs(croparea.x + 0.5 * croparea.w - 0.5 * args->fit->rx) > thr ||
+				fabs(croparea.y + 0.5 * croparea.h - 0.5 * args->fit->ry) > thr;
 			siril_debug_print("detected uncentered selection\n");
 		} else {
 			args->uncentered = FALSE;
