@@ -3306,8 +3306,8 @@ If the parameters is null, so no filter is apply at all.</property>
                     <property name="margin-top">5</property>
                     <property name="active">0</property>
                     <items>
-                      <item translatable="yes">Polynomial</item>
                       <item translatable="yes">RBF</item>
+                      <item translatable="yes">Polynomial</item>
                     </items>
                     <signal name="changed" handler="on_background_extraction_combo_changed" swapped="no"/>
                   </object>
@@ -3323,60 +3323,6 @@ If the parameters is null, so no filter is apply at all.</property>
                     <property name="can-focus">False</property>
                     <property name="show-tabs">False</property>
                     <property name="show-border">False</property>
-                    <child>
-                      <object class="GtkBox" id="background_box_poly">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="valign">start</property>
-                        <property name="spacing">10</property>
-                        <child>
-                          <object class="GtkLabel" id="background_label_degree">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="margin-bottom">2</property>
-                            <property name="label" translatable="yes">Degree order: </property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkComboBoxText" id="box_background_order">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Choose the degree order of the polynomial function used in the fit.
-By default the value is of 4.
-The higher the degree order is, the more complex the gradient can be removed.</property>
-                            <property name="hexpand">True</property>
-                            <property name="active">3</property>
-                            <items>
-                              <item>1</item>
-                              <item>2</item>
-                              <item>3</item>
-                              <item>4</item>
-                            </items>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                    </child>
-                    <child type="tab">
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label">page 1</property>
-                      </object>
-                      <packing>
-                        <property name="tab-fill">False</property>
-                      </packing>
-                    </child>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
@@ -3434,6 +3380,60 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                             <property name="tooltip-text" translatable="yes">Adjust the smoothing parameter for the interpolation method. A smoothing parameter that is too small may result in overshoots and undershoots between points in the background, while a smoothing parameter that is too large may not be suitable for large deviations in gradient.</property>
                             <property name="adjustment">adj_background_smoothing</property>
                             <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="tab">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label">page 1</property>
+                      </object>
+                      <packing>
+                        <property name="tab-fill">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="background_box_poly">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="valign">start</property>
+                        <property name="spacing">10</property>
+                        <child>
+                          <object class="GtkLabel" id="background_label_degree">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="margin-bottom">2</property>
+                            <property name="label" translatable="yes">Degree order: </property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="box_background_order">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Choose the degree order of the polynomial function used in the fit.
+By default the value is of 4.
+The higher the degree order is, the more complex the gradient can be removed.</property>
+                            <property name="hexpand">True</property>
+                            <property name="active">3</property>
+                            <items>
+                              <item>1</item>
+                              <item>2</item>
+                              <item>3</item>
+                              <item>4</item>
+                            </items>
                           </object>
                           <packing>
                             <property name="expand">False</property>

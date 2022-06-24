@@ -12,8 +12,8 @@ typedef enum {
 } poly_order;
 
 enum {
-	INTER_POLY = 0,
-	INTER_RBF = 1
+	INTER_RBF = 0,
+	INTER_POLY = 1
 };
 
 struct background_data {
