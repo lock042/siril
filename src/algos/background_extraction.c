@@ -870,17 +870,20 @@ void generate_background_samples(int nb_of_samples, double tolerance) {
 }
 
 static gboolean end_background(gpointer p) {
-	stop_processing_thread();
 	struct background_data *args = (struct background_data *)p;
-	invalidate_stats_from_fit(args->fit);
-	background_computed = TRUE;
-	if (!args->from_ui) {
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
-	}
+	stop_processing_thread();
+	if (args) {
+		invalidate_stats_from_fit(args->fit);
+		background_computed = TRUE;
+		if (!args->from_ui) {
+			free_background_sample_list(com.grad_samples);
+			com.grad_samples = NULL;
+		}
 
-	notify_gfit_modified();
-	free(args);
+		notify_gfit_modified();
+		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
+		free(args);
+	}
 	return FALSE;
 }
 
@@ -925,9 +928,11 @@ gpointer remove_gradient_from_image(gpointer p) {
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
+			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
 					error);
 			set_cursor_waiting(FALSE);
+			free(args);
+			siril_add_idle(end_background, NULL);
 			return NULL;
 		}
 		/* remove background */
@@ -1234,9 +1239,11 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 
 	if (background_computed) {
 		siril_preview_hide();
+		background_computed = FALSE;
 	} else {
 		clear_backup();
 	}
+	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), FALSE);
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
