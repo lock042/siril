@@ -127,15 +127,15 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 		return;
 	}
 
-	if (com.pref.save.warn_script) {
+	if (com.pref.gui.warn_script_run) {
 		gboolean dont_show_again;
 		gboolean confirm = siril_confirm_dialog_and_remember(
 				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, _("Run Script"), &dont_show_again);
-		com.pref.save.warn_script = !dont_show_again;
+		com.pref.gui.warn_script_run = !dont_show_again;
 		/* We do not use set_GUI_misc because some button state can be in an unsaved state if the
 		 * preference dialog is opened
 		 */
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), com.pref.save.warn_script);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), com.pref.gui.warn_script_run);
 		/* update config file */
 		writeinitfile();
 		if (!confirm) {
@@ -187,7 +187,7 @@ int initialize_script_menu() {
 		menuscript = lookup_widget("header_scripts_button");
 	}
 	
-	script = set_list_to_preferences_dialog(com.pref.script_path);
+	script = set_list_to_preferences_dialog(com.pref.gui.script_path);
 
 	menu = gtk_menu_new();
 	gtk_widget_hide(menuscript);
@@ -238,8 +238,8 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
 		retval = 1;
 	} else {
-		g_slist_free_full(com.pref.script_path, g_free);
-		com.pref.script_path = list;
+		g_slist_free_full(com.pref.gui.script_path, g_free);
+		com.pref.gui.script_path = list;
 		retval = initialize_script_menu();
 	}
 	if (error) {
@@ -298,10 +298,10 @@ void siril_get_on_script_pages() {
 	gchar *lang = NULL;
 	int i = 0;
 
-	if (!g_strcmp0(com.pref.combo_lang, "")) {
+	if (!g_strcmp0(com.pref.lang, "")) {
 		locale = setlocale(LC_MESSAGES, NULL);
 	} else {
-		locale = com.pref.combo_lang;
+		locale = com.pref.lang;
 	}
 
 	if (locale) {

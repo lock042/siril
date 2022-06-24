@@ -122,19 +122,9 @@ int upscale_sequence(struct stacking_args *stackargs) {
 
 	upargs->factor = stackargs->seq->upscale_at_stacking;
 
-	if (com.cache_upscaled) {
-		// This won't work if stackargs->filtering_criterion is already a multiple filter
-		args->filtering_criterion = create_multiple_filter(
-				stackargs->filtering_criterion, stackargs->filtering_parameter,
-				create_filter_prefixed_nonexisting_output(TMP_UPSCALED_PREFIX), 0.0,
-				NULL);
-		args->filtering_parameter = 0.0; // not used by multiple filtering
-		args->nb_filtered_images = -1;
-	} else {
-		args->filtering_criterion = stackargs->filtering_criterion;
-		args->filtering_parameter = stackargs->filtering_parameter;
-		args->nb_filtered_images = stackargs->nb_images_to_stack;
-	}
+	args->filtering_criterion = stackargs->filtering_criterion;
+	args->filtering_parameter = stackargs->filtering_parameter;
+	args->nb_filtered_images = stackargs->nb_images_to_stack;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = upscale_image_hook;

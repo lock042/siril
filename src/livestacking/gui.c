@@ -263,7 +263,7 @@ void init_preprocessing_from_GUI() {
 		} else {
 			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
 			prepro->flat = calloc(1, sizeof(fits));
-			if (!readfits(filename, prepro->flat, NULL, !com.pref.force_to_16bit)) {
+			if (!readfits(filename, prepro->flat, NULL, !com.pref.force_16bit)) {
 				prepro->use_flat = TRUE;
 			} else {
 				livestacking_display(_("NOT USING FLAT: cannot open the file"), FALSE);

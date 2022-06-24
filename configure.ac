@@ -152,8 +152,9 @@ dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
 
 dnl check libconfig
-PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],,
-	AC_MSG_ERROR([libconfig 1.4 or newer not found.]))
+PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],
+		  [AC_DEFINE([HAVE_LIBCONFIG], [1], [Using libconfig])],
+		  AC_MSG_WARN([libconfig not found. Old configuration file will not be read.]))
 
 dnl check opencv
 AC_PROG_CXX

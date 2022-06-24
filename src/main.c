@@ -140,23 +140,22 @@ void load_glade_file() {
 }
 
 static void global_initialization() {
-	com.selected_star = -1;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
-	com.qphot = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 
+	gui.selected_star = -1;
+	gui.qphot = NULL;
 	gui.cvport = RED_VPORT;
 	gui.show_excluded = TRUE;
-	//gui.color = NORMAL_COLOR;
 	gui.sliders = MINMAX;
 	gui.zoom_value = ZOOM_DEFAULT;
 	gui.ratio = 0.0;
 
-	initialize_default_preferences();
+	initialize_default_settings();
 }
 
 static void init_num_procs() {
@@ -220,7 +219,7 @@ static void siril_app_activate(GApplication *application) {
 	global_initialization();
 
 	/* initialize peaker variables */
-	init_peaker_default();
+	//init_peaker_default();
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
@@ -240,8 +239,8 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	siril_language_parser_init();
-	if (com.pref.combo_lang)
-		language_init(com.pref.combo_lang);
+	if (com.pref.lang)
+		language_init(com.pref.lang);
 
 	if (main_option_directory) {
 		if (!g_path_is_absolute(main_option_directory)) {
@@ -293,7 +292,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 	if (!com.headless) {
 		/* Load preferred theme */
-		load_prefered_theme(com.pref.combo_theme);
+		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */
 		load_css_style_sheet();
 		/* Load glade file */

@@ -60,9 +60,9 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+cominfo com = { 0 };	// the core data struct
+guiinfo gui = { 0 };	// the gui data struct
+fits gfit = { 0 };	// currently loaded image
 const gchar *startup_cwd = NULL;
 gboolean forcecwd = FALSE;
 
@@ -108,22 +108,21 @@ static GOptionEntry main_option[] = {
 };
 
 static void global_initialization() {
-	com.selected_star = -1;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
-	com.qphot = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 
+	gui.selected_star = -1;
+	gui.qphot = NULL;
 	gui.cvport = RED_VPORT;
 	gui.show_excluded = TRUE;
-	//gui.color = NORMAL_COLOR;
 	gui.sliders = MINMAX;
 	gui.zoom_value = ZOOM_DEFAULT;
 
-	initialize_default_preferences();
+	initialize_default_settings();	// com.pref
 }
 
 static void init_num_procs() {
@@ -159,9 +158,6 @@ static void siril_app_activate(GApplication *application) {
 	 */
 	setlocale(LC_NUMERIC, "C");
 
-	memset(&com, 0, sizeof(struct cominf));	// needed? doesn't hurt
-	com.initfile = NULL;
-
 	com.script = TRUE;
 	com.headless = TRUE;
 	/* need to force cwd to the current dir if no option -d */
@@ -173,7 +169,7 @@ static void siril_app_activate(GApplication *application) {
 	global_initialization();
 
 	/* initialize peaker variables */
-	init_peaker_default();
+	//init_peaker_default();
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
@@ -182,6 +178,7 @@ static void siril_app_activate(GApplication *application) {
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();
 	startup_cwd = g_get_current_dir();
+	com.wd = g_strdup(siril_get_startup_dir());
 
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);

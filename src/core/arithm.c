@@ -336,7 +336,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
  * returns 0 on success */
 static int imoper_with_factor(fits *a, fits *b, image_operator oper, float factor, gboolean allow_32bits) {
 	// ushort result can only be forced when both input images are ushort
-	if (allow_32bits && !com.pref.force_to_16bit)
+	if (allow_32bits && !com.pref.force_16bit)
 		return imoper_to_float(a, b, oper, factor);
 	else {
 		if (a->type == DATA_USHORT)

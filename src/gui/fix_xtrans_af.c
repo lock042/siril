@@ -26,25 +26,25 @@
 void init_xtrans_ui_pixels() {
 	char pixel_value[256];
 
-	if (com.pref.xtrans_af.w != 0 && com.pref.xtrans_af.h != 0) {
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_af.x);
+	if (com.pref.prepro.xtrans_af.w != 0 && com.pref.prepro.xtrans_af.h != 0) {
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_af.x);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_x")), pixel_value);
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_af.y);
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_af.y);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_y")), pixel_value);
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_af.w);
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_af.w);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_w")), pixel_value);
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_af.h);
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_af.h);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_af_h")), pixel_value);
 	}
 
-	if (com.pref.xtrans_sample.w != 0 && com.pref.xtrans_sample.h != 0) {
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_sample.x);
+	if (com.pref.prepro.xtrans_sample.w != 0 && com.pref.prepro.xtrans_sample.h != 0) {
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_sample.x);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_x")), pixel_value);
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_sample.y);
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_sample.y);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_y")), pixel_value);
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_sample.w);
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_sample.w);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_w")), pixel_value);
-		g_snprintf(pixel_value, 256, "%d", com.pref.xtrans_sample.h);
+		g_snprintf(pixel_value, 256, "%d", com.pref.prepro.xtrans_sample.h);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_h")), pixel_value);
 	}
 

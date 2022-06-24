@@ -32,6 +32,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "gui/preferences.h"
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"

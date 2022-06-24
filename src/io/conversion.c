@@ -590,7 +590,7 @@ gpointer convert_thread_worker(gpointer p) {
 	convert.number_of_threads = com.max_thread;
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
-	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_to_16bit;
+	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_16bit;
 	GThreadPool *pool = g_thread_pool_new(pool_worker, &convert, args->input_has_a_film ? 1 : com.max_thread, FALSE, NULL);
 	open_next_input_seq(&convert);
 	open_next_output_seq(args, &convert);

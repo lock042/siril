@@ -202,9 +202,9 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
 	if (prepro->use_dark && prepro->dark) nb_masters++;
 	if (prepro->use_bias && prepro->bias) nb_masters++;
 	int input_is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
-	int output_is_float = input_is_float || !com.pref.force_to_16bit;
+	int output_is_float = input_is_float || !com.pref.force_16bit;
 	/*
-	 * are the masters float? yes if !com.pref.force_to_16bit, raw images too
+	 * are the masters float? yes if !com.pref.force_16bit, raw images too
 	 *
 	 * if (prepro->use_dark_optim && prepro->use_dark)
 	 *	image gets three copies
@@ -435,7 +435,7 @@ gpointer prepro_worker(gpointer p) {
 
 void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
-	args->force_float = !com.pref.force_to_16bit && prepro->output_seqtype != SEQ_SER;
+	args->force_float = !com.pref.force_16bit && prepro->output_seqtype != SEQ_SER;
 	args->compute_size_hook = prepro_compute_size_hook;
 	args->compute_mem_limits_hook = prepro_compute_mem_hook;
 	args->prepare_hook = prepro_prepare_hook;
@@ -449,7 +449,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	args->force_fitseq_output = prepro->seq->type != SEQ_FITSEQ && prepro->output_seqtype == SEQ_FITSEQ;
 	args->user = prepro;
 	// float output is always used in case of FITS sequence
-	args->output_type = (args->force_ser_output || com.pref.force_to_16bit ||
+	args->output_type = (args->force_ser_output || com.pref.force_16bit ||
 			(args->seq->type == SEQ_SER && !args->force_fitseq_output)) ?
 		DATA_USHORT : DATA_FLOAT;
 
@@ -518,7 +518,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 	siril_log_message(_("Pre-processing image %s\n"), file);
 	struct generic_seq_args generic = { .user = args };
 
-	if (readfits(file, &fit, NULL, !com.pref.force_to_16bit)) {
+	if (readfits(file, &fit, NULL, !com.pref.force_16bit)) {
 		siril_log_message(_("Could not load the image, aborting.\n"));
 		return 1;
 	}
@@ -645,7 +645,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			} else {
 				args->bias = calloc(1, sizeof(fits));
 				set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
-				if (!readfits(filename, args->bias, NULL, !com.pref.force_to_16bit)) {
+				if (!readfits(filename, args->bias, NULL, !com.pref.force_16bit)) {
 					if (args->bias->naxes[2] != gfit.naxes[2]) {
 						error = _("NOT USING OFFSET: number of channels is different");
 					} else if (args->bias->naxes[0] != gfit.naxes[0] ||
@@ -682,7 +682,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			const char *error = NULL;
 			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
 			args->dark = calloc(1, sizeof(fits));
-			if (!readfits(filename, args->dark, NULL, !com.pref.force_to_16bit)) {
+			if (!readfits(filename, args->dark, NULL, !com.pref.force_16bit)) {
 				if (args->dark->naxes[2] != gfit.naxes[2]) {
 					error = _("NOT USING DARK: number of channels is different");
 				} else if (args->dark->naxes[0] != gfit.naxes[0] ||
@@ -782,7 +782,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			const char *error = NULL;
 			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
 			args->flat = calloc(1, sizeof(fits));
-			if (!readfits(filename, args->flat, NULL, !com.pref.force_to_16bit)) {
+			if (!readfits(filename, args->flat, NULL, !com.pref.force_16bit)) {
 				if (args->flat->naxes[2] != gfit.naxes[2]) {
 					error = _("NOT USING FLAT: number of channels is different");
 				} else if (args->flat->naxes[0] != gfit.naxes[0] ||
@@ -858,14 +858,14 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		args->output_seqtype = gtk_combo_box_get_active(output_type);
 		if (args->output_seqtype < 0 || args->output_seqtype > SEQ_FITSEQ)
 			args->output_seqtype = SEQ_REGULAR;
-		args->allow_32bit_output = !com.pref.force_to_16bit && args->output_seqtype != SEQ_SER;
+		args->allow_32bit_output = !com.pref.force_16bit && args->output_seqtype != SEQ_SER;
 		set_cursor_waiting(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		start_sequence_preprocessing(args);
 	} else {
 		int retval;
 		args->is_sequence = FALSE;
-		args->allow_32bit_output = !com.pref.force_to_16bit;
+		args->allow_32bit_output = !com.pref.force_16bit;
 		set_cursor_waiting(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -904,7 +904,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	label[1] = GTK_LABEL(lookup_widget("GtkLabelHotCC"));
 	entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 	filename = gtk_entry_get_text(entry);
-	if (readfits(filename, &fit, NULL, !com.pref.force_to_16bit)) {
+	if (readfits(filename, &fit, NULL, !com.pref.force_16bit)) {
 		str[0] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
 		str[1] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
 		gtk_label_set_markup(label[0], str[0]);
