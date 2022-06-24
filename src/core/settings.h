@@ -85,12 +85,12 @@ struct libraw_config {
 
 /* This structure is used for storing all parameters used in photometry module */
 struct phot_config {
-	double gain;	// A/D converter gain in electrons per ADU
-	double inner;	// Inner radius of the annulus used to measure local background.
-	double outer;	// Outer radius of the annulus used to measure local background.
-	double aperture; // flux aperture
-	gboolean force_radius; // force the aperture radius value
-	int minval, maxval;
+	double gain;		// A/D converter gain in electrons per ADU
+	double inner;		// Inner radius of the annulus used to measure local background.
+	double outer;		// Outer radius of the annulus used to measure local background.
+	double aperture;	// flux aperture
+	gboolean force_radius;	// force the aperture radius value
+	int minval, maxval;	// consider pixels outside this range as invalid for photometry
 };
 
 struct debayer_config {
@@ -98,10 +98,11 @@ struct debayer_config {
 	gboolean use_bayer_header;		// use the pattern given in the file header
 	sensor_pattern bayer_pattern;		// user-defined Bayer pattern
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
-	gboolean top_down;				// debayer top-down orientation
-	int xbayeroff, ybayeroff;			// x and y Bayer offsets
+	gboolean top_down;			// debayer top-down orientation
+	int xbayeroff, ybayeroff;		// x and y Bayer offsets
 };
 
+// GUI data backup
 struct stack_config {
 	int method;		// 0=sum, 1=median, 2=average, 3=pixel max, 4=pixel min
 	int normalisation_method;
@@ -112,15 +113,15 @@ struct stack_config {
 };
 
 struct comp_config {
-	gboolean fits_enabled;		// true enabled
+	gboolean fits_enabled;
 	int fits_method;		// 0=Rice, 1=GZIP1, 2=GZIP2, 3=Hcompress
 	double fits_quantization;	// quantization factor for floating point compression
-	double fits_hcompress_scale;		// scale factor for Hcompress compression
+	double fits_hcompress_scale;	// scale factor for Hcompress compression
 };
 
 struct gui_config {
 	gboolean first_start;		// use to display information at first use
-	gboolean confirm_quit;
+	gboolean silent_quit;
 	gboolean remember_windows;	// restore windows at their previous location
 	rectangle main_w_pos;
 	gint pan_position;
@@ -148,8 +149,8 @@ struct gui_config {
 
 // TODO: is any of the following used for something else than providing the default GUI value?
 struct prepro_config {
-	gboolean cfa;	// type of sensor for cosmetic correction in preprocessing
-	gboolean equalize_cfa; // if flat will be equalized in preprocessing
+	gboolean cfa;		// type of sensor for cosmetic correction in preprocessing
+	gboolean equalize_cfa;	// if flat will be equalized in preprocessing
 	gboolean fix_xtrans;	// Use to fix xtrans darks and biases with the AF square
 	rectangle xtrans_af;	// if no xtrans model found, use these values
 	rectangle xtrans_sample;// if no xtrans model found, use these values

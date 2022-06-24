@@ -1009,7 +1009,7 @@ void set_GUI_misc() {
 	GtkSpinButton *memory_percent, *memory_amount, *font_size;
 
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.confirm_quit);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.silent_quit);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.check_update);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript"));
@@ -1461,11 +1461,11 @@ void gtk_main_quit() {
 }
 
 void siril_quit() {
-	if (com.pref.gui.confirm_quit) {
+	if (com.pref.gui.silent_quit) {
 		gtk_main_quit();
 	}
 	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
-			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.confirm_quit);
+			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
 	if (quit) {
 		set_GUI_misc();
 		writeinitfile();

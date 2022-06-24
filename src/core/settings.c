@@ -89,7 +89,7 @@ preferences pref_init = {
 	},
 	.gui = {
 		.first_start = TRUE,
-		.confirm_quit = TRUE,
+		.silent_quit = FALSE,
 		.remember_windows = TRUE,
 		.main_w_pos = {
 				.x = 0,
@@ -172,26 +172,99 @@ void initialize_default_settings() {
 }
 
 struct settings_access all_settings[] = {
-	{ "core", "wd", STYPE_STRDIR, "current working directory", &com.pref.wd },
-	{ "core", "extension", STYPE_STR, "FITS file extension", &com.pref.ext },
-	{ "core", "force_16bit", STYPE_BOOL, "don't use 32 bits for pixel depth", &com.pref.force_16bit },
-	{ "core", "mem_mode", STYPE_INT, "memory mode (0 ratio, 1 amount)", &com.pref.mem_mode, { .range_int = { 0, 1 } } },
-	{ "core", "mem_ratio", STYPE_DOUBLE, "memory ratio of available", &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } }  },
-	{ "core", "mem_amount", STYPE_DOUBLE, "amount of memory in GB", &com.pref.memory_amount },
-	{ "core", "script_check_requires", STYPE_BOOL, "need requires cmd in pupe", &com.pref.script_check_requires },
-	{ "core", "pipe_check_requires", STYPE_BOOL, "need requires cmd in pupe", &com.pref.pipe_check_requires },
-	{ "core", "check_updates", STYPE_BOOL, "check update at start-up", &com.pref.check_update },
-	{ "core", "lang", STYPE_STR, "active siril language", &com.pref.lang },
-	{ "core", "swap_dir", STYPE_STRDIR, "swap directory", &com.pref.swap_dir },
-	{ "core", "wcs_formalism", STYPE_INT, "WCS formalism used in FITS header", &com.pref.wcs_formalism },
-	{ "core", "rgb_aladin", STYPE_BOOL, "add CTYPE3='RGB' in the FITS header", &com.pref.rgb_aladin },
-	{ "core", "copyright", STYPE_STR, "user copyright to put in file header", &com.pref.copyright },
+	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
+	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
+	{ "core", "force_16bit", STYPE_BOOL, N_("don't use 32 bits for pixel depth"), &com.pref.force_16bit },
+	{ "core", "mem_mode", STYPE_INT, N_("memory mode (0 ratio, 1 amount)"), &com.pref.mem_mode, { .range_int = { 0, 1 } } },
+	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },
+	{ "core", "mem_amount", STYPE_DOUBLE, N_("amount of memory in GB"), &com.pref.memory_amount, { .range_double = { 0.1, 1000000. } } },
+	{ "core", "script_check_requires", STYPE_BOOL, N_("need requires cmd in script"), &com.pref.script_check_requires },
+	{ "core", "pipe_check_requires", STYPE_BOOL, N_("need requires cmd in pipe"), &com.pref.pipe_check_requires },
+	{ "core", "check_updates", STYPE_BOOL, N_("check update at start-up"), &com.pref.check_update },
+	{ "core", "lang", STYPE_STR, N_("active siril language"), &com.pref.lang },
+	{ "core", "swap_dir", STYPE_STRDIR, N_("swap directory"), &com.pref.swap_dir },
+	{ "core", "wcs_formalism", STYPE_INT, N_("WCS formalism used in FITS header"), &com.pref.wcs_formalism, { .range_int = { 0, 1 } } },
+	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
+	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 
-	// TODO: complete the list. If a field is not listed, it won't be read from or saved to ini file
+	{ "starfinder", "adjust", STYPE_BOOL, N_("adjust search radius with resolution"), &com.pref.starfinder_conf.adjust },
+	{ "starfinder", "radius", STYPE_INT, N_("base radius value, contains one star"), &com.pref.starfinder_conf.radius, { .range_int = { 0, 100 } } },
+	{ "starfinder", "sigma", STYPE_DOUBLE, N_("sigma factor for detection threshold"), &com.pref.starfinder_conf.sigma, { .range_double = { 0., 20. } } },
+	{ "starfinder", "roundness", STYPE_DOUBLE, N_("star roundness for detection threshold"), &com.pref.starfinder_conf.roundness, { .range_double = { 0., 1. } } },
+	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
+	{ "starfinder", "piixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
-	{ "gui", "first_start", STYPE_BOOL, "first start of siril", &com.pref.gui.first_start },
-	{ "gui", "remember_windows", STYPE_BOOL, "remember window position", &com.pref.gui.remember_windows },
-	{ "gui", "script_path", STYPE_STRLIST, "list of script directories", &com.pref.gui.script_path },
+	{ "debayer", "open_debayer", STYPE_BOOL, N_("open image debayered"), &com.pref.debayer.open_debayer },
+	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
+	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER } } },
+	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
+	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
+	{ "debayer", "offset_x", STYPE_INT, N_("Bayer matrix offset X"), &com.pref.debayer.xbayeroff, { .range_int = { 0, 1 } } },
+	{ "debayer", "offset_y", STYPE_INT, N_("Bayer matrix offset Y"), &com.pref.debayer.ybayeroff, { .range_int = { 0, 1 } } },
+
+	{ "photometry", "gain", STYPE_DOUBLE, N_("electrons per ADU for noise estimation"), &com.pref.phot_set.gain, { .range_double = { 0., 10. } } },
+	{ "photometry", "inner", STYPE_DOUBLE, N_("inner radius for background annulus"), &com.pref.phot_set.inner, { .range_double = { 2., 100. } } },
+	{ "photometry", "outer", STYPE_DOUBLE, N_("outer radius for background annulus"), &com.pref.phot_set.outer, { .range_double = { 3., 200. } } },
+	{ "photometry", "force_radius", STYPE_BOOL, N_("force flux aperture value"), &com.pref.phot_set.force_radius },
+	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
+	{ "photometry", "minval", STYPE_INT, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_int = { 0, 65534 } } },
+	{ "photometry", "maxval", STYPE_INT, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_int = { 1, 65535 } } },
+
+	{ "compression", "enabled", STYPE_BOOL, N_("FITS compression enabled"), &com.pref.comp.fits_enabled },
+	{ "compression", "method", STYPE_INT, N_("FITS compression method"), &com.pref.comp.fits_method, { .range_int = { 0, 3 } } },
+	{ "compression", "quantization", STYPE_DOUBLE, N_("quantization factor for 32-bit float"), &com.pref.comp.fits_quantization, { .range_double = { 8., 256. } }  },
+	{ "compression", "hcompress_scale", STYPE_DOUBLE, N_("Hcompress scale factor"), &com.pref.comp.fits_hcompress_scale, { .range_double = { 0., 256. } }  },
+
+	/* the GUI part, not as useful but still required to be listed in order to be saved in the ini file */
+	{ "gui_prepro", "cfa", STYPE_BOOL, N_("type of sensor for cosmetic correction"), &com.pref.prepro.cfa },
+	{ "gui_prepro", "equalize_cfa", STYPE_BOOL, N_("equalize flat channels"), &com.pref.prepro.equalize_cfa },
+	{ "gui_prepro", "fix_xtrans", STYPE_BOOL, N_("enable correction for X-Trans sensor"), &com.pref.prepro.fix_xtrans },
+	{ "gui_prepro", "xtrans_af_x", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_af.x },
+	{ "gui_prepro", "xtrans_af_y", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_af.y },
+	{ "gui_prepro", "xtrans_af_w", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_af.w },
+	{ "gui_prepro", "xtrans_af_h", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_af.h },
+	{ "gui_prepro", "xtrans_sample_x", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_sample.x },
+	{ "gui_prepro", "xtrans_sample_y", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_sample.y },
+	{ "gui_prepro", "xtrans_sample_w", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_sample.w },
+	{ "gui_prepro", "xtrans_sample_h", STYPE_INT, N_("if no X-Trans model found, use this"), &com.pref.prepro.xtrans_sample.h },
+	{ "gui_prepro", "bias_lib", STYPE_STR, N_("default master bias"), &com.pref.prepro.bias_lib },
+	{ "gui_prepro", "use_bias_lib", STYPE_BOOL, N_("use default master bias"), &com.pref.prepro.use_bias_lib },
+	{ "gui_prepro", "dark_lib", STYPE_STR, N_("default master dark"), &com.pref.prepro.dark_lib },
+	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
+	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
+	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
+
+	{ "gui_registration", "method", STYPE_INT, N_("index of the selected method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
+
+	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, 4 } } },
+	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
+	{ "gui_stack", "rejection", STYPE_INT, N_("index of the rejection method"), &com.pref.stack.rej_method, { .range_int = { 0, GESDT } } },
+	{ "gui_stack", "sigma_low", STYPE_DOUBLE, N_("sigma low value for rejection"), &com.pref.stack.sigma_low, { .range_double = { 0., 20. } } },
+	{ "gui_stack", "sigma_high", STYPE_DOUBLE, N_("sigma high value for rejection"), &com.pref.stack.sigma_high, { .range_double = { 0., 20. } } },
+	{ "gui_stack", "linear_low", STYPE_DOUBLE, N_("linear low value for rejection"), &com.pref.stack.linear_low, { .range_double = { 0., 20. } } },
+	{ "gui_stack", "linear_high", STYPE_DOUBLE, N_("linear high value for rejection"), &com.pref.stack.linear_high, { .range_double = { 0., 20. } } },
+	{ "gui_stack", "percentile_low", STYPE_DOUBLE, N_("percentile low value for rejection"), &com.pref.stack.percentile_low, { .range_double = { 0., 100. } } },
+	{ "gui_stack", "percentile_high", STYPE_DOUBLE, N_("percentile high value for rejection"), &com.pref.stack.percentile_high, { .range_double = { 0., 100. } } },
+
+	{ "gui", "first_start", STYPE_BOOL, N_("first start of siril"), &com.pref.gui.first_start },
+	{ "gui", "silent_quit", STYPE_BOOL, N_("don't confirm quit when exiting"), &com.pref.gui.silent_quit },
+	{ "gui", "remember_windows", STYPE_BOOL, N_("remember window position"), &com.pref.gui.remember_windows },
+	{ "gui", "main_win_pos_x", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.x },
+	{ "gui", "main_win_pos_y", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.y },
+	{ "gui", "main_win_pos_w", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.w },
+	{ "gui", "main_win_pos_h", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.h },
+	{ "gui", "pan_position", STYPE_INT, N_("position of the two sides separator"), &com.pref.gui.pan_position },
+	{ "gui", "extended", STYPE_BOOL, N_("main window is extended"), &com.pref.gui.is_extended },
+	{ "gui", "maximized", STYPE_BOOL, N_("main window is maximized"), &com.pref.gui.is_maximized },
+	{ "gui", "theme", STYPE_INT, N_("index of the selected theme"), &com.pref.gui.combo_theme, { .range_int = { 0, 1 } } },
+	{ "gui", "font_scale", STYPE_DOUBLE, N_("font scale in percent"), &com.pref.gui.font_scale },
+	{ "gui", "icon_symbolic", STYPE_BOOL, N_("icon style"), &com.pref.gui.icon_symbolic },
+	{ "gui", "script_path", STYPE_STRLIST, N_("list of script directories"), &com.pref.gui.script_path },
+	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
+	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
+	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
+	{ "gui", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
+	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };
@@ -243,15 +316,9 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 			break;
 		case STYPE_INT:
 			g_string_append_printf(str, "%d", *((int*)desc->data));
-			if (desc->range_int.min != 0 || desc->range_int.max != 0)
-				g_string_append_printf(str, " [%d, %d]",
-						desc->range_int.min, desc->range_int.max);
 			break;
 		case STYPE_DOUBLE:
 			g_string_append_printf(str, "%g", *((double*)desc->data));
-			if (desc->range_double.min != 0.0 || desc->range_double.max != 0.0)
-				g_string_append_printf(str, " [%g, %g]",
-						desc->range_double.min, desc->range_double.max);
 			break;
 		case STYPE_STR:
 		case STYPE_STRDIR:
@@ -268,6 +335,12 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 			break;
 	}
 	if (with_details) {
+		if (desc->type == STYPE_INT && (desc->range_int.min != 0 || desc->range_int.max != 0))
+			g_string_append_printf(str, " [%d, %d]",
+					desc->range_int.min, desc->range_int.max);
+		else if (desc->type == STYPE_DOUBLE && (desc->range_double.min != 0.0 || desc->range_double.max != 0.0))
+			g_string_append_printf(str, " [%g, %g]",
+					desc->range_double.min, desc->range_double.max);
 		g_string_append_printf(str, " (%s)", settings_type_to_string(desc->type));
 		g_string_append_printf(str, ", %s", desc->desc);
 	}
