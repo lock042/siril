@@ -216,12 +216,12 @@ static gboolean end_script(gpointer p) {
 	return FALSE;
 }
 
-int check_requires(gboolean *checked_requires) {
+int check_requires(gboolean *checked_requires, gboolean is_required) {
 	int retval = CMD_OK;
 	/* check for requires command */
 	if (!g_ascii_strcasecmp(word[0], "requires")) {
 		*checked_requires = TRUE;
-	} else if (com.pref.script_check_requires && !*checked_requires) {
+	} else if (is_required && !*checked_requires) {
 		siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
 					" This command is needed to check script compatibility.\n"), "red");
 		retval = CMD_GENERIC_ERROR;
@@ -292,7 +292,7 @@ gpointer execute_script(gpointer p) {
 
 		display_command_on_status_bar(line, buffer);
 		parse_line(buffer, length, &wordnb);
-		if (check_requires(&checked_requires)) {
+		if (check_requires(&checked_requires, com.pref.script_check_requires)) {
 			g_free (buffer);
 			break;
 		}
