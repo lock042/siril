@@ -591,11 +591,12 @@ int process_cd(int nb) {
 
 	expand_home_in_filename(filename, 256);
 	retval = siril_change_dir(filename, NULL);
-	if (!retval) {
+	if (!retval && !com.script) {
+		if (com.pref.wd)
+			g_free(com.pref.wd);
+		com.pref.wd = g_strdup(com.wd);
 		writeinitfile();
-		if (!com.script) {
-			set_GUI_CWD();
-		}
+		set_GUI_CWD();
 	}
 	return retval;
 }

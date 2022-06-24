@@ -66,8 +66,6 @@
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
-const gchar *startup_cwd = NULL;
-gboolean forcecwd = FALSE;
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -155,7 +153,7 @@ static void global_initialization() {
 	gui.zoom_value = ZOOM_DEFAULT;
 	gui.ratio = 0.0;
 
-	initialize_default_settings();
+	initialize_default_settings();	// com.pref
 }
 
 static void init_num_procs() {
@@ -200,26 +198,14 @@ static void siril_app_startup(GApplication *application) {
 }
 
 static void siril_app_activate(GApplication *application) {
-	gchar *cwd_forced = NULL;
-
-	memset(&com, 0, sizeof(struct cominf));	// needed? doesn't hurt
-	com.initfile = NULL;
-
 	/* the first thing we need to do is to know if we are headless or not */
 	if (main_option_script || main_option_pipe) {
 		com.script = TRUE;
 		com.headless = TRUE;
-		/* need to force cwd to the current dir if no option -d */
-		if (!forcecwd) {
-			cwd_forced = g_strdup(g_get_current_dir());
-			forcecwd = TRUE;
-		}
 	}
 
 	global_initialization();
 
-	/* initialize peaker variables */
-	//init_peaker_default();
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
@@ -227,7 +213,6 @@ static void siril_app_activate(GApplication *application) {
 
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();
-	startup_cwd = g_get_current_dir();
 
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
@@ -243,17 +228,25 @@ static void siril_app_activate(GApplication *application) {
 		language_init(com.pref.lang);
 
 	if (main_option_directory) {
-		if (!g_path_is_absolute(main_option_directory)) {
+		gchar *cwd_forced;
+		if (!g_path_is_absolute(main_option_directory))
 			cwd_forced = g_build_filename(g_get_current_dir(), main_option_directory, NULL);
-		} else {
-			cwd_forced = g_strdup(main_option_directory);
-		}
-		forcecwd = TRUE;
-	}
+		else cwd_forced = g_strdup(main_option_directory);
 
-	if (forcecwd && cwd_forced) {
 		siril_change_dir(cwd_forced, NULL);
+		if (com.pref.wd)
+			g_free(com.pref.wd);
+		com.pref.wd = g_strdup(cwd_forced);
+		// if provided to the command line, make it persistent
 		g_free(cwd_forced);
+	}
+	else {
+		if (com.pref.wd && com.pref.wd[0] != '\0')
+			siril_change_dir(com.pref.wd, NULL);
+		else {
+			// no other option
+			siril_change_dir(siril_get_startup_dir(), NULL);
+		}
 	}
 
 	init_num_procs();
@@ -323,11 +316,6 @@ static void siril_app_activate(GApplication *application) {
 #endif
 	}
 
-	if (siril_change_dir(com.wd, NULL)) {
-		com.wd = g_strdup(siril_get_startup_dir());
-		siril_change_dir(com.wd, NULL);
-	}
-
 	if (!com.headless) {
 		gtk_builder_connect_signals(gui.builder, NULL);
 		initialize_all_GUI(supported_files);
@@ -360,12 +348,10 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 			}
 		} else {
 			image_type type = get_type_from_filename(path);
-			if (!forcecwd && type != TYPEAVI && type != TYPESER && type != TYPEUNDEF) {
+			if (!main_option_directory && type != TYPEAVI && type != TYPESER && type != TYPEUNDEF) {
 				gchar *image_dir = g_path_get_dirname(path);
 				siril_change_dir(image_dir, NULL);
 				g_free(image_dir);
-			} else if (startup_cwd) {
-				siril_change_dir(startup_cwd, NULL);
 			}
 			if (!com.script)
 				set_GUI_CWD();

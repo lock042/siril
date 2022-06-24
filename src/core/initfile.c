@@ -401,6 +401,7 @@ static int readinitfile() {
 int checkinitfile() {
 	/* com.initfile will contain the path passed with -i if any, NULL else */
 	if (com.initfile) {
+		siril_log_message(_("Reading configuration file %s\n"), com.initfile);
 		return readinitfile();
 	}
 

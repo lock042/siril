@@ -337,6 +337,9 @@ static void opendial(int whichdial) {
 
 		case OD_CWD:
 			if (!siril_change_dir(filename, &err)) {
+				if (com.pref.wd)
+					g_free(com.pref.wd);
+				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
 				set_GUI_CWD();
 			} else {
