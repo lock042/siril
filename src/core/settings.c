@@ -243,9 +243,15 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 			break;
 		case STYPE_INT:
 			g_string_append_printf(str, "%d", *((int*)desc->data));
+			if (desc->range_int.min != 0 || desc->range_int.max != 0)
+				g_string_append_printf(str, " [%d, %d]",
+						desc->range_int.min, desc->range_int.max);
 			break;
 		case STYPE_DOUBLE:
-			g_string_append_printf(str, "%f", *((double*)desc->data));
+			g_string_append_printf(str, "%g", *((double*)desc->data));
+			if (desc->range_double.min != 0.0 || desc->range_double.max != 0.0)
+				g_string_append_printf(str, " [%g, %g]",
+						desc->range_double.min, desc->range_double.max);
 			break;
 		case STYPE_STR:
 		case STYPE_STRDIR:
@@ -264,7 +270,6 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 	if (with_details) {
 		g_string_append_printf(str, " (%s)", settings_type_to_string(desc->type));
 		g_string_append_printf(str, ", %s", desc->desc);
-		// TODO add the non working ranges
 	}
 	gchar *s = g_string_free(str, FALSE);
 	siril_log_message("%s\n", s);

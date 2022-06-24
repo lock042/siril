@@ -319,12 +319,11 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 						g_key_file_get_string(kf, desc->group, desc->key, NULL));
 				return 1;
 			}
-			struct range_int_s range = desc->range_int;
-			if (range.min != 0 && range.max != 0) {
-				siril_debug_print("we have a range\n");
-				if (intval < range.min || intval > range.max) {
+			if (desc->range_int.min != 0 || desc->range_int.max != 0) {
+				if (intval < desc->range_int.min || intval > desc->range_int.max) {
 					siril_log_message(_("value %d is out of range [%d, %d] for %s.%s\n"),
-							intval, range.min, range.max, desc->group, desc->key);
+							intval, desc->range_int.min, desc->range_int.max,
+							desc->group, desc->key);
 					return 1;
 				}
 			}
@@ -339,6 +338,15 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 						g_key_file_get_string(kf, desc->group, desc->key, NULL));
 				return 1;
 			}
+			if (desc->range_double.min != 0.0 || desc->range_double.max != 0.0) {
+				if (doubleval < desc->range_double.min || doubleval > desc->range_double.max) {
+					siril_log_message(_("value %f is out of range [%f, %f] for %s.%s\n"),
+							doubleval, desc->range_double.min, desc->range_double.max,
+							desc->group, desc->key);
+					return 1;
+				}
+			}
+
 			*((double*)desc->data) = doubleval;
 			break;
 		case STYPE_STR:
