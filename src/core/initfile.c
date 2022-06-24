@@ -294,9 +294,15 @@ static int readinitfile_libconfig(gchar *path) {
 
 static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	GError *error = NULL;
+	gboolean boolval;
+	int intval;
+	double doubleval;
+	gchar *strval;
+	gsize len;
+	gchar **strs;
 	switch (desc->type) {
 		case STYPE_BOOL:
-			gboolean boolval = g_key_file_get_boolean(kf, desc->group, desc->key, &error);
+			boolval = g_key_file_get_boolean(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message,
@@ -306,7 +312,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			*((gboolean*)desc->data) = boolval;
 			break;
 		case STYPE_INT:
-			int intval = g_key_file_get_integer(kf, desc->group, desc->key, &error);
+			intval = g_key_file_get_integer(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message,
@@ -316,7 +322,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			*((int*)desc->data) = intval;
 			break;
 		case STYPE_DOUBLE:
-			double doubleval = g_key_file_get_double(kf, desc->group, desc->key, &error);
+			doubleval = g_key_file_get_double(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message,
@@ -327,7 +333,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			break;
 		case STYPE_STR:
 		case STYPE_STRDIR:
-			gchar *strval = g_key_file_get_string(kf, desc->group, desc->key, NULL);
+			strval = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 			if (!strval) {
 				siril_log_message(_("unknown error in config file for %s.%s\n"),
 						desc->group, desc->key);
@@ -341,8 +347,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			*((gchar**)desc->data) = strval;
 			break;
 		case STYPE_STRLIST:
-			gsize len;
-			gchar **strs = g_key_file_get_string_list(kf, desc->group, desc->key, &len, NULL);
+			strs = g_key_file_get_string_list(kf, desc->group, desc->key, &len, NULL);
 			if (strs && len > 0) {
 				GSList *list = NULL;
 				for (gsize i = 0; i < len; i++)
@@ -459,6 +464,11 @@ int writeinitfile() {
 	GKeyFile *kf = g_key_file_new();
 	struct settings_access *desc = get_all_settings();
 	while (desc->group) {
+		gchar *str;
+		guint count;
+		GSList *list;
+		gchar **strs;
+		guint i;
 		switch (desc->type) {
 			case STYPE_BOOL:
 				g_key_file_set_boolean(kf, desc->group, desc->key, *((gboolean*)desc->data));
@@ -471,15 +481,14 @@ int writeinitfile() {
 				break;
 			case STYPE_STR:
 			case STYPE_STRDIR:
-				gchar *str = *((gchar**)desc->data);
+				str = *((gchar**)desc->data);
 				if (!str) str = "";
 				g_key_file_set_string(kf, desc->group, desc->key, str);
 				break;
 			case STYPE_STRLIST:
-				GSList *list = *((GSList**)desc->data);
-				guint count = g_slist_length(list);
-				gchar **strs = malloc((count + 1) * sizeof(gchar *));
-				guint i;
+				list = *((GSList**)desc->data);
+				count = g_slist_length(list);
+				strs = malloc((count + 1) * sizeof(gchar *));
 				for (i = 0; i < count; i++) {
 					strs[i] = list->data;
 					list = list->next;
