@@ -322,7 +322,7 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 			break;
 		case STYPE_STR:
 		case STYPE_STRDIR:
-			g_string_append(str, *((gchar**)desc->data));
+			g_string_append(str, *((gchar**)desc->data) ? *((gchar**)desc->data) : "(not set)");
 			break;
 		case STYPE_STRLIST:
 			list = *((GSList**)desc->data);
