@@ -230,12 +230,24 @@ enum settings_type {
 	// long and ulong also possible
 };
 
+struct range_int_s {
+	int min, max;
+};
+
+struct range_double_s {
+	double min, max;
+};
+
 struct settings_access {
 	const char *group;	// group name
 	const char *key;	// key name
 	enum settings_type type;// type of the option
 	const char *desc;	// short description
 	void *data;		// pointer to the data in com.pref
+	union {			// allowed values range
+		struct range_int_s range_int;
+		struct range_double_s range_double;
+	};
 };
 
 struct settings_access *get_all_settings();

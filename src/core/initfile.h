@@ -21,6 +21,8 @@
 #ifndef SRC_CORE_INITFILE_H_
 #define SRC_CORE_INITFILE_H_
 
+#include <glib.h>
+
 enum token_index {
 	WD = 0,		/* Working Directory */
 	BAY = 1,	/* Bayer settings */
@@ -34,7 +36,9 @@ enum token_index {
 	NOTOK
 };
 
-int	writeinitfile();
-int	checkinitfile();
+int writeinitfile();
+int checkinitfile();
+
+int read_keyfile(GKeyFile *kf);
 
 #endif /* SRC_CORE_INITFILE_H_ */

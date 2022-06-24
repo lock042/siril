@@ -1488,6 +1488,24 @@ int process_rotatepi(int nb){
 	return CMD_OK;
 }
 
+int process_set(int nb) {
+	char *input = word[1];
+	int sep, len = strlen(input);
+	for (sep = 1; sep < len; sep++)
+		if (input[sep] == '.')
+			break;
+	if (sep == len) {
+		siril_log_message("syntax: group.key=value\n");
+		return 1;
+	}
+	input[sep] = '\0';
+	char fakefile[1024];
+	int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
+	GKeyFile *kf = g_key_file_new();
+	g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
+	return read_keyfile(kf);
+}
+
 int process_set_mag(int nb) {
 	if (gui.cvport >= MAXGRAYVPORT) {
 		siril_log_color_message(_("Please display the channel on which you set the reference magnitude\n"), "red");

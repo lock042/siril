@@ -174,8 +174,8 @@ struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, "current working directory", &com.pref.wd },
 	{ "core", "extension", STYPE_STR, "FITS file extension", &com.pref.ext },
 	{ "core", "force_16bit", STYPE_BOOL, "don't use 32 bits for pixel depth", &com.pref.force_16bit },
-	{ "core", "mem_mode", STYPE_INT, "memory mode (0 ratio, 1 amount)", &com.pref.mem_mode },
-	{ "core", "mem_ratio", STYPE_DOUBLE, "memory ratio of available", &com.pref.memory_ratio },
+	{ "core", "mem_mode", STYPE_INT, "memory mode (0 ratio, 1 amount)", &com.pref.mem_mode, { .range_int = { 0, 1 } } },
+	{ "core", "mem_ratio", STYPE_DOUBLE, "memory ratio of available", &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } }  },
 	{ "core", "mem_amount", STYPE_DOUBLE, "amount of memory in GB", &com.pref.memory_amount },
 	{ "core", "script_check_requires", STYPE_BOOL, "need requires cmd in pupe", &com.pref.script_check_requires },
 	{ "core", "pipe_check_requires", STYPE_BOOL, "need requires cmd in pupe", &com.pref.pipe_check_requires },
@@ -196,7 +196,7 @@ struct settings_access all_settings[] = {
 };
 
 struct settings_access *get_key_settings(char *group, char *key) {
-	int nb_settings = sizeof(all_settings) / sizeof(struct settings_access);
+	int nb_settings = sizeof(all_settings) / sizeof(struct settings_access) - 1;
 	for (int i = 0; i < nb_settings; i++) {
 		if (!strcmp(all_settings[i].group, group) && !strcmp(all_settings[i].key, key))
 			return all_settings + i;

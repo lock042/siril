@@ -319,6 +319,16 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 						g_key_file_get_string(kf, desc->group, desc->key, NULL));
 				return 1;
 			}
+			struct range_int_s range = desc->range_int;
+			if (range.min != 0 && range.max != 0) {
+				siril_debug_print("we have a range\n");
+				if (intval < range.min || intval > range.max) {
+					siril_log_message(_("value %d is out of range [%d, %d] for %s.%s\n"),
+							intval, range.min, range.max, desc->group, desc->key);
+					return 1;
+				}
+			}
+
 			*((int*)desc->data) = intval;
 			break;
 		case STYPE_DOUBLE:
@@ -360,7 +370,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	return 0;
 }
 
-static int read_keyfile(GKeyFile *kf) {
+int read_keyfile(GKeyFile *kf) {
 	gsize nb_keys_read = 0;
 	gsize nb_groups;
 	gchar **groups = g_key_file_get_groups(kf, &nb_groups);
@@ -370,6 +380,10 @@ static int read_keyfile(GKeyFile *kf) {
 
 		for (gsize key = 0; key < nb_keys; key++) {
 			struct settings_access *desc = get_key_settings(groups[group], keys[key]);
+			if (!desc) {
+				siril_log_message(_("unknown settings variable %s.%s\n"), groups[group], keys[key]);
+				continue;
+			}
 			if (!get_key_data(kf, desc))
 				nb_keys_read++;
 		}
