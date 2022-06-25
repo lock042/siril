@@ -388,6 +388,21 @@ void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 	g_variant_unref(state);
 }
 
+void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	GtkToggleButton *drawframe;
+	drawframe = GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"));
+	gtk_toggle_button_set_active(drawframe, g_variant_get_boolean(state));
+	g_simple_action_set_state(action, state);
+	redraw(REDRAW_OVERLAY);
+}
+
+void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
 void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (gtk_widget_get_visible(lookup_widget("seqlist_dialog"))) {
 		siril_close_dialog("seqlist_dialog");

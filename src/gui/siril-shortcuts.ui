@@ -198,6 +198,13 @@
                 <property name="title" translatable="yes" context="shortcut window">Copy snapshot to clipboard</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="accelerator">&lt;Primary&gt;r</property>
+                <property name="title" translatable="yes" context="shortcut window">Toggle On/Off registration framing</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>
