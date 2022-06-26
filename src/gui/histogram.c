@@ -1066,10 +1066,8 @@ void toggle_histogram_window_visibility(int _invocation) {
 
 gboolean on_drawingarea_histograms_motion_notify_event(GtkWidget *widget, GdkEventMotion *event,
 		gpointer user_data) {
-	int width = 339;
-	width = get_width_of_histo();
-	int height = 281;
-	width = get_height_of_histo();
+	int width = get_width_of_histo();
+	int height = get_height_of_histo();
 
 	if (on_gradient((GdkEvent *) event, width, height)) {
 		if (invocation == HISTO_STRETCH)
