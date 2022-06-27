@@ -38,7 +38,9 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <stdio.h>
 #include <errno.h>
 
@@ -83,8 +85,8 @@ static int exec_prog(const char **argv)
 		}
 	}
 
-	while (0 == waitpid(my_pid , &status , WNOHANG)) {
-/*           if ( --timeout < 0 ) {
+/*	while (0 == waitpid(my_pid , &status , WNOHANG)) {
+           if ( --timeout < 0 ) {
                     perror("timeout");
                     return -1;
             }
