@@ -223,7 +223,6 @@ else
 endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
-libconfig_dep = dependency('libconfig', required : false)
 m_dep = cc.find_library('m', required : false)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 fftw3f_dep = dependency('fftw3f', required : true)
@@ -280,6 +279,7 @@ libcurl_dep = no_dep
 if enable_libcurl
   libcurl_dep = dependency('libcurl', required : false)
 endif
+libconfig_dep = dependency('libconfig', required : false)
 criterion_dep = dependency('criterion', required : false)
 
 wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : false)
