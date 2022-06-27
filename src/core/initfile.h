@@ -39,6 +39,8 @@ enum token_index {
 int writeinitfile();
 int checkinitfile();
 
+int readinitfile(char *path);	// to import some settings
+
 int read_keyfile(GKeyFile *kf);
 
 #endif /* SRC_CORE_INITFILE_H_ */

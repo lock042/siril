@@ -400,10 +400,9 @@ int read_keyfile(GKeyFile *kf) {
 	return nb_keys_read == 0;
 }
 
-static int readinitfile() {
+int readinitfile(char *path) {
 	GKeyFile *kf = g_key_file_new();
-	g_assert(com.initfile);
-	gchar *fname = get_locale_filename(com.initfile);
+	gchar *fname = get_locale_filename(path);
 	GError *error = NULL;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
 		siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
@@ -424,7 +423,7 @@ int checkinitfile() {
 	/* com.initfile will contain the path passed with -i if any, NULL else */
 	if (com.initfile) {
 		siril_log_message(_("Reading configuration file %s\n"), com.initfile);
-		return readinitfile();
+		return readinitfile(com.initfile);
 	}
 
 	int retval = 0;
@@ -470,7 +469,7 @@ int checkinitfile() {
 	}
 	else {
 		com.initfile = config_file;
-		retval = readinitfile();
+		retval = readinitfile(com.initfile);
 	}
 
 	g_free(pathname);

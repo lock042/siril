@@ -1499,7 +1499,15 @@ int process_set(int nb) {
 			else return CMD_ARG_ERROR;
 		}
 		else {
-			return CMD_ARG_ERROR;
+			if (g_str_has_prefix(input, "-import=")) {
+				char *filename = g_shell_unquote(input + 8, NULL);
+				if (!filename || filename[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), input);
+					return CMD_ARG_ERROR;
+				}
+				return readinitfile(filename);
+			}
+			else return CMD_ARG_ERROR;
 		}
 	}
 
