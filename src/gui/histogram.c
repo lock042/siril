@@ -357,7 +357,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 	int k;
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_line_width(cr, 1.0);
-	cairo_set_source_rgb(cr, .9, .9, .9);
+	cairo_set_source_rgb(cr, 0.98, 0.5, 0.45);
 
 	if (invocation == HISTO_STRETCH) {
 		for (k = 0; k < width + 1; k++) {
