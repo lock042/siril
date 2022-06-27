@@ -145,7 +145,7 @@ int do_starnet() {
 	imagenoext[namelen - 4] = 0;
 	strncat(temptif,imagenoext,sizeof(temptif) - strlen(imagenoext));
 	strncat(temptif,starnetsuffix, 10);
-	strncat(temptif,".tif", 5;
+	strncat(temptif,".tif", 5);
 
 	strncat(starlesstif,imagenoext,sizeof(starlesstif) - strlen(imagenoext));
 	strncat(starlesstif,starlesssuffix, 10);
