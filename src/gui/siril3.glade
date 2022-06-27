@@ -10745,7 +10745,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
