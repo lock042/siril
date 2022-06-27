@@ -71,26 +71,18 @@ long get_pathmax(void)
 // Wrapper for execve
 const char *my_argv[64];
 
+#ifndef _WIN32
 static int exec_prog(const char **argv)
 {
-	pid_t   my_pid;
-	int     status;
-	// int status, timeout = 3600;
+	pid_t my_pid;
+	int status;
 
 	if (0 == (my_pid = fork())) {
-#ifdef _WIN32
-		if (-1 == _spawnve(_P_WAIT, argv[0], (char **)argv , NULL)) {
-			perror("child process _spawnve failed [%m]");
-			return -1;
-		}
-#else
 		if (-1 == execve(argv[0], (char **)argv , NULL)) {
 			perror("child process execve failed [%m]");
 			return -1;
 		}
-#endif
 	} else {
-#ifndef _WIN32
 		while (0 == waitpid(my_pid , &status , WNOHANG)) {
 			sleep(1);	// Is there a better behaviour here that allows things
 						// like the busy cursor to continue to display?
@@ -101,11 +93,21 @@ static int exec_prog(const char **argv)
 			return -1;
 		}
 	}
-#else
-	}
-#endif
 	return 0;
 }
+#else
+static int exec_prog_win32(const char **argv)
+{
+	pid_t my_pid;
+	int status;
+
+	if (-1 == _spawnve(_P_WAIT, argv[0], (char **)argv , NULL)) {
+		perror("child process _spawnve failed [%m]");
+		return -1;
+	}
+	return 0;
+}
+#endif
 
 /* Starnet++v2 star removal routine   *
  * Requires starnet++ v2.0.2 or later */
@@ -192,7 +194,11 @@ int do_starnet() {
 	savetif(temptif, &gfit, 16);
 
 	// *** Call starnet++ *** //
+#ifdef _WIN32
+	retval = exec_prog_win32(my_argv);
+#else
 	retval = exec_prog(my_argv);
+#endif
 	if (retval) {
 		siril_log_color_message(_("Error: Starnet++ did not execute correctly...\n"), "red");
 		return retval;
