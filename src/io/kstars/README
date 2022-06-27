@@ -1,0 +1,15 @@
+These files come from https://invent.kde.org/education/kstars/-/tree/master/kstars/data/tools
+or are inspired from the nomadbinfiletester.c file.
+
+With ../catalogues.c, these files serve as an interface to KStars binary
+catalogue format. It is a C implementation derived from the KStars tool
+nomadbinfiletester.c, simpler than the actual C++ implementation of KStars for
+catalogue access.
+
+The structure of the file is documented at
+https://api.kde.org/kstars/html/Stars.html#BinaryFormat
+
+See also ../../../subprojects/htmesh/README for complete information.
+
+
+See also the LICENSES file in the same directory, for data origin.

@@ -23,7 +23,7 @@
  * than the actual C++ implementation of KStars for catalogue access.
  * The structure of the file is documented at
  * https://api.kde.org/kstars/html/Stars.html#BinaryFormat
- * See also ../subprojects/htmesh/README for complete information.
+ * See also ../../subprojects/htmesh/README for complete information.
  */
 
 #include "io/kstars/binfile.h"
