@@ -753,6 +753,10 @@ void psf_display_result(psf_star *result, rectangle *area) {
 		coordinates = g_strdup_printf("x0=%0.2f px, y0=%0.2f px", x, y);
 	}
 
+	double fwhmx, fwhmy;
+	char *unts;
+	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
+
 	buffer = g_strdup_printf(_("PSF fit Result:\n"
 			"%s\n"
 			"FWHM X=%0.2f%s, FWHM Y=%0.2f%s\n"
@@ -763,7 +767,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			"SNR=%.1fdB\n"
 			"RMSE=%.3e\n"),
 			coordinates,
-			result->fwhmx, result->units, result->fwhmy, result->units,
+			fwhmx, unts, fwhmy, unts,
 			result->angle,
 			result->B,
 			result->A,

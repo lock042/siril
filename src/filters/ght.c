@@ -29,9 +29,9 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 		BP = 0.0;
 	}
 	if (stretchtype == STRETCH_PAYNE_NORMAL || stretchtype == STRETCH_PAYNE_INVERSE) {
-	in = max (0, (in - BP)/(1 - BP));
+		in = max (0, (in - BP)/(1 - BP));
 		if (D == 0.0) {
-		out = in;
+			out = in;
 		} else if (stretchtype == STRETCH_PAYNE_NORMAL) {
 			if (B == -1.0) {
 				if (in < LP) {
@@ -63,7 +63,7 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 				} else {
 					out = c.a4 + c.b4 * in;
 				}
-			} else if (B > 0) {
+			} else /*if (B > 0)*/ {
 				if (in < LP) {
 					out = c.b1 * in;
 				} else if (in < SP) {
@@ -74,7 +74,7 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 					out = c.a4 + c.b4 * in;
 				}
 			}
-		} else if (stretchtype == STRETCH_PAYNE_INVERSE) {
+		} else /*if (stretchtype == STRETCH_PAYNE_INVERSE)*/ {
 			if (B == -1.0) {
 				if (in < c.LPT) {
 					out = c.b1 * in;
@@ -105,7 +105,7 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 				} else {
 					out = c.a4 + c.b4 * in;
 				}
-			} else if (B > 0) {
+			} else /* if (B > 0) */{
 				if (in < c.LPT) {
 					out = c.b1 * in;
 				} else if (in < c.SPT) {
@@ -132,7 +132,7 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 		} else {
 			out = c.a4 + c.b4 * in;
 		}
-	} else if (stretchtype == STRETCH_INVASINH) {
+	} else /* if (stretchtype == STRETCH_INVASINH)*/ {
 		if (D == 0.0) {
 			out = in;
 		} else if (in < c.LPT) {

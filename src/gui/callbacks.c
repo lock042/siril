@@ -970,6 +970,8 @@ static void load_accels() {
 		"win.mirrorx-processing",     "<Primary>Up", NULL,
 		"win.mirrory-processing",     "<Primary>Down", NULL,
 
+		"win.regframe",               "<Primary>r", NULL,
+
 		NULL /* Terminating NULL */
 	};
 
@@ -1170,6 +1172,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* map all actions for main window */
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("seqlist_dialog")));
 
 	/* initialize menu gui */
 	update_MenuItem();

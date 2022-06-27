@@ -76,6 +76,8 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data);
+void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

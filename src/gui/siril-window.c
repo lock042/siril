@@ -64,7 +64,8 @@ static GActionEntry image_entries[] = {
 		{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
 		{ "wcs-grid", wcs_grid_activate, NULL, "false", wcs_grid_state },
 		{ "search-object", search_object_activate },
-		{ "seq-list", seq_list_activate }
+		{ "seq-list", seq_list_activate },
+		{ "regframe", regframe_activate , NULL, "true", regframe_state }
 };
 
 static GActionEntry selection_entries[] = {
@@ -153,6 +154,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"image-information",
 		"dyn-psf",
 		"seq-list",
+		"regframe",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
@@ -241,12 +243,12 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 }
 
 void siril_window_enable_if_selection_sequence_actions(GtkApplicationWindow *window, gboolean enable) {
-	static const gchar *selection_sequebce_actions[] = {
+	static const gchar *selection_sequence_actions[] = {
 		"seq-psf",
 		"seq-crop",
 		NULL,
 	};
-	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_sequebce_actions, enable);
+	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_sequence_actions, enable);
 }
 
 void siril_window_map_actions(GtkApplicationWindow *window) {

@@ -7155,8 +7155,8 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">When toggled, the outline of the reference image as transformed with registration data is drawn on each image to review image position wrt. reference.</property>
+                <property name="action-name">win.regframe</property>
                 <property name="active">True</property>
-                <signal name="toggled" handler="on_draw_frame_toggled" swapped="no"/>
                 <child>
                   <object class="GtkImage">
                     <property name="visible">True</property>
@@ -10745,7 +10745,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
@@ -18833,6 +18833,7 @@ WARNING: This option should not be checked for master stacking.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="label">seq, 5 images selected (filled at runtime)</property>
+                <property name="selectable">True</property>
                 <property name="ellipsize">start</property>
               </object>
               <packing>
