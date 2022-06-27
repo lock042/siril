@@ -46,7 +46,8 @@
 
 #include "starnet.h"
 
-// Check maximum path length
+// Check maximum path length - OSes except for Windows
+#ifndef _WIN32
 long get_pathmax(void)
 {
 	long pathmax = -1;
@@ -63,6 +64,7 @@ long get_pathmax(void)
 	}
   return pathmax;
 }
+#endif
 
 // Wrapper for execve
 const char *my_argv[64];
@@ -85,19 +87,19 @@ static int exec_prog(const char **argv)
 			return -1;
 		}
 #endif
-	}
+	} else {
+#ifndef _WIN32
+		while (0 == waitpid(my_pid , &status , WNOHANG)) {
+			sleep(1);	// Is there a better behaviour here that allows things
+						// like the busy cursor to continue to display?
+		}
 
-/*	while (0 == waitpid(my_pid , &status , WNOHANG)) {
-           if ( --timeout < 0 ) {
-                    perror("timeout");
-                    return -1;
-            }
-*/
-//    }
-#ifndef _WN32
-	if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
-		siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
-		return -1;
+		if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
+			siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
+			return -1;
+		}
+	}
+#else
 	}
 #endif
 	return 0;
@@ -109,7 +111,12 @@ static int exec_prog(const char **argv)
 int do_starnet() {
 	int retval;
 	// Only allocate as much space for filenames as required
+#ifndef _WIN32
 	long pathmax = get_pathmax();
+#else
+	long pathmax = MAX_PATH;	// On Windows use of MAX_PATH is fine as it is not
+								// a configurable item
+#endif
 	gchar *currentdir;
 	gchar starnetcommand[16] = "starnet++";
 	gchar temptif[pathmax];
