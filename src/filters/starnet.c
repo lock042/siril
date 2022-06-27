@@ -77,12 +77,14 @@ static int exec_prog(const char **argv)
 #ifdef _WIN32
 		if (-1 == _spawnve(_P_WAIT, argv[0], (char **)argv , NULL)) {
 			perror("child process _spawnve failed [%m]");
+			return -1;
+		}
 #else
 		if (-1 == execve(argv[0], (char **)argv , NULL)) {
 			perror("child process execve failed [%m]");
-#endif
 			return -1;
 		}
+#endif
 	}
 
 /*	while (0 == waitpid(my_pid , &status , WNOHANG)) {
@@ -91,7 +93,7 @@ static int exec_prog(const char **argv)
                     return -1;
             }
 */
-    }
+//    }
 
 	if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
 		siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
