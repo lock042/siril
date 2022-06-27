@@ -67,13 +67,13 @@ static void update_debayer_preferences() {
 }
 
 static void update_astrometry_preferences() {
-	com.pref.catalog[0] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")));
-	com.pref.catalog[1] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")));
-	com.pref.catalog[2] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")));
-	com.pref.catalog[3] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")));
-	com.pref.catalog[4] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")));
-	com.pref.catalog[5] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")));
-	com.pref.catalog[6] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")));
+	com.pref.gui.catalog[0] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")));
+	com.pref.gui.catalog[1] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")));
+	com.pref.gui.catalog[2] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")));
+	com.pref.gui.catalog[3] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")));
+	com.pref.gui.catalog[4] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")));
+	com.pref.gui.catalog[5] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")));
+	com.pref.gui.catalog[6] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")));
 	com.pref.gui.position_compass = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")));
 	com.pref.wcs_formalism = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")));
 }
@@ -129,7 +129,6 @@ static void update_photometry_preferences() {
 
 static void update_scripts_preferences() {
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
-	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 }
@@ -437,6 +436,7 @@ void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
 }
 
 void update_preferences_from_model() {
+	siril_debug_print("updating preferences GUI from settings data\n");
 	preferences *pref = &com.pref;
 	/* tab 1 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")), pref->debayer.use_bayer_header);
@@ -455,13 +455,13 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")), pref->comp.fits_hcompress_scale);
 
 	/* tab 3 */
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")), pref->catalog[0]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")), pref->catalog[1]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")), pref->catalog[2]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")), pref->catalog[3]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")), pref->catalog[4]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")), pref->catalog[5]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")), pref->catalog[6]);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")), pref->gui.catalog[0]);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")), pref->gui.catalog[1]);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")), pref->gui.catalog[2]);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")), pref->gui.catalog[3]);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")), pref->gui.catalog[4]);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")), pref->gui.catalog[5]);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")), pref->gui.catalog[6]);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")), pref->gui.position_compass);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")), pref->wcs_formalism);
 
@@ -558,6 +558,7 @@ void update_preferences_from_model() {
 }
 
 static void dump_ui_to_global_var() {
+	siril_debug_print("updating settings from preferences GUI\n");
 	/* tab 1 */
 	update_debayer_preferences();
 	/* tab 2 */
@@ -578,27 +579,21 @@ static void dump_ui_to_global_var() {
 	update_misc_preferences();
 }
 
-static int type_of_closure = 0;
-
-void on_settings_window_hide(GtkWidget *widget, gpointer user_data) {
-	if (type_of_closure == 1) {
-		free_preferences(&com.pref);
-		dump_ui_to_global_var();
-
-		initialize_FITS_name_entries(); // To update UI with new preferences
-		refresh_star_list(com.stars); // To update star list with new preferences
-		if (com.found_object)
-			force_to_refresh_catalogue_list();
-		save_main_window_state();
-		writeinitfile();
-	} else {
-		update_preferences_from_model(&com.pref);
-	}
-	type_of_closure = 0;
+void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
+	siril_debug_print("show preferences window: updating it\n");
+	update_preferences_from_model();
 }
 
 void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	type_of_closure = 1;
+	free_preferences(&com.pref);
+	dump_ui_to_global_var();
+
+	initialize_FITS_name_entries(); // To update UI with new preferences
+	refresh_star_list(com.stars); // To update star list with new preferences
+	if (com.found_object)
+		force_to_refresh_catalogue_list();
+	save_main_window_state();
+	writeinitfile();
 
 	siril_close_dialog("settings_window");
 }

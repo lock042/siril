@@ -179,27 +179,19 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 int initialize_script_menu() {
 	static GtkWidget *menuscript = NULL;
-	GSList *list, *script, *s;
-	GtkWidget *menu;
+	GSList *list, *script_paths, *s;
 	gint nb_item = 0;
 
-	if (!menuscript) {
+	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
-	}
 	
-	script = set_list_to_preferences_dialog(com.pref.gui.script_path);
+	script_paths = set_list_to_preferences_dialog(com.pref.gui.script_path);
 
-	menu = gtk_menu_new();
-	gtk_widget_hide(menuscript);
+	GtkWidget *menu = gtk_menu_new();
 
-	for (s = script; s; s = s->next) {
+	for (s = script_paths; s; s = s->next) {
 		list = search_script(s->data);
 		if (list) {
-			GSList *l;
-			if (!gtk_widget_get_visible(menuscript)) {
-				gtk_widget_show(menuscript);
-				gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
-			}
 			/* write separator but not for the first one */
 			if (nb_item != 0) {
 				GtkWidget *separator = gtk_separator_menu_item_new();
@@ -207,8 +199,9 @@ int initialize_script_menu() {
 				gtk_widget_show(separator);
 			}
 			siril_log_color_message(_("Searching scripts in: \"%s\"...\n"), "green", s->data);
-			for (l = list; l; l = l->next) {
-				nb_item ++;
+
+			for (GSList *l = list; l; l = l->next) {
+				nb_item++;
 				/* write an item per script file */
 				GtkWidget *menu_item;
 
@@ -225,8 +218,12 @@ int initialize_script_menu() {
 		}
 	}
 
-	writeinitfile();
-
+	if (!nb_item)
+		gtk_widget_hide(menuscript);
+	else if (!gtk_widget_get_visible(menuscript)) {
+		gtk_widget_show(menuscript);
+		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+	}
 	return 0;
 }
 

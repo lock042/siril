@@ -20771,7 +20771,7 @@ If the selection is empty, the whole image will be used as reference.</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <signal name="hide" handler="on_settings_window_hide" swapped="no"/>
+    <signal name="show" handler="on_settings_window_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>

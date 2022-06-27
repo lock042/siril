@@ -43,14 +43,6 @@ preferences pref_init = {
 	.swap_dir = NULL,
 	.focal = 1000,
 	.pitch = 5,
-	/* catalogs for astrometry */
-	.catalog[0] = TRUE,
-	.catalog[1] = TRUE,
-	.catalog[2] = TRUE,
-	.catalog[3] = TRUE,
-	.catalog[4] = TRUE,
-	.catalog[5] = TRUE,
-	.catalog[6] = TRUE,
 	.wcs_formalism = WCS_FORMALISM_1,
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
@@ -107,6 +99,13 @@ preferences pref_init = {
 		.warn_script_run = TRUE,
 		.show_thumbnails = TRUE,
 		.thumbnail_size = 256,
+		.catalog[0] = TRUE,
+		.catalog[1] = TRUE,
+		.catalog[2] = TRUE,
+		.catalog[3] = TRUE,
+		.catalog[4] = TRUE,
+		.catalog[5] = TRUE,
+		.catalog[6] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
 		.reg_settings = 0
@@ -263,8 +262,16 @@ struct settings_access all_settings[] = {
 	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
-	{ "gui", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
+
+	{ "gui_astromety", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
+	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
+	{ "gui_astrometry", "cat_ngc", STYPE_BOOL, N_("show NGC objects in annotations"), &com.pref.gui.catalog[1] },
+	{ "gui_astrometry", "cat_ic", STYPE_BOOL, N_("show IC objects in annotations"), &com.pref.gui.catalog[2] },
+	{ "gui_astrometry", "cat_ldn", STYPE_BOOL, N_("show LDN objects in annotations"), &com.pref.gui.catalog[3] },
+	{ "gui_astrometry", "cat_sh2", STYPE_BOOL, N_("show SH2 objects in annotations"), &com.pref.gui.catalog[4] },
+	{ "gui_astrometry", "cat_stars", STYPE_BOOL, N_("show stars in annotations"), &com.pref.gui.catalog[5] },
+	{ "gui_astrometry", "cat_user", STYPE_BOOL, N_("show user objects in annotations"), &com.pref.gui.catalog[6] },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

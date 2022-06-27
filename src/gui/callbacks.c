@@ -1190,9 +1190,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* initialize stacking methods */
 	initialize_stacking_methods();
 
-	/* set all preferences button in the dialog */
-	update_preferences_from_model();
-
 	/* set focal and pixel pitch */
 	set_focal_and_pixel_pitch();
 

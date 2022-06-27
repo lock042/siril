@@ -173,19 +173,19 @@ static int readinitfile_libconfig(gchar *path) {
 	/* Astrometry setting */
 	config_setting_t *astrometry_setting = config_lookup(&config, keywords[AST]);
 	if (astrometry_setting) {
-		config_setting_lookup_bool(astrometry_setting, "messier", &com.pref.catalog[0]);
-		config_setting_lookup_bool(astrometry_setting, "ngc", &com.pref.catalog[1]);
-		config_setting_lookup_bool(astrometry_setting, "ic", &com.pref.catalog[2]);
-		config_setting_lookup_bool(astrometry_setting, "ldn", &com.pref.catalog[3]);
-		config_setting_lookup_bool(astrometry_setting, "sh2", &com.pref.catalog[4]);
-		config_setting_lookup_bool(astrometry_setting, "stars", &com.pref.catalog[5]);
-		config_setting_lookup_bool(astrometry_setting, "user", &com.pref.catalog[6]);
+		config_setting_lookup_bool(astrometry_setting, "messier", &com.pref.gui.catalog[0]);
+		config_setting_lookup_bool(astrometry_setting, "ngc", &com.pref.gui.catalog[1]);
+		config_setting_lookup_bool(astrometry_setting, "ic", &com.pref.gui.catalog[2]);
+		config_setting_lookup_bool(astrometry_setting, "ldn", &com.pref.gui.catalog[3]);
+		config_setting_lookup_bool(astrometry_setting, "sh2", &com.pref.gui.catalog[4]);
+		config_setting_lookup_bool(astrometry_setting, "stars", &com.pref.gui.catalog[5]);
+		config_setting_lookup_bool(astrometry_setting, "user", &com.pref.gui.catalog[6]);
 		config_setting_lookup_int(astrometry_setting, "position_compass", &com.pref.gui.position_compass);
 		config_setting_lookup_int(astrometry_setting, "wcs_formalism", &com.pref.wcs_formalism);
 
 	} else {
 		for (int i = 0; i < 6; i ++) {
-			com.pref.catalog[i] = TRUE;
+			com.pref.gui.catalog[i] = TRUE;
 		}
 	}
 
@@ -482,7 +482,7 @@ int writeinitfile() {
 		siril_debug_print("not saving settings, file not available\n");
 		return 0;
 	}
-	siril_debug_print("saving ini file\n");
+	siril_debug_print("saving ini file %s\n", com.initfile);
 
 	GKeyFile *kf = g_key_file_new();
 	struct settings_access *desc = get_all_settings();
