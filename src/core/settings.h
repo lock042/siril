@@ -180,6 +180,7 @@ typedef struct {
  * WARNING!!
  * If you update something in this structure you absolutely need to
  * update pref_init and the table in settings.c
+ * All strings are allocated g_char *, to be freed with g_free().
  */
 struct pref_struct {
 	gchar *wd;		// saved working directory, not impacted by scripts like com.wd

@@ -357,11 +357,16 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 						desc->group, desc->key);
 				return 1;
 			}
+			if (strval[0] == '\0')
+				return 1;
 			if (desc->type == STYPE_STRDIR && !g_file_test(strval, G_FILE_TEST_IS_DIR)) {
 				siril_log_color_message(_("directory `%s' for config key %s.%s doesn't exist, not using it.\n"),
 						"salmon", strval, desc->group, desc->key);
 				return 1;
 			}
+			gchar *old_value = *((gchar**)desc->data);
+			if (old_value)
+				g_free(old_value);
 			*((gchar**)desc->data) = strval;
 			break;
 		case STYPE_STRLIST:
@@ -370,6 +375,9 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				GSList *list = NULL;
 				for (gsize i = 0; i < len; i++)
 					list = g_slist_prepend(list, strs[i]);
+				GSList *old_list = *((GSList**)desc->data);
+				if (old_list)
+					g_slist_free_full(old_list, g_free);
 				*((GSList**)desc->data) = list;
 				g_free(strs);
 			}
@@ -431,7 +439,6 @@ int checkinitfile() {
 	/* set com.initfile to default location */
 	gchar *pathname = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
 	gchar *config_file = g_build_filename(pathname, GLIB_CONFIG_FILE, NULL);
-	// TODO: is get_locale_filename needed here or is it done in siril_get_config_dir?
 	if (!g_file_test(config_file, G_FILE_TEST_EXISTS)) {
 #ifdef HAVE_LIBCONFIG
 		/* try the old config file */

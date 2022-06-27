@@ -145,7 +145,7 @@ preferences pref_init = {
 };
 
 static void initialize_settings_to_default() {
-	memcpy(&com.pref, &pref_init, sizeof(preferences));
+	com.pref = pref_init;
 }
 
 void free_preferences(preferences *pref) {
@@ -166,8 +166,6 @@ void initialize_default_settings() {
 	initialize_settings_to_default();
 	com.pref.ext = g_strdup(".fit");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
-	//com.pref.wd = g_strdup(siril_get_startup_dir());
-	// TODO check what's needed here
 }
 
 struct settings_access all_settings[] = {
