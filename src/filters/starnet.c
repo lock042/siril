@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #ifndef _WIN32
 #include <sys/wait.h>
+#else
 #include <windows.h>
 #endif
 #include <stdio.h>
