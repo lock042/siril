@@ -17,6 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -40,8 +43,6 @@
 #include <sys/types.h>
 #ifndef _WIN32
 #include <sys/wait.h>
-#else
-#include <windows.h>
 #endif
 #include <stdio.h>
 #include <errno.h>
@@ -96,12 +97,9 @@ static int exec_prog(const char **argv)
 	return 0;
 }
 #else
-static int exec_prog_win32(const char **argv)
-{
-	pid_t my_pid;
-	int status;
+static int exec_prog_win32(const char **argv) {
 
-	if (-1 == _spawnve(_P_WAIT, argv[0], (char **)argv , NULL)) {
+	if (-1 == _spawnve(_P_WAIT, argv[0], argv , NULL)) {
 		perror("child process _spawnve failed [%m]");
 		return -1;
 	}
