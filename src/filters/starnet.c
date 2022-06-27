@@ -94,12 +94,12 @@ static int exec_prog(const char **argv)
             }
 */
 //    }
-
+#ifndef _WN32
 	if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
 		siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
 		return -1;
 	}
-
+#endif
 	return 0;
 }
 
