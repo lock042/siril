@@ -226,7 +226,7 @@ static float siril_stats_robust_mean(const float sorted_data[],
 		int inliers = 0;
 		for (i = 0, j = 0; i < size; ++i) {
 			if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
-				dev += abs(sorted_data[i] - mean);
+				dev += fabs(sorted_data[i] - mean);
 				inliers++;
 			}
 		}
