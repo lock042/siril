@@ -480,7 +480,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	is_arcsec = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(arcsec));
 	use_photometry = (gboolean)gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
-	qualfmt = (args->seq && use_photometry && (selected_source == BACKGROUND) && (get_data_type(args->seq->bitpix) == DATA_FLOAT)) ? ("%.5f") : ("%.3f");
+	qualfmt = (args->seq && ((use_photometry && (selected_source == BACKGROUND)) || (!use_photometry && (selected_source == r_BACKGROUND))) && (get_data_type(args->seq->bitpix) == DATA_FLOAT)) ? ("%.5f") : ("%.3f");
 
 	if (list_store) gtk_list_store_clear(list_store);
 	get_list_store();
