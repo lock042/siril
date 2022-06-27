@@ -152,6 +152,7 @@ static command commands[] = {
 	{"savetif", 1, "savetif filename", process_savetif, STR_SAVETIF, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"savetif32", 1, "savetif32 filename", process_savetif, STR_SAVETIF32, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"savetif8", 1, "savetif8 filename", process_savetif, STR_SAVETIF8, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"starnet", 0, "starnet", process_starnet, STR_STARNET, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 	{"select", 2, "select from to", process_select, STR_SELECT, FALSE, REQ_CMD_SEQUENCE},
 	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-selected] [-layer=] [-framing=]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},

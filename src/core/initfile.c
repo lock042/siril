@@ -206,7 +206,7 @@ static int readinitfile() {
 	config_setting_t *misc_setting = config_lookup(&config, keywords[MISC]);
 	if (misc_setting) {
 		int type;
-		const char *swap_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
+		const char *swap_dir = NULL, *starnet_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.pan_position);
 
@@ -256,6 +256,8 @@ static int readinitfile() {
 		config_setting_lookup_bool(misc_setting, "is_maximized", &com.pref.is_maximized);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		com.pref.swap_dir = g_strdup(swap_dir);
+		config_setting_lookup_string(misc_setting, "starnet_directory", &starnet_dir);
+		com.pref.starnet_dir = g_strdup(starnet_dir);
 		config_setting_lookup_string(misc_setting, "extension", &extension);
 		com.pref.ext = g_strdup(extension);
 		config_setting_lookup_int(misc_setting, "FITS_type", &type);
@@ -493,6 +495,9 @@ static void _save_misc(config_t *config, config_setting_t *root) {
 
 	misc_setting = config_setting_add(misc_group, "swap_directory", CONFIG_TYPE_STRING);
 	config_setting_set_string(misc_setting, com.pref.swap_dir);
+
+	misc_setting = config_setting_add(misc_group, "starnet_directory", CONFIG_TYPE_STRING);
+	config_setting_set_string(misc_setting, com.pref.starnet_dir);
 
 	misc_setting = config_setting_add(misc_group, "first_start_1", CONFIG_TYPE_BOOL);
 	config_setting_set_bool(misc_setting, com.pref.first_start);

@@ -43,6 +43,7 @@
 #endif
 
 static gchar *sw_dir = NULL;
+static gchar *st_dir = NULL;
 
 static preferences pref_init = {
 		.first_start = TRUE,
@@ -144,7 +145,8 @@ static preferences pref_init = {
 		.rgb_aladin = FALSE,
 		.force_to_16bit = FALSE,
 		.selection_guides = 0,
-		.copyright = NULL
+		.copyright = NULL,
+		.starnet_dir = NULL
 };
 
 static void reset_swapdir() {
@@ -157,6 +159,19 @@ static void reset_swapdir() {
 		g_free(com.pref.swap_dir);
 		com.pref.swap_dir = g_strdup(dir);
 		gtk_file_chooser_set_filename(swap_dir, dir);
+	}
+}
+
+static void reset_starnetdir() {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	const gchar *dir;
+
+	dir = g_get_tmp_dir();
+
+	if (g_strcmp0(dir, com.pref.starnet_dir)) {
+		g_free(com.pref.starnet_dir);
+		com.pref.starnet_dir = g_strdup(dir);
+		gtk_file_chooser_set_filename(starnet_dir, dir);
 	}
 }
 
@@ -289,8 +304,11 @@ static void update_performances_preferences() {
 
 static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
+
+	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
 
 	const gchar *ext = gtk_combo_box_get_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")));
 	com.pref.ext = g_strdup(ext);
@@ -341,6 +359,15 @@ void initialize_path_directory(const gchar *path) {
 		gtk_file_chooser_set_filename (swap_dir, path);
 	} else {
 		gtk_file_chooser_set_filename (swap_dir, g_get_tmp_dir());
+	}
+}
+
+void initialize_starnet_directory(const gchar *path) {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (starnet_dir, path);
+	} else {
+		gtk_file_chooser_set_filename (starnet_dir, g_get_tmp_dir());
 	}
 }
 
@@ -435,6 +462,24 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 	if (sw_dir) {
 		g_free(sw_dir);
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
+	}
+}
+
+void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(fileChooser);
+	gchar *dir;
+
+	dir = gtk_file_chooser_get_filename (starnet_dir);
+
+	if (g_access(dir, W_OK)) {
+		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		gtk_file_chooser_set_filename(starnet_dir, com.pref.starnet_dir);
+		return;
+	}
+	if (st_dir) {
+		g_free(st_dir);
+		st_dir = gtk_file_chooser_get_filename(starnet_dir);
 	}
 }
 
@@ -652,6 +697,7 @@ static void set_preferences_ui(preferences *pref) {
 
 	/* tab 9 */
 	initialize_path_directory(pref->swap_dir);
+	initialize_starnet_directory(pref->starnet_dir);
 	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext == NULL ? ".fit" : pref->ext);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_to_16bit ? 0 : 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->save.quit);
@@ -749,6 +795,16 @@ gchar *get_swap_dir() {
 	}
 	return sw_dir;
 }
+
+gchar *get_starnet_dir() {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+
+	if (st_dir == NULL) {
+		st_dir = gtk_file_chooser_get_filename(starnet_dir);
+	}
+	return sw_dir;
+}
+
 
 void set_preferences_dialog_from_global() {
 	set_preferences_ui(&com.pref);

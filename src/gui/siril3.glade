@@ -7155,8 +7155,8 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">When toggled, the outline of the reference image as transformed with registration data is drawn on each image to review image position wrt. reference.</property>
-                <property name="active">True</property>
                 <property name="action-name">win.regframe</property>
+                <property name="active">True</property>
                 <child>
                   <object class="GtkImage">
                     <property name="visible">True</property>
@@ -23638,7 +23638,7 @@ Configuring a memory amount larger than what is available on your system may res
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>
@@ -23671,6 +23671,71 @@ Configuring a memory amount larger than what is available on your system may res
                             <property name="margin-bottom">10</property>
                             <property name="label" translatable="yes">Introduction Tips</property>
                             <property name="single-line-mode">True</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="filechooser_starnet">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Select Starnet++ installation directory. Requires Starnet++ v2.0.2 or higher.</property>
+                                    <property name="valign">center</property>
+                                    <property name="action">select-folder</property>
+                                    <property name="title" translatable="yes">Select Starnet++ installation directory</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="xpad">10</property>
+                                    <property name="label" translatable="yes">Requires Starnet++ v2.0.2 or higher</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="ypad">8</property>
+                            <property name="label" translatable="yes">Starnet++ Installation Directory</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>
                             </attributes>
