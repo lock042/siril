@@ -47,7 +47,7 @@ int stack_addmin(struct stacking_args *args) {
 static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	WORD *final_pixel[3];
 	float *ffinal_pixel[3];
-	double exposure = 0.0;
+	//double exposure = 0.0;
 	gboolean is_float = TRUE; // init only for warning
 	size_t nbdata = 0;
 	char filename[256];
@@ -158,7 +158,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 #endif
 
 		/* Summing the exposure */
-		exposure += fit.exposure;
+		//exposure += fit.exposure;
 
 		/* stack current image */
 		size_t i = 0;	// index in final_pixel[0]
