@@ -108,6 +108,7 @@ int	process_savetif(int nb);
 #endif
 int	process_scnr(int nb);
 int	process_select(int nb);
+int	process_set(int nb);
 int	process_set_32bits(int nb);
 int	process_set_compress(int nb);
 #ifdef _OPENMP

@@ -563,12 +563,12 @@ static void draw_selection(const draw_data_t* dd) {
 		cairo_stroke(cr);
 
 		// display a grid when the selection is being made / modified, when it is big enough
-		if (com.pref.selection_guides > 1 && gui.drawing && com.selection.w > 40 / dd->zoom && com.selection.h > 40 / dd->zoom) {
+		if (com.pref.gui.selection_guides > 1 && gui.drawing && com.selection.w > 40 / dd->zoom && com.selection.h > 40 / dd->zoom) {
 			cairo_set_line_width(cr, 0.4 / dd->zoom);
 			cairo_set_dash(cr, NULL, 0, 0);
-			for (int i = 1; i < com.pref.selection_guides; i++) {
-				int x = com.selection.x + com.selection.w * i / com.pref.selection_guides;
-				int y = com.selection.y + com.selection.h * i / com.pref.selection_guides;
+			for (int i = 1; i < com.pref.gui.selection_guides; i++) {
+				int x = com.selection.x + com.selection.w * i / com.pref.gui.selection_guides;
+				int y = com.selection.y + com.selection.h * i / com.pref.gui.selection_guides;
 				cairo_move_to(cr, x, com.selection.y);
 				cairo_line_to(cr, x, com.selection.y + com.selection.h);
 				cairo_move_to(cr, com.selection.x, y);
@@ -603,7 +603,7 @@ static void draw_stars(const draw_data_t* dd) {
 
 		while (com.stars[i]) {
 			double size = com.stars[i]->fwhmx * 2.0;
-			if (i == com.selected_star) {
+			if (i == gui.selected_star) {
 				// We draw horizontal and vertical lines to show the star
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
 				cairo_set_source_rgba(cr, 0.0, 0.4, 1.0, 0.6);
@@ -625,15 +625,15 @@ static void draw_stars(const draw_data_t* dd) {
 	}
 
 	/* quick photometry */
-	if (!com.script && com.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-		double size = (!com.pref.phot_set.force_radius && com.qphot) ? com.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
+	if (!com.script && gui.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
+		double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
 
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 
 		/* fwhm * 2: first circle */
-		cairo_arc(cr, com.qphot->xpos, com.qphot->ypos, size, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * M_PI);
 		cairo_stroke(cr);
 
 		/* sky annulus */
@@ -643,13 +643,13 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
 		}
 
-		cairo_arc(cr, com.qphot->xpos, com.qphot->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);
 		cairo_stroke(cr);
-		cairo_arc(cr, com.qphot->xpos, com.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
 		cairo_stroke(cr);
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 40);
-		cairo_move_to(cr, com.qphot->xpos + com.pref.phot_set.outer + 5, com.qphot->ypos);
+		cairo_move_to(cr, gui.qphot->xpos + com.pref.phot_set.outer + 5, gui.qphot->ypos);
 		cairo_stroke(cr);
 	}
 
@@ -663,7 +663,7 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_line_width(cr, 2.0 / dd->zoom);
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
-				double size = (!com.pref.phot_set.force_radius && com.qphot) ? com.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
+				double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
@@ -752,7 +752,7 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 
 #ifdef HAVE_WCSLIB
 static void draw_compass(const draw_data_t* dd) {
-	int pos = com.pref.position_compass;
+	int pos = com.pref.gui.position_compass;
 	if (!pos) return; // User chose None
 	fits *fit = &gfit;
 	cairo_t *cr = dd->cr;
@@ -872,7 +872,7 @@ static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3
 
 static void draw_wcs_grid(const draw_data_t* dd) {
 #ifdef HAVE_WCSLIB
-	if (!com.show_wcs_grid) return;
+	if (!gui.show_wcs_grid) return;
 	fits *fit = &gfit;
 	if (!has_wcs(fit)) return;
 	cairo_t *cr = dd->cr;
@@ -1125,7 +1125,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		gchar *code = get_catalogue_object_code(object);
 		gdouble resolution = get_wcs_image_resolution(&gfit);
 		gdouble x, y;
-		gdouble size = 18 * (com.pref.font_scale / 100.0);
+		gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
 
 		if (resolution <= 0) return;
 

@@ -151,10 +151,6 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
 
-dnl check libconfig
-PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],,
-	AC_MSG_ERROR([libconfig 1.4 or newer not found.]))
-
 dnl check opencv
 AC_PROG_CXX
 if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
@@ -206,59 +202,63 @@ dnl ================ OPTIONAL DEPENDECIES ================
 
 dnl check raw lib
 PKG_CHECK_MODULES(LIBRAW, [libraw >= 0.17],
-		[AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],
-		AC_MSG_WARN([libraw not found. Not using RAW importer.]))
+		  [AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],
+		  AC_MSG_WARN([libraw not found. Not using RAW importer.]))
 
 dnl check tiff lib
 PKG_CHECK_MODULES(LIBTIFF, [libtiff-4],
-		[AC_DEFINE([HAVE_LIBTIFF], [1], [Using TIFF images])],
-		AC_MSG_WARN([libtiff not found. Not using TIFF importer and exporter.]))
+		  [AC_DEFINE([HAVE_LIBTIFF], [1], [Using TIFF images])],
+		  AC_MSG_WARN([libtiff not found. Not using TIFF importer and exporter.]))
 
 dnl check jpeg lib
 dnl PKG_CHECK_MODULES(JPEG, [libjpeg])
 AC_CHECK_LIB(jpeg, jpeg_mem_src, [],
-	AC_MSG_WARN([libjpeg not found. Not using JPEG importer and exporter.]))
+	     AC_MSG_WARN([libjpeg not found. Not using JPEG importer and exporter.]))
 
 dnl check png lib
 PKG_CHECK_MODULES(LIBPNG, [libpng >= 1.6],
-		[AC_DEFINE([HAVE_LIBPNG], [1], [Using PNG images])],
-		AC_MSG_WARN([libpng not found. Not using PNG importer and exporter.]))
-		
+		  [AC_DEFINE([HAVE_LIBPNG], [1], [Using PNG images])],
+		  AC_MSG_WARN([libpng not found. Not using PNG importer and exporter.]))
+
 dnl check heif lib
 PKG_CHECK_MODULES(LIBHEIF, [libheif],
-		[AC_DEFINE([HAVE_LIBHEIF], [1], [Using HEIF images])],
-		AC_MSG_WARN([libheif not found. Not using HEIF importer and exporter.]))
+		  [AC_DEFINE([HAVE_LIBHEIF], [1], [Using HEIF images])],
+		  AC_MSG_WARN([libheif not found. Not using HEIF importer and exporter.]))
 
 dnl check ffms2
 PKG_CHECK_MODULES(FFMS2, [ffms2],
 		  [AC_DEFINE([HAVE_FFMS2], [1], [Using FFMS2])],
 		  AC_MSG_WARN([libffms2 not found. Not using AVI importer.]))
 
-
 dnl checking several ffmpeg libraries
 PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale libswresample],
-		[AC_DEFINE([HAVE_FFMPEG], [1], [film export supported])],
-		AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
+		  [AC_DEFINE([HAVE_FFMPEG], [1], [film export supported])],
+		  AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
 
 dnl checking libcurl
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
-        [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])],
-        AC_MSG_WARN([libcurl not found. Not using web interaction.]))
-        
+		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])],
+		     AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+
 dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, [wcslib],
 		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
 		  AC_MSG_WARN([wcslib not found. Not using WCS API.]))
 
+dnl check libconfig
+PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],
+		  [AC_DEFINE([HAVE_LIBCONFIG], [1], [Using libconfig])],
+		  AC_MSG_WARN([libconfig not found. Old configuration file will not be read.]))
+
 dnl ================================================================
 dnl Collect some arguments.
 dnl ================================================================
 AC_ARG_ENABLE(debug,
-		[AS_HELP_STRING([--enable-debug],
-		[enable debug build [default=no]])],,
-		[enable_debug="no"])
-		
+	      [AS_HELP_STRING([--enable-debug],
+			      [enable debug build [default=no]])],,
+			      [enable_debug="no"])
+
 AM_CONDITIONAL([SIRIL_DEBUG],[test "x$enable_debug" = "xyes"])
 
 if test "x$enable_debug" = "xyes"; then
@@ -309,8 +309,8 @@ AM_CONDITIONAL([PLATFORM_WIN32], [test "$platform" = "windows"])
 AM_CONDITIONAL([PLATFORM_OSX], [test "$platform" = "osx"])
 
 AC_DEFINE_UNQUOTED(SIRIL_BUILD_PLATFORM_FAMILY, "$platform_family",
-                   [The OS family this was built for])
-                   
+		   [The OS family this was built for])
+
 AC_SUBST(WIN32_LARGE_ADDRESS_AWARE)
 AC_SUBST(PATHSEP)
 

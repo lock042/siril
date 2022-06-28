@@ -63,6 +63,7 @@
 #include "gui/script_menu.h"
 #include "gui/registration_preview.h"
 #include "gui/photometric_cc.h"
+#include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/clahe.h"
@@ -342,7 +343,7 @@ int process_savepnm(int nb){
 int process_imoper(int nb){
 	fits fit = { 0 };
 
-	if (readfits(word[1], &fit, NULL, !com.pref.force_to_16bit)) return CMD_INVALID_IMAGE;
+	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
 
 	image_operator oper;
 	switch (word[0][1]) {
@@ -367,7 +368,7 @@ int process_imoper(int nb){
 			clearfits(&fit);
 			return CMD_ARG_ERROR;
 	}
-	int retval = imoper(&gfit, &fit, oper, !com.pref.force_to_16bit);
+	int retval = imoper(&gfit, &fit, oper, !com.pref.force_16bit);
 
 	clearfits(&fit);
 	adjust_cutoff_from_updated_gfit();
@@ -400,7 +401,7 @@ int process_fdiv(int nb){
 	}
 
 	fits fit = { 0 };
-	if (readfits(word[1], &fit, NULL, !com.pref.force_to_16bit)) return CMD_INVALID_IMAGE;
+	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
 	siril_fdiv(&gfit, &fit, norm, TRUE);
 
 	clearfits(&fit);
@@ -590,11 +591,12 @@ int process_cd(int nb) {
 
 	expand_home_in_filename(filename, 256);
 	retval = siril_change_dir(filename, NULL);
-	if (!retval) {
+	if (!retval && !com.script) {
+		if (com.pref.wd)
+			g_free(com.pref.wd);
+		com.pref.wd = g_strdup(com.wd);
 		writeinitfile();
-		if (!com.script) {
-			set_GUI_CWD();
-		}
+		set_GUI_CWD();
 	}
 	return retval;
 }
@@ -1486,6 +1488,52 @@ int process_rotatepi(int nb){
 	return CMD_OK;
 }
 
+int process_set(int nb) {
+	char *input = word[1];
+	if (input[0] == '-') {
+		if (word[0][0] == 'g') {
+			if (!strcmp(input, "-a"))
+				return print_all_settings(FALSE);
+			if (!strcmp(input, "-A"))
+				return print_all_settings(TRUE);
+			else return CMD_ARG_ERROR;
+		}
+		else {
+			if (g_str_has_prefix(input, "-import=")) {
+				char *filename = g_shell_unquote(input + 8, NULL);
+				if (!filename || filename[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), input);
+					return CMD_ARG_ERROR;
+				}
+				return readinitfile(filename);
+			}
+			else return CMD_ARG_ERROR;
+		}
+	}
+
+	/* parsing a single variable command */
+	int sep, len = strlen(input);
+	for (sep = 1; sep < len; sep++)
+		if (input[sep] == '.')
+			break;
+	if (sep == len) {
+		siril_log_message("syntax: group.key=value\n");
+		return 1;
+	}
+	input[sep] = '\0';
+	if (word[0][0] == 'g') {
+		print_settings_key(input, input+sep+1, FALSE);
+	} else {
+		/* set */
+		char fakefile[1024];
+		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
+		GKeyFile *kf = g_key_file_new();
+		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
+		return read_keyfile(kf);
+	}
+	return 0;
+}
+
 int process_set_mag(int nb) {
 	if (gui.cvport >= MAXGRAYVPORT) {
 		siril_log_color_message(_("Please display the channel on which you set the reference magnitude\n"), "red");
@@ -1496,8 +1544,8 @@ int process_set_mag(int nb) {
 
 	gboolean found = FALSE;
 	double mag = 0.0;
-	if (com.qphot) {
-		mag = com.qphot->mag;
+	if (gui.qphot) {
+		mag = gui.qphot->mag;
 		found = TRUE;
 	} else {
 		if (com.selection.w > 300 || com.selection.h > 300){
@@ -1734,12 +1782,12 @@ int process_set_ext(int nb) {
 
 int process_set_findstar(int nb) {
 	int startoptargs = 1;
-	double sigma = com.starfinder_conf.sigma;
-	double roundness = com.starfinder_conf.roundness;
-	int radius = com.starfinder_conf.radius;
-	gboolean adjust = com.starfinder_conf.adjust;
-	double focal_length = com.starfinder_conf.focal_length;
-	double pixel_size_x = com.starfinder_conf.pixel_size_x;
+	double sigma = com.pref.starfinder_conf.sigma;
+	double roundness = com.pref.starfinder_conf.roundness;
+	int radius = com.pref.starfinder_conf.radius;
+	gboolean adjust = com.pref.starfinder_conf.adjust;
+	double focal_length = com.pref.starfinder_conf.focal_length;
+	double pixel_size_x = com.pref.starfinder_conf.pixel_size_x;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -1801,29 +1849,29 @@ int process_set_findstar(int nb) {
 			}
 		}
 	}
-	if (com.starfinder_conf.sigma != sigma) {
+	if (com.pref.starfinder_conf.sigma != sigma) {
 		siril_log_message(_("sigma = %3.2f\n"), sigma);
-		com.starfinder_conf.sigma = sigma;
+		com.pref.starfinder_conf.sigma = sigma;
 	}
-	if (com.starfinder_conf.roundness != roundness) {
+	if (com.pref.starfinder_conf.roundness != roundness) {
 		siril_log_message(_("roundness = %3.2f\n"), roundness);
-		com.starfinder_conf.roundness = roundness;
+		com.pref.starfinder_conf.roundness = roundness;
 	}
-	if (com.starfinder_conf.radius != radius) {
+	if (com.pref.starfinder_conf.radius != radius) {
 		siril_log_message(_("radius = %d\n"), radius);
-		com.starfinder_conf.radius = radius;
+		com.pref.starfinder_conf.radius = radius;
 	}
-	if (com.starfinder_conf.focal_length != focal_length) {
+	if (com.pref.starfinder_conf.focal_length != focal_length) {
 		siril_log_message(_("focal = %3.1f\n"), focal_length);
-		com.starfinder_conf.focal_length = focal_length;
+		com.pref.starfinder_conf.focal_length = focal_length;
 	}
-	if (com.starfinder_conf.pixel_size_x != pixel_size_x) {
+	if (com.pref.starfinder_conf.pixel_size_x != pixel_size_x) {
 		siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
-		com.starfinder_conf.pixel_size_x = pixel_size_x;
+		com.pref.starfinder_conf.pixel_size_x = pixel_size_x;
 	}
-	if (com.starfinder_conf.adjust != adjust) {
+	if (com.pref.starfinder_conf.adjust != adjust) {
 		siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
-		com.starfinder_conf.adjust = adjust;
+		com.pref.starfinder_conf.adjust = adjust;
 	}
 	return CMD_OK;
 }
@@ -4685,7 +4733,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			} else {
 				g_free(expression);
 				args->bias = calloc(1, sizeof(fits));
-				if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_to_16bit)) {
+				if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_16bit)) {
 					args->use_bias = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
 					if ((args->bias->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
@@ -4699,7 +4747,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			}
 		} else if (g_str_has_prefix(word[i], "-dark=")) {
 			args->dark = calloc(1, sizeof(fits));
-			if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_to_16bit)) {
+			if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_16bit)) {
 				args->use_dark = TRUE;
 				// if input is 8b, we assume 32b master needs to be rescaled
 				if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
@@ -4712,7 +4760,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			}
 		} else if (g_str_has_prefix(word[i], "-flat=")) {
 			args->flat = calloc(1, sizeof(fits));
-			if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_to_16bit)) {
+			if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_16bit)) {
 				args->use_flat = TRUE;
 				// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 			} else {
@@ -4835,7 +4883,7 @@ int process_preprocess(int nb) {
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
-			|| args->output_seqtype == SEQ_FITSEQ) && !com.pref.force_to_16bit;
+			|| args->output_seqtype == SEQ_FITSEQ) && !com.pref.force_16bit;
 
 	start_sequence_preprocessing(args);
 	return CMD_OK;
@@ -4853,14 +4901,14 @@ int process_preprocess_single(int nb) {
 	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
-	args->allow_32bit_output = !com.pref.force_to_16bit;
+	args->allow_32bit_output = !com.pref.force_16bit;
 
 	return preprocess_given_image(word[1], args);
 }
 
 int process_set_32bits(int nb) {
-	com.pref.force_to_16bit = word[0][3] == '1';
-	if (com.pref.force_to_16bit)
+	com.pref.force_16bit = word[0][3] == '1';
+	if (com.pref.force_16bit)
 		siril_log_message(_("16-bit per channel in processed images mode is active\n"));
 	else siril_log_message(_("32-bit per channel in processed images mode is active\n"));
 	writeinitfile();
@@ -4972,8 +5020,8 @@ int process_set_mem(int nb){
 	if (ratio > 1.0) {
 		siril_log_message(_("Setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which can be very slow and is unrecommended (%g requested)\n"), ratio);
 	}
-	com.pref.stack.memory_ratio = ratio;
-	com.pref.stack.mem_mode = RATIO;
+	com.pref.memory_ratio = ratio;
+	com.pref.mem_mode = RATIO;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
 	if (!com.script)
@@ -5327,7 +5375,7 @@ int process_pcc(int nb) {
 	} else if (plate_solve) {
 		args->pixel_size = max(gfit.pixel_size_x, gfit.pixel_size_y);
 		if (args->pixel_size <= 0.0) {
-			args->pixel_size = com.starfinder_conf.pixel_size_x;
+			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
 			//args->pixel_size = com.pref.pitch;
 			if (args->pixel_size <= 0.0) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
@@ -5351,7 +5399,7 @@ int process_pcc(int nb) {
 		args->focal_length = gfit.focal_length;
 		if (args->focal_length <= 0.0) {
 			// TODO: which one should we use here?
-			args->focal_length = com.starfinder_conf.focal_length;
+			args->focal_length = com.pref.starfinder_conf.focal_length;
 			//args->focal_length = com.pref.focal;
 			if (args->focal_length <= 0.0) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");

@@ -269,7 +269,7 @@ static void display_status() {
 
 	while (com.stars && com.stars[i])
 		i++;
-	if (com.selected_star == -1) {
+	if (gui.selected_star == -1) {
 		if (i > 0) {
 			text = ngettext("%d star", "%d stars", i);
 			text = g_strdup_printf(text, i);
@@ -277,7 +277,7 @@ static void display_status() {
 			text = g_strdup(" ");
 		}
 	} else {
-		text = g_strdup_printf(_("Star %d of %d"), com.selected_star + 1, i);
+		text = g_strdup_printf(_("Star %d of %d"), gui.selected_star + 1, i);
 	}
 	gtk_statusbar_push(statusbar, COUNT_STATE, text);
 	g_free(text);
@@ -294,14 +294,14 @@ static void remove_selected_star(int index) {
 
 		remove_star(index);
 
-		com.selected_star = -1;
+		gui.selected_star = -1;
 		display_status();
 	}
 }
 
 static void remove_all_stars(){
 	clear_stars_list(TRUE);
-	com.selected_star = -1;
+	gui.selected_star = -1;
 	display_status();
 	redraw(REDRAW_OVERLAY);
 }
@@ -449,7 +449,7 @@ static void fill_stars_list(fits *fit, psf_star **stars) {
 		add_star_to_list(stars[i]);
 		i++;
 	}
-	com.selected_star = -1;
+	gui.selected_star = -1;
 	display_status();
 }
 
@@ -626,7 +626,7 @@ void on_treeview_cursor_changed(GtkTreeView *tree_view,
 		g_value_unset(&value_x);
 		g_value_unset(&value_y);
 
-		com.selected_star = get_index_of_selected_star(x0, y0);
+		gui.selected_star = get_index_of_selected_star(x0, y0);
 		display_status();
 		redraw(REDRAW_OVERLAY);
 	}
@@ -637,12 +637,12 @@ void on_Stars_stored_key_release_event(GtkWidget *widget, GdkEventKey *event,
 	if (event->keyval == GDK_KEY_Delete || event->keyval == GDK_KEY_KP_Delete
 			|| event->keyval == GDK_KEY_BackSpace) {
 
-		remove_selected_star(com.selected_star);
+		remove_selected_star(gui.selected_star);
 	}
 }
 
 void on_stars_list_window_hide(GtkWidget *object, gpointer user_data) {
-	com.selected_star = -1;
+	gui.selected_star = -1;
 }
 
 void on_sum_button_clicked(GtkButton *button, gpointer user_data) {
@@ -650,7 +650,7 @@ void on_sum_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
-	remove_selected_star(com.selected_star);
+	remove_selected_star(gui.selected_star);
 }
 
 void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {

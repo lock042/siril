@@ -101,6 +101,8 @@ siril_common_SOURCES = \
 	core/processing.c \
 	core/sequence_filtering.c \
 	core/sequence_filtering.h \
+	core/settings.c \
+	core/settings.h \
 	core/signals.c \
 	core/signals.h \
 	core/siril.c \

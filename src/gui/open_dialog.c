@@ -74,7 +74,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	gchar *ser_filter = "*.ser;*.SER";
 	if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fits.fz)"),
-				fits_filter, gui.filter == TYPEFITS);
+				fits_filter, gui.file_ext_filter == TYPEFITS);
 	} else {
 		all_filter = g_string_new(fits_filter);
 	}
@@ -102,7 +102,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		raw[strlen(raw) - 1] = '\0';
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, _("RAW DSLR Camera Files"), raw,
-				gui.filter == TYPERAW);
+				gui.file_ext_filter == TYPERAW);
 		} else {
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, raw);
@@ -142,18 +142,18 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		graphics_filter = g_string_free(s_pattern, FALSE);
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, graphics_supported, graphics_filter,
-					gui.filter == TYPEBMP || gui.filter == TYPEJPG
-							|| gui.filter == TYPEPNG || gui.filter == TYPETIFF);
+					gui.file_ext_filter == TYPEBMP || gui.file_ext_filter == TYPEJPG ||
+					gui.file_ext_filter == TYPEPNG || gui.file_ext_filter == TYPETIFF);
 
 			/* NETPBM FILES */
 			gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
-					netpbm_filter, gui.filter == TYPEPNM);
+					netpbm_filter, gui.file_ext_filter == TYPEPNM);
 			/* IRIS FILES */
 			gtk_filter_add(chooser, _("IRIS PIC Files (*.pic)"), pic_filter,
-					gui.filter == TYPEPIC);
+					gui.file_ext_filter == TYPEPIC);
 			/* SER FILES */
 			gtk_filter_add(chooser, _("SER files (*.ser)"), ser_filter,
-					gui.filter == TYPESER);
+					gui.file_ext_filter == TYPESER);
 		} else {
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, graphics_filter);
@@ -190,7 +190,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
-				gui.filter == TYPEAVI);
+				gui.file_ext_filter == TYPEAVI);
 		} else {
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, film_filter);
@@ -337,6 +337,9 @@ static void opendial(int whichdial) {
 
 		case OD_CWD:
 			if (!siril_change_dir(filename, &err)) {
+				if (com.pref.wd)
+					g_free(com.pref.wd);
+				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
 				set_GUI_CWD();
 			} else {

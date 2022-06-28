@@ -263,7 +263,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 		}
 	}
 
-	color = (com.pref.combo_theme == 0) ? 1 : 0;
+	color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 	basename = g_path_get_basename(seq_get_image_filename(seq, index, imname));
 	gtk_list_store_append (list_store, &iter);
 	gtk_list_store_set (list_store, &iter,
@@ -740,7 +740,7 @@ void sequence_list_change_reference() {
 	gboolean valid;
 	int color;
 
-	color = (com.pref.combo_theme == 0) ? 1 : 0;
+	color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 
 	get_list_store();
 	valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_store), &iter);

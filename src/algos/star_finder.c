@@ -58,8 +58,8 @@ static double guess_resolution(fits *fit) {
 		* flag -1
 		*/
 	if ((focal <= 0.0) || (size <= 0.0)) {  // try to read values that were filled only if coming from astrometry solver
-		focal = com.starfinder_conf.focal_length;
-		size = com.starfinder_conf.pixel_size_x;
+		focal = com.pref.starfinder_conf.focal_length;
+		size = com.pref.starfinder_conf.pixel_size_x;
 	}
 
 	if ((focal <= 0.0) || (size <= 0.0))
@@ -156,36 +156,36 @@ static void get_structure(star_finder_params *sf) {
 
 void init_peaker_GUI() {
 	/* TODO someday: read values from conf file and set them in the GUI.
-	 * Until then, storing values in com.starfinder_conf instead of getting
+	 * Until then, storing values in com.pref.starfinder_conf instead of getting
 	 * them in the GUI while running the peaker.
 	 * see also init_peaker_default below */
-	get_structure(&com.starfinder_conf);
+	get_structure(&com.pref.starfinder_conf);
 }
 
-void init_peaker_default() {
+void init_peaker_default_old() {
 	/* values taken from siril3.glade */
-	com.starfinder_conf.radius = 10;
-	com.starfinder_conf.adjust = TRUE;
-	com.starfinder_conf.sigma = 1.0;
-	com.starfinder_conf.roundness = 0.5;
-	com.starfinder_conf.focal_length = 0.;
-	com.starfinder_conf.pixel_size_x = 0.;
+	com.pref.starfinder_conf.radius = 10;
+	com.pref.starfinder_conf.adjust = TRUE;
+	com.pref.starfinder_conf.sigma = 1.0;
+	com.pref.starfinder_conf.roundness = 0.5;
+	com.pref.starfinder_conf.focal_length = 0.;
+	com.pref.starfinder_conf.pixel_size_x = 0.;
 }
 
 void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	com.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
+	com.pref.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
 }
 
 void on_spin_sf_radius_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.starfinder_conf.radius = (int)gtk_spin_button_get_value(spinbutton);
+	com.pref.starfinder_conf.radius = (int)gtk_spin_button_get_value(spinbutton);
 }
 
 void on_spin_sf_threshold_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.starfinder_conf.sigma = gtk_spin_button_get_value(spinbutton);
+	com.pref.starfinder_conf.sigma = gtk_spin_button_get_value(spinbutton);
 }
 
 void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
+	com.pref.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
 }
 
 void update_peaker_GUI() {
@@ -199,10 +199,10 @@ void update_peaker_GUI() {
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
 	}
-	gtk_spin_button_set_value(spin_radius, (double) com.starfinder_conf.radius);
-	gtk_toggle_button_set_active(toggle_adjust, com.starfinder_conf.adjust);
-	gtk_spin_button_set_value(spin_sigma, com.starfinder_conf.sigma);
-	gtk_spin_button_set_value(spin_roundness, com.starfinder_conf.roundness);
+	gtk_spin_button_set_value(spin_radius, (double) com.pref.starfinder_conf.radius);
+	gtk_toggle_button_set_active(toggle_adjust, com.pref.starfinder_conf.adjust);
+	gtk_spin_button_set_value(spin_sigma, com.pref.starfinder_conf.sigma);
+	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
 }
 
 void confirm_peaker_GUI() {
@@ -811,7 +811,7 @@ gpointer findstar(gpointer p) {
 	rectangle *selection = NULL;
 	if (com.selection.w != 0 && com.selection.h != 0)
 		selection = &com.selection;
-	psf_star **stars = peaker(&args->im, args->layer, &com.starfinder_conf, &nbstars, selection, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars, selection, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
 	if (stars) {
 		clear_stars_list(FALSE);
 		com.stars = stars;
