@@ -216,7 +216,7 @@ static void set_histo_toggles_names() {
 	if (gfit.naxis == 2) {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Gray channel"));
 		GtkWidget *w;
-		if (com.pref.combo_theme == 0) {
+		if (com.pref.gui.combo_theme == 0) {
 			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "monochrome_dark.svg", NULL);
 			w = gtk_image_new_from_file(image);
 		} else {
@@ -357,7 +357,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 	int k;
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_line_width(cr, 1.0);
-	cairo_set_source_rgb(cr, .9, .9, .9);
+	cairo_set_source_rgb(cr, 0.98, 0.5, 0.45);
 
 	if (invocation == HISTO_STRETCH) {
 		for (k = 0; k < width + 1; k++) {

@@ -399,7 +399,7 @@ void force_to_refresh_catalogue_list() {
 }
 
 static gboolean show_catalog(int catalog) {
-	return com.pref.catalog[catalog];
+	return com.pref.gui.catalog[catalog];
 }
 
 void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {

@@ -61,6 +61,7 @@ src_files = [
   'core/preprocess.c',
   'core/processing.c',
   'core/sequence_filtering.c',
+  'core/settings.c',
   'core/signals.c',
   'core/siril.c',
   'core/siril_actions.c',

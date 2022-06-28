@@ -18,7 +18,7 @@ v1.2.0 mmm dd, 2022
 * Replaced generalized hyperbolic transform stretch method by more general algorithms
 * Fixed comet registration when registration was accumulated over existing data
 
-v1.0.3 June --, 2022
+v1.0.3 June 28, 2022
 
 * Fixed memory leak in PixelMath
 * Fixed memory leak in SER preview

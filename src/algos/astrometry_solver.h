@@ -49,11 +49,6 @@ typedef enum {
 	QUERY_SERVER_SIMBAD
 } query_server;
 
-enum {
-	WCS_FORMALISM_2,
-	WCS_FORMALISM_1
-};
-
 struct astrometry_data {
 	/* user input */
 	fits *fit;		// the image

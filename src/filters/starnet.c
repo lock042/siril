@@ -265,7 +265,7 @@ gpointer do_starnet() {
 	// Load the original image TIFF back into gfit
 	retval = readtif(temptif, &gfit, FALSE);
 	// Load the starless version into fit
-	if (readfits(starlessfit, &fit, NULL, !com.pref.force_to_16bit)) {
+	if (readfits(starlessfit, &fit, NULL, !com.pref.force_16bit)) {
 		siril_log_color_message(_("Error: unable to load starless image for starmask generation...\n"), "red");
 		free(imagenoext);
 		free(currentdir);
@@ -275,7 +275,7 @@ gpointer do_starnet() {
 		return NULL;
 	}
 	// Subtract starless from original
-	retval = imoper(&gfit, &fit, OPER_SUB, !com.pref.force_to_16bit);
+	retval = imoper(&gfit, &fit, OPER_SUB, !com.pref.force_16bit);
 	clearfits(&fit);
 
 	// Save starmask as fits
@@ -290,7 +290,7 @@ gpointer do_starnet() {
 	}
 
 	// Load starless - the final result we want to show is the starless version
-	if (readfits(starlessfit, &gfit, NULL, !com.pref.force_to_16bit)) {
+	if (readfits(starlessfit, &gfit, NULL, !com.pref.force_16bit)) {
 		siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
 		free(imagenoext);
 		free(currentdir);

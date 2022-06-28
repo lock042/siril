@@ -110,12 +110,12 @@ static void search_for_startup_dir() {
 
 	size = sizeof(sdir) / sizeof(GUserDirectory);
 
-	while (dir == NULL && i < size) {
+	while (!dir && i < size) {
 		dir = g_get_user_special_dir(sdir[i]);
 		i++;
 	}
 	/* Not every platform has a directory for these logical id */
-	if (dir == NULL) {
+	if (!dir) {
 		dir = g_get_home_dir();
 	}
 	if (dir)

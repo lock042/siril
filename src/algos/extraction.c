@@ -22,7 +22,7 @@ static void update_sampling_information(fits *fit) {
 
 void update_filter_information(fits *fit, char *filter, gboolean append) {
 	gchar *filtername = NULL;
-	if (append && (fit->filter)){
+	if (append){
 		gchar *currfilter = g_strstrip(fit->filter);
 		if (g_strcmp0(currfilter, filter) && !(currfilter[0] == '\0')) { // to deal with case of Ha filter (avoids Ha_Ha) or empty filter name
 			filtername = g_strconcat(currfilter, "_", filter, NULL);

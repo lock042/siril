@@ -16,7 +16,7 @@
 #include <libintl.h>
 
 
-#include "gui/preferences.h"
+#include "core/settings.h"
 #include "core/atomic.h"
 
 #define _(String) gettext (String)
@@ -170,22 +170,15 @@ typedef struct single_image single;
 typedef struct wcs_struct wcs_info;
 typedef struct dft_struct dft_info;
 typedef struct ffit fits;
-typedef struct phot_config phot;
-typedef struct stack_config stackconf;
-typedef struct comp_config compconf;
 typedef struct guiinf guiinfo;
 typedef struct cominf cominfo;
 typedef struct image_stats imstats;
-typedef struct rectangle_struct rectangle;
 typedef struct point_struct point;
 typedef struct pointf_struct pointf;
 typedef struct pointi_struct pointi;
 typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
 typedef struct tilt_struct sensor_tilt;
-typedef struct star_finder_struct star_finder_params;
-typedef struct pref_struct preferences;
-typedef struct save_config_struct save_config;
 typedef struct regframe_struct regframe;
 
 /* global structures */
@@ -231,20 +224,6 @@ typedef enum {
 } open_image_status;
 
 typedef enum {
-	BAYER_BILINEAR,
-	BAYER_VNG,
-	BAYER_AHD,
-	BAYER_AMAZE,
-	BAYER_DCB,
-	BAYER_HPHD,
-	BAYER_IGV,
-	BAYER_LMMSE,
-	BAYER_RCD,
-	BAYER_SUPER_PIXEL,
-	XTRANS
-} interpolation_method;
-
-typedef enum {
 	OPENCV_NEAREST = 0,
 	OPENCV_LINEAR = 1,
 	OPENCV_CUBIC = 2,
@@ -252,17 +231,6 @@ typedef enum {
 	OPENCV_LANCZOS4 = 4,
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
-
-typedef enum {
-	BAYER_FILTER_RGGB,
-	BAYER_FILTER_BGGR,
-	BAYER_FILTER_GBRG,
-	BAYER_FILTER_GRBG,
-	XTRANS_FILTER,
-	BAYER_FILTER_NONE = -1		//case where pattern is undefined or untested
-} sensor_pattern;
-#define BAYER_FILTER_MIN BAYER_FILTER_RGGB
-#define BAYER_FILTER_MAX BAYER_FILTER_GRBG
 
 typedef enum { SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
 #ifdef HAVE_FFMS2
@@ -276,6 +244,13 @@ typedef enum {
 	SINGLE_THREADED = 1
 	/* and higher values are the number of threads */
 } threading_type;
+
+typedef enum {
+	RICE_COMP,
+	GZIP1_COMP,
+	GZIP2_COMP,
+	HCOMPRESS_COMP
+} compression_mode;
 
 /* image data, exists once for each image */
 struct imdata {
@@ -467,60 +442,6 @@ struct ffit {
 	GSList *history;	// Former HISTORY comments of FITS file
 };
 
-/* This structure is used for all the elements in the box libraw_settings.
- * Don't forget to update conversion.c:initialize_libraw_settings() data when
- * modifying the glade settings */
-struct libraw_config {
-	double mul[3], bright;					// Color & brightness adjustement mul[0] = red, mul[1] = green = 1, mul[2] = blue
-	int auto_mul, use_camera_wb, use_auto_wb;		// White Balance parameters
-	int user_qual;						// Index of the Matrix interpolation set in dcraw, 0: bilinear, 1: VNG, 2: PPG, 3: AHD
-	int user_black;						// black point correction
-	double gamm[3];						// Gamma correction
-};
-
-/* This structure is used for storing all parameters used in photometry module */
-struct phot_config {
-	double gain;	// A/D converter gain in electrons per ADU
-	double inner;	// Inner radius of the annulus used to measure local background.
-	double outer;	// Outer radius of the annulus used to measure local background.
-	double aperture; // flux aperture
-	gboolean force_radius; // force the aperture radius value
-	int minval, maxval;
-};
-
-struct debayer_config {
-	gboolean open_debayer;			// debayer images being opened
-	gboolean use_bayer_header;		// use the pattern given in the file header
-	sensor_pattern bayer_pattern;		// user-defined Bayer pattern
-	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
-	gboolean top_down;				// debayer top-down orientation
-	int xbayeroff, ybayeroff;			// x and y Bayer offsets
-};
-
-struct stack_config {
-	int method;				// 0=sum, 1=median, 2=average, 3=pixel max, 4=pixel min - Use to save preferences in the init file
-	int normalisation_method;
-	int rej_method;
-	double sigma_low, sigma_high;
-	double linear_low, linear_high;
-	double percentile_low, percentile_high;
-	double esdt_outliers, esdt_significance;
-	enum { RATIO, AMOUNT } mem_mode; // mode of memory management
-	double memory_ratio;			// ratio of available memory to use for stacking (and others)
-	double memory_amount;			// amount of memory in GB to use for stacking (and others)
-};
-
-struct comp_config {
-	gboolean fits_enabled;		// true enabled
-	int fits_method;		// 0=Rice, 1=GZIP1, 2=GZIP2, 3=Hcompress
-	double fits_quantization;	// quantization factor for floating point compression
-	double fits_hcompress_scale;		// scale factor for Hcompress compression
-};
-
-struct rectangle_struct {
-	int x, y, w, h;
-};
-
 struct point_struct {
 	double x, y;
 };
@@ -541,91 +462,6 @@ struct historic_struct {
 	wcs_info wcsdata;
 	double focal_length;
 };
-
-struct star_finder_struct {
-	int radius;
-	int adj_radius;
-	gboolean adjust;
-	double sigma;
-	double roundness;
-	double focal_length, pixel_size_x;
-};
-
-struct save_config_struct {
-	gboolean quit;
-	gboolean warn_script;
-};
-
-/**
- * This is the preference structure.
- * WARNING!!
- * If you update something in this structure you absolutely need to
- * update pref_init in preferences.c
- */
-struct pref_struct {
-	gboolean first_start; // use to display information at first use
-	/* state of window */
-	gboolean remember_windows;
-	rectangle main_w_pos;
-	gint pan_position;
-	gboolean is_extended;
-	gboolean is_maximized;
-
-	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
-	gboolean prepro_equalize_cfa; // Use to save if flat will be equalized in preprocessing
-	gboolean fix_xtrans;	// Use to fix xtrans darks and biases with the AF square
-	rectangle xtrans_af;	// if no xtrans model found, use these values
-	rectangle xtrans_sample; // if no xtrans model found, use these values
-	gchar *prepro_bias_lib;
-	gboolean use_bias_lib;
-	gchar *prepro_bias_synth;
-	gboolean use_bias_synth;
-	gchar *prepro_dark_lib;
-	gboolean use_dark_lib;
-	gchar *prepro_flat_lib;
-	gboolean use_flat_lib;
-
-	save_config save;
-	gboolean show_thumbnails; // show or don't show thumbnails in open dialog box
-	gint thumbnail_size;
-	gboolean check_update;	// check update at startup
-	gboolean script_check_requires; // check the requires command in scripts
-
-	gint combo_theme;	// value of the combobox theme
-	gdouble font_scale;	// font scale
-	gboolean icon_symbolic;	// icon style
-	gchar *combo_lang;	// string value of the combobox lang
-
-	gchar *ext;		// FITS extension used in SIRIL
-
-	gchar *swap_dir;	// swap directory
-	GSList *script_path;	// script path directories
-
-	gdouble focal;		// focal length saved in config file
-	gdouble pitch;		// pixel pitch saved in config file
-
-	struct debayer_config debayer;	// debayer settings
-	phot phot_set;		// photometry settings
-	gboolean catalog[7];	// Yet 6 catalogs and 1 user catalog
-	int position_compass;	// compass position
-	int wcs_formalism;	// formalism used in FITS header
-
-	stackconf stack;	// stacking option
-	compconf comp;		// compression option
-	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
-
-	gboolean force_to_16bit;
-
-	gint selection_guides;	// number of elements of the grid guides (2 for a simple cross, 3 for the 3 thirds rule, etc.)
-
-	gchar *copyright;	// User copyright when saving image as TIFF
-
-	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
-
-};
-/**
- * End of preference structure. Read above if modified.
- */
 
 /* The rendering of the main image is cached. As it can be much larger than the
  * widget in which it's displayed, it can take a lot of time to transform it
@@ -664,6 +500,14 @@ struct guiinf {
 
 	gboolean translating;		// the image is being translated
 
+	gboolean show_excluded;		// show excluded images in sequences
+
+	int selected_star;		// current selected star in the GtkListStore
+
+	gboolean show_wcs_grid;		// show the equatorial grid over the image
+
+	psf_star *qphot;		// quick photometry result, highlight a star
+
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
 	gboolean cut_over;		// display values over hi as negative
@@ -671,9 +515,7 @@ struct guiinf {
 	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY
 	gboolean unlink_channels;	// only for autostretch
 
-	gboolean show_excluded;		// show excluded images in sequences
-
-	/* selection rectangle for registration, FWHM, PSF */
+	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
 	pointi start;			// where the mouse was originally clicked to
 	pointi origin;			// where the selection was originally located
@@ -681,13 +523,12 @@ struct guiinf {
 	double ratio;			// enforced ratio of the selection (default is 0: none)
 
 	/* alignment preview data */
-	//guchar *preview_buf[PREVIEW_NB];
 	cairo_surface_t *preview_surface[PREVIEW_NB];
 	GtkWidget *preview_area[PREVIEW_NB];
 	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
 	cairo_surface_t *refimage_surface;
 
-	int filter;			// file extension filter for open/save dialogs
+	int file_ext_filter;		// file extension filter for open/save dialogs
 
 	/* history of the command line. This is a circular buffer (cmd_history)
 	 * of size cmd_hist_size, position to be written is cmd_hist_current and
@@ -697,55 +538,51 @@ struct guiinf {
 	int cmd_hist_size;		// allocated size
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
-
 };
 
 /* The global data structure of siril core */
 struct cominf {
-	preferences pref;		// saved variable in preferences
-	gchar *wd;			// working directory, where images and sequences are
-	gchar *initfile;		// the path of the init file
+	gchar *wd;			// current working directory, where images and sequences are
 
-	int reg_settings;		// Use to save registration method in the init file
+	preferences pref;		// some variables are stored in settings
+	gchar *initfile;		// the path of the init file (stores settings)
 
-	gboolean cache_upscaled;	// keep up-scaled files for 'drizzle' (only used by developers)
+	sequence seq;			// currently loaded sequence
+	single *uniq;			// currently loaded image, if outside sequence
 
-	/* history of operations */
-	historic *history;		// the history of all operations
+	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
+					      // TODO: move in ffit?
+
+	gboolean headless;		// pure console, no GUI
+	gboolean script;		// script being executed, always TRUE when headless is
+	GThread *thread;		// the thread for processing
+	GMutex mutex;			// a mutex we use for this thread
+	gboolean run_thread;		// the main thread loop condition
+	gboolean stop_script;		// abort script execution, not just a command
+	GThread *script_thread;		// reads a script and executes its commands
+	gboolean script_thread_exited;	// boolean set by the script thread when it exits
+
+	int max_images;			// max number of image threads used for parallel execution
+	int max_thread;			// max total number of threads used for parallel execution
+
+	rectangle selection;		// coordinates of the selection rectangle
+
+	psf_star **stars;		// list of stars detected in the current image
+	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
+	double magOffset;		// offset to reduce the real magnitude, single image
+
+	/* history of operations, for the FITS header and the undo feature */
+	historic *history;		// the history of all operations on the current image
 	int hist_size;			// allocated size
 	int hist_current;		// current index
 	int hist_display;		// displayed index
 
-	sequence seq;			// currently loaded sequence	TODO: *seq
-	single *uniq;			// currently loaded image, if outside sequence
+	/* all fields below are used by some specific features as a temporary storage */
+	GSList *grad_samples;		// list of samples for the background extraction
 
-	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
+	GSList *found_object;		// list of objects found in the image from catalogues
 
-	star_finder_params starfinder_conf;	// star finder settings, from GUI or init file
-	psf_star **stars;		// list of stars detected in the current image
-	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
-	int selected_star;		// current selected star in the GtkListStore
-	double magOffset;		// offset to reduce the real magnitude, single image
-
-	GSList *grad_samples;
-	GSList *found_object;
-	gboolean show_wcs_grid;
-	psf_star *qphot;		// quick photometry result
-	sensor_tilt *tilt;		// tilt information
-
-	int max_thread;			// maximum of thread used for parallel execution
-
-	GThread *thread;		// the thread for processing
-	GMutex mutex;			// a mutex we use for this thread
-	gboolean run_thread;		// the main thread loop condition
-
-	gboolean headless;		// pure console, no GUI
-	gboolean script;		// scripts execution
-	gboolean stop_script;		// abort script execution
-	GThread *script_thread;		// reads a script and executes its commands
-	gboolean script_thread_exited;	// boolean set by the script thread when it exits
-
-	rectangle selection;		// coordinates of the selection rectangle
+	sensor_tilt *tilt;		// computed tilt information
 };
 
 /* this structure is used to characterize the statistics of the image */

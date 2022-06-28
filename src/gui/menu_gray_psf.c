@@ -110,24 +110,24 @@ void on_menuitem_selection_all_activate(GtkMenuItem *menuitem, gpointer user_dat
 
 void menuitem_selection_guides_0_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 0;
+		com.pref.gui.selection_guides = 0;
 	}
 }
 
 void menuitem_selection_guides_2_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 2;
+		com.pref.gui.selection_guides = 2;
 	}
 }
 
 void menuitem_selection_guides_3_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 3;
+		com.pref.gui.selection_guides = 3;
 	}
 }
 
 void menuitem_selection_guides_5_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
-		com.pref.selection_guides = 5;
+		com.pref.gui.selection_guides = 5;
 	}
 }

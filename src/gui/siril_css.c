@@ -50,12 +50,12 @@ void load_css_style_sheet () {
 		gchar *css_buffer = get_buffer_from_css_file(CSSFile);
 		if (css_buffer) {
 			/* make sure that scale is ok */
-			if (com.pref.font_scale < 70.0) com.pref.font_scale = 100;
+			if (com.pref.gui.font_scale < 70.0) com.pref.gui.font_scale = 100;
 
 			GString *string = g_string_new(css_buffer);
 
 			gchar *first_line = g_strdup_printf("* { font-size: %lfem; -gtk-icon-style: %s; }",
-					1.0 + (com.pref.font_scale - 100.0) / 1000.0, com.pref.icon_symbolic ? "symbolic" : "regular");
+					1.0 + (com.pref.gui.font_scale - 100.0) / 1000.0, com.pref.gui.icon_symbolic ? "symbolic" : "regular");
 
 			g_string_replace(string, "* { font-size: 1.0em; -gtk-icon-style: regular; }", first_line, 1);
 			gchar *updated_css = g_string_free(string, FALSE);
