@@ -44,7 +44,7 @@
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
-const char *catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
+const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
 
 struct catalogue_index {
 	uint32_t trixelID;
@@ -240,16 +240,14 @@ static int update_coords_with_proper_motion(double *ra, double *dec, double dRA,
 int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
 	if (!has_wcs(fit))
 		return 1;
-	int nb_catalogues = sizeof(catalogues_paths) / sizeof(const char *);
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
 	pcc_star **catalogue_stars = malloc(nb_catalogues * sizeof(pcc_star *));
 	int *catalogue_nb_stars = malloc(nb_catalogues * sizeof(int));
 	int total_nb_stars = 0, retval = 0, catalogue = 0;
 
 	for (; catalogue < nb_catalogues; catalogue++) {
-		char path[1024];
-		strcpy(path, catalogues_paths[catalogue]);
-		expand_home_in_filename(path, 1024);
-		retval = get_projected_stars_from_local_catalogue(path, ra, dec, radius,
+		retval = get_projected_stars_from_local_catalogue(com.pref.catalogue_paths[catalogue],
+				ra, dec, radius,
 				// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
 				/* catalogue != 2 */ FALSE, fit, max_mag,
 				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
@@ -552,14 +550,22 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	return 0;
 }
 
-gboolean local_catalogues_available() {
-	/* static path for now */
-	int nb_catalogues = sizeof(catalogues_paths) / sizeof(const char *);
+void initialize_local_catalogues_paths() {
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+		if (com.pref.catalogue_paths[catalogue])
+			continue;
 		char path[1024];
-		strcpy(path, catalogues_paths[catalogue]);
+		strcpy(path, default_catalogues_paths[catalogue]);
 		expand_home_in_filename(path, 1024);
-		if (!is_readable_file(path))
+		com.pref.catalogue_paths[catalogue] = g_strdup(path);
+	}
+}
+
+gboolean local_catalogues_available() {
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
 			return FALSE;
 	}
 	return TRUE;
@@ -589,7 +595,7 @@ static double compute_coords_distance(double ra1, double dec1, double ra2, doubl
  * stars and filters them based on the radius instead of image bounds */
 static int get_raw_stars_from_local_catalogues(double target_ra, double target_dec, double radius,
 		float max_mag, gboolean photometric, deepStarData_dist **stars, uint32_t *nb_stars) {
-	int nb_catalogues = sizeof(catalogues_paths) / sizeof(const char *);
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
 	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
 	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
 	uint32_t total_nb_stars = 0;
@@ -604,11 +610,9 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 			continue;
 		}
 
-		char path[1024];
-		strcpy(path, catalogues_paths[catalogue]);
-		expand_home_in_filename(path, 1024);
 		// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
-		retval = read_trixels_from_catalogue(path, target_ra, target_dec, radius,
+		retval = read_trixels_from_catalogue(com.pref.catalogue_paths[catalogue],
+				target_ra, target_dec, radius,
 				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
 		if (retval)
 			break;

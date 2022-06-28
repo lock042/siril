@@ -585,7 +585,7 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	free_preferences(&com.pref);
+	//free_preferences(&com.pref);
 	dump_ui_to_global_var();
 
 	initialize_FITS_name_entries(); // To update UI with new preferences
