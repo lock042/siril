@@ -246,10 +246,10 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_9_16")), gui.ratio == 9.0 / 16.0);
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_preserve"), is_a_single_image_loaded || sequence_is_loaded());
 	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_all"), is_a_single_image_loaded || sequence_is_loaded());
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_0")), com.pref.selection_guides == 0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_2")), com.pref.selection_guides == 2);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_3")), com.pref.selection_guides == 3);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_5")), com.pref.selection_guides == 5);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_0")), com.pref.gui.selection_guides == 0);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_2")), com.pref.gui.selection_guides == 2);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_3")), com.pref.gui.selection_guides == 3);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_5")), com.pref.gui.selection_guides == 5);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -436,15 +436,15 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
 				if (area.x - area.w > 0 && area.x + area.w < gfit.rx
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
-					com.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, com.pref.phot_set.force_radius, TRUE, NULL);
-					if (com.qphot) {
-						com.qphot->xpos = com.qphot->x0 + area.x;
+					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, com.pref.phot_set.force_radius, TRUE, NULL);
+					if (gui.qphot) {
+						gui.qphot->xpos = gui.qphot->x0 + area.x;
 						if (gfit.top_down)
-							com.qphot->ypos = com.qphot->y0 + area.y;
+							gui.qphot->ypos = gui.qphot->y0 + area.y;
 						else
-							com.qphot->ypos = area.y + area.h - com.qphot->y0;
+							gui.qphot->ypos = area.y + area.h - gui.qphot->y0;
 						redraw(REDRAW_OVERLAY);
-						popup_psf_result(com.qphot, &area);
+						popup_psf_result(gui.qphot, &area);
 					}
 				}
 			}

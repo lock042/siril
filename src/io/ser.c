@@ -1297,7 +1297,7 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
  */
 GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	GdkPixbuf *pixbuf = NULL;
-	int MAX_SIZE = com.pref.thumbnail_size;
+	int MAX_SIZE = com.pref.gui.thumbnail_size;
 	gchar *description = NULL;
 	int i, j, k, l, N, M;
 	int w, h, pixScale, Ws, Hs, n_channels, n_frames, bit;

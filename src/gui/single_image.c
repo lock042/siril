@@ -81,6 +81,9 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 								siril_log_message(_("No sequence `%s' found.\n"), filename);
 							} else {
 								set_seq(filename);
+								if (com.pref.wd)
+									g_free(com.pref.wd);
+								com.pref.wd = g_strdup(com.wd);
 								if (!com.script) {
 									populate_seqcombo(filename);
 									set_GUI_CWD();

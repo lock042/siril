@@ -62,7 +62,7 @@ static void get_statlist_store() {
 static void display_stat(double *value, double *normalization, char *format, int nblayer, int i, data_type type) {
 	char rvalue[20], gvalue[20], bvalue[20];
 	GtkTreeIter iter;
-	int color = (com.pref.combo_theme == 0) ? 1 : 0;
+	int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 
 	sprintf(rvalue, format, value[RLAYER] / normalization[RLAYER]);
 

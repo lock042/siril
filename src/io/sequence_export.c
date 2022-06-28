@@ -252,7 +252,7 @@ static gpointer export_sequence(gpointer ptr) {
 	}
 
 	if (output_bitpix == FLOAT_IMG)
-		output_bitpix = com.pref.force_to_16bit ? USHORT_IMG : FLOAT_IMG;
+		output_bitpix = com.pref.force_16bit ? USHORT_IMG : FLOAT_IMG;
 
 	nb_frames = compute_nb_filtered_images(args->seq,
 			args->filtering_criterion, args->filtering_parameter);

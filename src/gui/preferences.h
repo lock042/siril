@@ -20,13 +20,6 @@
 #ifndef SRC_GUI_PREFERENCES_H_
 #define SRC_GUI_PREFERENCES_H_
 
-typedef enum {
-	RICE_COMP,
-	GZIP1_COMP,
-	GZIP2_COMP,
-	HCOMPRESS_COMP
-} compression_mode;
-
 void update_libraw_and_debayer_interface();
 void update_photometry_interface();
 void set_GUI_photometry();
@@ -35,7 +28,7 @@ void set_libraw_settings_menu_available(gboolean activate);
 void initialize_compression_param();
 void set_GUI_compression();
 void initialize_default_preferences();
-void set_preferences_dialog_from_global();
+void update_preferences_from_model();
 gchar *get_swap_dir();
 
 #endif /* SRC_GUI_PREFERENCES_H_ */

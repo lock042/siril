@@ -64,7 +64,8 @@ static GActionEntry image_entries[] = {
 		{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
 		{ "wcs-grid", wcs_grid_activate, NULL, "false", wcs_grid_state },
 		{ "search-object", search_object_activate },
-		{ "seq-list", seq_list_activate }
+		{ "seq-list", seq_list_activate },
+		{ "regframe", regframe_activate , NULL, "true", regframe_state }
 };
 
 static GActionEntry selection_entries[] = {
@@ -89,6 +90,7 @@ static GActionEntry rgb_processing_entries[] = {
 static GActionEntry any_processing_entries[] = {
 		{ "negative-processing", negative_activate },
 		{ "histo-processing", histo_activate },
+		{ "payne-processing", payne_activate },
 		{ "fix-banding-processing", fix_banding_activate },
 		{ "cosmetic-processing", cosmetic_activate },
 		{ "background-extr-processing", background_extr_activate }
@@ -100,7 +102,6 @@ static GActionEntry any_mono_processing_entries[] = {
 
 static GActionEntry single_processing_entries[] = {
 		{ "asinh-processing", asinh_activate },
-		{ "payne-processing", payne_activate },
 		{ "deconvolution-processing", deconvolution_activate },
 		{ "resample-processing", resample_activate },
 		{ "rotation-processing", rotation_activate },
@@ -153,6 +154,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"image-information",
 		"dyn-psf",
 		"seq-list",
+		"regframe",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
@@ -182,6 +184,7 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 	static const gchar *any_processing_actions[] = {
 		"negative-processing",
 		"histo-processing",
+		"payne-processing",
 		"fix-banding-processing",
 		"cosmetic-processing",
 		"background-extr-processing",
@@ -201,7 +204,6 @@ void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gbo
 void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *single_processing_actions[] = {
 		"asinh-processing",
-		"payne-processing",
 		"deconvolution-processing",
 		"resample-processing",
 		"rotation-processing",
@@ -241,12 +243,12 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 }
 
 void siril_window_enable_if_selection_sequence_actions(GtkApplicationWindow *window, gboolean enable) {
-	static const gchar *selection_sequebce_actions[] = {
+	static const gchar *selection_sequence_actions[] = {
 		"seq-psf",
 		"seq-crop",
 		NULL,
 	};
-	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_sequebce_actions, enable);
+	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_sequence_actions, enable);
 }
 
 void siril_window_map_actions(GtkApplicationWindow *window) {

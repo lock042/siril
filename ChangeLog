@@ -20,7 +20,7 @@ xx/xx/22
 * Fixed comet registration when registration was accumulated over existing data
 
 siril 1.0.3
-06/--/22
+06/28/22
 * Fixed memory leak in PixelMath
 * Fixed memory leak in SER preview
 * Fixed error in seqsubsky

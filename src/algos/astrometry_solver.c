@@ -1142,14 +1142,14 @@ gpointer match_catalog(gpointer p) {
 	}
 
 	if (!args->manual) {
-		com.starfinder_conf.pixel_size_x = com.pref.pitch;
-		com.starfinder_conf.focal_length = com.pref.focal;
+		com.pref.starfinder_conf.pixel_size_x = com.pref.pitch;
+		com.pref.starfinder_conf.focal_length = com.pref.focal;
 
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 
-		stars = peaker(&im, 0, &com.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
-		com.starfinder_conf.pixel_size_x = 0.;
-		com.starfinder_conf.focal_length = 0.;
+		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
+		com.pref.starfinder_conf.pixel_size_x = 0.;
+		com.pref.starfinder_conf.focal_length = 0.;
 	} else {
 		stars = com.stars;
 		if (com.stars)
@@ -1538,11 +1538,11 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			// detect if the selection is not centered enough that it matters
 			double thr = max(args->fit->rx, args->fit->ry) / 10.0;
 			args->uncentered =
-				abs(croparea.x + 0.5 * croparea.w - 0.5 * args->fit->rx) > thr ||
-				abs(croparea.y + 0.5 * croparea.h - 0.5 * args->fit->ry) > thr;
+				fabs(croparea.x + 0.5 * croparea.w - 0.5 * args->fit->rx) > thr ||
+				fabs(croparea.y + 0.5 * croparea.h - 0.5 * args->fit->ry) > thr;
 			if (args->uncentered)
 				siril_debug_print("detected uncentered selection\n");
-			else  siril_debug_print("selection considered centered\n");
+			else siril_debug_print("selection considered centered\n");
 		} else {
 			args->uncentered = FALSE;
 		}

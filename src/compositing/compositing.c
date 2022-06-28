@@ -373,7 +373,7 @@ void open_compositing_window() {
 			i++;
 		}
 		if (i > 0) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(aligncombo), com.reg_settings);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(aligncombo), com.pref.gui.reg_settings);
 		}
 
 		compositing_loaded = 1;

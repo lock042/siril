@@ -70,8 +70,8 @@ int round_to_int(double x) {
  * @return an integer
  */
 int roundf_to_int(float x) {
-	if (x <= INT_MIN + 0.5f) return INT_MIN;
-	if (x >= INT_MAX - 0.5f) return INT_MAX;
+	if (x <= (float)INT_MIN + 0.5f) return INT_MIN;
+	if (x >= (float)INT_MAX - 0.5f) return INT_MAX;
 	if (x >= 0.0f)
 		return (int)(x + 0.5f);
 	return (int)(x - 0.5f);

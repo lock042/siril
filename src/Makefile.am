@@ -101,6 +101,8 @@ siril_common_SOURCES = \
 	core/processing.c \
 	core/sequence_filtering.c \
 	core/sequence_filtering.h \
+	core/settings.c \
+	core/settings.h \
 	core/signals.c \
 	core/signals.h \
 	core/siril.c \
@@ -139,8 +141,8 @@ siril_common_SOURCES = \
 	filters/median.h \
 	filters/mtf.c \
 	filters/mtf.h \
-	filters/payne.c \
-	filters/payne.h \
+	filters/ght.c \
+	filters/ght.h \
 	filters/rgradient.c \
 	filters/rgradient.h \
 	filters/saturation.c \

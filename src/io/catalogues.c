@@ -227,7 +227,7 @@ static int update_coords_with_proper_motion(double *ra, double *dec, double dRA,
 	double delta = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
 	alpha = alpha - 360.0 * floor(alpha / 360.0);
 
-	if (abs(*ra - alpha) > .0000277 || abs(*dec - delta) > .0000277)
+	if (fabs(*ra - alpha) > .0000277 || fabs(*dec - delta) > .0000277)
 		siril_debug_print("star moved from more than a tenth of arcsec on an axis (%f, %f)\n", *ra, *dec);
 	*ra = alpha;
 	*dec = delta;
@@ -571,18 +571,17 @@ static double compute_coords_distance(double ra1, double dec1, double ra2, doubl
 	double ra_diff;
 	if (ra1 > ra2) {
 		double ra1o = ra1 - 360.0;
-		if (ra1minra2 < abs(ra1o - ra2))
+		if (ra1minra2 < fabs(ra1o - ra2))
 			ra_diff = ra1minra2;
 		else ra_diff = ra1o - ra2;
 	} else {
 		double ra2o = ra2 - 360.0;
-		if (abs(ra1minra2) < abs(ra1 - ra2o))
+		if (fabs(ra1minra2) < fabs(ra1 - ra2o))
 			ra_diff = ra1minra2;
 		else ra_diff = ra1 - ra2o;
 	}
 
 	double dec_diff = dec1 - dec2;
-
 	return sqrt(ra_diff * ra_diff + dec_diff * dec_diff);
 }
 

@@ -165,8 +165,8 @@ void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	} else {
 		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 	}
-	if (com.pref.remember_windows) {
-		com.pref.is_extended = !is_visible;
+	if (com.pref.gui.remember_windows) {
+		com.pref.gui.is_extended = !is_visible;
 		writeinitfile();
 	}
 }
@@ -269,8 +269,8 @@ void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer
 void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	mouse_status = g_variant_get_boolean(state) ? MOUSE_ACTION_PHOTOMETRY : MOUSE_ACTION_SELECT_REG_AREA;
 	g_simple_action_set_state(action, state);
-	free(com.qphot);
-	com.qphot = NULL;
+	free(gui.qphot);
+	gui.qphot = NULL;
 	redraw(REDRAW_OVERLAY);
 }
 
@@ -366,7 +366,7 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 }
 
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
-	com.show_wcs_grid = g_variant_get_boolean(state);
+	gui.show_wcs_grid = g_variant_get_boolean(state);
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);
 }
@@ -382,6 +382,21 @@ void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GVariant *state;
 
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	GtkToggleButton *drawframe;
+	drawframe = GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"));
+	gtk_toggle_button_set_active(drawframe, g_variant_get_boolean(state));
+	g_simple_action_set_state(action, state);
+	redraw(REDRAW_OVERLAY);
+}
+
+void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
 	state = g_action_get_state(G_ACTION(action));
 	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
 	g_variant_unref(state);
@@ -456,7 +471,7 @@ void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	toggle_histogram_window_visibility();
+	toggle_histogram_window_visibility(1);
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -480,7 +495,7 @@ void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("payne_dialog");
+	toggle_histogram_window_visibility(2);
 }
 
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

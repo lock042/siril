@@ -98,8 +98,8 @@ static gboolean free_image_data_idle(gpointer p) {
 	com.found_object = NULL;
 	reset_display_offset();
 	reset_zoom_default();
-	free(com.qphot);
-	com.qphot = NULL;
+	free(gui.qphot);
+	gui.qphot = NULL;
 	clear_sensor_tilt();
 	g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
@@ -222,7 +222,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		*realname_out = realname;
 	else
 		free(realname);
-	gui.filter = (int) imagetype;
+	gui.file_ext_filter = (int) imagetype;
 	siril_add_idle(end_read_single_image, NULL);
 	return retval;
 }
