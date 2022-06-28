@@ -538,7 +538,7 @@ float measure_image_FWHM(fits *fit) {
 #ifdef _OPENMP
 		nb_subthreads = threads[chan];
 #endif
-		psf_star **stars = peaker(&im, chan, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, nb_subthreads);
+		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, nb_subthreads);
 		if (stars) {
 			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
 			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);

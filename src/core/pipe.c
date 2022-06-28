@@ -474,7 +474,7 @@ void *process_commands(void *p) {
 		parse_line(command, strlen(command), &wordnb);
 		gchar *command_name = g_strdup_printf("%s\n", command);
 
-		if (check_requires(&checked_requires)) {
+		if (check_requires(&checked_requires, com.pref.pipe_check_requires)) {
 			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command_name);
 			empty_command_queue();
 			free(command);

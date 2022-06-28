@@ -160,7 +160,7 @@ void initialize_registration_methods() {
 		i++;
 	}
 	if (i > 0) {
-		gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), com.reg_settings);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), com.pref.gui.reg_settings);
 	}
 
 	/* register to the new area selected event */
@@ -756,7 +756,7 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	}
 	g_free(text);
 
-	com.reg_settings = index;
+	com.pref.gui.reg_settings = index;
 	reset_3stars();
 	update_reg_interface(TRUE);
 	if (index != (NUMBER_OF_METHODS - 1))

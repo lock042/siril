@@ -108,7 +108,7 @@ void initialize_stacking_methods() {
 gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err) {
 	gchar *error = NULL;
-	if (com.pref.force_to_16bit) {
+	if (com.pref.force_16bit) {
 		if (seq->bitpix == FLOAT_IMG) {
 			error = _("Input sequence is in 32-bit format but preferences are set to 16-bit output format. "
 					"Please, change your preference settings and retry.\n");
@@ -501,7 +501,6 @@ void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_d
 		com.pref.stack.sigma_low = gtk_spin_button_get_value(button);
 		break;
 	case GESDT:
-		com.pref.stack.esdt_outliers = gtk_spin_button_get_value(button);
 		break;
 	default:
 		return;
@@ -526,7 +525,6 @@ void on_stack_sighigh_button_value_changed(GtkSpinButton *button, gpointer user_
 		com.pref.stack.sigma_high = gtk_spin_button_get_value(button);
 		break;
 	case GESDT:
-		com.pref.stack.esdt_significance = gtk_spin_button_get_value(button);
 		break;
 	default:
 		return;

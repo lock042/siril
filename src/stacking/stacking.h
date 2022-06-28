@@ -27,27 +27,6 @@ typedef enum {
 	STACK_MIN,
 } stackMethod;
 
-/* TYPE OF SIGMA CLIPPING */
-typedef enum {
-	NO_REJEC,
-	PERCENTILE,
-	SIGMA,
-	MAD,
-	SIGMEDIAN,
-	WINSORIZED,
-	LINEARFIT,
-	GESDT
-} rejection;
-
-/* TYPE OF NORMALIZATION */
-typedef enum {
-	NO_NORM,
-	ADDITIVE,
-	MULTIPLICATIVE,
-	ADDITIVE_SCALING,
-	MULTIPLICATIVE_SCALING,
-} normalization;
-
 /* identical to the combo box items */
 typedef enum {
 	ALL_IMAGES,

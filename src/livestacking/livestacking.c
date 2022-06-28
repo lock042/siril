@@ -329,7 +329,7 @@ static void init_preprocessing_from_command(char *dark, char *flat) {
 void init_preprocessing_finalize(struct preprocessing_data *prepro_data) {
 	prepro = prepro_data;
 	prepro->is_sequence = FALSE;
-	prepro->allow_32bit_output = !com.pref.force_to_16bit;
+	prepro->allow_32bit_output = !com.pref.force_16bit;
 
 	if (prepro->use_dark || prepro->use_flat) {
 		struct generic_seq_args generic = { .user = prepro };
@@ -578,7 +578,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		else if (use_demosaicing == BOOL_TRUE) {
 			fits fit = { 0 };
-			int retval = readfits(filename, &fit, NULL, !com.pref.force_to_16bit);
+			int retval = readfits(filename, &fit, NULL, !com.pref.force_16bit);
 			if (!retval)
 				retval = debayer_if_needed(TYPEFITS, &fit, TRUE);
 			if (!retval)
@@ -712,7 +712,7 @@ static gpointer live_stacker(gpointer arg) {
 		/* we should not use 32 bits for stack results if input files are 16 bits,
 		 * otherwise we end up with a mixed sequence to process;
 		 * inputs to stack are 16 bits when no preprocessing or debayer occur */
-		stackparam.use_32bit_output = !com.pref.force_to_16bit && (prepro || use_demosaicing == BOOL_TRUE);
+		stackparam.use_32bit_output = !com.pref.force_16bit && (prepro || use_demosaicing == BOOL_TRUE);
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.apply_nbstack_weights = TRUE;
 

@@ -985,7 +985,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	pldata *plot = plot_data;
 	d1 = ref_d = mean_d = NULL;
 
-	double color = (com.pref.combo_theme == 0) ? 0.0 : 1.0;
+	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
 
 	kplotcfg_defaults(&cfgplot);
 	kdatacfg_defaults(&cfgdata);

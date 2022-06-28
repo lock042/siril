@@ -152,10 +152,10 @@ static void initialize_theme_GUI() {
 	box = GTK_COMBO_BOX(lookup_widget("combo_theme"));
 
 	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
-	gtk_combo_box_set_active(box, com.pref.combo_theme);
+	gtk_combo_box_set_active(box, com.pref.gui.combo_theme);
 	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
-	update_icons_to_theme(com.pref.combo_theme == 0);
-	update_icons_sequence_list(com.pref.combo_theme == 0);
+	update_icons_to_theme(com.pref.gui.combo_theme == 0);
+	update_icons_sequence_list(com.pref.gui.combo_theme == 0);
 
 }
 
@@ -164,7 +164,7 @@ void load_prefered_theme(gint theme) {
 
 	settings = gtk_settings_get_default();
 
-	g_object_set(settings, "gtk-application-prefer-dark-theme", com.pref.combo_theme == 0, NULL);
+	g_object_set(settings, "gtk-application-prefer-dark-theme", com.pref.gui.combo_theme == 0, NULL);
 }
 
 void set_sliders_value_to_gfit() {
@@ -804,27 +804,27 @@ void initialize_FITS_name_entries() {
 	mflat = GTK_ENTRY(lookup_widget("flatname_entry"));
 	final_stack = GTK_ENTRY(lookup_widget("entryresultfile"));
 
-	if (com.pref.prepro_bias_lib && (g_file_test(com.pref.prepro_bias_lib, G_FILE_TEST_EXISTS))) {
-		if (com.pref.use_bias_lib) {
-			str[0] = g_strdup_printf("%s", com.pref.prepro_bias_lib);
+	if (com.pref.prepro.bias_lib && (g_file_test(com.pref.prepro.bias_lib, G_FILE_TEST_EXISTS))) {
+		if (com.pref.prepro.use_bias_lib) {
+			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_lib);
 		}
 	}
 
-	if (com.pref.prepro_bias_synth) {
-		if (com.pref.use_bias_synth) {
-			str[0] = g_strdup_printf("%s", com.pref.prepro_bias_synth);
+	if (com.pref.prepro.bias_synth) {
+		if (com.pref.prepro.use_bias_synth) {
+			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_synth);
 		}
 	}
 
-	if (com.pref.prepro_dark_lib && (g_file_test(com.pref.prepro_dark_lib, G_FILE_TEST_EXISTS))) {
-		if (com.pref.use_dark_lib) {
-			str[1] = g_strdup_printf("%s", com.pref.prepro_dark_lib);
+	if (com.pref.prepro.dark_lib && (g_file_test(com.pref.prepro.dark_lib, G_FILE_TEST_EXISTS))) {
+		if (com.pref.prepro.use_dark_lib) {
+			str[1] = g_strdup_printf("%s", com.pref.prepro.dark_lib);
 		}
 	}
 
-	if (com.pref.prepro_flat_lib && (g_file_test(com.pref.prepro_flat_lib, G_FILE_TEST_EXISTS))) {
-		if (com.pref.use_flat_lib) {
-			str[2] = g_strdup_printf("%s", com.pref.prepro_flat_lib);
+	if (com.pref.prepro.flat_lib && (g_file_test(com.pref.prepro.flat_lib, G_FILE_TEST_EXISTS))) {
+		if (com.pref.prepro.use_flat_lib) {
+			str[2] = g_strdup_printf("%s", com.pref.prepro.flat_lib);
 		}
 
 	}
@@ -1011,36 +1011,36 @@ void set_GUI_misc() {
 	GtkSpinButton *memory_percent, *memory_amount, *font_size;
 
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.save.quit);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.silent_quit);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.check_update);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.save.warn_script);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.warn_script_run);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("script_check_version"));
 	gtk_toggle_button_set_active(ToggleButton, com.pref.script_check_requires);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.show_thumbnails);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.show_thumbnails);
 	GtkComboBox *thumb_box = GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"));
-	gtk_combo_box_set_active(thumb_box, com.pref.thumbnail_size == 256 ? 1: 0);
+	gtk_combo_box_set_active(thumb_box, com.pref.gui.thumbnail_size == 256 ? 1: 0);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.remember_windows);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.remember_windows);
 	font_size = GTK_SPIN_BUTTON(lookup_widget("pref_fontsize"));
-	gtk_spin_button_set_value(font_size, com.pref.font_scale);
+	gtk_spin_button_set_value(font_size, com.pref.gui.font_scale);
 	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("pref_iconstyle"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.icon_symbolic);
+	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.icon_symbolic);
 
 	memory_percent = GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio"));
-	gtk_spin_button_set_value(memory_percent, com.pref.stack.memory_ratio);
+	gtk_spin_button_set_value(memory_percent, com.pref.memory_ratio);
 	memory_amount = GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount"));
-	gtk_spin_button_set_value(memory_amount, com.pref.stack.memory_amount);
+	gtk_spin_button_set_value(memory_amount, com.pref.memory_amount);
 
 	GtkToggleButton *modes[2] = { GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")),
 		GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio"))};
-	gtk_toggle_button_set_active(modes[com.pref.stack.mem_mode], TRUE);
+	gtk_toggle_button_set_active(modes[com.pref.mem_mode], TRUE);
 
 	/* initialization of default FITS extension and type */
 	GtkComboBox *combobox_type = GTK_COMBO_BOX(lookup_widget("combobox_type"));
-	gtk_combo_box_set_active(combobox_type, com.pref.force_to_16bit ? 0 : 1);
+	gtk_combo_box_set_active(combobox_type, com.pref.force_16bit ? 0 : 1);
 	GtkComboBox *fit_ext = GTK_COMBO_BOX(lookup_widget("combobox_ext"));
 	gtk_combo_box_set_active_id(fit_ext, com.pref.ext);
 }
@@ -1049,11 +1049,11 @@ static void initialize_preprocessing() {
 	GtkToggleButton *cfaButton, *eqButton, *xtransButton;
 
 	cfaButton = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
-	gtk_toggle_button_set_active(cfaButton, com.pref.prepro_cfa);
+	gtk_toggle_button_set_active(cfaButton, com.pref.prepro.cfa);
 	eqButton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
-	gtk_toggle_button_set_active(eqButton, com.pref.prepro_equalize_cfa);
+	gtk_toggle_button_set_active(eqButton, com.pref.prepro.equalize_cfa);
 	xtransButton = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
-	gtk_toggle_button_set_active(xtransButton, com.pref.fix_xtrans);
+	gtk_toggle_button_set_active(xtransButton, com.pref.prepro.fix_xtrans);
 
 	update_prepro_interface(FALSE);
 }
@@ -1122,18 +1122,18 @@ static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	int position = gtk_paned_get_position(paned);
 	//printf("position updated to %d\n", position);
 	if (first_resize) {
-		if (com.pref.remember_windows && com.pref.pan_position > 0) {
-			gtk_paned_set_position(paned, com.pref.pan_position);
+		if (com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
+			gtk_paned_set_position(paned, com.pref.gui.pan_position);
 		}
 		first_resize = FALSE;
 	} else {
-		if (com.pref.remember_windows)
-			com.pref.pan_position = position;
+		if (com.pref.gui.remember_windows)
+			com.pref.gui.pan_position = position;
 		int max_position;
 		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
 		if (position == max_position) {
 			GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-			com.pref.pan_position = -1;
+			com.pref.gui.pan_position = -1;
 			// hide it
 			GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
 			g_action_activate(action_panel, NULL);
@@ -1154,7 +1154,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	init_mouse();
 
 	/* populate language combo */
-	siril_language_fill_combo(com.pref.combo_lang);
+	siril_language_fill_combo(com.pref.lang);
 
 	/* Keybord Shortcuts */
 	load_accels();
@@ -1190,9 +1190,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* initialize stacking methods */
 	initialize_stacking_methods();
 
-	/* set all preferences button in the dialog */
-	set_preferences_dialog_from_global();
-
 	/* set focal and pixel pitch */
 	set_focal_and_pixel_pitch();
 
@@ -1224,8 +1221,8 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	update_spinCPU(com.max_thread);
 
-	if (com.pref.first_start) {
-		com.pref.first_start = FALSE;
+	if (com.pref.gui.first_start) {
+		com.pref.gui.first_start = FALSE;
 		writeinitfile();
 
 		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
@@ -1409,31 +1406,31 @@ static rectangle get_window_position(GtkWindow *window) {
 }
 
 void save_main_window_state() {
-	if (!com.script && com.pref.remember_windows) {
+	if (!com.script && com.pref.gui.remember_windows) {
 		static GtkWindow *main_w = NULL;
 
 		if (!main_w)
 			main_w = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
-		com.pref.main_w_pos = get_window_position(main_w);
-		com.pref.is_maximized = gtk_window_is_maximized(main_w);
+		com.pref.gui.main_w_pos = get_window_position(main_w);
+		com.pref.gui.is_maximized = gtk_window_is_maximized(main_w);
 	}
 }
 
 void load_main_window_state() {
-	if (!com.script && com.pref.remember_windows) {
+	if (!com.script && com.pref.gui.remember_windows) {
 		GtkWidget *win = lookup_widget("control_window");
 		GdkRectangle workarea = { 0 };
 
 		gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
 
-		int w = com.pref.main_w_pos.w;
-		int h = com.pref.main_w_pos.h;
+		int w = com.pref.gui.main_w_pos.w;
+		int h = com.pref.gui.main_w_pos.h;
 
-		int x = CLAMP(com.pref.main_w_pos.x, 0, workarea.width - w);
-		int y = CLAMP(com.pref.main_w_pos.y, 0, workarea.height - h);
+		int x = CLAMP(com.pref.gui.main_w_pos.x, 0, workarea.width - w);
+		int y = CLAMP(com.pref.gui.main_w_pos.y, 0, workarea.height - h);
 
 		if (w > 0 && h > 0) {
-			if (com.pref.is_maximized) {
+			if (com.pref.gui.is_maximized) {
 				gtk_window_maximize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)));
 			} else {
 				gtk_window_move(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), x, y);
@@ -1446,8 +1443,8 @@ void load_main_window_state() {
 		GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
 		GtkWidget *widget = gtk_paned_get_child2(paned);
 
-		gtk_widget_set_visible(widget, com.pref.is_extended);
-		if (com.pref.is_extended) {
+		gtk_widget_set_visible(widget, com.pref.gui.is_extended);
+		if (com.pref.gui.is_extended) {
 			gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
 		} else {
 			gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
@@ -1459,16 +1456,16 @@ void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
-	g_slist_free_full(com.pref.script_path, g_free);
+	g_slist_free_full(com.pref.gui.script_path, g_free);
 	exit(EXIT_SUCCESS);
 }
 
 void siril_quit() {
-	if (com.pref.save.quit) {
+	if (com.pref.gui.silent_quit) {
 		gtk_main_quit();
 	}
 	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
-			_("Are you sure you want to quit?"), _("Exit"), &com.pref.save.quit);
+			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
 	if (quit) {
 		set_GUI_misc();
 		writeinitfile();

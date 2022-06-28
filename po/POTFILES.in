@@ -36,6 +36,7 @@ src/core/pipe.c
 src/core/preprocess.c
 src/core/processing.c
 src/core/sequence_filtering.c
+src/core/settings.c
 src/core/signals.c
 src/core/siril.c
 src/core/siril_actions.c

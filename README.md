@@ -32,7 +32,6 @@ Then, mandatory build dependencies:
  * **cfitsio** for FITS image read and write
  * **fftw3** for Fourier transforms
  * **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
- * **libconfig** (>= 1.4) for structured configuration files
  * **A C++ compiler** for opencv code and avi exporter
  * **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possbile without some shift-only registration)
  * **exiv2** to manage image metadata
@@ -53,6 +52,7 @@ time, or their support won't be included.
  * **libcurl** for web interaction. Useless on GNU-Linux MUST be installed on macOS and Windows platform as GIO is broken
  * **wcslib** for some astrometry utilities
  * **gnuplot** for photometry graphs output
+ * **libconfig** (>= 1.4) to read old configuration files (not used since 1.1)
  * **criterion** for unit testing (development)
 
 All these libraries and programs are available in most Linux distributions and

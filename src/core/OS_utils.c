@@ -203,7 +203,7 @@ static guint64 update_used_RAM_memory() {
 gboolean update_displayed_memory() {
 	set_GUI_MEM(update_used_RAM_memory(), "labelmem");
 	set_GUI_DiskSpace(find_space(com.wd), "labelFreeSpace");
-	set_GUI_DiskSpace(find_space(get_swap_dir()), "free_mem_swap");
+	set_GUI_DiskSpace(find_space(com.pref.swap_dir), "free_mem_swap");
 	return TRUE;
 }
 
@@ -398,14 +398,14 @@ guint64 get_available_memory() {
  */
 int get_max_memory_in_MB() {
 	int retval;
-	switch (com.pref.stack.mem_mode) {
+	switch (com.pref.mem_mode) {
 		default:
 		case RATIO:
-			retval = round_to_int(com.pref.stack.memory_ratio *
+			retval = round_to_int(com.pref.memory_ratio *
 					(double)get_available_memory() / BYTES_IN_A_MB);
 			break;
 		case AMOUNT:
-			retval = round_to_int(com.pref.stack.memory_amount * 1024.0);
+			retval = round_to_int(com.pref.memory_amount * 1024.0);
 	}
 	if (sizeof(void *) == 4 && retval > 1900) {
 		siril_log_message(_("Limiting processing to 1900 MiB allocations (32-bit system)\n"));
