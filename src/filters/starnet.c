@@ -81,19 +81,19 @@ static int exec_prog(const char **argv)
 	if (0 == (my_pid = fork())) {
 		if (-1 == execve(argv[0], (char **)argv , NULL)) {
 			perror("child process execve failed [%m]");
-			return -1;
+			return 0;
 		}
 	} else {
 		while (0 == waitpid(my_pid , &status , WNOHANG)) {
-			sleep(1);	// Is there a better behaviour here that allows things
-						// like the busy cursor to continue to display?
+			sleep(1);	// Wait for starnet++ to finish before attempting to process the output
 		}
 
 		if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
 			siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
-			return -1;
+			return 0;
 		}
 	}
+
 	return 0;
 }
 #else
@@ -107,12 +107,15 @@ static int exec_prog_win32(const char **argv) {
 }
 #endif
 
-/* Starnet++v2 star removal routine   *
- * Requires starnet++ v2.0.2 or later */
+/* Starnet++v2 star removal routine */
 
-int do_starnet() {
+gpointer do_starnet() {
 	int retval;
-	// Only allocate as much space for filenames as required
+
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+
+	// Only allocate as much space for filenames as required - we determine the max pathlength
 #ifndef _WIN32
 	long pathmax = get_pathmax();
 #else
@@ -125,37 +128,32 @@ int do_starnet() {
 	gchar starlesstif[pathmax];
 	gchar starlessfit[pathmax];
 	gchar starmaskfit[pathmax];
-	gchar imagenoext[pathmax];
+	char *imagenoext;
 	gchar starnetsuffix[10] = "_starnet";
 	gchar starlesssuffix[10] = "_starless";
 	gchar starmasksuffix[10] = "_starmask";
 
 // Initialise the filename strings as empty strings
-	temptif[0]=0;
-	starlesstif[0]=0;
-	starlessfit[0]=0;
-	starmaskfit[0]=0;
-	imagenoext[0]=0;
+	memset(temptif, 0, sizeof(temptif));
+	memset(starlesstif, 0, sizeof(starlesstif));
+	memset(starlessfit, 0, sizeof(starlessfit));
+	memset(starmaskfit, 0, sizeof(starmaskfit));
+	memset(starnetcommand, 0, sizeof(starnetcommand));
 
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
 	siril_log_color_message(_("Starnet++: running. Please wait...\n"), "green");
-	// Not sure why this doesn't display until after the call to starnet++ has completed
 
 	// Check starnet directory is defined
 	if (g_access(com.pref.starnet_dir, R_OK)) {
 		siril_log_color_message(_("Incorrect permissions on the Starnet++ directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
-		return -1;
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
 	}
 
 	// Set up paths and filenames
-	int namelen = strlen(com.uniq->filename);
-	int extlen = strlen(com.pref.ext);
-	// This gives a warning about secified bound depending on length of source argument,
-	// it's fine - it truncates characters off the end of the filename to get rid
-	// of the extension (respecting the FITS extension preference).
-	strncpy(imagenoext, com.uniq->filename, namelen - (extlen+1));
-	imagenoext[namelen - 4] = 0;
+	imagenoext = remove_ext_from_filename(com.uniq->filename);
+
 	strncat(temptif,imagenoext,sizeof(temptif) - strlen(imagenoext));
 	strncat(temptif,starnetsuffix, 10);
 	strncat(temptif,".tif", 5);
@@ -184,12 +182,42 @@ int do_starnet() {
 	retval = g_chdir(com.pref.starnet_dir);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to change to Starnet++ directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
-		retval = -1;
-		return retval;
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
 	}
 
 	// Save current image as working 16-bit TIFF
-	savetif(temptif, &gfit, 16);
+	if (savetif(temptif, &gfit, 16)) {
+		siril_log_color_message(_("Error: unable to save working TIFF of original image...\n"), "red");
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
+	}
+
+	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
+	if (g_file_test("starnet++", G_FILE_TEST_EXISTS)) {
+		snprintf(starnetcommand,15, "starnet++");
+		snprintf(starnetcommand,15, "starnet++");
+	} else if ((gfit.naxes[2] == 3) && (g_file_test("rgb_starnet++", G_FILE_TEST_EXISTS))) {
+		snprintf(starnetcommand,15, "rgb_starnet++");
+	} else if ((gfit.naxes[2] == 1 ) && (g_file_test("mono_starnet++", G_FILE_TEST_EXISTS))) {
+		snprintf(starnetcommand, 15, "mono_starnet++");
+	} else {
+		siril_log_color_message(_("No valid executable found in the Starnet++ directory\n"), "red");
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
+	}
 
 	// *** Call starnet++ *** //
 #ifdef _WIN32
@@ -199,7 +227,12 @@ int do_starnet() {
 #endif
 	if (retval) {
 		siril_log_color_message(_("Error: Starnet++ did not execute correctly...\n"), "red");
-		return retval;
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
 	}
 
 	// Read the starless tiff
@@ -207,40 +240,97 @@ int do_starnet() {
 
 	// Chdir back to the Siril working directory, we don't need to be in the starnet
 	// directory any more
-	retval = g_chdir(currentdir);
-	if (retval) {
+	if (g_chdir(currentdir)) {
 		siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
-		retval = -1;
-		return retval;
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
 	}
 
 	// Save starless image as fits
-	if (savefits(starlessfit, &gfit)) return -1;
+	if (savefits(starlessfit, &gfit)) {
+		siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
+	}
 
 	// Subtract starless from original to create starmask
 	// Load the original image TIFF back into gfit
 	retval = readtif(temptif, &gfit, FALSE);
 	// Load the starless version into fit
-	if (readfits(starlessfit, &fit, NULL, !com.pref.force_to_16bit)) return -1;
+	if (readfits(starlessfit, &fit, NULL, !com.pref.force_to_16bit)) {
+		siril_log_color_message(_("Error: unable to load starless image for starmask generation...\n"), "red");
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
+	}
 	// Subtract starless from original
 	retval = imoper(&gfit, &fit, OPER_SUB, !com.pref.force_to_16bit);
 	clearfits(&fit);
 
 	// Save starmask as fits
-	if (savefits(starmaskfit, &gfit)) return -1;
+	if (savefits(starmaskfit, &gfit)) {
+		siril_log_color_message(_("Error: unable to save starmask image as FITS...\n"), "red");
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
+	}
 
 	// Load starless - the final result we want to show is the starless version
-	if (readfits(starlessfit, &gfit, NULL, !com.pref.force_to_16bit)) return -1;
+	if (readfits(starlessfit, &gfit, NULL, !com.pref.force_to_16bit)) {
+		siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
+	}
 
 	// Remove working files, they are no longer required
-	if (remove(starlesstif)) return -1;
-	if (remove(temptif)) return -1;
+	if (remove(starlesstif)) {
+		siril_log_color_message(_("Error: unable to remove working file...\n"), "red");
+		siril_add_idle(end_generic, NULL);
+		free(imagenoext);
+		free(currentdir);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		notify_gfit_modified();
+		return NULL;
+	}
 
-	// Update image and time taken
+	if (remove(temptif)) {
+		siril_log_color_message(_("Error: unable to remove working file...\n"), "red");
+	siril_add_idle(end_generic, NULL);
+	free(imagenoext);
+	free(currentdir);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	notify_gfit_modified();
-	return 0;
+	return NULL;
+	}
+
+	siril_add_idle(end_generic, NULL);
+	free(imagenoext);
+	free(currentdir);
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	notify_gfit_modified();
+
+	return NULL;
 }
 /*
 void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {

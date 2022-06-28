@@ -282,13 +282,14 @@ int process_savebmp(int nb){
 }
 
 int process_starnet(int nb){
-	set_cursor_waiting(TRUE);
 #ifdef HAVE_LIBTIFF
-	do_starnet();
+	set_cursor_waiting(TRUE);
+	start_in_new_thread(do_starnet, NULL);
+	set_cursor_waiting(FALSE);
+
 #else
 	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
 #endif
-	set_cursor_waiting(FALSE);
 	return CMD_OK;
 }
 

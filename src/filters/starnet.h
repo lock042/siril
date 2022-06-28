@@ -3,6 +3,6 @@
 
 #include "core/siril.h"
 
-int do_starnet();
+gpointer do_starnet();
 
 #endif /* SRC_FILTERS_STARNET_H_ */
