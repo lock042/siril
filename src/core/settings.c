@@ -309,7 +309,7 @@ static const char *settings_type_to_string(enum settings_type type) {
 int print_settings_key(const char *group, const char *key, gboolean with_details) {
 	struct settings_access *desc = get_key_settings(group, key);
 	if (!desc) {
-		siril_log_message(_("unknown settings variable %s.%s\n"), group, key);
+		siril_log_message(_("Unknown settings variable %s.%s\n"), group, key);
 		return 1;
 	}
 	GString *str = g_string_sized_new(120);

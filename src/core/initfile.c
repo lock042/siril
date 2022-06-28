@@ -180,7 +180,7 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_bool(astrometry_setting, "sh2", &com.pref.gui.catalog[4]);
 		config_setting_lookup_bool(astrometry_setting, "stars", &com.pref.gui.catalog[5]);
 		config_setting_lookup_bool(astrometry_setting, "user", &com.pref.gui.catalog[6]);
-		config_setting_lookup_int(astrometry_setting, "position_compass", &com.pref.gui.position_compass);
+		config_setting_lookup_int(astrometry_setting, "compass_position", &com.pref.gui.position_compass);
 		config_setting_lookup_int(astrometry_setting, "wcs_formalism", &com.pref.wcs_formalism);
 
 	} else {
