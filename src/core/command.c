@@ -2071,63 +2071,45 @@ int process_seq_tilt(int nb) {
 	return CMD_OK;
 }
 
-/* seqpsf [sequencename channel [-at=x,y]] */
+/* seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }] */
 int process_seq_psf(int nb) {
-	if (com.script && nb < 2) {
-		siril_log_message(_("arguments are not optional when called from script: sequence name and channel number\n"));
+	if (com.script && nb < 4) {
+		siril_log_message(_("Arguments are not optional when called from a script\n"));
 		return CMD_ARG_ERROR;
 	}
-	if (!com.headless && !sequence_is_loaded()) {
-		return CMD_NOT_FOR_SINGLE;
+	if (!com.headless && !sequence_is_loaded() && nb < 4) {
+		siril_log_message(_("Arguments are optional only if a sequence is already loaded and selection around a star made\n"));
+		return CMD_ARG_ERROR;
 	}
-	if (nb < 3) {
-		if (com.selection.w > 300 || com.selection.h > 300){
+
+	rectangle area;
+	sequence *seq;
+	int layer;
+	if (nb < 4) {
+		seq = &com.seq;
+		layer = gui.cvport;
+		area = com.selection;
+
+		if (gui.cvport >= MAXGRAYVPORT) {
+			siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
+			return CMD_GENERIC_ERROR;
+		}
+		if (com.selection.w > 300 || com.selection.h > 300) {
 			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 			return CMD_SELECTION_ERROR;
 		}
-		if (com.selection.w <= 0 || com.selection.h <= 0){
-			if (com.headless)
-				siril_log_message(_("Select an area using the boxselect command first\n"));
-			else siril_log_message(_("Select an area first\n"));
+		if (com.selection.w <= 0 || com.selection.h <= 0) {
+			siril_log_message(_("Select an area first\n"));
 			return CMD_SELECTION_ERROR;
 		}
-	} else if (g_str_has_prefix(word[3], "-at=")) {
-		gchar *arg = word[3] + 4, *end;
-		int x = g_ascii_strtoull(arg, &end, 10);
-		if (end == arg) return CMD_ARG_ERROR;
-		if (*end != ',') return CMD_ARG_ERROR;
-		end++;
-		arg = end;
-		int y = g_ascii_strtoull(arg, &end, 10);
-		if (end == arg) return CMD_ARG_ERROR;
-
-		double start = 1.5 * com.pref.phot_set.outer;
-		double size = 3 * com.pref.phot_set.outer;
-
-		com.selection.x = x - start;
-		com.selection.y = y - start;
-		com.selection.w = size;
-		com.selection.h = size;
-		if (com.selection.x < 0 || com.selection.y < 0 ||
-				com.selection.h <= 0 || com.selection.w <= 0)
-			return CMD_ARG_ERROR;
-	}
-
-	if (!com.headless && nb < 2 && gui.cvport >= MAXGRAYVPORT) {
-		siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
-		return CMD_GENERIC_ERROR;
-	}
-
-	sequence *seq;
-	int layer;
-	if (nb < 2) {
-		seq = &com.seq;
-		layer = gui.cvport;
 	} else {
 		seq = load_sequence(word[1], NULL);
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
+		fits first = { 0 };
+		if (seq_read_frame_metadata(seq, 0, &first))
+			return 1;
 		gchar *end;
 		layer = g_ascii_strtoull(word[2], &end, 10);
 		if (end == word[2] || layer >= seq->nb_layers) {
@@ -2135,11 +2117,84 @@ int process_seq_psf(int nb) {
 			free_sequence(seq, TRUE);
 			return CMD_ARG_ERROR;
 		}
-	}
-	rectangle area = com.selection;
-	if (enforce_area_in_image(&area, seq, 0)) {
-		siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
-		return CMD_SELECTION_ERROR;
+
+		if (g_str_has_prefix(word[3], "-at=")) {
+			gchar *arg = word[3] + 4, *end;
+			int x = g_ascii_strtoull(arg, &end, 10);
+			if (end == arg) return CMD_ARG_ERROR;
+			if (*end != ',') return CMD_ARG_ERROR;
+			end++;
+			arg = end;
+			int y = g_ascii_strtoull(arg, &end, 10);
+			if (end == arg) return CMD_ARG_ERROR;
+
+			double start = 1.5 * com.pref.phot_set.outer;
+			double size = 3 * com.pref.phot_set.outer;
+
+			area.x = x - start;
+			area.y = y - start;
+			area.w = size;
+			area.h = size;
+			if (area.x < 0 || area.y < 0 ||
+					area.h <= 0 || area.w <= 0 ||
+					area.x + area.w >= first.rx ||
+					area.y + area.h >= first.ry) {
+				siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+				return CMD_ARG_ERROR;
+			}
+
+			if (enforce_area_in_image(&area, seq, 0)) {
+				siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
+				return CMD_SELECTION_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[3], "-wcs=")) {
+			char *arg = word[3] + 5;
+			char *sep = strchr(arg, ',');
+			if (!sep) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[3]);
+				return CMD_ARG_ERROR;
+			}
+			*sep++ = '\0';
+			char *end;
+			double ra = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[3]);
+				return CMD_ARG_ERROR;
+			}
+			double dec = g_ascii_strtod(sep, &end);
+			if (end == sep) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[3]);
+				return CMD_ARG_ERROR;
+			}
+
+			if (!has_wcs(&first)) {
+				siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
+				return CMD_FOR_PLATE_SOLVED;
+			}
+			double x, y;
+			/*if (wcs2pix(first, ra, dec, &x, &y)) 	// in the nomad branch */
+			wcs2pix(&first, ra, dec, &x, &y);
+			if (x <= 0 || y <= 0) {
+				siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+				return CMD_ARG_ERROR;
+			}
+			y = first.ry - y - 1;
+			double start = 1.5 * com.pref.phot_set.outer;
+			double size = 3 * com.pref.phot_set.outer;
+			area.x = x - start;
+			area.y = y - start;
+			area.w = size;
+			area.h = size;
+			if (area.x < 0 || area.y < 0 ||
+					area.h <= 0 || area.w <= 0 ||
+					area.x + area.w >= first.rx ||
+					area.y + area.h >= first.ry) {
+				siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+				return CMD_ARG_ERROR;
+			}
+			siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), x, y);
+		}
 	}
 
 	framing_mode framing = REGISTERED_FRAME;
