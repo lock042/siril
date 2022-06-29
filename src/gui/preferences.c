@@ -245,19 +245,6 @@ void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
 }
 
 
-void on_spinbutton_comp_fits_quantization_value_changed(GtkSpinButton *button, gpointer user_data) {
-	gdouble quantization = gtk_spin_button_get_value(button);
-	if (quantization == 0.0) {
-		GtkComboBox *combo = (GtkComboBox *)user_data;
-		if (gtk_combo_box_get_active(combo) != GZIP1_COMP && gtk_combo_box_get_active(combo) != GZIP2_COMP) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Incorrect parameters detected"),
-								"Setting quantization to 0 has only a sense with a GZIP compression "
-								"and GZIP 2 often produces better compression of floating­point images.");
-			gtk_spin_button_set_value(button, com.pref.comp.fits_quantization != 0.0 ? com.pref.comp.fits_quantization : 16.0);
-		}
-	}
-}
-
 void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) {
 	GtkWidget *hcompress_scale_spin = lookup_widget("spinbutton_comp_fits_hcompress_scale");
 	GtkSpinButton *button = (GtkSpinButton *)user_data;
@@ -406,34 +393,6 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 }
 
 static gboolean from_prefs_init = FALSE;
-
-void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
-	GtkSpinButton *outer;
-	double in, out;
-
-	outer = GTK_SPIN_BUTTON(lookup_widget("spinOuter"));
-	in = gtk_spin_button_get_value(inner);
-	out = gtk_spin_button_get_value(outer);
-
-	if (!from_prefs_init && in >= out) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
-				_("Inner radius value must be less than outer. Please change the value."));
-	}
-}
-
-void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
-	GtkSpinButton *inner;
-	double in, out;
-
-	inner = GTK_SPIN_BUTTON(lookup_widget("spinInner"));
-	in = gtk_spin_button_get_value(inner);
-	out = gtk_spin_button_get_value(outer);
-
-	if (!from_prefs_init && in >= out) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
-				_("Inner radius value must be less than outer. Please change the value."));
-	}
-}
 
 void update_preferences_from_model() {
 	siril_debug_print("updating preferences GUI from settings data\n");
@@ -584,18 +543,48 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	update_preferences_from_model();
 }
 
+gboolean check_pref_sanity(gchar **error) {
+	gchar *err = NULL;
+	/* check for photometry pref */
+	double in = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")));
+	double out = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")));
+
+	if (in >= out) {
+		err = _("Inner radius value must be less than outer. Please change the value in Photometry tab.");
+		*error = err;
+		return FALSE;
+	}
+	/* check for FITS pref */
+	gdouble quantization = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization")));
+	if (quantization == 0.0) {
+		GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method"));
+		if (gtk_combo_box_get_active(combo) != GZIP1_COMP && gtk_combo_box_get_active(combo) != GZIP2_COMP) {
+			err = _("Setting quantization to 0 has only a sense with a GZIP compression "
+									"and GZIP 2 often produces better compression of floating­point images.");
+			*error = err;
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	free_preferences(&com.pref);
-	dump_ui_to_global_var();
+	gchar *err;
+	if (!check_pref_sanity(&err)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"), err);
+	} else {
+		free_preferences(&com.pref);
+		dump_ui_to_global_var();
 
-	initialize_FITS_name_entries(); // To update UI with new preferences
-	refresh_star_list(com.stars); // To update star list with new preferences
-	if (com.found_object)
-		force_to_refresh_catalogue_list();
-	save_main_window_state();
-	writeinitfile();
+		initialize_FITS_name_entries(); // To update UI with new preferences
+		refresh_star_list(com.stars); // To update star list with new preferences
+		if (com.found_object)
+			force_to_refresh_catalogue_list();
+		save_main_window_state();
+		writeinitfile();
 
-	siril_close_dialog("settings_window");
+		siril_close_dialog("settings_window");
+	}
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {

@@ -21312,7 +21312,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
                                     <property name="value">8</property>
-                                    <signal name="value-changed" handler="on_spinbutton_comp_fits_quantization_value_changed" object="combobox_comp_fits_method" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">2</property>
@@ -22488,7 +22487,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
                                     <property name="value">20</property>
-                                    <signal name="value-changed" handler="on_spinInner_value_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -22508,7 +22506,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
                                     <property name="value">30</property>
-                                    <signal name="value-changed" handler="on_spinOuter_value_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
