@@ -410,9 +410,9 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 				double b = (double)from->pdata[BLAYER][i] * invnorm;
 				double x = factor_red * r + factor_green * g + factor_blue * b;
 				double z = GHTp(x, params, compute_params);
-				to->pdata[RLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, ((r - BP) / (1 - BP)) * (z / x))));
-				to->pdata[GLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, ((g - BP) / (1 - BP)) * (z / x))));
-				to->pdata[BLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, ((b - BP) / (1 - BP)) * (z / x))));
+				to->pdata[RLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, r * (z / x))));
+				to->pdata[GLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, g * (z / x))));
+				to->pdata[BLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, b * (z / x))));
 			}
 		} else {
 //			siril_log_message(_("Independent stretch (16bit)\n"));
@@ -436,9 +436,9 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 				double b = (double)from->fpdata[BLAYER][i];
 				double x = factor_red * r + factor_green * g + factor_blue * b;
 				double z = GHTp(x, params, compute_params);
-				to->fpdata[RLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, ((r - BP) / (1 - BP)) * (z / x)));
-				to->fpdata[GLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, ((g - BP) / (1 - BP)) * (z / x)));
-				to->fpdata[BLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, ((b - BP) / (1 - BP)) * (z / x)));
+				to->fpdata[RLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, r * (z / x)));
+				to->fpdata[GLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, g * (z / x)));
+				to->fpdata[BLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, b * (z / x)));
 			}
 		} else {
 //			siril_log_message(_("Independent stretch (32bit)\n"));
