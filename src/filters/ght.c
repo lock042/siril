@@ -378,10 +378,6 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
-	double BP = params.BP;
-	if (params.stretchtype != STRETCH_LINEAR) {
-		BP = 0.0;
-	}
 	double factor_red = 0.2126;
 	double factor_green = 0.7152;
 	double factor_blue = 0.0722;
