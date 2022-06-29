@@ -39,14 +39,13 @@ static gboolean parse_buffer(char *buffer) {
 	nargs = g_strv_length(token);
 
 	if (g_str_has_prefix(buffer, "oid")) {
-		fields = g_strsplit(token[i], "\t", -1);
+		fields = g_strsplit(token[1], "\t", -1);
 		guint n = g_strv_length(token);
 		if (n > 2) {
-			sscanf(fields[1], "%lf", &center.x);
-			sscanf(fields[2], "%lf", &center.y);
-			world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
-			realname = g_shell_unquote(fields[3], NULL);
-
+			if (sscanf(fields[1], "%lf", &center.x) && sscanf(fields[2], "%lf", &center.y)) {
+				world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
+				realname = g_shell_unquote(fields[3], NULL);
+			}
 			g_strfreev(fields);
 		}
 	} else {
@@ -66,9 +65,10 @@ static gboolean parse_buffer(char *buffer) {
 			i++;
 		}
 
-		g_strfreev(token);
 	}
+	g_strfreev(token);
 	if (world_cs && realname) {
+		com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
 		add_object_in_catalogue(realname, world_cs);
 		g_free(realname);
 		siril_world_cs_unref(world_cs);

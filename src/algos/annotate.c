@@ -338,6 +338,7 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
 
+	/* TODO: check for the object first to avoid duplicates */
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
 			NULL, NULL, cat_size);
