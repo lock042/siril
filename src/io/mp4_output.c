@@ -79,7 +79,7 @@ static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AV
 }
 
 /* Add an output stream. */
-static int add_stream(struct mp4_struct *ost, AVCodec **codec,
+static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 		enum AVCodecID codec_id, int w, int h, int fps)
 {
 	AVCodecContext *c;
@@ -202,7 +202,7 @@ static AVFrame *alloc_picture(enum AVPixelFormat pix_fmt, int width, int height)
 	return picture;
 }
 
-static int open_video(AVCodec *codec, struct mp4_struct *ost, AVDictionary *opt_arg, int nb_layers)
+static int open_video(const AVCodec *codec, struct mp4_struct *ost, AVDictionary *opt_arg, int nb_layers)
 {
 	AVCodecContext *c = ost->enc;
 	AVDictionary *opt = NULL;
@@ -443,7 +443,7 @@ static void close_stream(struct mp4_struct *ost)
 struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fps, int nb_layers, int quality, int src_w, int src_h, export_format type)
 {
 	struct mp4_struct *video_st;
-	AVCodec *video_codec;
+	const AVCodec *video_codec;
 	int ret;
 	AVDictionary *opt = NULL;
 
@@ -469,7 +469,7 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 		}
 	}
 
-	video_st->fmt = video_st->oc->oformat;
+	video_st->fmt = (AVOutputFormat *)video_st->oc->oformat;
 	video_st->quality = quality;
 	/* disable unwanted features, is this the correct way? */
 	video_st->fmt->audio_codec = AV_CODEC_ID_NONE;
