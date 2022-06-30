@@ -26,6 +26,7 @@
 #include "core/settings.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "io/catalogues.h"
 
 /* the settings as initialized in static.
  * the dynamic fields are set in initialize_default_settings() */
