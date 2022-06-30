@@ -4220,7 +4220,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                               <object class="GtkLabel" id="label73">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">&lt;b&gt;Embeded Data&lt;/b&gt;</property>
+                                <property name="label" translatable="yes">&lt;b&gt;Embedded Data&lt;/b&gt;</property>
                                 <property name="use-markup">True</property>
                               </object>
                             </child>
@@ -22858,7 +22858,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkTextView" id="GtkTxtScriptPath">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">The paths written in this text box will be checked in order to load scripts that have been put inside. Write a path per line with as many lines you want. However you have to keep in mind that more paths are cheked the longer is the startup.</property>
+                                    <property name="tooltip-text" translatable="yes">The paths written in this text box will be checked in order to load scripts that have been put inside. Write a path per line with as many lines you want. However you have to keep in mind that more paths are checked the longer is the startup.</property>
                                     <property name="monospace">True</property>
                                   </object>
                                 </child>
@@ -23529,7 +23529,7 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Restore the defaut swap storage directory</property>
+                                    <property name="tooltip-text" translatable="yes">Restore the default swap storage directory</property>
                                     <property name="valign">center</property>
                                     <signal name="clicked" handler="on_button_reset_swap_clicked" swapped="no"/>
                                   </object>

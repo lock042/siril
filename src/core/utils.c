@@ -676,9 +676,9 @@ gboolean file_name_has_invalid_chars(const char *name) {
  *  extensions are tested for the file name until one is found.
  * @param[in] filename the filename to test for.
  * @param[in] type is set according to the result of the test.
- * @param[out] realname (optionnal) is set according to the found file name: it
+ * @param[out] realname (optional) is set according to the found file name: it
  *  must be freed with when no longer needed.
- * @return 0 if sucess, 1 if error
+ * @return 0 if success, 1 if error
  */
 int stat_file(const char *filename, image_type *type, char **realname) {
 	int k;
@@ -1177,7 +1177,7 @@ float compute_slope(WORD *lo, WORD *hi) {
  * Try to get file info, i.e width and height
  * @param filename name of the file
  * @param pixbuf
- * @return a newly allocated and formated string containing dimension information or NULL
+ * @return a newly allocated and formatted string containing dimension information or NULL
  */
 gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 	int width, height;

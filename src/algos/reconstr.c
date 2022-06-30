@@ -56,7 +56,7 @@
  **
  ** File_Name_Imag = File name of the output image
  ** File_Name_Transform = File name of the input wavelet transform
- ** Build_Direct_Ok = input paramater (TRUE=1 or FALSE=0)
+ ** Build_Direct_Ok = input parameter (TRUE=1 or FALSE=0)
  **    if the wavelet transform algorithm used the FFT and is pyramidal
  **        (Type_Wave_Transform =  TO_PYR_FFT_DIFF_RESOL
  **                             or TO_PYR_FFT_DIFF_SQUARE_RESOL)
@@ -78,7 +78,7 @@
  **
  ** Imag = OUTPUT:image
  ** Wavelet = INPUT:wavelet
- ** Build_Direct_Ok = input paramater (TRUE=1 or FALSE=0)
+ ** Build_Direct_Ok = input parameter (TRUE=1 or FALSE=0)
  **    if Wavelet->Type_Wave_Transform =  TO_PYR_FFT_DIFF_RESOL
  **                                    or TO_PYR_FFT_DIFF_SQUARE_RESOL
  **        then if Build_Direct_Ok = 1 (TRUE) then

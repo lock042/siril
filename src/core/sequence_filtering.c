@@ -98,7 +98,7 @@ int seq_filter_quality(sequence *seq, int nb_img, double max_quality) {
 	else return 0;
 }
 
-/* browse the images to konw how many fit the criterion, from global data */
+/* browse the images to know how many fit the criterion, from global data */
 // ensure that com.seq is loaded before passing it as seq: sequence_is_loaded()
 int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter) {
 	int i, count = 0;
@@ -432,6 +432,6 @@ char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, doubl
 		g_string_append_printf(str, _("for a total of images processed of %d)\n"),
 				nb_images_to_stack);
 	}
-	//fprintf(stdout, "FILTERING DECRIPTION: %s", str->str);
+	//fprintf(stdout, "FILTERING DESCRIPTION: %s", str->str);
 	return g_string_free(str, FALSE);
 }

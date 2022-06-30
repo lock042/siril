@@ -342,7 +342,7 @@ the_end:
 	return GINT_TO_POINTER(args->retval);
 }
 
-// defaut idle function (in GTK main thread) to run at the end of the generic sequence processing
+// default idle function (in GTK main thread) to run at the end of the generic sequence processing
 gboolean end_generic_sequence(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
 
@@ -484,7 +484,7 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 }
 
 /* In SER, all images must be in a contiguous sequence, so we use the out_index.
- * In FITS sequences, to keep track of image accross processings, we keep the
+ * In FITS sequences, to keep track of image across processings, we keep the
  * input file number all along (in_index is the index in the sequence, not the name).
  * The 2nd condition ensures that any force condition prevails over opposite
  * input-type condition
