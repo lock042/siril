@@ -42,6 +42,7 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain,
 
 void initialize_photometric_param();
 
+const char *psf_error_to_string(psf_error err);
 void print_psf_error_summary(gint *code_sums);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

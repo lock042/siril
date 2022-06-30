@@ -41,7 +41,7 @@ typedef enum {
 } framing_mode;
 
 struct seqpsf_args {
-	gboolean for_registration;
+	gboolean for_registration;	// if false it means for photometry
 	framing_mode framing;
 
 	/* The seqpsf result for each image, list of seqpsf_data */

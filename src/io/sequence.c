@@ -1562,7 +1562,8 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 		/* for photometry ? */
 		if (!spsfargs->for_registration) {
 			if (data->psf->s_mag > 9.0) {
-				siril_log_color_message(_("Photometry analysis failed for image %d\n"), "salmon", index);
+				siril_log_color_message(_("Photometry analysis failed for image %d (%s)\n"),
+						"salmon", index, psf_error_to_string(error));
 			}
 		}
 
@@ -1586,12 +1587,12 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
 			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
-						" error %d (use a larger area?)\n"),
-					"red", index, area->x, area->y, error);
+						" error %s (use a larger area?)\n"),
+					"red", index, area->x, area->y, psf_error_to_string(error));
 		} else {
 			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
-					" error %d (use 'follow star' option?)\n"),
-				"red", index, area->x, area->y, error);
+					" error %s (use 'follow star' option?)\n"),
+				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
 
@@ -1668,14 +1669,13 @@ gboolean end_seqpsf(gpointer p) {
 	sequence *seq = args->seq;
 	int layer = args->layer_for_partial;
 	gboolean write_to_regdata = FALSE;
-	gboolean duplicate_for_regdata = FALSE, dont_stop_thread;
+	gboolean duplicate_for_regdata = FALSE;
 	gboolean saveregdata = TRUE;
 
 	if (args->retval)
 		goto proper_ending;
 
 	if (spsfargs->for_registration || !seq->regparam[layer]) {
-
 		gboolean has_any_regdata = FALSE;
 		for (int i = 0; i < seq->nb_layers; i++)
 			has_any_regdata = has_any_regdata || seq->regparam[i];
@@ -1715,34 +1715,37 @@ gboolean end_seqpsf(gpointer p) {
 		}
 	}
 
-	if (com.seq.needs_saving)
-		writeseqfile(&com.seq);
+	if (seq->needs_saving)
+		writeseqfile(seq);
 
-	set_fwhm_star_as_star_list_with_layer(seq, layer);
+	if (seq == &com.seq) {
+		set_fwhm_star_as_star_list_with_layer(seq, layer);
 
-	if (!args->already_in_a_thread) {
-		/* do here all GUI-related items, because it runs in the main thread.
-		 * Most of these things are already done in end_register_idle
-		 * in case seqpsf is called for registration. */
-		// update the list in the GUI
-		if (seq->type != SEQ_INTERNAL) {
-			update_seqlist(layer);
-			fill_sequence_list(seq, layer, FALSE);
+		if (!args->already_in_a_thread) {
+			/* do here all GUI-related items, because it runs in the main thread.
+			 * Most of these things are already done in end_register_idle
+			 * in case seqpsf is called for registration. */
+			// update the list in the GUI
+			if (seq->type != SEQ_INTERNAL) {
+				update_seqlist(layer);
+				fill_sequence_list(seq, layer, FALSE);
+			}
+			set_layers_for_registration();	// update display of available reg data
+			drawPlot();
+			notify_new_photometry();	// switch to and update plot tab
+			redraw(REDRAW_OVERLAY);
 		}
-		set_layers_for_registration();	// update display of available reg data
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
 	}
 
 proper_ending:
-	dont_stop_thread = args->already_in_a_thread;
 	if (spsfargs->list)
 		g_slist_free(spsfargs->list);
 	free(spsfargs);
-	adjust_sellabel();
 
-	if (dont_stop_thread) {
+	if (seq == &com.seq && !args->already_in_a_thread && !com.script)
+		adjust_sellabel();
+
+	if (args->already_in_a_thread) {
 		// we must not call stop_processing_thread() here
 		return FALSE;
 	} else {
@@ -1753,6 +1756,7 @@ proper_ending:
 
 /* process PSF for the given sequence, on the given layer, the area of the
  * image selection (com.selection), as a threaded operation or not.
+ * expects seq->current to be valid
  */
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		framing_mode framing, gboolean run_in_thread) {

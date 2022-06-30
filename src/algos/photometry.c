@@ -366,7 +366,8 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain,
 		} else {
 			phot->SNR = 0.0;
 			valid = FALSE;
-			if (error) *error = PSF_ERR_INVALID_STD_ERROR;
+			if (error && *error == PSF_NO_ERR)
+				*error = PSF_ERR_INVALID_STD_ERROR;
 		}
 		phot->valid = valid;
 	}
@@ -384,7 +385,7 @@ void initialize_photometric_param() {
 	com.pref.phot_set.maxval = 60000;
 }
 
-static const char *psf_error_to_string(psf_error err) {
+const char *psf_error_to_string(psf_error err) {
 	switch (err) {
 		case PSF_NO_ERR:
 			return _("no error");

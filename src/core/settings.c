@@ -204,7 +204,7 @@ struct settings_access all_settings[] = {
 	{ "photometry", "outer", STYPE_DOUBLE, N_("outer radius for background annulus"), &com.pref.phot_set.outer, { .range_double = { 3., 200. } } },
 	{ "photometry", "force_radius", STYPE_BOOL, N_("force flux aperture value"), &com.pref.phot_set.force_radius },
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
-	{ "photometry", "minval", STYPE_INT, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_int = { 0, 65534 } } },
+	{ "photometry", "minval", STYPE_INT, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_int = { -65536, 65534 } } },
 	{ "photometry", "maxval", STYPE_INT, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_int = { 1, 65535 } } },
 
 	{ "compression", "enabled", STYPE_BOOL, N_("FITS compression enabled"), &com.pref.comp.fits_enabled },
