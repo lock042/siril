@@ -29,9 +29,8 @@
 #include "astrometry_solver.h"
 
 static gboolean parse_buffer(char *buffer) {
-	gchar **token, **fields, *realname= NULL;
-	point center;
-	int nargs, i = 0;
+	gchar **token, *realname= NULL;
+	int nargs;
 	SirilWorldCS *world_cs = NULL;
 	gboolean ok = FALSE;
 
@@ -39,27 +38,31 @@ static gboolean parse_buffer(char *buffer) {
 	nargs = g_strv_length(token);
 
 	if (g_str_has_prefix(buffer, "oid")) {
-		fields = g_strsplit(token[1], "\t", -1);
-		guint n = g_strv_length(token);
+		gchar **fields = g_strsplit(token[1], "\t", -1);
+		guint n = g_strv_length(fields);
 		if (n > 2) {
-			if (sscanf(fields[1], "%lf", &center.x) && sscanf(fields[2], "%lf", &center.y)) {
-				world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
+			double ra, dec;
+			if (sscanf(fields[1], "%lf", &ra) && sscanf(fields[2], "%lf", &dec)) {
+				world_cs = siril_world_cs_new_from_a_d(ra, dec);
 				realname = g_shell_unquote(fields[3], NULL);
 			}
-			g_strfreev(fields);
 		}
+		g_strfreev(fields);
 	} else {
+		int i = 0;
 		while (i < nargs) {
 			if (g_str_has_prefix(token[i], "%I.0 ") && !realname) {
 				gchar *name = g_strstr_len(token[i], strlen(token[i]), "%I.0 ");
 				realname = g_strdup(name + 5);
 
 			} else if (g_str_has_prefix (token[i], "%J ") && !world_cs) {
-				fields = g_strsplit(token[i], " ", -1);
-				sscanf(fields[1], "%lf", &center.x);
-				sscanf(fields[2], "%lf", &center.y);
-				world_cs = siril_world_cs_new_from_a_d(center.x, center.y);
-
+				gchar **fields = g_strsplit(token[i], " ", -1);
+				guint n = g_strv_length(fields);
+				if (n > 2) {
+					double ra, dec;
+					if (sscanf(fields[1], "%lf", &ra) && sscanf(fields[2], "%lf", &dec))
+						world_cs = siril_world_cs_new_from_a_d(ra, dec);
+				}
 				g_strfreev(fields);
 			}
 			i++;
@@ -67,7 +70,9 @@ static gboolean parse_buffer(char *buffer) {
 
 	}
 	g_strfreev(token);
+
 	if (world_cs && realname) {
+		siril_log_message(_("Found %s at coordinates %g %g\n"), realname, siril_world_cs_get_alpha(world_cs), siril_world_cs_get_delta(world_cs));
 		com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
 		add_object_in_catalogue(realname, world_cs);
 		g_free(realname);
@@ -79,18 +84,19 @@ static gboolean parse_buffer(char *buffer) {
 
 void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
 	if (!has_wcs(&gfit)) return;
-	gchar *result = search_in_catalogs(gtk_entry_get_text(GTK_ENTRY(entry)), QUERY_SERVER_SIMBAD);
-	if (result) {
-		if (parse_buffer(result)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-			if (!gtk_toggle_tool_button_get_active(button)) {
-				gtk_toggle_tool_button_set_active(button, TRUE);
-			} else {
-				force_to_refresh_catalogue_list();
-				redraw(REDRAW_OVERLAY);
-			}
-			gtk_entry_set_text(GTK_ENTRY(entry), "");
-			siril_close_dialog("search_objects");
+	// TODO: search in local annotation catalogues first
+	const gchar *name = gtk_entry_get_text(GTK_ENTRY(entry));
+	gchar *result = search_in_catalogs(name, QUERY_SERVER_SIMBAD);
+	if (result && parse_buffer(result)) {
+		GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+		if (!gtk_toggle_tool_button_get_active(button)) {
+			gtk_toggle_tool_button_set_active(button, TRUE);
+		} else {
+			force_to_refresh_catalogue_list();
+			redraw(REDRAW_OVERLAY);
 		}
+		gtk_entry_set_text(GTK_ENTRY(entry), "");
+		siril_close_dialog("search_objects");
 	}
+	else siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
 }
