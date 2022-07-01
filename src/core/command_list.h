@@ -98,6 +98,7 @@ static command commands[] = {
 	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"light_curve", 3, "light_curve sequencename channel { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
 	{"linstretch", 1, "linstretch BP", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},

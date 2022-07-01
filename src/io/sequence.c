@@ -1639,7 +1639,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		// for photometry use: store data in seq->photometry
 		seq->photometry[photometry_index][data->image_index] = data->psf;
 	}
-	if (com.headless) {
+	if (com.headless && !args->already_in_a_thread) {
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
 		for (int j = 0; j < seq->number; j++) {
@@ -1691,15 +1691,16 @@ gboolean end_seqpsf(gpointer p) {
 				duplicate_for_regdata = TRUE;
 			}
 		}
-		if (saveregdata) check_or_allocate_regparam(seq, layer);
+		if (saveregdata)
+			check_or_allocate_regparam(seq, layer);
 		write_to_regdata = saveregdata;
 		seq->needs_saving = saveregdata;
 	}
 
-	GSList *iterator;
-	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
-		struct seqpsf_data *data = iterator->data;
-		if (write_to_regdata) {
+	if (write_to_regdata) {
+		GSList *iterator;
+		for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
+			struct seqpsf_data *data = iterator->data;
 			seq->regparam[layer][data->image_index].fwhm_data =
 				duplicate_for_regdata ? duplicate_psf(data->psf) : data->psf;
 			if (data->psf) {

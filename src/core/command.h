@@ -54,6 +54,7 @@ int	process_histo(int nb);
 
 int	process_imoper(int nb);
 
+int	process_light_curve(int nb);
 int	process_link(int nb);
 int	process_linear_match(int nb);
 int	process_load(int nb);

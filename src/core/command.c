@@ -2071,6 +2071,99 @@ int process_seq_tilt(int nb) {
 	return CMD_OK;
 }
 
+int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area) {
+	rectangle area;
+	if (g_str_has_prefix(arg, "-at=") || g_str_has_prefix(arg, "-refat=")) {
+		gchar *value, *end;
+		if (arg[1] == 'a')
+			value = arg + 4;
+		else value = arg + 7;
+		int x = g_ascii_strtoull(value, &end, 10);
+		if (end == value) return CMD_ARG_ERROR;
+		if (*end != ',') return CMD_ARG_ERROR;
+		end++;
+		value = end;
+		int y = g_ascii_strtoull(value, &end, 10);
+		if (end == value) return CMD_ARG_ERROR;
+
+		double start = 1.5 * com.pref.phot_set.outer;
+		double size = 3 * com.pref.phot_set.outer;
+
+		area.x = x - start;
+		area.y = y - start;
+		area.w = size;
+		area.h = size;
+		if (area.x < 0 || area.y < 0 ||
+				area.h <= 0 || area.w <= 0 ||
+				area.x + area.w >= first->rx ||
+				area.y + area.h >= first->ry) {
+			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+			return CMD_ARG_ERROR;
+		}
+
+		if (enforce_area_in_image(&area, seq, 0)) {
+			siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
+			return CMD_SELECTION_ERROR;
+		}
+	}
+	else if (g_str_has_prefix(arg, "-wcs=") || g_str_has_prefix(arg, "-refwcs=")) {
+		char *value;
+		if (arg[1] == 'w')
+			value = arg + 5;
+		else value = arg + 8;
+		char *sep = strchr(value, ',');
+		if (!sep) {
+			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+		*sep++ = '\0';
+		char *end;
+		double ra = g_ascii_strtod(value, &end);
+		if (end == value) {
+			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+		double dec = g_ascii_strtod(sep, &end);
+		if (end == sep) {
+			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+
+		if (!has_wcs(first)) {
+			siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
+			return CMD_FOR_PLATE_SOLVED;
+		}
+		double x, y;
+		/*if (wcs2pix(first, ra, dec, &x, &y)) 	// in the nomad branch */
+		wcs2pix(first, ra, dec, &x, &y);
+		if (x <= 0 || y <= 0) {
+			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+			return CMD_ARG_ERROR;
+		}
+		y = first->ry - y - 1;
+		double start = 1.5 * com.pref.phot_set.outer;
+		double size = 3 * com.pref.phot_set.outer;
+		area.x = x - start;
+		area.y = y - start;
+		area.w = size;
+		area.h = size;
+		if (area.x < 0 || area.y < 0 ||
+				area.h <= 0 || area.w <= 0 ||
+				area.x + area.w >= first->rx ||
+				area.y + area.h >= first->ry) {
+			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+			return CMD_ARG_ERROR;
+		}
+		siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), x, y);
+	}
+	else {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), arg);
+		return CMD_ARG_ERROR;
+	}
+	*seqpsf_area = area;
+	return CMD_OK;
+}
+
 /* seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }] */
 int process_seq_psf(int nb) {
 	if (com.script && nb < 4) {
@@ -2101,7 +2194,6 @@ int process_seq_psf(int nb) {
 			return CMD_SELECTION_ERROR;
 		}
 	} else {
-		rectangle area;
 		seq = load_sequence(word[1], NULL);
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
@@ -2109,7 +2201,7 @@ int process_seq_psf(int nb) {
 		fits first = { 0 };
 		if (seq_read_frame_metadata(seq, 0, &first)) {
 			free_sequence(seq, TRUE);
-			return 1;
+			return CMD_GENERIC_ERROR;
 		}
 		seq->current = 0;
 
@@ -2121,97 +2213,11 @@ int process_seq_psf(int nb) {
 			return CMD_ARG_ERROR;
 		}
 
-		if (g_str_has_prefix(word[3], "-at=")) {
-			gchar *arg = word[3] + 4, *end;
-			int x = g_ascii_strtoull(arg, &end, 10);
-			if (end == arg) { free_sequence(seq, TRUE); return CMD_ARG_ERROR; }
-			if (*end != ',') { free_sequence(seq, TRUE); return CMD_ARG_ERROR; }
-			end++;
-			arg = end;
-			int y = g_ascii_strtoull(arg, &end, 10);
-			if (end == arg) { free_sequence(seq, TRUE); return CMD_ARG_ERROR; }
-
-			double start = 1.5 * com.pref.phot_set.outer;
-			double size = 3 * com.pref.phot_set.outer;
-
-			area.x = x - start;
-			area.y = y - start;
-			area.w = size;
-			area.h = size;
-			if (area.x < 0 || area.y < 0 ||
-					area.h <= 0 || area.w <= 0 ||
-					area.x + area.w >= first.rx ||
-					area.y + area.h >= first.ry) {
-				siril_log_message(_("The given coordinates are not in the image, aborting\n"));
-				free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-
-			if (enforce_area_in_image(&area, seq, 0)) {
-				siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
-				free_sequence(seq, TRUE);
-				return CMD_SELECTION_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[3], "-wcs=")) {
-			char *arg = word[3] + 5;
-			char *sep = strchr(arg, ',');
-			if (!sep) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[3]);
-				free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			*sep++ = '\0';
-			char *end;
-			double ra = g_ascii_strtod(arg, &end);
-			if (end == arg) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[3]);
-				free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			double dec = g_ascii_strtod(sep, &end);
-			if (end == sep) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[3]);
-				free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-
-			if (!has_wcs(&first)) {
-				siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
-				free_sequence(seq, TRUE);
-				return CMD_FOR_PLATE_SOLVED;
-			}
-			double x, y;
-			/*if (wcs2pix(first, ra, dec, &x, &y)) 	// in the nomad branch */
-			wcs2pix(&first, ra, dec, &x, &y);
-			if (x <= 0 || y <= 0) {
-				siril_log_message(_("The given coordinates are not in the image, aborting\n"));
-				free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			y = first.ry - y - 1;
-			double start = 1.5 * com.pref.phot_set.outer;
-			double size = 3 * com.pref.phot_set.outer;
-			area.x = x - start;
-			area.y = y - start;
-			area.w = size;
-			area.h = size;
-			if (area.x < 0 || area.y < 0 ||
-					area.h <= 0 || area.w <= 0 ||
-					area.x + area.w >= first.rx ||
-					area.y + area.h >= first.ry) {
-				siril_log_message(_("The given coordinates are not in the image, aborting\n"));
-				free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), x, y);
-		}
-		else {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[3]);
+		rectangle area;
+		if (parse_star_position_arg(word[3], seq, &first, &area)) {
 			free_sequence(seq, TRUE);
-			return CMD_ARG_ERROR;
+			return 1;
 		}
-
 		com.selection = area;
 	}
 
@@ -2229,6 +2235,99 @@ int process_seq_psf(int nb) {
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
 	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE);
+}
+
+struct light_curve_args {
+	rectangle *areas;
+	int nb;
+	sequence *seq;
+	int layer;
+};
+
+gpointer light_curve_worker(gpointer arg) {
+	int retval = 0;
+	struct light_curve_args *args = (struct light_curve_args *)arg;
+
+	framing_mode framing = REGISTERED_FRAME;
+	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
+		framing = FOLLOW_STAR_FRAME;
+
+	pldata *plot_data = alloc_plot_data(args->seq->selnum);
+	pldata *cur_data = plot_data;
+
+	for (int star_index = 0; star_index < args->nb; star_index++) {
+
+		com.selection = args->areas[star_index];
+
+		if (!seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE)) {
+			generate_magnitude_data(args->seq, star_index, 0, cur_data);
+			cur_data->next = alloc_plot_data(args->seq->selnum);
+			cur_data = cur_data->next;
+		} else if (star_index == 0) {
+			siril_log_message(_("Failed to analyse the variable star photometry\n"));
+			retval = 1;
+			break;
+		}
+		else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"), star_index);
+	}
+
+	/* analyse data and create the light curve */
+	if (!retval)
+		retval = light_curve(plot_data, args->seq, "light_curve.dat");
+
+	free_sequence(args->seq, TRUE);
+	free_plot_data(plot_data);
+	free(args);
+	return GINT_TO_POINTER(retval);
+}
+
+// light_curve sequencename channel { -list=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... }
+int process_light_curve(int nb) {
+	sequence *seq;
+	int layer;
+
+	seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+	fits first = { 0 };
+	if (seq_read_frame_metadata(seq, 0, &first)) {
+		free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+	seq->current = 0;
+
+	gchar *end;
+	layer = g_ascii_strtoull(word[2], &end, 10);
+	if (end == word[2] || layer >= seq->nb_layers) {
+		siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
+		free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+
+	/* we have a sequence and channel, now we iterate with seqpsf on the list of stars */
+	if (g_str_has_prefix(word[3], "-list=") || g_str_has_prefix(word[3], "-auto")) {
+		siril_log_message("argument not yet implemented %s\n", word[3]);
+		free_sequence(seq, TRUE);
+		return 1;
+	}
+
+	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
+	args->areas = malloc((nb - 3) * sizeof(rectangle));
+	for (int arg_index = 3; arg_index < nb; arg_index++) {
+		if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3])) {
+			free_sequence(seq, TRUE);
+			return 1;
+		}
+	}
+	args->nb = nb - 3;
+	args->seq = seq;
+	args->layer = layer;
+	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
+
+	// TODO: clear photometry data
+
+	start_in_new_thread(light_curve_worker, args);
+	return 0;
 }
 
 int process_seq_crop(int nb) {

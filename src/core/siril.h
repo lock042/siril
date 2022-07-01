@@ -75,7 +75,7 @@
 typedef unsigned char BYTE;	// default type for image display data
 typedef unsigned short WORD;	// default type for internal image data
 
-#define MAX_SEQPSF 7	// max number of stars for which seqpsf can be run
+#define MAX_SEQPSF 12	// max number of stars for which seqpsf can be run
 
 #define CMD_HISTORY_SIZE 50	// size of the command line history
 

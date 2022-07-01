@@ -440,3 +440,4 @@ void print_psf_error_summary(gint *code_sums) {
 	siril_log_message("%s\n", str);
 	g_free(str);
 }
+

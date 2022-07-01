@@ -784,44 +784,29 @@ int gnuplot_write_xy_dat(
     return 0;
 }
 
-int gnuplot_write_xyyerr_dat(
-    char const *        fileName,
-    double const    *   x,
-    double const    *   y,
-    double const    *   yerr,
-    int                 n,
-    char const      *   title)
-{
-    int     i ;
-    FILE*   fileHandle;
+int gnuplot_write_xyyerr_dat(char const *fileName, double const *x,
+		double const *y, double const *yerr, int n, char const *title) {
+	if (!fileName || !x || !y || !yerr || n < 1) {
+		return -1;
+	}
 
-    if (fileName==NULL || x==NULL || y==NULL || yerr==NULL || (n<1))
-    {
-        return -1;
-    }
+	FILE *fileHandle = g_fopen(fileName, "w");
+	if (!fileHandle) {
+		perror("creating data file");
+		return -1;
+	}
 
-    fileHandle = g_fopen(fileName, "w");
+	// Write Comment.
+	if (title)
+		fprintf(fileHandle, "# %s\n", title);
 
-    if (fileHandle == NULL)
-    {
-        return -1;
-    }
+	/* Write data to this file  */
+	for (int i=0; i<n; i++) {
+		fprintf(fileHandle, "%14.6f %8.6f %8.6f\n", x[i], y[i], yerr[i]);
+	}
 
-    // Write Comment.
-    if (title != NULL)
-    {
-        fprintf(fileHandle, "# %s\n", title) ;
-    }
-
-    /* Write data to this file  */
-    for (i=0 ; i<n; i++)
-    {
-        fprintf(fileHandle, "%14.6f %8.6f %8.6f\n", x[i], y[i], yerr[i]) ;
-    }
-
-    fclose(fileHandle) ;
-
-    return 0;
+	fclose(fileHandle);
+	return 0;
 }
 
 int gnuplot_write_multi_csv(
