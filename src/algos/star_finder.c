@@ -115,7 +115,7 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		return SF_CENTER_OFF;
 	}
 	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, sx: %3.1f, sy:%3.1f\n", result->fwhmx, se->sx, se->sy);
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
 		return SF_FWHM_TOO_LARGE;
 	}
 	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
@@ -132,7 +132,7 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) {
 	//  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %3.1f, A: %3.1f, B: %3.1f\n", result->rmse, result->A, result->B);
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE;
 	}
 	return SF_OK;
@@ -484,15 +484,28 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				// term S / 3 increases the box radius when the guessed fwhm is larger than the smoothing kernel size
 				int Rr = (int) ceil(2 * Sr * Sr / KERNEL_SIZE);
 				int Rc = (int) ceil(2 * Sc * Sc / KERNEL_SIZE);
+				gboolean Rconstraint = FALSE;
 				if (Rr > r) { // avoid enlarging outside frame width
-					if (xx - Rr < 0) Rr = xx;
-					if (xx + Rr >= nx) Rr = nx - xx - 1;
+					if (xx - Rr < 0) {
+						Rr = xx;
+						Rconstraint = TRUE;
+					}
+					if (xx + Rr >= nx) {
+						Rr = nx - xx - 1;
+						Rconstraint = TRUE;
+					} 
 				}
 				if (Rc > r) { // avoid enlarging outside frame height
-					if (yy - Rc < 0) Rc = yy;
-					if (yy + Rc >= ny) Rc = ny - yy - 1;
+					if (yy - Rc < 0) {
+						Rc = yy;
+						Rconstraint = TRUE;
+					}
+					if (yy + Rc >= ny) {
+						Rc = ny - yy - 1;
+						Rconstraint = TRUE;
+					}
 				}
-				int R = max(min(Rr, Rc), r);
+				int R = max((Rconstraint) ? min(Rr, Rc) : max(Rr, Rc), r);
 
 				// Quality checks
 				float dA = max(Ar,Ac)/min(Ar,Ac);
@@ -619,10 +632,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					//fprintf(stdout, "%03d: %11f %11f %f\n",
 					//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 				} else {
-#ifdef DEBUG_TEST
-					siril_debug_print("Candidate rejected#%03d: crit#%d failed\n", candidate, star_invalidated);
-					if (errmsg[0] != '\0') siril_debug_print("%s", errmsg); //nan errors do not write a message
-#endif
+					siril_debug_print("Candidate #%04d: X: %4d, Y: %4d - criterion #%d failed\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
 					free_psf(cur_star);
 					if (threads > 1)
 						results[candidate] = NULL;
