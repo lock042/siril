@@ -121,7 +121,7 @@ static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
 		return FALSE;
 	if ((result->fwhmy / result->fwhmx) < sf->roundness)
 		return FALSE;
-	if (((result->rmse / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) //  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
+	if (((result->rmse * sf->sigma / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) //  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
 		return FALSE;
 	return TRUE;
 }
