@@ -71,7 +71,7 @@ static double guess_resolution(fits *fit) {
 	double res = RADCONV / focal * size * bin;
 
 	/* test for high value. In this case we increase
-	 * the number of detected star in is_star function
+	 * the number of detected star in reject_star function
 	 */
 	/* if res > 1.0 we use default radius value */
 	if (res > 1.0) return 1.0;
@@ -103,27 +103,39 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 	return threshold;
 }
 
-static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
-
+static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, gchar *errmsg) {
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
-		return FALSE;
+		return SF_NO_FWHM;
 	if (isnan(result->x0) || isnan(result->y0))
-		return FALSE;
+		return SF_NO_POS;
 	if (isnan(result->mag))
-		return FALSE;
-	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) // if star center off from original candidate detection by more than sigma radius
-		return FALSE;
-	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) // criteria gets looser as guessed fwhm gets larger than kernel
-		return FALSE;
-	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0)
-		return FALSE;
-	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0)
-		return FALSE;
-	if ((result->fwhmy / result->fwhmx) < sf->roundness)
-		return FALSE;
-	if (((result->rmse * sf->sigma / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) //  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
-		return FALSE;
-	return TRUE;
+		return SF_NO_MAG;
+	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
+		return SF_CENTER_OFF;
+	}
+	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, sx: %3.1f, sy:%3.1f\n", result->fwhmx, se->sx, se->sy);
+		return SF_FWHM_TOO_LARGE;
+	}
+	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		return SF_FWHM_TOO_SMALL;
+	}
+	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0) {
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		return SF_FWHM_NEG;
+	}
+	if ((result->fwhmy / result->fwhmx) < sf->roundness) {
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		return SF_ROUNDNESS_BELOW_CRIT;
+	}
+	if (((result->rmse * sf->sigma / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) {
+	//  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %3.1f, A: %3.1f, B: %3.1f\n", result->rmse, result->A, result->B);
+		return SF_RMSE_TOO_LARGE;
+	}
+	return SF_OK;
 }
 
 int star_cmp(const void *a, const void *b)
@@ -594,7 +606,9 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, 1.0, FALSE, FALSE, NULL);
 			gsl_matrix_free(z);
 			if (cur_star) {
-				if (is_star(cur_star, sf, &candidates[candidate])) {
+				gchar errmsg[SF_ERRMSG_LEN] = {0};
+				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], errmsg);
+				if (star_invalidated == SF_OK) {
 					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
@@ -605,6 +619,10 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					//fprintf(stdout, "%03d: %11f %11f %f\n",
 					//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 				} else {
+#ifdef DEBUG_TEST
+					siril_debug_print("Candidate rejected#%03d: crit#%d failed\n", candidate, star_invalidated);
+					if (errmsg[0] != '\0') siril_debug_print("%s", errmsg); //nan errors do not write a message
+#endif
 					free_psf(cur_star);
 					if (threads > 1)
 						results[candidate] = NULL;
@@ -654,7 +672,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE, FALSE);
 	if (!result)
 		return NULL;
-	/* We do not check if it's matching with the "is_star()" criteria.
+	/* We do not check if it's matching with the "reject_star()" criteria.
 	 * Indeed, in this case the user can add manually stars missed by star_finder */
 
 	if (com.stars && !com.star_is_seqdata) {

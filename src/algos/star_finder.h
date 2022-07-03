@@ -3,6 +3,8 @@
 
 #include "core/siril.h"
 
+#define SF_ERRMSG_LEN 256
+
 typedef struct {
 	fits *fit;
 	sequence *from_seq;
@@ -23,6 +25,19 @@ struct star_candidate_struct {
 	int R;
 };
 typedef struct star_candidate_struct starc;
+
+typedef enum {
+	SF_OK = 0,
+	SF_NO_FWHM = 1,
+	SF_NO_POS = 2,
+	SF_NO_MAG = 3,
+	SF_CENTER_OFF = 4,
+	SF_FWHM_TOO_LARGE = 5,
+	SF_FWHM_TOO_SMALL = 6,
+	SF_FWHM_NEG = 7,
+	SF_ROUNDNESS_BELOW_CRIT = 8,
+	SF_RMSE_TOO_LARGE = 9,
+} sf_errors;
 
 void init_peaker_GUI();
 void init_peaker_default();
