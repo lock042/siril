@@ -505,7 +505,8 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 						Rconstraint = TRUE;
 					}
 				}
-				int R = max((Rconstraint) ? min(Rr, Rc) : max(Rr, Rc), r);
+				//int R = max((Rconstraint) ? min(Rr, Rc) : max(Rr, Rc), r);
+				int R = max(min(Rr, Rc), r);
 
 				// Quality checks
 				float dA = max(Ar,Ac)/min(Ar,Ac);
