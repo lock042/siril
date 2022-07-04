@@ -423,8 +423,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				pt.x = (gdouble) zoomed.x;
 				pt.y = (gdouble) zoomed.y;
 
-				if (pt.x + radius <= gfit.rx && pt.y + radius <= gfit.ry
-						&& pt.x - radius >= 0 && pt.y - radius >= 0) {
+				if (pt.x + radius < gfit.rx && pt.y + radius < gfit.ry
+						&& pt.x - radius > 0 && pt.y - radius > 0) {
 					com.grad_samples = add_background_sample(com.grad_samples, &gfit, pt);
 
 					redraw(REDRAW_OVERLAY);
