@@ -173,6 +173,7 @@ typedef struct {
 	double roundness;
 	double focal_length;
 	double pixel_size_x;
+	gboolean relax_checks;
 } star_finder_params;
 
 /**

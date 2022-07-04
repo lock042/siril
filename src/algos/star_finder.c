@@ -110,14 +110,6 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		return SF_NO_POS;
 	if (isnan(result->mag))
 		return SF_NO_MAG;
-	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
-		return SF_CENTER_OFF;
-	}
-	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
-		return SF_FWHM_TOO_LARGE;
-	}
 	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
 		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_TOO_SMALL;
@@ -129,6 +121,14 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 	if ((result->fwhmy / result->fwhmx) < sf->roundness) {
 		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT;
+	}
+	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
+		return SF_CENTER_OFF;
+	}
+	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
+		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
+		return SF_FWHM_TOO_LARGE;
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) {
 	//  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
@@ -182,6 +182,7 @@ void init_peaker_default_old() {
 	com.pref.starfinder_conf.roundness = 0.5;
 	com.pref.starfinder_conf.focal_length = 0.;
 	com.pref.starfinder_conf.pixel_size_x = 0.;
+	com.pref.starfinder_conf.relax_checks = FALSE;
 }
 
 void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -512,7 +513,8 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float dA = max(Ar,Ac)/min(Ar,Ac);
 				float dSr = max(-srl,srr)/min(-srl,srr);
 				float dSc = max(-scu,scd)/min(-scu,scd);
-				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
+				if (!com.pref.starfinder_conf.relax_checks)
+					if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
 					candidates[nbstars].x = xx;
@@ -558,6 +560,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	WORD **image_ushort = NULL;
 	float **image_float = NULL;
 	gint nbstars = 0;
+	sf_errors accepted_level = (com.pref.starfinder_conf.relax_checks) ? SF_RMSE_TOO_LARGE : SF_OK;
 
 	if (image->type == DATA_USHORT) {
 		image_ushort = malloc(ny * sizeof(WORD *));
@@ -622,11 +625,13 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = {0};
 				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], errmsg);
-				if (star_invalidated == SF_OK) {
+				if (star_invalidated <= accepted_level) {
 					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
 					cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
+					if (star_invalidated > SF_OK)
+						siril_debug_print("Candidate #%04d: X: %4d, Y: %4d - criterion #%d failed (but star kept)\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
 					if (threads > 1)
 						results[candidate] = cur_star;
 					else results[nbstars++] = cur_star;

@@ -1788,6 +1788,7 @@ int process_set_findstar(int nb) {
 	gboolean adjust = com.pref.starfinder_conf.adjust;
 	double focal_length = com.pref.starfinder_conf.focal_length;
 	double pixel_size_x = com.pref.starfinder_conf.pixel_size_x;
+	gboolean relax_checks = com.pref.starfinder_conf.relax_checks;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -1842,6 +1843,15 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
+				} else if (g_str_has_prefix(word[i], "-relax=")) {
+					char *current = word[i], *value;
+					value = current + 7;
+					if (!(g_ascii_strcasecmp(value, "on"))) relax_checks = TRUE;
+					else if (!(g_ascii_strcasecmp(value, "off"))) relax_checks = FALSE;
+					else {
+						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -1872,6 +1882,10 @@ int process_set_findstar(int nb) {
 	if (com.pref.starfinder_conf.adjust != adjust) {
 		siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
 		com.pref.starfinder_conf.adjust = adjust;
+	}
+	if (com.pref.starfinder_conf.relax_checks != relax_checks) {
+		siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
+		com.pref.starfinder_conf.relax_checks = relax_checks;
 	}
 	return CMD_OK;
 }
