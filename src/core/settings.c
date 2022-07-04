@@ -189,7 +189,7 @@ struct settings_access all_settings[] = {
 	{ "starfinder", "sigma", STYPE_DOUBLE, N_("sigma factor for detection threshold"), &com.pref.starfinder_conf.sigma, { .range_double = { 0., 20. } } },
 	{ "starfinder", "roundness", STYPE_DOUBLE, N_("star roundness for detection threshold"), &com.pref.starfinder_conf.roundness, { .range_double = { 0., 1. } } },
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
-	{ "starfinder", "piixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
+	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 	{ "starfinder", "relax_checks", STYPE_BOOL, N_("apply only loose checks to remove star canditates"), &com.pref.starfinder_conf.relax_checks },
 
 	{ "debayer", "open_debayer", STYPE_BOOL, N_("open image debayered"), &com.pref.debayer.open_debayer },
