@@ -126,8 +126,7 @@ static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
 	return TRUE;
 }
 
-int star_cmp(const void *a, const void *b)
-{
+static int star_cmp_by_mag_est(const void *a, const void *b) {
     starc *a1 = (starc *)a;
     starc *a2 = (starc *)b;
     if ((*a1).mag_est > (*a2).mag_est)
@@ -142,7 +141,7 @@ static void get_structure(star_finder_params *sf) {
 			*spin_roundness = NULL;
 	static GtkToggleButton *toggle_adjust = NULL;
 
-	if (spin_radius == NULL) {
+	if (!spin_radius) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
@@ -160,16 +159,6 @@ void init_peaker_GUI() {
 	 * them in the GUI while running the peaker.
 	 * see also init_peaker_default below */
 	get_structure(&com.pref.starfinder_conf);
-}
-
-void init_peaker_default_old() {
-	/* values taken from siril3.glade */
-	com.pref.starfinder_conf.radius = 10;
-	com.pref.starfinder_conf.adjust = TRUE;
-	com.pref.starfinder_conf.sigma = 1.0;
-	com.pref.starfinder_conf.roundness = 0.5;
-	com.pref.starfinder_conf.focal_length = 0.;
-	com.pref.starfinder_conf.pixel_size_x = 0.;
 }
 
 void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -552,7 +541,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	}
 
 	//sorting candidates by starc.mag_est values
-	qsort(candidates, nb_candidates, sizeof(starc), star_cmp);
+	qsort(candidates, nb_candidates, sizeof(starc), star_cmp_by_mag_est);
 
 	int round = 0;
 	siril_debug_print("limiting stars (%d) to %d for %d candidates\n", limit_nbstars, maxstars, nb_candidates);

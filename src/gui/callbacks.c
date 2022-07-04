@@ -156,7 +156,6 @@ static void initialize_theme_GUI() {
 	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
 	update_icons_to_theme(com.pref.gui.combo_theme == 0);
 	update_icons_sequence_list(com.pref.gui.combo_theme == 0);
-
 }
 
 void load_prefered_theme(gint theme) {
@@ -991,6 +990,12 @@ void initialize_display_mode() {
 	gui.rendering_mode = get_display_mode_from_menu();
 }
 
+/* initialize non-preferences GUI from settings */
+void init_GUI_from_settings() {
+	GtkToggleButton *main_debayer_button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
+	gtk_toggle_button_set_active(main_debayer_button, com.pref.debayer.open_debayer);
+}
+
 void set_GUI_CWD() {
 	if (!com.wd)
 		return;
@@ -1004,45 +1009,6 @@ void set_GUI_CWD() {
 
 	g_free(str);
 	g_free(truncated_wd);
-}
-
-void set_GUI_misc() {
-	GtkToggleButton *ToggleButton;
-	GtkSpinButton *memory_percent, *memory_amount, *font_size;
-
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.silent_quit);
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.check_update);
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.warn_script_run);
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("script_check_version"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.script_check_requires);
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.show_thumbnails);
-	GtkComboBox *thumb_box = GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"));
-	gtk_combo_box_set_active(thumb_box, com.pref.gui.thumbnail_size == 256 ? 1: 0);
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.remember_windows);
-	font_size = GTK_SPIN_BUTTON(lookup_widget("pref_fontsize"));
-	gtk_spin_button_set_value(font_size, com.pref.gui.font_scale);
-	ToggleButton = GTK_TOGGLE_BUTTON(lookup_widget("pref_iconstyle"));
-	gtk_toggle_button_set_active(ToggleButton, com.pref.gui.icon_symbolic);
-
-	memory_percent = GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio"));
-	gtk_spin_button_set_value(memory_percent, com.pref.memory_ratio);
-	memory_amount = GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount"));
-	gtk_spin_button_set_value(memory_amount, com.pref.memory_amount);
-
-	GtkToggleButton *modes[2] = { GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")),
-		GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio"))};
-	gtk_toggle_button_set_active(modes[com.pref.mem_mode], TRUE);
-
-	/* initialization of default FITS extension and type */
-	GtkComboBox *combobox_type = GTK_COMBO_BOX(lookup_widget("combobox_type"));
-	gtk_combo_box_set_active(combobox_type, com.pref.force_16bit ? 0 : 1);
-	GtkComboBox *fit_ext = GTK_COMBO_BOX(lookup_widget("combobox_ext"));
-	gtk_combo_box_set_active_id(fit_ext, com.pref.ext);
 }
 
 static void initialize_preprocessing() {
@@ -1059,8 +1025,6 @@ static void initialize_preprocessing() {
 }
 
 void set_GUI_CAMERA() {
-	GtkComboBox *binning = GTK_COMBO_BOX(lookup_widget("combobinning"));
-
 	if (gfit.focal_length) {
 		gchar *focal = g_strdup_printf("%.3lf", gfit.focal_length);
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("focal_entry")), focal);
@@ -1077,6 +1041,7 @@ void set_GUI_CAMERA() {
 		g_free(pitchY);
 	}
 
+	GtkComboBox *binning = GTK_COMBO_BOX(lookup_widget("combobinning"));
 	if (!gfit.binning_x || !gfit.binning_y) {
 		gtk_combo_box_set_active(binning, 0);
 	}
@@ -1096,7 +1061,8 @@ void set_GUI_CAMERA() {
 				gtk_combo_box_set_active(binning, 5);
 				break;
 			default:
-				siril_log_message(_("This binning is not handled yet\n"));
+				siril_log_message(_("This binning %d x %d is not handled yet\n"),
+						gfit.binning_x, gfit.binning_y);
 		}
 	}
 }
@@ -1220,6 +1186,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	init_peaker_GUI();
 
 	update_spinCPU(com.max_thread);
+
+	init_GUI_from_settings();
 
 	if (com.pref.gui.first_start) {
 		com.pref.gui.first_start = FALSE;
@@ -1467,7 +1435,6 @@ void siril_quit() {
 	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
 			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
 	if (quit) {
-		set_GUI_misc();
 		writeinitfile();
 		gtk_main_quit();
 	} else {

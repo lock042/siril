@@ -168,6 +168,11 @@ void initialize_default_settings() {
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 }
 
+void update_gain_from_gfit() {
+	if (gfit.cvf > 0.0)
+		com.pref.phot_set.gain = gfit.cvf;
+}
+
 struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },

@@ -17,7 +17,6 @@ void set_unlink_channels(gboolean unlinked);
 void adjust_exclude(int n, gboolean changed);
 void adjust_sellabel();
 void set_GUI_CWD();
-void set_GUI_misc();
 void set_icon_entry(GtkEntry *entry, gchar *string);
 void update_MenuItem();
 void sliders_mode_set_state(sliders_mode);

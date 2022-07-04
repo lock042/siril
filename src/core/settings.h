@@ -261,4 +261,6 @@ int print_all_settings(gboolean with_details);
 void free_preferences(preferences *pref);	// TODO check if they're used
 void initialize_default_settings();
 
+void update_gain_from_gfit();
+
 #endif
