@@ -4926,8 +4926,6 @@ int process_set_32bits(int nb) {
 		siril_log_message(_("16-bit per channel in processed images mode is active\n"));
 	else siril_log_message(_("32-bit per channel in processed images mode is active\n"));
 	writeinitfile();
-	if (!com.script)
-		set_GUI_misc();
 	return CMD_OK;
 }
 
@@ -4955,7 +4953,10 @@ int process_set_compress(int nb) {
 		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5))  {
 			method = GZIP2_COMP;
 			comp = g_strdup("GZIP2");
-		} /*else if (!g_ascii_strncasecmp(word[2] + 6, "hcompress", 9)) {
+		}
+		// hcompress with mode 2 is not working in cfitsio
+		// see https://gitlab.com/free-astro/siril/-/issues/696#note_932398268
+		/*else if (!g_ascii_strncasecmp(word[2] + 6, "hcompress", 9)) {
 			method = HCOMPRESS_COMP;
 			if (!word[4]) {
 				siril_log_message(_("Please specify the value of hcompress scale factor.\n"));
@@ -4988,8 +4989,6 @@ int process_set_compress(int nb) {
 	com.pref.comp.fits_method = method;
 	com.pref.comp.fits_quantization = q;
 	com.pref.comp.fits_hcompress_scale = hscale;
-	if (!com.script)
-		set_GUI_compression();
 	writeinitfile();
 	return CMD_OK;
 }
@@ -5038,8 +5037,6 @@ int process_set_mem(int nb){
 	com.pref.mem_mode = RATIO;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
-	if (!com.script)
-		set_GUI_misc();
 	return CMD_OK;
 }
 
