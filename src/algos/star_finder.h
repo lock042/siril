@@ -24,8 +24,6 @@ struct star_candidate_struct {
 };
 typedef struct star_candidate_struct starc;
 
-void init_peaker_GUI();
-void init_peaker_default();
 void update_peaker_GUI();
 void confirm_peaker_GUI();
 psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads);
