@@ -454,29 +454,20 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				// term S / 3 increases the box radius when the guessed fwhm is larger than the smoothing kernel size
 				int Rr = (int) ceil(2 * Sr * Sr / KERNEL_SIZE);
 				int Rc = (int) ceil(2 * Sc * Sc / KERNEL_SIZE);
-				gboolean Rconstraint = FALSE;
-				if (Rr > r) { // avoid enlarging outside frame width
-					if (xx - Rr < 0) {
-						Rr = xx;
-						Rconstraint = TRUE;
-					}
-					if (xx + Rr >= nx) {
-						Rr = nx - xx - 1;
-						Rconstraint = TRUE;
-					} 
-				}
-				if (Rc > r) { // avoid enlarging outside frame height
-					if (yy - Rc < 0) {
+				int Rm = max(Rr, Rc);
+				if (Rm > r) {
+				// avoid enlarging outside frame width
+					if (xx - Rm < 0)
+						Rm = xx;
+					if (xx + Rm >= nx)
+						Rm = nx - xx - 1;
+				// avoid enlarging outside frame height
+					if (yy - Rm < 0)
 						Rc = yy;
-						Rconstraint = TRUE;
-					}
-					if (yy + Rc >= ny) {
-						Rc = ny - yy - 1;
-						Rconstraint = TRUE;
-					}
+					if (yy + Rm >= ny)
+						Rm = ny - yy - 1;
 				}
-				//int R = max((Rconstraint) ? min(Rr, Rc) : max(Rr, Rc), r);
-				int R = max(min(Rr, Rc), r);
+				int R = max(Rm, r);
 
 				// Quality checks
 				float dA = max(Ar,Ac)/min(Ar,Ac);
