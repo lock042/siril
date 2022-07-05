@@ -152,6 +152,10 @@ void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer use
 	com.pref.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
 }
 
+void on_toggle_relax_checks_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	com.pref.starfinder_conf.relax_checks = gtk_toggle_button_get_active(togglebutton);
+}
+
 void on_spin_sf_radius_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	com.pref.starfinder_conf.radius = (int)gtk_spin_button_get_value(spinbutton);
 }
@@ -167,18 +171,20 @@ void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data)
 void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
 			*spin_roundness = NULL;
-	static GtkToggleButton *toggle_adjust = NULL;
+	static GtkToggleButton *toggle_adjust = NULL, *toggle_checks = NULL;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
+		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
 	}
 	gtk_spin_button_set_value(spin_radius, (double) com.pref.starfinder_conf.radius);
 	gtk_toggle_button_set_active(toggle_adjust, com.pref.starfinder_conf.adjust);
 	gtk_spin_button_set_value(spin_sigma, com.pref.starfinder_conf.sigma);
 	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
+	gtk_toggle_button_set_active(toggle_checks, com.pref.starfinder_conf.relax_checks);
 }
 
 void confirm_peaker_GUI() {
