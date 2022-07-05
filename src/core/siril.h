@@ -8,13 +8,13 @@
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>
 #include <gtk/gtk.h>
-#include <fitsio.h>	// fitsfile
 #include <gsl/gsl_histogram.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 #include <libintl.h>
 
+#include <fitsio.h>	// fitsfile
 
 #include "core/settings.h"
 #include "core/atomic.h"
@@ -196,7 +196,7 @@ typedef enum {
 } export_format;
 
 typedef enum {
-	LINEAR_DISPLAY,	
+	LINEAR_DISPLAY,
 	LOG_DISPLAY,
 	SQRT_DISPLAY,
 	SQUARED_DISPLAY,
@@ -207,7 +207,7 @@ typedef enum {
 #define DISPLAY_MODE_MAX HISTEQ_DISPLAY
 
 typedef enum {
-	NORMAL_COLOR,	
+	NORMAL_COLOR,
 	RAINBOW_COLOR
 } color_map;
 
@@ -328,7 +328,7 @@ struct sequ {
 	int previewW[PREVIEW_NB], previewH[PREVIEW_NB];	// 0 is uninitialized value
 
 	double upscale_at_stacking;// up-scale factor during stacking (see #215)
-	
+
 	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
 	gboolean reg_invalidated; // a flag to detect if regframe can be plotted
 
@@ -376,7 +376,7 @@ struct ffit {
 	int orig_bitpix;	// original bitpix of the file
 	/* bitpix can take the following values:
 	 * BYTE_IMG	(8-bit byte pixels, 0 - 255)
-	 * SHORT_IMG	(16 bit signed integer pixels)	
+	 * SHORT_IMG	(16 bit signed integer pixels)
 	 * USHORT_IMG	(16 bit unsigned integer pixels)	(used by Siril, a bit unusual)
 	 * LONG_IMG	(32-bit integer pixels)
 	 * FLOAT_IMG	(32-bit floating point pixels)
@@ -424,7 +424,7 @@ struct ffit {
 
 	/* data used in the Fourier space */
 	dft_info dft;
-	
+
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
 	double mini, maxi;	// min and max of the stats->max[3]
@@ -519,7 +519,7 @@ struct guiinf {
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
 	pointi start;			// where the mouse was originally clicked to
 	pointi origin;			// where the selection was originally located
-	gboolean freezeX, freezeY;	// locked axis during modification of a selection 
+	gboolean freezeX, freezeY;	// locked axis during modification of a selection
 	double ratio;			// enforced ratio of the selection (default is 0: none)
 
 	/* alignment preview data */
@@ -527,7 +527,7 @@ struct guiinf {
 	GtkWidget *preview_area[PREVIEW_NB];
 	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
 	cairo_surface_t *refimage_surface;
-	
+
 	int file_ext_filter;		// file extension filter for open/save dialogs
 
 	/* history of the command line. This is a circular buffer (cmd_history)
@@ -564,7 +564,7 @@ struct cominf {
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
-	
+
 	rectangle selection;		// coordinates of the selection rectangle
 
 	psf_star **stars;		// list of stars detected in the current image
@@ -583,6 +583,13 @@ struct cominf {
 	GSList *found_object;		// list of objects found in the image from catalogues
 
 	sensor_tilt *tilt;		// computed tilt information
+
+	gboolean child_is_running;	// boolean to check if there is a child process running
+#ifdef _WIN32
+void* childhandle;			// For Windows, handle of a child process
+#else
+pid_t childpid;				// For other OSes, PID of a child process
+#endif
 };
 
 /* this structure is used to characterize the statistics of the image */

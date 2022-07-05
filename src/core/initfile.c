@@ -208,7 +208,7 @@ static int readinitfile_libconfig(gchar *path) {
 	config_setting_t *misc_setting = config_lookup(&config, keywords[MISC]);
 	if (misc_setting) {
 		int type;
-		const char *swap_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
+		const char *swap_dir = NULL, *starnet_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.gui.pan_position);
 
@@ -258,6 +258,8 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_bool(misc_setting, "is_maximized", &com.pref.gui.is_maximized);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		com.pref.swap_dir = g_strdup(swap_dir);
+		config_setting_lookup_string(misc_setting, "starnet_directory", &starnet_dir);
+		com.pref.starnet_dir = g_strdup(starnet_dir);
 		config_setting_lookup_string(misc_setting, "extension", &extension);
 		com.pref.ext = g_strdup(extension);
 		config_setting_lookup_int(misc_setting, "FITS_type", &type);
@@ -290,6 +292,7 @@ static int readinitfile_libconfig(gchar *path) {
 	config_destroy(&config);
 	return 0;
 }
+
 #endif
 
 static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
