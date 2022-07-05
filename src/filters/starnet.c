@@ -237,7 +237,7 @@ gpointer do_starnet(gpointer p) {
 								// a configurable item
 #endif
 	gchar *currentdir;
-	gchar starnetcommand[16] = "starnet++";
+	gchar starnetcommand[19] = "starnet++";
 	gchar temptif[pathmax];
 	gchar starlesstif[pathmax];
 	gchar starlessfit[pathmax];
@@ -367,11 +367,11 @@ gpointer do_starnet(gpointer p) {
 
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
 	if (g_file_test(STARNET_BIN, G_FILE_TEST_IS_EXECUTABLE)) {
-		snprintf(starnetcommand,15, STARNET_BIN);
+		snprintf(starnetcommand, 19, STARNET_BIN);
 	} else if ((gfit.naxes[2] == 3) && (g_file_test(STARNET_RGB, G_FILE_TEST_IS_EXECUTABLE))) {
-		snprintf(starnetcommand,15, STARNET_RGB);
+		snprintf(starnetcommand, 19, STARNET_RGB);
 	} else if ((gfit.naxes[2] == 1 ) && (g_file_test(STARNET_MONO, G_FILE_TEST_IS_EXECUTABLE))) {
-		snprintf(starnetcommand, 15, STARNET_MONO);
+		snprintf(starnetcommand, 19, STARNET_MONO);
 	}
 	else {
 		retval = 1;
