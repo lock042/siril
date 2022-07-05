@@ -5867,6 +5867,11 @@ enter a visible wavelength in nm</property>
       <action-widget response="0">extract_channel_button_ok</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkImage" id="eyedrop">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">pixmaps/eyedropper.svg</property>
+  </object>
   <object class="GtkDialog" id="file_information">
     <property name="width-request">400</property>
     <property name="can-focus">False</property>
@@ -11238,28 +11243,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <!-- n-columns=2 n-rows=1 -->
+                      <!-- n-columns=3 n-rows=1 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_ghtSP">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
-                            <property name="width-chars">10</property>
-                            <property name="text" translatable="yes">0,00000</property>
-                            <property name="progress-fraction">0.01</property>
-                            <property name="progress-pulse-step">0.01</property>
-                            <property name="adjustment">adjustment_payneSP</property>
-                            <property name="digits">5</property>
-                            <signal name="value-changed" handler="on_spin_ghtSP_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
                         <child>
                           <object class="GtkLabel" id="label_payneS">
                             <property name="visible">True</property>
@@ -11270,6 +11257,49 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ghtSP">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
+                            <property name="valign">center</property>
+                            <property name="width-chars">10</property>
+                            <property name="text" translatable="yes">0,00000</property>
+                            <property name="progress-fraction">0.01</property>
+                            <property name="progress-pulse-step">0.01</property>
+                            <property name="adjustment">adjustment_payneSP</property>
+                            <property name="digits">5</property>
+                            <signal name="value-changed" handler="on_spin_ghtSP_value_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkToolbar" id="eyedropper_toolbar">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <child>
+                              <object class="GtkToolButton" id="eyedropper_SP">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Set SP to the average of the current selection.</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-widget">eyedrop</property>
+                                <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">True</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
                             <property name="top-attach">0</property>
                           </packing>
                         </child>
