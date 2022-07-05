@@ -87,6 +87,7 @@ src_files = [
   'filters/rgradient.c',
   'filters/saturation.c',
   'filters/scnr.c',
+  'filters/starnet.c',
   'filters/wavelets.c',
 
   'io/avi_pipp/pipp_avi_write.cpp',
@@ -152,6 +153,7 @@ src_files = [
   'gui/siril_intro.c',
   'gui/siril_preview.c',
   'gui/siril-window.c',
+  'gui/starnetgui.c',
   'gui/statistics_list.c',
   'gui/utils.c',
 
