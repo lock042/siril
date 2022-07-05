@@ -136,31 +136,6 @@ static int star_cmp_by_mag_est(const void *a, const void *b) {
     return 0;
 }
 
-static void get_structure(star_finder_params *sf) {
-	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL;
-	static GtkToggleButton *toggle_adjust = NULL;
-
-	if (!spin_radius) {
-		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
-		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
-		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
-		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
-	}
-	sf->radius = (int) gtk_spin_button_get_value(spin_radius);
-	sf->sigma = gtk_spin_button_get_value(spin_sigma);
-	sf->adjust = gtk_toggle_button_get_active(toggle_adjust);
-	sf->roundness = gtk_spin_button_get_value(spin_roundness);
-}
-
-void init_peaker_GUI() {
-	/* TODO someday: read values from conf file and set them in the GUI.
-	 * Until then, storing values in com.pref.starfinder_conf instead of getting
-	 * them in the GUI while running the peaker.
-	 * see also init_peaker_default below */
-	get_structure(&com.pref.starfinder_conf);
-}
-
 void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	com.pref.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
 }
