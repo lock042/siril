@@ -2318,6 +2318,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">If selected, a star mask will be generated and saved in the working directory. The star mask is calculated as the difference between the original image and the starless image. The default is to produce a star mask.</property>
                 <property name="halign">start</property>
+                <property name="valign">start</property>
                 <property name="hexpand">True</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
@@ -2335,7 +2336,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, a custom value may be entererd for the starnet++ stride parameter. The default value is 256 and the starnet developer recommends not to change this.</property>
+                <property name="tooltip-text" translatable="yes">If selected, a custom value may be entererd for the Starnet++ stride parameter. The default value is 256 and the starnet developer recommends not to change this.</property>
                 <property name="halign">end</property>
                 <property name="hexpand">True</property>
                 <property name="draw-indicator">True</property>
@@ -2366,7 +2367,7 @@ If the parameters is null, so no filter is apply at all.</property>
                   <object class="GtkSpinButton" id="spin_starnet_stride">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Sets the size of tiles passed to the Starlink++ neural network for processing. It is strongly recommended to leave this at the default setting. Halving the stride setting quadruples the processing time. If altered, stride must be an even integer between 2-256.</property>
+                    <property name="tooltip-text" translatable="yes">Sets the size of tiles passed to the Starnet++ neural network for processing. It is strongly recommended to leave this at the default setting. Halving the stride setting quadruples the processing time. If altered, stride must be an even integer between 2-256.</property>
                     <property name="margin-start">8</property>
                     <property name="hexpand">True</property>
                     <property name="input-purpose">digits</property>
