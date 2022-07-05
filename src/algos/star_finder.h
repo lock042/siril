@@ -29,7 +29,7 @@ typedef struct star_candidate_struct starc;
 // criteria above 10 are mandatory
 typedef enum {
 	SF_OK = 0,
-	SF_CENTER_OFF = 1,
+	SF_CENTER_OFF = 10,
 	SF_FWHM_TOO_LARGE = 2,
 	SF_RMSE_TOO_LARGE = 3,
 	SF_NO_FWHM = 11,

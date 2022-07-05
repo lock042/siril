@@ -463,7 +463,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 						Rm = nx - xx - 1;
 				// avoid enlarging outside frame height
 					if (yy - Rm < 0)
-						Rc = yy;
+						Rm = yy;
 					if (yy + Rm >= ny)
 						Rm = ny - yy - 1;
 				}
