@@ -390,6 +390,13 @@ static gboolean end_gfit_operation() {
 
 	update_gfit_histogram_if_needed();
 
+	/* update bit depth selector */
+	set_precision_switch();
+
+	/* update display of gfit name (useful if it changes) */
+	adjust_sellabel();
+	display_filename();
+
 	// compute new min and max if needed for display and update sliders
 	init_layers_hi_and_lo_values(gui.sliders);
 	set_cutoff_sliders_values();

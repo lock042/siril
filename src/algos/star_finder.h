@@ -40,8 +40,6 @@ typedef enum {
 	SF_ROUNDNESS_BELOW_CRIT = 16
 } sf_errors;
 
-void init_peaker_GUI();
-void init_peaker_default(); // TODO: does not exist anymore. init_peaker_default_old()?
 void update_peaker_GUI();
 void confirm_peaker_GUI();
 psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads);

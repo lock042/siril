@@ -1183,8 +1183,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	set_GUI_CWD();
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
 
-	init_peaker_GUI();
-
 	update_spinCPU(com.max_thread);
 
 	init_GUI_from_settings();

@@ -46,6 +46,7 @@ preferences pref_init = {
 	.wcs_formalism = WCS_FORMALISM_1,
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
+	.starnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = 10,
 		.adjust = TRUE,
@@ -155,6 +156,8 @@ void free_preferences(preferences *pref) {
 	pref->swap_dir = NULL;
 	g_free(pref->copyright);
 	pref->copyright = NULL;
+	g_free(pref->starnet_dir);
+	pref->starnet_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
 	g_slist_free_full(pref->gui.script_path, g_free);
@@ -188,6 +191,7 @@ struct settings_access all_settings[] = {
 	{ "core", "wcs_formalism", STYPE_INT, N_("WCS formalism used in FITS header"), &com.pref.wcs_formalism, { .range_int = { 0, 1 } } },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
+	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
 
 	{ "starfinder", "adjust", STYPE_BOOL, N_("adjust search radius with resolution"), &com.pref.starfinder_conf.adjust },
 	{ "starfinder", "radius", STYPE_INT, N_("base radius value, contains one star"), &com.pref.starfinder_conf.radius, { .range_int = { 0, 100 } } },

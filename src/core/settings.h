@@ -210,6 +210,8 @@ struct pref_struct {
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
 
+	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
+
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
 	struct gui_config gui;

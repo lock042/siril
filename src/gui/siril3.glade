@@ -2196,6 +2196,222 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_starnet_stride">
+    <property name="lower">2</property>
+    <property name="upper">256</property>
+    <property name="value">256</property>
+    <property name="step-increment">128</property>
+    <property name="page-increment">128</property>
+  </object>
+  <object class="GtkDialog" id="starnet_dialog">
+    <property name="name">starnet_dialog</property>
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Starnet++ Star Removal</property>
+    <property name="resizable">False</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="on_starnet_cancel_clicked" swapped="no"/>
+    <signal name="show" handler="on_starnet_dialog_show" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="starnet_cancel">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Close current window</property>
+                <signal name="clicked" handler="on_starnet_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="starnet_apply">
+                <property name="label" translatable="yes">Execute</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Apply Split CFA</property>
+                <signal name="clicked" handler="on_starnet_execute_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=2 n-rows=3 -->
+          <object class="GtkGrid" id="grid2">
+            <property name="name">label_starnet_stride</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="row-spacing">10</property>
+            <property name="column-spacing">6</property>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_upsample">
+                <property name="label" translatable="yes">Upsample x2</property>
+                <property name="name">toggle_starnet_scale</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If selected, the image will be upsampled by a factor of 2 before running Starnet++. This improves performance on very tight stars but quadruples processing time and may impair performance on very large stars. The image is rescaled to the original size on completion.</property>
+                <property name="halign">start</property>
+                <property name="hexpand">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_starnet_upsample_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_stretch">
+                <property name="label" translatable="yes">Pre-stretch linear image</property>
+                <property name="name">toggle_starnet_stretch</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If selected, an optimised Midtone Transfer Function (MTF) stretch is applied to the image before running Starnet++, and the inverse stretch is applied on completion. This is necessary for using Starnet at the linear stage of processing.</property>
+                <property name="halign">start</property>
+                <property name="hexpand">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_starnet_stretch_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_starmask">
+                <property name="label" translatable="yes">Generate star mask</property>
+                <property name="name">toggle_starnet_starmask</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If selected, a star mask will be generated and saved in the working directory. The star mask is calculated as the difference between the original image and the starless image. The default is to produce a star mask.</property>
+                <property name="halign">start</property>
+                <property name="hexpand">True</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_starnet_starmask_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_customstride">
+                <property name="label" translatable="yes">Use custom stride</property>
+                <property name="name">toggle_starnet_starmask</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If selected, a custom value may be entererd for the starnet++ stride parameter. The default value is 256 and the starnet developer recommends not to change this.</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_starnet_customstride_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="stride_control">
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Stride</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_starnet_stride">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Sets the size of tiles passed to the Starlink++ neural network for processing. It is strongly recommended to leave this at the default setting. Halving the stride setting quadruples the processing time. If altered, stride must be an even integer between 2-256.</property>
+                    <property name="margin-start">8</property>
+                    <property name="hexpand">True</property>
+                    <property name="input-purpose">digits</property>
+                    <property name="adjustment">adj_starnet_stride</property>
+                    <property name="value">256</property>
+                    <signal name="value-changed" handler="on_spin_starnet_stride_value_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label_starnetinfo">
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes"> 
+</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="adj_w0">
     <property name="upper">99</property>
     <property name="value">1</property>
@@ -5650,6 +5866,11 @@ enter a visible wavelength in nm</property>
       <action-widget response="0">separate_button_close</action-widget>
       <action-widget response="0">extract_channel_button_ok</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkImage" id="eyedrop">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">pixmaps/eyedropper.svg</property>
   </object>
   <object class="GtkDialog" id="file_information">
     <property name="width-request">400</property>
@@ -11022,28 +11243,10 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <!-- n-columns=2 n-rows=1 -->
+                      <!-- n-columns=3 n-rows=1 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_ghtSP">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
-                            <property name="width-chars">10</property>
-                            <property name="text" translatable="yes">0,00000</property>
-                            <property name="progress-fraction">0.01</property>
-                            <property name="progress-pulse-step">0.01</property>
-                            <property name="adjustment">adjustment_payneSP</property>
-                            <property name="digits">5</property>
-                            <signal name="value-changed" handler="on_spin_ghtSP_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
                         <child>
                           <object class="GtkLabel" id="label_payneS">
                             <property name="visible">True</property>
@@ -11054,6 +11257,49 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ghtSP">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
+                            <property name="valign">center</property>
+                            <property name="width-chars">10</property>
+                            <property name="text" translatable="yes">0,00000</property>
+                            <property name="progress-fraction">0.01</property>
+                            <property name="progress-pulse-step">0.01</property>
+                            <property name="adjustment">adjustment_payneSP</property>
+                            <property name="digits">5</property>
+                            <signal name="value-changed" handler="on_spin_ghtSP_value_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkToolbar" id="eyedropper_toolbar">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <child>
+                              <object class="GtkToolButton" id="eyedropper_SP">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Set SP to the average of the current selection.</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-widget">eyedrop</property>
+                                <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">True</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
                             <property name="top-attach">0</property>
                           </packing>
                         </child>
@@ -12552,6 +12798,20 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_extract_starnet">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.starnet-processing</property>
+            <property name="text" translatable="yes">Starnet++ Star Removal...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
@@ -23602,7 +23862,7 @@ Configuring a memory amount larger than what is available on your system may res
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>
@@ -23635,6 +23895,74 @@ Configuring a memory amount larger than what is available on your system may res
                             <property name="margin-bottom">10</property>
                             <property name="label" translatable="yes">Introduction Tips</property>
                             <property name="single-line-mode">True</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="filechooser_starnet">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Select Starnet++ installation directory. Requires Starnet++ v2.0.2 or higher.</property>
+                                    <property name="valign">center</property>
+                                    <property name="action">select-folder</property>
+                                    <property name="title" translatable="yes">Select Starnet++ installation directory</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="xpad">10</property>
+                                    <property name="label" translatable="yes">Must point to a valid Starnet++ installation directory.</property>
+                                    <attributes>
+                                      <attribute name="style" value="italic"/>
+                                    </attributes>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="ypad">8</property>
+                            <property name="label" translatable="yes">Starnet++ Installation Directory</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>
                             </attributes>
