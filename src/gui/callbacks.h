@@ -4,6 +4,10 @@
 #include <sys/time.h>
 #include "core/siril.h"	// for sliders_mode
 
+void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data);
+void on_press_seq_field();
+void launch_clipboard_survey();
+
 void initialize_all_GUI(gchar *files);
 void siril_set_theme(int active);
 void load_prefered_theme();

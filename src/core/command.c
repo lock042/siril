@@ -127,6 +127,7 @@ int process_load(int nb){
 	expand_home_in_filename(filename, 256);
 
 	int retval = open_single_image(filename);
+	launch_clipboard_survey();
 	return (retval < 0);
 }
 

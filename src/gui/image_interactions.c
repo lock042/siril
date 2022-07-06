@@ -328,6 +328,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		if (event->button == GDK_BUTTON_PRIMARY
 				&& event->type == GDK_DOUBLE_BUTTON_PRESS) {
 			header_open_button_clicked();
+			launch_clipboard_survey();
 		}
 		return FALSE;
 	}
