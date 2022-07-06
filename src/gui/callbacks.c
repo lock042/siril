@@ -96,6 +96,109 @@ static void update_theme_button(const gchar *button_name, const gchar *path) {
 	g_free(image);
 }
 
+void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data) {
+	/*Only surveys the name of the opened item vs the clipboard containt and change the color accoringly*/
+
+	GtkLabel *label_name_of_seq = NULL; 
+	const char *format_green = "<span foreground=\"green\">%s</span>";
+	const char *format_white = "<span foreground=\"white\">%s</span>";
+	char *markup;
+	
+	label_name_of_seq = GTK_LABEL(lookup_widget("label_name_of_seq"));
+
+	/* Get the clipboard object */
+	clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
+	/* Get the clipboard content */
+	char *clipboard_content = gtk_clipboard_wait_for_text(clipboard);
+	/* Initialize for non-NULL */
+	if (clipboard_content == NULL) {clipboard_content = "NoRules";}
+
+	/* Set the right color*/
+	if (single_image_is_loaded()) {
+		gchar *filename = g_path_get_basename(com.uniq->filename);	
+		if ((strcmp(filename, clipboard_content) == 0)) {
+			markup = g_markup_printf_escaped (format_green, "Image:");
+			gtk_label_set_markup(label_name_of_seq, markup);
+		} else {
+			markup = g_markup_printf_escaped (format_white, "Image:");
+			gtk_label_set_markup(label_name_of_seq, markup);
+		}
+	}
+
+
+	if (sequence_is_loaded()) {
+		gchar *seq_basename = g_path_get_basename(com.seq.seqname);	
+		if ((strcmp(seq_basename, clipboard_content) == 0)) {
+			markup = g_markup_printf_escaped (format_green, "Sequence:");
+			gtk_label_set_markup(label_name_of_seq, markup);
+		} else {
+			markup = g_markup_printf_escaped (format_white, "Sequence:");
+			gtk_label_set_markup(label_name_of_seq, markup);
+		}
+	}
+
+}
+
+
+void launch_clipboard_survey() {
+
+  	GtkClipboard *clipboard = NULL;
+
+	/* Get the clipboard object */
+	clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
+	/* Get the clipboard content */
+	char *clipboard_content = gtk_clipboard_wait_for_text(clipboard);
+	/*Initialize for non-NULL */
+	if (clipboard_content == NULL) {clipboard_content = "NoRules";}
+
+/*****
+	* For an Image *
+	if (single_image_is_loaded()) {
+		gchar *filename = g_path_get_basename(com.uniq->filename);
+	* Set clipboard text *
+  		gtk_clipboard_set_text (clipboard, filename, -1);
+		g_free(filename);
+	 *For a Sequence *	
+	} else if (sequence_is_loaded()) {
+		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
+	* Set clipboard text *
+  		gtk_clipboard_set_text (clipboard, seq_basename, -1);
+		g_free(seq_basename);
+	}
+*****/
+
+	/* To launch the Handle*/
+	g_signal_connect(clipboard, "owner-change", G_CALLBACK(handle_owner_change), NULL);
+
+}
+void on_press_seq_field() {
+
+  	GtkClipboard *clipboard = NULL;
+
+	/* Get the clipboard object */
+	clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
+	/* Get the clipboard content */
+	char *clipboard_content = gtk_clipboard_wait_for_text(clipboard);
+	/* Initialize for non-NULL */
+	if (clipboard_content == NULL) {clipboard_content = "NoRules";}
+
+	/* For an Image */
+	if (single_image_is_loaded()) {
+		gchar *filename = g_path_get_basename(com.uniq->filename);
+	/* Set clipboard text */
+  		gtk_clipboard_set_text (clipboard, filename, -1);
+		g_free(filename);
+	/* For a Sequence */		
+	} else if (sequence_is_loaded()) {
+		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
+	/* Set clipboard text */
+  		gtk_clipboard_set_text (clipboard, seq_basename, -1);
+		g_free(seq_basename);
+	}
+
+
+}
+
 static void update_icons_to_theme(gboolean is_dark) {
 	siril_debug_print("Loading %s theme...\n", is_dark ? "dark" : "light");
 	if (is_dark) {
@@ -1570,6 +1673,7 @@ void on_seqproc_entry_changed(GtkComboBox *widget, gpointer user_data) {
 		g_free(msg);
 	}
 	g_free(name);
+	launch_clipboard_survey();
 }
 
 /* signal handler for the gray window layer change */

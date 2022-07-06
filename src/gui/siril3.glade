@@ -19091,34 +19091,44 @@ WARNING: This option should not be checked for master stacking.</property>
             <property name="halign">start</property>
             <property name="margin-bottom">3</property>
             <child>
-              <object class="GtkLabel" id="label_name_of_seq">
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkEventBox" id="press_field">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Sequence:</property>
-                <attributes>
-                  <attribute name="style" value="italic"/>
-                  <attribute name="weight" value="bold"/>
-                </attributes>
+                <property name="can-focus">True</property>
+                <signal name="button-press-event" handler="on_press_seq_field" swapped="no"/>
+                <child>
+                  <object class="GtkLabel" id="label_name_of_seq">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Click to Set the name of the item  to clipboard (green-ed label)</property>
+                    <property name="label" translatable="yes">Sequence:</property>
+                    <attributes>
+                      <attribute name="style" value="italic"/>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                    <signal name="button-press-event" handler="on_press_seq_field" swapped="no"/>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="padding">2</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="labelseq">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label">seq, 5 images selected (filled at runtime)</property>
-                <property name="selectable">True</property>
+                <property name="label">seq, 4 images selected (filled at runtime)</property>
                 <property name="ellipsize">start</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
