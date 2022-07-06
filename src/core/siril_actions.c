@@ -55,6 +55,7 @@
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	header_open_button_clicked();
+	launch_clipboard_survey();
 }
 
 void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
