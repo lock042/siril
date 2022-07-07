@@ -48,7 +48,7 @@
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 3.
 
-// Use this flag to print canditates rejection output (only works if SIRIL_OUTPUT_DEBUG is on)
+// Use this flag to print canditates rejection output (0 or 1, only works if SIRIL_OUTPUT_DEBUG is on)
 #define DEBUG_STAR_DETECTION 0
 
 static double guess_resolution(fits *fit) {
@@ -585,7 +585,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, 1.0, FALSE, FALSE, NULL);
 			gsl_matrix_free(z);
 			if (cur_star) {
-				gchar errmsg[SF_ERRMSG_LEN] = {0};
+				gchar errmsg[SF_ERRMSG_LEN] = "";
 				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], (DEBUG_STAR_DETECTION) ? errmsg : NULL);
 				if (star_invalidated <= accepted_level) {
 					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
@@ -594,14 +594,14 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
 #if DEBUG_STAR_DETECTION
 					if (star_invalidated > SF_OK)
-						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
+						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, errmsg);
 #endif
 					if (threads > 1)
 						results[candidate] = cur_star;
 					else results[nbstars++] = cur_star;
 				} else {
 #if DEBUG_STAR_DETECTION
-						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
+					siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed\n%s", candidate, x, y, star_invalidated, errmsg);
 #endif
 					free_psf(cur_star);
 					if (threads > 1)
