@@ -1850,6 +1850,7 @@ int process_set_findstar(int nb) {
 	gboolean adjust = com.pref.starfinder_conf.adjust;
 	double focal_length = com.pref.starfinder_conf.focal_length;
 	double pixel_size_x = com.pref.starfinder_conf.pixel_size_x;
+	gboolean relax_checks = com.pref.starfinder_conf.relax_checks;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -1904,6 +1905,15 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
+				} else if (g_str_has_prefix(word[i], "-relax=")) {
+					char *current = word[i], *value;
+					value = current + 7;
+					if (!(g_ascii_strcasecmp(value, "on"))) relax_checks = TRUE;
+					else if (!(g_ascii_strcasecmp(value, "off"))) relax_checks = FALSE;
+					else {
+						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -1911,30 +1921,22 @@ int process_set_findstar(int nb) {
 			}
 		}
 	}
-	if (com.pref.starfinder_conf.sigma != sigma) {
-		siril_log_message(_("sigma = %3.2f\n"), sigma);
-		com.pref.starfinder_conf.sigma = sigma;
-	}
-	if (com.pref.starfinder_conf.roundness != roundness) {
-		siril_log_message(_("roundness = %3.2f\n"), roundness);
-		com.pref.starfinder_conf.roundness = roundness;
-	}
-	if (com.pref.starfinder_conf.radius != radius) {
-		siril_log_message(_("radius = %d\n"), radius);
-		com.pref.starfinder_conf.radius = radius;
-	}
-	if (com.pref.starfinder_conf.focal_length != focal_length) {
-		siril_log_message(_("focal = %3.1f\n"), focal_length);
-		com.pref.starfinder_conf.focal_length = focal_length;
-	}
-	if (com.pref.starfinder_conf.pixel_size_x != pixel_size_x) {
-		siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
-		com.pref.starfinder_conf.pixel_size_x = pixel_size_x;
-	}
-	if (com.pref.starfinder_conf.adjust != adjust) {
-		siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
-		com.pref.starfinder_conf.adjust = adjust;
-	}
+
+	siril_log_message(_("sigma = %3.2f\n"), sigma);
+	com.pref.starfinder_conf.sigma = sigma;
+	siril_log_message(_("roundness = %3.2f\n"), roundness);
+	com.pref.starfinder_conf.roundness = roundness;
+	siril_log_message(_("radius = %d\n"), radius);
+	com.pref.starfinder_conf.radius = radius;
+	siril_log_message(_("focal = %3.1f\n"), focal_length);
+	com.pref.starfinder_conf.focal_length = focal_length;
+	siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
+	com.pref.starfinder_conf.pixel_size_x = pixel_size_x;
+	siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
+	com.pref.starfinder_conf.adjust = adjust;
+	siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
+	com.pref.starfinder_conf.relax_checks = relax_checks;
+
 	return CMD_OK;
 }
 
