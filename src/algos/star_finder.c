@@ -48,6 +48,8 @@
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 3.
 
+// Use this flag to print canditates rejection output (only works if SIRIL_OUTPUT_DEBUG is on)
+#define DEBUG_STAR_DETECTION 0
 
 static double guess_resolution(fits *fit) {
 	double focal = fit->focal_length;
@@ -590,7 +592,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
 					cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
-					if (star_invalidated > SF_OK)
+					if (DEBUG_STAR_DETECTION && star_invalidated > SF_OK)
 						siril_debug_print("Candidate #%04d: X: %4d, Y: %4d - criterion #%d failed (but star kept)\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
 					if (threads > 1)
 						results[candidate] = cur_star;
@@ -598,7 +600,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					//fprintf(stdout, "%03d: %11f %11f %f\n",
 					//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 				} else {
-					siril_debug_print("Candidate #%04d: X: %4d, Y: %4d - criterion #%d failed\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
+					if (DEBUG_STAR_DETECTION)
+						siril_debug_print("Candidate #%04d: X: %4d, Y: %4d - criterion #%d failed\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
 					free_psf(cur_star);
 					if (threads > 1)
 						results[candidate] = NULL;
