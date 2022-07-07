@@ -781,7 +781,6 @@ void psf_display_result(psf_star *result, rectangle *area) {
 	g_free(coordinates);
 }
 
-#define _2_SQRT_2_LOG2 2.35482004503
 
 /* If the pixel pitch and the focal length are known and filled in the 
  * setting box, we convert FWHM in pixel to arcsec by multiplying
