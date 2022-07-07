@@ -501,8 +501,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				if (zoomed.x >= gui.start.x) {
 					com.selection.x = gui.start.x;
 					com.selection.w = zoomed.x - com.selection.x;
-					if (com.selection.w == 0)
-						com.selection.w = 1;
 				} else {
 					com.selection.x = zoomed.x;
 					com.selection.w = gui.start.x - zoomed.x;
@@ -512,8 +510,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				if (zoomed.y >= gui.start.y) {
 					com.selection.y = gui.start.y;
 					com.selection.h = zoomed.y - com.selection.y;
-					if (com.selection.h == 0)
-						com.selection.h = 1;
 				} else {
 					com.selection.y = zoomed.y;
 					com.selection.h = gui.start.y - zoomed.y;
