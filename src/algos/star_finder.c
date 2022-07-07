@@ -113,28 +113,28 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 	if (isnan(result->mag))
 		return SF_NO_MAG;
 	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_TOO_SMALL;
 	}
 	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0) {
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_NEG;
 	}
 	if ((result->fwhmy / result->fwhmx) < sf->roundness) {
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT;
 	}
 	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
 		return SF_CENTER_OFF;
 	}
 	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
 		return SF_FWHM_TOO_LARGE;
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) {
 	//  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
-		g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE;
 	}
 	return SF_OK;
@@ -586,22 +586,23 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			gsl_matrix_free(z);
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = {0};
-				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], errmsg);
+				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], (DEBUG_STAR_DETECTION) ? errmsg : NULL);
 				if (star_invalidated <= accepted_level) {
 					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
 					cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
-					if (DEBUG_STAR_DETECTION && star_invalidated > SF_OK)
-						siril_debug_print("Candidate #%04d: X: %4d, Y: %4d - criterion #%d failed (but star kept)\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
+#if DEBUG_STAR_DETECTION
+					if (star_invalidated > SF_OK)
+						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
+#endif
 					if (threads > 1)
 						results[candidate] = cur_star;
 					else results[nbstars++] = cur_star;
-					//fprintf(stdout, "%03d: %11f %11f %f\n",
-					//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 				} else {
-					if (DEBUG_STAR_DETECTION)
-						siril_debug_print("Candidate #%04d: X: %4d, Y: %4d - criterion #%d failed\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
+#if DEBUG_STAR_DETECTION
+						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed\n%s", candidate, x, y, star_invalidated, (errmsg[0] != '\0') ?  errmsg : "");
+#endif
 					free_psf(cur_star);
 					if (threads > 1)
 						results[candidate] = NULL;
