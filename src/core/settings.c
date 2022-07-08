@@ -54,6 +54,7 @@ preferences pref_init = {
 		.roundness = 0.5,
 		.focal_length = 0.,
 		.pixel_size_x = 0.,
+		.relax_checks = FALSE
 	},
 	.prepro = {
 		.cfa = FALSE,
@@ -193,12 +194,8 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
 
-	{ "starfinder", "adjust", STYPE_BOOL, N_("adjust search radius with resolution"), &com.pref.starfinder_conf.adjust },
-	{ "starfinder", "radius", STYPE_INT, N_("base radius value, contains one star"), &com.pref.starfinder_conf.radius, { .range_int = { 0, 100 } } },
-	{ "starfinder", "sigma", STYPE_DOUBLE, N_("sigma factor for detection threshold"), &com.pref.starfinder_conf.sigma, { .range_double = { 0., 20. } } },
-	{ "starfinder", "roundness", STYPE_DOUBLE, N_("star roundness for detection threshold"), &com.pref.starfinder_conf.roundness, { .range_double = { 0., 1. } } },
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
-	{ "starfinder", "piixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
+	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
 	{ "debayer", "open_debayer", STYPE_BOOL, N_("open image debayered"), &com.pref.debayer.open_debayer },
 	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },

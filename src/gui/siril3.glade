@@ -8986,7 +8986,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=3 n-rows=3 -->
+                  <!-- n-columns=3 n-rows=4 -->
                   <object class="GtkGrid" id="grid35">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -9060,6 +9060,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="halign">start</property>
                         <property name="label" translatable="yes">Roundness threshold:</property>
                       </object>
                       <packing>
@@ -9103,6 +9104,28 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="left-attach">2</property>
                         <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="toggle_relax_checks">
+                        <property name="label" translatable="yes">Relax PSF checks</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">When checked, this button deactivates some checks done at star detection stage, to reject candidates initially detected based on some psf quality metrics. This can be used to force detecting oddly shaped stars (bad guiding, strong coma) but should be used as a last resort, if playing with all other detection parameters fails.</property>
+                        <property name="halign">start</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_toggle_relax_checks_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
