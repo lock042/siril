@@ -222,22 +222,29 @@ void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 #endif
 }
 
-void wcs2pix(fits *fit, double r, double d, double *x, double *y) {
+int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
+#ifndef HAVE_WCSLIB
 	*x = -1.0;
 	*y = -1.0;
-#ifdef HAVE_WCSLIB
+	return 1;
+#else
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
-	world[0] = r;
-	world[1] = d;
+	world[0] = ra;
+	world[1] = dec;
 
 	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
-	if (status != 0)
-		return;
+	if (status != 0) {
+		//if (pixcrd[0] > 0.0 && pixcrd[0] > 0.0)
+		//	siril_debug_print("wcs2pix failed with valid coords: %d\n", status);
+		return 1;
+	}
+
 
 	*x = pixcrd[0];
 	*y = pixcrd[1];
+	return 0;
 #endif
 }
 
@@ -288,8 +295,8 @@ double get_wcs_image_resolution(fits *fit) {
 	}
 #endif
 	if (resolution <= 0.0) {
-		if (gfit.focal_length >= 0.0 && gfit.pixel_size_x >= 0.0 && gfit.pixel_size_y == gfit.pixel_size_x)
-			resolution = (RADCONV / gfit.focal_length * gfit.pixel_size_x) / 3600;
+		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
+			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600;
 	}
 	return resolution;
 }

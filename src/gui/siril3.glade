@@ -7525,7 +7525,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=5 n-rows=13 -->
+                  <!-- n-columns=5 n-rows=11 -->
                   <object class="GtkGrid" id="GtkGridIPS">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -7535,7 +7535,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkSpinButton" id="GtkSpinIPS_RA_h">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image.</property>
+                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
                         <property name="halign">start</property>
                         <property name="max-length">2</property>
                         <property name="width-chars">2</property>
@@ -7554,7 +7554,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkSpinButton" id="GtkSpinIPS_RA_m">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image.</property>
+                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
                         <property name="halign">start</property>
                         <property name="max-length">2</property>
                         <property name="width-chars">2</property>
@@ -7573,7 +7573,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkSpinButton" id="GtkSpinIPS_Dec_deg">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image.</property>
+                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
                         <property name="halign">start</property>
                         <property name="max-length">2</property>
                         <property name="width-chars">2</property>
@@ -7592,7 +7592,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkSpinButton" id="GtkSpinIPS_Dec_m">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image.</property>
+                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
                         <property name="halign">start</property>
                         <property name="max-length">2</property>
                         <property name="width-chars">2</property>
@@ -7611,7 +7611,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkEntry" id="GtkEntryIPS_RA_s">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image.</property>
+                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
                         <property name="halign">start</property>
                         <property name="width-chars">7</property>
                         <property name="max-width-chars">6</property>
@@ -7627,7 +7627,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkEntry" id="GtkEntryIPS_Dec_s">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image.</property>
+                        <property name="tooltip-text" translatable="yes">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
                         <property name="halign">start</property>
                         <property name="width-chars">7</property>
                         <property name="max-width-chars">6</property>
@@ -7680,8 +7680,8 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkSearchEntry" id="GtkSearchIPS">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="has-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Enter the identifier or the name of the object which must be in the image.</property>
+                        <property name="tooltip-text" translatable="yes">Enter the identifier or the name of an object located close to the centre of the image. This feature requires an Internet connection (asks SIMBAD by default or the selected server at the right).
+If coordinates are already filled when clicking on the Get Metadata From Image button below, this is probably not required.</property>
                         <property name="valign">center</property>
                         <property name="primary-icon-name">edit-find</property>
                         <property name="primary-icon-activatable">False</property>
@@ -7699,7 +7699,8 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Start searching.</property>
+                        <property name="tooltip-text" translatable="yes">Start searching the coordinates of named object. This feature requires an Internet connection (asks SIMBAD by default or the selected server at the right).
+If coordinates are already filled when clicking on the Get Metadata From Image button below, this is probably not required.</property>
                         <property name="image">image1</property>
                         <property name="always-show-image">True</property>
                         <signal name="clicked" handler="on_GtkButtonIPS_clicked" swapped="no"/>
@@ -7723,14 +7724,14 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkEntry" id="GtkEntry_IPS_pixels">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Pixel size in micrometer. The image is assumed to have square pixels.</property>
+                        <property name="tooltip-text" translatable="yes">Pixel size in microns. The image is assumed to have square pixels.</property>
                         <property name="halign">start</property>
                         <property name="width-chars">10</property>
                         <property name="text">5.00</property>
@@ -7740,50 +7741,53 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">6</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkLabel" id="GtkLabelFocal">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Focal distance (mm):</property>
+                        <property name="tooltip-text" translatable="yes">Effective focal length of the optical system in millimeter. Even if the input value has not to be very accurate, try to give a value with an error not exceeding 20%.</property>
+                        <property name="label" translatable="yes">Focal length (mm):</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkLabel" id="GtkLabelPixelSize">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Pixel size in microns. The image is assumed to have square pixels.</property>
                         <property name="label" translatable="yes">Pixel size (µm):</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">6</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkLabel" id="label_IPS_resolution">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
                         <property name="halign">end</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Resolution: </property>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">5</property>
                         <property name="height">2</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkEntry" id="GtkEntry_IPS_resolution">
                         <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">The resolution of the image that is automatically determined from the focal and pixel size value.</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                         <property name="editable">False</property>
@@ -7794,38 +7798,8 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       </object>
                       <packing>
                         <property name="left-attach">3</property>
-                        <property name="top-attach">6</property>
-                        <property name="height">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="GtkButton_IPS_metadata">
-                        <property name="label" translatable="yes">Get Metadata From Image</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Click on this button to get focal and pixel size value from the header of the file if they exist.</property>
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <signal name="clicked" handler="on_GtkButton_IPS_metadata_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">8</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSeparator">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="margin-top">10</property>
-                        <property name="margin-bottom">10</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
                         <property name="top-attach">5</property>
-                        <property name="width">5</property>
+                        <property name="height">2</property>
                       </packing>
                     </child>
                     <child>
@@ -7838,7 +7812,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                           <object class="GtkTreeView" id="GtkTreeViewIPS">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Several resolvers can be found and displayed in this list. However, it just about getting the coordinates of the center of the objec. Choosing one item or the others should not influence the plate-solving or the photometry data, which is based on the selected catalogue.</property>
+                            <property name="tooltip-text" translatable="yes">Several resolvers can be found and displayed in this list. However, it just about getting the coordinates of the centre of the object. Choosing one item or the others should not influence the plate-solving or the photometry data, which is based on the selected catalogue.</property>
                             <property name="model">liststoreIPS</property>
                             <property name="search-column">0</property>
                             <signal name="cursor-changed" handler="on_GtkTreeViewIPS_cursor_changed" swapped="no"/>
@@ -7888,9 +7862,9 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
-                        <property name="left-attach">0</property>
+                        <property name="left-attach">2</property>
                         <property name="top-attach">9</property>
-                        <property name="width">5</property>
+                        <property name="width">3</property>
                       </packing>
                     </child>
                     <child>
@@ -7899,14 +7873,14 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Sometime, for oversampled images (like with Drizzle), it is complicated to resolve astrometry data. In consequence, downsampling data generally helps and make the algorithm running faster.</property>
+                        <property name="tooltip-text" translatable="yes">Sometimes, for oversampled images (like with Drizzle), it is complicated to resolve astrometry data. In consequence, downsampling data generally helps and also makes star detection run faster.</property>
                         <property name="halign">start</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">11</property>
-                        <property name="width">5</property>
+                        <property name="top-attach">9</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -7915,22 +7889,68 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Only use the center of the image (or selection) if the field is too wide.</property>
+                        <property name="tooltip-text" translatable="yes">Only use the center of the image (or selection) if the field is too wide, larger than 5 degrees.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">12</property>
+                        <property name="top-attach">10</property>
+                        <property name="width">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="force_astrometry_button">
+                        <property name="label" translatable="yes">Always plate solve</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">If the image was previously plate solved and WCS information is stored in the header, photometric color calibration can reuse it. Checking this box will force plate solving to be redone by Siril.</property>
+                        <property name="halign">start</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">8</property>
+                        <property name="width">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="GtkButton_IPS_metadata">
+                        <property name="label" translatable="yes">Get Metadata From Image</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Click on this button to get focal length, pixel size and RA/Dec pointing coordinates from the header of the file if they exist.</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                        <signal name="clicked" handler="on_GtkButton_IPS_metadata_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                        <property name="width">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSeparator">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-top">8</property>
+                        <property name="margin-bottom">8</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">7</property>
                         <property name="width">5</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkComboBoxText" id="combo_server_ips">
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Select the server that searches for the entered object.</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Select the server that searches the coordinates of the entered object name.</property>
                         <property name="active">2</property>
                         <items>
                           <item translatable="yes">CDS</item>
@@ -7939,9 +7959,9 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         </items>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">4</property>
-                        <property name="width">3</property>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -7952,40 +7972,9 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="label" translatable="yes">Server:</property>
                       </object>
                       <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">4</property>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
                       </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="use_wcs_ips_button">
-                        <property name="label" translatable="yes">Use WCS header information if any</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">This will use the WCS information that are stored in the the header if any.</property>
-                        <property name="halign">start</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">10</property>
-                        <property name="width">5</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
@@ -8090,7 +8079,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                       <object class="GtkComboBoxText" id="ComboBoxIPSCatalog">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
-                        <property name="can-focus">False</property>
+                        <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Choose the online catalogue against one want to compare the image.
 * TYCHO-2 catalogue contains positions, proper motions, and two-color photometric data for 2,539,913 of the brightest stars in the Milky Way.
 * NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
@@ -8132,7 +8121,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                     <child>
                       <object class="GtkComboBoxText" id="ComboBoxPCCCatalog">
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
+                        <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Choose the online catalogue against one want to compare the image and compute photometry.
 * NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
 * APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.</property>
@@ -8193,7 +8182,8 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Check this option if you want to pick each stars manually. It could be useful in some cases where Siril can't find enough stars. Please, try to choose the brightest stars in the image.</property>
+                    <property name="tooltip-text" translatable="yes">Check this option if you want to pick each stars manually. It could be useful in some cases where Siril can't find enough stars. Please, try to choose the brightest stars in the image.
+Use the Dynamic PSF tool, or the findstar command, adjusting the settings to your image.</property>
                     <property name="halign">start</property>
                     <property name="draw-indicator">True</property>
                   </object>
@@ -8406,7 +8396,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                 <child>
                   <object class="GtkComboBoxText" id="combo_box_cc_norm">
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
+                    <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">This option determines on which channel the factors are normalized.</property>
                     <property name="halign">start</property>
                     <property name="active">1</property>
@@ -8634,6 +8624,14 @@ If not set manually, the first image of the sequence is taken as reference.</pro
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkListStore" id="liststore_astrometry">
+    <columns>
+      <!-- column-name use_catalogue -->
+      <column type="gboolean"/>
+      <!-- column-name catalogue -->
+      <column type="gchararray"/>
+    </columns>
   </object>
   <object class="GtkListStore" id="liststore_bkg">
     <columns>
@@ -21845,122 +21843,63 @@ The technique gives very good compression for astronomical images and is relativ
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=2 n-rows=7 -->
-                              <object class="GtkGrid">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
-                                <property name="row-homogeneous">True</property>
-                                <property name="column-homogeneous">True</property>
+                                <property name="orientation">vertical</property>
                                 <child>
-                                  <object class="GtkCheckButton" id="check_button_messier">
-                                    <property name="label" translatable="yes">Messier Catalogue (M)</property>
+                                  <object class="GtkScrolledWindow">
+                                    <property name="height-request">150</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
+                                    <property name="shadow-type">in</property>
+                                    <child>
+                                      <object class="GtkTreeView" id="pref_astro_tree_view">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="has-tooltip">True</property>
+                                        <property name="vexpand">True</property>
+                                        <property name="model">liststore_astrometry</property>
+                                        <property name="headers-clickable">False</property>
+                                        <property name="reorderable">True</property>
+                                        <property name="search-column">0</property>
+                                        <property name="enable-grid-lines">both</property>
+                                        <child internal-child="selection">
+                                          <object class="GtkTreeSelection"/>
+                                        </child>
+                                        <child>
+                                          <object class="GtkTreeViewColumn">
+                                            <child>
+                                              <object class="GtkCellRendererToggle" id="cellrendeur_catalog_use">
+                                                <signal name="toggled" handler="on_cellrendeur_catalog_use_toggled" swapped="no"/>
+                                              </object>
+                                              <attributes>
+                                                <attribute name="active">0</attribute>
+                                              </attributes>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkTreeViewColumn" id="treeviewcolumn28">
+                                            <property name="title" translatable="yes">Catalogue</property>
+                                            <property name="clickable">True</property>
+                                            <property name="sort-indicator">True</property>
+                                            <property name="sort-column-id">0</property>
+                                            <child>
+                                              <object class="GtkCellRendererText" id="cellrenderer_catalog"/>
+                                              <attributes>
+                                                <attribute name="text">1</attribute>
+                                              </attributes>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
                                   </object>
                                   <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_ngc">
-                                    <property name="label" translatable="yes">New General Catalogue (NGC)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_ic">
-                                    <property name="label" translatable="yes">Index Catalogue (IC)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_ldn">
-                                    <property name="label" translatable="yes">Lynds Catalogue of Dark Nebulae (LdN)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_sh2">
-                                    <property name="label" translatable="yes">Sharpless Catalogue (Sh2)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_stars">
-                                    <property name="label" translatable="yes">Star Catalogue</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">5</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_user-catalogue">
-                                    <property name="label" translatable="yes">User Catalogue</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21974,8 +21913,9 @@ The technique gives very good compression for astronomical images and is relativ
                                     <signal name="clicked" handler="on_purge_user_catalogue_clicked" swapped="no"/>
                                   </object>
                                   <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
                                   </packing>
                                 </child>
                               </object>
@@ -22100,6 +22040,143 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <!-- n-columns=4 n-rows=2 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">namedstars.dat</property>
+                                    <property name="single-line-mode">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">unnamedstars.dat</property>
+                                    <property name="single-line-mode">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="localcatalogue_path1">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="title" translatable="yes">namedstars.dat</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="localcatalogue_path2">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="title" translatable="yes">unnamedstars.dat</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="localcatalogue_path3">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="title" translatable="yes">deepstars.dat</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">3</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">deepstars.dat</property>
+                                    <property name="single-line-mode">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="localcatalogue_path4">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="title" translatable="yes">USNO-NOMAD-1e8.dat</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">3</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">USNO-NOMAD-1e8.dat</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="label" translatable="yes">Local star catalogues</property>
+                            <property name="single-line-mode">True</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>

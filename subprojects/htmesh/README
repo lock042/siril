@@ -1,0 +1,21 @@
+2022 06 12
+This project has been copied from kstars.
+It is a static library that provides a way to find trixels in star catalogues
+from equatorial coordinates.
+Trixels are a triangle projected on a sphere that follow a hierarchical
+decomposition, HTM stands for Hierarchical Triangular Mesh.
+
+For more information see:
+- Original source tree of the independent project inside KStars: https://invent.kde.org/education/kstars/-/tree/master/kstars/htmesh
+- KStars catalogues documentation: https://api.kde.org/kstars/html/Stars.html
+- External documentation on the HTM format: http://www.skyserver.org/htm/
+- HTMesh class reference: https://api.kde.org/kstars/html/classHTMesh.html
+- How it all started in Siril: https://mail.kde.org/pipermail/kstars-devel/2022-June/007521.html
+- An example implementation of a bin file reader: https://invent.kde.org/education/kstars/-/blob/master/kstars/data/tools/nomadbinfiletester.c
+- How to install the USNO-NOMAD simplified catalogue in KStars: http://knro.blogspot.com/2017/03/how-to-get-100-million-stars-in-kstars.html
+
+Build this project with the following commands:
+$ mkdir build
+$ cd build
+$ cmake -DCMAKE_CXX_FLAGS="-I.. " ..
+$ make
