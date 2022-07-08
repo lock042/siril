@@ -351,7 +351,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	}
 	if (cat->byteswap)
 		cat->ntrixels = bswap_32(cat->ntrixels);
-	
+
 	uint32_t ntrixels = cat->ntrixels;
 	cat->HTM_Level = -1;
 	while (ntrixels >>= 2) ++cat->HTM_Level;
