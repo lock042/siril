@@ -553,7 +553,8 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 void initialize_local_catalogues_paths() {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
-		if (com.pref.catalogue_paths[catalogue])
+		if (com.pref.catalogue_paths[catalogue] &&
+				com.pref.catalogue_paths[catalogue][0] != '\0')
 			continue;
 		char path[1024];
 		strcpy(path, default_catalogues_paths[catalogue]);

@@ -78,6 +78,26 @@ static void update_astrometry_preferences() {
 	com.pref.gui.catalog[6] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")));
 	com.pref.gui.position_compass = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")));
 	com.pref.wcs_formalism = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")));
+	gchar *newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[0]);
+		com.pref.catalogue_paths[0] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[1]);
+		com.pref.catalogue_paths[1] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[2]);
+		com.pref.catalogue_paths[2] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[3]);
+		com.pref.catalogue_paths[3] = newpath;
+	}
 }
 
 static void update_prepro_preferences() {
@@ -409,6 +429,22 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")), pref->gui.catalog[6]);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")), pref->gui.position_compass);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")), pref->wcs_formalism);
+	if (pref->catalogue_paths[0] && (g_file_test(pref->catalogue_paths[0], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[0]);
+	}
+	if (pref->catalogue_paths[1] && (g_file_test(pref->catalogue_paths[1], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[1]);
+	}
+	if (pref->catalogue_paths[2] && (g_file_test(pref->catalogue_paths[2], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[2]);
+	}
+	if (pref->catalogue_paths[3] && (g_file_test(pref->catalogue_paths[3], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[3]);
+	}
 
 	/* tab 4 */
 	if (pref->prepro.bias_lib && (g_file_test(pref->prepro.bias_lib, G_FILE_TEST_EXISTS))) {
