@@ -7873,7 +7873,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Sometimes, for oversampled images (like with Drizzle), it is complicated to resolve astrometry data. In consequence, downsampling data generally helps and also makes star detection run faster. This is enabled by default for images wider than 6000 pixels.</property>
+                        <property name="tooltip-text" translatable="yes">Sometimes, for oversampled images (like with Drizzle), it is complicated to resolve astrometry data. In consequence, downsampling data generally helps and also makes star detection run faster.</property>
                         <property name="halign">start</property>
                         <property name="draw-indicator">True</property>
                       </object>
