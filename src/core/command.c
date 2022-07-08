@@ -49,6 +49,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/catalogues.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -5262,7 +5263,7 @@ int process_rgbcomp(int nb) {
 
 	if (g_str_has_prefix(word[1], "-lum=")) {
 		char *lum_file = word[1] + 5;
-		if (nb < 4) {
+		if (nb < 3) {
 			return CMD_WRONG_N_ARG;
 		}
 
@@ -5473,8 +5474,13 @@ int process_pcc(int nb) {
 		else siril_log_message(_("Using focal length from image: %f\n"), args->focal_length);
 	}
 
+	if (local_catalogues_available()) {
+		siril_debug_print("using local star catalogues\n");
+		pcc_args->use_local_cat = TRUE;
+	}
 	if (plate_solve) {
-		args->onlineCatalog = NOMAD;
+		args->use_local_cat = pcc_args->use_local_cat;
+		args->onlineCatalog = NOMAD;	// could also be APASS if !use_local_cat
 		args->for_photometry_cc = TRUE;
 		args->cat_center = target_coords;
 		args->downsample = gfit.rx > 6000;
@@ -5497,6 +5503,56 @@ int process_pcc(int nb) {
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
 	return CMD_OK;
+}
+
+int process_nomad(int nb) {
+	pcc_star *stars;
+	int nb_stars;
+	double ra, dec;
+	float limit_mag = 13.0f;
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return 1;
+	}
+	if (nb == 2) {
+		gchar *end;
+		limit_mag = g_ascii_strtod(word[1], &end);
+		if (end == word[1]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+			return 1;
+		}
+	}
+	center2wcs(&gfit, &ra, &dec);
+	double resolution = get_wcs_image_resolution(&gfit);
+	uint64_t sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
+	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
+	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
+	if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
+		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
+		return 1;
+	}
+
+	siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
+	clear_stars_list(FALSE);
+	int j = 0;
+	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
+		if (stars[i].x < 0.0 || stars[i].x >= gfit.rx ||
+				stars[i].y < 0.0 || stars[i].y >= gfit.ry)
+			continue;
+		if (!com.stars)
+			com.stars = new_fitted_stars(MAX_STARS);
+		com.stars[j] = new_psf_star();
+		com.stars[j]->xpos = stars[i].x;
+		com.stars[j]->ypos = stars[i].y;
+		com.stars[j]->fwhmx = 5.0f;
+		com.stars[j]->layer = 0;
+		j++;
+	}
+	if (j > 0)
+		com.stars[j] = NULL;
+	siril_log_message("%d stars from local catalogues found with valid photometry data in the image (mag limit %.2f)\n", j, limit_mag);
+	redraw(REDRAW_OVERLAY);
+	return 0;
 }
 
 int process_start_ls(int nb) {

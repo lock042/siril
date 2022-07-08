@@ -26,6 +26,7 @@
 #include "core/settings.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "io/catalogues.h"
 
 /* the settings as initialized in static.
  * the dynamic fields are set in initialize_default_settings() */
@@ -44,6 +45,10 @@ preferences pref_init = {
 	.focal = 1000,
 	.pitch = 5,
 	.wcs_formalism = WCS_FORMALISM_1,
+	.catalogue_paths[0] = NULL,
+	.catalogue_paths[1] = NULL,
+	.catalogue_paths[2] = NULL,
+	.catalogue_paths[3] = NULL,
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
 	.starnet_dir = NULL,
@@ -146,10 +151,6 @@ preferences pref_init = {
 	}
 };
 
-static void initialize_settings_to_default() {
-	com.pref = pref_init;
-}
-
 void free_preferences(preferences *pref) {
 	g_free(pref->ext);
 	pref->ext = NULL;
@@ -167,9 +168,10 @@ void free_preferences(preferences *pref) {
 
 /* static + dynamic settings initialization */
 void initialize_default_settings() {
-	initialize_settings_to_default();
+	com.pref = pref_init;
 	com.pref.ext = g_strdup(".fit");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
+	initialize_local_catalogues_paths();
 }
 
 void update_gain_from_gfit() {
@@ -190,6 +192,10 @@ struct settings_access all_settings[] = {
 	{ "core", "lang", STYPE_STR, N_("active siril language"), &com.pref.lang },
 	{ "core", "swap_dir", STYPE_STRDIR, N_("swap directory"), &com.pref.swap_dir },
 	{ "core", "wcs_formalism", STYPE_INT, N_("WCS formalism used in FITS header"), &com.pref.wcs_formalism, { .range_int = { 0, 1 } } },
+	{ "core", "catalogue_namedstars", STYPE_STR, N_("Path of the namedstars.dat catalogue"), &com.pref.catalogue_paths[0] },
+	{ "core", "catalogue_unnamedstars", STYPE_STR, N_("Path of the unnamedstars.dat catalogue"), &com.pref.catalogue_paths[1] },
+	{ "core", "catalogue_tycho2", STYPE_STR, N_("Path of the deepstars.dat catalogue"), &com.pref.catalogue_paths[2] },
+	{ "core", "catalogue_nomad", STYPE_STR, N_("Path of the USNO-NOMAD-1e8.dat catalogue"), &com.pref.catalogue_paths[3] },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },

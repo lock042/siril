@@ -139,7 +139,7 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[7];	// Yet 6 catalogs and 1 user catalog
+	gboolean catalog[7];	// 6 catalogs and 1 user catalog for annotations
 
 	gint selection_guides;	// number of elements of the grid guides
 				// (2 for a simple cross, 3 for the 3 thirds rule, etc.)
@@ -206,6 +206,7 @@ struct pref_struct {
 	gdouble pitch;		// pixel pitch saved in config file
 
 	int wcs_formalism;	// formalism used in FITS header
+	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF

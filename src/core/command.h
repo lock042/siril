@@ -67,6 +67,7 @@ int	process_mtf(int nb);
 
 int	process_neg(int nb);
 int	process_new(int nb);
+int	process_nomad(int nb);
 int	process_nozero(int nb);
 
 int	process_offset(int nb);

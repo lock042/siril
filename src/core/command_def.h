@@ -72,6 +72,7 @@
 
 #define STR_NEG N_("Shows the negative view of the current image")
 #define STR_NEW N_("Creates a new image filled with zeros with a size of <b>width</b> x <b>height</b>.\n\nThe image is in 32-bit format, and it contains <b>nb_channel</b> channels, <b>nb_channel</b> being 1 or 3. It is not saved, but displayed and can be saved afterwards")
+#define STR_NOMAD N_("Display stars from the local catalogue, for plate solved images loaded in GUI only")
 #define STR_NOZERO N_("Replaces null values by <b>level</b> values. Useful before an idiv or fdiv operation")
 
 #define STR_OFFSET N_("Adds the constant <b>value</b> (specified in ADU) to the current image. This constant can take a negative value.\n\nIn 16-bit mode, values of pixels that fall outside of [0, 65535] are clipped. In 32-bit mode, no clipping occurs")

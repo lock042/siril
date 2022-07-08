@@ -38,6 +38,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "annotations_pref.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "compositing/align_rgb.h"
@@ -1288,6 +1289,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	update_spinCPU(com.max_thread);
 
+	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
 
 	if (com.pref.gui.first_start) {

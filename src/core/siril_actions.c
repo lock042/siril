@@ -26,6 +26,7 @@
 #include "core/siril_cmd_help.h"
 #include "core/initfile.h"
 #include "algos/annotate.h"
+#include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
@@ -49,9 +50,7 @@
 #include "livestacking/livestacking.h"
 #include "gui/registration_preview.h"
 #include "registration/registration.h"
-
 #include "siril_actions.h"
-#include "algos/astrometry_solver.h"
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	header_open_button_clicked();
@@ -461,6 +460,7 @@ void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 void pcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	initialize_photometric_cc_dialog();
 	siril_open_dialog("ImagePlateSolver_Dial");
+	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
