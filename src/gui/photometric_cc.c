@@ -629,7 +629,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		GFile *catalog_file = download_catalog(args->catalog, center, radius * 60.0, mag);
 		siril_world_cs_unref(center);
 		if (!catalog_file) {
-			siril_log_message(_("Could not download the online star catalog."));
+			siril_log_message(_("Could not download the online star catalog.\n"));
 			siril_add_idle(end_generic, NULL);
 			return GINT_TO_POINTER(1);
 		}
