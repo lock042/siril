@@ -239,6 +239,9 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
 	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
+	{ "gui_prepro", "use_bias_synth", STYPE_BOOL, N_("use synthetic bias"), &com.pref.prepro.use_bias_synth },
+	{ "gui_prepro", "bias_synth", STYPE_STR, N_("value of synthetic bias"), &com.pref.prepro.bias_synth},
+
 
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 
