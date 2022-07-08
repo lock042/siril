@@ -5153,7 +5153,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           <object class="GtkScale" id="scale_satu_bkg">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">This is the factor multiplied by the background value. Lower is the value, stronger is the  saturation effect. While a high value will preserve the background.</property>
+            <property name="tooltip-text" translatable="yes">This is the factor multiplied by the background value. Lower is the value, stronger is the saturation effect. While a high value will preserve the background.</property>
             <property name="adjustment">adj_satu_bkg</property>
             <property name="round-digits">1</property>
             <property name="draw-value">False</property>
@@ -19120,7 +19120,7 @@ WARNING: This option should not be checked for master stacking.</property>
                   <object class="GtkLabel" id="label_name_of_seq">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Click to Set the name of the item  to clipboard (green-ed label)</property>
+                    <property name="tooltip-text" translatable="yes">Click to Set the name of the item to clipboard (green-ed label)</property>
                     <property name="label" translatable="yes">Sequence:</property>
                     <attributes>
                       <attribute name="style" value="italic"/>
@@ -21177,7 +21177,8 @@ If the selection is empty, the whole image will be used as reference.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="valign">start</property>
-                                <property name="row-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkCheckButton" id="checkbutton_SER_use_header">
@@ -21432,6 +21433,8 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkComboBoxText" id="combobox_ext">
@@ -21574,7 +21577,8 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="row-homogeneous">True</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
@@ -22085,7 +22089,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">namedstars.dat</property>
+                                    <property name="label">namedstars.dat</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
                                   <packing>
@@ -22098,7 +22102,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">unnamedstars.dat</property>
+                                    <property name="label">unnamedstars.dat</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
                                   <packing>
@@ -22111,7 +22115,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="filter">filter_namedstars</property>
-                                    <property name="title" translatable="yes">namedstars.dat</property>
+                                    <property name="title">namedstars.dat</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -22123,7 +22127,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="filter">filter_unnamedstars</property>
-                                    <property name="title" translatable="yes">unnamedstars.dat</property>
+                                    <property name="title">unnamedstars.dat</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -22135,7 +22139,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="filter">filter_deepstars</property>
-                                    <property name="title" translatable="yes">deepstars.dat</property>
+                                    <property name="title">deepstars.dat</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">3</property>
@@ -22147,7 +22151,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">deepstars.dat</property>
+                                    <property name="label">deepstars.dat</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
                                   <packing>
@@ -22160,7 +22164,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="filter">filter_USNO-NOMAD-1e8</property>
-                                    <property name="title" translatable="yes">USNO-NOMAD-1e8.dat</property>
+                                    <property name="title">USNO-NOMAD-1e8.dat</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">3</property>
@@ -22172,7 +22176,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">USNO-NOMAD-1e8.dat</property>
+                                    <property name="label">USNO-NOMAD-1e8.dat</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">2</property>
@@ -22250,7 +22254,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="column-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <child>
                                   <object class="GtkFileChooserButton" id="filechooser_bias_lib">
                                     <property name="visible">True</property>
@@ -22519,6 +22524,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="spacing">6</property>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
@@ -22537,7 +22543,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="column-spacing">10</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="visible">True</property>
@@ -22649,6 +22656,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="spacing">6</property>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
@@ -22667,7 +22675,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="column-spacing">10</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="visible">True</property>
@@ -22844,7 +22853,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkLabel" id="label3">
@@ -22948,7 +22958,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkLabel" id="label111">
@@ -23042,8 +23053,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="valign">start</property>
-                                <property name="row-spacing">10</property>
-                                <property name="column-spacing">4</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkLabel" id="label2">
@@ -23144,8 +23155,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="valign">start</property>
-                                <property name="row-spacing">10</property>
-                                <property name="column-spacing">4</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkSpinButton" id="spinGain">
@@ -23317,6 +23328,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="orientation">vertical</property>
+                                <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkCheckButton" id="miscAskScript">
                                     <property name="label" translatable="yes">Show warning before script execution</property>
@@ -23477,7 +23489,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkSpinButton" id="pref_fontsize">
@@ -23625,7 +23638,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkCheckButton" id="show_preview_button">
@@ -23742,7 +23756,8 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
                                 <property name="row-homogeneous">True</property>
                                 <property name="column-homogeneous">True</property>
                                 <child>
@@ -23888,7 +23903,7 @@ Configuring a memory amount larger than what is available on your system may res
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="spacing">10</property>
+                                <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkFileChooserButton" id="filechooser_swap">
                                     <property name="visible">True</property>
