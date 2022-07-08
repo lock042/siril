@@ -26,6 +26,7 @@
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
 #include "algos/annotate.h"
+#include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
@@ -69,13 +70,8 @@ static void update_debayer_preferences() {
 }
 
 static void update_astrometry_preferences() {
-	com.pref.gui.catalog[0] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")));
-	com.pref.gui.catalog[1] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")));
-	com.pref.gui.catalog[2] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")));
-	com.pref.gui.catalog[3] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")));
-	com.pref.gui.catalog[4] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")));
-	com.pref.gui.catalog[5] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")));
-	com.pref.gui.catalog[6] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")));
+	get_astrometry_catalogue_values();
+
 	com.pref.gui.position_compass = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")));
 	com.pref.wcs_formalism = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")));
 	gchar *newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")));
@@ -420,13 +416,8 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")), pref->comp.fits_hcompress_scale);
 
 	/* tab 3 */
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")), pref->gui.catalog[0]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")), pref->gui.catalog[1]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")), pref->gui.catalog[2]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")), pref->gui.catalog[3]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")), pref->gui.catalog[4]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")), pref->gui.catalog[5]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")), pref->gui.catalog[6]);
+	fill_astrometry_catalogue(pref->gui.catalog);
+
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")), pref->gui.position_compass);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")), pref->wcs_formalism);
 	if (pref->catalogue_paths[0] && (g_file_test(pref->catalogue_paths[0], G_FILE_TEST_EXISTS))) {

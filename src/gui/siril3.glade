@@ -8625,6 +8625,14 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       </object>
     </child>
   </object>
+  <object class="GtkListStore" id="liststore_astrometry">
+    <columns>
+      <!-- column-name use_catalogue -->
+      <column type="gboolean"/>
+      <!-- column-name catalogue -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="liststore_bkg">
     <columns>
       <!-- column-name Box -->
@@ -21835,122 +21843,63 @@ The technique gives very good compression for astronomical images and is relativ
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=2 n-rows=7 -->
-                              <object class="GtkGrid">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
-                                <property name="row-homogeneous">True</property>
-                                <property name="column-homogeneous">True</property>
+                                <property name="orientation">vertical</property>
                                 <child>
-                                  <object class="GtkCheckButton" id="check_button_messier">
-                                    <property name="label" translatable="yes">Messier Catalogue (M)</property>
+                                  <object class="GtkScrolledWindow">
+                                    <property name="height-request">150</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
+                                    <property name="shadow-type">in</property>
+                                    <child>
+                                      <object class="GtkTreeView" id="pref_astro_tree_view">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="has-tooltip">True</property>
+                                        <property name="vexpand">True</property>
+                                        <property name="model">liststore_astrometry</property>
+                                        <property name="headers-clickable">False</property>
+                                        <property name="reorderable">True</property>
+                                        <property name="search-column">0</property>
+                                        <property name="enable-grid-lines">both</property>
+                                        <child internal-child="selection">
+                                          <object class="GtkTreeSelection"/>
+                                        </child>
+                                        <child>
+                                          <object class="GtkTreeViewColumn">
+                                            <child>
+                                              <object class="GtkCellRendererToggle" id="cellrendeur_catalog_use">
+                                                <signal name="toggled" handler="on_cellrendeur_catalog_use_toggled" swapped="no"/>
+                                              </object>
+                                              <attributes>
+                                                <attribute name="active">0</attribute>
+                                              </attributes>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkTreeViewColumn" id="treeviewcolumn28">
+                                            <property name="title" translatable="yes">Catalogue</property>
+                                            <property name="clickable">True</property>
+                                            <property name="sort-indicator">True</property>
+                                            <property name="sort-column-id">0</property>
+                                            <child>
+                                              <object class="GtkCellRendererText" id="cellrenderer_catalog"/>
+                                              <attributes>
+                                                <attribute name="text">1</attribute>
+                                              </attributes>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
                                   </object>
                                   <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_ngc">
-                                    <property name="label" translatable="yes">New General Catalogue (NGC)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_ic">
-                                    <property name="label" translatable="yes">Index Catalogue (IC)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_ldn">
-                                    <property name="label" translatable="yes">Lynds Catalogue of Dark Nebulae (LdN)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_sh2">
-                                    <property name="label" translatable="yes">Sharpless Catalogue (Sh2)</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_stars">
-                                    <property name="label" translatable="yes">Star Catalogue</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">5</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="check_button_user-catalogue">
-                                    <property name="label" translatable="yes">User Catalogue</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21964,8 +21913,9 @@ The technique gives very good compression for astronomical images and is relativ
                                     <signal name="clicked" handler="on_purge_user_catalogue_clicked" swapped="no"/>
                                   </object>
                                   <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
                                   </packing>
                                 </child>
                               </object>
@@ -22108,12 +22058,14 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">2</property>
-                                <property name="column-spacing">30</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
+                                <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
                                     <property name="label" translatable="yes">namedstars.dat</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
@@ -22126,6 +22078,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
                                     <property name="label" translatable="yes">unnamedstars.dat</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
@@ -22138,6 +22091,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
                                     <property name="label" translatable="yes">deepstars.dat</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
@@ -22150,6 +22104,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
                                     <property name="label" translatable="yes">USNO-NOMAD-1e8.dat</property>
                                   </object>
                                   <packing>

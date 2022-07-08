@@ -155,6 +155,7 @@ siril_common_SOURCES = \
 	filters/wavelets.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
+	gui/annotations_pref.c \
 	gui/astrometry_solver.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
