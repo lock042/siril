@@ -48,6 +48,8 @@
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 3.
 
+// Use this flag to print canditates rejection output (0 or 1, only works if SIRIL_OUTPUT_DEBUG is on)
+#define DEBUG_STAR_DETECTION 0
 
 static double guess_resolution(fits *fit) {
 	double focal = fit->focal_length;
@@ -71,7 +73,7 @@ static double guess_resolution(fits *fit) {
 	double res = RADCONV / focal * size * bin;
 
 	/* test for high value. In this case we increase
-	 * the number of detected star in is_star function
+	 * the number of detected star in reject_star function
 	 */
 	/* if res > 1.0 we use default radius value */
 	if (res > 1.0) return 1.0;
@@ -103,31 +105,42 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 	return threshold;
 }
 
-static gboolean is_star(psf_star *result, star_finder_params *sf, starc *se) {
-
+static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, gchar *errmsg) {
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
-		return FALSE;
+		return SF_NO_FWHM;
 	if (isnan(result->x0) || isnan(result->y0))
-		return FALSE;
+		return SF_NO_POS;
 	if (isnan(result->mag))
-		return FALSE;
-	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) // if star center off from original candidate detection by more than sigma radius
-		return FALSE;
-	if (result->fwhmx > max(se->sx, se->sy) * 2.35482004503 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) // criteria gets looser as guessed fwhm gets larger than kernel
-		return FALSE;
-	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0)
-		return FALSE;
-	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0)
-		return FALSE;
-	if ((result->fwhmy / result->fwhmx) < sf->roundness)
-		return FALSE;
-	if (((result->rmse / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) //  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
-		return FALSE;
-	return TRUE;
+		return SF_NO_MAG;
+	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		return SF_FWHM_TOO_SMALL;
+	}
+	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0) {
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		return SF_FWHM_NEG;
+	}
+	if ((result->fwhmy / result->fwhmx) < sf->roundness) {
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		return SF_ROUNDNESS_BELOW_CRIT;
+	}
+	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
+		return SF_CENTER_OFF;
+	}
+	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
+		return SF_FWHM_TOO_LARGE;
+	}
+	if (((result->rmse * sf->sigma / result->A) > 0.1) && (result->A < ((result->B < 1.0) ? 1. : USHRT_MAX_DOUBLE) * 0.5)) {
+	//  do not apply for bright stars (above 50% of bitdepth range) to avoid removing bright saturated stars
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
+		return SF_RMSE_TOO_LARGE;
+	}
+	return SF_OK;
 }
 
-int star_cmp(const void *a, const void *b)
-{
+static int star_cmp_by_mag_est(const void *a, const void *b) {
     starc *a1 = (starc *)a;
     starc *a2 = (starc *)b;
     if ((*a1).mag_est > (*a2).mag_est)
@@ -137,43 +150,12 @@ int star_cmp(const void *a, const void *b)
     return 0;
 }
 
-static void get_structure(star_finder_params *sf) {
-	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL;
-	static GtkToggleButton *toggle_adjust = NULL;
-
-	if (spin_radius == NULL) {
-		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
-		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
-		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
-		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
-	}
-	sf->radius = (int) gtk_spin_button_get_value(spin_radius);
-	sf->sigma = gtk_spin_button_get_value(spin_sigma);
-	sf->adjust = gtk_toggle_button_get_active(toggle_adjust);
-	sf->roundness = gtk_spin_button_get_value(spin_roundness);
-}
-
-void init_peaker_GUI() {
-	/* TODO someday: read values from conf file and set them in the GUI.
-	 * Until then, storing values in com.pref.starfinder_conf instead of getting
-	 * them in the GUI while running the peaker.
-	 * see also init_peaker_default below */
-	get_structure(&com.pref.starfinder_conf);
-}
-
-void init_peaker_default_old() {
-	/* values taken from siril3.glade */
-	com.pref.starfinder_conf.radius = 10;
-	com.pref.starfinder_conf.adjust = TRUE;
-	com.pref.starfinder_conf.sigma = 1.0;
-	com.pref.starfinder_conf.roundness = 0.5;
-	com.pref.starfinder_conf.focal_length = 0.;
-	com.pref.starfinder_conf.pixel_size_x = 0.;
-}
-
 void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	com.pref.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
+}
+
+void on_toggle_relax_checks_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	com.pref.starfinder_conf.relax_checks = gtk_toggle_button_get_active(togglebutton);
 }
 
 void on_spin_sf_radius_changed(GtkSpinButton *spinbutton, gpointer user_data) {
@@ -191,18 +173,20 @@ void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data)
 void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
 			*spin_roundness = NULL;
-	static GtkToggleButton *toggle_adjust = NULL;
+	static GtkToggleButton *toggle_adjust = NULL, *toggle_checks = NULL;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
+		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
 	}
 	gtk_spin_button_set_value(spin_radius, (double) com.pref.starfinder_conf.radius);
 	gtk_toggle_button_set_active(toggle_adjust, com.pref.starfinder_conf.adjust);
 	gtk_spin_button_set_value(spin_sigma, com.pref.starfinder_conf.sigma);
 	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
+	gtk_toggle_button_set_active(toggle_checks, com.pref.starfinder_conf.relax_checks);
 }
 
 void confirm_peaker_GUI() {
@@ -472,21 +456,27 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				// term S / 3 increases the box radius when the guessed fwhm is larger than the smoothing kernel size
 				int Rr = (int) ceil(2 * Sr * Sr / KERNEL_SIZE);
 				int Rc = (int) ceil(2 * Sc * Sc / KERNEL_SIZE);
-				if (Rr > r) { // avoid enlarging outside frame width
-					if (xx - Rr < 0) Rr = xx;
-					if (xx + Rr >= nx) Rr = nx - xx - 1;
+				int Rm = max(Rr, Rc);
+				if (Rm > r) {
+				// avoid enlarging outside frame width
+					if (xx - Rm < 0)
+						Rm = xx;
+					if (xx + Rm >= nx)
+						Rm = nx - xx - 1;
+				// avoid enlarging outside frame height
+					if (yy - Rm < 0)
+						Rm = yy;
+					if (yy + Rm >= ny)
+						Rm = ny - yy - 1;
 				}
-				if (Rc > r) { // avoid enlarging outside frame height
-					if (yy - Rc < 0) Rc = yy;
-					if (yy + Rc >= ny) Rc = ny - yy - 1;
-				}
-				int R = max(min(Rr, Rc), r);
+				int R = max(Rm, r);
 
 				// Quality checks
 				float dA = max(Ar,Ac)/min(Ar,Ac);
 				float dSr = max(-srl,srr)/min(-srl,srr);
 				float dSc = max(-scu,scd)/min(-scu,scd);
-				if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
+				if (!com.pref.starfinder_conf.relax_checks)
+					if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
 					candidates[nbstars].x = xx;
@@ -532,6 +522,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	WORD **image_ushort = NULL;
 	float **image_float = NULL;
 	gint nbstars = 0;
+	sf_errors accepted_level = (com.pref.starfinder_conf.relax_checks) ? SF_RMSE_TOO_LARGE : SF_OK;
 
 	if (image->type == DATA_USHORT) {
 		image_ushort = malloc(ny * sizeof(WORD *));
@@ -552,7 +543,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	}
 
 	//sorting candidates by starc.mag_est values
-	qsort(candidates, nb_candidates, sizeof(starc), star_cmp);
+	qsort(candidates, nb_candidates, sizeof(starc), star_cmp_by_mag_est);
 
 	int round = 0;
 	siril_debug_print("limiting stars (%d) to %d for %d candidates\n", limit_nbstars, maxstars, nb_candidates);
@@ -594,17 +585,24 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, 1.0, FALSE, FALSE, NULL);
 			gsl_matrix_free(z);
 			if (cur_star) {
-				if (is_star(cur_star, sf, &candidates[candidate])) {
+				gchar errmsg[SF_ERRMSG_LEN] = "";
+				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], (DEBUG_STAR_DETECTION) ? errmsg : NULL);
+				if (star_invalidated <= accepted_level) {
 					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
 					cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
+#if DEBUG_STAR_DETECTION
+					if (star_invalidated > SF_OK)
+						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, errmsg);
+#endif
 					if (threads > 1)
 						results[candidate] = cur_star;
 					else results[nbstars++] = cur_star;
-					//fprintf(stdout, "%03d: %11f %11f %f\n",
-					//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
 				} else {
+#if DEBUG_STAR_DETECTION
+					siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed\n%s", candidate, x, y, star_invalidated, errmsg);
+#endif
 					free_psf(cur_star);
 					if (threads > 1)
 						results[candidate] = NULL;
@@ -654,7 +652,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE, FALSE);
 	if (!result)
 		return NULL;
-	/* We do not check if it's matching with the "is_star()" criteria.
+	/* We do not check if it's matching with the "reject_star()" criteria.
 	 * Indeed, in this case the user can add manually stars missed by star_finder */
 
 	if (com.stars && !com.star_is_seqdata) {

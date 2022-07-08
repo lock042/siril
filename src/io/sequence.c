@@ -509,6 +509,7 @@ int set_seq(const char *name){
 
 	/* Sequence is stored in com.seq for now */
 	memcpy(&com.seq, seq, sizeof(sequence));
+	update_gain_from_gfit();
 
 	if (!com.script) {
 		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
@@ -539,9 +540,8 @@ int set_seq(const char *name){
 
 		/* update menus */
 		update_MenuItem();
-		/* update parameters */
+		/* update parameters in GUI */
 		set_GUI_CAMERA();
-		set_GUI_photometry();
 
 		/* redraw and display image */
 		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded

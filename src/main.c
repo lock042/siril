@@ -146,6 +146,12 @@ static void global_initialization() {
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
+	com.child_is_running = FALSE;
+#ifdef _WIN32
+	com.childhandle = NULL;
+#else
+	com.childpid = 0;
+#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 

@@ -83,7 +83,7 @@
  **
  ** Nl, Nc = original image size
  ** Nbr_Plan = number of scales = number of planes
- ** Type_Wave_Transform = choosen wavelet transform algorithm
+ ** Type_Wave_Transform = chosen wavelet transform algorithm
  **
  *******************************************************************************
  **
@@ -97,7 +97,7 @@
  **
  ** Nl, Nc = original image size
  ** Nbr_Plan = number of scales = number of planes
- ** Type_Wave_Transform = choosen wavelet transform algorithm
+ ** Type_Wave_Transform = chosen wavelet transform algorithm
  **
  ******************************************************************************/
 

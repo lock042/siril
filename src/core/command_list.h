@@ -89,7 +89,7 @@ static command commands[] = {
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
 	{"histo", 1, "histo channel (channel=0, 1, 2 with 0: red, 1: green, 2: blue)", process_histo, STR_HISTO, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	/* commands oper filename and curent image */
+	/* commands open filename and current image */
 	{"iadd", 1, "iadd filename", process_imoper, STR_IADD, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"idiv", 1, "idiv filename", process_imoper, STR_IDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -180,7 +180,7 @@ static command commands[] = {
 	{"setcpu", 1, "setcpu number", process_set_cpu, STR_SETCPU, TRUE, REQ_CMD_NONE},
 #endif
 	{"setext", 1, "setext extension", process_set_ext, STR_SETEXT, TRUE, REQ_CMD_NONE},
-	{"setfindstar", 1, "setfindstar [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-auto=on|off]" , process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
+	{"setfindstar", 1, "setfindstar [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-auto=on|off] [-relax=on|off]" , process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE, REQ_CMD_SEQUENCE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE, REQ_CMD_NONE},
@@ -190,6 +190,9 @@ static command commands[] = {
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
 	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
+#ifdef HAVE_LIBTIFF
+	{"starnet", 0, "starnet [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_starnet, STR_STARNET, TRUE, REQ_CMD_SINGLE_IMAGE},
+#endif
 	{"stat", 0, "stat", process_stat, STR_STAT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"subsky", 1, "subsky { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 

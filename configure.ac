@@ -111,7 +111,7 @@ case "$host_os" in
 esac
 AC_MSG_RESULT([$platform_win32])
 
-dnl ================ MANDATORY DEPENDECIES ================
+dnl ================ MANDATORY DEPENDENCIES ================
 dnl check math lib
 AC_CHECK_LIB(m, log, LIBS="$LIBS -lm")
 
@@ -219,7 +219,7 @@ else
 fi
 AM_CONDITIONAL(HAVE_HTMESH, test "x$have_htmesh" = "xyes")
 
-dnl ================ OPTIONAL DEPENDECIES ================
+dnl ================ OPTIONAL DEPENDENCIES ================
 
 dnl check raw lib
 PKG_CHECK_MODULES(LIBRAW, [libraw >= 0.17],

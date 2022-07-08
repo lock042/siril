@@ -51,6 +51,7 @@ preferences pref_init = {
 	.catalogue_paths[3] = NULL,
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
+	.starnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = 10,
 		.adjust = TRUE,
@@ -58,6 +59,7 @@ preferences pref_init = {
 		.roundness = 0.5,
 		.focal_length = 0.,
 		.pixel_size_x = 0.,
+		.relax_checks = FALSE
 	},
 	.prepro = {
 		.cfa = FALSE,
@@ -156,6 +158,8 @@ void free_preferences(preferences *pref) {
 	pref->swap_dir = NULL;
 	g_free(pref->copyright);
 	pref->copyright = NULL;
+	g_free(pref->starnet_dir);
+	pref->starnet_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
 	g_slist_free_full(pref->gui.script_path, g_free);
@@ -168,6 +172,11 @@ void initialize_default_settings() {
 	com.pref.ext = g_strdup(".fit");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
+}
+
+void update_gain_from_gfit() {
+	if (gfit.cvf > 0.0)
+		com.pref.phot_set.gain = gfit.cvf;
 }
 
 struct settings_access all_settings[] = {
@@ -189,13 +198,10 @@ struct settings_access all_settings[] = {
 	{ "core", "catalogue_nomad", STYPE_STR, N_("Path of the USNO-NOMAD-1e8.dat catalogue"), &com.pref.catalogue_paths[3] },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
+	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
 
-	{ "starfinder", "adjust", STYPE_BOOL, N_("adjust search radius with resolution"), &com.pref.starfinder_conf.adjust },
-	{ "starfinder", "radius", STYPE_INT, N_("base radius value, contains one star"), &com.pref.starfinder_conf.radius, { .range_int = { 0, 100 } } },
-	{ "starfinder", "sigma", STYPE_DOUBLE, N_("sigma factor for detection threshold"), &com.pref.starfinder_conf.sigma, { .range_double = { 0., 20. } } },
-	{ "starfinder", "roundness", STYPE_DOUBLE, N_("star roundness for detection threshold"), &com.pref.starfinder_conf.roundness, { .range_double = { 0., 1. } } },
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
-	{ "starfinder", "piixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
+	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
 	{ "debayer", "open_debayer", STYPE_BOOL, N_("open image debayered"), &com.pref.debayer.open_debayer },
 	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },

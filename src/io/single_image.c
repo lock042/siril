@@ -169,7 +169,6 @@ void free_image_data() {
 
 static gboolean end_read_single_image(gpointer p) {
 	set_GUI_CAMERA();
-	set_GUI_photometry();
 	return FALSE;
 }
 
@@ -223,6 +222,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	else
 		free(realname);
 	gui.file_ext_filter = (int) imagetype;
+	update_gain_from_gfit();
 	siril_add_idle(end_read_single_image, NULL);
 	return retval;
 }
@@ -389,6 +389,13 @@ static gboolean end_gfit_operation() {
 	stop_processing_thread();
 
 	update_gfit_histogram_if_needed();
+
+	/* update bit depth selector */
+	set_precision_switch();
+
+	/* update display of gfit name (useful if it changes) */
+	adjust_sellabel();
+	display_filename();
 
 	// compute new min and max if needed for display and update sliders
 	init_layers_hi_and_lo_values(gui.sliders);

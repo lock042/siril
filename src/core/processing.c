@@ -18,6 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <assert.h>
 #include <string.h>
 #include <glib.h>
@@ -342,7 +346,7 @@ the_end:
 	return GINT_TO_POINTER(args->retval);
 }
 
-// defaut idle function (in GTK main thread) to run at the end of the generic sequence processing
+// default idle function (in GTK main thread) to run at the end of the generic sequence processing
 gboolean end_generic_sequence(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
 
@@ -355,7 +359,7 @@ gboolean end_generic_sequence(gpointer p) {
 		free(seqname);
 		g_free(basename);
 	}
-	
+
 	free(p);
 	return end_generic(NULL);
 }
@@ -484,7 +488,7 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 }
 
 /* In SER, all images must be in a contiguous sequence, so we use the out_index.
- * In FITS sequences, to keep track of image accross processings, we keep the
+ * In FITS sequences, to keep track of image across processings, we keep the
  * input file number all along (in_index is the index in the sequence, not the name).
  * The 2nd condition ensures that any force condition prevails over opposite
  * input-type condition
@@ -602,7 +606,7 @@ void unreserve_thread() {
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
-	
+
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -628,9 +632,24 @@ void wait_for_script_thread() {
 	}
 }
 
+void kill_child_process() {
+	if (com.child_is_running) {
+#ifdef _WIN32
+		TerminateProcess(com.childhandle, 1);
+		CloseHandle(com.childhandle);
+		com.childhandle = NULL;
+#else
+		kill(com.childpid, SIGINT);
+		com.childpid = 0;
+#endif
+		com.child_is_running = FALSE;
+	}
+}
+
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
+	kill_child_process();
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();

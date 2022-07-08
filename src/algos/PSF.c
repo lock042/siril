@@ -648,7 +648,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 /* This function is the global minimisation. Every call to the minimisation
  * must come over here. It will check if the difference between Sx and Sy is
  * larger than or equal to 0.01 pixel.
- * In this case, Dynamic PSF fits additional angle parameter wich is the
+ * In this case, Dynamic PSF fits additional angle parameter which is the
  * rotation angle of the X axis with respect to the centroid coordinates: so,
  * by design we set Sx>Sy.
  * If the difference is smaller OR if fit_Angle is equal to FALSE (in the case
@@ -781,7 +781,6 @@ void psf_display_result(psf_star *result, rectangle *area) {
 	g_free(coordinates);
 }
 
-#define _2_SQRT_2_LOG2 2.35482004503
 
 /* If the pixel pitch and the focal length are known and filled in the 
  * setting box, we convert FWHM in pixel to arcsec by multiplying

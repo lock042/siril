@@ -149,6 +149,8 @@ siril_common_SOURCES = \
 	filters/saturation.h \
 	filters/scnr.c \
 	filters/scnr.h \
+	filters/starnet.c \
+	filters/starnet.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	gui/about_dialog.c \
@@ -206,6 +208,8 @@ siril_common_SOURCES = \
 	gui/siril_preview.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
+	gui/starnetgui.c \
+	gui/starnetgui.h \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \

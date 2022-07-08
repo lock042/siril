@@ -76,6 +76,7 @@
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
 #include "filters/scnr.h"
+#include "filters/starnet.h"
 #include "filters/wavelets.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
@@ -128,6 +129,7 @@ int process_load(int nb){
 	expand_home_in_filename(filename, 256);
 
 	int retval = open_single_image(filename);
+	launch_clipboard_survey();
 	return (retval < 0);
 }
 
@@ -279,6 +281,66 @@ int process_savebmp(int nb){
 	savebmp(filename, &gfit);
 	set_cursor_waiting(FALSE);
 	g_free(filename);
+	return CMD_OK;
+}
+
+int process_starnet(int nb){
+#ifdef HAVE_LIBTIFF
+	starnet_data *starnet_args = malloc(sizeof(starnet_data));
+	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
+	starnet_args->linear = FALSE;
+	starnet_args->customstride = FALSE;
+	starnet_args->upscale = FALSE;
+	starnet_args->starmask = TRUE;
+	gboolean error = FALSE;
+	double stride = 0.0;
+	int intstride = 0;
+	for (int i = 1; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-stretch")) {
+			arg += 8;
+			starnet_args->linear = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-upscale")) {
+			arg += 8;
+			starnet_args->upscale = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-nostarmask")) {
+			arg += 11;
+			starnet_args->starmask = FALSE;
+		}
+		else if (g_str_has_prefix(arg, "-stride=")) {
+			arg += 8;
+			stride = g_ascii_strtod(arg, &end);
+			intstride = stride;
+			if (arg == end) error = TRUE;
+			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
+				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				sprintf(starnet_args->stride, "%d", intstride);
+				starnet_args->customstride = TRUE;
+			}
+		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+		if (error) {
+			siril_log_message(_("Error parsing arguments, aborting.\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	set_cursor_waiting(TRUE);
+	start_in_new_thread(do_starnet, starnet_args);
+
+#else
+	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
+#endif
 	return CMD_OK;
 }
 
@@ -1789,6 +1851,7 @@ int process_set_findstar(int nb) {
 	gboolean adjust = com.pref.starfinder_conf.adjust;
 	double focal_length = com.pref.starfinder_conf.focal_length;
 	double pixel_size_x = com.pref.starfinder_conf.pixel_size_x;
+	gboolean relax_checks = com.pref.starfinder_conf.relax_checks;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -1843,6 +1906,15 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
+				} else if (g_str_has_prefix(word[i], "-relax=")) {
+					char *current = word[i], *value;
+					value = current + 7;
+					if (!(g_ascii_strcasecmp(value, "on"))) relax_checks = TRUE;
+					else if (!(g_ascii_strcasecmp(value, "off"))) relax_checks = FALSE;
+					else {
+						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -1850,30 +1922,22 @@ int process_set_findstar(int nb) {
 			}
 		}
 	}
-	if (com.pref.starfinder_conf.sigma != sigma) {
-		siril_log_message(_("sigma = %3.2f\n"), sigma);
-		com.pref.starfinder_conf.sigma = sigma;
-	}
-	if (com.pref.starfinder_conf.roundness != roundness) {
-		siril_log_message(_("roundness = %3.2f\n"), roundness);
-		com.pref.starfinder_conf.roundness = roundness;
-	}
-	if (com.pref.starfinder_conf.radius != radius) {
-		siril_log_message(_("radius = %d\n"), radius);
-		com.pref.starfinder_conf.radius = radius;
-	}
-	if (com.pref.starfinder_conf.focal_length != focal_length) {
-		siril_log_message(_("focal = %3.1f\n"), focal_length);
-		com.pref.starfinder_conf.focal_length = focal_length;
-	}
-	if (com.pref.starfinder_conf.pixel_size_x != pixel_size_x) {
-		siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
-		com.pref.starfinder_conf.pixel_size_x = pixel_size_x;
-	}
-	if (com.pref.starfinder_conf.adjust != adjust) {
-		siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
-		com.pref.starfinder_conf.adjust = adjust;
-	}
+
+	siril_log_message(_("sigma = %3.2f\n"), sigma);
+	com.pref.starfinder_conf.sigma = sigma;
+	siril_log_message(_("roundness = %3.2f\n"), roundness);
+	com.pref.starfinder_conf.roundness = roundness;
+	siril_log_message(_("radius = %d\n"), radius);
+	com.pref.starfinder_conf.radius = radius;
+	siril_log_message(_("focal = %3.1f\n"), focal_length);
+	com.pref.starfinder_conf.focal_length = focal_length;
+	siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
+	com.pref.starfinder_conf.pixel_size_x = pixel_size_x;
+	siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
+	com.pref.starfinder_conf.adjust = adjust;
+	siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
+	com.pref.starfinder_conf.relax_checks = relax_checks;
+
 	return CMD_OK;
 }
 
@@ -4913,8 +4977,6 @@ int process_set_32bits(int nb) {
 		siril_log_message(_("16-bit per channel in processed images mode is active\n"));
 	else siril_log_message(_("32-bit per channel in processed images mode is active\n"));
 	writeinitfile();
-	if (!com.script)
-		set_GUI_misc();
 	return CMD_OK;
 }
 
@@ -4942,7 +5004,10 @@ int process_set_compress(int nb) {
 		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5))  {
 			method = GZIP2_COMP;
 			comp = g_strdup("GZIP2");
-		} /*else if (!g_ascii_strncasecmp(word[2] + 6, "hcompress", 9)) {
+		}
+		// hcompress with mode 2 is not working in cfitsio
+		// see https://gitlab.com/free-astro/siril/-/issues/696#note_932398268
+		/*else if (!g_ascii_strncasecmp(word[2] + 6, "hcompress", 9)) {
 			method = HCOMPRESS_COMP;
 			if (!word[4]) {
 				siril_log_message(_("Please specify the value of hcompress scale factor.\n"));
@@ -4975,8 +5040,6 @@ int process_set_compress(int nb) {
 	com.pref.comp.fits_method = method;
 	com.pref.comp.fits_quantization = q;
 	com.pref.comp.fits_hcompress_scale = hscale;
-	if (!com.script)
-		set_GUI_compression();
 	writeinitfile();
 	return CMD_OK;
 }
@@ -5025,8 +5088,6 @@ int process_set_mem(int nb){
 	com.pref.mem_mode = RATIO;
 	writeinitfile();
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
-	if (!com.script)
-		set_GUI_misc();
 	return CMD_OK;
 }
 

@@ -34,6 +34,7 @@
 #include "gui/utils.h"	// for lookup_widget()
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
 #include "core/undo.h"
@@ -905,6 +906,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		/* apply the process */
 			gtk_toggle_button_set_active(seq_button, FALSE);
 			apply_ght_to_sequence(args);
+			free(args);
 		}
 	} else {
 		// the apply button resets everything after recomputing with the current values
@@ -974,6 +976,7 @@ void setup_histo_dialog() {
 
 			// Hide UI elements not required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
 			// Make visible the UI elements required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), TRUE);
@@ -991,6 +994,19 @@ void setup_ght_dialog() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), FALSE);
 			// Make visible and configure the GHT controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gchar *image;
+			GtkWidget *w;
+			if (com.pref.gui.combo_theme == 0) {
+				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper_dark.svg", NULL);
+				w = gtk_image_new_from_file(image);
+			} else {
+				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
+				w = gtk_image_new_from_file(image);
+			}
+			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("eyedropper_SP")), w);
+			gtk_widget_show(w);
+			g_free(image);
 			// Set default parameters
 			_D = 0.0;
 			_B = 0.0;
@@ -1016,6 +1032,8 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
+
 			break;
 		case STRETCH_PAYNE_NORMAL:
 		case STRETCH_PAYNE_INVERSE:
@@ -1025,6 +1043,8 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+
 			break;
 		case STRETCH_ASINH:
 		case STRETCH_INVASINH:
@@ -1034,6 +1054,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
 			break;
 
 			// This should resize the window to the smallest size that fits the visible widgets
@@ -1256,6 +1277,34 @@ void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_SP = gtk_spin_button_get_value(button);
+	update_histo_mtf();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	notify_update((gpointer) param);
+}
+
+void on_eyedropper_SP_clicked(GtkToggleButton *togglebutton, gpointer user_data) {
+	int chan, channels = get_preview_gfit_backup()->naxes[2];
+	imstats* stats[3];
+	double ref = 0;
+	if (!com.selection.w || !com.selection.h) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the point or area to set SP"));
+		return;
+	}
+	for (chan = 0; chan < get_preview_gfit_backup()->naxes[2]; chan++) {
+		stats[chan] = statistics(NULL, -1, get_preview_gfit_backup(), chan, &com.selection, STATS_BASIC, MULTI_THREADED);
+		if (!stats[chan]) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return;
+		}
+		ref += stats[chan]->mean;
+		free_stats(stats[chan]);
+	}
+	ref /= channels;
+	_SP = ref;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtSP")),_SP);
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;

@@ -54,6 +54,7 @@
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	header_open_button_clicked();
+	launch_clipboard_survey();
 }
 
 void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -490,6 +491,9 @@ void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	siril_open_dialog("asinh_dialog");
 }
 
+void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("starnet_dialog");
+}
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("deconvolution_dialog");
 }

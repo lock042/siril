@@ -173,6 +173,7 @@ typedef struct {
 	double roundness;
 	double focal_length;
 	double pixel_size_x;
+	gboolean relax_checks;
 } star_finder_params;
 
 /**
@@ -209,6 +210,8 @@ struct pref_struct {
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
+
+	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
@@ -261,5 +264,7 @@ int print_all_settings(gboolean with_details);
 
 void free_preferences(preferences *pref);	// TODO check if they're used
 void initialize_default_settings();
+
+void update_gain_from_gfit();
 
 #endif

@@ -44,6 +44,8 @@
 #endif
 
 static gchar *sw_dir = NULL;
+static gchar *st_dir = NULL;
+
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	const gchar *dir;
@@ -185,8 +187,11 @@ static void update_performances_preferences() {
 
 static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
+
+	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
 
 	const gchar *ext = gtk_combo_box_get_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")));
 	com.pref.ext = g_strdup(ext);
@@ -206,31 +211,6 @@ void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer
 	gtk_widget_set_sensitive(spin, !gtk_toggle_button_get_active(button));
 }
 
-void set_GUI_photometry() {
-	if (gfit.cvf > 0.0) {
-		com.pref.phot_set.gain = gfit.cvf;
-	}
-	if (com.pref.phot_set.gain > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), com.pref.phot_set.gain);
-	}
-	if (com.pref.phot_set.inner > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), com.pref.phot_set.inner);
-	}
-	if (com.pref.phot_set.outer > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), com.pref.phot_set.outer);
-	}
-	if (com.pref.phot_set.aperture > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), com.pref.phot_set.aperture);
-	}
-	if (com.pref.phot_set.minval >= 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), (gdouble) com.pref.phot_set.minval);
-	}
-	if (com.pref.phot_set.maxval >= 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), (gdouble) com.pref.phot_set.maxval);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), !com.pref.phot_set.force_radius);
-}
-
 void initialize_path_directory(const gchar *path) {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	if (path && path[0] != '\0') {
@@ -240,22 +220,17 @@ void initialize_path_directory(const gchar *path) {
 	}
 }
 
-void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
-	reset_swapdir();
+void initialize_starnet_directory(const gchar *path) {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (starnet_dir, path);
+	} else {
+		gtk_file_chooser_set_filename (starnet_dir, g_get_tmp_dir());
+	}
 }
 
-
-void on_spinbutton_comp_fits_quantization_value_changed(GtkSpinButton *button, gpointer user_data) {
-	gdouble quantization = gtk_spin_button_get_value(button);
-	if (quantization == 0.0) {
-		GtkComboBox *combo = (GtkComboBox *)user_data;
-		if (gtk_combo_box_get_active(combo) != GZIP1_COMP && gtk_combo_box_get_active(combo) != GZIP2_COMP) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Incorrect parameters detected"),
-								"Setting quantization to 0 has only a sense with a GZIP compression "
-								"and GZIP 2 often produces better compression of floating­point images.");
-			gtk_spin_button_set_value(button, com.pref.comp.fits_quantization != 0.0 ? com.pref.comp.fits_quantization : 16.0);
-		}
-	}
+void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
+	reset_swapdir();
 }
 
 void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) {
@@ -266,26 +241,6 @@ void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) 
 		gtk_spin_button_set_value(button, 16.0);
 	}
 	gtk_widget_set_sensitive(hcompress_scale_spin, (method == HCOMPRESS_COMP) ? TRUE : FALSE);
-}
-
-void set_GUI_compression() {
-	GtkToggleButton *enabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_enabled_radio"));
-	GtkToggleButton *disabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio"));
-
-	gtk_toggle_button_set_active(enabled, com.pref.comp.fits_enabled);
-	gtk_toggle_button_set_active(disabled, !com.pref.comp.fits_enabled);
-
-	if (com.pref.comp.fits_enabled) {
-		GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method"));
-		GtkSpinButton *quantiz = GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization"));
-		GtkSpinButton *hscale = GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale"));
-
-		gtk_combo_box_set_active(box, com.pref.comp.fits_method);
-		gtk_spin_button_set_value(quantiz, com.pref.comp.fits_quantization);
-		if (com.pref.comp.fits_method == HCOMPRESS_COMP) {
-			gtk_spin_button_set_value(hscale, com.pref.comp.fits_hcompress_scale);
-		}
-	}
 }
 
 void on_mem_radio_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -331,6 +286,24 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 	if (sw_dir) {
 		g_free(sw_dir);
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
+	}
+}
+
+void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(fileChooser);
+	gchar *dir;
+
+	dir = gtk_file_chooser_get_filename (starnet_dir);
+
+	if (g_access(dir, W_OK)) {
+		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		gtk_file_chooser_set_filename(starnet_dir, com.pref.starnet_dir);
+		return;
+	}
+	if (st_dir) {
+		g_free(st_dir);
+		st_dir = gtk_file_chooser_get_filename(starnet_dir);
 	}
 }
 
@@ -406,34 +379,6 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 }
 
 static gboolean from_prefs_init = FALSE;
-
-void on_spinInner_value_changed(GtkSpinButton *inner, gpointer user_data) {
-	GtkSpinButton *outer;
-	double in, out;
-
-	outer = GTK_SPIN_BUTTON(lookup_widget("spinOuter"));
-	in = gtk_spin_button_get_value(inner);
-	out = gtk_spin_button_get_value(outer);
-
-	if (!from_prefs_init && in >= out) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
-				_("Inner radius value must be less than outer. Please change the value."));
-	}
-}
-
-void on_spinOuter_value_changed(GtkSpinButton *outer, gpointer user_data) {
-	GtkSpinButton *inner;
-	double in, out;
-
-	inner = GTK_SPIN_BUTTON(lookup_widget("spinInner"));
-	in = gtk_spin_button_get_value(inner);
-	out = gtk_spin_button_get_value(outer);
-
-	if (!from_prefs_init && in >= out) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"),
-				_("Inner radius value must be less than outer. Please change the value."));
-	}
-}
 
 void update_preferences_from_model() {
 	siril_debug_print("updating preferences GUI from settings data\n");
@@ -550,6 +495,7 @@ void update_preferences_from_model() {
 
 	/* tab 9 */
 	initialize_path_directory(pref->swap_dir);
+	initialize_starnet_directory(pref->starnet_dir);
 	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext == NULL ? ".fit" : pref->ext);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_16bit ? 0 : 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
@@ -584,18 +530,48 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	update_preferences_from_model();
 }
 
+gboolean check_pref_sanity(gchar **error) {
+	gchar *err = NULL;
+	/* check for photometry pref */
+	double in = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")));
+	double out = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")));
+
+	if (in >= out) {
+		err = _("Inner radius value must be less than outer. Please change the value in Photometry tab.");
+		*error = err;
+		return FALSE;
+	}
+	/* check for FITS pref */
+	gdouble quantization = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization")));
+	if (quantization == 0.0) {
+		GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method"));
+		if (gtk_combo_box_get_active(combo) != GZIP1_COMP && gtk_combo_box_get_active(combo) != GZIP2_COMP) {
+			err = _("Setting quantization to 0 has only a sense with a GZIP compression "
+									"and GZIP 2 often produces better compression of floating­point images.");
+			*error = err;
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	//free_preferences(&com.pref);
-	dump_ui_to_global_var();
+	gchar *err;
+	if (!check_pref_sanity(&err)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"), err);
+	} else {
+		free_preferences(&com.pref);
+		dump_ui_to_global_var();
 
-	initialize_FITS_name_entries(); // To update UI with new preferences
-	refresh_star_list(com.stars); // To update star list with new preferences
-	if (com.found_object)
-		force_to_refresh_catalogue_list();
-	save_main_window_state();
-	writeinitfile();
+		initialize_FITS_name_entries(); // To update UI with new preferences
+		refresh_star_list(com.stars); // To update star list with new preferences
+		if (com.found_object)
+			force_to_refresh_catalogue_list();
+		save_main_window_state();
+		writeinitfile();
 
-	siril_close_dialog("settings_window");
+		siril_close_dialog("settings_window");
+	}
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
@@ -618,6 +594,14 @@ gchar *get_swap_dir() {
 	if (sw_dir == NULL) {
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
 	}
+	return sw_dir;
+}
+
+gchar *get_starnet_dir() {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	if (st_dir)
+		st_dir = gtk_file_chooser_get_filename(starnet_dir);
+
 	return sw_dir;
 }
 

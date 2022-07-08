@@ -71,7 +71,7 @@ else
     message('Siril version:' + git_version)
     errortxt = r.stderr().strip()
   else
-    message('Cannot retrive git version')
+    message('Cannot retrieve git version')
     message(r.stderr().strip())
     git_version = 'Unknown'
     git_last_commit_year = 'Unknown'
@@ -262,7 +262,7 @@ else
 endif
 
 
-## Optionnal dependencies
+## Optional dependencies
 
 openmp_dep = []
 if enable_openmp
