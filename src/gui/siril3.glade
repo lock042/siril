@@ -6995,6 +6995,26 @@ Modifying parameters in this windows afterward will void the colour balance, and
       <action-widget response="0">linearmatch_apply</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkFileFilter" id="filter_USNO-NOMAD-1e8">
+    <patterns>
+      <pattern>USNO-NOMAD-1e8.dat</pattern>
+    </patterns>
+  </object>
+  <object class="GtkFileFilter" id="filter_deepstars">
+    <patterns>
+      <pattern>deepstars.dat</pattern>
+    </patterns>
+  </object>
+  <object class="GtkFileFilter" id="filter_namedstars">
+    <patterns>
+      <pattern>namedstars.dat</pattern>
+    </patterns>
+  </object>
+  <object class="GtkFileFilter" id="filter_unnamedstars">
+    <patterns>
+      <pattern>unnamedstars.dat</pattern>
+    </patterns>
+  </object>
   <object class="GtkImage" id="grid">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -22090,6 +22110,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path1">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="filter">filter_namedstars</property>
                                     <property name="title" translatable="yes">namedstars.dat</property>
                                   </object>
                                   <packing>
@@ -22101,6 +22122,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path2">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="filter">filter_unnamedstars</property>
                                     <property name="title" translatable="yes">unnamedstars.dat</property>
                                   </object>
                                   <packing>
@@ -22112,6 +22134,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path3">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="filter">filter_deepstars</property>
                                     <property name="title" translatable="yes">deepstars.dat</property>
                                   </object>
                                   <packing>
@@ -22136,6 +22159,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path4">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="filter">filter_USNO-NOMAD-1e8</property>
                                     <property name="title" translatable="yes">USNO-NOMAD-1e8.dat</property>
                                   </object>
                                   <packing>
