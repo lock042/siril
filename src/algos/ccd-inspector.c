@@ -200,7 +200,9 @@ static int compute_tilt_to_image(image *im, struct tilt_data *t_args) {
 	float mr2 = 0;
 
 	if (!compute_tilt_values(im->fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 		{
 			t_args->m += m;
 			t_args->m1 += m1;

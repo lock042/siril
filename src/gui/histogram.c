@@ -560,7 +560,9 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 // Update by A Knagg-Baugh - the issue only relates to MacOS so I've limited the
 // disabling to that OS with a #ifndef. Similarly for the other instance below
 #ifndef __APPLE__
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
 #endif
 	for (size_t i = 0; i < int_norm + 1; i++) {
 		WORD mtf;
@@ -602,7 +604,9 @@ static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 	GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 
 #ifndef __APPLE__
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
 #endif
 	for (size_t i = 0; i < int_norm + 1; i++) {
 		double ght;

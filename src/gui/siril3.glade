@@ -22089,7 +22089,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label">namedstars.dat</property>
+                                    <property name="label">namedstars.dat: </property>
                                     <property name="single-line-mode">True</property>
                                   </object>
                                   <packing>
@@ -22102,7 +22102,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label">unnamedstars.dat</property>
+                                    <property name="label">unnamedstars.dat: </property>
                                     <property name="single-line-mode">True</property>
                                   </object>
                                   <packing>
@@ -22151,7 +22151,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label">deepstars.dat</property>
+                                    <property name="label">deepstars.dat: </property>
                                     <property name="single-line-mode">True</property>
                                   </object>
                                   <packing>
@@ -22176,7 +22176,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label">USNO-NOMAD-1e8.dat</property>
+                                    <property name="label">USNO-NOMAD-1e8.dat: </property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">2</property>
