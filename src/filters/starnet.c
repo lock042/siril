@@ -243,6 +243,7 @@ gpointer do_starnet(gpointer p) {
 	gchar starlessfit[pathmax];
 	gchar starmaskfit[pathmax];
 	char *imagenoext;
+	char *imagenoextorig;
 	gchar starnetsuffix[10] = "_starnet";
 	gchar starlesssuffix[10] = "_starless";
 	gchar starmasksuffix[10] = "_starmask";
@@ -253,7 +254,13 @@ gpointer do_starnet(gpointer p) {
 	memset(starmaskfit, 0, sizeof(starmaskfit));
 	memset(starnetcommand, 0, sizeof(starnetcommand));
 	// Set up paths and filenames
+	imagenoextorig = g_path_get_basename(com.uniq->filename);
 	imagenoext = g_path_get_basename(com.uniq->filename);
+	for (char *p = imagenoextorig, *q = imagenoext;  *p;  ++p, ++q)
+        *q = *p == ' ' ? '_' : *p;
+	if (g_strcmp0(imagenoext, imagenoextorig))
+		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
+	free(imagenoextorig);
 	fprintf(stdout,"%s\n",imagenoext);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
 	fprintf(stdout,"%s\n",imagenoext);
@@ -336,6 +343,11 @@ gpointer do_starnet(gpointer p) {
 			siril_log_color_message(_("Error: image copy failed...\n"), "red");
 			goto CLEANUP2;
 		}
+		// If the force_16bit preference is set and we have a 32bit image loaded, replace the buffer
+		if (com.pref.force_16bit && fit.type == DATA_FLOAT) {
+			const size_t ndata = fit.naxes[0] * fit.naxes[1] * fit.naxes[2];
+			fit_replace_buffer(&fit, float_buffer_to_ushort(fit.fdata, ndata), DATA_USHORT);
+		}
 	}
 
 	// If we need to pre-stretch a linear image, we use the auto histogram stretch with
@@ -405,10 +417,11 @@ gpointer do_starnet(gpointer p) {
 	copy_fits_metadata(&gfit, &workingfit);
 
 	// Increase bit depth of starless image to 32 bit to improve precision
-	// for subsequent processing
-	const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
-	fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
-
+	// for subsequent processing. Only if !force_16bit otherwise there is an error on subtraction
+	if (!com.pref.force_16bit) {
+		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
+		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
+	}
 	// Downscale again if needed
 	if (args->upscale) {
 		siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
