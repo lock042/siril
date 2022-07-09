@@ -906,7 +906,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		/* apply the process */
 			gtk_toggle_button_set_active(seq_button, FALSE);
 			apply_ght_to_sequence(args);
-			free(args);
 		}
 	} else {
 		// the apply button resets everything after recomputing with the current values
