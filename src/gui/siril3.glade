@@ -12069,6 +12069,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
 For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.2,&lt;/i&gt;, all the occurences of &lt;i&gt;factor&lt;/i&gt; and &lt;i&gt;K&lt;/i&gt; in the formula above will be replaced by 0.8 and 0.2 respectively.
 
 &lt;i&gt;Ha * factor + OIII * K&lt;/i&gt; would therefore evaluate to &lt;i&gt;Ha * 0.8 + OIII * 0.2&lt;/i&gt;</property>
+                    <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                   </object>
                 </child>
               </object>
