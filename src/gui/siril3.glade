@@ -24077,7 +24077,7 @@ Configuring a memory amount larger than what is available on your system may res
                                   <object class="GtkFileChooserButton" id="filechooser_starnet">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Select Starnet++ installation directory. Works with both Starnet++ v1.0 and v2.0.2+.</property>
+                                    <property name="tooltip-text" translatable="yes">Select Starnet++ installation directory. Works with both Starnet++ v1.0 and v2.0.2+ (Command Line Tool version, not GUI version for Windows users).</property>
                                     <property name="valign">center</property>
                                     <property name="action">select-folder</property>
                                     <property name="title" translatable="yes">Select Starnet++ installation directory</property>
