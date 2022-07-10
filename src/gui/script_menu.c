@@ -212,12 +212,13 @@ int initialize_script_menu() {
 		}
 	}
 
-	if (!nb_item)
+	if (!nb_item) {
 		gtk_widget_hide(menuscript);
-	else if (!gtk_widget_get_visible(menuscript)) {
-		gtk_widget_show(menuscript);
-		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+		return 0;
 	}
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+	if (!gtk_widget_get_visible(menuscript))
+		gtk_widget_show(menuscript);
 	return 0;
 }
 
