@@ -7922,11 +7922,11 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="force_astrometry_button">
-                        <property name="label" translatable="yes">Always plate solve</property>
+                        <property name="label" translatable="yes">Force plate solving</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">If the image was previously plate solved and WCS information is stored in the header, photometric color calibration can reuse it. Checking this box will force plate solving to be redone by Siril.</property>
+                        <property name="tooltip-text" translatable="yes">Checking this box will force plate solving to be redone by Siril. It is not needed if the image contains trustworthy WCS information.</property>
                         <property name="halign">start</property>
                         <property name="draw-indicator">True</property>
                       </object>
@@ -22089,6 +22089,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
                                     <property name="halign">start</property>
                                     <property name="label">namedstars.dat: </property>
                                     <property name="single-line-mode">True</property>
@@ -22102,6 +22103,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
                                     <property name="halign">start</property>
                                     <property name="label">unnamedstars.dat: </property>
                                     <property name="single-line-mode">True</property>
@@ -22115,6 +22117,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path1">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Specify the location of the namedstars.dat star catalogue on your system.</property>
                                     <property name="filter">filter_namedstars</property>
                                     <property name="title">namedstars.dat</property>
                                   </object>
@@ -22127,6 +22130,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path2">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Specify the location of the unnamedstars.dat star catalogue on your system.</property>
                                     <property name="filter">filter_unnamedstars</property>
                                     <property name="title">unnamedstars.dat</property>
                                   </object>
@@ -22139,6 +22143,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path3">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Specify the location of the deepstars.dat star catalogue on your system.</property>
                                     <property name="filter">filter_deepstars</property>
                                     <property name="title">deepstars.dat</property>
                                   </object>
@@ -22151,6 +22156,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
                                     <property name="halign">start</property>
                                     <property name="label">deepstars.dat: </property>
                                     <property name="single-line-mode">True</property>
@@ -22164,6 +22170,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkFileChooserButton" id="localcatalogue_path4">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system.</property>
                                     <property name="filter">filter_USNO-NOMAD-1e8</property>
                                     <property name="title">USNO-NOMAD-1e8.dat</property>
                                   </object>
@@ -22176,6 +22183,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
                                     <property name="halign">start</property>
                                     <property name="label">USNO-NOMAD-1e8.dat: </property>
                                   </object>
@@ -22194,11 +22202,9 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="can-focus">False</property>
                             <property name="margin-top">10</property>
                             <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Local star catalogues</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Local star catalogues&lt;/b&gt; (&lt;a href="https://free-astro.org/index.php?title=Siril:Star_Catalogues"&gt;more info&lt;/a&gt;)</property>
+                            <property name="use-markup">True</property>
                             <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
                           </object>
                         </child>
                       </object>
