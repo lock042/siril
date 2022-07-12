@@ -61,7 +61,7 @@ static void reset_swapdir() {
 }
 
 static void update_debayer_preferences() {
-	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")));
+	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")));
 	com.pref.debayer.top_down = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")));
 	com.pref.debayer.xbayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")));
 	com.pref.debayer.ybayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")));
@@ -220,6 +220,17 @@ static void update_misc_preferences() {
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
+}
+
+void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean active = !gtk_toggle_button_get_active(button);
+	GtkWidget *combo = lookup_widget("comboBayer_pattern");
+	GtkWidget *spin1 = lookup_widget("xbayeroff_spin");
+	GtkWidget *spin2 = lookup_widget("ybayeroff_spin");
+
+	gtk_widget_set_sensitive(combo, active);
+	gtk_widget_set_sensitive(spin1, active);
+	gtk_widget_set_sensitive(spin2, active);
 }
 
 void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -400,7 +411,7 @@ void update_preferences_from_model() {
 	siril_debug_print("updating preferences GUI from settings data\n");
 	preferences *pref = &com.pref;
 	/* tab 1 */
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")), pref->debayer.use_bayer_header);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")), pref->debayer.use_bayer_header);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_pattern")), pref->debayer.bayer_pattern);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")), pref->debayer.bayer_inter);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")), pref->debayer.xbayeroff);
