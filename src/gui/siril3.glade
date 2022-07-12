@@ -18278,6 +18278,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;roundness&lt;/b&gt;: images with best star roundness (star-based registration only)
 
+&lt;b&gt;background&lt;/b&gt;: images with lowest background values (star-based registration only)
+
+&lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
+
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
@@ -18286,6 +18290,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <item translatable="yes">FWHM</item>
                                                             <item translatable="yes">weighted FWHM</item>
                                                             <item translatable="yes">roundness</item>
+                                                            <item translatable="yes">background</item>
+                                                            <item translatable="yes">nb stars</item>
                                                             <item translatable="yes">quality</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
@@ -18383,6 +18389,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;roundness&lt;/b&gt;: images with best star roundness (star-based registration only)
 
+&lt;b&gt;background&lt;/b&gt;: images with lowest background values (star-based registration only)
+
+&lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
+
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
@@ -18391,6 +18401,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <item translatable="yes">FWHM</item>
                                                             <item translatable="yes">weighted FWHM</item>
                                                             <item translatable="yes">roundness</item>
+                                                            <item translatable="yes">background</item>
+                                                            <item translatable="yes">nb stars</item>
                                                             <item translatable="yes">quality</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
@@ -18499,6 +18511,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;roundness&lt;/b&gt;: images with best star roundness (star-based registration only)
 
+&lt;b&gt;background&lt;/b&gt;: images with lowest background values (star-based registration only)
+
+&lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
+
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
@@ -18507,6 +18523,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <item translatable="yes">FWHM</item>
                                                             <item translatable="yes">weighted FWHM</item>
                                                             <item translatable="yes">roundness</item>
+                                                            <item translatable="yes">background</item>
+                                                            <item translatable="yes">nb stars</item>
                                                             <item translatable="yes">quality</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
