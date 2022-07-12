@@ -21191,7 +21191,6 @@ If the selection is empty, the whole image will be used as reference.</property>
 If unchecked, the Bayer pattern given below will be used instead. Warning: to allow SER files converted from films to be demosaiced, monochrome SER will be forced as CFA with the configured pattern.</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_checkbutton_use_header_toggled" object="comboBayer_pattern" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
