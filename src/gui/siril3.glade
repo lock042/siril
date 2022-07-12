@@ -21191,10 +21191,11 @@ If the selection is empty, the whole image will be used as reference.</property>
 If unchecked, the Bayer pattern given below will be used instead. Warning: to allow SER files converted from films to be demosaiced, monochrome SER will be forced as CFA with the configured pattern.</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
+                                    <signal name="toggled" handler="on_checkbutton_use_header_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
+                                    <property name="top-attach">1</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -21210,7 +21211,7 @@ If unchecked, the Bayer pattern given below will be used instead. Warning: to al
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="top-attach">0</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -21230,7 +21231,7 @@ If unchecked, the Bayer pattern given below will be used instead. Warning: to al
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
+                                    <property name="top-attach">6</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -21244,7 +21245,7 @@ If unchecked, the Bayer pattern given below will be used instead. Warning: to al
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
+                                    <property name="top-attach">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21263,7 +21264,7 @@ If unchecked, the Bayer pattern given below will be used instead. Warning: to al
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
-                                    <property name="top-attach">1</property>
+                                    <property name="top-attach">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21276,7 +21277,7 @@ If unchecked, the Bayer pattern given below will be used instead. Warning: to al
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
+                                    <property name="top-attach">5</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21311,7 +21312,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
-                                    <property name="top-attach">2</property>
+                                    <property name="top-attach">5</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21323,7 +21324,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
+                                    <property name="top-attach">3</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21335,7 +21336,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">5</property>
+                                    <property name="top-attach">4</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21349,7 +21350,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
-                                    <property name="top-attach">4</property>
+                                    <property name="top-attach">3</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -21363,7 +21364,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
-                                    <property name="top-attach">5</property>
+                                    <property name="top-attach">4</property>
                                   </packing>
                                 </child>
                               </object>
@@ -21580,8 +21581,6 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                 <property name="can-focus">False</property>
                                 <property name="row-spacing">6</property>
                                 <property name="column-spacing">6</property>
-                                <property name="row-homogeneous">True</property>
-                                <property name="column-homogeneous">True</property>
                                 <child>
                                   <object class="GtkRadioButton" id="comp_fits_disabled_radio">
                                     <property name="label" translatable="yes">None</property>
@@ -21815,6 +21814,8 @@ The technique gives very good compression for astronomical images and is relativ
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
                             <property name="label" translatable="yes">&lt;b&gt;FITS Compression&lt;/b&gt;</property>
                             <property name="use-markup">True</property>
                             <property name="single-line-mode">True</property>
@@ -24119,6 +24120,8 @@ Configuring a memory amount larger than what is available on your system may res
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
                             <property name="ypad">8</property>
                             <property name="label" translatable="yes">Starnet++ Installation Directory</property>
                             <attributes>
