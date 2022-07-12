@@ -77,6 +77,7 @@ static float _midtones, _shadows, _highlights;
 
 static gboolean _click_on_histo = FALSE;
 static ScaleType _type_of_scale;
+static gboolean lp_warning_given, hp_warning_given = FALSE;
 
 static void set_histogram(gsl_histogram *histo, int layer);
 
@@ -1017,6 +1018,8 @@ void setup_ght_dialog() {
 			_LP = 0.0;
 			_SP = 0.0;
 			_HP = 1.0;
+			lp_warning_given = FALSE;
+			hp_warning_given = FALSE;
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "ght_");
 			gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("drawingarea_histograms")), _("Clicking on the histogram sets SP"));
 }
@@ -1271,6 +1274,13 @@ void on_spin_ghtB_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_LP = gtk_spin_button_get_value(button);
+	if (_LP > _SP) {
+		gtk_spin_button_set_value(button,_SP);
+		if (!lp_warning_given) { // Prevent spamming the warning log message
+			siril_log_message(_("Shadow preservation point cannot be set higher than stretch focal point\n"));
+			lp_warning_given = TRUE;
+		}
+	}
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1279,7 +1289,15 @@ void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
+	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
+	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	_SP = gtk_spin_button_get_value(button);
+	if (_SP < _LP) {
+		gtk_spin_button_set_value(spin_LP, _SP);
+	}
+	if (_SP > _HP) {
+		gtk_spin_button_set_value(spin_HP, _SP);
+	}
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1288,6 +1306,8 @@ void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_eyedropper_SP_clicked(GtkToggleButton *togglebutton, gpointer user_data) {
+	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
+	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	int chan, channels = get_preview_gfit_backup()->naxes[2];
 	imstats* stats[3];
 	double ref = 0;
@@ -1307,6 +1327,12 @@ void on_eyedropper_SP_clicked(GtkToggleButton *togglebutton, gpointer user_data)
 	}
 	ref /= channels;
 	_SP = ref;
+	if (_SP < _LP) {
+		gtk_spin_button_set_value(spin_LP, _SP);
+	}
+	if (_SP > _HP) {
+		gtk_spin_button_set_value(spin_HP, _SP);
+	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtSP")),_SP);
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
@@ -1317,6 +1343,13 @@ void on_eyedropper_SP_clicked(GtkToggleButton *togglebutton, gpointer user_data)
 
 void on_spin_ghtHP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_HP = gtk_spin_button_get_value(button);
+	if (_HP < _SP) {
+		gtk_spin_button_set_value(button, _SP);
+		if (!hp_warning_given) { // Prevent spamming the warning log message
+			siril_log_message(_("Highlight preservation point cannot be set lower than stretch focal point\n"));
+			hp_warning_given = TRUE;
+		}
+	}
 	update_histo_mtf();
 	queue_window_redraw();
 	update_image *param = malloc(sizeof(update_image));

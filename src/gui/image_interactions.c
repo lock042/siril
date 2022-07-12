@@ -505,6 +505,8 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.x = zoomed.x;
 					com.selection.w = gui.start.x - zoomed.x;
 				}
+				if (com.selection.w == 0)
+					com.selection.w = 1;
 			}
 			if (!gui.freezeY) {
 				if (zoomed.y >= gui.start.y) {
@@ -514,6 +516,8 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.y = zoomed.y;
 					com.selection.h = gui.start.y - zoomed.y;
 				}
+				if (com.selection.h == 0)
+					com.selection.h = 1;
 			}
 
 			if (gui.freezeX && gui.freezeY) { // Move selection
