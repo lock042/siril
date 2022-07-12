@@ -1823,8 +1823,6 @@ int process_set_mag_seq(int nb) {
 
 int process_set_ext(int nb) {
 	if (word[1]) {
-		GString *str = NULL;
-
 		if ((g_ascii_strncasecmp(word[1], "fit", 3))
 				&& (g_ascii_strncasecmp(word[1], "fts", 3))
 				&& (g_ascii_strncasecmp(word[1], "fits", 4))) {
@@ -1832,11 +1830,10 @@ int process_set_ext(int nb) {
 			return CMD_ARG_ERROR;
 		}
 
-		free(com.pref.ext);
-		str = g_string_new(".");
-		str = g_string_append(str, word[1]);
-		str = g_string_ascii_down(str);
-		com.pref.ext = g_string_free(str, FALSE);
+		g_free(com.pref.ext);
+		gchar *lower = g_ascii_strdown(word[1], strlen(word[1]));
+		com.pref.ext = g_strdup_printf(".%s", lower);
+		g_free(lower);
 		writeinitfile();
 	}
 

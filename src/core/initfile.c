@@ -528,6 +528,7 @@ int writeinitfile() {
 				strs[i] = NULL;
 				g_key_file_set_string_list(kf, desc->group, desc->key,
 						(const gchar * const*)strs, (gsize)count);
+				free(strs);
 				break;
 		}
 		desc++;
