@@ -566,6 +566,7 @@ struct cominf {
 	int max_thread;			// max total number of threads used for parallel execution
 
 	rectangle selection;		// coordinates of the selection rectangle
+	double rotation;			// selection rotation for dynamic crop 
 
 	psf_star **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it

@@ -551,6 +551,16 @@ static void draw_main_image(const draw_data_t* dd) {
 	}
 }
 
+static void rotate_context(cairo_t *cr, double rotation) {
+	cairo_matrix_t transform;
+	double dx = (double)com.selection.x + (double)com.selection.w * 0.5;
+	double dy = (double)com.selection.y + (double)com.selection.h * 0.5;
+	cairo_matrix_init_translate(&transform, dx, dy);
+	cairo_matrix_rotate(&transform, com.rotation * DEGTORAD);
+	cairo_matrix_translate(&transform, -dx, -dy);
+	cairo_transform(cr, &transform);
+}
+
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		cairo_t *cr = dd->cr;
@@ -558,6 +568,10 @@ static void draw_selection(const draw_data_t* dd) {
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 		cairo_set_dash(cr, dash_format, 2, 0);
 		cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+		cairo_save(cr); // save the original transform
+		if (com.rotation != 0) {
+			rotate_context(cr, com.rotation);
+		}
 		cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
 						(double) com.selection.w, (double) com.selection.h);
 		cairo_stroke(cr);
@@ -588,6 +602,7 @@ static void draw_selection(const draw_data_t* dd) {
 			cairo_line_to(cr, selection_center.x + 5 / dd->zoom, selection_center.y);
 			cairo_stroke(cr);
 		}
+		cairo_restore(cr); // restore the original transform
 	}
 }
 

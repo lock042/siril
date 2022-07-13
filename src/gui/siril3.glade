@@ -13231,6 +13231,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                 <property name="climb-rate">0.01</property>
                 <property name="digits">2</property>
                 <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spin_rotation_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
