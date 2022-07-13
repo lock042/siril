@@ -304,6 +304,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	if (top.endian_id != 0x4B53) {
 		if (top.endian_id != 0x534B) {
 			siril_debug_print("invalid endian ID in header\n");
+			free(cat);
 			return NULL;
 		}
 		siril_debug_print("Byteswapping required\n");
@@ -323,6 +324,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	cat->de = malloc(cat->nfields * sizeof(dataElement));
 	if (!cat->de) {
 		PRINT_ALLOC_ERR;
+		free(cat);
 		return NULL;
 	}
 
