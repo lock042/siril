@@ -4331,6 +4331,39 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				return CMD_ARG_ERROR;
 			}
+		} else if (g_str_has_prefix(current, "-filter-bkg=") ||
+				g_str_has_prefix(current, "-filter-background=")) {
+			value = strchr(current, '=') + 1;
+			if (value[0] != '\0') {
+				char *end;
+				float val = strtof(value, &end);
+				if (end == value) {
+					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+					return CMD_ARG_ERROR;
+				}
+				if (*end == '%')
+					arg->f_bkg_p = val;
+				else arg->f_bkg = val;
+			} else {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				return CMD_ARG_ERROR;
+			}
+		} else if (g_str_has_prefix(current, "-filter-nbstars=")) {
+			value = strchr(current, '=') + 1;
+			if (value[0] != '\0') {
+				char *end;
+				float val = strtof(value, &end);
+				if (end == value) {
+					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+					return CMD_ARG_ERROR;
+				}
+				if (*end == '%')
+					arg->f_nbstars_p = val;
+				else arg->f_nbstars = val;
+			} else {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				return CMD_ARG_ERROR;
+			}
 		} else if (g_str_has_prefix(current, "-filter-incl") ||
 				g_str_has_prefix(current, "-filter-included")) {
 			arg->filter_included = TRUE;
@@ -4510,9 +4543,9 @@ int process_stackall(int nb) {
 	arg->apply_noise_weights = FALSE;
 	arg->apply_nbstack_weights = FALSE;
 
-	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]]
+	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-incl[uded]]
 	// stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]
-	// stackall { rej | mean } sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]
+	// stackall { rej | mean } sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]
 	if (!word[1]) {
 		arg->method = stack_summing_generic;
 	} else {
@@ -4631,9 +4664,9 @@ int process_stackone(int nb) {
 		goto failure;
 	free_sequence(seq, TRUE);
 
-	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-out=result_filename]
+	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-incl[uded]] [-out=result_filename]
 	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] [-out=result_filename]
-	// stack seqfilename { rej | mean } [type_of_rejection] sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted] [-out=result_filename]
+	// stack seqfilename { rej | mean } [type_of_rejection] sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-incl[uded]] [-weighted] [-out=result_filename]
 	if (!word[2]) {
 		arg->method = stack_summing_generic;
 	} else {
