@@ -51,7 +51,7 @@ DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath) {
 	DWORD dwReturnKo = -1;
 	HKEY hKey;
 	LONG lResult;
-	DWORD dwValue;
+	DWORD dwValue = 0;
 	DWORD dwSize = sizeof(dwValue);
 
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, lpPolicyPath, 0, KEY_QUERY_VALUE,
@@ -61,8 +61,7 @@ DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath) {
 		return dwReturnKo;
 	}
 
-	lResult = RegQueryValueEx(hKey, lpKeyName, 0, NULL, (LPBYTE) & dwValue,
-			&dwSize);
+	lResult = RegQueryValueEx(hKey, lpKeyName, 0, NULL, (LPBYTE) &dwValue, &dwSize);
 	RegCloseKey(hKey);
 
 	return (lResult == ERROR_SUCCESS) ? dwValue : dwReturnKo;

@@ -293,8 +293,6 @@ int process_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	gboolean error = FALSE;
-	double stride = 0.0;
-	int intstride = 0;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
@@ -313,8 +311,8 @@ int process_starnet(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-stride=")) {
 			arg += 8;
-			stride = g_ascii_strtod(arg, &end);
-			intstride = stride;
+			double stride = g_ascii_strtod(arg, &end);
+			int intstride = stride;
 			if (arg == end) error = TRUE;
 			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
@@ -5391,10 +5389,8 @@ int process_pcc(int nb) {
 		char *sep = strchr(word[1], ',');
 		next_arg = 2;
 		if (!sep) {
-			if (nb > 1) {
-				target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], word[2]);
-				next_arg = 3;
-			}
+			target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], word[2]);
+			next_arg = 3;
 		}
 		else {
 			*sep++ = '\0';
