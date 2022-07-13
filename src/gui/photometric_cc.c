@@ -89,12 +89,11 @@ static void start_photometric_cc() {
 		args->for_photometry_cc = TRUE;
 		args->use_local_cat = pcc_args->use_local_cat;
 
-		args->pcc = malloc(sizeof(struct photometric_cc_data));
+		args->pcc = pcc_args;
 		args->pcc->fit = &gfit;
 		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 		args->pcc->bg_area = get_bkg_selection();
 		args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
-		args->pcc = pcc_args;
 	}
 
 	pcc_args->fit = &gfit;
