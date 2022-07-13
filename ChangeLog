@@ -4,20 +4,41 @@ xx/xx/22
 * Added livestacking mode with darks/CC/flats support, registration and stacking
 * Added unlinking channels in autostretch preview
 * Added RGB equalization and lightweight (faster) normalisation in stacking options
+* Added LRGB composition command and PixelMath command for new offline compositions
+* Added Starnet++ integration in GUI and command and mask creation
+* Added pcc command for headless PCC and plate solving
+* Added local KStars star catalogue support for plate solving and PCC (NOMAD)
+* Added a new framing assistant with several modes and image framing preview
 * Added specifying max number of stars for registration
 * Added bad pixel map option for preprocess, both in GUI and command
+* Added and reviewed commands for offline and automatic post-processing
+* Added background level and star count as new sequence filters
+* Added a new threading mechanism for per-image improved performance
+* Added star selection from coordinates to seqpsf and star tracking with homography
+* Added headless light curve creation from a list of star equatorial coordinates
+* Added relaxed mode for star detection for particularly bad images
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored registration and added Apply Existing Registration method
+* Refactored 3-star registration to run the 3 stars analysis successively
+* Refactored PCC, using WCS information to identify stars instead of registration match
+* Refactored settings, preferences and configuration file, adding get and set commands
+* Refactored commands error handling
+* Refactored light curve creation, filtering the reference stars to valid only
 * Added background level and number of stars to stored registation data and plots
-* Added commands: seqtilt, autostretch, autostretch_linked, dumpheader, psf, seqclean, seqapplyreg, genhyp
+* Added commands: [update with https://free-astro.org/index.php?title=Siril:Commands#Commands_history ]
 * Added KOMBAT alogrithm for registration and removed deprecated ECC
-* Added chosing server to query object in astrometry
+* Added choosing server to query object in astrometry
 * Added shortcuts for astrometry (regular and photometric correction)
 * Added option "full" to export all possible stats in seqstat command
-* Replaced Libraw with RT debayering
+* Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Replaced generalized hyperbolic transform stretch method by more general algorithms
+* Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
+* Fixed star detection for images with very large stars
+* Fixed cancellation of seqpsf or seqcrop
+
+v1.0.3 June 28, 2022
 
 siril 1.0.3
 06/28/22
