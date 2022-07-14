@@ -298,15 +298,15 @@ int process_starnet(int nb){
 		if (!word[i])
 			break;
 		if (g_str_has_prefix(arg, "-stretch")) {
-			arg += 8;
+//			arg += 8;
 			starnet_args->linear = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-upscale")) {
-			arg += 8;
+//			arg += 8;
 			starnet_args->upscale = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-nostarmask")) {
-			arg += 11;
+//			arg += 11;
 			starnet_args->starmask = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-stride=")) {

@@ -38,7 +38,6 @@
 
 static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, double low,
 		double high, double *a, double *b, gchar **error) {
-	size_t j = 0;
 	double c0, c1, cov00, cov01, cov11, sumsq;
 	size_t ref_size = reference_fit->rx * reference_fit->ry;
 
@@ -55,7 +54,7 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		j = 0;
+		size_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
 		double *y = malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {
@@ -82,7 +81,6 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 
 static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double low,
 		double high, double *a, double *b, gchar **error) {
-	size_t j = 0;
 	double c0, c1, cov00, cov01, cov11, sumsq;
 	size_t ref_size = reference_fit->rx * reference_fit->ry;
 
@@ -96,7 +94,7 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		j = 0;
+		size_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
 		double *y = malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {

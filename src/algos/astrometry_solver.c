@@ -1428,8 +1428,8 @@ gpointer match_catalog(gpointer p) {
 		if (args->use_local_cat) {
 			double tra = siril_world_cs_get_alpha(solution.image_center);
 			double tdec = siril_world_cs_get_delta(solution.image_center);
-			double resolution = get_resolution(solution.focal, args->pixel_size);
-			double radius = get_radius_deg(resolution, args->fit->rx, args->fit->ry);
+			double res = get_resolution(solution.focal, args->pixel_size);
+			double radius = get_radius_deg(res, args->fit->rx, args->fit->ry);
 			double mag = compute_mag_limit_from_fov(radius * 1.5);
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
 			siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), mag);

@@ -542,9 +542,11 @@ float measure_image_FWHM(fits *fit) {
 #endif
 	for (int chan = 0; chan < 3; chan++) {
 		int nb_stars;
-		int nb_subthreads = com.max_thread;
+		int nb_subthreads;
 #ifdef _OPENMP
 		nb_subthreads = threads[chan];
+#else
+		nb_subthreads = com.max_thread;
 #endif
 		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, nb_subthreads);
 		if (stars) {
