@@ -266,7 +266,7 @@ int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *
 		} else {
 			uint32_t offset = 0;
 			*nb_stars = total_nb_stars;
-			for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 				memcpy(*stars + offset, catalogue_stars[catalogue],
 						catalogue_nb_stars[catalogue] * sizeof(pcc_star));
 				offset += catalogue_nb_stars[catalogue];
@@ -632,7 +632,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 		} else {
 			uint32_t j = 0;
 			int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
-			for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 				deepStarData *cat_stars  = catalogue_stars[catalogue];
 				uint32_t cat_nb_stars = catalogue_nb_stars[catalogue];
 

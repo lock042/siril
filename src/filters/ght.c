@@ -43,7 +43,7 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 				} else {
 					out = c.a4 + c.b4 * in;
 				}
-			} else if ((B != -1.0) && (B < 0)) {
+			} else if (B < 0) {
 				if (in < LP) {
 					out = c.b1 * in;
 				} else if (in < SP) {
@@ -85,7 +85,7 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 				} else {
 					out = c.a4 + c.b4 * in;
 				}
-			} else if ((B != -1.0) && (B < 0)) {
+			} else if (B < 0) {
 				if (in < c.LPT) {
 					out = c.b1 * in;
 				} else if (in < c.SPT) {
@@ -161,10 +161,10 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 	}
 	else if (stretchtype == STRETCH_PAYNE_NORMAL) {
 		if (B == -1.0) {
-			B = -B;
-			c->qlp = -1.0*log(1.0+D*(SP - LP));
+			//B = -B;
+			c->qlp = -1.0*log1p(D*(SP - LP));
 			c->q0 = c->qlp - D * LP / (1.0 + D * (SP - LP));
-			c->qwp = log(1.0 + D * (HP - SP));
+			c->qwp = log1p(D * (HP - SP));
 			c->q1 = c->qwp + D * (1.0 - HP) / (1.0 + D * (HP - SP));
 			c->q = 1.0 / (c->q1 - c->q0);
 			c->b1 = (1.0 + D * (SP - LP)) / (D * c->q);
@@ -178,7 +178,7 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 			c->d3 = D;
 			c->a4 = (c->qwp - c->q0 - D * HP / (1.0 + D * (HP - SP))) * c->q;
 			c->b4 = c->q * D / (1.0 + D * (HP - SP));
-		} else if ((B != -1.0) && (B < 0.0)) {
+		} else if (B < 0.0) {
 			B = -B;
 			c->qlp = (1.0 - pow((1.0 + D * B * (SP - LP)), (B - 1.0) / B)) / (B - 1);
 			c->q0 = c->qlp - D * LP * (pow((1.0 + D * B * (SP - LP)), -1.0 / B));
@@ -238,10 +238,10 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 		}
 	} else if (stretchtype == STRETCH_PAYNE_INVERSE) {
 		if (B == -1.0) {
-			B = -B;
-			c->qlp = -1.0*log(1.0+D*(SP - LP));
+			//B = -B;
+			c->qlp = -1.0 * log1p(D * (SP - LP));
 			c->q0 = c->qlp - D * LP / (1.0 + D * (SP - LP));
-			c->qwp = log(1.0 + D * (HP - SP));
+			c->qwp = log1p(D * (HP - SP));
 			c->q1 = c->qwp + D * (1.0 - HP) / (1.0 + D * (HP - SP));
 			c->q = 1.0 / (c->q1 - c->q0);
 			c->LPT = (c->qlp-c->q0)*c->q;
@@ -258,7 +258,7 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 			c->d3 = 1 / c->q;
 			c->a4 = HP + (c->q0-c->qwp) * (1+D*(HP-SP))/D;
 			c->b4 = (1 + D * (HP - SP) )/(c->q * D) ;
-		} else if ((B != -1.0) && (B < 0.0)) {
+		} else if (B < 0.0) {
 			B = -B;
 			c->qlp = (1.0 - pow((1.0 + D * B * (SP - LP)), (B - 1.0) / B)) / (B - 1);
 			c->q0 = c->qlp - D * LP * (pow((1.0 + D * B * (SP - LP)), -1.0 / B));
