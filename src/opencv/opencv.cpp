@@ -276,6 +276,10 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 		target_rx = frame.width;
 		target_ry = frame.height;
 		siril_debug_print("after rotation, new image size will be %d x %d\n", target_rx, target_ry);
+	} else if (cropped) {
+		// TODO : add checks about selection not being null
+		target_rx = com.selection.w;
+		target_ry = com.selection.h;
 	}
 
 	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
@@ -299,7 +303,10 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 	} else {
 		Mat r = getRotationMatrix2D(pt, angle, 1.0);
 		if (cropped == 1) {
-			warpAffine(in, out, r, in.size(), interpolation);
+			// adjust transformation matrix
+			r.at<double>(0, 2) += target_rx / 2.0 - pt.x;
+			r.at<double>(1, 2) += target_ry / 2.0 - pt.y;
+			warpAffine(in, out, r, out.size(), interpolation);
 		} else {
 			// adjust transformation matrix
 			r.at<double>(0, 2) += frame.width / 2.0 - pt.x;

@@ -262,14 +262,17 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
 
-	point center = {image->rx / 2.0, image->ry / 2.0};
+	// TODO : add checks about selection not being null
+	point center = {(double)com.selection.x + (double)com.selection.w * 0.5, (double)com.selection.y + (double)com.selection.h * 0.5};
 
-	cvRotateImage(image, center, angle, interpolation, cropped);
+	cvRotateImage(image, center, -angle, interpolation, cropped);
+	delete_selected_area();
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
 #ifdef HAVE_WCSLIB
+	// TODO : recompute WCS matrix....
 	if (image->wcslib) {
 		rotate_astrometry_data(image, center, angle, cropped);
 		load_WCS_from_memory(image);

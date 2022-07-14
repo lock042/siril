@@ -577,7 +577,7 @@ static void draw_selection(const draw_data_t* dd) {
 		cairo_save(cr); // save the original transform
 		if (gtk_widget_is_visible(rotation_dlg)) {
 			cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
-			rotate_context(cr, com.rotation);
+			rotate_context(cr, -com.rotation);
 		}
 		cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
 						(double) com.selection.w, (double) com.selection.h);
