@@ -19,5 +19,7 @@ double get_zoom_val();	// for image_interactions
 point get_center_of_vport();
 void add_image_and_label_to_cairo(cairo_t *cr, int vport);
 
+void get_context_rotation_matrix(double rotation, cairo_matrix_t *transform); //computes rotation matrix about center of com.selection
+
 #endif
 

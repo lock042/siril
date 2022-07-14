@@ -510,6 +510,7 @@ void siril_rotate270() {
 }
 
 void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
+	delete_selected_area();
 	siril_close_dialog("rotation_dialog");
 }
 

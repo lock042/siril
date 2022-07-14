@@ -507,7 +507,14 @@ void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (com.selection.w == 0 || com.selection.h == 0) {
+		com.selection.x = 0;
+		com.selection.y = 0;
+		com.selection.w = gfit.rx;
+		com.selection.h = gfit.ry;
+	}
 	siril_open_dialog("rotation_dialog");
+	redraw(REDRAW_OVERLAY);
 }
 
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
