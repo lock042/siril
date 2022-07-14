@@ -735,6 +735,18 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 						stackparam.seq, channel, percent);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				break;
+			case BEST_BKG_IMAGES:
+				stackfilters[filter].filter = seq_filter_background;
+				stackfilters[filter].param = compute_highest_accepted_background(
+						stackparam.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_NBSTARS_IMAGES:
+				stackfilters[filter].filter = seq_filter_nbstars;
+				stackfilters[filter].param = compute_lowest_accepted_nbstars(
+						stackparam.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
 			case BEST_QUALITY_IMAGES:
 				stackfilters[filter].filter = seq_filter_quality;
 				stackfilters[filter].param = compute_lowest_accepted_quality(
@@ -791,9 +803,15 @@ static void update_filter_label() {
 			case BEST_WPSF_IMAGES:
 				filter_str = g_strdup_printf("< %.2lf", param);
 				break;
+			case BEST_BKG_IMAGES :
+				filter_str = (param < 1.) ? g_strdup_printf("< %.5lf", param) : g_strdup_printf("< %d", (int)param);
+				break;
 			case BEST_ROUND_IMAGES:
 			case BEST_QUALITY_IMAGES:
 				filter_str = g_strdup_printf("> %.3lf", param);
+				break;
+			case BEST_NBSTARS_IMAGES:
+				filter_str = g_strdup_printf("> %d", (int)param);
 				break;
 			}
 		}

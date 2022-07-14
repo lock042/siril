@@ -32,7 +32,7 @@
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 
-#define MAX_FILTERS 5
+#define MAX_FILTERS 7
 
 /******************* IMAGE FILTERING CRITERIA *******************/
 
@@ -83,6 +83,29 @@ int seq_filter_roundness(sequence *seq, int nb_img, double min_rnd) {
 	if (!seq->regparam[layer]) return 0;
 	if (seq->regparam[layer][nb_img].roundness > 0.0f)
 		return seq->regparam[layer][nb_img].roundness >= min_rnd;
+	else return 0;
+}
+
+int seq_filter_background(sequence *seq, int nb_img, double max_bkg) {
+	int layer;
+	if (!seq->regparam) return 0;
+	layer = get_registration_layer(seq);
+	if (layer == -1) return 0;
+	if (!seq->regparam[layer]) return 0;
+	if (seq->regparam[layer][nb_img].roundness > 0.0f)
+		return seq->regparam[layer][nb_img].background_lvl <= max_bkg;
+	else return 0;
+}
+
+// we pass a double to keep all functions generic
+int seq_filter_nbstars(sequence *seq, int nb_img, double min_nbstars) {
+	int layer;
+	if (!seq->regparam) return 0;
+	layer = get_registration_layer(seq);
+	if (layer == -1) return 0;
+	if (!seq->regparam[layer]) return 0;
+	if (seq->regparam[layer][nb_img].roundness > 0.0f)
+		return seq->regparam[layer][nb_img].number_of_stars >= (int)min_nbstars;
 	else return 0;
 }
 
@@ -219,7 +242,7 @@ int convert_stack_data_to_filter(struct stacking_configuration *arg, struct stac
 				compute_highest_accepted_fwhm(stackargs->seq, layer, arg->f_fwhm_p);
 		siril_log_message(_("Using star FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
-		       	nb_filters++;
+				nb_filters++;
 	}
 	if (arg->f_wfwhm_p > 0.0f || arg->f_wfwhm > 0.0f) {
 		filters[nb_filters].filter = seq_filter_weighted_fwhm;
@@ -227,13 +250,29 @@ int convert_stack_data_to_filter(struct stacking_configuration *arg, struct stac
 				compute_highest_accepted_weighted_fwhm(stackargs->seq, layer, arg->f_wfwhm_p);
 		siril_log_message(_("Using star weighted FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
-		       	nb_filters++;
+				nb_filters++;
 	}
 	if (arg->f_round_p > 0.0f || arg->f_round > 0.0f) {
 		filters[nb_filters].filter = seq_filter_roundness;
 		filters[nb_filters].param = arg->f_round > 0.f ? arg->f_round :
 			compute_lowest_accepted_roundness(stackargs->seq, layer, arg->f_round_p);
 		siril_log_message(_("Using star roundness images filter (above %f)\n"),
+				filters[nb_filters].param);
+		nb_filters++;
+	}
+	if (arg->f_bkg_p > 0.0f || arg->f_bkg > 0.0f) {
+		filters[nb_filters].filter = seq_filter_background;
+		filters[nb_filters].param = arg->f_bkg > 0.f ? arg->f_bkg :
+				compute_highest_accepted_background(stackargs->seq, layer, arg->f_bkg_p);
+		siril_log_message(_("Using image background filter (below %f)\n"),
+					filters[nb_filters].param);
+				nb_filters++;
+	}
+	if (arg->f_nbstars_p > 0.0f || arg->f_nbstars > 0.0f) {
+		filters[nb_filters].filter = seq_filter_nbstars;
+		filters[nb_filters].param = arg->f_nbstars > 0.f ? arg->f_nbstars :
+			compute_lowest_accepted_nbstars(stackargs->seq, layer, arg->f_nbstars_p);
+		siril_log_message(_("Using number of stars filter (above %f)\n"),
 				filters[nb_filters].param);
 		nb_filters++;
 	}
@@ -323,6 +362,8 @@ static double regdata_fwhm(regdata *reg) { return reg->fwhm; }
 static double regdata_weighted_fwhm(regdata *reg) { return reg->weighted_fwhm; }
 static double regdata_roundness(regdata *reg) { return reg->roundness; }
 static double regdata_quality(regdata *reg) { return reg->quality; }
+static double regdata_background(regdata *reg) { return reg->background_lvl; }
+static double regdata_nbstars(regdata *reg) { return (double)reg->number_of_stars; }
 
 /* from a percentage, find the lowest or highest accepted registration property
  * value for image filtering in sequences. */
@@ -387,6 +428,14 @@ double compute_lowest_accepted_roundness(sequence *seq, int layer, double percen
 	return generic_compute_accepted_value(seq, layer, percent, FALSE, regdata_roundness);
 }
 
+double compute_highest_accepted_background(sequence *seq, int layer, double percent) {
+	return generic_compute_accepted_value(seq, layer, percent, TRUE, regdata_background);
+}
+
+double compute_lowest_accepted_nbstars(sequence *seq, int layer, double percent) {
+	return generic_compute_accepted_value(seq, layer, percent, FALSE, regdata_nbstars);
+}
+
 char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter) {
 	GString *str = g_string_sized_new(100);
 	int nb_images_to_stack = compute_nb_filtered_images(seq,
@@ -411,6 +460,14 @@ char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, doubl
 	} else if (filtering_criterion == seq_filter_quality) {
 		g_string_printf(str, _("Processing images of the sequence "
 					"with a quality higher or equal than %g (%d)\n"),
+				filtering_parameter, nb_images_to_stack);
+	} else if (filtering_criterion == seq_filter_background) {
+		g_string_printf(str, _("Processing images of the sequence "
+					"with a background lower or equal than %g (%d)\n"),
+				filtering_parameter, nb_images_to_stack);
+	} else if (filtering_criterion == seq_filter_nbstars) {
+		g_string_printf(str, _("Processing images of the sequence "
+					"with a number of stars higher or equal than %g (%d)\n"),
 				filtering_parameter, nb_images_to_stack);
 	} else if (filtering_criterion == seq_filter_output_doesnt_already_exists) {
 		g_string_printf(str, _("Processing images whose output don't already exist (%d)"),
