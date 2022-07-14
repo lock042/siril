@@ -544,9 +544,9 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 			point center = { fit->rx / 2.0, fit->ry / 2.0 };
 			dev.type = HOT_PIXEL; // we force it
 			dev.p.y = fit->rx - dev.p.y - 1; /* FITS are stored bottom to top */
-			cvRotateImage(fit, center, 90.0, -1, OPENCV_AREA);
+			cvRotateImage(fit, center, 90.0, -1, 0);
 			cosmeticCorrOneLine(fit, dev, is_cfa);
-			cvRotateImage(fit, center, -90.0, -1, OPENCV_AREA);
+			cvRotateImage(fit, center, -90.0, -1, 0);
 
 			break;
 		default:
