@@ -735,8 +735,8 @@ int compare_stars_by_mag(const void* star1, const void* star2) {
 }
 
 void sort_stars_by_mag(psf_star **stars, int total) {
-	if (*(&stars))
-		qsort(*(&stars), total, sizeof(psf_star*), compare_stars_by_mag);
+	if (stars)
+		qsort(stars, total, sizeof(psf_star*), compare_stars_by_mag);
 }
 
 /* allocates a new psf_star structure with a size of n + 1. First element is initialized to NULL */
