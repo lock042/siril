@@ -68,6 +68,7 @@ int	process_mtf(int nb);
 
 int	process_neg(int nb);
 int	process_new(int nb);
+int	process_nomad(int nb);
 int	process_nozero(int nb);
 
 int	process_offset(int nb);
@@ -106,6 +107,7 @@ int	process_savepng(int nb);
 int	process_savepnm(int nb);
 #ifdef HAVE_LIBTIFF
 int	process_savetif(int nb);
+int process_starnet(int nb);
 #endif
 int	process_scnr(int nb);
 int	process_select(int nb);

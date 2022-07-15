@@ -33,6 +33,7 @@
 #include "gui/photometric_cc.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/catalogues.h"
 
 enum {
 	COLUMN_RESOLVER,// string
@@ -49,7 +50,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 static void initialize_ips_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *frame_cc_norm,
-			*catalog_label_pcc;
+			*catalog_label_pcc, *force_platesolve;
 	GtkWindow *parent;
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
@@ -61,6 +62,7 @@ static void initialize_ips_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	frame_cc_norm = lookup_widget("frame_cc_norm");
+	force_platesolve = lookup_widget("force_astrometry_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -73,6 +75,11 @@ static void initialize_ips_dialog() {
 	gtk_widget_set_visible(catalog_auto, TRUE);
 	gtk_widget_set_visible(frame_cc_bkg, FALSE);
 	gtk_widget_set_visible(frame_cc_norm, FALSE);
+	gtk_widget_set_visible(force_platesolve, FALSE);
+	gtk_widget_grab_focus(button_ips_ok);
+
+	// not sure about this one. Fails for a lot of images
+//	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
@@ -286,12 +293,10 @@ gboolean end_plate_solver(gpointer p) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 		g_free(args->message);
 	} else {
-		image_solved *solution = args->solution;
-
 		/* update UI */
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
-		update_coordinates(solution->image_center);
+		update_coordinates(args->new_center);
 		delete_selected_area();
 		/* ****** */
 
@@ -300,9 +305,7 @@ gboolean end_plate_solver(gpointer p) {
 			redraw(REMAP_ALL);
 		else redraw(REDRAW_OVERLAY);
 
-		siril_world_cs_unref(solution->px_cat_center);
-		siril_world_cs_unref(solution->image_center);
-		free(solution);
+		siril_world_cs_unref(args->new_center);
 	}
 	if (args->image_flipped)
 		clear_stars_list(TRUE);
@@ -525,6 +528,7 @@ void open_astrometry_dialog() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		initialize_ips_dialog();
 		siril_open_dialog("ImagePlateSolver_Dial");
+		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	}
 }
 
@@ -552,19 +556,26 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 
 	process_plate_solver_input(args);
 
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
-		get_online_catalog(args->used_fov * CROP_ALLOWANCE, args->limit_mag);
 
-	/* currently the GUI version downloads the catalog here, because
-	 * siril_message_dialog() doesn't use idle function, we could change that */
-	GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * CROP_ALLOWANCE, args->limit_mag);
-	if (!catalog_file) {
-		siril_world_cs_unref(catalog_center);
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
-		set_cursor_waiting(FALSE);
-		return 1;
+	if (local_catalogues_available()) {
+		siril_debug_print("using local star catalogues\n");
+		args->use_local_cat = TRUE;
+		args->catalog_file = NULL;
+		args->onlineCatalog = NOMAD;
+	} else {
+		args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
+			get_online_catalog(args->used_fov, args->limit_mag);
+		/* currently the GUI version downloads the catalog here, because
+		 * siril_message_dialog() doesn't use idle function, we could change that */
+		GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * 0.5, args->limit_mag);
+		if (!catalog_file) {
+			siril_world_cs_unref(catalog_center);
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
+			set_cursor_waiting(FALSE);
+			return 1;
+		}
+		args->catalog_file = catalog_file;
 	}
-	args->catalog_file = catalog_file;
 
 	set_cursor_waiting(FALSE);
 	return 0;

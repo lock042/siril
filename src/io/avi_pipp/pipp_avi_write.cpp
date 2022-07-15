@@ -30,7 +30,7 @@ using namespace std;
 // ------------------------------------------
 // Constructor
 // ------------------------------------------
-c_pipp_avi_write::c_pipp_avi_write() :
+c_pipp_avi_write::c_pipp_avi_write() : // @suppress("Class members should be properly initialized")
     mp_avi_file(NULL),
     m_open(false),
     m_split_count(0),

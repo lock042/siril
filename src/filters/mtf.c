@@ -57,6 +57,13 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params) {
 	invalidate_stats_from_fit(to);
 }
 
+// In the general case this cannot return the inverse of MTF() because MTF() may clip.
+// However when autostretch parameters are used the amount of clipping is negligible
+// and this pseudoinverse gives a good approximation.
+float MTF_pseudoinverse(float y, struct mtf_params params) {
+	return ((((params.shadows + params.highlights)*params.midtones-params.shadows)*y - params.shadows * params.midtones + params.shadows)/((2*params.midtones-1)*y - params.midtones + 1));
+}
+
 float MTF(float x, float m, float lo, float hi) {
 	if (x <= lo)
 		return 0.f;
@@ -70,6 +77,39 @@ float MTF(float x, float m, float lo, float hi) {
 
 float MTFp(float x, struct mtf_params params) {
 	return MTF(x, params.midtones, params.shadows, params.highlights);
+}
+
+void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_params params) {
+
+	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
+	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
+	g_assert(from->type == to->type);
+
+	siril_log_message(_("Applying inverse MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+	if (from->type == DATA_USHORT) {
+		float norm = (float)get_normalized_value(from);
+		float invnorm = 1.0f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0; i < ndata; i++) {
+			float pxl = from->data[i] * invnorm;
+			float mtf = MTF_pseudoinverse(pxl, params);
+			to->data[i] = roundf_to_WORD(mtf * norm);
+		}
+	}
+	else if (from->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0; i < ndata; i++) {
+			to->fdata[i] = MTF_pseudoinverse(from->fdata[i], params);
+		}
+	}
+	else return;
+
+	invalidate_stats_from_fit(to);
 }
 
 int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target_bg, struct mtf_params *result) {
@@ -156,7 +196,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		float invnorm = 1.0f / norm;
 #ifdef _OPENMP
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads> 1)
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
@@ -171,7 +211,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads> 1)
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,

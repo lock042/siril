@@ -258,11 +258,14 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	/* Calculate background from coefficients coef */
 	double total = height_scaled * width_scaled;
 	int progress = 0;
-
+#ifdef _OPENMP
 #pragma omp parallel shared(background_scaled) private(A) num_threads(threads)
+#endif
 	{
 		A = gsl_vector_calloc(n + 1);
+#ifdef _OPENMP
 #pragma omp for
+#endif
 		for (int i = 0; i < height_scaled; i++) {
 			for (int j = 0; j < width_scaled; j++) {
 				for (int k = 0; k < n; k++) {

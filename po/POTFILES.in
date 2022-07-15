@@ -53,15 +53,17 @@ src/filters/clahe.c
 src/filters/cosmetic_correction.c
 src/filters/deconv.c
 src/filters/fft.c
+src/filters/ght.c
 src/filters/median.c
 src/filters/mtf.c
-src/filters/payne.c
 src/filters/rgradient.c
 src/filters/saturation.c
 src/filters/scnr.c
+src/filters/starnet.c
 src/filters/wavelets.c
 src/gui/about_dialog.c
 src/gui/astrometry_solver.c
+src/gui/annotations_pref.c
 src/gui/callbacks.c
 src/gui/conversion.c
 src/gui/dialog_preview.c
@@ -86,6 +88,7 @@ src/gui/single_image.c
 src/gui/siril_css.c
 src/gui/siril_intro.c
 src/gui/siril_preview.c
+src/gui/starnetgui.c
 src/gui/statistics_list.c
 src/gui/utils.c
 src/io/conversion.c

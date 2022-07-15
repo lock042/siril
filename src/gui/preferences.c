@@ -26,6 +26,7 @@
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
 #include "algos/annotate.h"
+#include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
@@ -44,6 +45,8 @@
 #endif
 
 static gchar *sw_dir = NULL;
+static gchar *st_dir = NULL;
+
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	const gchar *dir;
@@ -58,7 +61,7 @@ static void reset_swapdir() {
 }
 
 static void update_debayer_preferences() {
-	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")));
+	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")));
 	com.pref.debayer.top_down = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")));
 	com.pref.debayer.xbayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")));
 	com.pref.debayer.ybayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")));
@@ -67,15 +70,30 @@ static void update_debayer_preferences() {
 }
 
 static void update_astrometry_preferences() {
-	com.pref.gui.catalog[0] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")));
-	com.pref.gui.catalog[1] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")));
-	com.pref.gui.catalog[2] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")));
-	com.pref.gui.catalog[3] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")));
-	com.pref.gui.catalog[4] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")));
-	com.pref.gui.catalog[5] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")));
-	com.pref.gui.catalog[6] = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")));
+	get_astrometry_catalogue_values();
+
 	com.pref.gui.position_compass = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")));
 	com.pref.wcs_formalism = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")));
+	gchar *newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[0]);
+		com.pref.catalogue_paths[0] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[1]);
+		com.pref.catalogue_paths[1] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[2]);
+		com.pref.catalogue_paths[2] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[3]);
+		com.pref.catalogue_paths[3] = newpath;
+	}
 }
 
 static void update_prepro_preferences() {
@@ -185,8 +203,11 @@ static void update_performances_preferences() {
 
 static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
+
+	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
 
 	const gchar *ext = gtk_combo_box_get_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")));
 	com.pref.ext = g_strdup(ext);
@@ -201,34 +222,20 @@ static void update_misc_preferences() {
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
 }
 
+void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean active = !gtk_toggle_button_get_active(button);
+	GtkWidget *combo = lookup_widget("comboBayer_pattern");
+	GtkWidget *spin1 = lookup_widget("xbayeroff_spin");
+	GtkWidget *spin2 = lookup_widget("ybayeroff_spin");
+
+	gtk_widget_set_sensitive(combo, active);
+	gtk_widget_set_sensitive(spin1, active);
+	gtk_widget_set_sensitive(spin2, active);
+}
+
 void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkWidget *spin = (GtkWidget *)user_data;
 	gtk_widget_set_sensitive(spin, !gtk_toggle_button_get_active(button));
-}
-
-void set_GUI_photometry() {
-	if (gfit.cvf > 0.0) {
-		com.pref.phot_set.gain = gfit.cvf;
-	}
-	if (com.pref.phot_set.gain > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), com.pref.phot_set.gain);
-	}
-	if (com.pref.phot_set.inner > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), com.pref.phot_set.inner);
-	}
-	if (com.pref.phot_set.outer > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), com.pref.phot_set.outer);
-	}
-	if (com.pref.phot_set.aperture > 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), com.pref.phot_set.aperture);
-	}
-	if (com.pref.phot_set.minval >= 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), (gdouble) com.pref.phot_set.minval);
-	}
-	if (com.pref.phot_set.maxval >= 0.0) {
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), (gdouble) com.pref.phot_set.maxval);
-	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), !com.pref.phot_set.force_radius);
 }
 
 void initialize_path_directory(const gchar *path) {
@@ -240,10 +247,18 @@ void initialize_path_directory(const gchar *path) {
 	}
 }
 
+void initialize_starnet_directory(const gchar *path) {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (starnet_dir, path);
+	} else {
+		gtk_file_chooser_set_filename (starnet_dir, g_get_tmp_dir());
+	}
+}
+
 void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
 	reset_swapdir();
 }
-
 
 void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) {
 	GtkWidget *hcompress_scale_spin = lookup_widget("spinbutton_comp_fits_hcompress_scale");
@@ -253,26 +268,6 @@ void on_combobox_comp_fits_method_changed(GtkComboBox *box, gpointer user_data) 
 		gtk_spin_button_set_value(button, 16.0);
 	}
 	gtk_widget_set_sensitive(hcompress_scale_spin, (method == HCOMPRESS_COMP) ? TRUE : FALSE);
-}
-
-void set_GUI_compression() {
-	GtkToggleButton *enabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_enabled_radio"));
-	GtkToggleButton *disabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio"));
-
-	gtk_toggle_button_set_active(enabled, com.pref.comp.fits_enabled);
-	gtk_toggle_button_set_active(disabled, !com.pref.comp.fits_enabled);
-
-	if (com.pref.comp.fits_enabled) {
-		GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method"));
-		GtkSpinButton *quantiz = GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization"));
-		GtkSpinButton *hscale = GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale"));
-
-		gtk_combo_box_set_active(box, com.pref.comp.fits_method);
-		gtk_spin_button_set_value(quantiz, com.pref.comp.fits_quantization);
-		if (com.pref.comp.fits_method == HCOMPRESS_COMP) {
-			gtk_spin_button_set_value(hscale, com.pref.comp.fits_hcompress_scale);
-		}
-	}
 }
 
 void on_mem_radio_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -318,6 +313,24 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 	if (sw_dir) {
 		g_free(sw_dir);
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
+	}
+}
+
+void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(fileChooser);
+	gchar *dir;
+
+	dir = gtk_file_chooser_get_filename (starnet_dir);
+
+	if (g_access(dir, W_OK)) {
+		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		gtk_file_chooser_set_filename(starnet_dir, com.pref.starnet_dir);
+		return;
+	}
+	if (st_dir) {
+		g_free(st_dir);
+		st_dir = gtk_file_chooser_get_filename(starnet_dir);
 	}
 }
 
@@ -398,7 +411,7 @@ void update_preferences_from_model() {
 	siril_debug_print("updating preferences GUI from settings data\n");
 	preferences *pref = &com.pref;
 	/* tab 1 */
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_SER_use_header")), pref->debayer.use_bayer_header);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")), pref->debayer.use_bayer_header);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_pattern")), pref->debayer.bayer_pattern);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")), pref->debayer.bayer_inter);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")), pref->debayer.xbayeroff);
@@ -414,15 +427,26 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")), pref->comp.fits_hcompress_scale);
 
 	/* tab 3 */
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_messier")), pref->gui.catalog[0]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ngc")), pref->gui.catalog[1]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ic")), pref->gui.catalog[2]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_ldn")), pref->gui.catalog[3]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_sh2")), pref->gui.catalog[4]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_stars")), pref->gui.catalog[5]);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_user-catalogue")), pref->gui.catalog[6]);
+	fill_astrometry_catalogue(pref->gui.catalog);
+
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")), pref->gui.position_compass);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("wcs_formalism_combobox")), pref->wcs_formalism);
+	if (pref->catalogue_paths[0] && (g_file_test(pref->catalogue_paths[0], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[0]);
+	}
+	if (pref->catalogue_paths[1] && (g_file_test(pref->catalogue_paths[1], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[1]);
+	}
+	if (pref->catalogue_paths[2] && (g_file_test(pref->catalogue_paths[2], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[2]);
+	}
+	if (pref->catalogue_paths[3] && (g_file_test(pref->catalogue_paths[3], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[3]);
+	}
 
 	/* tab 4 */
 	if (pref->prepro.bias_lib && (g_file_test(pref->prepro.bias_lib, G_FILE_TEST_EXISTS))) {
@@ -509,6 +533,7 @@ void update_preferences_from_model() {
 
 	/* tab 9 */
 	initialize_path_directory(pref->swap_dir);
+	initialize_starnet_directory(pref->starnet_dir);
 	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext == NULL ? ".fit" : pref->ext);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_16bit ? 0 : 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
@@ -607,6 +632,14 @@ gchar *get_swap_dir() {
 	if (sw_dir == NULL) {
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
 	}
+	return sw_dir;
+}
+
+gchar *get_starnet_dir() {
+	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	if (st_dir)
+		st_dir = gtk_file_chooser_get_filename(starnet_dir);
+
 	return sw_dir;
 }
 

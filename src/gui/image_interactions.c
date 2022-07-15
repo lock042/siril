@@ -328,6 +328,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		if (event->button == GDK_BUTTON_PRIMARY
 				&& event->type == GDK_DOUBLE_BUTTON_PRESS) {
 			header_open_button_clicked();
+			launch_clipboard_survey();
 		}
 		return FALSE;
 	}
@@ -424,8 +425,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				pt.x = (gdouble) zoomed.x;
 				pt.y = (gdouble) zoomed.y;
 
-				if (pt.x + radius <= gfit.rx && pt.y + radius <= gfit.ry
-						&& pt.x - radius >= 0 && pt.y - radius >= 0) {
+				if (pt.x + radius < gfit.rx && pt.y + radius < gfit.ry
+						&& pt.x - radius > 0 && pt.y - radius > 0) {
 					com.grad_samples = add_background_sample(com.grad_samples, &gfit, pt);
 
 					redraw(REDRAW_OVERLAY);
@@ -497,22 +498,26 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			gui.drawing = FALSE;
 			/* finalize selection rectangle coordinates */
 			if (!gui.freezeX) {
-				if (zoomed.x > gui.start.x) {
+				if (zoomed.x >= gui.start.x) {
 					com.selection.x = gui.start.x;
 					com.selection.w = zoomed.x - com.selection.x;
 				} else {
 					com.selection.x = zoomed.x;
 					com.selection.w = gui.start.x - zoomed.x;
 				}
+				if (com.selection.w == 0)
+					com.selection.w = 1;
 			}
 			if (!gui.freezeY) {
-				if (zoomed.y > gui.start.y) {
+				if (zoomed.y >= gui.start.y) {
 					com.selection.y = gui.start.y;
 					com.selection.h = zoomed.y - com.selection.y;
 				} else {
 					com.selection.y = zoomed.y;
 					com.selection.h = gui.start.y - zoomed.y;
 				}
+				if (com.selection.h == 0)
+					com.selection.h = 1;
 			}
 
 			if (gui.freezeX && gui.freezeY) { // Move selection

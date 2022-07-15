@@ -34,6 +34,7 @@
 #include "gui/utils.h"	// for lookup_widget()
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
 #include "core/undo.h"
@@ -76,6 +77,7 @@ static float _midtones, _shadows, _highlights;
 
 static gboolean _click_on_histo = FALSE;
 static ScaleType _type_of_scale;
+static gboolean lp_warning_given, hp_warning_given = FALSE;
 
 static void set_histogram(gsl_histogram *histo, int layer);
 
@@ -559,7 +561,9 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 // Update by A Knagg-Baugh - the issue only relates to MacOS so I've limited the
 // disabling to that OS with a #ifndef. Similarly for the other instance below
 #ifndef __APPLE__
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
 #endif
 	for (size_t i = 0; i < int_norm + 1; i++) {
 		WORD mtf;
@@ -601,7 +605,9 @@ static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 	GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 
 #ifndef __APPLE__
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
 #endif
 	for (size_t i = 0; i < int_norm + 1; i++) {
 		double ght;
@@ -974,6 +980,7 @@ void setup_histo_dialog() {
 
 			// Hide UI elements not required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
 			// Make visible the UI elements required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), TRUE);
@@ -991,6 +998,19 @@ void setup_ght_dialog() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), FALSE);
 			// Make visible and configure the GHT controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gchar *image;
+			GtkWidget *w;
+			if (com.pref.gui.combo_theme == 0) {
+				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper_dark.svg", NULL);
+				w = gtk_image_new_from_file(image);
+			} else {
+				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
+				w = gtk_image_new_from_file(image);
+			}
+			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("eyedropper_SP")), w);
+			gtk_widget_show(w);
+			g_free(image);
 			// Set default parameters
 			_D = 0.0;
 			_B = 0.0;
@@ -998,6 +1018,8 @@ void setup_ght_dialog() {
 			_LP = 0.0;
 			_SP = 0.0;
 			_HP = 1.0;
+			lp_warning_given = FALSE;
+			hp_warning_given = FALSE;
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "ght_");
 			gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("drawingarea_histograms")), _("Clicking on the histogram sets SP"));
 }
@@ -1016,6 +1038,8 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
+
 			break;
 		case STRETCH_PAYNE_NORMAL:
 		case STRETCH_PAYNE_INVERSE:
@@ -1025,6 +1049,8 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+
 			break;
 		case STRETCH_ASINH:
 		case STRETCH_INVASINH:
@@ -1034,6 +1060,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
 			break;
 
 			// This should resize the window to the smallest size that fits the visible widgets
@@ -1228,7 +1255,7 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 }
 
 void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
-	_D = exp (gtk_spin_button_get_value(button)) - 1.0;
+	_D = expm1(gtk_spin_button_get_value(button));
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1247,6 +1274,13 @@ void on_spin_ghtB_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_LP = gtk_spin_button_get_value(button);
+	if (_LP > _SP) {
+		gtk_spin_button_set_value(button,_SP);
+		if (!lp_warning_given) { // Prevent spamming the warning log message
+			siril_log_message(_("Shadow preservation point cannot be set higher than stretch focal point\n"));
+			lp_warning_given = TRUE;
+		}
+	}
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1255,7 +1289,51 @@ void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
+	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
+	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	_SP = gtk_spin_button_get_value(button);
+	if (_SP < _LP) {
+		gtk_spin_button_set_value(spin_LP, _SP);
+	}
+	if (_SP > _HP) {
+		gtk_spin_button_set_value(spin_HP, _SP);
+	}
+	update_histo_mtf();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	notify_update((gpointer) param);
+}
+
+void on_eyedropper_SP_clicked(GtkToggleButton *togglebutton, gpointer user_data) {
+	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
+	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
+	int chan, channels = get_preview_gfit_backup()->naxes[2];
+	imstats* stats[3];
+	double ref = 0;
+	if (!com.selection.w || !com.selection.h) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the point or area to set SP"));
+		return;
+	}
+	for (chan = 0; chan < get_preview_gfit_backup()->naxes[2]; chan++) {
+		stats[chan] = statistics(NULL, -1, get_preview_gfit_backup(), chan, &com.selection, STATS_BASIC, MULTI_THREADED);
+		if (!stats[chan]) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return;
+		}
+		ref += stats[chan]->mean;
+		free_stats(stats[chan]);
+	}
+	ref /= channels;
+	_SP = ref;
+	if (_SP < _LP) {
+		gtk_spin_button_set_value(spin_LP, _SP);
+	}
+	if (_SP > _HP) {
+		gtk_spin_button_set_value(spin_HP, _SP);
+	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtSP")),_SP);
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1265,6 +1343,13 @@ void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_ghtHP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_HP = gtk_spin_button_get_value(button);
+	if (_HP < _SP) {
+		gtk_spin_button_set_value(button, _SP);
+		if (!hp_warning_given) { // Prevent spamming the warning log message
+			siril_log_message(_("Highlight preservation point cannot be set lower than stretch focal point\n"));
+			hp_warning_given = TRUE;
+		}
+	}
 	update_histo_mtf();
 	queue_window_redraw();
 	update_image *param = malloc(sizeof(update_image));

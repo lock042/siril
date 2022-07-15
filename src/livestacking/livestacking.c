@@ -177,7 +177,7 @@ static int wait_for_file_to_be_written(const gchar *filename) {
 			g_object_unref(fd);
 			return 1;
 		}
-		siril_debug_print("image size: %d MB\n", (int)(size/1000000));
+		siril_debug_print("image size: %d MB\n", (int )(size / 1000000));
 		if (last_size == 0 || size != last_size)
 			last_size = size;
 		else break;

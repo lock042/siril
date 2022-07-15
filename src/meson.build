@@ -87,6 +87,7 @@ src_files = [
   'filters/rgradient.c',
   'filters/saturation.c',
   'filters/scnr.c',
+  'filters/starnet.c',
   'filters/wavelets.c',
 
   'io/avi_pipp/pipp_avi_write.cpp',
@@ -99,6 +100,8 @@ src_files = [
   'io/avi_pipp/pipp_video_write.h',
   'io/avi_pipp/avi_writer.cpp',
   'io/avi_pipp/avi_writer.h',
+  'io/kstars/htmesh_wrapper.cpp',
+  'io/catalogues.c',
   'io/conversion.c',
   'io/films.c',
   'io/fits_sequence.c',
@@ -124,6 +127,7 @@ src_files = [
   'opencv/kombat/kombat.h',
 
   'gui/about_dialog.c',
+  'gui/annotations_pref.c',
   'gui/astrometry_solver.c',
   'gui/callbacks.c',
   'gui/conversion.c',
@@ -152,6 +156,7 @@ src_files = [
   'gui/siril_intro.c',
   'gui/siril_preview.c',
   'gui/siril-window.c',
+  'gui/starnetgui.c',
   'gui/statistics_list.c',
   'gui/utils.c',
 

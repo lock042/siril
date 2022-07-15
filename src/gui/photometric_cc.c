@@ -49,6 +49,7 @@
 #include "gui/dialogs.h"
 #include "gui/registration_preview.h"
 #include "io/single_image.h"
+#include "io/catalogues.h"
 #include "photometric_cc.h"
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "algos/siril_wcs.h"
@@ -62,36 +63,43 @@ static rectangle get_bkg_selection();
 static void start_photometric_cc() {
 	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
-	GtkToggleButton *use_wcs_ips_button = GTK_TOGGLE_BUTTON(lookup_widget("use_wcs_ips_button"));
+	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
 	gboolean plate_solve;
-
-	plate_solve = !gtk_toggle_button_get_active(use_wcs_ips_button);
 
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("There is no valid WCS information in the header. Let's make a plate solving.\n"), "salmon");
 		plate_solve = TRUE;
+	} else {
+		plate_solve = gtk_toggle_button_get_active(force_platesolve_button);
+		if (plate_solve)
+			siril_log_message(_("Plate solving will be recomputed for image\n"));
+		else siril_log_message(_("Existing plate solve (WCS information) will be resused for image\n"));
 	}
 
 	struct astrometry_data *args = NULL;
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	if (local_catalogues_available()) {
+		siril_debug_print("using local star catalogues\n");
+		pcc_args->use_local_cat = TRUE;
+	}
 	if (plate_solve) {
 		args = calloc(1, sizeof(struct astrometry_data));
 		args->fit = &gfit;
 
 		args->for_photometry_cc = TRUE;
+		args->use_local_cat = pcc_args->use_local_cat;
 
-		args->pcc = malloc(sizeof(struct photometric_cc_data));
+		args->pcc = pcc_args;
 		args->pcc->fit = &gfit;
 		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 		args->pcc->bg_area = get_bkg_selection();
 		args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
-		args->pcc = pcc_args;
 	}
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 	pcc_args->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
-	pcc_args->catalog = get_photometry_catalog();
+	pcc_args->catalog = pcc_args->use_local_cat ? NOMAD : get_photometry_catalog();
 
 	set_cursor_waiting(TRUE);
 
@@ -534,9 +542,11 @@ float measure_image_FWHM(fits *fit) {
 #endif
 	for (int chan = 0; chan < 3; chan++) {
 		int nb_stars;
-		int nb_subthreads = com.max_thread;
+		int nb_subthreads;
 #ifdef _OPENMP
 		nb_subthreads = threads[chan];
+#else
+		nb_subthreads = com.max_thread;
 #endif
 		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, nb_subthreads);
 		if (stars) {
@@ -586,48 +596,58 @@ gpointer photometric_cc_standalone(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	/* for now, only from online sources */
-	const gchar *cat = NULL;
-	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-	double fov = resolution  * args->fit->rx;	// fov in degrees
-	double mag = compute_mag_limit_from_fov(fov);
-
-	switch(args->catalog) {
-	case APASS:
-		cat = "APASS";
-		mag = min(mag, 17.0);	// in APASS, B is available for V < 17
-		break;
-	case NOMAD:
-		cat = "NOMAD";
-		mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
-		break;
-	default:
-		siril_log_color_message(_("No valid catalog found.\n"), "red");
-		return GINT_TO_POINTER(1);
-	}
-	siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), fov, mag);
-
-	GFile *catalog_file = download_catalog(args->catalog, center, fov * 60.0, mag);
-	siril_world_cs_unref(center);
-	if (!catalog_file) {
-		siril_log_message(_("Could not download the online star catalog."));
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
-	}
-	siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
-
-	/* project using WCS */
-	pcc_star *stars;
-	int nb_stars;
+	pcc_star *stars = NULL;
+	int nb_stars = 0;
 	gboolean image_is_gfit = args->fit == &gfit;
-	int retval = project_catalog_with_WCS(catalog_file, args->fit, &stars, &nb_stars);
+
+	double radius = get_radius_deg(resolution / 3600.0, args->fit->rx, args->fit->ry);
+	double mag = compute_mag_limit_from_fov(radius * 2.0);
+
+	int retval = 0;
+	if (args->use_local_cat) {
+		if (get_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars)) {
+			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
+			retval = 1;
+		}
+	} else {
+		const gchar *cat = NULL;
+		switch (args->catalog) {
+			case APASS:
+				cat = "APASS";
+				mag = min(mag, 17.0);	// in APASS, B is available for V < 17
+				break;
+			case NOMAD:
+				cat = "NOMAD";
+				mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
+				break;
+			default:
+				siril_log_color_message(_("No valid catalog found.\n"), "red");
+				return GINT_TO_POINTER(1);
+		}
+		siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), radius * 2.0, mag);
+
+		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
+		GFile *catalog_file = download_catalog(args->catalog, center, radius * 60.0, mag);
+		siril_world_cs_unref(center);
+		if (!catalog_file) {
+			siril_log_message(_("Could not download the online star catalog.\n"));
+			siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
+		}
+		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
+
+		/* project using WCS */
+		retval = project_catalog_with_WCS(catalog_file, args->fit, &stars, &nb_stars);
+	}
+
 	if (!retval) {
 		args->stars = stars;
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);	// args is freed from here
-		free(stars);
-		args = NULL;
 	}
+	free(stars);
+	args = NULL;
+
 	if (!retval && image_is_gfit)
 		notify_gfit_modified();
 	else siril_add_idle(end_generic, NULL);
@@ -726,7 +746,7 @@ static gboolean is_selection_ok() {
 void initialize_photometric_cc_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *frame_cc_norm,
-			*catalog_label_pcc;
+			*catalog_label_pcc, *force_platesolve;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -739,6 +759,7 @@ void initialize_photometric_cc_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	frame_cc_norm = lookup_widget("frame_cc_norm");
+	force_platesolve = lookup_widget("force_astrometry_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -756,6 +777,8 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(frame_cc_norm, TRUE);
+	gtk_widget_set_visible(force_platesolve, TRUE);
+	gtk_widget_grab_focus(button_cc_ok);
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));
 
@@ -768,6 +791,8 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
+	// not sure about this one. Fails for a lot of images
+	//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
 }
 
 int get_photometry_catalog() {

@@ -100,7 +100,7 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 
 	popover = gtk_popover_new(widget);
 	label = gtk_label_new(NULL);
-	gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD_CHAR);
+	gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD);
 	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 
 	if (pixbuf) {

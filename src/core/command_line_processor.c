@@ -209,8 +209,6 @@ static gboolean end_script(gpointer p) {
 	update_display_fwhm();
 	display_filename();
 	new_selection_zone();
-	set_GUI_misc();
-	set_GUI_compression();
 	update_spinCPU(0);
 	set_cursor_waiting(FALSE);
 	return FALSE;

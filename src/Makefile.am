@@ -149,10 +149,13 @@ siril_common_SOURCES = \
 	filters/saturation.h \
 	filters/scnr.c \
 	filters/scnr.h \
+	filters/starnet.c \
+	filters/starnet.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
+	gui/annotations_pref.c \
 	gui/astrometry_solver.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
@@ -206,9 +209,15 @@ siril_common_SOURCES = \
 	gui/siril_preview.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
+	gui/starnetgui.c \
+	gui/starnetgui.h \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \
+	io/catalogues.c \
+	io/catalogues.h \
+	io/kstars/binfile.h \
+      	io/kstars/byteorder.h \
 	io/conversion.c \
 	io/conversion.h \
 	io/films.c \
@@ -283,6 +292,9 @@ AM_CPPFLAGS += -I$(top_srcdir)/subprojects/librtprocess/src/include
 librtprocesslibs = $(top_builddir)/subprojects/librtprocess/build/src/librtprocess.a
 endif
 
+AM_CPPFLAGS += -I$(top_srcdir)/subprojects/htmesh
+libhtmeshlibs = $(top_builddir)/subprojects/htmesh/build/libhtmesh.a
+
 siril_common_LDADD = \
 	$(top_builddir)/subprojects/kplot/libkplot.a \
 	$(FFMPEG_LIBS) \
@@ -322,10 +334,13 @@ siril_common_SOURCES += \
 	opencv/kombat/kombat.cpp \
 	opencv/kombat/kombat.h \
 	core/exif.cpp \
-	core/exif.h
+	core/exif.h \
+	io/kstars/htmesh_wrapper.cpp \
+	io/kstars/htmesh_wrapper.h
 
 siril_common_LDADD += $(OPENCV_LIBS) \
-		      $(EXIV2_LIBS)
+		      $(EXIV2_LIBS) \
+		      $(libhtmeshlibs)
 
 siril_SOURCES = $(siril_common_SOURCES) main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c

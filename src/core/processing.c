@@ -18,6 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <assert.h>
 #include <string.h>
 #include <glib.h>
@@ -355,7 +359,7 @@ gboolean end_generic_sequence(gpointer p) {
 		free(seqname);
 		g_free(basename);
 	}
-	
+
 	free(p);
 	return end_generic(NULL);
 }
@@ -602,7 +606,7 @@ void unreserve_thread() {
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
-	
+
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -628,9 +632,24 @@ void wait_for_script_thread() {
 	}
 }
 
+void kill_child_process() {
+	if (com.child_is_running) {
+#ifdef _WIN32
+		TerminateProcess(com.childhandle, 1);
+		CloseHandle(com.childhandle);
+		com.childhandle = NULL;
+#else
+		kill(com.childpid, SIGINT);
+		com.childpid = 0;
+#endif
+		com.child_is_running = FALSE;
+	}
+}
+
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
+	kill_child_process();
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();

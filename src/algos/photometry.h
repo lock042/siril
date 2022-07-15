@@ -1,7 +1,9 @@
 #ifndef SRC_ALGOS_PHOTOMETRY_H_
 #define SRC_ALGOS_PHOTOMETRY_H_
 
+#include <glib.h>
 #include <gsl/gsl_matrix.h>
+#include "core/siril.h"
 
 struct photometry_struct {
 	double mag; // magnitude

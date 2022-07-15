@@ -27,3 +27,17 @@ build-librtprocess:
 
 all: build-librtprocess
 endif
+
+
+if !HAVE_HTMESH
+# not adding it in subdirs because we don't want to run most targets in it, and specifying
+# the htmesh target allows us to build only the static lib we link against
+build-htmesh:
+	mkdir -p $(abs_builddir)/htmesh/build && \
+	cd $(abs_builddir)/htmesh/build && \
+	ls $(abs_srcdir)/htmesh/ && \
+	$(CMAKE) $(CMAKE_GENERATOR) -DCMAKE_BUILD_TYPE="Release" -DCMAKE_CXX_FLAGS="-Wno-psabi -I$(abs_srcdir)/htmesh" $(abs_srcdir)/htmesh/ && \
+	$(MAKE)
+
+all: build-htmesh
+endif

@@ -120,8 +120,6 @@ static GSList *search_script(const char *path) {
 }
 
 static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
-	GError *error = NULL;
-
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
@@ -131,16 +129,11 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 		gboolean dont_show_again;
 		gboolean confirm = siril_confirm_dialog_and_remember(
 				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, _("Run Script"), &dont_show_again);
-		com.pref.gui.warn_script_run = !dont_show_again;
-		/* We do not use set_GUI_misc because some button state can be in an unsaved state if the
-		 * preference dialog is opened
-		 */
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), com.pref.gui.warn_script_run);
-		/* update config file */
-		writeinitfile();
-		if (!confirm) {
+		if (!confirm)
 			return;
-		}
+
+		com.pref.gui.warn_script_run = !dont_show_again;
+		writeinitfile();
 	}
 
 	if (com.script_thread)
@@ -151,6 +144,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	gchar *script_file = g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT);
 	GFile *file = g_file_new_for_path(script_file);
+	GError *error = NULL;
 	GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
 			G_FILE_QUERY_INFO_NONE, NULL, &error);
 	if (info) {
@@ -218,12 +212,13 @@ int initialize_script_menu() {
 		}
 	}
 
-	if (!nb_item)
+	if (!nb_item) {
 		gtk_widget_hide(menuscript);
-	else if (!gtk_widget_get_visible(menuscript)) {
-		gtk_widget_show(menuscript);
-		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+		return 0;
 	}
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+	if (!gtk_widget_get_visible(menuscript))
+		gtk_widget_show(menuscript);
 	return 0;
 }
 

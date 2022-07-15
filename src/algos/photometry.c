@@ -425,13 +425,9 @@ void print_psf_error_summary(gint *code_sums) {
 	gboolean first = TRUE;
 	for (int i = 0; i < PSF_ERR_MAX_VALUE; i++) {
 		if (code_sums[i] > 0) {
-			gchar nb_str[15];
 			if (!first)
 				msg = g_string_append(msg, ", ");
-			msg = g_string_append(msg, psf_error_to_string(i));
-			msg = g_string_append(msg, ": ");
-			sprintf(nb_str, "%d", code_sums[i]);
-			msg = g_string_append(msg, nb_str);
+			g_string_append_printf(msg, "%d %s", code_sums[i], psf_error_to_string(i));
 			first = FALSE;
 		}
 	}

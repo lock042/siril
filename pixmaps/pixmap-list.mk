@@ -7,6 +7,8 @@ pixmaps = \
 	curve.svg \
 	export.svg \
 	export_dark.svg \
+	eyedropper.svg \
+	eyedropper_dark.svg \
 	frame.svg \
 	frame_dark.svg \
 	framing-cog.svg \

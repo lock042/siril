@@ -5,6 +5,7 @@
 #include "algos/photometry.h"
 #include "algos/star_finder.h"
 
+#define _2_SQRT_2_LOG2 2.35482004503
 //in siril.h: typedef struct fwhm_struct psf_star;
 
 struct fwhm_struct {
