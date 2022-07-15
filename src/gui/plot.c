@@ -493,8 +493,8 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 		pldata *cur_plot = plot->next;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (seq->photometry[ref][i]->phot_is_valid) {
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+			if (seq->photometry[r][i]->phot_is_valid) {
 				/* variable data, inversion of Pogson's law
 				 * Flux = 10^(-0.4 * mag)
 				 */

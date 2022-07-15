@@ -196,7 +196,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		float invnorm = 1.0f / norm;
 #ifdef _OPENMP
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads> 1)
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
@@ -211,7 +211,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads> 1)
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
