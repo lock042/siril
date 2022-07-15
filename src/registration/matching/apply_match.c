@@ -148,7 +148,7 @@ int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS trans, double 
  */
 
 /* I: TRANS taking (x,y) -> (ra, dec) */
-static int proc_star_file(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double *a, double*d) {
+static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRANS *trans, double *a, double*d) {
 	double xval, yval;
 	double r_dec;
 	double z, alpha, delta;

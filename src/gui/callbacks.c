@@ -140,64 +140,35 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 
 }
 
-
 void launch_clipboard_survey() {
-
-  	GtkClipboard *clipboard = NULL;
+	GtkClipboard *clipboard = NULL;
 
 	/* Get the clipboard object */
-	clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
-	/* Get the clipboard content */
-	char *clipboard_content = gtk_clipboard_wait_for_text(clipboard);
-	/*Initialize for non-NULL */
-	if (clipboard_content == NULL) {clipboard_content = "NoRules";}
-
-/*****
-	* For an Image *
-	if (single_image_is_loaded()) {
-		gchar *filename = g_path_get_basename(com.uniq->filename);
-	* Set clipboard text *
-  		gtk_clipboard_set_text (clipboard, filename, -1);
-		g_free(filename);
-	 *For a Sequence *	
-	} else if (sequence_is_loaded()) {
-		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
-	* Set clipboard text *
-  		gtk_clipboard_set_text (clipboard, seq_basename, -1);
-		g_free(seq_basename);
-	}
-*****/
+	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
 	/* To launch the Handle*/
 	g_signal_connect(clipboard, "owner-change", G_CALLBACK(handle_owner_change), NULL);
-
 }
-void on_press_seq_field() {
 
-  	GtkClipboard *clipboard = NULL;
+void on_press_seq_field() {
+	GtkClipboard *clipboard = NULL;
 
 	/* Get the clipboard object */
-	clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
-	/* Get the clipboard content */
-	char *clipboard_content = gtk_clipboard_wait_for_text(clipboard);
-	/* Initialize for non-NULL */
-	if (clipboard_content == NULL) {clipboard_content = "NoRules";}
+	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
 	/* For an Image */
 	if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
-	/* Set clipboard text */
-  		gtk_clipboard_set_text (clipboard, filename, -1);
+		/* Set clipboard text */
+		gtk_clipboard_set_text(clipboard, filename, -1);
 		g_free(filename);
-	/* For a Sequence */		
+		/* For a Sequence */
 	} else if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
-	/* Set clipboard text */
-  		gtk_clipboard_set_text (clipboard, seq_basename, -1);
+		/* Set clipboard text */
+		gtk_clipboard_set_text(clipboard, seq_basename, -1);
 		g_free(seq_basename);
 	}
-
-
 }
 
 static void update_icons_to_theme(gboolean is_dark) {
