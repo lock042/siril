@@ -112,7 +112,7 @@
 
 #undef DEBUG           /* get some of diagnostic output */
 
-static int proc_star_file(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double *a, double *d);
+static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRANS *trans, double *a, double *d);
 
 int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS trans, double *alpha, double *delta) {
 
