@@ -186,6 +186,7 @@ static void rotate_gui(fits *fit) {
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
+	delete_selected_area();
 	set_cursor_waiting(FALSE);
 }
 
@@ -264,9 +265,17 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 
 	// TODO : add checks about selection not being null
 	point center = {(double)com.selection.x + (double)com.selection.w * 0.5, (double)com.selection.y + (double)com.selection.h * 0.5};
-
-	cvRotateImage(image, center, -angle, interpolation, cropped);
-	delete_selected_area();
+	gboolean reframe = FALSE;
+	if (com.selection.w < gfit.rx || com.selection.h < gfit.ry) {
+		// if the destination is cropped and not centered, we need to use a different
+		// function as we also need to address the flips in and out
+		reframe = TRUE;
+		Homography H = { 0 };
+		cvGetMatrixReframe(com.selection.x, com.selection.y, com.selection.w, com.selection.h, angle, &H);
+		cvTransformImage(image, com.selection.w, com.selection.h, H, FALSE, interpolation);
+	} else {
+		cvRotateImage(image, center, angle, interpolation, cropped);
+	}
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);

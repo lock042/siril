@@ -50,6 +50,8 @@ double cvCalculRigidTransform(s_star *star_array_img,
 
 void multH(Homography H1, Homography H2, Homography *Hout);
 
+void cvGetMatrixReframe(int x, int y, int w, int h, double angle, Homography *Hom);
+
 #ifdef __cplusplus
 }
 #endif

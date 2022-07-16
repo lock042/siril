@@ -276,10 +276,6 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 		target_rx = frame.width;
 		target_ry = frame.height;
 		siril_debug_print("after rotation, new image size will be %d x %d\n", target_rx, target_ry);
-	} else if (cropped) {
-		// TODO : add checks about selection not being null
-		target_rx = com.selection.w;
-		target_ry = com.selection.h;
 	}
 
 	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
@@ -303,9 +299,6 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 	} else {
 		Mat r = getRotationMatrix2D(pt, angle, 1.0);
 		if (cropped == 1) {
-			// adjust transformation matrix
-			r.at<double>(0, 2) += target_rx / 2.0 - pt.x;
-			r.at<double>(1, 2) += target_ry / 2.0 - pt.y;
 			warpAffine(in, out, r, out.size(), interpolation);
 		} else {
 			// adjust transformation matrix
@@ -925,4 +918,24 @@ void multH(Homography H1, Homography H2, Homography *Hout) {
 	convert_H_to_MatH(&H2, _H2);
 	_H = _H1 * _H2;
 	convert_MatH_to_H(_H, Hout);
+}
+
+void cvGetMatrixReframe(int x, int y, int w, int h, double angle, Homography *Hom) {
+	double dx = (double)x + (double)w * 0.5;
+	double dy = (double)y + (double)h * 0.5;
+	Point2f pt(dx, dy);
+	std::cout << pt << std::endl;
+	//get rotation matrix from orginal to rotated about the new center
+	Mat r = getRotationMatrix2D(pt, angle, 1.0);
+	Mat H = Mat::eye(3, 3, CV_64FC1);
+	r.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
+	std::cout << H << std::endl;
+	// invert to get from rotated to original
+	H = H.inv();
+	std::cout << H << std::endl;
+	// shift backwards to set the top-left point at selection x,y
+	H.at<double>(0, 2) -= (double)x;
+	H.at<double>(1, 2) -= (double)y;
+	std::cout << H << std::endl;
+	convert_MatH_to_H(H, Hom);
 }
