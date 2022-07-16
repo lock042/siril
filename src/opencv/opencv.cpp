@@ -925,7 +925,10 @@ void cvGetMatrixReframe(int x, int y, int w, int h, double angle, Homography *Ho
 	double dy = (double)y + (double)h * 0.5;
 	Point2f pt(dx, dy);
 	std::cout << pt << std::endl;
-	//get rotation matrix from orginal to rotated about the new center
+	// get rotation matrix from orginal to rotated about the new center
+	// Tc * R * Tc^-1
+	// With Tc = [1 0 dx; 0 1 dy; 0 0 1]
+	// And R = [c -s 0; s c 0; 0 0 1]
 	Mat r = getRotationMatrix2D(pt, angle, 1.0);
 	Mat H = Mat::eye(3, 3, CV_64FC1);
 	r.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
@@ -938,4 +941,14 @@ void cvGetMatrixReframe(int x, int y, int w, int h, double angle, Homography *Ho
 	H.at<double>(1, 2) -= (double)y;
 	std::cout << H << std::endl;
 	convert_MatH_to_H(H, Hom);
+}
+
+void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h) {
+	Rect frame;
+	Point2f pt(center.x, center.y);
+	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
+	siril_debug_print("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
+
+	*w = frame.width;
+	*h = frame.height;
 }

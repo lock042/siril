@@ -264,18 +264,24 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 	gettimeofday(&t_start, NULL);
 
 	// TODO : add checks about selection not being null
-	point center = {(double)com.selection.x + (double)com.selection.w * 0.5, (double)com.selection.y + (double)com.selection.h * 0.5};
-	gboolean reframe = FALSE;
+	Homography H = { 0 };
+	point center = { (double)com.selection.x + (double)com.selection.w * 0.5, (double)com.selection.y + (double)com.selection.h * 0.5 };
+	// initialize to image
+	int target_rx = image->rx;
+	int target_ry = image->ry;
 	if (com.selection.w < gfit.rx || com.selection.h < gfit.ry) {
-		// if the destination is cropped and not centered, we need to use a different
-		// function as we also need to address the flips in and out
-		reframe = TRUE;
-		Homography H = { 0 };
-		cvGetMatrixReframe(com.selection.x, com.selection.y, com.selection.w, com.selection.h, angle, &H);
-		cvTransformImage(image, com.selection.w, com.selection.h, H, FALSE, interpolation);
+		target_rx = com.selection.w;
+		target_ry = com.selection.h;
+		cvGetMatrixReframe(com.selection.x,com.selection.y, target_rx, target_ry, angle, &H);
 	} else {
-		cvRotateImage(image, center, angle, interpolation, cropped);
+		cvGetMatrixReframe(0, 0, target_rx, target_ry, angle, &H);
+		if (!cropped) {
+			cvGetBoundingRectSize(image, center, angle, &target_rx, &target_ry);
+			H.h02 += (double)target_rx * 0.5 - center.x;
+			H.h12 += (double)target_ry * 0.5 - center.y;
+		}
 	}
+	cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
