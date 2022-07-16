@@ -1618,7 +1618,9 @@ int process_set_mag(int nb) {
 			return CMD_SELECTION_ERROR;
 		}
 		psf_error error;
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, &error);
+		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, FALSE, TRUE, ps, TRUE, &error);
+		free(ps);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
@@ -1737,15 +1739,15 @@ int process_set_photometry(int nb) {
 		if (min >= -65536) {
 			if (max > 0) {
 				if (min < max) {
-					com.pref.phot_set.minval = min;
-					com.pref.phot_set.maxval = max;
+					com.pref.phot_set.minval = (double)min;
+					com.pref.phot_set.maxval = (double)max;
 				} else {
 					siril_log_message(_("minimum value must be smaller than the maximum\n"));
 					error = TRUE;
 				}
 			} else {
-				if (min < com.pref.phot_set.maxval) {
-					com.pref.phot_set.minval = min;
+				if ((double)min < com.pref.phot_set.maxval) {
+					com.pref.phot_set.minval = (double)min;
 				} else {
 					siril_log_message(_("minimum value must be smaller than the maximum\n"));
 					error = TRUE;
@@ -1765,7 +1767,7 @@ int process_set_photometry(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%d, %d[\n"),
+	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
 			com.pref.phot_set.inner,
 			com.pref.phot_set.outer,
 			com.pref.phot_set.aperture,
@@ -2099,7 +2101,9 @@ int process_psf(int nb){
 	}
 
 	psf_error error;
-	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, &error);
+	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, TRUE, ps, TRUE, &error);
+	free(ps);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
@@ -2387,6 +2391,31 @@ int process_light_curve(int nb) {
 	// TODO: clear photometry data
 
 	start_in_new_thread(light_curve_worker, args);
+	return 0;
+}
+
+int process_crazy_photo(int nb) {
+	/*int index;
+	if (!sequence_has_wcs(&com.seq, &index)) {
+		siril_log_message(_("Plate solve the first or reference image first\n"));
+		return CMD_FOR_PLATE_SOLVED;
+	}*/
+	// check that registration exists for one layer at least
+	int layer = -1;
+	if (com.seq.regparam) {
+		for (int i = 0; i < com.seq.nb_layers; i++) {
+			if (com.seq.regparam[i]) {
+				layer = i;
+				break;
+			}
+		}
+	}
+	if (layer == -1) {
+		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+
+	start_in_new_thread(crazy_photo_worker, GINT_TO_POINTER(layer));
 	return 0;
 }
 
@@ -4243,7 +4272,7 @@ int process_seq_applyreg(int nb) {
 
 	// check that registration exists for one layer at least
 	int layer = -1;
-	if (seq->regparam){
+	if (seq->regparam) {
 		for (int i = 0; i < seq->nb_layers; i++) {
 			if (seq->regparam[i]) {
 				layer = i;

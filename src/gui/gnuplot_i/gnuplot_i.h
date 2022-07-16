@@ -29,6 +29,7 @@
                                 Includes
  ---------------------------------------------------------------------------*/
 #include <stdio.h>
+#include <glib.h>
 
 /** Maximal number of simultaneous temporary files */
 #define GP_MAX_TMP_FILES    64
@@ -71,6 +72,7 @@ typedef struct _GNUPLOT_CTRL_ {
                         Function ANSI C prototypes
  ---------------------------------------------------------------------------*/
 
+gboolean gnuplot_is_available();
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -464,6 +466,12 @@ int gnuplot_write_xyyerr_dat(
 	    double const    *   yerr,
 	    int                 n,
 	    char const      *   title);
+
+/* plot from an existing file */
+void gnuplot_plot_xyyerr_from_datfile(
+    gnuplot_ctrl * handle,
+    const char   * datfile
+);
 
 /**
  * Writes a multi column CSV file for use with gnuplot commands later.  Allows files to also be

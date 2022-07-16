@@ -273,8 +273,8 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int i, int j) {
 	if (seq->imgparam[i].date_obs) {
 		double julian;
 		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
-		if (seq->exposure) {
-			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure / 2.0);
+		if (seq->exposure > 0.0) {
+			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
 			julian = date_time_to_Julian(new_dt);
 			g_date_time_unref(new_dt);
 		} else {
@@ -313,8 +313,8 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		if (!julian0 && !xlabel) {
 			if (seq->imgparam[i].date_obs) {
 				GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
-				if (seq->exposure) {
-					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure / 2.0);
+				if (seq->exposure > 0.0) {
+					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure * 0.5);
 					julian0 = (int) date_time_to_Julian(new_dt);
 					g_date_time_unref(new_dt);
 				} else {
@@ -397,48 +397,6 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	plot->nb = j;
 }
 
-#ifdef _WIN32
-static const gchar *possible_path[] = { "C:\\PROGRA~1\\gnuplot\\bin\\gnuplot.exe", "C:\\msys64\\mingw64\\bin\\gnuplot.exe" };
-static const gchar *gnuplot_path = NULL;
-
-/* returns true if the gnuplot.exe exists in the wanted folder */
-static gboolean gnuplot_is_available() {
-	size_t size, i = 0;
-	gboolean found = FALSE;
-
-	size = sizeof(possible_path) / sizeof(gchar*);
-	do {
-		found = g_file_test(possible_path[i], G_FILE_TEST_EXISTS);
-		i++;
-	} while (i < size && !found);
-
-	if (found)
-		gnuplot_path = possible_path[i - 1];
-
-	return found;
-}
-#else
-/* returns true if the command gnuplot is available */
-static gboolean gnuplot_is_available() {
-	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", siril_win_get_gnuplot_path());
-
-	int retval = system(str);
-	g_free(str);
-	if (WIFEXITED(retval))
-		return 0 == WEXITSTATUS(retval);
-	return FALSE;
-}
-#endif
-
-gchar *siril_win_get_gnuplot_path() {
-#ifdef _WIN32
-	gchar *str = g_strdup_printf("\"%s -persist\"", gnuplot_path);
-	return str;
-#else
-	return "gnuplot";
-#endif
-}
-
 static double get_error_for_time(pldata *plot, double time) {
 	/* when data are sorted we need to check order by matching
 	 * timestamps in order to sort uncertainties as well
@@ -450,7 +408,7 @@ static double get_error_for_time(pldata *plot, double time) {
 	return 0.0;
 }
 
-
+// call after having filled the plot data of the various stars with generate_magnitude_data()
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0, ret = 0;
 	double *vmag, *err, *x, *real_x;

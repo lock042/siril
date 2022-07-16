@@ -68,6 +68,7 @@
 #include "algos/quality.h"
 #include "algos/statistics.h"
 #include "algos/geometry.h"
+#include "algos/siril_wcs.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 #include "opencv/opencv.h"
@@ -1512,7 +1513,7 @@ gboolean sequence_is_rgb(sequence *seq) {
 gboolean enforce_area_in_image(rectangle *area, sequence *seq, int index) {
 	gboolean has_crossed = FALSE;
 	// need to check against current image size in case not the same as seq->rx/ry
-	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx; 
+	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx;
 	int ry = (seq->is_variable) ? seq->imgparam[index].ry : seq->ry;
 	if (area->x < 0) {
 		area->x = 0;
@@ -1557,7 +1558,10 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, !spsfargs->for_registration, com.pref.phot_set.force_radius, TRUE, &error);
+	struct phot_config *ps = phot_set_adjusted_for_image(fit);
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, !spsfargs->for_registration,
+			!spsfargs->for_registration, ps, TRUE, &error);
+	free(ps);
 	if (data->psf) {
 		/* for photometry ? */
 		if (!spsfargs->for_registration) {
@@ -1897,5 +1901,32 @@ void fix_selnum(sequence *seq, gboolean warn) {
 			siril_log_message(_("Fixing the selection number in the .seq file (%d) to the actual value (%d) (not saved)\n"), seq->selnum, nbsel);
 		seq->selnum = nbsel;
 	}
+}
+
+gboolean sequence_has_wcs(sequence *seq, int *index) {
+	fits fit = { 0 };
+	int indices[3];
+	indices[0] = 0;
+	indices[1] = sequence_find_refimage(seq);
+	int first_included_image = -1;
+	for (int i = 0; i < seq->number; i++)
+		if (seq->imgparam[i].incl) {
+			first_included_image = i;
+			break;
+		}
+	if (first_included_image == 0 || first_included_image == indices[1])
+		indices[2] = -1;
+	else indices[2] = first_included_image;
+
+	for (int i = 0; i < 3; i++) {
+		if (indices[i] != -1 && seq_read_frame_metadata(seq, indices[i], &fit)) {
+			if (has_wcs(&fit)) {
+				if (index)
+					*index = indices[i];
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
 }
 

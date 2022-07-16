@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <gsl/gsl_matrix.h>
 #include "core/siril.h"
+#include "core/settings.h"
 
 struct photometry_struct {
 	double mag; // magnitude
@@ -37,14 +38,18 @@ typedef enum {
 	PSF_ERR_MAX_VALUE = 16	// keep last
 } psf_error;
 
-double get_camera_gain(fits *fit);
+struct phot_config *phot_set_adjusted_for_image(fits *fit);
 
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf, double gain,
-		gboolean force_radius, gboolean verbose, psf_error *error);
+rectangle compute_dynamic_area_for_psf(psf_star *psf, struct phot_config *original, struct phot_config *phot_set, Homography H, Homography Href);
+
+photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
+		struct phot_config *phot_set, gboolean verbose, psf_error *error);
 
 void initialize_photometric_param();
 
 const char *psf_error_to_string(psf_error err);
 void print_psf_error_summary(gint *code_sums);
+
+gpointer crazy_photo_worker(gpointer arg);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

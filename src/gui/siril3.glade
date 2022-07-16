@@ -3143,12 +3143,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="upper">65535</property>
     <property name="value">65535</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">300</property>
   </object>
   <object class="GtkAdjustment" id="adjminpxval">
+    <property name="lower">-65535</property>
     <property name="upper">65535</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
     <property name="lower">1</property>
@@ -3161,14 +3162,14 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="upper">0.90</property>
     <property name="value">0.5</property>
     <property name="step-increment">0.10</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.25</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_threshold">
     <property name="lower">0.01</property>
     <property name="upper">15</property>
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.5</property>
   </object>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="lower">1</property>

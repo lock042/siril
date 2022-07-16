@@ -48,6 +48,10 @@
 
 #define ACTIVATE_NULLCHECK_FLOAT 1
 
+// uncomment to debug statistics
+#undef siril_debug_print
+#define siril_debug_print(fmt, ...) { }
+
 // copies the area of an image into the memory buffer data
 static void select_area_float(fits *fit, float *data, int layer, rectangle *bounds) {
 	int i, j, k = 0;
@@ -485,3 +489,240 @@ int compute_means_from_flat_cfa_float(fits *fit, double mean[36]) {
 	}
 	return 0;
 }
+
+/****************** ROBUST MEAN FOR PHOTOMETRY *******************/
+
+#define hampel_a   1.7
+#define hampel_b   3.4
+#define hampel_c   8.5
+#define sign(x,y)  ((y)>=0?fabs(x):-fabs(x))
+#define epsilon(x) 0.00000001
+#define maxit      50
+
+static double hampel(double x) {
+	if (x >= 0) {
+		if (x < hampel_a)
+			return x;
+		if (x < hampel_b)
+			return hampel_a;
+		if (x < hampel_c)
+			return hampel_a * (x - hampel_c) / (hampel_b - hampel_c);
+	} else {
+		if (x > -hampel_a)
+			return x;
+		if (x > -hampel_b)
+			return -hampel_a;
+		if (x > -hampel_c)
+			return hampel_a * (x + hampel_c) / (hampel_b - hampel_c);
+	}
+	return 0.0;
+}
+
+static double dhampel(double x) {
+	if (x >= 0) {
+		if (x < hampel_a)
+			return 1;
+		if (x < hampel_b)
+			return 0;
+		if (x < hampel_c)
+			return hampel_a / (hampel_b - hampel_c);
+	} else {
+		if (x > -hampel_a)
+			return 1;
+		if (x > -hampel_b)
+			return 0;
+		if (x > -hampel_c)
+			return -hampel_a / (hampel_b - hampel_c);
+	}
+	return 0.0;
+}
+
+static double qmedD(int n, double *a)
+	/* Vypocet medianu algoritmem Quick Median (Wirth) */
+{
+	double w;
+	int k = ((n & 1) ? (n / 2) : ((n / 2) - 1));
+	int l = 0;
+	int r = n - 1;
+
+	while (l < r) {
+		double x = a[k];
+		int i = l;
+		int j = r;
+		do {
+			while (a[i] < x)
+				i++;
+			while (x < a[j])
+				j--;
+			if (i <= j) {
+				w = a[i];
+				a[i] = a[j];
+				a[j] = w;
+				i++;
+				j--;
+			}
+		} while (i <= j);
+		if (j < k)
+			l = i;
+		if (k < i)
+			r = j;
+	}
+	return a[k];
+}
+
+static float Qn0(const float sorted_data[], const size_t stride, const size_t n) {
+	const size_t wsize = n * (n - 1) / 2;
+	const size_t n_2 = n / 2;
+	const size_t k = ((n_2 + 1) * n_2) / 2;
+	size_t idx = 0;
+
+	if (n < 2)
+		return (0.0);
+
+	float *work = malloc(wsize * sizeof(float));
+	if (!work) {
+		PRINT_ALLOC_ERR;
+		return -1.0f;
+	}
+
+	for (size_t i = 0; i < n; ++i) {
+		for (size_t j = i + 1; j < n; ++j)
+			work[idx++] = fabsf(sorted_data[i] - sorted_data[j]);
+	}
+
+	quicksort_f(work, idx);
+	float Qn = work[k - 1];
+
+	free(work);
+	return Qn;
+}
+
+/* a robust mean from sorted data, see also robust_mean in sorting.c */
+float siril_stats_robust_mean(const float sorted_data[],
+		const size_t stride, const size_t size, double *deviation) {
+	float mx = (float) gsl_stats_float_median_from_sorted_data(sorted_data, stride, size);
+	float qn0 = Qn0(sorted_data, 1, size);
+	if (qn0 < 0)
+		return -1.0f;
+	float sx = 2.2219f * qn0;
+	float *x, mean;
+	int i, j;
+
+	x = malloc(size * sizeof(float));
+	if (!x) {
+		PRINT_ALLOC_ERR;
+		return -1.0f;
+	}
+
+	for (i = 0, j = 0; i < size; ++i) {
+		if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
+			x[j++] = sorted_data[i];
+		}
+	}
+	siril_debug_print("keeping %d samples on %zu for the robust mean (mx: %f, sx: %f)\n", j, size, mx, sx);
+	/* not enough stars, try something anyway */
+	if (j < 5) {
+		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);
+	} else {
+		mean = (float) gsl_stats_float_mean(x, stride, j);
+	}
+	free(x);
+
+	/* compute the deviation of the mean against the values */
+	if (deviation) {
+		double dev = 0.0;
+		int inliers = 0;
+		for (i = 0, j = 0; i < size; ++i) {
+			if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
+				dev += fabsf(sorted_data[i] - mean);
+				inliers++;
+			}
+		}
+		if (inliers)
+			*deviation = dev / inliers;
+		else *deviation = 1.0;
+	}
+
+	return mean;
+}
+
+/************* another robust mean ***************/
+
+int robustmean(int n, double *x, double *mean, double *stdev)
+	/* Newton's iterations */
+{
+	int i, it;
+	double a, c, dt, r, s, psir;
+	double *xx;
+
+	if (n < 1) {
+		if (mean)
+			*mean = 0.0; /* a few data */
+		if (stdev)
+			*stdev = -1.0;
+		return 1;
+	}
+	if (n == 1) { /* only one point, but correct case */
+		if (mean)
+			*mean = x[0];
+		if (stdev)
+			*stdev = 0.0;
+		return 0;
+	}
+
+	/* initial values:
+	   - median is the first approximation of location
+	   - MAD/0.6745 is the first approximation of scale */
+	xx = malloc(n * sizeof(double));
+	if (!xx) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	memcpy(xx, x, n * sizeof(double));
+	a = qmedD(n, xx);
+	for (i = 0; i < n; i++)
+		xx[i] = fabs(x[i] - a);
+	s = qmedD(n, xx) / 0.6745;
+	free(xx);
+
+	/* almost identical points on input */
+	if (fabs(s) < epsilon(s)) {
+		if (mean)
+			*mean = a;
+		if (stdev) {
+			double sum = 0.0;
+			for (i = 0; i < n; i++)
+				sum += (x[i] - a) * (x[i] - a);
+			*stdev = sqrt(sum / n);
+		}
+		return 0;
+	}
+
+	/* corrector's estimation */
+	dt = 0;
+	c = s * s * n * n / (n - 1);
+	for (it = 1; it <= maxit; it++) {
+		double sum1, sum2, sum3;
+		sum1 = sum2 = sum3 = 0.0;
+		for (i = 0; i < n; i++) {
+			r = (x[i] - a) / s;
+			psir = hampel(r);
+			sum1 += psir;
+			sum2 += dhampel(r);
+			sum3 += psir * psir;
+		}
+		if (fabs(sum2) < epsilon(sum2))
+			break;
+		double d = s * sum1 / sum2;
+		a = a + d;
+		dt = c * sum3 / (sum2 * sum2);
+		if ((it > 2) && ((d * d < 1e-4 * dt) || (fabs(d) < 10.0 * epsilon(d))))
+			break;
+	}
+	if (mean)
+		*mean = a;
+	if (stdev)
+		*stdev = (dt > 0 ? sqrt(dt) : 0);
+	return 0;
+}
+
