@@ -239,6 +239,8 @@ int verbose_rotate_fast(fits *image, int angle) {
 	siril_log_color_message(
 		_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
 		_("No"), (double)angle);
+
+#ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
 	Homography H = { 0 };
 	point center = { (double)image->rx * 0.5, (double)image->ry * 0.5 };
 	// Computing H matrix to update astrometry data
@@ -249,8 +251,9 @@ int verbose_rotate_fast(fits *image, int angle) {
 	cvGetBoundingRectSize(image, center, (double)angle, &target_rx, &target_ry);
 	H.h02 += (double)target_rx * 0.5 - center.x;
 	H.h12 += (double)target_ry * 0.5 - center.y;
+#endif
 
-	if(cvRotateImage(&gfit, angle)) return 1;
+	if(cvRotateImage(image, angle)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
