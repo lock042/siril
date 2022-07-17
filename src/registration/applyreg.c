@@ -175,7 +175,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 		default:
 			return FALSE;
 	}
-	multH(Href, Hshift, &Htransf);
+	cvMultH(Href, Hshift, &Htransf);
 	rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
 	ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
 	return TRUE;

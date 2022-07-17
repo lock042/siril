@@ -266,7 +266,8 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 	// TODO : add checks about selection not being null
 	Homography H = { 0 };
 	point center = { (double)com.selection.x + (double)com.selection.w * 0.5, (double)com.selection.y + (double)com.selection.h * 0.5 };
-	// initialize to image
+	// initialize to original image
+	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx = image->rx;
 	int target_ry = image->ry;
 	if (com.selection.w < gfit.rx || com.selection.h < gfit.ry) {
@@ -274,7 +275,7 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 		target_ry = com.selection.h;
 		cvGetMatrixReframe(com.selection.x,com.selection.y, target_rx, target_ry, angle, &H);
 	} else {
-		cvGetMatrixReframe(0, 0, target_rx, target_ry, angle, &H);
+		cvGetMatrixReframe(0, 0, image->rx, image->ry, angle, &H);
 		if (!cropped) {
 			cvGetBoundingRectSize(image, center, angle, &target_rx, &target_ry);
 			H.h02 += (double)target_rx * 0.5 - center.x;
@@ -287,9 +288,9 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 	show_time(t_start, t_end);
 
 #ifdef HAVE_WCSLIB
-	// TODO : recompute WCS matrix....
 	if (image->wcslib) {
-		rotate_astrometry_data(image, center, angle, cropped);
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
 	}
 #endif

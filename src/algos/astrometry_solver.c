@@ -1038,22 +1038,17 @@ void flip_left_right_astrometry_data(fits *fit) {
 	print_updated_wcs_data(fit);
 }
 
-void rotate_astrometry_data(fits *fit, point center, double angle, gboolean cropped) {
+void reframe_astrometry_data(fits *fit, Homography H) {
 	double pc1_1, pc1_2, pc2_1, pc2_2;
 	point refpointout;
-
-	const double2 sincosval = xsincos(angle * DEGTORAD);
-	double sa, ca;
-	sa = sincosval.x;
-	ca = sincosval.y;
-
-	pc1_1 =  ca * fit->wcsdata.pc[0][0] + sa * fit->wcsdata.pc[0][1];
-	pc1_2 = -sa * fit->wcsdata.pc[0][0] + ca * fit->wcsdata.pc[0][1];
-	pc2_1 =  ca * fit->wcsdata.pc[1][0] + sa * fit->wcsdata.pc[1][1];
-	pc2_2 = -sa * fit->wcsdata.pc[1][0] + ca * fit->wcsdata.pc[1][1];
+	
+	pc1_1 = H.h00 * fit->wcsdata.pc[0][0] + H.h01 * fit->wcsdata.pc[0][1];
+	pc1_2 = H.h10 * fit->wcsdata.pc[0][0] + H.h11 * fit->wcsdata.pc[0][1];
+	pc2_1 = H.h00 * fit->wcsdata.pc[1][0] + H.h01 * fit->wcsdata.pc[1][1];
+	pc2_2 = H.h10 * fit->wcsdata.pc[1][0] + H.h11 * fit->wcsdata.pc[1][1];
 
 	point refpointin = {fit->wcsdata.crpix[0], fit->wcsdata.crpix[1]};
-	cvRotateImageRefPoint(fit, center, angle, cropped, refpointin, &refpointout);
+	cvRotateImageRefPoint(H, refpointin, &refpointout);
 
 	fit->wcsdata.pc[0][0] = pc1_1;
 	fit->wcsdata.pc[0][1] = pc1_2;

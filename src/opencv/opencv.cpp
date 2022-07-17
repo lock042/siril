@@ -312,26 +312,16 @@ int cvRotateImage(fits *image, point center, double angle, int interpolation, in
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 
-void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped, point refpointin, point *refpointout) {
-	Point2f pt(center.x, center.y);
-	Point3d refptin(refpointin.x, refpointin.y, 1);
+void cvRotateImageRefPoint(Homography Hom, point refpointin, point *refpointout) {
 	Mat refptout;
-	Rect frame;
-
-	if (!cropped) {
-		frame = RotatedRect(pt, Size(center.x *2, center.y *2), angle).boundingRect2f();
-	}
-
-	Mat r = getRotationMatrix2D(pt, angle, 1.0);
-	if (!cropped) {
-		// adjust transformation matrix
-		r.at<double>(0, 2) += frame.width / 2.0 - pt.x;
-		r.at<double>(1, 2) += frame.height / 2.0 - pt.y;
-	}
-	refptout = r * Mat(refptin);
+	Point3d refptin(refpointin.x, refpointin.y, 1);
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(&Hom, H);
+	refptout = H * Mat(refptin);
 	refpointout->x = refptout.at<double>(0, 0);
 	refpointout->y = refptout.at<double>(0, 1);
 }
+
 
 
 int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points, gboolean upscale2x, int interpolation, Homography *Hom) {
@@ -517,39 +507,39 @@ unsigned char *cvCalculH(s_star *star_array_img,
 
 // transform an image using the homography.
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation) {
-    Mat in, out;
-    void *bgr = NULL;
-    int target_rx = width, target_ry = height;
-    int source_ry = image->ry;
+	Mat in, out;
+	void *bgr = NULL;
+	int target_rx = width, target_ry = height;
+	int source_ry = image->ry;
 
-    if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
-        return 1;
+	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
+		return 1;
 
-    Mat H = Mat(3, 3, CV_64FC1);
-    convert_H_to_MatH(&Hom, H);
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(&Hom, H);
 
-    if (upscale2x) {
-        Mat S = Mat::eye(3, 3, CV_64FC1);
-        S.at<double>(0,0) = 2.0;
-        S.at<double>(1,1) = 2.0;
-        H = S * H;
-    }
+	if (upscale2x) {
+		Mat S = Mat::eye(3, 3, CV_64FC1);
+		S.at<double>(0,0) = 2.0;
+		S.at<double>(1,1) = 2.0;
+		H = S * H;
+	}
 
-    /* modify matrix for reverse Y axis */
-    Mat F1 = Mat::eye(3, 3, CV_64FC1);
-    F1.at<double>(1,1) = -1.0;
-    F1.at<double>(1,2) = source_ry - 1.0;
+	/* modify matrix for reverse Y axis */
+	Mat F1 = Mat::eye(3, 3, CV_64FC1);
+	F1.at<double>(1,1) = -1.0;
+	F1.at<double>(1,2) = source_ry - 1.0;
 
-    Mat F2 = Mat::eye(3, 3, CV_64FC1);
-    F2.at<double>(1,1) = -1.0;
-    F2.at<double>(1,2) = target_ry - 1.0;
+	Mat F2 = Mat::eye(3, 3, CV_64FC1);
+	F2.at<double>(1,1) = -1.0;
+	F2.at<double>(1,2) = target_ry - 1.0;
 
-    H = F2.inv() * H * F1;
+	H = F2.inv() * H * F1;
 
-    // OpenCV function
-    warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
+	// OpenCV function
+	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 
-    return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 
 int cvUnsharpFilter(fits* image, double sigma, double amount) {
@@ -910,7 +900,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 
 }
 
-void multH(Homography H1, Homography H2, Homography *Hout) {
+void cvMultH(Homography H1, Homography H2, Homography *Hout) {
 	Mat _H1 = Mat(3, 3, CV_64FC1);
 	Mat _H2 = Mat(3, 3, CV_64FC1);
 	Mat _H = Mat(3, 3, CV_64FC1);
@@ -923,23 +913,32 @@ void multH(Homography H1, Homography H2, Homography *Hout) {
 void cvGetMatrixReframe(int x, int y, int w, int h, double angle, Homography *Hom) {
 	double dx = (double)x + (double)w * 0.5;
 	double dy = (double)y + (double)h * 0.5;
-	Point2f pt(dx, dy);
-	std::cout << pt << std::endl;
-	// get rotation matrix from orginal to rotated about the new center
-	// Tc * R * Tc^-1
-	// With Tc = [1 0 dx; 0 1 dy; 0 0 1]
-	// And R = [c -s 0; s c 0; 0 0 1]
-	Mat r = getRotationMatrix2D(pt, angle, 1.0);
+	Point2f pt(0., 0.);
+
+	// shift to get to the center of the initial image
+	Mat S =  Mat::eye(3, 3, CV_64FC1);
+	S.at<double>(0, 2) = dx;
+	S.at<double>(1, 2) = dy;
+
+	// shift backwards to set the top-left point of the final image
+	Mat S2 =  Mat::eye(3, 3, CV_64FC1);
+	S2.at<double>(0, 2) = -(double)w * 0.5;
+	S2.at<double>(1, 2) = -(double)h * 0.5;
+
+	// get rot matrix about origin {0, 0}
+	Mat r = getRotationMatrix2D(pt, angle, 1.0); 
 	Mat H = Mat::eye(3, 3, CV_64FC1);
 	r.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
-	std::cout << H << std::endl;
-	// invert to get from rotated to original
+	// std::cout << H << std::endl;
+
+	H = S * H * S2;
+	// std::cout << H << std::endl;
+
+	// transform is final to orginal, we need to inverse
+	// to have H from final to original
 	H = H.inv();
-	std::cout << H << std::endl;
-	// shift backwards to set the top-left point at selection x,y
-	H.at<double>(0, 2) -= (double)x;
-	H.at<double>(1, 2) -= (double)y;
-	std::cout << H << std::endl;
+	// std::cout << H << std::endl;
+
 	convert_MatH_to_H(H, Hom);
 }
 
@@ -948,7 +947,31 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 	Point2f pt(center.x, center.y);
 	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
 	siril_debug_print("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
-
 	*w = frame.width;
 	*h = frame.height;
+}
+
+void cvInvertH(Homography *Hom) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+	H = H.inv();
+	convert_MatH_to_H(H, Hom);
+	// std::cout << "H" << std::endl;
+	// std::cout << H << std::endl;
+}
+
+void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+	/* modify matrix for reverse Y axis */
+	Mat F1 = Mat::eye(3, 3, CV_64FC1);
+	F1.at<double>(1,1) = -1.0;
+	F1.at<double>(1,2) = source_ry - 1.0;
+
+	Mat F2 = Mat::eye(3, 3, CV_64FC1);
+	F2.at<double>(1,1) = -1.0;
+	F2.at<double>(1,2) = target_ry - 1.0;
+
+	H = F2.inv() * H * F1;
+	convert_MatH_to_H(H, Hom);
 }

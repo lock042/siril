@@ -95,6 +95,7 @@ gboolean confirm_delete_wcs_keywords(fits *fit);
 void flip_bottom_up_astrometry_data(fits *fit);
 void flip_left_right_astrometry_data(fits *fit);
 void rotate_astrometry_data(fits *fit, point center, double angle, gboolean cropped);
+void reframe_astrometry_data(fits *fit, Homography H);
 void crop_astrometry_data(fits *fit, point shift);
 
 void set_focal_and_pixel_pitch();
