@@ -168,6 +168,7 @@ static void rotate_gui(fits *fit) {
 	static GtkToggleButton *crop_rotation = NULL;
 	double angle = gtk_spin_button_get_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
+	if (angle == 0) return;
 	int interpolation = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(lookup_widget("combo_interpolation_rotation")));
 	int cropped;

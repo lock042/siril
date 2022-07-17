@@ -1176,6 +1176,7 @@ int process_rotate(int nb) {
 	int crop = 1;
 
 	double degree = g_ascii_strtod(word[1], NULL);
+	if (degree == 0.) return 1;
 
 	/* check for options */
 	if (word[2] && (!strcmp(word[2], "-nocrop"))) {
