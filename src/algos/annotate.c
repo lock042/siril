@@ -74,7 +74,7 @@ static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 static gboolean is_inside(fits *fit, double ra, double dec) {
 	double x, y;
 
-	wcs2pix(fit, ra, dec, &x, &y);
+	if (wcs2pix(fit, ra, dec, &x, &y)) return FALSE;
 	return (x > 0 && x < fit->rx && y > 0 && y < fit->ry);
 }
 

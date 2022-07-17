@@ -52,13 +52,15 @@ static int readinitfile_libconfig(gchar *path) {
 	config_t config;
 	const char *dir = NULL;
 	GSList *list = NULL;
+	gchar *file_path;
 
 	config_init(&config);
 
-	gchar *file_path = path;
 #ifdef _WIN32
 	/* in the case the filename is given as argument */
 	file_path = g_win32_locale_filename_from_utf8(path);
+#else
+	file_path = path;
 #endif
 
 	if (config_read_file(&config, file_path) == CONFIG_FALSE) {

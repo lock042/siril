@@ -19,6 +19,8 @@ int seq_filter_fwhm(sequence *seq, int nb_img, double max_fwhm);
 int seq_filter_weighted_fwhm(sequence *seq, int nb_img, double max_fwhm);
 int seq_filter_quality(sequence *seq, int nb_img, double max_quality);
 int seq_filter_roundness(sequence *seq, int nb_img, double min_rnd);
+int seq_filter_background(sequence *seq, int nb_img, double max_bkg);
+int seq_filter_nbstars(sequence *seq, int nb_img, double min_nbstars);
 
 int compute_nb_filtered_images(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
 
@@ -35,6 +37,9 @@ double compute_highest_accepted_fwhm(sequence *seq, int layer, double percent);
 double compute_highest_accepted_weighted_fwhm(sequence *seq, int layer, double percent);
 double compute_lowest_accepted_quality(sequence *seq, int layer, double percent);
 double compute_lowest_accepted_roundness(sequence *seq, int layer, double percent);
+double compute_highest_accepted_background(sequence *seq, int layer, double percent);
+double compute_lowest_accepted_nbstars(sequence *seq, int layer, double percent);
+
 
 char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
 

@@ -51,7 +51,6 @@ static gboolean end_noise(gpointer p) {
 // returns the argument if not freed
 gpointer noise_worker(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
-	double norm = 1.0;
 	args->mean_noise = 0.0;
 
 	if (args->display_start_end) {
@@ -66,7 +65,7 @@ gpointer noise_worker(gpointer p) {
 		if (!retval) {
 			args->bgnoise[chan] = stats[chan]->bgnoise;
 			args->mean_noise += stats[chan]->bgnoise;
-			norm = stats[chan]->normValue;
+			double norm = stats[chan]->normValue;
 
 			if (args->display_results) {
 				if (args->fit->type == DATA_USHORT)

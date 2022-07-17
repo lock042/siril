@@ -34,6 +34,8 @@ typedef enum {
 	BEST_PSF_IMAGES,
 	BEST_WPSF_IMAGES,
 	BEST_ROUND_IMAGES,
+	BEST_BKG_IMAGES,
+	BEST_NBSTARS_IMAGES,
 	BEST_QUALITY_IMAGES
 } stackType;
 
@@ -94,7 +96,7 @@ struct stacking_configuration {
 	gboolean lite_norm;
 	normalization norm;
 	int number_of_loaded_sequences;
-	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p; // on if >0
+	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p, f_bkg, f_bkg_p, f_nbstars, f_nbstars_p; // on if >0
 	gboolean filter_included;
 	gboolean apply_noise_weights;
 	gboolean apply_nbstack_weights;

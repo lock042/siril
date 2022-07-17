@@ -174,7 +174,7 @@ void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
         fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
 }
 
-int check_threading(threading_type *t) {
+int check_threading(const threading_type *t) {
 	if (*t != SINGLE_THREADED)
 		return 2;
 	return 1;

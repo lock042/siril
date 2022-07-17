@@ -173,19 +173,19 @@ static int get_projected_stars_from_local_catalogue(const char *path, double ra,
 		if (trixel_stars[i].V >= mag_threshold)
 			continue;
 		// catalogue has RA in hours, hence the x15
-		double ra = trixel_stars[i].RA * .000015;
-		double dec = trixel_stars[i].Dec * .00001;
+		double star_ra = trixel_stars[i].RA * .000015;
+		double star_dec = trixel_stars[i].Dec * .00001;
 		double Bmag = trixel_stars[i].B * 0.001;
 		double Vmag = trixel_stars[i].V * 0.001;
 		if (use_proper_motion) {
-			update_coords_with_proper_motion(&ra, &dec,
+			update_coords_with_proper_motion(&star_ra, &star_dec,
 					/* pass dRA and dDec per millenia */
 					trixel_stars[i].dRA * 0.001, trixel_stars[i].dDec * 0.001,
 					jmillenia);
 		}
 
 		double x, y;
-		if (wcs2pix(fit, ra, dec, &x, &y))
+		if (wcs2pix(fit, star_ra, star_dec, &x, &y))
 			continue;
 
 		(*stars)[j].x = x;
@@ -193,7 +193,7 @@ static int get_projected_stars_from_local_catalogue(const char *path, double ra,
 		(*stars)[j].mag = Vmag;
 		(*stars)[j].BV = Bmag - Vmag;
 		j++;
-		//siril_debug_print("star at %f,\t%f,\tV=%.2f B=%.2f\timage coords (%.1f, %.1f)\tpm (%hd, %hd) mas/yr\n", ra, dec, Vmag, Bmag, (*stars)[j].x, (*stars)[j].y, trixel_stars[i].dRA, trixel_stars[i].dDec);
+		//siril_debug_print("star at %f,\t%f,\tV=%.2f B=%.2f\timage coords (%.1f, %.1f)\tpm (%hd, %hd) mas/yr\n", star_ra, star_dec, Vmag, Bmag, (*stars)[j].x, (*stars)[j].y, trixel_stars[i].dRA, trixel_stars[i].dDec);
 	}
 	*nb_stars = j;
 
@@ -266,10 +266,11 @@ int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *
 		} else {
 			uint32_t offset = 0;
 			*nb_stars = total_nb_stars;
-			for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 				memcpy(*stars + offset, catalogue_stars[catalogue],
 						catalogue_nb_stars[catalogue] * sizeof(pcc_star));
 				offset += catalogue_nb_stars[catalogue];
+				free(catalogue_stars[catalogue]);
 			}
 		}
 	}
@@ -440,7 +441,7 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
-	nb_stars_list = malloc(nb_trixels * sizeof(uint32_t *));
+	nb_stars_list = malloc(nb_trixels * sizeof(uint32_t));
 	if (!nb_stars_list) {
 		free(stars_list);
 		PRINT_ALLOC_ERR;
@@ -632,7 +633,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 		} else {
 			uint32_t j = 0;
 			int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
-			for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 				deepStarData *cat_stars  = catalogue_stars[catalogue];
 				uint32_t cat_nb_stars = catalogue_nb_stars[catalogue];
 

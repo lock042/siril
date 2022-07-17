@@ -89,12 +89,11 @@ static void start_photometric_cc() {
 		args->for_photometry_cc = TRUE;
 		args->use_local_cat = pcc_args->use_local_cat;
 
-		args->pcc = malloc(sizeof(struct photometric_cc_data));
+		args->pcc = pcc_args;
 		args->pcc->fit = &gfit;
 		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 		args->pcc->bg_area = get_bkg_selection();
 		args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
-		args->pcc = pcc_args;
 	}
 
 	pcc_args->fit = &gfit;
@@ -543,9 +542,11 @@ float measure_image_FWHM(fits *fit) {
 #endif
 	for (int chan = 0; chan < 3; chan++) {
 		int nb_stars;
-		int nb_subthreads = com.max_thread;
+		int nb_subthreads;
 #ifdef _OPENMP
 		nb_subthreads = threads[chan];
+#else
+		nb_subthreads = com.max_thread;
 #endif
 		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, nb_subthreads);
 		if (stars) {

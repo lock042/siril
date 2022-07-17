@@ -256,8 +256,8 @@ gpointer do_starnet(gpointer p) {
 	// Set up paths and filenames
 	imagenoextorig = g_path_get_basename(com.uniq->filename);
 	imagenoext = g_path_get_basename(com.uniq->filename);
-	for (char *p = imagenoextorig, *q = imagenoext;  *p;  ++p, ++q)
-        *q = *p == ' ' ? '_' : *p;
+	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
+        *q = *c == ' ' ? '_' : *c;
 	if (g_strcmp0(imagenoext, imagenoextorig))
 		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
 	free(imagenoextorig);

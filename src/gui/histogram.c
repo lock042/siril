@@ -1255,7 +1255,7 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 }
 
 void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
-	_D = exp (gtk_spin_button_get_value(button)) - 1.0;
+	_D = expm1(gtk_spin_button_get_value(button));
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
