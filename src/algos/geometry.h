@@ -16,6 +16,7 @@ int verbose_rotate_image(fits *, double, int, int);
 
 void siril_rotate90();
 void siril_rotate270();
+int verbose_rotate_fast(fits *image, int angle);
 
 void mirrorx_gui(fits *fit);
 void mirrory_gui(fits *fit);

@@ -1541,7 +1541,8 @@ int process_rotate(int nb) {
 }
 
 int process_rotatepi(int nb){
-	verbose_rotate_image(&gfit, 180.0, -1, 1);
+	if (verbose_rotate_fast(&gfit, 180))
+		return CMD_GENERIC_ERROR;
 
 	update_zoom_label();
 	redraw(REMAP_ALL);

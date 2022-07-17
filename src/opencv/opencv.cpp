@@ -251,64 +251,38 @@ void cvResizeArray(double *in, double *out, int inX, int inY, int outX, int outY
 	resize(in_mat, out_mat, out_mat.size(), 0, 0);
 }
 
-int cvRotateImage(fits *image, point center, double angle, int interpolation, int cropped) {
+// This function is now used only for mod90 rotations w/o interp
+int cvRotateImage(fits *image, int angle) {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = image->rx, target_ry = image->ry;
-	Rect frame;
-	Point2f pt(center.x, center.y);
 
-	/*  the angle will be mapped to the range of [-360, 360] */
-	angle = (fmod((angle / 90), 4)) * 90;
+	gboolean is_fast = (angle % 90 == 0);
+	if (!is_fast) return 1;
 
-	gboolean is_fast = fmod(angle, 90.0) == 0.0;
-	if (interpolation == -1)
-		assert(is_fast);
-
-	if (is_fast && (interpolation == -1 || !cropped)) {
-		if (fmod(angle, 180.0) != 0.0) {
-			target_rx = image->ry;
-			target_ry = image->rx;
-		}
-	}
-	else if (!cropped) {
-		frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
-		target_rx = frame.width;
-		target_ry = frame.height;
-		siril_debug_print("after rotation, new image size will be %d x %d\n", target_rx, target_ry);
+	if (angle % 180 != 0.0) {
+		target_rx = image->ry;
+		target_ry = image->rx;
 	}
 
 	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
 		return 1;
 
-	if (is_fast && (interpolation == -1 || !cropped)) {	// fast rotation
-		/* flip third argument: how to flip the array; 0 means flipping around the
-		 * x-axis and positive value (for example, 1) means flipping around y-axis.
-		 * Negative value (for example, -1) means flipping around both axes.
-		 */
-		if (angle == 90 || angle == -270) {
-			transpose(in, out);
-			flip(out, out, 0);
-		} else if (angle == 180 || angle == -180) {
-			flip(in, out, -1);
-		}
-		else { // 270, -90
-			transpose(in, out);
-			flip(out, out, 1);
-		}
-	} else {
-		Mat r = getRotationMatrix2D(pt, angle, 1.0);
-		if (cropped == 1) {
-			warpAffine(in, out, r, out.size(), interpolation);
-		} else {
-			// adjust transformation matrix
-			r.at<double>(0, 2) += frame.width / 2.0 - pt.x;
-			r.at<double>(1, 2) += frame.height / 2.0 - pt.y;
-
-			warpAffine(in, out, r, frame.size(), interpolation);
-		}
+	// fast rotation
+	/* flip third argument: how to flip the array; 0 means flipping around the
+	* x-axis and positive value (for example, 1) means flipping around y-axis.
+	* Negative value (for example, -1) means flipping around both axes.
+	*/
+	if (angle == 90 || angle == -270) {
+		transpose(in, out);
+		flip(out, out, 0);
+	} else if (angle == 180 || angle == -180) {
+		flip(in, out, -1);
 	}
-
+	else { // 270, -90
+		transpose(in, out);
+		flip(out, out, 1);
+	}
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 

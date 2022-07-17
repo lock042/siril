@@ -231,6 +231,39 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	return retvalue;
 }
 
+// wraps cvRotateImage to update WCS data as well
+int verbose_rotate_fast(fits *image, int angle) {
+	if (angle % 90 != 0) return 1;
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	siril_log_color_message(
+		_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
+		_("No"), (double)angle);
+	Homography H = { 0 };
+	point center = { (double)image->rx * 0.5, (double)image->ry * 0.5 };
+	// Computing H matrix to update astrometry data
+	int orig_ry = image->ry; // required to compute flips afterwards
+	int target_rx = image->rx;
+	int target_ry = image->ry;
+	cvGetMatrixReframe(0, 0, image->rx, image->ry, (double)angle, &H);
+	cvGetBoundingRectSize(image, center, (double)angle, &target_rx, &target_ry);
+	H.h02 += (double)target_rx * 0.5 - center.x;
+	H.h12 += (double)target_ry * 0.5 - center.y;
+
+	if(cvRotateImage(&gfit, angle)) return 1;
+
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+#ifdef HAVE_WCSLIB
+	if (image->wcslib) {
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(image, H);
+		load_WCS_from_memory(image);
+	}
+#endif
+	return 0;
+}
+
 int verbose_rotate_image(fits *image, double angle, int interpolation,
 		int cropped) {
 	const char *str_inter;
@@ -511,7 +544,7 @@ int crop(fits *fit, rectangle *bounds) {
 void siril_rotate90() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (90.0deg)"));
-		verbose_rotate_image(&gfit, 90.0, -1, 0);	// fast rotation, no interpolation, no crop
+		verbose_rotate_fast(&gfit, 90);	// fast rotation, no interpolation, no crop
 		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
@@ -521,7 +554,7 @@ void siril_rotate90() {
 void siril_rotate270() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (-90.0deg)"));
-		verbose_rotate_image(&gfit, 270.0, -1, 0);// fast rotation, no interpolation, no crop
+		verbose_rotate_fast(&gfit, -90);// fast rotation, no interpolation, no crop
 		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
