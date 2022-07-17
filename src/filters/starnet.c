@@ -59,6 +59,8 @@
 
 #include "starnet.h"
 
+#ifdef HAVE_LIBTIFF
+
 // Check maximum path length - OSes except for Windows
 #ifndef _WIN32
 long get_pathmax(void)
@@ -523,3 +525,4 @@ gpointer do_starnet(gpointer p) {
 
 	return GINT_TO_POINTER(retval);
 }
+#endif
