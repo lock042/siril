@@ -48,48 +48,68 @@ static GtkWidget *rotation_dlg = NULL, *histo_dlg = NULL;
 /* mouse callbacks */
 static double margin_size = 10;
 
-static gboolean is_over_the_left_side_of_sel(pointi zoomed, double zoom) {
+static gboolean is_over_the_left_side_of_sel(pointi zoomed, double zoom, cairo_matrix_t *transform) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
 	int s = round_to_int(margin_size / zoom);
-	if (zoomed.x > com.selection.x - s && zoomed.x < com.selection.x + s) {
-		if (zoomed.y > com.selection.y - s
-				&& zoomed.y < com.selection.y + com.selection.h + s)
+	double x = (double)zoomed.x;
+	double y = (double)zoomed.y;
+	if (transform) {
+		cairo_matrix_transform_point(transform, &x, &y);
+	}
+	if ((int)x > com.selection.x - s && (int)x < com.selection.x + s) {
+		if ((int)y > com.selection.y - s
+				&& (int)y < com.selection.y + com.selection.h + s)
 			return TRUE;
 	}
 
 	return FALSE;
 }
 
-static gboolean is_over_the_right_side_of_sel(pointi zoomed, double zoom) {
+static gboolean is_over_the_right_side_of_sel(pointi zoomed, double zoom, cairo_matrix_t *transform) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
-	if (zoomed.x > com.selection.x + com.selection.w - s
-				&& zoomed.x < com.selection.x + com.selection.w + s) {
-		if (zoomed.y > com.selection.y - s
-				&& zoomed.y < com.selection.y + com.selection.h + s)
+	int s = round_to_int(margin_size / zoom);
+	double x = (double)zoomed.x;
+	double y = (double)zoomed.y;
+	if (transform) {
+		cairo_matrix_transform_point(transform, &x, &y);
+	}
+	if ((int)x > com.selection.x + com.selection.w - s
+				&& (int)x < com.selection.x + com.selection.w + s) {
+		if ((int)y > com.selection.y - s
+				&& (int)y < com.selection.y + com.selection.h + s)
 			return TRUE;
 	}
 	return FALSE;
 }
 
-static gboolean is_over_the_bottom_of_sel(pointi zoomed, double zoom) {
+static gboolean is_over_the_bottom_of_sel(pointi zoomed, double zoom, cairo_matrix_t *transform) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
-	if (zoomed.y > com.selection.y + com.selection.h - s
-				&& zoomed.y < com.selection.y + com.selection.h + s) {
-		if (zoomed.x > com.selection.x - s
-				&& zoomed.x < com.selection.x + com.selection.w + s)
+	int s = round_to_int(margin_size / zoom);
+	double x = (double)zoomed.x;
+	double y = (double)zoomed.y;
+	if (transform) {
+		cairo_matrix_transform_point(transform, &x, &y);
+	}
+	if ((int)y > com.selection.y + com.selection.h - s
+				&& (int)y < com.selection.y + com.selection.h + s) {
+		if ((int)x > com.selection.x - s
+				&& (int)x < com.selection.x + com.selection.w + s)
 			return TRUE;
 	}
 	return FALSE;
 }
 
-static gboolean is_over_the_top_of_sel(pointi zoomed, double zoom) {
+static gboolean is_over_the_top_of_sel(pointi zoomed, double zoom, cairo_matrix_t *transform) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
-	if (zoomed.y > com.selection.y - s && zoomed.y < com.selection.y + s) {
-		if (zoomed.x > com.selection.x - s
-				&& zoomed.x < com.selection.x + com.selection.w + s)
+	int s = round_to_int(margin_size / zoom);
+	double x = (double)zoomed.x;
+	double y = (double)zoomed.y;
+	if (transform) {
+		cairo_matrix_transform_point(transform, &x, &y);
+	}
+	if ((int)y > com.selection.y - s && (int)y < com.selection.y + s) {
+		if ((int)x > com.selection.x - s
+				&& (int)x < com.selection.x + com.selection.w + s)
 			return TRUE;
 	}
 	return FALSE;
@@ -97,20 +117,15 @@ static gboolean is_over_the_top_of_sel(pointi zoomed, double zoom) {
 
 static gboolean is_inside_of_sel(pointi zoomed, double zoom, cairo_matrix_t *transform) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
-	if (!transform) {
-		if (zoomed.x >= com.selection.x + s && zoomed.x <= com.selection.x + com.selection.w - s) {
-			if (zoomed.y >= com.selection.y + s && zoomed.y <= com.selection.y + com.selection.h - s)
-				return TRUE;
-		}
-	} else {
-		double x = (double)zoomed.x;
-		double y = (double)zoomed.y;
+	int s = round_to_int(margin_size / zoom);
+	double x = (double)zoomed.x;
+	double y = (double)zoomed.y;
+	if (transform) {
 		cairo_matrix_transform_point(transform, &x, &y);
-		if ((int)x >= com.selection.x + s && (int)x <= com.selection.x + com.selection.w - s) {
-			if ((int)y >= com.selection.y + s && (int)y <= com.selection.y + com.selection.h - s)
-				return TRUE;
-		}
+	}
+	if ((int)x >= com.selection.x + s && (int)x <= com.selection.x + com.selection.w - s) {
+		if ((int)y >= com.selection.y + s && (int)y <= com.selection.y + com.selection.h - s)
+			return TRUE;
 	}
 	return FALSE;
 }
@@ -408,10 +423,10 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 						gui.freezeX = gui.freezeY = FALSE;
 						// The order matters if the selection is so small that edge detection overlaps
 						// and need to be the same as in the on_drawingarea_motion_notify_event()
-						gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
-						gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
-						gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
-						gboolean top = is_over_the_top_of_sel(zoomed, zoom);
+						gboolean right = is_over_the_right_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+						gboolean left = is_over_the_left_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+						gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+						gboolean top = is_over_the_top_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
 						if (right || left || bottom || top) {
 							// Freeze one axis when grabbing an edge far enough from a corner
 							if (right) {
@@ -772,10 +787,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			if (!gui.drawing && !gui.translating) {
 				// The order matters if the selection is so small that edge detection overlaps
 				// and need to be the same as in the on_drawingarea_button_press_event()
-				gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
-				gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
-				gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
-				gboolean top = is_over_the_top_of_sel(zoomed, zoom);
+				gboolean right = is_over_the_right_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+				gboolean left = is_over_the_left_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+				gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+				gboolean top = is_over_the_top_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
 				if (bottom && right) {
 					set_cursor("se-resize");
 				} else if (top && right) {
