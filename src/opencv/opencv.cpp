@@ -909,7 +909,7 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 	std::cout << H << std::endl;
 
 	// transform is final to orginal, we need to inverse
-	// to have H from final to original
+	// to have H from original to final
 	H = H.inv();
 	std::cout << H << std::endl;
 

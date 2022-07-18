@@ -1541,6 +1541,11 @@ int process_rotate(int nb) {
 
 	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop);
 
+	if (has_selection) {
+		com.selection.x = 0;
+		com.selection.y = 0;
+		new_selection_zone();
+	}
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
