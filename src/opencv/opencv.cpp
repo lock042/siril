@@ -884,9 +884,9 @@ void cvMultH(Homography H1, Homography H2, Homography *Hout) {
 	convert_MatH_to_H(_H, Hout);
 }
 
-void cvGetMatrixReframe(int x, int y, int w, int h, double angle, Homography *Hom) {
-	double dx = (double)x + (double)w * 0.5;
-	double dy = (double)y + (double)h * 0.5;
+void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom) {
+	double dx = x + (double)w * 0.5;
+	double dy = y + (double)h * 0.5;
 	Point2f pt(0., 0.);
 
 	// shift to get to the center of the initial image
@@ -906,12 +906,12 @@ void cvGetMatrixReframe(int x, int y, int w, int h, double angle, Homography *Ho
 	// std::cout << H << std::endl;
 
 	H = S * H * S2;
-	// std::cout << H << std::endl;
+	std::cout << H << std::endl;
 
 	// transform is final to orginal, we need to inverse
 	// to have H from final to original
 	H = H.inv();
-	// std::cout << H << std::endl;
+	std::cout << H << std::endl;
 
 	convert_MatH_to_H(H, Hom);
 }

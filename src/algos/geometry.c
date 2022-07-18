@@ -165,6 +165,7 @@ void mirrory_gui(fits *fit) {
 }
 
 static void rotate_gui(fits *fit) {
+	if (com.selection.w == 0 || com.selection.h == 0) return;
 	static GtkToggleButton *crop_rotation = NULL;
 	double angle = gtk_spin_button_get_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
@@ -181,7 +182,7 @@ static void rotate_gui(fits *fit) {
 	set_cursor_waiting(TRUE);
 	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
 			cropped ? "TRUE" : "FALSE");
-	verbose_rotate_image(fit, angle, interpolation, cropped);
+	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
 	
 	update_zoom_label();
 	redraw(REMAP_ALL);
@@ -231,6 +232,23 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	return retvalue;
 }
 
+// computes H matrix for rotation and crop
+int GetMatrixReframe(fits *image, rectangle area, double angle, int cropped, int *target_rx, int *target_ry, Homography *H) {
+	*target_rx = area.w;
+	*target_ry = area.h;
+	double orig_x = (double)area.x;
+	double orig_y = (double)area.y;
+	if (!cropped) {
+		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_rx * 0.5 };
+		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
+		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
+		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
+		}
+	cvGetMatrixReframe(orig_x, orig_y, *target_rx, *target_ry, angle, H);
+	return 0; // TODO: will deal with error values later on
+}
+
+
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1;
@@ -241,19 +259,14 @@ int verbose_rotate_fast(fits *image, int angle) {
 		_("No"), (double)angle);
 
 #ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
-	Homography H = { 0 };
-	point center = { (double)image->rx * 0.5, (double)image->ry * 0.5 };
-	// Computing H matrix to update astrometry data
 	int orig_ry = image->ry; // required to compute flips afterwards
-	int target_rx = image->rx;
-	int target_ry = image->ry;
-	cvGetMatrixReframe(0, 0, image->rx, image->ry, (double)angle, &H);
-	cvGetBoundingRectSize(image, center, (double)angle, &target_rx, &target_ry);
-	H.h02 += (double)target_rx * 0.5 - center.x;
-	H.h12 += (double)target_ry * 0.5 - center.y;
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	rectangle area = {0, 0, image->rx, image->ry};
+	if (GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H)) return 1;
 #endif
 
-	if(cvRotateImage(image, angle)) return 1;
+	if (cvRotateImage(image, angle)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -267,7 +280,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 	return 0;
 }
 
-int verbose_rotate_image(fits *image, double angle, int interpolation,
+int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped) {
 	const char *str_inter;
 	struct timeval t_start, t_end;
@@ -299,26 +312,11 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
 
-	// TODO : add checks about selection not being null
-	Homography H = { 0 };
-	point center = { (double)com.selection.x + (double)com.selection.w * 0.5, (double)com.selection.y + (double)com.selection.h * 0.5 };
-	// initialize to original image
 	int orig_ry = image->ry; // required to compute flips afterwards
-	int target_rx = image->rx;
-	int target_ry = image->ry;
-	if (com.selection.w < gfit.rx || com.selection.h < gfit.ry) {
-		target_rx = com.selection.w;
-		target_ry = com.selection.h;
-		cvGetMatrixReframe(com.selection.x,com.selection.y, target_rx, target_ry, angle, &H);
-	} else {
-		cvGetMatrixReframe(0, 0, image->rx, image->ry, angle, &H);
-		if (!cropped) {
-			cvGetBoundingRectSize(image, center, angle, &target_rx, &target_ry);
-			H.h02 += (double)target_rx * 0.5 - center.x;
-			H.h12 += (double)target_ry * 0.5 - center.y;
-		}
-	}
-	cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation);
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	if (GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H)) return 1;
+	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);

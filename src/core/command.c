@@ -61,9 +61,9 @@
 #include "gui/linear_match.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
-#include "gui/script_menu.h"
 #include "gui/registration_preview.h"
 #include "gui/photometric_cc.h"
+#include "gui/script_menu.h"
 #include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
@@ -1523,15 +1523,23 @@ int process_rgradient(int nb) {
 int process_rotate(int nb) {
 	set_cursor_waiting(TRUE);
 	int crop = 1;
+	gboolean has_selection = FALSE;
+	rectangle area = {0, 0, gfit.rx, gfit.ry};
+	if (com.selection.w > 0 && com.selection.h > 0) {
+		memcpy(&area, &com.selection, sizeof(rectangle));
+		has_selection = TRUE;
+	}
 
 	double degree = g_ascii_strtod(word[1], NULL);
 
 	/* check for options */
 	if (word[2] && (!strcmp(word[2], "-nocrop"))) {
-		crop = 0;
+		if (has_selection) {
+			siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
+		} else crop = 0;
 	}
 
-	verbose_rotate_image(&gfit, degree, OPENCV_AREA, crop);
+	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop);
 
 	update_zoom_label();
 	redraw(REMAP_ALL);
