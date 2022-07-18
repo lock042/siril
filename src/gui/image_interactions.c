@@ -42,6 +42,9 @@
 
 mouse_status_enum mouse_status;
 
+// caching widgets
+static GtkWidget *rotation_dlg = NULL, *histo_dlg = NULL;
+
 /* mouse callbacks */
 static double margin_size = 10;
 
@@ -92,12 +95,22 @@ static gboolean is_over_the_top_of_sel(pointi zoomed, double zoom) {
 	return FALSE;
 }
 
-static gboolean is_inside_of_sel(pointi zoomed, double zoom) {
+static gboolean is_inside_of_sel(pointi zoomed, double zoom, cairo_matrix_t *transform) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
 	double s = margin_size / zoom;
-	if (zoomed.x >= com.selection.x + s && zoomed.x <= com.selection.x + com.selection.w - s) {
-		if (zoomed.y >= com.selection.y + s && zoomed.y <= com.selection.y + com.selection.h - s)
-			return TRUE;
+	if (!transform) {
+		if (zoomed.x >= com.selection.x + s && zoomed.x <= com.selection.x + com.selection.w - s) {
+			if (zoomed.y >= com.selection.y + s && zoomed.y <= com.selection.y + com.selection.h - s)
+				return TRUE;
+		}
+	} else {
+		double x = (double)zoomed.x;
+		double y = (double)zoomed.y;
+		cairo_matrix_transform_point(transform, &x, &y);
+		if ((int)x >= com.selection.x + s && (int)x <= com.selection.x + com.selection.w - s) {
+			if ((int)y >= com.selection.y + s && (int)y <= com.selection.y + com.selection.h - s)
+				return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -320,6 +333,10 @@ void enforce_ratio_and_clamp() {
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 
+	if (!rotation_dlg) {
+		rotation_dlg = lookup_widget("rotation_dialog");
+		histo_dlg = lookup_widget("histogram_dialog");
+	}
 	/* when double clicking on drawing area (if no images loaded)
 	 * you can load an image This feature is in GIMP and I really
 	 * love it: lazy world :).
@@ -332,6 +349,11 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		}
 		return FALSE;
 	}
+
+	gboolean rotdlg_is_visible = gtk_widget_is_visible(rotation_dlg);
+	cairo_matrix_t transform;
+	gboolean has_rotation = FALSE;
+	if (rotdlg_is_visible) has_rotation = get_context_rotation_matrix(-com.rotation, &transform, TRUE);
 
 	double zoom = get_zoom_val();
 
@@ -375,7 +397,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					gui.drawing = FALSE;
 				} else {
 					gui.drawing = TRUE;
-					if (is_inside_of_sel(zoomed, zoom)) {
+					if (is_inside_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL)) {
 						// Move selection
 						gui.freezeX = gui.freezeY = TRUE;
 						gui.start = zoomed;
@@ -576,10 +598,18 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
+	if (!rotation_dlg) {
+		rotation_dlg = lookup_widget("rotation_dialog");
+		histo_dlg = lookup_widget("histogram_dialog");
+	}
 	if ((!single_image_is_loaded() && !sequence_is_loaded())
 			|| gfit.type == DATA_UNSUPPORTED) {
 		return FALSE;
 	}
+	gboolean rotdlg_is_visible = gtk_widget_is_visible(rotation_dlg);
+	cairo_matrix_t transform;
+	gboolean has_rotation = FALSE;
+	if (rotdlg_is_visible) has_rotation = get_context_rotation_matrix(-com.rotation, &transform, TRUE);
 
 	double zoom = get_zoom_val();
 
@@ -762,13 +792,13 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					set_cursor("s-resize");
 				} else if (top) {
 					set_cursor("n-resize");
-				} else if (is_inside_of_sel(zoomed, zoom)) {
+				} else if (is_inside_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL)) {
 					set_cursor("all-scroll");
 				} else {
 					set_cursor("crosshair");
 				}
 			} else {
-				if ((event->state & get_primary()) || is_inside_of_sel(zoomed, zoom)) {
+				if ((event->state & get_primary()) || (is_inside_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL))) {
 					set_cursor("all-scroll");
 				} else {
 					set_cursor("crosshair");

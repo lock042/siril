@@ -552,17 +552,20 @@ static void draw_main_image(const draw_data_t* dd) {
 	}
 }
 
-void get_context_rotation_matrix(double rotation, cairo_matrix_t *transform) {
+gboolean get_context_rotation_matrix(double rotation, cairo_matrix_t *transform, gboolean invert) {
+	if (rotation == 0.) return FALSE;
 	double dx = (double)com.selection.x + (double)com.selection.w * 0.5;
 	double dy = (double)com.selection.y + (double)com.selection.h * 0.5;
 	cairo_matrix_init_translate(transform, dx, dy);
 	cairo_matrix_rotate(transform, rotation * DEGTORAD);
 	cairo_matrix_translate(transform, -dx, -dy);
+	if (invert) return (cairo_matrix_invert(transform) == CAIRO_STATUS_SUCCESS);
+	return TRUE;
 }
 
 static void rotate_context(cairo_t *cr, double rotation) {
 	cairo_matrix_t transform;
-	get_context_rotation_matrix(rotation, &transform);
+	if (!get_context_rotation_matrix(rotation, &transform, FALSE)) return;
 	cairo_transform(cr, &transform);
 }
 
@@ -577,7 +580,7 @@ static void draw_selection(const draw_data_t* dd) {
 		cairo_save(cr); // save the original transform
 		if (gtk_widget_is_visible(rotation_dlg)) {
 			cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
-			rotate_context(cr, -1. * com.rotation); // cairo is positive CW while opencv is positive CCW 
+			rotate_context(cr, -com.rotation); // cairo is positive CW while opencv is positive CCW 
 		}
 		cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
 						(double) com.selection.w, (double) com.selection.h);
