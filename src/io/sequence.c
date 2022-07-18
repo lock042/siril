@@ -370,6 +370,9 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		siril_debug_print("Found a AVI sequence\n");
 	}
 #endif
+	/* FIXME: this is not ideal, if we passed the exact name, in some cases we still
+	 * want to open the FITSEQ even if it doesn't have the configured extension
+	 */
 	else if (check_for_fitseq && !strcasecmp(ext, com.pref.ext + 1) && fitseq_is_fitseq(name, NULL)) {
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
 		fitseq_init_struct(fitseq_file);
