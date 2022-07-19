@@ -578,7 +578,7 @@ void on_button_rotation_ok_clicked(GtkButton *button, gpointer user_data) {
 
 void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
 	if (com.selection.w != 0 && com.selection.h != 0) {
-		com.rotation = gtk_spin_button_get_value(button);
+		gui.rotation = gtk_spin_button_get_value(button);
 		redraw(REDRAW_OVERLAY);
 	}
 }

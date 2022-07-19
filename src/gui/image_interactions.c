@@ -130,6 +130,17 @@ static gboolean is_inside_of_sel(pointi zoomed, double zoom, cairo_matrix_t *tra
 	return FALSE;
 }
 
+static void get_transformed_point(int x_o, int y_o, cairo_matrix_t *transform, int *x_t, int *y_t) {
+	*x_t = x_o;
+	*y_t = y_o;
+	if (com.selection.w == 0 && com.selection.h == 0) return;
+	if (!transform) return;
+	double x = (double)x_o;
+	double y = (double)y_o;
+	cairo_matrix_transform_point(transform, &x, &y);
+	*x_t = (int)x;
+	*y_t = (int)y;
+}
 /* Clamp given coordinates to image boundaries.
    Returns true if point was inside, false otherwise.
 */
@@ -368,7 +379,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	gboolean rotdlg_is_visible = gtk_widget_is_visible(rotation_dlg);
 	cairo_matrix_t transform;
 	gboolean has_rotation = FALSE;
-	if (rotdlg_is_visible) has_rotation = get_context_rotation_matrix(-com.rotation, &transform, TRUE);
+	if (rotdlg_is_visible) has_rotation = get_context_rotation_matrix(-gui.rotation, &transform, TRUE);
 
 	double zoom = get_zoom_val();
 
@@ -528,6 +539,11 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
+	gboolean rotdlg_is_visible = gtk_widget_is_visible(rotation_dlg);
+	cairo_matrix_t transform;
+	gboolean has_rotation = FALSE;
+	if (rotdlg_is_visible) has_rotation = get_context_rotation_matrix(-gui.rotation, &transform, TRUE);
+
 	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		if (gui.translating) {
 			gui.translating = FALSE;
@@ -542,7 +558,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.x = zoomed.x;
 					com.selection.w = gui.start.x - zoomed.x;
 				}
-				if (com.selection.w == 0)
+				if (com.selection.w == 0 && gtk_widget_is_visible(histo_dlg))
 					com.selection.w = 1;
 			}
 			if (!gui.freezeY) {
@@ -553,8 +569,23 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.y = zoomed.y;
 					com.selection.h = gui.start.y - zoomed.y;
 				}
-				if (com.selection.h == 0)
+				if (com.selection.h == 0 && gtk_widget_is_visible(histo_dlg))
 					com.selection.h = 1;
+			}
+			// if (has_rotation) {
+			// 	int tempw, temph;
+			// 	get_transformed_point(com.selection.w, com.selection.h, &transform, &tempw, &temph);
+			// 	if (!gui.freezeX) com.selection.w = tempw;
+			// 	if (!gui.freezeY) com.selection.h = temph;
+			// }
+
+			// never let selection be null if rotation_dlg is visible
+			// reinstate full image instead
+			if (!gui.freezeX && com.selection.w == 0 && gtk_widget_is_visible(rotation_dlg)) {
+				com.selection.w = gfit.rx;
+			}
+			if (!gui.freezeY && com.selection.h == 0 && gtk_widget_is_visible(rotation_dlg)) {
+				com.selection.h = gfit.ry;
 			}
 
 			if (gui.freezeX && gui.freezeY) { // Move selection
@@ -624,7 +655,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	gboolean rotdlg_is_visible = gtk_widget_is_visible(rotation_dlg);
 	cairo_matrix_t transform;
 	gboolean has_rotation = FALSE;
-	if (rotdlg_is_visible) has_rotation = get_context_rotation_matrix(-com.rotation, &transform, TRUE);
+	if (rotdlg_is_visible) has_rotation = get_context_rotation_matrix(-gui.rotation, &transform, TRUE);
 
 	double zoom = get_zoom_val();
 
@@ -784,14 +815,17 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 			set_cursor("cell");
 		} else {
+			// The order matters if the selection is so small that edge detection overlaps
+			// and need to be the same as in the on_drawingarea_button_press_event()
+			gboolean right = is_over_the_right_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+			gboolean left = is_over_the_left_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+			gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+			gboolean top = is_over_the_top_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
+
 			if (!gui.drawing && !gui.translating) {
-				// The order matters if the selection is so small that edge detection overlaps
-				// and need to be the same as in the on_drawingarea_button_press_event()
-				gboolean right = is_over_the_right_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
-				gboolean left = is_over_the_left_side_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
-				gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
-				gboolean top = is_over_the_top_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL);
-				if (bottom && right) {
+				if (has_rotation && (right || left || bottom || top)) {
+					set_cursor("grab");
+				} else if (bottom && right) {
 					set_cursor("se-resize");
 				} else if (top && right) {
 					set_cursor("ne-resize");
@@ -815,6 +849,8 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			} else {
 				if ((event->state & get_primary()) || (is_inside_of_sel(zoomed, zoom, (has_rotation) ? &transform : NULL))) {
 					set_cursor("all-scroll");
+				} else if (has_rotation && (right || left || bottom || top)) {
+					set_cursor("grabbing");
 				} else {
 					set_cursor("crosshair");
 				}

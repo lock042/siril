@@ -521,6 +521,8 @@ struct guiinf {
 	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection
 	double ratio;			// enforced ratio of the selection (default is 0: none)
+	double rotation;			// selection rotation for dynamic crop 
+
 
 	/* alignment preview data */
 	cairo_surface_t *preview_surface[PREVIEW_NB];
@@ -566,7 +568,6 @@ struct cominf {
 	int max_thread;			// max total number of threads used for parallel execution
 
 	rectangle selection;		// coordinates of the selection rectangle
-	double rotation;			// selection rotation for dynamic crop 
 
 	psf_star **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
