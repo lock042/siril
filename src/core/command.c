@@ -1524,8 +1524,9 @@ int process_rotate(int nb) {
 	set_cursor_waiting(TRUE);
 	int crop = 1;
 	gboolean has_selection = FALSE;
-	rectangle area = {0, 0, gfit.rx, gfit.ry};
+	rectangle area = { 0, 0, gfit.rx, gfit.ry };
 	if (com.selection.w > 0 && com.selection.h > 0) {
+		siril_log_color_message(_("Rotation will apply only to current selection, the resulting image will be cropped.\n"), "salmon");
 		memcpy(&area, &com.selection, sizeof(rectangle));
 		has_selection = TRUE;
 	}
@@ -1541,9 +1542,10 @@ int process_rotate(int nb) {
 
 	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop);
 
+	// the new selection will match the current image
 	if (has_selection) {
-		com.selection.x = 0;
-		com.selection.y = 0;
+		rectangle area = { 0, 0, gfit.rx, gfit.ry };
+		memcpy(&com.selection, &area, sizeof(rectangle));
 		new_selection_zone();
 	}
 	update_zoom_label();

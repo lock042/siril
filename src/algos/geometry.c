@@ -184,10 +184,15 @@ static void rotate_gui(fits *fit) {
 			cropped ? "TRUE" : "FALSE");
 	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
 	
+	// the UI is still opened, need to reset selection
+	// to current image size
+	rectangle area = {0, 0, fit->rx, fit->ry};
+	memcpy(&com.selection, &area, sizeof(rectangle));
+	new_selection_zone();
+
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
-	delete_selected_area();
 	set_cursor_waiting(FALSE);
 }
 
