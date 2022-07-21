@@ -23,6 +23,12 @@ typedef struct starnet_data {
 	gboolean customstride;
 	gboolean upscale;
 	gboolean starmask;
+	gboolean follow_on;
 } starnet_data;
+
+typedef struct remixargs {
+	fits *fit1;
+	fits *fit2;
+} remixargs;
 
 #endif /* SRC_FILTERS_STARNET_H_ */

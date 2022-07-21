@@ -1794,7 +1794,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
 	fit->ry = fit->naxes[1];
-	fit->naxes[2] = 1;	
+	fit->naxes[2] = 1;
 	fit->naxis = 2;
 
 	status = 0;
@@ -2384,7 +2384,7 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->ccd_temp = from->ccd_temp;
 	to->cvf = from->cvf;
 	to->key_gain = from->key_gain;
-	to->key_offset = from->key_offset;	
+	to->key_offset = from->key_offset;
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
@@ -2643,7 +2643,7 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 
 	npixels = width * height;
 	data_size = type == DATA_USHORT ? sizeof(WORD) : sizeof(float);
-	
+
 	if (!data) {
 		data = malloc(npixels * nblayer * data_size);
 		if (!data) {

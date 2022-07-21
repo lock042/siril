@@ -391,7 +391,6 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 //			params.B, params.D, params.LP, params.SP, params.HP);
 	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params.B, params.D, params.LP, params.SP, params.HP, params.stretchtype);
-
 	if (from->type == DATA_USHORT) {
 		double norm = get_normalized_value(from);
 		double invnorm = 1.0f / norm;
