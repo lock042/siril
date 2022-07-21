@@ -111,6 +111,7 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

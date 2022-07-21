@@ -40,6 +40,7 @@
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
+#include "gui/remixer.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
@@ -217,6 +218,13 @@ gboolean starnet_executablecheck() {
 		g_free(monopath);
 		return FALSE;
 	}
+}
+
+gboolean end_and_call_remixer(gpointer p)
+{
+	struct remixargs *blendargs = (remixargs *) p;
+	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
+	return end_generic(NULL);
 }
 
 /* Starnet++v2 star removal routine */
@@ -422,6 +430,7 @@ gpointer do_starnet(gpointer p) {
 		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
 	}
+
 	// Downscale again if needed
 	if (args->upscale) {
 		siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
@@ -500,6 +509,15 @@ gpointer do_starnet(gpointer p) {
 	free(com.uniq->filename);
 	com.uniq->filename = strdup(_(starlessfit));
 
+	if (args->follow_on) {
+		struct remixargs *blendargs;
+		blendargs = calloc(1, sizeof(struct remixargs));
+		blendargs->fit1 = calloc(1, sizeof(fits));
+		blendargs->fit2 = calloc(1, sizeof(fits));
+		copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+		copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+		siril_add_idle(end_and_call_remixer, blendargs);
+	}
 
 	CLEANUP:
 	retval = g_chdir(currentdir);
@@ -519,7 +537,8 @@ gpointer do_starnet(gpointer p) {
 	free(currentdir);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	notify_gfit_modified();
-
+	if (!args->follow_on)
+		notify_gfit_modified();
+	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }

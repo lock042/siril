@@ -50,6 +50,8 @@
 #include "livestacking/livestacking.h"
 #include "gui/registration_preview.h"
 #include "registration/registration.h"
+#include "gui/remixer.h"
+
 #include "siril_actions.h"
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -569,6 +571,10 @@ void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 
 void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	open_compositing_window();
+}
+
+void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	toggle_remixer_window_visibility(CALL_FROM_MENU, NULL, NULL);
 }
 
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
