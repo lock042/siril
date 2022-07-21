@@ -193,6 +193,8 @@ siril_common_SOURCES = \
 	gui/PSF_list.h \
 	gui/PSF_list.c \
 	gui/registration_preview.c \
+	gui/remixer.c \
+	gui/remixer.h \
 	gui/save_dialog.c \
 	gui/save_dialog.h \
 	gui/script_menu.c \

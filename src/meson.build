@@ -148,6 +148,7 @@ src_files = [
   'gui/progress_and_log.c',
   'gui/PSF_list.c',
   'gui/registration_preview.c',
+  'gui/remixer.c',
   'gui/save_dialog.c',
   'gui/script_menu.c',
   'gui/sequence_list.c',
