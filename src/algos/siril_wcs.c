@@ -224,9 +224,9 @@ void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 
 // ra in degrees
 int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
-#ifndef HAVE_WCSLIB
 	*x = -1.0;
 	*y = -1.0;
+#ifndef HAVE_WCSLIB
 	return 1;
 #else
 	int status, stat[NWCSFIX];

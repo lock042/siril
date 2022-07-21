@@ -64,7 +64,7 @@ static double invxpos = -1.0;
 static double histo_color_r[] = { 1.0, 0.0, 0.0, 0.0 };
 static double histo_color_g[] = { 0.0, 1.0, 0.0, 0.0 };
 static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
-static float graph_height = 0.f;	// the max value of all bins
+// static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
 
 static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
@@ -368,9 +368,9 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 			cairo_line_to(cr, k, height * (1 - y));
 		}
 	} else if (invocation == GHT_STRETCH) {
+		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 		for (k = 0; k < width + 1; k++) {
 			float x = k / (float) width;
-			GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 			float y = (float) GHT((double) x, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, compute_params);
 			cairo_line_to(cr, k, height * (1 - y));
 		}
@@ -378,7 +378,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 	cairo_stroke(cr);
 }
 
-static void draw_grid(cairo_t *cr, int width, int height) {
+void draw_grid(cairo_t *cr, int width, int height) {
 	double dash_format[] = { 1.0, 1.0 };
 
 	cairo_set_line_width(cr, 1.0);
@@ -427,7 +427,7 @@ static void draw_grid(cairo_t *cr, int width, int height) {
 }
 
 // erase image and redraw the background color and grid
-static void erase_histo_display(cairo_t *cr, int width, int height) {
+void erase_histo_display(cairo_t *cr, int width, int height) {
 	gboolean drawGrid, drawCurve;
 	// clear all with background color
 	cairo_set_source_rgb(cr, 0, 0, 0);
@@ -471,7 +471,7 @@ static void draw_slider(cairo_t *cr, int width, int height, int xpos) {
 	cairo_stroke(cr);
 }
 
-static void display_scale(cairo_t *cr, int width, int height) {
+void display_scale(cairo_t *cr, int width, int height) {
 	draw_gradient(cr, width, height);
 	if (invocation == HISTO_STRETCH) {
 		float delta = ((_highlights - _shadows) * _midtones) + _shadows;
@@ -485,7 +485,7 @@ static void display_scale(cairo_t *cr, int width, int height) {
 */	}
 }
 
-static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
+void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 		int height, double zoomH, double zoomV, gboolean isOrig) {
 	if (width <= 0) return;
 	int current_bin;
@@ -527,6 +527,7 @@ static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int widt
 
 	// first loop builds the bins and finds the maximum
 	i = 0;
+	float graph_height = 0.f;
 	current_bin = 0;
 	do {
 		float bin_val = 0.f;
@@ -657,7 +658,7 @@ static void reset_cursors_and_values() {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
 	}
-	graph_height = 0.f;
+//	graph_height = 0.f;
 	_init_clipped_pixels();
 	_initialize_clip_text();
 	_update_entry_text();
@@ -807,7 +808,6 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	if (height == 1)
 		return FALSE;
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
-	graph_height = 0.0;
 
 	for (i = 0; i < MAXVPORT; i++) {
 		if (com.layers_hist[i]

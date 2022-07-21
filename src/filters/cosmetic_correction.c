@@ -656,7 +656,7 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 #pragma omp parallel for num_threads(threads) if(threads > 1)
 #endif
 		for (size_t i = 0; i < n; i++) {
-			temp[i] = (float)fbuf[i];
+			temp[i] = (float)buf[i];
 		}
 	}
 	const int step = is_cfa ? 2 : 1;

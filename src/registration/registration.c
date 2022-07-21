@@ -1260,7 +1260,7 @@ int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography 
 	if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
 		return 1;
 	}
-	destfit->bitpix = fit->type;
+	destfit->bitpix = fit->bitpix;
 	destfit->orig_bitpix = fit->orig_bitpix;
 	int nbpix = fit->naxes[0] * fit->naxes[1] * (regargs->x2upscale ? 4 : 1);
 	if (destfit->type == DATA_FLOAT) {
