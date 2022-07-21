@@ -579,8 +579,23 @@ static void draw_selection(const draw_data_t* dd) {
 		cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
 		cairo_save(cr); // save the original transform
 		if (gtk_widget_is_visible(rotation_dlg)) {
+			double dashes2[]={5.0, 5.0};
+			cairo_set_dash(cr, dashes2, 2, 0);
+			cairo_set_line_width(cr, 0.5 / dd->zoom);
+			cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
+						(double) com.selection.w, (double) com.selection.h);
+			cairo_stroke(cr);
+			cairo_set_line_width(cr, 3. / dd->zoom);
 			cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
-			rotate_context(cr, -gui.rotation); // cairo is positive CW while opencv is positive CCW 
+			rotate_context(cr, -gui.rotation); // cairo is positive CW while opencv is positive CCW
+			
+			// draw a circle at top left corner to visualize rots larger than 90
+			double size = 10. / dd->zoom;
+			cairo_set_dash(cr, NULL, 0, 0);
+			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * M_PI);
+			cairo_stroke_preserve(cr);
+			cairo_fill(cr);
+			cairo_set_dash(cr, dash_format, 2, 0);
 		}
 		cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
 						(double) com.selection.w, (double) com.selection.h);
