@@ -59,6 +59,15 @@
 #endif /*_WIN32*/
 
 /*********************** finding gnuplot first **********************/
+static gchar *siril_get_gnuplot_path() {
+#ifdef _WIN32
+	gchar *str = g_strdup_printf("\"%s -persist\"", gnuplot_path);
+	return str;
+#else
+	return g_strdup("gnuplot");
+#endif
+}
+
 #ifdef _WIN32
 static const gchar *possible_path[] = { "C:\\PROGRA~1\\gnuplot\\bin\\gnuplot.exe", "C:\\msys64\\mingw64\\bin\\gnuplot.exe" };
 static const gchar *gnuplot_path = NULL;
@@ -82,7 +91,9 @@ gboolean gnuplot_is_available() {
 #else
 /* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
-	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", siril_win_get_gnuplot_path());
+	gchar *path = siril_get_gnuplot_path();
+	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", path);
+	g_free(path);
 
 	int retval = system(str);
 	g_free(str);
@@ -91,16 +102,6 @@ gboolean gnuplot_is_available() {
 	return FALSE;
 }
 #endif
-
-gchar *siril_win_get_gnuplot_path() {
-#ifdef _WIN32
-	gchar *str = g_strdup_printf("\"%s -persist\"", gnuplot_path);
-	return str;
-#else
-	return "gnuplot";
-#endif
-}
-
 
 /*---------------------------------------------------------------------------
                                 Defines
@@ -195,15 +196,13 @@ gnuplot_ctrl * gnuplot_init(void)
     gnuplot_setstyle(handle, "points") ;
     handle->ntmp = 0 ;
 
-    char *path = siril_win_get_gnuplot_path();
+    gchar *path = siril_get_gnuplot_path();
     handle->gnucmd = siril_popen(path, "w");
-#ifdef _WIN32
-    free(path);
-#endif
+    g_free(path);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
-        free(handle) ;
-        return NULL ;
+        free(handle);
+        return NULL;
     }
 
     for (i=0;i<GP_MAX_TMP_FILES; i++)

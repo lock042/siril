@@ -632,8 +632,7 @@ int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_star
 			}
 
 			double x, y;
-			wcs2pix(fit, ra, dec, &x, &y);
-			if (x >= 0.0 && y >= 0.0 && x < fit->rx && y < fit->ry) {
+			if (!wcs2pix(fit, ra, dec, &x, &y)) {
 				stars[nb_stars].x = x;
 				stars[nb_stars].y = fit->ry - y - 1;
 				stars[nb_stars].mag = Vmag;

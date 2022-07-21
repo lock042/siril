@@ -1559,12 +1559,12 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
 	struct phot_config *ps = phot_set_adjusted_for_image(fit);
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, !spsfargs->for_registration,
-			!spsfargs->for_registration, ps, TRUE, &error);
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry,
+			spsfargs->for_photometry, ps, TRUE, &error);
 	free(ps);
 	if (data->psf) {
 		/* for photometry ? */
-		if (!spsfargs->for_registration) {
+		if (spsfargs->for_photometry) {
 			if (data->psf->s_mag > 9.0) {
 				siril_log_color_message(_("Photometry analysis failed for image %d (%s)\n"),
 						"salmon", index, psf_error_to_string(error));
@@ -1616,7 +1616,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	int photometry_index = 0;
 	gboolean displayed_warning = FALSE;
 
-	if (args->retval || spsfargs->for_registration)
+	if (args->retval || !spsfargs->for_photometry)
 		return 0;
 
 	int i;
@@ -1672,36 +1672,37 @@ gboolean end_seqpsf(gpointer p) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	sequence *seq = args->seq;
 	int layer = args->layer_for_partial;
-	gboolean write_to_regdata = FALSE;
-	gboolean duplicate_for_regdata = FALSE;
-	gboolean saveregdata = TRUE;
+	gboolean write_to_regdata, duplicate_for_regdata;
 
 	if (args->retval)
 		goto proper_ending;
 
-	if (spsfargs->for_registration || !seq->regparam[layer]) {
-		gboolean has_any_regdata = FALSE;
-		for (int i = 0; i < seq->nb_layers; i++)
-			has_any_regdata = has_any_regdata || seq->regparam[i];
-
-		if (!spsfargs->for_registration && !seq->regparam[layer]) {
-			if (has_any_regdata) {
-				// TODO - shouldn't we handle the headless case here?
-				saveregdata = siril_confirm_dialog(_("No registration data stored for this layer"),
+	if (!spsfargs->for_photometry) {
+		write_to_regdata = TRUE;
+		duplicate_for_regdata = FALSE;
+	} else {
+		// for photometry data was saved in seq.photometry before, so we duplicate
+		duplicate_for_regdata = TRUE;
+		if (spsfargs->allow_use_as_regdata == BOOL_FALSE)
+			write_to_regdata = FALSE;
+		else if (spsfargs->allow_use_as_regdata == BOOL_TRUE)
+			write_to_regdata = TRUE;
+		else {
+			gboolean has_any_regdata = FALSE;
+			for (int i = 0; i < seq->nb_layers; i++)
+				has_any_regdata = has_any_regdata || seq->regparam[i];
+			if (!seq->regparam[layer] && has_any_regdata) {
+				write_to_regdata = siril_confirm_dialog(_("No registration data stored for this layer"),
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
-				duplicate_for_regdata = saveregdata;
-			} else {
-				duplicate_for_regdata = TRUE;
 			}
+			else write_to_regdata = TRUE;
 		}
-		if (saveregdata)
-			check_or_allocate_regparam(seq, layer);
-		write_to_regdata = saveregdata;
-		seq->needs_saving = saveregdata;
 	}
 
 	if (write_to_regdata) {
+		check_or_allocate_regparam(seq, layer);
+		seq->needs_saving = TRUE;
 		GSList *iterator;
 		for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
 			struct seqpsf_data *data = iterator->data;
@@ -1764,7 +1765,7 @@ proper_ending:
  * expects seq->current to be valid
  */
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
-		framing_mode framing, gboolean run_in_thread) {
+		framing_mode framing, gboolean run_in_thread, gboolean no_GUI) {
 
 	if (framing == REGISTERED_FRAME && !layer_has_usable_registration(seq, layer))
 		framing = ORIGINAL_FRAME;
@@ -1777,7 +1778,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	struct generic_seq_args *args = create_default_seqargs(seq);
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 
-	spsfargs->for_registration = for_registration;
+	spsfargs->for_photometry = !for_registration;
+	spsfargs->allow_use_as_regdata = no_GUI ? BOOL_FALSE : BOOL_NOT_SET;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
 

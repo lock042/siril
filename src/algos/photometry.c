@@ -393,36 +393,17 @@ int all_stars_psf(sequence *seq, int layer, struct all_stars_struct *asargs) {
 	args->finalize_hook = all_stars_psf_finalize_hook;
 	args->description = "all stars PSF";
 	args->already_in_a_thread = TRUE;
+
 	asargs->valid_counts = calloc(asargs->nbstars, sizeof(gint));
-	if (!asargs->valid_counts) {
-		PRINT_ALLOC_ERR;
-		return -1;
-	}
 	asargs->photo = malloc(seq->selnum * sizeof(psf_star **));
-	if (!asargs->photo) {
-		PRINT_ALLOC_ERR;
-		free(asargs->valid_counts);
-		asargs->valid_counts = NULL;
-		return -1;
-	}
 	asargs->reference_stars = calloc(asargs->nbstars, sizeof(int *));
-	if (!asargs->reference_stars) {
-		PRINT_ALLOC_ERR;
-		free(asargs->valid_counts);
-		asargs->valid_counts = NULL;
-		free(asargs->photo);
-		asargs->photo = NULL;
-		return -1;
-	}
 	asargs->ref_stars_count = malloc(asargs->nbstars * sizeof(BYTE));
-	if (!asargs->ref_stars_count) {
+	if (!asargs->valid_counts || !asargs->photo || !asargs->reference_stars || !asargs->ref_stars_count) {
 		PRINT_ALLOC_ERR;
 		free(asargs->valid_counts);
-		asargs->valid_counts = NULL;
 		free(asargs->photo);
-		asargs->photo = NULL;
 		free(asargs->reference_stars);
-		asargs->reference_stars = NULL;
+		free(asargs->ref_stars_count);
 		return -1;
 	}
 	args->user = asargs;
@@ -451,7 +432,6 @@ static int pixel_distance(psf_star *s1, psf_star *s2) {
 	return round_to_int(sqrt(dx * dx + dy * dy));
 }
 
-#define MAX_REF_STARS 30	// uchar
 int find_reference_stars(struct all_stars_struct *asargs) {
 	struct ref_star *ref_candidates = malloc(asargs->nbstars * sizeof(struct ref_star));
 	if (!ref_candidates) {
@@ -542,7 +522,7 @@ gpointer crazy_photo_worker(gpointer arg) {
 	if (!ps) return GINT_TO_POINTER(1);
 	int valid_candidates = 0;
 	for (int i = 0; i < nbstars; i++) {
-		if (stars[i]->A > ps->maxval) {
+		if (stars[i]->A + stars[i]->B > ps->maxval) {
 			free_psf(stars[i]);
 			continue;
 		}

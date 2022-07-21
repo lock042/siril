@@ -41,7 +41,8 @@ typedef enum {
 } framing_mode;
 
 struct seqpsf_args {
-	gboolean for_registration;	// if false it means for photometry
+	gboolean for_photometry;
+	int allow_use_as_regdata;	// -1 unset, 0 no, 1 yes
 	framing_mode framing;
 
 	/* The seqpsf result for each image, list of seqpsf_data */
@@ -66,7 +67,7 @@ gboolean sequence_is_rgb(sequence *seq);
 gboolean	enforce_area_in_image(rectangle *area, sequence *seq, int index);
 
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
-		framing_mode framing, gboolean run_in_thread);
+		framing_mode framing, gboolean run_in_thread, gboolean no_GUI);
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads);
 void free_reference_image();
 

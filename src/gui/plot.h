@@ -62,8 +62,6 @@ enum registration_source {
 	r_FRAME
 };
 
-gchar *siril_win_get_gnuplot_path();
-
 /* for headless light curve generation */
 void generate_magnitude_data(sequence *seq, int dataset, int ref_image, pldata *plot);
 int light_curve(pldata *plot, sequence *seq, gchar *filename);

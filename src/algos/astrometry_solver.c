@@ -1514,6 +1514,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		// first checking if there is a selection or if the full field is to be used
 		if (com.selection.w != 0 && com.selection.h != 0) {
 			memcpy(&croparea, &com.selection, sizeof(rectangle));
+			siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
 		} else {
 			croparea.x = 0;
 			croparea.y = 0;

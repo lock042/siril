@@ -73,9 +73,7 @@ static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 
 static gboolean is_inside(fits *fit, double ra, double dec) {
 	double x, y;
-
-	wcs2pix(fit, ra, dec, &x, &y);
-	return (x > 0 && x < fit->rx && y > 0 && y < fit->ry);
+	return wcs2pix(fit, ra, dec, &x, &y) == 0;
 }
 
 static gint object_compare(gconstpointer *a, gconstpointer *b) {
@@ -84,19 +82,20 @@ static gint object_compare(gconstpointer *a, gconstpointer *b) {
 
 	if (!s1->alias) return 1;
 
-	gchar **token = g_strsplit(s1->alias, "/", -1);
-	guint nargs = g_strv_length(token);
-
-	if (nargs == 1)
+	if (!strchr(s1->alias, '/'))
 		return g_strcmp0(s1->alias, s2->code);
-	else {
-		for (int i = 0; i < nargs; i++) {
-			if (!g_strcmp0(token[i], s2->code)) {
-				return 0;
-			}
+
+	gchar **token = g_strsplit(s1->alias, "/", -1);
+	guint i = 0;
+	while (token[i]) {
+		if (!g_strcmp0(token[i], s2->code)) {
+			g_strfreev(token);
+			return 0;
 		}
-		return 1;
+		i++;
 	}
+	g_strfreev(token);
+	return 1;
 }
 
 /**

@@ -827,12 +827,12 @@ static label_point *new_label_point(double height, const double *pix1, const dou
 	return pt;
 }
 
-static int has_pole(fits *fit, double width, double height) {
+static int has_pole(fits *fit) {
 	double x, y;
-	wcs2pix(fit, 0., 90., &x, &y);
-	if ((x >= 0.) && (x <= width) && (y >= 0.) && (y <= height)) return 1;
-	wcs2pix(fit, 0., -90., &x, &y);
-	if ((x >= 0.) && (x <= width) && (y >= 0.) && (y <= height)) return -1;
+	if (!wcs2pix(fit, 0., 90., &x, &y))
+		return 1;
+	if (!wcs2pix(fit, 0., -90., &x, &y))
+		return -1;
 	return 0;
 }
 
@@ -901,7 +901,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
 	const double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
 	int pixtype[4] = { 1, 0, 1, 0 }; // y, x, y, x
-	int polesign = has_pole(fit, width, height);
+	int polesign = has_pole(fit);
 
 	/* calculate DEC step size */
 	if (range > 16.0) {
@@ -958,9 +958,9 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_line_to(cr, x2, y2);
 				cairo_stroke(cr);
 			}
-				// check crossing
+			// check crossing
 			if (!(((xa >= 0) && (ya >= 0) && (xa < width) && (ya < height))
-				&& ((xb >= 0) && (yb >= 0) && (xb < width) && (yb < height)))) {
+						&& ((xb >= 0) && (yb >= 0) && (xb < width) && (yb < height)))) {
 				for (int k = 0; k < 4; k ++) {
 					if (get_line_intersection(xa, ya, xb, yb, pixbox[k][0], pixbox[k][1], pixbox[k+1][0], pixbox[k+1][1], NULL, NULL)) {
 						world[0] = di;
@@ -1131,10 +1131,8 @@ static void draw_annotates(const draw_data_t* dd) {
 
 		radius = radius / resolution / 60.0;
 
-		wcs2pix(&gfit, world_x, world_y, &x, &y);
-		y = height - y;
-
-		if (x > 0 && x < width && y > 0 && y < height) {
+		if (!wcs2pix(&gfit, world_x, world_y, &x, &y)) {
+			y = height - y - 1;
 			point offset = {10, -10};
 			if (radius < 0) {
 				// objects we don't have an accurate location (LdN, Sh2)

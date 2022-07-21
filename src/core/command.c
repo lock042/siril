@@ -2198,9 +2198,7 @@ int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *se
 			return CMD_FOR_PLATE_SOLVED;
 		}
 		double x, y;
-		/*if (wcs2pix(first, ra, dec, &x, &y)) 	// in the nomad branch */
-		wcs2pix(first, ra, dec, &x, &y);
-		if (x <= 0 || y <= 0) {
+		if (wcs2pix(first, ra, dec, &x, &y)) {
 			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
 			return CMD_ARG_ERROR;
 		}
@@ -2298,11 +2296,11 @@ int process_seq_psf(int nb) {
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE);
+	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, FALSE);
 }
 
 struct light_curve_args {
-	rectangle *areas;
+	rectangle *areas;	// the first is the variable star's area
 	int nb;
 	sequence *seq;
 	int layer;
@@ -2319,11 +2317,13 @@ gpointer light_curve_worker(gpointer arg) {
 	pldata *plot_data = alloc_plot_data(args->seq->selnum);
 	pldata *cur_data = plot_data;
 
+	/* for now, we use seqpsf as many times as needed and the GUI way of
+	 * generating the light curve. Maybe someday it would be wise to move to
+	 * all_stars_psf instead, depending on the number of reference stars */
 	for (int star_index = 0; star_index < args->nb; star_index++) {
-
 		com.selection = args->areas[star_index];
 
-		if (!seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE)) {
+		if (!seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			generate_magnitude_data(args->seq, star_index, 0, cur_data);
 			cur_data->next = alloc_plot_data(args->seq->selnum);
 			cur_data = cur_data->next;
@@ -2343,6 +2343,185 @@ gpointer light_curve_worker(gpointer arg) {
 	free_plot_data(plot_data);
 	free(args);
 	return GINT_TO_POINTER(retval);
+}
+
+int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangle *ret_area) {
+	double x, y;
+	if (wcs2pix(fit, ra, dec, &x, &y)) {
+		siril_debug_print("star is outside image\n");
+		return 1;
+	}
+	y = fit->ry - y - 1;
+	double start = 1.5 * com.pref.phot_set.outer;
+	double size = 3 * com.pref.phot_set.outer;
+	rectangle area;
+	area.x = x - start;
+	area.y = y - start;
+	area.w = size;
+	area.h = size;
+	if (area.x < 0 || area.y < 0 ||
+			area.h <= 0 || area.w <= 0 ||
+			area.x + area.w >= fit->rx ||
+			area.y + area.h >= fit->ry) {
+		siril_debug_print("star is outside image\n");
+		return 1;
+	}
+	*ret_area = area;
+	siril_debug_print("Pixel coordinates of a star: %.1f, %.1f\n", x, y);
+	return 0;
+}
+
+// area is not recovering another at least half their size (assumed square and identical)
+static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
+	int half_size = area->w / 2;
+	for (int i = 0; i < nb_areas; i++) {
+		if (abs(area->x - areas[i].x) < half_size && abs(area->y - areas[i].y) < half_size)
+			return 0;
+	}
+	return 1;
+}
+
+static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, fits *first) {
+	/* The file is a CSV with these fields:
+	 * Type,Name,HFR,xPos,yPos,AvgBright,MaxBright,Background,Ra,Dec
+	 *
+	 * Type can be 'Target' for the variable star to analyse, 'Var' for variable stars to
+	 * absolutely exclude as calibration reference, 'Comp1' are reference stars obtained
+	 * from SIMBAD based on color, 'Comp2' are stars obtained from the AAVSO site.
+	 * We just need this and Ra,Dec. xPos and yPos are in pixels, but we'll use wcs2pix
+	 * to get them with our plate solve and our star fitting.
+	 */
+	FILE *fd = fopen(file_path, "r");
+	if (!fd) {
+		siril_log_message(_("Could not open file %s: %s\n"), file_path, strerror(errno));
+		return 1;
+	}
+	char buf[512];
+	rectangle *areas = malloc(MAX_REF_STARS * sizeof(rectangle));
+	areas[0].x = 0; areas[0].y = 0;
+	int ra_index = -1, dec_index = -1, name_index = 2;
+	int stars_count = 0;
+	gboolean ready_to_parse = FALSE, target_acquired = FALSE;
+	while (fgets(buf, 512, fd)) {
+		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n' || buf[0] == '#')
+			continue;
+		remove_trailing_eol(buf);
+		gchar **tokens = g_strsplit(buf, ",", -1);
+		int length = g_strv_length(tokens);
+		if (!tokens[0] || length <= ra_index || length <= dec_index) {
+			siril_debug_print("malformed line: %s\n", buf);
+			g_strfreev(tokens);
+			continue;
+		}
+		gchar *type = tokens[0];
+		if (!ready_to_parse) {
+			if (!strcasecmp(type, "type")) {
+				siril_debug_print("header from the NINA file: %s\n", buf);
+				for (int i = 1; tokens[i]; i++) {
+					if (!strcasecmp(tokens[i], "ra"))
+						ra_index = i;
+					else if (!strcasecmp(tokens[i], "dec"))
+						dec_index = i;
+					else if (!strcasecmp(tokens[i], "name"))
+						name_index = i;
+				}
+
+				if (ra_index < 1 || dec_index < 1) {
+					siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
+					g_strfreev(tokens);
+					fclose(fd);
+					return 1;
+				}
+				siril_debug_print("Found RA and Dec indices in file: %d and %d\n", ra_index, dec_index);
+				ready_to_parse = TRUE;
+			}
+			else {
+				siril_debug_print("malformed line: %s\n", buf);
+				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
+				g_strfreev(tokens);
+				fclose(fd);
+				return 1;
+			}
+		}
+
+		if (!strcasecmp(type, "target")) {
+			gchar *end1, *end2;
+			double ra = g_ascii_strtod(tokens[ra_index], &end1) * 15.0;
+			double dec = g_ascii_strtod(tokens[dec_index], &end2);
+			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
+				siril_debug_print("malformed line: %s\n", buf);
+				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
+				g_strfreev(tokens);
+				fclose(fd);
+				return 1;
+			}
+			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[0])) {
+				target_acquired = TRUE;
+				stars_count++;
+				siril_log_message(_("Target star identified: %s\n"), tokens[name_index]);
+			} else {
+				siril_log_message(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"));
+			}
+		}
+		else if (!strcasecmp(type, "var")) {
+			// we don't use them for this, but we could add them in the
+			// user catalogue for annotations, or a local database
+		}
+		else if (!strcasecmp(type, "comp1")) {
+			gchar *end1, *end2;
+			double ra = g_ascii_strtod(tokens[ra_index], &end1);
+			double dec = g_ascii_strtod(tokens[dec_index], &end2);
+			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
+				siril_debug_print("malformed line: %s\n", buf);
+				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
+				g_strfreev(tokens);
+				fclose(fd);
+				return 1;
+			}
+			int index = target_acquired ? stars_count : stars_count + 1;
+			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
+				if (area_is_unique(&areas[index], areas, index)) {
+					stars_count++;
+					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
+				}
+				else siril_debug_print("Star %s ignored because it was too close to another\n", tokens[name_index]);
+			}
+			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
+		}
+		else if (!strcasecmp(type, "comp2")) {
+			gchar *end1, *end2;
+			double ra = g_ascii_strtod(tokens[ra_index], &end1) * 15.0;
+			double dec = g_ascii_strtod(tokens[dec_index], &end2);
+			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
+				siril_debug_print("malformed line: %s\n", buf);
+				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
+				g_strfreev(tokens);
+				fclose(fd);
+				return 1;
+			}
+			int index = target_acquired ? stars_count : stars_count + 1;
+			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
+				if (area_is_unique(&areas[index], areas, index)) {
+					stars_count++;
+					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
+				}
+				else siril_debug_print("Star %s ignored because it was too close to another\n", tokens[name_index]);
+			}
+			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
+		}
+		else {
+			siril_debug_print("malformed line: %s\n", buf);
+		}
+		g_strfreev(tokens);
+		if (stars_count >= MAX_REF_STARS)
+			break;
+	}
+	if (target_acquired) {
+		args->areas = areas;
+		args->nb = stars_count;
+	}
+	fclose(fd);
+	return !target_acquired;
 }
 
 // light_curve sequencename channel { -list=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... }
@@ -2368,26 +2547,39 @@ int process_light_curve(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	/* we have a sequence and channel, now we iterate with seqpsf on the list of stars */
-	if (g_str_has_prefix(word[3], "-list=") || g_str_has_prefix(word[3], "-auto")) {
-		siril_log_message("argument not yet implemented %s\n", word[3]);
-		free_sequence(seq, TRUE);
-		return 1;
-	}
-
 	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
-	args->areas = malloc((nb - 3) * sizeof(rectangle));
-	for (int arg_index = 3; arg_index < nb; arg_index++) {
-		if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3])) {
+
+	/* we have a sequence and channel, now we iterate with seqpsf on the list of stars */
+	if (g_str_has_prefix(word[3], "-ninastars=")) {
+		char *file = word[3] + 11;
+		if (file[0] == '\0') {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			return 1;
+		}
+		if (!has_wcs(&first)) {
+			siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
+			return CMD_FOR_PLATE_SOLVED;
+		}
+
+		if (parse_nina_stars_file_using_WCS(args, word[3]+11, &first)) {
 			free_sequence(seq, TRUE);
 			return 1;
 		}
+	} else {
+		args->areas = malloc((nb - 3) * sizeof(rectangle));
+		for (int arg_index = 3; arg_index < nb; arg_index++) {
+			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3])) {
+				free_sequence(seq, TRUE);
+				return 1;
+			}
+		}
+		args->nb = nb - 3;
 	}
-	args->nb = nb - 3;
 	args->seq = seq;
 	args->layer = layer;
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
+	// TODO: display stars if sequence is current and not headless
 	// TODO: clear photometry data
 
 	start_in_new_thread(light_curve_worker, args);

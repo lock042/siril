@@ -222,6 +222,7 @@ void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 #endif
 }
 
+// ra in degrees
 int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 #ifndef HAVE_WCSLIB
 	*x = -1.0;
@@ -240,7 +241,6 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 		//	siril_debug_print("wcs2pix failed with valid coords: %d\n", status);
 		return 1;
 	}
-
 
 	*x = pixcrd[0];
 	*y = pixcrd[1];

@@ -6,13 +6,12 @@
 #include "core/siril.h"
 #include "core/settings.h"
 
-struct photometry_struct {
+typedef struct {
 	double mag; // magnitude
 	double s_mag; // magnitude uncertainty
 	gboolean valid; // TRUE if no pixel outside of the range
 	double SNR; // SNR estimation
-};
-typedef struct photometry_struct photometry;
+} photometry;
 
 typedef struct {
 	float x, y;// in image pixels coordinates
