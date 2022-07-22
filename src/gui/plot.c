@@ -104,37 +104,16 @@ static const gchar *registration_labels[] = {
 
 pldata *alloc_plot_data(int size) {
 	pldata *plot = malloc(sizeof(pldata));
-	if (!plot) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
 	plot->frame = calloc(size, sizeof(double));
-	if (!plot->frame) {
-		PRINT_ALLOC_ERR;
-		free(plot);
-		return NULL;
-	}
 	plot->julian = calloc(size, sizeof(double));
-	if (!plot->julian) {
-		PRINT_ALLOC_ERR;
-		free(plot->frame);
-		free(plot);
-		return NULL;
-	}
 	plot->data = calloc(size, sizeof(struct kpair));
-	if (!plot->data) {
-		PRINT_ALLOC_ERR;
-		free(plot->frame);
-		free(plot->julian);
-		free(plot);
-		return NULL;
-	}
 	plot->err = calloc(size, sizeof(struct kpair));
-	if (!plot->err) {
+	if (!plot || !plot->frame || !plot->julian || !plot->data || !plot->err) {
 		PRINT_ALLOC_ERR;
 		free(plot->frame);
 		free(plot->julian);
 		free(plot->data);
+		free(plot->err);
 		free(plot);
 		return NULL;
 	}
@@ -408,16 +387,14 @@ static double get_error_for_time(pldata *plot, double time) {
 	return 0.0;
 }
 
-// call after having filled the plot data of the various stars with generate_magnitude_data()
+// call after having filled the plot data of the multiple stars with generate_magnitude_data(),
+// the first will be the target
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0, ret = 0;
 	double *vmag, *err, *x, *real_x;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
-		char *msg = siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but not displayed.\n"), filename);
-
-		if (!com.script)
-			siril_message_dialog(GTK_MESSAGE_WARNING, _("Gnuplot is unavailable"), msg);
+		siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
 	}
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -505,7 +482,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 	int nb_valid_images = j;
 
-	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb);
+	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
 
 	/*  data are computed, now plot the graph. */
 
@@ -1508,5 +1485,7 @@ void generate_magnitude_data(sequence *seq, int dataset, int ref_image, pldata *
 		j++;
 	}
 	plot->nb = j;
+	// TODO plot->nb will not be the same for all plots, leading to missing data and
+	// inconsistencies if dates are not used
 }
 

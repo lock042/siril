@@ -1565,7 +1565,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	if (data->psf) {
 		/* for photometry ? */
 		if (spsfargs->for_photometry) {
-			if (data->psf->s_mag > 9.0) {
+			if (data->psf->s_mag > 9.0 || !data->psf->phot_is_valid) {
 				siril_log_color_message(_("Photometry analysis failed for image %d (%s)\n"),
 						"salmon", index, psf_error_to_string(error));
 			}
@@ -1632,7 +1632,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
 		struct seqpsf_data *data = iterator->data;
 
-		/* check exposure consistency (only obtained when !for_registration) */
+		/* check exposure consistency */
 		if (seq->exposure > 0.0 && seq->exposure != data->exposure &&
 				!displayed_warning) {
 			siril_log_color_message(_("Star analysis does not give consistent results when exposure changes across the sequence.\n"), "red");

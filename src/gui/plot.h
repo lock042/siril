@@ -32,7 +32,7 @@ void free_photometry_set(sequence *seq, int set);
 typedef struct plot_data_struct {
 	double *julian, *frame;
 	struct kpair *data, *err;
-	int nb;
+	int nb;		// number of points in the plot (= number of images)
 	struct plot_data_struct *next;
 } pldata;
 

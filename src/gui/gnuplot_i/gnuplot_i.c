@@ -56,6 +56,10 @@
 #ifndef pclose
 #define pclose(f) _pclose(f)
 #endif /*pclose*/
+
+static const gchar *possible_path[] = { "C:\\PROGRA~1\\gnuplot\\bin\\gnuplot.exe", "C:\\msys64\\mingw64\\bin\\gnuplot.exe" };
+static const gchar *gnuplot_path = NULL;
+
 #endif /*_WIN32*/
 
 /*********************** finding gnuplot first **********************/

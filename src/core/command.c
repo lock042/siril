@@ -2314,7 +2314,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
 
-	pldata *plot_data = alloc_plot_data(args->seq->selnum);
+	pldata *plot_data = alloc_plot_data(args->seq->number);
 	pldata *cur_data = plot_data;
 
 	/* for now, we use seqpsf as many times as needed and the GUI way of
@@ -2325,7 +2325,7 @@ gpointer light_curve_worker(gpointer arg) {
 
 		if (!seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			generate_magnitude_data(args->seq, star_index, 0, cur_data);
-			cur_data->next = alloc_plot_data(args->seq->selnum);
+			cur_data->next = alloc_plot_data(args->seq->number);
 			cur_data = cur_data->next;
 		} else if (star_index == 0) {
 			siril_log_message(_("Failed to analyse the variable star photometry\n"));
@@ -2338,6 +2338,7 @@ gpointer light_curve_worker(gpointer arg) {
 	/* analyse data and create the light curve */
 	if (!retval)
 		retval = light_curve(plot_data, args->seq, "light_curve.dat");
+	// TODO: do not call gnuplot for graphical operation if com.headless
 
 	free_sequence(args->seq, TRUE);
 	free_plot_data(plot_data);
@@ -2484,7 +2485,7 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 					stars_count++;
 					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
 				}
-				else siril_debug_print("Star %s ignored because it was too close to another\n", tokens[name_index]);
+				else siril_log_message(_("Star %s ignored because it was too close to another\n"), tokens[name_index]);
 			}
 			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
 		}
@@ -2505,7 +2506,7 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 					stars_count++;
 					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
 				}
-				else siril_debug_print("Star %s ignored because it was too close to another\n", tokens[name_index]);
+				else siril_log_message(_("Star %s ignored because it was too close to another\n"), tokens[name_index]);
 			}
 			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
 		}
