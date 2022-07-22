@@ -63,7 +63,7 @@ enum registration_source {
 };
 
 /* for headless light curve generation */
-void generate_magnitude_data(sequence *seq, int dataset, int ref_image, pldata *plot);
+void generate_magnitude_data(sequence *seq, int dataset, pldata *plot);
 int light_curve(pldata *plot, sequence *seq, gchar *filename);
 
 pldata *alloc_plot_data(int size);

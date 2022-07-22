@@ -49,6 +49,8 @@ void initialize_photometric_param();
 const char *psf_error_to_string(psf_error err);
 void print_psf_error_summary(gint *code_sums);
 
+int new_light_curve(sequence *seq, gchar *filename);
+
 gpointer crazy_photo_worker(gpointer arg);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

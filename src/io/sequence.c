@@ -1625,6 +1625,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		free_photometry_set(seq, 0);
 		i = 0;
 	}
+	else seq->photometry[i+1] = NULL;
 	seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));
 	photometry_index = i;
 

@@ -31,7 +31,7 @@
 #include "io/sequence.h"
 #include "opencv/opencv.h"
 #include "gui/PSF_list.h"
-#include "gui/gnuplot_i/gnuplot_i.h"
+#include "io/gnuplot_i.h"
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
 
@@ -722,4 +722,148 @@ int write_photometry_data_file(const char *filename, struct photo_data_point *po
 		else return 1;
 	}
 	return 0;
+}
+
+/****************** making a light curve from sequence-stored data ****************/
+int new_light_curve(sequence *seq, gchar *filename) {
+	int i, j;
+	gboolean use_gnuplot = gnuplot_is_available();
+	if (!use_gnuplot) {
+		siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
+	}
+	if (!seq->photometry[0]) {
+		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		return -1;
+	}
+
+	/* get number of valid frames for each star */
+	int ref_valid_count[MAX_SEQPSF] = { 0 };
+	int nbImages = 0;
+	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
+	for (i = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+		++nbImages;
+		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+			if (seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid)
+				ref_valid_count[ref]++;
+		}
+	}
+	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
+	if (nbImages < 1)
+		return -1;
+
+	int nb_ref_stars = 0;
+	// select reference stars that are only available at least 3/4 of the time
+	for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+		ref_valid[ref] = ref_valid_count[ref] >= nbImages * 3 / 4;
+		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", ref, ref_valid_count[ref], nbImages, ref_valid[ref] ? "including" : "discarding");
+		if (ref_valid[ref])
+			nb_ref_stars++;
+	}
+
+	if (nb_ref_stars == 0) {
+		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		return -1;
+	}
+	if (nb_ref_stars < 1)
+		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
+	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
+
+
+	// arrays containing the graph data: X, Y and Y error bars
+	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
+	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
+	double *err = calloc(nbImages, sizeof(double));		// Y error bar
+	if (!date || !vmag || !err) {
+		PRINT_ALLOC_ERR;
+		free(date); free(vmag); free(err);
+		return -1;
+	}
+	// i is index in dataset, j is index in output
+	for (i = 0, j = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+
+		// X value: the date
+		if (seq->imgparam[i].date_obs) {
+			double julian;
+			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
+			if (seq->exposure > 0.0) {
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+				julian = date_time_to_Julian(new_dt);
+				g_date_time_unref(new_dt);
+			} else {
+				julian = date_time_to_Julian(tsi);
+			}
+			g_date_time_unref(tsi);
+			date[j] = julian;
+		} else {
+			date[j] = (double) i + 1; // should not happen.
+		}
+
+		// Y value: the magnitude and error and their calibration
+		double target_mag = seq->photometry[0][i]->mag;
+		double target_err = seq->photometry[0][i]->s_mag;
+
+		double cmag = 0.0, cerr = 0.0;
+		int nb_ref = 0;
+		/* First data plotted are variable data, others are references
+		 * Variable is done above, now we compute references */
+		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+			if (ref_valid[ref] && seq->photometry[ref][i]->phot_is_valid) {
+				/* inversion of Pogson's law to get back to the flux
+				 * Flux = 10^(-0.4 * mag)
+				 */
+				cmag += pow(10, -0.4 * seq->photometry[ref][i]->mag);
+				cerr += seq->photometry[ref][i]->s_mag;
+				++nb_ref;
+			}
+		}
+		/* Converting back to magnitude */
+		if (nb_ref == nb_ref_stars) {
+			/* we consider an image to be invalid if all references are not valid,
+			 * because it changes the mean otherwise and makes nonsense data */
+			cmag = -2.5 * log10(cmag / nb_ref);
+			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
+
+			vmag[j] = target_mag - cmag;
+			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
+			j++;
+		}
+	}
+	int nb_valid_images = j;
+
+	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
+
+	/*  data are computed, now plot the graph. */
+
+	if (use_gnuplot) {
+		gnuplot_ctrl *gplot = gnuplot_init();
+		if (gplot) {
+			/* Plotting light curve */
+			gnuplot_set_title(gplot, _("Light Curve"));
+			gnuplot_set_xlabel(gplot, "Julian date");
+			gnuplot_reverse_yaxis(gplot);
+			gnuplot_setstyle(gplot, "errorbars");
+			gnuplot_plot_xyyerr(gplot, date, vmag, err, nb_valid_images, "");
+		}
+		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+	}
+
+	/* Exporting data in a dat file */
+	int ret = gnuplot_write_xyyerr_dat(filename, date, vmag, err, nb_valid_images, "JD_UT V-C err");
+	if (ret) {
+		if (com.script)
+			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
+		// TODO include this in the caller if it has a GUI:
+		//else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
+	} else {
+		siril_log_message(_("%s has been saved.\n"), filename);
+	}
+
+	free(date);
+	free(vmag);
+	free(err);
+	return ret;
 }

@@ -2314,35 +2314,30 @@ gpointer light_curve_worker(gpointer arg) {
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
 
-	pldata *plot_data = alloc_plot_data(args->seq->number);
-	pldata *cur_data = plot_data;
-
 	/* for now, we use seqpsf as many times as needed and the GUI way of
 	 * generating the light curve. Maybe someday it would be wise to move to
 	 * all_stars_psf instead, depending on the number of reference stars */
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
 
-		if (!seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
-			generate_magnitude_data(args->seq, star_index, 0, cur_data);
-			cur_data->next = alloc_plot_data(args->seq->number);
-			cur_data = cur_data->next;
-		} else if (star_index == 0) {
-			siril_log_message(_("Failed to analyse the variable star photometry\n"));
-			retval = 1;
-			break;
+		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
+			if (star_index == 0) {
+				siril_log_message(_("Failed to analyse the variable star photometry\n"));
+				retval = 1;
+				break;
+			}
+			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"), star_index);
 		}
-		else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"), star_index);
 	}
 
 	/* analyse data and create the light curve */
 	if (!retval)
-		retval = light_curve(plot_data, args->seq, "light_curve.dat");
+		retval = new_light_curve(args->seq, "light_curve.dat");
 	// TODO: do not call gnuplot for graphical operation if com.headless
 
 	free_sequence(args->seq, TRUE);
-	free_plot_data(plot_data);
 	free(args);
+	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -2525,7 +2520,7 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 	return !target_acquired;
 }
 
-// light_curve sequencename channel { -list=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... }
+// light_curve sequencename channel { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
 int process_light_curve(int nb) {
 	sequence *seq;
 	int layer;

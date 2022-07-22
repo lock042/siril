@@ -167,8 +167,6 @@ siril_common_SOURCES = \
 	gui/dialogs.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
-	gui/gnuplot_i/gnuplot_i.c \
-	gui/gnuplot_i/gnuplot_i.h \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/image_display.c \
@@ -228,6 +226,8 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gnuplot_i.c \
+	io/gnuplot_i.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \

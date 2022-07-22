@@ -341,7 +341,7 @@ struct sequ {
 	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
 	gboolean reg_invalidated; // a flag to detect if regframe can be plotted
 
-	psf_star **photometry[MAX_SEQPSF];// psf for multiple stars for all images
+	psf_star **photometry[MAX_SEQPSF+1];// psf for multiple stars for all images
 	int reference_star;	// reference star for apparent magnitude (index of photometry)
 	double reference_mag;	// reference magnitude for the reference star
 	double photometry_colors[MAX_SEQPSF][3]; // colors for each photometry curve

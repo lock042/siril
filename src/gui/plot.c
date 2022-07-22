@@ -46,7 +46,7 @@
 #include "algos/PSF.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "gui/gnuplot_i/gnuplot_i.h"
+#include "io/gnuplot_i.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
 
@@ -387,7 +387,8 @@ static double get_error_for_time(pldata *plot, double time) {
 	return 0.0;
 }
 
-// call after having filled the plot data of the multiple stars with generate_magnitude_data(),
+// call after having filled the plot data of the multiple stars with either
+// generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0, ret = 0;
@@ -640,9 +641,13 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (index) {
 			if (!is_fwhm) {
-				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY || index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
+				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY ||
+						index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
 			} else {
-				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM || index[0] == r_WFWHM || index[0] == r_ROUNDNESS || index[0] == r_BACKGROUND || index[0] == r_NBSTARS || index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
+				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM ||
+						index[0] == r_WFWHM || index[0] == r_ROUNDNESS ||
+						index[0] == r_BACKGROUND || index[0] == r_NBSTARS ||
+						index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
 			}
 		}
 		gtk_tree_path_free(path);
@@ -1436,56 +1441,5 @@ void on_menu_plot_show_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		update_seqlist(use_photometry ? 0 : reglayer);
 		sequence_list_select_row_from_index(index - 1, TRUE);
 	}
-}
-
-/********************** making light curves without GUI **********************/
-/* this function generates magnitude data in a similar format the GUI would do,
- * this allows us to use the same light_curve() generation function afterwards.
- */
-void generate_magnitude_data(sequence *seq, int dataset, int ref_image, pldata *plot) {
-	int i, j;
-	double offset = -1001.0;
-	psf_star **psfs = seq->photometry[dataset], *ref_psf;
-	if (seq->reference_star >= 0 && !seq->photometry[seq->reference_star])
-		seq->reference_star = -1;
-
-	for (i = 0, j = 0; i < seq->number; i++) {
-		if (!seq->imgparam[i].incl || !psfs[i])
-			continue;
-		if (!julian0 && seq->imgparam[i].date_obs) {
-			GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
-			if (seq->exposure) {
-				GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure / 2.0);
-				julian0 = (int) date_time_to_Julian(new_dt);
-				g_date_time_unref(new_dt);
-			} else {
-				julian0 = (int) date_time_to_Julian(ts0);
-			}
-			g_date_time_unref(ts0);
-		}
-		set_x_photometry_values(seq, plot, i, j);
-
-		if (!psfs[i]->phot_is_valid)
-			continue;
-		plot->data[j].y = psfs[i]->mag;
-		plot->err[j].y = psfs[i]->s_mag;
-
-		if (seq->reference_star >= 0) {
-			/* we have a reference star for the sequence,
-			 * with photometry data */
-			ref_psf = seq->photometry[seq->reference_star][i];
-			if (ref_psf)
-				offset = seq->reference_mag - ref_psf->mag;
-		} else if (com.magOffset > 0.0)
-			offset = com.magOffset;
-
-		/* apply the absolute apparent magnitude offset */
-		if (offset > -1000.0)
-			plot->data[j].y += offset;
-		j++;
-	}
-	plot->nb = j;
-	// TODO plot->nb will not be the same for all plots, leading to missing data and
-	// inconsistencies if dates are not used
 }
 
