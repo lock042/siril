@@ -72,8 +72,7 @@ static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 }
 
 static gboolean is_inside(fits *fit, double ra, double dec) {
-	double x, y;
-	return wcs2pix(fit, ra, dec, &x, &y) == 0;
+	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
 }
 
 static gint object_compare(gconstpointer *a, gconstpointer *b) {
@@ -197,36 +196,36 @@ static gboolean is_catalogue_loaded() {
 }
 
 typedef struct {
-	char *greek;			// Greek letter of stars
-	char *latin;			// Greek letter written in Latin
+	const char *greek;		// Greek letter of stars
+	const char *latin;		// Greek letter written in Latin
 } GreekLetters;
 
 static GreekLetters convert_to_greek[] = {
-        { "\u03b1", "alf" },
-        { "\u03b2", "bet" },
-        { "\u03b3", "gam" },
-        { "\u03b4", "del" },
-        { "\u03b5", "eps" },
-        { "\u03b6", "zet" },
-        { "\u03b7", "eta" },
-        { "\u03b8", "tet" },
-        { "\u03b9", "iot" },
-        { "\u03ba", "kap" },
-        { "\u03bb", "lam" },
-        { "\u03bc", "mu." },
-        { "\u03bd", "nu." },
-        { "\u03be", "ksi" },
-        { "\u03bf", "omi" },
-        { "\u03c0", "pi." },
-        { "\u03c1", "rho" },
-        { "\u03c3", "sig" },
-        { "\u03c4", "tau" },
-        { "\u03c5", "ups" },
-        { "\u03c6", "phi" },
-        { "\u03c7", "chi" },
-        { "\u03c8", "psi" },
-        { "\u03c9", "ome" },
-		{ NULL, NULL }
+	{ "\u03b1", "alf" },
+	{ "\u03b2", "bet" },
+	{ "\u03b3", "gam" },
+	{ "\u03b4", "del" },
+	{ "\u03b5", "eps" },
+	{ "\u03b6", "zet" },
+	{ "\u03b7", "eta" },
+	{ "\u03b8", "tet" },
+	{ "\u03b9", "iot" },
+	{ "\u03ba", "kap" },
+	{ "\u03bb", "lam" },
+	{ "\u03bc", "mu." },
+	{ "\u03bd", "nu." },
+	{ "\u03be", "ksi" },
+	{ "\u03bf", "omi" },
+	{ "\u03c0", "pi." },
+	{ "\u03c1", "rho" },
+	{ "\u03c3", "sig" },
+	{ "\u03c4", "tau" },
+	{ "\u03c5", "ups" },
+	{ "\u03c6", "phi" },
+	{ "\u03c7", "chi" },
+	{ "\u03c8", "psi" },
+	{ "\u03c9", "ome" },
+	{ NULL, NULL }
 };
 
 static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
@@ -405,7 +404,7 @@ static gboolean show_catalog(int catalog) {
 void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	int confirm = siril_confirm_dialog(_("Catalogue deletion"),
 			_("You are about to purge user catalogue. This means the file containing the manually added objects will be deleted. "
-					"This operation cannot be undone."), _("Purge Catalogue"));
+				"This operation cannot be undone."), _("Purge Catalogue"));
 	if (!confirm) {
 		return;
 	}

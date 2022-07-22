@@ -224,27 +224,30 @@ void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 
 // ra in degrees
 int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
-	*x = -1.0;
-	*y = -1.0;
+	if (x) *x = -1.0;
+	if (y) *y = -1.0;
 #ifndef HAVE_WCSLIB
 	return 1;
 #else
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
-
 	world[0] = ra;
 	world[1] = dec;
 
 	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
-	if (status != 0) {
-		//if (pixcrd[0] > 0.0 && pixcrd[0] > 0.0)
-		//	siril_debug_print("wcs2pix failed with valid coords: %d\n", status);
-		return 1;
-	}
 
-	*x = pixcrd[0];
-	*y = pixcrd[1];
-	return 0;
+	if (!status) {
+		double xx = pixcrd[0];
+		double yy = pixcrd[1];
+		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
+			//siril_debug_print("outside image but valid return\n");
+			status = 10;
+		} else {
+			if (x) *x = xx;
+			if (y) *y = yy;
+		}
+	}
+	return status;
 #endif
 }
 

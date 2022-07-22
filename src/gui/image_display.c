@@ -828,10 +828,9 @@ static label_point *new_label_point(double height, const double *pix1, const dou
 }
 
 static int has_pole(fits *fit) {
-	double x, y;
-	if (!wcs2pix(fit, 0., 90., &x, &y))
+	if (!wcs2pix(fit, 0., 90., NULL, NULL))
 		return 1;
-	if (!wcs2pix(fit, 0., -90., &x, &y))
+	if (!wcs2pix(fit, 0., -90., NULL, NULL))
 		return -1;
 	return 0;
 }
@@ -1231,7 +1230,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	int activelayer = gtk_combo_box_get_active(seqcombo);
 	if (!layer_has_registration(&com.seq, activelayer)) return;
 	if (com.seq.reg_invalidated) return;
-	int min, max; 
+	int min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
 	if (max <= -1) return;
 
