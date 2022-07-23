@@ -2135,7 +2135,7 @@ int process_seq_tilt(int nb) {
 	return CMD_OK;
 }
 
-int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area) {
+int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area, gchar **target_descr) {
 	rectangle area;
 	if (g_str_has_prefix(arg, "-at=") || g_str_has_prefix(arg, "-refat=")) {
 		gchar *value, *end;
@@ -2169,6 +2169,8 @@ int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *se
 			siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
 			return CMD_SELECTION_ERROR;
 		}
+		if (target_descr && arg[1] != 'a')
+			*target_descr = g_strdup_printf("at %d, %d", x, y);
 	}
 	else if (g_str_has_prefix(arg, "-wcs=") || g_str_has_prefix(arg, "-refwcs=")) {
 		char *value;
@@ -2217,6 +2219,8 @@ int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *se
 			return CMD_ARG_ERROR;
 		}
 		siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), x, y);
+		if (target_descr && arg[1] != 'a')
+			*target_descr = g_strdup_printf("at %f, %f", ra, dec);
 	}
 	else {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), arg);
@@ -2276,7 +2280,7 @@ int process_seq_psf(int nb) {
 		}
 
 		rectangle area;
-		if (parse_star_position_arg(word[3], seq, &first, &area)) {
+		if (parse_star_position_arg(word[3], seq, &first, &area, NULL)) {
 			free_sequence(seq, TRUE);
 			return 1;
 		}
@@ -2304,6 +2308,7 @@ struct light_curve_args {
 	int nb;
 	sequence *seq;
 	int layer;
+	char *target_descr;
 };
 
 gpointer light_curve_worker(gpointer arg) {
@@ -2332,7 +2337,7 @@ gpointer light_curve_worker(gpointer arg) {
 
 	/* analyse data and create the light curve */
 	if (!retval)
-		retval = new_light_curve(args->seq, "light_curve.dat");
+		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr);
 	// TODO: do not call gnuplot for graphical operation if com.headless
 
 	free_sequence(args->seq, TRUE);
@@ -2451,6 +2456,8 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 				fclose(fd);
 				return 1;
 			}
+
+			args->target_descr = g_strdup(tokens[name_index]);
 			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[0])) {
 				target_acquired = TRUE;
 				stars_count++;
@@ -2564,7 +2571,7 @@ int process_light_curve(int nb) {
 	} else {
 		args->areas = malloc((nb - 3) * sizeof(rectangle));
 		for (int arg_index = 3; arg_index < nb; arg_index++) {
-			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3])) {
+			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3], &args->target_descr)) {
 				free_sequence(seq, TRUE);
 				return 1;
 			}

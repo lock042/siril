@@ -725,7 +725,12 @@ int write_photometry_data_file(const char *filename, struct photo_data_point *po
 }
 
 /****************** making a light curve from sequence-stored data ****************/
-int new_light_curve(sequence *seq, gchar *filename) {
+/* contrary to light_curve() in gui/plot.c, this one does not use preprocessed data and the
+ * kplot data structure. It only uses data stored in the sequence, in seq->photometry, which is
+ * populated by successive calls to seqpsf on the opened sequence;
+ * TODO: replace light_curve() by this?
+ */
+int new_light_curve(sequence *seq, const char *filename, const char *target_descr) {
 	int i, j;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
@@ -780,6 +785,7 @@ int new_light_curve(sequence *seq, gchar *filename) {
 		free(date); free(vmag); free(err);
 		return -1;
 	}
+	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
@@ -798,6 +804,8 @@ int new_light_curve(sequence *seq, gchar *filename) {
 			}
 			g_date_time_unref(tsi);
 			date[j] = julian;
+			if (julian < min_date)
+				min_date = julian;
 		} else {
 			date[j] = (double) i + 1; // should not happen.
 		}
@@ -833,23 +841,11 @@ int new_light_curve(sequence *seq, gchar *filename) {
 		}
 	}
 	int nb_valid_images = j;
+	int julian0 = 0;
+	if (min_date != DBL_MAX)
+		julian0 = (int)min_date;
 
 	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
-
-	/*  data are computed, now plot the graph. */
-
-	if (use_gnuplot) {
-		gnuplot_ctrl *gplot = gnuplot_init();
-		if (gplot) {
-			/* Plotting light curve */
-			gnuplot_set_title(gplot, _("Light Curve"));
-			gnuplot_set_xlabel(gplot, "Julian date");
-			gnuplot_reverse_yaxis(gplot);
-			gnuplot_setstyle(gplot, "errorbars");
-			gnuplot_plot_xyyerr(gplot, date, vmag, err, nb_valid_images, "");
-		}
-		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
-	}
 
 	/* Exporting data in a dat file */
 	int ret = gnuplot_write_xyyerr_dat(filename, date, vmag, err, nb_valid_images, "JD_UT V-C err");
@@ -860,6 +856,28 @@ int new_light_curve(sequence *seq, gchar *filename) {
 		//else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 	} else {
 		siril_log_message(_("%s has been saved.\n"), filename);
+
+		/*  data are computed, now plot the graph. */
+		if (use_gnuplot) {
+			//setenv("GNUTERM", "png", 1);
+			gnuplot_ctrl *gplot = gnuplot_init();
+			if (gplot) {
+				/* Plotting light curve */
+				gchar *title = g_strdup_printf("Light curve of star %s", target_descr);
+				gnuplot_set_title(gplot, title);
+				g_free(title);
+				gnuplot_set_xlabel(gplot, "Julian date");
+				gnuplot_reverse_yaxis(gplot);
+				gnuplot_setstyle(gplot, "errorbars");
+				//gnuplot_plot_xyyerr(gplot, date, vmag, err, nb_valid_images, "");
+
+				gchar *image_name = replace_ext(filename, ".png");
+				gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
+				siril_log_message(_("%s has been generated.\n"), image_name);
+				g_free(image_name);
+			}
+			else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+		}
 	}
 
 	free(date);

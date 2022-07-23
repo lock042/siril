@@ -473,6 +473,9 @@ void gnuplot_plot_xyyerr_from_datfile(
     const char   * datfile
 );
 
+void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
+		char const *curve_title, int offset, char const* png_filename);
+
 /**
  * Writes a multi column CSV file for use with gnuplot commands later.  Allows files to also be
  * saved for post analysis with excel for example. Note that when used with gnuplot, since there

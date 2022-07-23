@@ -612,27 +612,22 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 void free_plot_data(pldata *plot) {
 	while (plot) {
 		pldata *next = plot->next;
-		if (plot->julian)
-			free(plot->julian);
-		if (plot->frame)
-			free(plot->frame);
-		if (plot->data)
-			free(plot->data);
-		if (plot->err)
-			free(plot->err);
+		free(plot->julian);
+		free(plot->frame);
+		free(plot->data);
+		free(plot->err);
 		free(plot);
 		plot = next;
 	}
 	julian0 = 0;
-	if (xlabel) {
-		xlabel = NULL;
-	}
+	xlabel = NULL;
 }
+
 static void set_sensitive(GtkCellLayout *cell_layout,
-			GtkCellRenderer *cell,
-			GtkTreeModel *tree_model,
-			GtkTreeIter *iter,
-			gpointer data) {
+		GtkCellRenderer *cell,
+		GtkTreeModel *tree_model,
+		GtkTreeIter *iter,
+		gpointer data) {
 	gboolean sensitive = TRUE;
 
 	if (!use_photometry) {

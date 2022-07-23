@@ -49,7 +49,7 @@ void initialize_photometric_param();
 const char *psf_error_to_string(psf_error err);
 void print_psf_error_summary(gint *code_sums);
 
-int new_light_curve(sequence *seq, gchar *filename);
+int new_light_curve(sequence *seq, const char *filename, const char *target_descr);
 
 gpointer crazy_photo_worker(gpointer arg);
 
