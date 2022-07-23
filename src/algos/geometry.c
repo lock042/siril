@@ -190,9 +190,11 @@ static void rotate_gui(fits *fit) {
 	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
 	
 	// the UI is still opened, need to reset selection
-	// to current image size
+	// to current image size and reset rotation
 	rectangle area = {0, 0, fit->rx, fit->ry};
 	memcpy(&com.selection, &area, sizeof(rectangle));
+	gtk_spin_button_set_value(
+			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
 	new_selection_zone();
 
 	update_zoom_label();

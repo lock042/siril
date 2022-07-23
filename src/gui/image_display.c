@@ -571,6 +571,11 @@ static void rotate_context(cairo_t *cr, double rotation) {
 
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
+		if ((com.selection.x + com.selection.w > gfit.rx) ||
+		(com.selection.y + com.selection.h > gfit.ry)) {
+			rectangle area = {0, 0, gfit.rx, gfit.ry};
+			memcpy(&com.selection, &area, sizeof(rectangle));
+		}
 		if (!rotation_dlg) rotation_dlg = lookup_widget("rotation_dialog");
 		cairo_t *cr = dd->cr;
 		static double dash_format[] = { 4.0, 2.0 };
