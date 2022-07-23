@@ -819,7 +819,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
 		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (ref_valid[ref] && seq->photometry[ref][i]->phot_is_valid) {
+			if (ref_valid[ref] && seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid) {
 				/* inversion of Pogson's law to get back to the flux
 				 * Flux = 10^(-0.4 * mag)
 				 */
@@ -865,15 +865,15 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				/* Plotting light curve */
 				gchar *title = g_strdup_printf("Light curve of star %s", target_descr);
 				gnuplot_set_title(gplot, title);
-				g_free(title);
-				gnuplot_set_xlabel(gplot, "Julian date");
+				gchar *xlabel = g_strdup_printf("Julian date (+ %d)", julian0);
+				gnuplot_set_xlabel(gplot, xlabel);
 				gnuplot_reverse_yaxis(gplot);
 				gnuplot_setstyle(gplot, "errorbars");
-				//gnuplot_plot_xyyerr(gplot, date, vmag, err, nb_valid_images, "");
-
 				gchar *image_name = replace_ext(filename, ".png");
 				gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
 				siril_log_message(_("%s has been generated.\n"), image_name);
+				g_free(title);
+				g_free(xlabel);
 				g_free(image_name);
 			}
 			else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));

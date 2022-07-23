@@ -73,8 +73,6 @@ static gchar *siril_get_gnuplot_path() {
 }
 
 #ifdef _WIN32
-static const gchar *possible_path[] = { "C:\\PROGRA~1\\gnuplot\\bin\\gnuplot.exe", "C:\\msys64\\mingw64\\bin\\gnuplot.exe" };
-static const gchar *gnuplot_path = NULL;
 
 /* returns true if the gnuplot.exe exists in the wanted folder */
 gboolean gnuplot_is_available() {
@@ -982,9 +980,8 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
     gnuplot_cmd(handle, "set term png size 800,600");
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    // XXX the offset should just change the labels of the tics of the X axis, how to do that?
     if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2 - %d):($3) title \"%s\" with %s", dat_filename,
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename,
 			    offset, curve_title, handle->pstyle);
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,

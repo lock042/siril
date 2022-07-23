@@ -2447,7 +2447,7 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 
 		if (!strcasecmp(type, "target")) {
 			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1) * 15.0;
+			double ra = g_ascii_strtod(tokens[ra_index], &end1);
 			double dec = g_ascii_strtod(tokens[dec_index], &end2);
 			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
 				siril_debug_print("malformed line: %s\n", buf);
@@ -2493,7 +2493,7 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 		}
 		else if (!strcasecmp(type, "comp2")) {
 			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1) * 15.0;
+			double ra = g_ascii_strtod(tokens[ra_index], &end1);
 			double dec = g_ascii_strtod(tokens[dec_index], &end2);
 			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
 				siril_debug_print("malformed line: %s\n", buf);
