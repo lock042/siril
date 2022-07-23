@@ -419,7 +419,11 @@ void mirrorx(fits *fit, gboolean verbose) {
 	}
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		flip_bottom_up_astrometry_data(fit);
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h11 = -1.;
+		H.h12 = (double)fit->ry - 1.;
+		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
 	}
 #endif
@@ -443,7 +447,11 @@ void mirrory(fits *fit, gboolean verbose) {
 
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		flip_left_right_astrometry_data(fit);
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h00 = -1.;
+		H.h02 = (double)fit->rx - 1.;
+		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
 	}
 #endif
@@ -528,9 +536,10 @@ static void crop_float(fits *fit, rectangle *bounds) {
 
 int crop(fits *fit, rectangle *bounds) {
 #ifdef HAVE_WCSLIB
-	point shift; //need to be computed before fit rx/ry are altered by crop
-	shift.x = (double)(bounds->x);
-	shift.y = fit->ry - (double)(bounds->h) - (double)(bounds->y) - 1; // for top-bottom flip
+	int orig_ry = fit->ry; // required to compute flips afterwards
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	if (GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H)) return 1;
 #endif
 
 	if (fit->type == DATA_USHORT) {
@@ -542,7 +551,8 @@ int crop(fits *fit, rectangle *bounds) {
 	}
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		crop_astrometry_data(fit, shift);
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
 	}
 #endif
