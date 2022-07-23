@@ -15180,6 +15180,7 @@ You can examine the workings of each option in detail using the histogram displa
             <property name="halign">end</property>
             <property name="active">True</property>
             <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_checkbutton_rotation_crop_toggled" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>

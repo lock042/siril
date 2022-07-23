@@ -178,6 +178,11 @@ static void rotate_gui(fits *fit) {
 				lookup_widget("checkbutton_rotation_crop"));
 	}
 	cropped = gtk_toggle_button_get_active(crop_rotation);
+	if (!cropped & (com.selection.w < gfit.rx || com.selection.h < gfit.ry)) {
+		cropped = siril_confirm_dialog(_("Crop confirmation"), ("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"), _("Crop"));
+		if (cropped)
+			gtk_toggle_button_set_active(crop_rotation, TRUE);
+	}
 
 	set_cursor_waiting(TRUE);
 	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
@@ -580,6 +585,14 @@ void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
 	if (com.selection.w != 0 && com.selection.h != 0) {
 		gui.rotation = gtk_spin_button_get_value(button);
 		redraw(REDRAW_OVERLAY);
+	}
+}
+
+void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (!gtk_toggle_button_get_active(button)) {
+		rectangle area = {0, 0, gfit.rx, gfit.ry};
+		memcpy(&com.selection, &area, sizeof(rectangle));
+		new_selection_zone();
 	}
 }
 
