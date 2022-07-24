@@ -623,7 +623,7 @@ void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 	notify_update((gpointer) param);
 }
 
-int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fit_right) {
+int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, const fits* _fit_right) {
 	invocation = _invocation;
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
@@ -720,7 +720,7 @@ void on_remix_apply_clicked(GtkButton *button, gpointer user_data) {
 /*** adjusters **/
 void on_spin_remix_D_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	left_changed = TRUE;
-	leftD = exp (gtk_spin_button_get_value(button)) - 1.0;
+	leftD = expm1(gtk_spin_button_get_value(button));
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -730,7 +730,7 @@ void on_spin_remix_D_left_value_changed(GtkSpinButton *button, gpointer user_dat
 
 void on_spin_remix_D_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	right_changed = TRUE;
-	rightD = exp(gtk_spin_button_get_value(button)) - 1.0;
+	rightD = expm1(gtk_spin_button_get_value(button));
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
