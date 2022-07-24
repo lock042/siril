@@ -178,7 +178,7 @@ static void rotate_gui(fits *fit) {
 				lookup_widget("checkbutton_rotation_crop"));
 	}
 	cropped = gtk_toggle_button_get_active(crop_rotation);
-	if (!cropped & (com.selection.w < gfit.rx || com.selection.h < gfit.ry)) {
+	if ((!cropped) & (com.selection.w < gfit.rx || com.selection.h < gfit.ry)) {
 		cropped = siril_confirm_dialog(_("Crop confirmation"), ("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"), _("Crop"));
 		if (cropped)
 			gtk_toggle_button_set_active(crop_rotation, TRUE);
@@ -322,7 +322,9 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
 
+#ifdef HAVE_WCSLIB
 	int orig_ry = image->ry; // required to compute flips afterwards
+#endif
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
