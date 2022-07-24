@@ -22,7 +22,7 @@ int cvResizeGaussian(fits *, int, int, int);
 
 void cvResizeArray(double *, double *, int, int, int, int);
 
-int cvRotateImage(fits *, point, double, int, int);
+int cvRotateImage(fits *image, int angle); // only for fast rotations
 
 int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points,
 		gboolean upscale2x, int interpolation, Homography *Hom);
@@ -37,7 +37,7 @@ int cvUnsharpFilter(fits* image, double sigma, double amount);
 
 int cvClahe(fits *image, double clip_limit, int size);
 
-void cvRotateImageRefPoint(fits *image, point center, double angle, int cropped, point refpointin, point *refpointout);
+void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout);
 
 void cvGetEye(Homography *H);
 
@@ -48,7 +48,12 @@ void cvTransfH(Homography Href, Homography Himg, Homography *Hres);
 double cvCalculRigidTransform(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom);
 
-void multH(Homography H1, Homography H2, Homography *Hout);
+void cvMultH(Homography H1, Homography H2, Homography *Hout);
+void cvInvertH(Homography *Hom);
+void cvApplyFlips(Homography *Hom, int source_ry, int target_ry);
+
+void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom);
+void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h);
 
 #ifdef __cplusplus
 }
