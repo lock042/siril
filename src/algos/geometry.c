@@ -245,7 +245,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 }
 
 // computes H matrix for rotation and crop
-int GetMatrixReframe(fits *image, rectangle area, double angle, int cropped, int *target_rx, int *target_ry, Homography *H) {
+static void GetMatrixReframe(fits *image, rectangle area, double angle, int cropped, int *target_rx, int *target_ry, Homography *H) {
 	*target_rx = area.w;
 	*target_ry = area.h;
 	double orig_x = (double)area.x;
@@ -255,11 +255,9 @@ int GetMatrixReframe(fits *image, rectangle area, double angle, int cropped, int
 		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
 		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
 		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
-		}
+	}
 	cvGetMatrixReframe(orig_x, orig_y, *target_rx, *target_ry, angle, H);
-	return 0; // TODO: will deal with error values later on
 }
-
 
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
@@ -267,15 +265,15 @@ int verbose_rotate_fast(fits *image, int angle) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	siril_log_color_message(
-		_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
-		_("No"), (double)angle);
+			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
+			_("No"), (double)angle);
 
 #ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	rectangle area = {0, 0, image->rx, image->ry};
-	if (GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H)) return 1;
+	GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H);
 #endif
 
 	if (cvRotateImage(image, angle)) return 1;
@@ -327,7 +325,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
-	if (GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H)) return 1;
+	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
 	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation)) return 1;
 
 	gettimeofday(&t_end, NULL);
@@ -539,7 +537,7 @@ int crop(fits *fit, rectangle *bounds) {
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
-	if (GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H)) return 1;
+	GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 #endif
 
 	if (fit->type == DATA_USHORT) {

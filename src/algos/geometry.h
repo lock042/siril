@@ -11,8 +11,6 @@ struct crop_sequence_data {
 	int retvalue;
 };
 
-int GetMatrixReframe(fits *image, rectangle area, double angle, int cropped, int *target_rx, int *target_ry, Homography *H);
-
 int verbose_resize_gaussian(fits *, int, int, int);
 int verbose_rotate_image(fits *, rectangle, double, int, int);
 

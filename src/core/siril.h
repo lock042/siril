@@ -521,8 +521,7 @@ struct guiinf {
 	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection
 	double ratio;			// enforced ratio of the selection (default is 0: none)
-	double rotation;			// selection rotation for dynamic crop 
-
+	double rotation;		// selection rotation for dynamic crop
 
 	/* alignment preview data */
 	cairo_surface_t *preview_surface[PREVIEW_NB];

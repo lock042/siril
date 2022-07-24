@@ -500,7 +500,7 @@ int process_entropy(int nb){
 	float e = 0.f;
 
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 		for (int c = 0; c < gfit.naxes[2]; c++)
 			e += entropy(&gfit, c, &area, NULL);
 	}
@@ -630,7 +630,7 @@ int process_crop(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 	}
 
 	crop(&gfit, &area);
@@ -1527,7 +1527,7 @@ int process_rotate(int nb) {
 	rectangle area = { 0, 0, gfit.rx, gfit.ry };
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		siril_log_color_message(_("Rotation will apply only to current selection, the resulting image will be cropped.\n"), "salmon");
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 		has_selection = TRUE;
 	}
 
@@ -1544,8 +1544,7 @@ int process_rotate(int nb) {
 
 	// the new selection will match the current image
 	if (has_selection) {
-		rectangle area = { 0, 0, gfit.rx, gfit.ry };
-		memcpy(&com.selection, &area, sizeof(rectangle));
+		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
 		new_selection_zone();
 	}
 	update_zoom_label();
@@ -2531,7 +2530,7 @@ int process_fill2(int nb){
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 	}
 	int retval = fill(&gfit, level, &area);
 	if (retval) {
@@ -2802,7 +2801,7 @@ int process_fill(int nb){
 			area.x = 0; area.y = 0;
 		}
 	} else {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 	}
 	int level = g_ascii_strtoull(word[1], NULL, 10);
 	int retval = fill(&gfit, level, &area);
@@ -3539,7 +3538,7 @@ int process_seq_stat(int nb) {
 	} else {
 		args->option = STATS_BASIC;
 	}
-	memcpy(&com.selection, &args->selection, sizeof(rectangle));
+	com.selection = args->selection;
 
 	apply_stats_to_sequence(args);
 
