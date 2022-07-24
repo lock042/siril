@@ -1027,17 +1027,6 @@ void flip_bottom_up_astrometry_data(fits *fit) {
 	print_updated_wcs_data(fit);
 }
 
-void flip_left_right_astrometry_data(fits *fit) {
-	/* flip pc matrix */
-	fit->wcsdata.pc[0][0] = -fit->wcsdata.pc[0][0];
-	fit->wcsdata.pc[1][0] = -fit->wcsdata.pc[1][0];
-
-	/* update crpix */
-	fit->wcsdata.crpix[0] = fit->rx - fit->wcsdata.crpix[0];
-
-	print_updated_wcs_data(fit);
-}
-
 void reframe_astrometry_data(fits *fit, Homography H) {
 	double pc1_1, pc1_2, pc2_1, pc2_2;
 	point refpointout;
@@ -1048,7 +1037,7 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	pc2_2 = H.h10 * fit->wcsdata.pc[1][0] + H.h11 * fit->wcsdata.pc[1][1];
 
 	point refpointin = {fit->wcsdata.crpix[0], fit->wcsdata.crpix[1]};
-	cvRotateImageRefPoint(H, refpointin, &refpointout);
+	cvTransformImageRefPoint(H, refpointin, &refpointout);
 
 	fit->wcsdata.pc[0][0] = pc1_1;
 	fit->wcsdata.pc[0][1] = pc1_2;
@@ -1058,18 +1047,6 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	fit->wcsdata.crpix[1] = refpointout.y;
 
 	print_updated_wcs_data(fit);
-}
-
-void crop_astrometry_data(fits *fit, point shift) {
-	fit->wcsdata.crpix[0] -= shift.x;
-	fit->wcsdata.crpix[1] -= shift.y;
-
-	print_updated_wcs_data(fit);
-	load_WCS_from_memory(fit); //need to update before pix2wcs - will be called once again by the crop function to update ra/dec
-
-	center2wcs(fit, &fit->wcsdata.ra, &fit->wcsdata.dec);
-	if (fit->wcsdata.ra != -1.)
-		update_coords(); //to have plate solve window well-centered in case of subsequent call
 }
 
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]) {

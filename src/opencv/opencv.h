@@ -37,7 +37,7 @@ int cvUnsharpFilter(fits* image, double sigma, double amount);
 
 int cvClahe(fits *image, double clip_limit, int size);
 
-void cvRotateImageRefPoint(Homography Hom, point refpointin, point *refpointout);
+void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout);
 
 void cvGetEye(Homography *H);
 

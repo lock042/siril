@@ -286,7 +286,7 @@ int cvRotateImage(fits *image, int angle) {
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 
-void cvRotateImageRefPoint(Homography Hom, point refpointin, point *refpointout) {
+void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout) {
 	Mat refptout;
 	Point3d refptin(refpointin.x, refpointin.y, 1);
 	Mat H = Mat(3, 3, CV_64FC1);
