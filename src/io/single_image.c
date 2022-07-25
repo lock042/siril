@@ -73,6 +73,8 @@ static gboolean free_image_data_idle(gpointer p) {
 	delete_selected_area();
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
+	/* It is better to close all other dialog. Indeed, some dialog are not compatible with all images */
+	siril_close_all_standard_dialogs();
 	display_filename();
 	update_zoom_label();
 	update_display_fwhm();
