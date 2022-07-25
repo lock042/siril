@@ -124,10 +124,10 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT;
 	}
-	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
-		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
-		return SF_CENTER_OFF;
-	}
+//	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
+//		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
+//		return SF_CENTER_OFF;
+//	}
 	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
 		return SF_FWHM_TOO_LARGE;
@@ -343,7 +343,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 						if (xx == x - r && yy == y) {
 							continue;
 						}
-						neighbor = smooth_image[yy][xx]; 
+						neighbor = smooth_image[yy][xx];
 						if (neighbor <= threshold) {
 							bingo = FALSE;
 							break;
@@ -363,11 +363,11 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				i.e, an approximation of the local background, by a significant amount
 				*/
 				// meanhigh = (meanhigh + pixel) / 9;
-				// if (meanhigh - mean <= locthreshold) { 
+				// if (meanhigh - mean <= locthreshold) {
 				// 	bingo = FALSE;
 				// 	continue;
 				// }
-				/*This check has been moved later on and done with the amplitude 
+				/*This check has been moved later on and done with the amplitude
 				so that the initial search box size does not influence the outcome
 				Could miss weak stars when to much of the "mean" variable was polluted
 				by large stars for small sampling images*/
@@ -389,7 +389,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float srr, srl, scd, scu;
 				float Arr, Arl, Acd, Acu;
 				int i;
-				
+
 				// Computing zero-upcrossing of the 2nd deriv row-wise moving right
 				i = 0;
 				d2rr  = smooth_image[yy][xx + i + 1] + smooth_image[yy][xx + i - 1] - 2 * smooth_image[yy][xx + i    ];
