@@ -60,6 +60,7 @@ src/filters/rgradient.c
 src/filters/saturation.c
 src/filters/scnr.c
 src/filters/starnet.c
+src/filters/synthstar.c
 src/filters/wavelets.c
 src/gui/about_dialog.c
 src/gui/astrometry_solver.c
