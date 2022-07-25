@@ -1,3 +1,7 @@
+v1.0.4 XX XX, 2022
+* Fixed selected area for flat autonormalisation calc
+* Fixed wrong initialization in polynomial background extraction
+
 v1.0.3 June 28, 2022
 
 * Fixed memory leak in PixelMath
