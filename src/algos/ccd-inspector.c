@@ -311,7 +311,9 @@ static char *edge_w[] = {
 };
 
 static void set_edge_square(gchar **panel) {
-	struct image_view *view = &gui.view[gui.cvport];
+	int cvport = gfit.naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
+
+	struct image_view *view = &gui.view[cvport];
 
 	siril_open_dialog("edge_dialog");
 
