@@ -14609,7 +14609,7 @@ You can examine the workings of each option in detail using the histogram displa
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• Push the &lt;b&gt;Linear Blender&lt;/b&gt; slider over to the left and use the &lt;b&gt;D slider&lt;/b&gt; to stretch up the details of the nebulosity.</property>
+                <property name="label" translatable="yes">• Push the &lt;b&gt;Crossfader&lt;/b&gt; slider over to the left and use the &lt;b&gt;D slider&lt;/b&gt; to stretch up the details of the nebulosity.</property>
                 <property name="use-markup">True</property>
                 <property name="wrap">True</property>
                 <property name="xalign">0</property>
@@ -14656,7 +14656,7 @@ You can examine the workings of each option in detail using the histogram displa
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">3. Once you have the starless background looking good it's time to start work on the star mask: move the &lt;b&gt;Linear Blender&lt;/b&gt; slider back towards the middle.</property>
+                <property name="label" translatable="yes">3. Once you have the starless background looking good it's time to start work on the star mask: move the &lt;b&gt;Crossfader&lt;/b&gt; slider back towards the middle.</property>
                 <property name="use-markup">True</property>
                 <property name="wrap">True</property>
                 <property name="xalign">0</property>
