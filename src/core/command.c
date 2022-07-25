@@ -2380,6 +2380,11 @@ int process_tilt(int nb) {
 	return CMD_OK;
 }
 
+int process_show_edges(int nb) {
+	compute_ccd_edges();
+	return CMD_OK;
+}
+
 int process_thresh(int nb){
 	int maxlevel = (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 	int lo = g_ascii_strtoull(word[1], NULL, 10);

@@ -29,9 +29,13 @@
 #include "algos/statistics.h"
 #include "algos/sorting.h"
 #include "gui/image_display.h"
+#include "gui/dialogs.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
+#include "gui/utils.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
+#include "io/sequence.h"
 
 #include "ccd-inspector.h"
 
@@ -286,4 +290,189 @@ void apply_tilt_to_sequence(struct tilt_data *tilt_args) {
 	tilt_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);
+}
+
+
+/**** show edges features **********/
+
+static cairo_surface_t *edge_surface = NULL;
+static char *edge_w[] = {
+		"left_top",
+		"center_top",
+		"right_top",
+		"left_center",
+		"center_center",
+		"right_center",
+		"left_bottom",
+		"center_bottom",
+		"right_bottom"
+};
+
+static void set_edge_square(gchar **panel) {
+	struct image_view *view = &gui.view[gui.cvport];
+
+	siril_open_dialog("edge_dialog");
+
+	if (edge_surface)
+		cairo_surface_destroy(edge_surface);
+	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, gfit.rx, gfit.ry, view->full_surface_stride);
+
+	if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(edge_surface);
+		edge_surface = NULL;
+		return;
+	}
+
+	for (int i = 0; i < G_N_ELEMENTS(edge_w); i++)
+		gtk_widget_queue_draw(lookup_widget(panel[i]));
+}
+
+gboolean on_left_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, 0, 0);
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_center_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, area_width - (gfit.rx / 2), 0);
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_right_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, area_width - gfit.rx, 0);
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_left_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, 0, area_height - (gfit.ry / 2));
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_center_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, area_width - (gfit.rx / 2), area_height - (gfit.ry / 2));
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_right_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, area_width - gfit.rx, area_height - (gfit.ry / 2));
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_left_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, 0, area_height - gfit.ry);
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_center_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, area_width - (gfit.rx / 2), area_height - gfit.ry);
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	guint area_width = gtk_widget_get_allocated_width (widget);
+	guint area_height = gtk_widget_get_allocated_height (widget);
+
+	cairo_rectangle(cr, 0, 0, area_width, area_height);
+	cairo_fill(cr);
+
+	cairo_translate(cr, 0, 0);
+
+	cairo_set_source_surface(cr, edge_surface, area_width - gfit.rx, area_height - gfit.ry);
+	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+	cairo_paint(cr);
+
+	return FALSE;
+}
+
+void compute_ccd_edges() {
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		set_edge_square(edge_w);
+	}
 }

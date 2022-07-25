@@ -403,6 +403,7 @@ static gboolean end_gfit_operation() {
 
 	redraw(REMAP_ALL);	// queues a redraw if !com.script
 	redraw_previews();	// queues redraws if !com.script
+
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
 }
