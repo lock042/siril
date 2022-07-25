@@ -859,7 +859,6 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 
 		/*  data are computed, now plot the graph. */
 		if (use_gnuplot) {
-			//setenv("GNUTERM", "png", 1);
 			gnuplot_ctrl *gplot = gnuplot_init();
 			if (gplot) {
 				/* Plotting light curve */

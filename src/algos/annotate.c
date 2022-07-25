@@ -33,17 +33,18 @@
 #include "annotate.h"
 
 #define USER_CATALOGUE "user-catalogue.txt"
+#define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec
 
-static GSList *siril_catalogue_list = NULL;
+static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
 static gboolean show_catalog(int catalog);
 
 static const gchar *cat[] = {
-		"messier.txt",
-		"ngc.txt",
-		"ic.txt",
-		"ldn.txt",
-		"sh2.txt",
-		"stars.txt"
+	"messier.txt",
+	"ngc.txt",
+	"ic.txt",
+	"ldn.txt",
+	"sh2.txt",
+	"stars.txt"
 };
 
 struct _CatalogObjects {
@@ -69,6 +70,27 @@ static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 	object->alias = g_strdup(alias);
 	object->catalogue = catalogue;
 	return object;
+}
+
+static const char *cat_index_to_name(int index) {
+	switch (index) {
+		case 0:
+			return "Messier";
+		case 1:
+			return "NGC";
+		case 2:
+			return "IC";
+		case 3:
+			return "LDN";
+		case 4:
+			return "Sh2";
+		case 5:
+			return "stars";
+		case 6:
+			return "user";
+		default:
+			return "(undefined)";
+	}
 }
 
 static gboolean is_inside(fits *fit, double ra, double dec) {
@@ -336,7 +358,21 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
 
-	/* TODO: check for the object first to avoid duplicates */
+	/* check for the object first to avoid duplicates */
+	GSList *cur = siril_catalogue_list;
+	double ra = siril_world_cs_get_alpha(wcs);
+	double dec = siril_world_cs_get_delta(wcs);
+	while (cur) {
+		CatalogObjects *obj = cur->data;
+		if (fabs(obj->ra - ra) < CATALOG_DIST_EPSILON &&
+				fabs(obj->dec - dec) < CATALOG_DIST_EPSILON) {
+			siril_log_message(_("The object was already found in the %s catalog under the name %s, not adding it again\n"), cat_index_to_name(obj->catalogue), obj->code);
+			return;
+		}
+
+		cur = cur->next;
+	}
+
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
 			NULL, NULL, cat_size);
