@@ -319,9 +319,9 @@ static void set_edge_square(gchar **panel) {
 
 	if (edge_surface)
 		cairo_surface_destroy(edge_surface);
-	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, gfit.rx, gfit.ry, view->full_surface_stride);
 	image_width = gfit.rx;
 	image_height = gfit.ry;
+	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
 
 	if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
 		cairo_surface_destroy(edge_surface);
@@ -334,13 +334,11 @@ static void set_edge_square(gchar **panel) {
 }
 
 gboolean on_left_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
-
-	cairo_translate(cr, 0, 0);
 
 	cairo_set_source_surface(cr, edge_surface, 0, 0);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
@@ -350,15 +348,13 @@ gboolean on_left_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_center_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
 
-	cairo_translate(cr, 0, 0);
-
-	cairo_set_source_surface(cr, edge_surface, area_width - (image_width / 2), 0);
+	cairo_set_source_surface(cr, edge_surface, (area_width - image_width) * 0.5, 0);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 
@@ -366,13 +362,11 @@ gboolean on_center_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_right_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
-
-	cairo_translate(cr, 0, 0);
 
 	cairo_set_source_surface(cr, edge_surface, area_width - image_width, 0);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
@@ -382,15 +376,13 @@ gboolean on_right_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_left_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
 
-	cairo_translate(cr, 0, 0);
-
-	cairo_set_source_surface(cr, edge_surface, 0, area_height - (image_height / 2));
+	cairo_set_source_surface(cr, edge_surface, 0, (area_height - image_height) * 0.5);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 
@@ -398,15 +390,13 @@ gboolean on_left_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_center_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
 
-	cairo_translate(cr, 0, 0);
-
-	cairo_set_source_surface(cr, edge_surface, area_width - (image_width / 2), area_height - (image_height / 2));
+	cairo_set_source_surface(cr, edge_surface, (area_width - image_width) * 0.5, (area_height - image_height) * 0.5);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 
@@ -414,15 +404,13 @@ gboolean on_center_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_right_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
 
-	cairo_translate(cr, 0, 0);
-
-	cairo_set_source_surface(cr, edge_surface, area_width - image_width, area_height - (image_height / 2));
+	cairo_set_source_surface(cr, edge_surface, area_width - image_width, (area_height - image_height) * 0.5);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 
@@ -430,13 +418,11 @@ gboolean on_right_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_left_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
-
-	cairo_translate(cr, 0, 0);
 
 	cairo_set_source_surface(cr, edge_surface, 0, area_height - image_height);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
@@ -446,15 +432,13 @@ gboolean on_left_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_center_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
 
-	cairo_translate(cr, 0, 0);
-
-	cairo_set_source_surface(cr, edge_surface, area_width - (image_width / 2), area_height - image_height);
+	cairo_set_source_surface(cr, edge_surface, (area_width - image_width) * 0.5, area_height - image_height);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 
@@ -462,13 +446,11 @@ gboolean on_center_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	guint area_width = gtk_widget_get_allocated_width (widget);
-	guint area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_allocated_width (widget);
+	int area_height = gtk_widget_get_allocated_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
-
-	cairo_translate(cr, 0, 0);
 
 	cairo_set_source_surface(cr, edge_surface, area_width - image_width, area_height - image_height);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
