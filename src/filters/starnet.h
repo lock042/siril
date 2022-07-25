@@ -23,6 +23,7 @@ typedef struct starnet_data {
 	gboolean customstride;
 	gboolean upscale;
 	gboolean starmask;
+	gboolean synthstar;
 	gboolean follow_on;
 } starnet_data;
 

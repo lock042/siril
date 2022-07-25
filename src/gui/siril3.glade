@@ -2266,7 +2266,7 @@ If the parameters is null, so no filter is apply at all.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=3 -->
+          <!-- n-columns=2 n-rows=4 -->
           <object class="GtkGrid" id="grid2">
             <property name="name">label_starnet_stride</property>
             <property name="visible">True</property>
@@ -2406,6 +2406,29 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="left-attach">1</property>
                 <property name="top-attach">0</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_synthstar">
+                <property name="label" translatable="yes">Star intensive care</property>
+                <property name="name">toggle_starnet_synthstar</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Intensive care for your stars. If they are too distorted to correct satisfactorily any other way, this option will synthesize a star mask with perfect Moffat function star profiles using colour, intensity and FWHM data measured from the stars in the original image, which can then be recombined with the starless image.</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="hexpand">True</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_starnet_synthstar_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>

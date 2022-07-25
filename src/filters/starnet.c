@@ -36,6 +36,7 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "filters/mtf.h"
+#include "filters/synthstar.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
@@ -467,10 +468,18 @@ gpointer do_starnet(gpointer p) {
 
 	if (args->starmask) {
 		// Subtract starless stretched from original stretched
-		retval = imoper(&fit, &workingfit, OPER_SUB, !com.pref.force_16bit);
-		if (retval) {
-			siril_log_color_message(_("Error: image subtraction failed...\n"), "red");
-			goto CLEANUP;
+		if (args->synthstar) {
+			retval = generate_synthstars(&fit, &workingfit);
+			if (retval) {
+				siril_log_color_message(_("Error: synthetic star mask generation failed...\n"), "red");
+				goto CLEANUP;
+			}
+		} else {
+			retval = imoper(&fit, &workingfit, OPER_SUB, !com.pref.force_16bit);
+			if (retval) {
+				siril_log_color_message(_("Error: image subtraction failed...\n"), "red");
+				goto CLEANUP;
+			}
 		}
 		update_filter_information(&fit, "StarMask", TRUE);
 

@@ -151,6 +151,8 @@ siril_common_SOURCES = \
 	filters/scnr.h \
 	filters/starnet.c \
 	filters/starnet.h \
+	filters/synthstar.c \
+	filters/synthstar.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	gui/about_dialog.c \
