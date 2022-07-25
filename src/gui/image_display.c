@@ -65,6 +65,7 @@ struct mtf_params stf[3];
 /* widgets for draw_reg_data*/
 GtkComboBox *seqcombo;
 GtkToggleButton *drawframe;
+static GtkWidget *rotation_dlg = NULL;
 
 static void invalidate_image_render_cache(int vport);
 
@@ -551,13 +552,56 @@ static void draw_main_image(const draw_data_t* dd) {
 	}
 }
 
+gboolean get_context_rotation_matrix(double rotation, cairo_matrix_t *transform, gboolean invert) {
+	if (rotation == 0.) return FALSE;
+	double dx = (double)com.selection.x + (double)com.selection.w * 0.5;
+	double dy = (double)com.selection.y + (double)com.selection.h * 0.5;
+	cairo_matrix_init_translate(transform, dx, dy);
+	cairo_matrix_rotate(transform, rotation * DEGTORAD);
+	cairo_matrix_translate(transform, -dx, -dy);
+	if (invert) return (cairo_matrix_invert(transform) == CAIRO_STATUS_SUCCESS);
+	return TRUE;
+}
+
+static void rotate_context(cairo_t *cr, double rotation) {
+	cairo_matrix_t transform;
+	if (!get_context_rotation_matrix(rotation, &transform, FALSE)) return;
+	cairo_transform(cr, &transform);
+}
+
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
+		if ((com.selection.x + com.selection.w > gfit.rx) ||
+		(com.selection.y + com.selection.h > gfit.ry)) {
+			rectangle area = {0, 0, gfit.rx, gfit.ry};
+			memcpy(&com.selection, &area, sizeof(rectangle));
+		}
+		if (!rotation_dlg) rotation_dlg = lookup_widget("rotation_dialog");
 		cairo_t *cr = dd->cr;
 		static double dash_format[] = { 4.0, 2.0 };
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 		cairo_set_dash(cr, dash_format, 2, 0);
 		cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+		cairo_save(cr); // save the original transform
+		if (gtk_widget_is_visible(rotation_dlg)) {
+			double dashes2[]={5.0, 5.0};
+			cairo_set_dash(cr, dashes2, 2, 0);
+			cairo_set_line_width(cr, 0.5 / dd->zoom);
+			cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
+						(double) com.selection.w, (double) com.selection.h);
+			cairo_stroke(cr);
+			cairo_set_line_width(cr, 3. / dd->zoom);
+			cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
+			rotate_context(cr, -gui.rotation); // cairo is positive CW while opencv is positive CCW
+			
+			// draw a circle at top left corner to visualize rots larger than 90
+			double size = 10. / dd->zoom;
+			cairo_set_dash(cr, NULL, 0, 0);
+			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * M_PI);
+			cairo_stroke_preserve(cr);
+			cairo_fill(cr);
+			cairo_set_dash(cr, dash_format, 2, 0);
+		}
 		cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
 						(double) com.selection.w, (double) com.selection.h);
 		cairo_stroke(cr);
@@ -578,7 +622,7 @@ static void draw_selection(const draw_data_t* dd) {
 		}
 
 		// display a mini cross when the selection is being dragged
-		if (gui.freezeX && gui.freezeY) {
+		if ((gui.freezeX && gui.freezeY) || gtk_widget_is_visible(rotation_dlg)) {
 			cairo_set_line_width(cr, 1.0 / dd->zoom);
 			point selection_center = { com.selection.x + (double)com.selection.w / 2.,
 				com.selection.y + (double)com.selection.h / 2. };
@@ -588,6 +632,7 @@ static void draw_selection(const draw_data_t* dd) {
 			cairo_line_to(cr, selection_center.x + 5 / dd->zoom, selection_center.y);
 			cairo_stroke(cr);
 		}
+		cairo_restore(cr); // restore the original transform
 	}
 }
 

@@ -6,6 +6,7 @@ xx/xx/22
 * Added RGB equalization and lightweight (faster) normalisation in stacking options
 * Added LRGB composition command and PixelMath command for new offline compositions
 * Added Starnet++ integration in GUI and command and mask creation
+* Added Star Recomposition tool to mix and stretch starless and starmask images
 * Added pcc command for headless PCC and plate solving
 * Added local KStars star catalogue support for plate solving and PCC (NOMAD)
 * Added a new framing assistant with several modes and image framing preview
@@ -17,6 +18,7 @@ xx/xx/22
 * Added star selection from coordinates to seqpsf and star tracking with homography
 * Added headless light curve creation from a list of star equatorial coordinates
 * Added relaxed mode for star detection for particularly bad images
+* Added crop to selection to the rotation geometric transform
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored registration and added Apply Existing Registration method

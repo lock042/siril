@@ -98,13 +98,13 @@ static void update_theme_button(const gchar *button_name, const gchar *path) {
 }
 
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data) {
-	/*Only surveys the name of the opened item vs the clipboard containt and change the color accoringly*/
+	/*Only surveys the name of the opened item vs the clipboard content and change the color accoringly*/
 
-	GtkLabel *label_name_of_seq = NULL; 
+	GtkLabel *label_name_of_seq = NULL;
 	const char *format_green = "<span foreground=\"green\">%s</span>";
 	const char *format_white = "<span foreground=\"white\">%s</span>";
 	char *markup;
-	
+
 	label_name_of_seq = GTK_LABEL(lookup_widget("label_name_of_seq"));
 
 	/* Get the clipboard object */
@@ -116,7 +116,7 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 
 	/* Set the right color*/
 	if (single_image_is_loaded()) {
-		gchar *filename = g_path_get_basename(com.uniq->filename);	
+		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
 			markup = g_markup_printf_escaped (format_green, "Image:");
 			gtk_label_set_markup(label_name_of_seq, markup);
@@ -128,7 +128,7 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 
 
 	if (sequence_is_loaded()) {
-		gchar *seq_basename = g_path_get_basename(com.seq.seqname);	
+		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
 			markup = g_markup_printf_escaped (format_green, "Sequence:");
 			gtk_label_set_markup(label_name_of_seq, markup);
@@ -141,6 +141,8 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 }
 
 void launch_clipboard_survey() {
+	if (com.script)
+		return;
 	GtkClipboard *clipboard = NULL;
 
 	/* Get the clipboard object */
@@ -823,7 +825,7 @@ int set_layers_for_registration() {
 	/* Already initialized or default selection to channel with data */
 	else
 		gtk_combo_box_set_active(GTK_COMBO_BOX(cbbt_layers), reminder);
-	
+
 	return reminder;
 }
 

@@ -61,9 +61,9 @@
 #include "gui/linear_match.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
-#include "gui/script_menu.h"
 #include "gui/registration_preview.h"
 #include "gui/photometric_cc.h"
+#include "gui/script_menu.h"
 #include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
@@ -500,7 +500,7 @@ int process_entropy(int nb){
 	float e = 0.f;
 
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 		for (int c = 0; c < gfit.naxes[2]; c++)
 			e += entropy(&gfit, c, &area, NULL);
 	}
@@ -630,7 +630,7 @@ int process_crop(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 	}
 
 	crop(&gfit, &area);
@@ -1523,16 +1523,30 @@ int process_rgradient(int nb) {
 int process_rotate(int nb) {
 	set_cursor_waiting(TRUE);
 	int crop = 1;
+	gboolean has_selection = FALSE;
+	rectangle area = { 0, 0, gfit.rx, gfit.ry };
+	if (com.selection.w > 0 && com.selection.h > 0) {
+		siril_log_color_message(_("Rotation will apply only to current selection, the resulting image will be cropped.\n"), "salmon");
+		area = com.selection;
+		has_selection = TRUE;
+	}
 
 	double degree = g_ascii_strtod(word[1], NULL);
 
 	/* check for options */
 	if (word[2] && (!strcmp(word[2], "-nocrop"))) {
-		crop = 0;
+		if (has_selection) {
+			siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
+		} else crop = 0;
 	}
 
-	verbose_rotate_image(&gfit, degree, OPENCV_AREA, crop);
+	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop);
 
+	// the new selection will match the current image
+	if (has_selection) {
+		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
+		new_selection_zone();
+	}
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1541,7 +1555,8 @@ int process_rotate(int nb) {
 }
 
 int process_rotatepi(int nb){
-	verbose_rotate_image(&gfit, 180.0, -1, 1);
+	if (verbose_rotate_fast(&gfit, 180))
+		return CMD_GENERIC_ERROR;
 
 	update_zoom_label();
 	redraw(REMAP_ALL);
@@ -2910,7 +2925,7 @@ int process_fill2(int nb){
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 	}
 	int retval = fill(&gfit, level, &area);
 	if (retval) {
@@ -3181,7 +3196,7 @@ int process_fill(int nb){
 			area.x = 0; area.y = 0;
 		}
 	} else {
-		memcpy(&area, &com.selection, sizeof(rectangle));
+		area = com.selection;
 	}
 	int level = g_ascii_strtoull(word[1], NULL, 10);
 	int retval = fill(&gfit, level, &area);
@@ -3918,7 +3933,7 @@ int process_seq_stat(int nb) {
 	} else {
 		args->option = STATS_BASIC;
 	}
-	memcpy(&com.selection, &args->selection, sizeof(rectangle));
+	com.selection = args->selection;
 
 	apply_stats_to_sequence(args);
 

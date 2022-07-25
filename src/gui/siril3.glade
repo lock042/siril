@@ -7180,7 +7180,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. Increasing D increases the intensity of stars in the resulting composition.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.000</property>
+                                <property name="text">0.000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneDR</property>
                                 <property name="digits">3</property>
@@ -7250,7 +7250,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. Increasing b will increase the intensity of stars with peak brightness above SP, but may bloat their PSF; it will reduce the intensity of stars below SP.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.500</property>
+                                <property name="text">0.500</property>
                                 <property name="adjustment">adjustment_payneBR</property>
                                 <property name="digits">3</property>
                                 <signal name="value-changed" handler="on_spin_remix_B_right_value_changed" swapped="no"/>
@@ -7319,7 +7319,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused. For star recomposition, increasing SP reduces the intensity of stars with peak brightness below SP and therefore the amount of stars that show in the resulting composition.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.00000</property>
+                                <property name="text">0.00000</property>
                                 <property name="progress-fraction">0.01</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneSPR</property>
@@ -7410,7 +7410,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.00000</property>
+                                <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneLPR</property>
                                 <property name="digits">5</property>
@@ -7480,7 +7480,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. The star mask HP can be set to quite a low value to prevent bloat of brighter stars.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">1.00000</property>
+                                <property name="text">1.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneHPR</property>
                                 <property name="digits">5</property>
@@ -7552,7 +7552,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
                                 <property name="halign">end</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.00000</property>
+                                <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneBPR</property>
                                 <property name="digits">5</property>
@@ -7783,7 +7783,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.000</property>
+                                <property name="text">0.000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneDL</property>
                                 <property name="digits">3</property>
@@ -7853,7 +7853,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.500</property>
+                                <property name="text">0.500</property>
                                 <property name="adjustment">adjustment_payneBL</property>
                                 <property name="digits">3</property>
                                 <signal name="value-changed" handler="on_spin_remix_B_left_value_changed" swapped="no"/>
@@ -7922,7 +7922,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.00000</property>
+                                <property name="text">0.00000</property>
                                 <property name="progress-fraction">0.01</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneSPL</property>
@@ -8013,7 +8013,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.00000</property>
+                                <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneLPL</property>
                                 <property name="digits">5</property>
@@ -8083,7 +8083,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP. This parameter is generally of limited use for starless backgrounds but is very effective on the star mask for preventing star bloat.</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">1.00000</property>
+                                <property name="text">1.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneHPL</property>
                                 <property name="digits">5</property>
@@ -8155,7 +8155,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                                 <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
                                 <property name="halign">end</property>
                                 <property name="width-chars">10</property>
-                                <property name="text" translatable="yes">0.00000</property>
+                                <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
                                 <property name="adjustment">adjustment_payneBPL</property>
                                 <property name="digits">5</property>
@@ -11906,6 +11906,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="use-underline">True</property>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_gray_rotateandcrop">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.rotation-processing</property>
+        <property name="label" translatable="yes">Rotate&amp;Crop</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
   </object>
   <object class="GtkMenu" id="menurgb">
     <property name="visible">True</property>
@@ -14304,7 +14313,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="action-name">win.rotation-processing</property>
-            <property name="text" translatable="yes">Rotation...</property>
+            <property name="text" translatable="yes">Rotate&amp;Crop</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -14601,7 +14610,7 @@ You can examine the workings of each option in detail using the histogram displa
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• Push the &lt;b&gt;Linear Blender&lt;/b&gt; slider over to the left and use the &lt;b&gt;D slider&lt;/b&gt; to stretch up the details of the nebulosity.</property>
+                <property name="label" translatable="yes">• Push the &lt;b&gt;Crossfader&lt;/b&gt; slider over to the left and use the &lt;b&gt;D slider&lt;/b&gt; to stretch up the details of the nebulosity.</property>
                 <property name="use-markup">True</property>
                 <property name="wrap">True</property>
                 <property name="xalign">0</property>
@@ -14648,7 +14657,7 @@ You can examine the workings of each option in detail using the histogram displa
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">3. Once you have the starless background looking good it's time to start work on the star mask: move the &lt;b&gt;Linear Blender&lt;/b&gt; slider back towards the middle.</property>
+                <property name="label" translatable="yes">3. Once you have the starless background looking good it's time to start work on the star mask: move the &lt;b&gt;Crossfader&lt;/b&gt; slider back towards the middle.</property>
                 <property name="use-markup">True</property>
                 <property name="wrap">True</property>
                 <property name="xalign">0</property>
@@ -15046,7 +15055,7 @@ You can examine the workings of each option in detail using the histogram displa
     <property name="height-request">200</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
-    <property name="title" translatable="yes">Rotation</property>
+    <property name="title" translatable="yes">Rotate&amp;Crop</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
@@ -15133,6 +15142,7 @@ You can examine the workings of each option in detail using the histogram displa
                 <property name="climb-rate">0.01</property>
                 <property name="digits">2</property>
                 <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spin_rotation_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -15171,6 +15181,7 @@ You can examine the workings of each option in detail using the histogram displa
             <property name="halign">end</property>
             <property name="active">True</property>
             <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_checkbutton_rotation_crop_toggled" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -20184,7 +20195,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
-&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
+&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">all</item>
@@ -20295,7 +20306,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
-&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
+&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">all</item>
@@ -20417,7 +20428,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
-&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
+&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">all</item>

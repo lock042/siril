@@ -165,6 +165,7 @@ void mirrory_gui(fits *fit) {
 }
 
 static void rotate_gui(fits *fit) {
+	if (com.selection.w == 0 || com.selection.h == 0) return;
 	static GtkToggleButton *crop_rotation = NULL;
 	double angle = gtk_spin_button_get_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
@@ -177,12 +178,25 @@ static void rotate_gui(fits *fit) {
 				lookup_widget("checkbutton_rotation_crop"));
 	}
 	cropped = gtk_toggle_button_get_active(crop_rotation);
+	if ((!cropped) & (com.selection.w < gfit.rx || com.selection.h < gfit.ry)) {
+		cropped = siril_confirm_dialog(_("Crop confirmation"), ("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"), _("Crop"));
+		if (cropped)
+			gtk_toggle_button_set_active(crop_rotation, TRUE);
+	}
 
 	set_cursor_waiting(TRUE);
 	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
 			cropped ? "TRUE" : "FALSE");
-	verbose_rotate_image(fit, angle, interpolation, cropped);
+	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
 	
+	// the UI is still opened, need to reset selection
+	// to current image size and reset rotation
+	rectangle area = {0, 0, fit->rx, fit->ry};
+	memcpy(&com.selection, &area, sizeof(rectangle));
+	gtk_spin_button_set_value(
+			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
+	new_selection_zone();
+
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -230,7 +244,53 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	return retvalue;
 }
 
-int verbose_rotate_image(fits *image, double angle, int interpolation,
+// computes H matrix for rotation and crop
+static void GetMatrixReframe(fits *image, rectangle area, double angle, int cropped, int *target_rx, int *target_ry, Homography *H) {
+	*target_rx = area.w;
+	*target_ry = area.h;
+	double orig_x = (double)area.x;
+	double orig_y = (double)area.y;
+	if (!cropped) {
+		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_rx * 0.5 };
+		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
+		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
+		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
+	}
+	cvGetMatrixReframe(orig_x, orig_y, *target_rx, *target_ry, angle, H);
+}
+
+// wraps cvRotateImage to update WCS data as well
+int verbose_rotate_fast(fits *image, int angle) {
+	if (angle % 90 != 0) return 1;
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	siril_log_color_message(
+			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
+			_("No"), (double)angle);
+
+#ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
+	int orig_ry = image->ry; // required to compute flips afterwards
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	rectangle area = {0, 0, image->rx, image->ry};
+	GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H);
+#endif
+
+	if (cvRotateImage(image, angle)) return 1;
+
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+#ifdef HAVE_WCSLIB
+	if (image->wcslib) {
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(image, H);
+		load_WCS_from_memory(image);
+	}
+#endif
+	return 0;
+}
+
+int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped) {
 	const char *str_inter;
 	struct timeval t_start, t_end;
@@ -262,16 +322,21 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
 
-	point center = {image->rx / 2.0, image->ry / 2.0};
-
-	cvRotateImage(image, center, angle, interpolation, cropped);
+#ifdef HAVE_WCSLIB
+	int orig_ry = image->ry; // required to compute flips afterwards
+#endif
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
+	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
 #ifdef HAVE_WCSLIB
 	if (image->wcslib) {
-		rotate_astrometry_data(image, center, angle, cropped);
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
 	}
 #endif
@@ -354,7 +419,11 @@ void mirrorx(fits *fit, gboolean verbose) {
 	}
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		flip_bottom_up_astrometry_data(fit);
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h11 = -1.;
+		H.h12 = (double)fit->ry - 1.;
+		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
 	}
 #endif
@@ -378,7 +447,11 @@ void mirrory(fits *fit, gboolean verbose) {
 
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		flip_left_right_astrometry_data(fit);
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h00 = -1.;
+		H.h02 = (double)fit->rx - 1.;
+		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
 	}
 #endif
@@ -463,9 +536,10 @@ static void crop_float(fits *fit, rectangle *bounds) {
 
 int crop(fits *fit, rectangle *bounds) {
 #ifdef HAVE_WCSLIB
-	point shift; //need to be computed before fit rx/ry are altered by crop
-	shift.x = (double)(bounds->x);
-	shift.y = fit->ry - (double)(bounds->h) - (double)(bounds->y) - 1; // for top-bottom flip
+	int orig_ry = fit->ry; // required to compute flips afterwards
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 #endif
 
 	if (fit->type == DATA_USHORT) {
@@ -477,7 +551,8 @@ int crop(fits *fit, rectangle *bounds) {
 	}
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		crop_astrometry_data(fit, shift);
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
 	}
 #endif
@@ -492,7 +567,7 @@ int crop(fits *fit, rectangle *bounds) {
 void siril_rotate90() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (90.0deg)"));
-		verbose_rotate_image(&gfit, 90.0, -1, 0);	// fast rotation, no interpolation, no crop
+		verbose_rotate_fast(&gfit, 90);	// fast rotation, no interpolation, no crop
 		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
@@ -502,7 +577,7 @@ void siril_rotate90() {
 void siril_rotate270() {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (-90.0deg)"));
-		verbose_rotate_image(&gfit, 270.0, -1, 0);// fast rotation, no interpolation, no crop
+		verbose_rotate_fast(&gfit, -90);// fast rotation, no interpolation, no crop
 		update_zoom_label();
 		redraw(REMAP_ALL);
 		redraw_previews();
@@ -510,11 +585,27 @@ void siril_rotate270() {
 }
 
 void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
+	delete_selected_area();
 	siril_close_dialog("rotation_dialog");
 }
 
 void on_button_rotation_ok_clicked(GtkButton *button, gpointer user_data) {
 	rotate_gui(&gfit);
+}
+
+void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
+	if (com.selection.w != 0 && com.selection.h != 0) {
+		gui.rotation = gtk_spin_button_get_value(button);
+		redraw(REDRAW_OVERLAY);
+	}
+}
+
+void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (!gtk_toggle_button_get_active(button)) {
+		rectangle area = {0, 0, gfit.rx, gfit.ry};
+		memcpy(&com.selection, &area, sizeof(rectangle));
+		new_selection_zone();
+	}
 }
 
 /*************
