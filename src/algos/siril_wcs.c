@@ -239,13 +239,13 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (!status) {
 		double xx = pixcrd[0];
 		double yy = pixcrd[1];
-		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
+		// return values even if outside
+		// required for celestial grid display
+		if (x) *x = xx;
+		if (y) *y = yy;
+		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry)
 			//siril_debug_print("outside image but valid return\n");
 			status = 10;
-		} else {
-			if (x) *x = xx;
-			if (y) *y = yy;
-		}
 	}
 	return status;
 #endif
