@@ -178,6 +178,7 @@ siril_common_SOURCES = \
 	gui/menu_gray_psf.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/nina_light_curve.c \
 	gui/open_dialog.c \
 	gui/open_dialog.h \
 	gui/photometric_cc.c \

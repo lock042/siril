@@ -2352,7 +2352,7 @@ gpointer light_curve_worker(gpointer arg) {
 
 	/* analyse data and create the light curve */
 	if (!retval)
-		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr);
+		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, FALSE);
 	// TODO: do not call gnuplot for graphical operation if com.headless
 
 	free_sequence(args->seq, TRUE);

@@ -336,8 +336,12 @@ int all_stars_psf_image_hook(struct generic_seq_args *args, int out_index, int i
 	struct phot_config *ps = phot_set_adjusted_for_image(fit);
 
 	// save the date for X axis (seqpsf does that too)
-	if (!args->seq->imgparam[index].date_obs && fit->date_obs)
-		args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
+	if (!args->seq->imgparam[index].date_obs) {
+		if (fit->date_obs)
+			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
+		else if (fit->date)
+			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date);
+	}
 
 	int nb_valid = 0;
 	psf_error errors[PSF_ERR_MAX_VALUE] = { 0 };
@@ -730,7 +734,7 @@ int write_photometry_data_file(const char *filename, struct photo_data_point *po
  * populated by successive calls to seqpsf on the opened sequence;
  * TODO: replace light_curve() by this?
  */
-int new_light_curve(sequence *seq, const char *filename, const char *target_descr) {
+int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph) {
 	int i, j;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
@@ -868,12 +872,16 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				gnuplot_set_xlabel(gplot, xlabel);
 				gnuplot_reverse_yaxis(gplot);
 				gnuplot_setstyle(gplot, "errorbars");
-				gchar *image_name = replace_ext(filename, ".png");
-				gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
-				siril_log_message(_("%s has been generated.\n"), image_name);
+				if (display_graph) {
+					gnuplot_plot_xyyerr(gplot, date, vmag, err, nb_valid_images, "relative magnitude");
+				} else {
+					gchar *image_name = replace_ext(filename, ".png");
+					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
+					siril_log_message(_("%s has been generated.\n"), image_name);
+					g_free(image_name);
+				}
 				g_free(title);
 				g_free(xlabel);
-				g_free(image_name);
 			}
 			else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 		}

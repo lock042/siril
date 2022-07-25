@@ -19522,6 +19522,22 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="position">3</property>
                                                   </packing>
                                                 </child>
+                                                <child>
+                                                  <object class="GtkButton" id="nina_button">
+                                                    <property name="label" translatable="yes">NINA exoplanet</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
+                                                    <signal name="clicked" handler="on_nina_button_clicked" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">4</property>
+                                                  </packing>
+                                                </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
