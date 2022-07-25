@@ -154,10 +154,10 @@ int generate_synthstars(fits *fit, fits *starless) {
 	// Detect and replace as many stars as possible
 	int orig_starfind_sigma = com.pref.starfinder_conf.sigma;
 	com.pref.starfinder_conf.sigma = 0.05;
-	double *H, *S, *L, *Hsynth, *Ssynth, *Lsynth, junk;
-	L = (double *) calloc(count, sizeof(double));
+	double *H, *S, *Hsynth, *Ssynth, *Lsynth, junk;
 	Lsynth = (double *) calloc(count, sizeof(double));
-	// Convert pixel data from fit into H and S arrays. V is irrelevant as we will synthesize V.
+
+	// For RGB images, convert pixel colour data from fit into H and S arrays. L is irrelevant as we will synthesize L.
 	if (is_RGB) {
 		H = (double *) calloc(count, sizeof(double));
 		S = (double *) calloc(count, sizeof(double));
@@ -165,16 +165,9 @@ int generate_synthstars(fits *fit, fits *starless) {
 		Ssynth = (double *) calloc(count, sizeof(double));
 		for (int n = 0; n < count; n++) {
 			if (is_32bit)
-				rgb_to_hsl(fit->fpdata[0][n], fit->fpdata[1][n], fit->fpdata[2][n], &H[n], &S[n], &L[n]);
+				rgb_to_hsl(fit->fpdata[0][n], fit->fpdata[1][n], fit->fpdata[2][n], &H[n], &S[n], &junk);
 			else
-				rgb_to_hsl(fit->pdata[0][n] * invnorm, fit->pdata[1][n] * invnorm, fit->pdata[2][n] * invnorm, &H[n], &S[n], &L[n]);
-		}
-	} else {
-		for (int n = 0; n < count; n++) {
-			if (is_32bit)
-				L[n] = (double) fit->fdata[n];
-			else
-				L[n] = (double) fit->data[n] * invnorm;
+				rgb_to_hsl(fit->pdata[0][n] * invnorm, fit->pdata[1][n] * invnorm, fit->pdata[2][n] * invnorm, &H[n], &S[n], &junk);
 		}
 	}
 
@@ -210,7 +203,7 @@ int generate_synthstars(fits *fit, fits *starless) {
 				psfG = calculate_mean_box_W(fit->pdata[1], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy, invnorm);
 				psfB = calculate_mean_box_W(fit->pdata[2], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy, invnorm);
 			}
-			rgb_to_hsv(psfR, psfG, psfB, &psfH, &psfS, &junk);
+			rgb_to_hsl(psfR, psfG, psfB, &psfH, &psfS, &junk);
 		}
 
 		// Synthesize the Moffat luminance profile and add to the star mask in HSL colourspace
@@ -262,7 +255,6 @@ int generate_synthstars(fits *fit, fits *starless) {
 				fit->data[n] = roundf_to_WORD((float) Lsynth[n] * norm);
 		}
 	}
-	free(L);
 	free(Lsynth);
 	com.pref.starfinder_conf.sigma = orig_starfind_sigma;
 	return 0;
