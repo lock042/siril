@@ -2380,7 +2380,7 @@ int process_tilt(int nb) {
 	return CMD_OK;
 }
 
-int process_show_edges(int nb) {
+int process_inspector(int nb) {
 	compute_ccd_edges();
 	return CMD_OK;
 }

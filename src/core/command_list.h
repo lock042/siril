@@ -92,11 +92,12 @@ static command commands[] = {
 	/* commands open filename and current image */
 	{"iadd", 1, "iadd filename", process_imoper, STR_IADD, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"idiv", 1, "idiv filename", process_imoper, STR_IDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
@@ -186,7 +187,6 @@ static command commands[] = {
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE, REQ_CMD_NONE},
 	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE, REQ_CMD_NONE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE, REQ_CMD_NONE},
-	{"show_edges", 0, "show_edges", process_show_edges, STR_SHOWEDGES, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"split", 3, "split fileR fileG fileB", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
