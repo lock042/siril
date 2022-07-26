@@ -48,6 +48,7 @@ void on_nina_button_clicked(GtkButton *button, gpointer user_data) {
 	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
 	if (parse_nina_stars_file_using_WCS(args, nina_file, &gfit)) {
 		// fail
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 	}
 	args->seq = &com.seq;
 	args->layer = isrgb(&gfit) ? 1 : 0;

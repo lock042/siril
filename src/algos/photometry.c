@@ -84,7 +84,7 @@ rectangle compute_dynamic_area_for_psf(psf_star *psf, struct phot_config *origin
 	double start = 1.5 * phot_set->outer;
 	double size = 3 * phot_set->outer;
 	double x = psf->xpos, y = psf->ypos;
-	cvTransfPoint(&x, &y, H, Href);
+	cvTransfPoint(&x, &y, Href, H);
 
 	rectangle area = {
 		.x = x - start,
@@ -321,7 +321,6 @@ struct all_stars_struct {
 	int **reference_stars;	// indices of reference stars found for each star
 	BYTE *ref_stars_count;	// number of reference stars for each star, size of *reference_stars
 
-	//int julian0;		// the day of the start of the sequence		TODO
 	gboolean use_gnuplot;	// if FALSE, just create data files
 };
 
@@ -479,21 +478,25 @@ int find_reference_stars(struct all_stars_struct *asargs) {
 			PRINT_ALLOC_ERR;
 			break;
 		}
-		asargs->ref_stars_count[i] = kept_refs;
-
 		// sort by distance and keep the MAX_REF_STARS best
 		qsort(ref_candidates, nb_refs, sizeof(struct ref_star), star_distance_cmp);
-		for (int j = 0; j < kept_refs; j++) {
-			if (ref_candidates[j].distance <= asargs->distance_thresh || j < asargs->min_number_of_ref)
-				asargs->reference_stars[i][j] = ref_candidates[j].index;
+		int k = 0;
+		for (int j = 0; j < nb_refs; j++) {
+			if (ref_candidates[j].distance <= asargs->distance_thresh || j < asargs->min_number_of_ref) {
+				asargs->reference_stars[i][k] = ref_candidates[j].index;
+				k++;
+				if (k >= MAX_REF_STARS)
+					break;
+			}
 		}
-		siril_debug_print("found %d reference stars for star %d\n", kept_refs, i);
+		asargs->ref_stars_count[i] = k;
+		siril_debug_print("found %d reference stars for star %d\n", k, i);
 	}
 	free(ref_candidates);
 	return 0;
 }
 
-static int create_light_curve(sequence *seq, struct all_stars_struct *asargs, int star_to_plot);
+static int create_light_curve_asargs(sequence *seq, struct all_stars_struct *asargs, int star_to_plot);
 
 gpointer crazy_photo_worker(gpointer arg) {
 	int reglayer = GPOINTER_TO_INT(arg);
@@ -566,13 +569,13 @@ gpointer crazy_photo_worker(gpointer arg) {
 
 	// 3. magic happens
 	find_reference_stars(&asargs);
-	asargs.use_gnuplot = FALSE; //gnuplot_is_available();
+	asargs.use_gnuplot = gnuplot_is_available();
 
 	for (int i = 0; i < asargs.nbstars; i++) {
 		// filter down references based on common availability along the sequence?
 
 		// make a light curve
-		create_light_curve(&com.seq, &asargs, i);
+		create_light_curve_asargs(&com.seq, &asargs, i);
 	}
 
 	free(asargs.valid_counts);
@@ -594,12 +597,15 @@ gpointer crazy_photo_worker(gpointer arg) {
 }
 
 /************************** headless light curves ***************************
- * light curves are historically made in gui/plot.c by filling the kplot data
+ * light curves were historically made in gui/plot.c by filling the kplot data
  * structure with X and Y data then calling a function that will identify the
  * data in all plots, calibrate the data using the reference stars and produce
  * a .dat file and a plot calling gnuplot.
- * Here we pass directly the sequence and psf_star data, do the same kind of
- * calibration and generate the .dat file.
+ * Then new_light_curve() was made to do the same processing but without using
+ * the kplot structure and not relying on GUI, but still with the input data in
+ * sequence->photometry, as provided by seqpsf.
+ * Here we pass directly the sequence and psf_star data in the asargs struct,
+ * do the same kind of calibration and generate the .dat file.
  ****************************************************************************/
 struct photo_data_point {
 	double julian_date;
@@ -607,9 +613,9 @@ struct photo_data_point {
 	double mag_err;
 };
 
-static int write_photometry_data_file(const char *filename, struct photo_data_point *points, int nb_points, gboolean use_gnuplot);
+static int write_photometry_data_file(const char *filename, struct photo_data_point *points, int nb_points, int julian0, gboolean use_gnuplot, gchar *target_descr);
 
-static int create_light_curve(sequence *seq, struct all_stars_struct *asargs, int star_to_plot) {
+static int create_light_curve_asargs(sequence *seq, struct all_stars_struct *asargs, int star_to_plot) {
 	if (!asargs->reference_stars[star_to_plot])
 		return 1;
 	struct photo_data_point *points = malloc(seq->selnum * sizeof(struct photo_data_point));
@@ -617,9 +623,10 @@ static int create_light_curve(sequence *seq, struct all_stars_struct *asargs, in
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
-	int j = 0;	// index in points
+	double min_date = DBL_MAX;
+	int j = 0;	// index in 'points'
 	for (int i = 0; i < seq->selnum; i++) {
-		if (!seq->imgparam[i].date_obs)
+		if (!seq->imgparam[i].date_obs)	// useless if not dated
 			continue;
 		double julian;
 		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
@@ -630,9 +637,9 @@ static int create_light_curve(sequence *seq, struct all_stars_struct *asargs, in
 		} else {
 			julian = date_time_to_Julian(tsi);
 		}
-
+		if (julian < min_date)
+			min_date = julian;
 		// X axis: value is 'julian'
-		//plot->julian[j] = julian - (double)julian0;
 
 		if (!asargs->photo[i][star_to_plot])
 			continue;
@@ -679,15 +686,17 @@ static int create_light_curve(sequence *seq, struct all_stars_struct *asargs, in
 	}
 
 	gchar *plot_file = g_strdup_printf("plot_%05d.dat", star_to_plot);
-	int retval = write_photometry_data_file(plot_file, points, j, asargs->use_gnuplot);
+	gchar *star_descr = g_strdup_printf("Light curve of star %d", star_to_plot);
+	int retval = write_photometry_data_file(plot_file, points, j, (int)min_date, asargs->use_gnuplot, star_descr);
 	if (retval > 0)
 		asargs->use_gnuplot = FALSE;
+	g_free(star_descr);
 	g_free(plot_file);
 	free(points);
 	return retval;
 }
 
-int write_photometry_data_file(const char *filename, struct photo_data_point *points, int nb_points, gboolean use_gnuplot) {
+static int write_photometry_data_file(const char *filename, struct photo_data_point *points, int nb_points, int julian0, gboolean use_gnuplot, gchar *target_descr) {
 	if (nb_points < 1)
 		return -2;
 
@@ -697,9 +706,8 @@ int write_photometry_data_file(const char *filename, struct photo_data_point *po
 		return -1;
 	}
 
-	// TODO: write star coordinates or even name some day
+	fprintf(fd, "# %s\n", target_descr);
 	fprintf(fd, "# julian_date magnitude error_bar_of_mag\n");
-
 
 	for (int i = 0; i < nb_points; i++) {
 		fprintf(fd, "%f\t%f\t%f\n", points[i].julian_date, points[i].mag, points[i].mag_err);
@@ -709,21 +717,23 @@ int write_photometry_data_file(const char *filename, struct photo_data_point *po
 	fclose(fd);
 
 	if (use_gnuplot) {
-		gnuplot_ctrl *gplot = NULL;
-		/* First, close the graph if already exists */
-		if (gplot != NULL) {
-			gnuplot_close(gplot);
-		}
-
-		if ((gplot = gnuplot_init())) {
+		gnuplot_ctrl *gplot = gnuplot_init();
+		if (gplot) {
 			/* Plotting light curve */
-			gnuplot_set_title(gplot, _("Light Curve"));
-			gnuplot_set_xlabel(gplot, "JD");
+			gchar *title = g_strdup_printf("Light curve of star %s", target_descr);
+			gnuplot_set_title(gplot, title);
+			gchar *xlabel = g_strdup_printf("Julian date (+ %d)", julian0);
+			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_reverse_yaxis(gplot);
 			gnuplot_setstyle(gplot, "errorbars");
-			gnuplot_plot_xyyerr_from_datfile(gplot, filename);
+			gchar *image_name = replace_ext(filename, ".png");
+			gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
+			siril_log_message(_("%s has been generated.\n"), image_name);
+			g_free(image_name);
+			g_free(title);
+			g_free(xlabel);
 		}
-		else return 1;
+		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 	}
 	return 0;
 }
@@ -856,8 +866,6 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	if (ret) {
 		if (com.script)
 			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
-		// TODO include this in the caller if it has a GUI:
-		//else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 	} else {
 		siril_log_message(_("%s has been saved.\n"), filename);
 
