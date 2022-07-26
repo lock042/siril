@@ -43,6 +43,7 @@ static const SirilDialogEntry entries[] =
 		{"crop_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 		{"deconvolution_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_deconv_cancel},
 		{"dialog_FFT", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+		{"edge_dialog", INFORMATION_DIALOG, FALSE, NULL},
 		{"extract_channel_dialog", OTHER_DIALOG, FALSE, NULL},
 		{"extract_wavelets_layers_dialog", OTHER_DIALOG, FALSE, NULL},
 		{"file_information", INFORMATION_DIALOG, FALSE, NULL},
@@ -127,6 +128,15 @@ void siril_close_preview_dialogs() {
 		GtkWidget *w = lookup_widget(entries[i].identifier);
 		if (gtk_widget_get_visible(w) && (entries[i].has_preview)) {
 			entries[i].apply_function();
+			gtk_widget_hide(w);
+		}
+	}
+}
+
+void siril_close_all_standard_dialogs() {
+	for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
+		GtkWidget *w = lookup_widget(entries[i].identifier);
+		if (gtk_widget_get_visible(w) && (!entries[i].has_preview)) {
 			gtk_widget_hide(w);
 		}
 	}

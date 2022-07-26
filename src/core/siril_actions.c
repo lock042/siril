@@ -31,6 +31,7 @@
 #include "algos/noise.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
+#include "algos/ccd-inspector.h"
 #include "compositing/compositing.h"
 #include "gui/about_dialog.h"
 #include "gui/utils.h"
@@ -434,6 +435,10 @@ void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	evaluate_noise_in_image();
+}
+
+void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	compute_ccd_edges();
 }
 
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

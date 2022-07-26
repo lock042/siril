@@ -11258,131 +11258,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
-          <object class="GtkModelButton" id="info_menu_back_to_main">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="text" translatable="yes">Image Information</property>
-            <property name="menu-name">main</property>
-            <property name="inverted">True</property>
-            <property name="centered">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_dynamic_psf">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.dyn-psf</property>
-            <property name="text" translatable="yes">Dynamic PSF...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack-type">end</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_astrometry">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.astrometry</property>
-            <property name="text" translatable="yes">Image Plate Solver...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_statistics">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.statistics</property>
-            <property name="text" translatable="yes">Statistics...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_noise_estimation">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.evaluate-noise</property>
-            <property name="text" translatable="yes">Noise Estimation</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_informations">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.image-information</property>
-            <property name="text" translatable="yes">Information...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_headers">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.fits-header</property>
-            <property name="text" translatable="yes">FITS Header...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">7</property>
-          </packing>
-        </child>
-      </object>
-      <packing>
-        <property name="submenu">image_information_menu</property>
-        <property name="position">1</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="border-width">4</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child>
           <object class="GtkModelButton" id="info_image">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -11491,6 +11366,144 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
       </object>
       <packing>
         <property name="submenu">main</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="border-width">4</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkModelButton" id="info_menu_back_to_main">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Image Information</property>
+            <property name="menu-name">main</property>
+            <property name="inverted">True</property>
+            <property name="centered">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_astrometry">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.astrometry</property>
+            <property name="text" translatable="yes">Image Plate Solver...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_statistics">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.statistics</property>
+            <property name="text" translatable="yes">Statistics...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_noise_estimation">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.evaluate-noise</property>
+            <property name="text" translatable="yes">Noise Estimation</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_ccd_inspector">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.ccd-inspector</property>
+            <property name="text" translatable="yes">Aberration Inspector</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_informations">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.image-information</property>
+            <property name="text" translatable="yes">Information...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_headers">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.fits-header</property>
+            <property name="text" translatable="yes">FITS Header...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">7</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_dynamic_psf">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.dyn-psf</property>
+            <property name="text" translatable="yes">Dynamic PSF...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">8</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">image_information_menu</property>
         <property name="position">2</property>
       </packing>
     </child>
@@ -11681,6 +11694,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="can-focus">False</property>
         <property name="action-name">win.statistics</property>
         <property name="label" translatable="yes">Statistics...</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_gray_ccd_inspector">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.ccd-inspector</property>
+        <property name="label" translatable="yes">Aberration Inspector</property>
         <property name="use-underline">True</property>
       </object>
     </child>
@@ -22261,6 +22283,139 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
     <action-widgets>
       <action-widget response="0">button_data_ok</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkApplicationWindow" id="edge_dialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Aberration Inspector</property>
+    <property name="resizable">False</property>
+    <property name="transient-for">control_window</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child>
+      <!-- n-columns=3 n-rows=3 -->
+      <object class="GtkGrid">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="row-spacing">6</property>
+        <property name="column-spacing">6</property>
+        <child>
+          <object class="GtkDrawingArea" id="left_top">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_left_top_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_top">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_center_top_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_top">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_right_top_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">2</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_center">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_left_center_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_center">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_center_center_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_center">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_right_center_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">2</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_bottom">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_left_bottom_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_bottom">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_center_bottom_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_bottom">
+            <property name="width-request">200</property>
+            <property name="height-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_right_bottom_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">2</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="GtkAdjustment" id="upWhiteColorCalibAdj">
     <property name="upper">1</property>
