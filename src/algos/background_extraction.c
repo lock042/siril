@@ -1157,7 +1157,7 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->from_ui = TRUE;
 	args->correction = correction;
 	args->interpolation_method = interpolation_method;
-	args->degree = (poly_order) (degree - 1);
+	args->degree = (poly_order) degree;
 	args->smoothing = smoothing;
 	args->dither = use_dither;
 	args->fit = &gfit;
