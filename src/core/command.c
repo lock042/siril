@@ -2551,9 +2551,12 @@ static gboolean sequence_drifs(sequence *seq, int reglayer, int threshold) {
 		double x = orig_x, y = orig_y;
 		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H);
 		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
-		if (dist > threshold)
+		if (dist > threshold) {
+			siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), "salmon", (int)dist, i);
 			return TRUE;
+		}
 	}
+	siril_debug_print("no heavy drift detected\n");
 	return FALSE;
 }
 
@@ -2565,14 +2568,12 @@ int process_light_curve(int nb) {
 	seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
-	siril_debug_print("reference image is %d\n", seq->reference_image);
-	fits first = { 0 };
-	// TODO: load refimage instead?
-	if (seq_read_frame_metadata(seq, 0, &first)) {
-		free_sequence(seq, TRUE);
-		return CMD_GENERIC_ERROR;
-	}
-	seq->current = 0;
+	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
+	int refimage = 0;
+	gboolean seq_has_wcs;
+	if ((seq_has_wcs = sequence_has_wcs(seq, &refimage)))
+		seq->reference_image = refimage;
+	seq->current = refimage;	// seqpsf computes transformations from current
 
 	gchar *end;
 	layer = g_ascii_strtoull(word[2], &end, 10);
@@ -2582,10 +2583,7 @@ int process_light_curve(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	if (sequence_drifs(seq, layer, seq->rx / 4)) {
-		siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images, photometry will probably not be reliable\n"), "salmon");
-	}
-	else siril_debug_print("no heavy drift detected\n");
+	sequence_drifs(seq, layer, seq->rx / 4);
 
 	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
 
@@ -2596,21 +2594,31 @@ int process_light_curve(int nb) {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
 			return 1;
 		}
-		if (!has_wcs(&first)) {
-			siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
+		if (!seq_has_wcs) {
+			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
 			return CMD_FOR_PLATE_SOLVED;
 		}
 
+		fits first = { 0 };
+		if (seq_read_frame_metadata(seq, refimage, &first)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
 		if (parse_nina_stars_file_using_WCS(args, word[3]+11, &first)) {
 			free_sequence(seq, TRUE);
-			return 1;
+			return CMD_GENERIC_ERROR;
 		}
 	} else {
+		fits first = { 0 };
+		if (seq_read_frame_metadata(seq, refimage, &first)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
 		args->areas = malloc((nb - 3) * sizeof(rectangle));
 		for (int arg_index = 3; arg_index < nb; arg_index++) {
 			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3], &args->target_descr)) {
 				free_sequence(seq, TRUE);
-				return 1;
+				return CMD_ARG_ERROR;;
 			}
 		}
 		args->nb = nb - 3;
@@ -2620,7 +2628,6 @@ int process_light_curve(int nb) {
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
 	// TODO: display stars if sequence is current and not headless
-	// TODO: clear photometry data
 
 	start_in_new_thread(light_curve_worker, args);
 	return 0;

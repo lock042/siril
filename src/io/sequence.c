@@ -1910,27 +1910,31 @@ void fix_selnum(sequence *seq, gboolean warn) {
 }
 
 gboolean sequence_has_wcs(sequence *seq, int *index) {
-	fits fit = { 0 };
+	int refimage = sequence_find_refimage(seq);
 	int indices[3];
-	indices[0] = 0;
-	indices[1] = sequence_find_refimage(seq);
+	indices[0] = refimage;
+	indices[1] = 0;
 	int first_included_image = -1;
 	for (int i = 0; i < seq->number; i++)
 		if (seq->imgparam[i].incl) {
 			first_included_image = i;
 			break;
 		}
-	if (first_included_image == 0 || first_included_image == indices[1])
+	if (first_included_image == 0 || first_included_image == refimage)
 		indices[2] = -1;
 	else indices[2] = first_included_image;
 
 	for (int i = 0; i < 3; i++) {
-		if (indices[i] != -1 && seq_read_frame_metadata(seq, indices[i], &fit)) {
+		fits fit = { 0 };
+		if (indices[i] >= 0 && seq->imgparam[indices[i]].incl &&
+				!seq_read_frame_metadata(seq, indices[i], &fit)) {
 			if (has_wcs(&fit)) {
 				if (index)
 					*index = indices[i];
+				clearfits(&fit);
 				return TRUE;
 			}
+			clearfits(&fit);
 		}
 	}
 	return FALSE;

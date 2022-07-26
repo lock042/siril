@@ -42,7 +42,7 @@ typedef enum {
 
 struct seqpsf_args {
 	gboolean for_photometry;
-	int allow_use_as_regdata;	// -1 unset, 0 no, 1 yes
+	super_bool allow_use_as_regdata;
 	framing_mode framing;
 
 	/* The seqpsf result for each image, list of seqpsf_data */
@@ -77,5 +77,7 @@ void	update_export_crop_label();
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB);
 
 void fix_selnum(sequence *seq, gboolean warn);
+
+gboolean sequence_has_wcs(sequence *seq, int *index);
 
 #endif
