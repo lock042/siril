@@ -310,23 +310,26 @@ static char *edge_w[] = {
 		"right_bottom"
 };
 
-static void set_edge_square(gchar **panel) {
+static void set_edge_square(gchar **panel, gboolean recompute) {
 	int cvport = gfit.naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
 
 	struct image_view *view = &gui.view[cvport];
 
-	siril_open_dialog("edge_dialog");
+	if (recompute)
+		siril_open_dialog("edge_dialog");
 
-	if (edge_surface)
+	if (edge_surface && recompute)
 		cairo_surface_destroy(edge_surface);
-	image_width = gfit.rx;
-	image_height = gfit.ry;
-	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
+	if (recompute) {
+		image_width = gfit.rx;
+		image_height = gfit.ry;
+		edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
 
-	if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
-		cairo_surface_destroy(edge_surface);
-		edge_surface = NULL;
-		return;
+		if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
+			cairo_surface_destroy(edge_surface);
+			edge_surface = NULL;
+			return;
+		}
 	}
 
 	for (int i = 0; i < G_N_ELEMENTS(edge_w); i++)
@@ -461,6 +464,13 @@ gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 void compute_ccd_edges() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		set_edge_square(edge_w);
+		set_edge_square(edge_w, TRUE);
+	}
+}
+
+void redraw_ccd_edges() {
+	if (!gtk_widget_is_visible(lookup_widget("edge_dialog"))) return;
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		set_edge_square(edge_w, FALSE);
 	}
 }

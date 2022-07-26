@@ -412,6 +412,8 @@ static void request_gtk_redraw_of_cvport() {
 	//siril_debug_print("image redraw requested (vport %d)\n", gui.cvport);
 	GtkWidget *widget = gui.view[gui.cvport].drawarea;
 	gtk_widget_queue_draw(widget);
+	/* redraw the 9-panel mosaic dialog if needed */
+	redraw_ccd_edges();
 }
 
 static void draw_empty_image(const draw_data_t* dd) {
