@@ -38,6 +38,7 @@ v1.2.0 mmm dd, 2022
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
+* Fixed selected area for flat autonormalisation calc
 
 v1.0.3 June 28, 2022
 
