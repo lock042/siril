@@ -628,7 +628,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, const fit
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();
-		remixer_close(TRUE);
+		remixer_close();
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("dialog_star_remix");
 	} else {
