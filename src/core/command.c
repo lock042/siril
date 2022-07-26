@@ -2542,6 +2542,21 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 	return !target_acquired;
 }
 
+static gboolean sequence_drifs(sequence *seq, int reglayer, int threshold) {
+	double orig_x = (double)(seq->rx / 2);
+	double orig_y = (double)(seq->ry / 2);
+	for (int i = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl)
+			continue;
+		double x = orig_x, y = orig_y;
+		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H);
+		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
+		if (dist > threshold)
+			return TRUE;
+	}
+	return FALSE;
+}
+
 // light_curve sequencename channel { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
 int process_light_curve(int nb) {
 	sequence *seq;
@@ -2550,7 +2565,9 @@ int process_light_curve(int nb) {
 	seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
+	siril_debug_print("reference image is %d\n", seq->reference_image);
 	fits first = { 0 };
+	// TODO: load refimage instead?
 	if (seq_read_frame_metadata(seq, 0, &first)) {
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
@@ -2564,6 +2581,11 @@ int process_light_curve(int nb) {
 		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
+
+	if (sequence_drifs(seq, layer, seq->rx / 4)) {
+		siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images, photometry will probably not be reliable\n"), "salmon");
+	}
+	else siril_debug_print("no heavy drift detected\n");
 
 	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
 
