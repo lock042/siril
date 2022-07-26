@@ -96,33 +96,42 @@ void makemoffat(double* psf, int size, double fwhm, double lum, double xoff, dou
 			psf[(x+halfpsfdim)+((y+halfpsfdim)*size)] = lum * pow(1 + ((xf*xf + yf*yf)/(alpha*alpha)),-beta);
 		}
 	}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+	return;
 }
 
 void add_star_to_rgb_buffer(double psfH, double psfS, double *psfL, int size, double *Hsynth, double *Ssynth, double *Lsynth, int x, int y, int dimx, int dimy) {
 	int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
+#define EPSILON 1e-30
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp parallel for schedule(static,1) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
 #endif
 	for (int psfx=0; psfx<size; psfx++) {
 		for (int psfy=0; psfy<size; psfy++) {
 			xx=x+psfx-halfpsfdim;
 			yy=y+psfy-halfpsfdim;
-			if (xx > 0 && xx < dimx && yy>0 && yy < dimy) {
-				double factor = psfL[psfx+(psfy*size)] / (Lsynth[xx+((dimy-yy)*dimx)] + psfL[psfx+(psfy*size)]);
+			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
+				double factor = psfL[psfx+(psfy*size)] / (max(EPSILON,(Lsynth[xx+((dimy-yy)*dimx)] + psfL[psfx+(psfy*size)])));
 				Hsynth[xx+((dimy-yy)*dimx)] = ((1 - factor) * Hsynth[xx+((dimy-yy)*dimx)]) + (factor * psfH);
 				Ssynth[xx+((dimy-yy)*dimx)] = ((1 - factor) * Ssynth[xx+((dimy-yy)*dimx)]) + (factor * psfS);
 				Lsynth[xx+((dimy-yy)*dimx)] += psfL[psfx+(psfy*size)];
 			}
 		}
 	}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+	return;
 }
 
 void add_star_to_mono_buffer(double *psfL, int size, double *Lsynth, int x, int y, int dimx, int dimy) {
 	int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp parallel for schedule(static,1) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
 #endif
 	for (int psfx=0; psfx<size; psfx++) {
 		for (int psfy=0; psfy<size; psfy++) {
@@ -133,6 +142,11 @@ void add_star_to_mono_buffer(double *psfL, int size, double *Lsynth, int x, int 
 			}
 		}
 	}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+	return;
 }
 
 int generate_synthstars(fits *fit, fits *starless) {
@@ -180,6 +194,8 @@ int generate_synthstars(fits *fit, fits *starless) {
 	siril_log_message(_("Resynthesizing %d stars...\n"), nb_stars);
 	for (int n = 0; n < nb_stars; n++) {
 		double lum = s[n]->A;
+		if (lum < 0.0)
+			lum = 0.0;
 		if (!is_32bit)
 			lum *= invnorm;
 		assert(lum > 0.0);
