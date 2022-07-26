@@ -876,7 +876,6 @@ static gboolean end_background(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	stop_processing_thread();
 	if (args) {
-		invalidate_stats_from_fit(args->fit);
 		background_computed = TRUE;
 		if (!args->from_ui) {
 			free_background_sample_list(com.grad_samples);

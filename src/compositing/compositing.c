@@ -913,8 +913,7 @@ static void update_result(int and_refresh) {
 		colors_align_and_compose();
 	}
 	if (and_refresh && number_of_images_loaded() > 0) {
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
+		notify_gfit_modified();
 	}
 }
 

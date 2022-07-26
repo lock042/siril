@@ -80,13 +80,10 @@ static int clahe_update_preview() {
 static gboolean end_clahe(gpointer p) {
 	struct CLAHE_data *args = (struct CLAHE_data *) p;
 	stop_processing_thread();
-	set_cursor_waiting(FALSE);
 
 	free(args);
 
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return FALSE;
 }
 

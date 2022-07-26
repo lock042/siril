@@ -424,15 +424,13 @@ static gboolean end_stacking(gpointer p) {
 		sliders_mode_set_state(gui.sliders);
 		set_cutoff_sliders_max_values();
 		set_sliders_value_to_gfit();
-		adjust_cutoff_from_updated_gfit();	// computes min and max
 
 		set_display_mode();
 
 		/* update menus */
 		update_MenuItem();
 
-		redraw(REMAP_ALL);
-		redraw_previews();
+		notify_gfit_modified();
 		sequence_list_change_current();
 		update_stack_interface(TRUE);
 		bgnoise_await();

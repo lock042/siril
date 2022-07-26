@@ -234,10 +234,8 @@ double get_median_gsl(gsl_matrix *mat, const int xx, const int yy, const int w,
 static gboolean end_median_filter(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+
+	notify_gfit_modified();
 
 	free(args);
 	return FALSE;

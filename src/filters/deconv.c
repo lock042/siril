@@ -98,9 +98,7 @@ gpointer RTdeconv(gpointer p) {
 
 	siril_add_idle(end_generic, args);
 	free(args);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return 0;
 }
 

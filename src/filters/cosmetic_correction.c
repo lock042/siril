@@ -435,11 +435,8 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 // idle function executed at the end of the Cosmetic Correction processing
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
 
+	notify_gfit_modified();
 	return FALSE;
 }
 

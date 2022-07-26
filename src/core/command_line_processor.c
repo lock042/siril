@@ -202,15 +202,11 @@ static gboolean end_script(gpointer p) {
 	clear_status_bar();
 	set_GUI_CWD();
 	update_MenuItem();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
 	update_zoom_label();
 	update_display_fwhm();
-	display_filename();
 	new_selection_zone();
 	update_spinCPU(0);
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 	return FALSE;
 }
 

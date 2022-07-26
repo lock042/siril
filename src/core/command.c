@@ -432,9 +432,7 @@ int process_imoper(int nb){
 	int retval = imoper(&gfit, &fit, oper, !com.pref.force_16bit);
 
 	clearfits(&fit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return retval;
 }
 
@@ -444,9 +442,7 @@ int process_addmax(int nb){
 	if (readfits(word[1], &fit, NULL, gfit.type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
 	if (addmax(&gfit, &fit) == 0) {
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		redraw_previews();
+		notify_gfit_modified();
 	}
 	clearfits(&fit);
 	return CMD_OK;
@@ -466,9 +462,7 @@ int process_fdiv(int nb){
 	siril_fdiv(&gfit, &fit, norm, TRUE);
 
 	clearfits(&fit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -489,9 +483,7 @@ int process_fmul(int nb){
 		set_cutoff_sliders_max_values();
 	}
 
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -531,9 +523,7 @@ int process_grey_flat(int nb) {
 	}
 
 	compute_grey_flat(&gfit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 
 	return CMD_OK;
 }
@@ -636,10 +626,8 @@ int process_crop(int nb) {
 	crop(&gfit, &area);
 	delete_selected_area();
 	reset_display_offset();
-	adjust_cutoff_from_updated_gfit();
 	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 
 	return CMD_OK;
 }
@@ -689,9 +677,7 @@ int process_wrecons(int nb) {
 		g_free(dir[i]);
 	}
 
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 int process_linstretch(int nb) {
@@ -991,9 +977,7 @@ int process_wavelet(int nb) {
 
 int process_log(int nb){
 	loglut(&gfit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -1008,10 +992,7 @@ int process_linear_match(int nb) {
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
 
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+		notify_gfit_modified();
 	}
 	clearfits(&ref);
 	return CMD_OK;
@@ -1403,15 +1384,13 @@ merge_clean_up:
 
 int	process_mirrorx(int nb){
 	mirrorx(&gfit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int	process_mirrory(int nb){
 	mirrory(&gfit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -1490,9 +1469,7 @@ int process_resample(int nb) {
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA);
 
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -1548,9 +1525,7 @@ int process_rotate(int nb) {
 		new_selection_zone();
 	}
 	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -1559,8 +1534,7 @@ int process_rotatepi(int nb){
 		return CMD_GENERIC_ERROR;
 
 	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2403,9 +2377,7 @@ int process_thresh(int nb){
 	}
 	threshlo(&gfit, lo);
 	threshhi(&gfit, hi);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2417,9 +2389,7 @@ int process_threshlo(int nb){
 		return CMD_ARG_ERROR;
 	}
 	threshlo(&gfit, lo);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2431,20 +2401,14 @@ int process_threshhi(int nb){
 		return CMD_ARG_ERROR;
 	}
 	threshhi(&gfit, hi);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_neg(int nb) {
 	set_cursor_waiting(TRUE);
 	pos_to_neg(&gfit);
-	update_gfit_histogram_if_needed();
-	invalidate_stats_from_fit(&gfit);
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2456,9 +2420,7 @@ int process_nozero(int nb){
 		return CMD_ARG_ERROR;
 	}
 	nozero(&gfit, (WORD)level);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2467,9 +2429,7 @@ int process_ddp(int nb) {
 	float coeff = g_ascii_strtod(word[2], NULL);
 	float sigma = g_ascii_strtod(word[3], NULL);
 	ddp(&gfit, level, coeff, sigma);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2545,7 +2505,7 @@ int process_fill2(int nb){
 	area.x = gfit.rx - area.x - area.w;
 	area.y = gfit.ry - area.y - area.h;
 	fill(&gfit, level, &area);
-	redraw(REMAP_ALL);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2636,8 +2596,7 @@ int process_findhot(int nb){
 
 int process_fix_xtrans(int nb) {
 	fix_xtrans_ac(&gfit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2668,10 +2627,7 @@ int process_cosme(int nb) {
 	if (retval)
 		siril_log_color_message(_("There were some errors, please check your input file.\n"), "salmon");
 
-	invalidate_stats_from_fit(&gfit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2775,9 +2731,7 @@ int process_clear(int nb) {
 
 int process_clearstar(int nb){
 	clear_stars_list(TRUE);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REDRAW_OVERLAY);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2814,16 +2768,14 @@ int process_fill(int nb){
 		siril_log_message(_("Wrong parameters.\n"));
 		return CMD_ARG_ERROR;
 	}
-	redraw(REMAP_ALL);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_offset(int nb){
 	int level = g_ascii_strtod(word[1], NULL);
 	off(&gfit, (float)level);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 

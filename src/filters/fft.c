@@ -419,14 +419,11 @@ static void FFTI(fits *fit, fits *xfit, fits *yfit, int type_order, int layer) {
 static gboolean end_fourier_transform(gpointer p) {
 	struct fft_data *args = (struct fft_data *)p;
 	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+
 	free(args->type);
 	free(args);
-	set_cursor_waiting(FALSE);
 	
-
+	notify_gfit_modified();
 	return FALSE;
 }
 

@@ -694,9 +694,7 @@ void siril_crop() {
 	delete_selected_area();
 	reset_display_offset();
 	update_zoom_label();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 }
 
 gint64 crop_compute_size_hook(struct generic_seq_args *args, int nb_frames) {

@@ -370,18 +370,6 @@ int single_image_is_loaded() {
 
 /**************** updating the single image *******************/
 
-/* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
-/* deprecated, use notify_gfit_modified() instead */
-void adjust_cutoff_from_updated_gfit() {
-	invalidate_stats_from_fit(&gfit);
-	invalidate_gfit_histogram();
-	if (!com.script) {
-		update_gfit_histogram_if_needed();
-		init_layers_hi_and_lo_values(gui.sliders);
-		set_cutoff_sliders_values();
-	}
-}
-
 /* generic idle function for end of operation on gfit */
 static gboolean end_gfit_operation() {
 	// this function should not contain anything required by the execution
