@@ -40,6 +40,11 @@ v1.2.0 mmm dd, 2022
 * Fixed cancellation of seqpsf or seqcrop
 * Fixed selected area for flat autonormalisation calc
 
+v1.0.4 XX XX, 2022
+XX/XX/22
+* Fixed selected area for flat autonormalisation calc
+* Fixed wrong initialization in polynomial background extraction
+
 v1.0.3 June 28, 2022
 
 * Fixed memory leak in PixelMath
