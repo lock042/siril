@@ -203,7 +203,6 @@ struct settings_access all_settings[] = {
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
-	{ "debayer", "open_debayer", STYPE_BOOL, N_("open image debayered"), &com.pref.debayer.open_debayer },
 	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
 	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
@@ -244,7 +243,6 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
 	{ "gui_prepro", "use_bias_synth", STYPE_BOOL, N_("use synthetic bias"), &com.pref.prepro.use_bias_synth },
 	{ "gui_prepro", "bias_synth", STYPE_STR, N_("value of synthetic bias"), &com.pref.prepro.bias_synth},
-
 
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 

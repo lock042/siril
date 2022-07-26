@@ -79,7 +79,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 	gtk_label_set_text(label_starnetinfo, "Starnet++ unavailable: requires Siril to be compiled with libtiff support.");
 #endif
-
+#ifdef HAVE_LIBTIFF
 	if (!starnet_executablecheck()) {
 		gtk_label_set_text(label_starnetinfo, "No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration.");
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
@@ -87,7 +87,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 		gtk_label_set_text(label_starnetinfo, "");
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 	}
-
+#endif
 	starnet_startup();
 
 	set_notify_block(TRUE);
@@ -108,6 +108,7 @@ void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("starnet_dialog");
 }
 
+#ifdef HAVE_LIBTIFF
 void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
@@ -140,6 +141,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	start_in_new_thread(do_starnet, starnet_args);
 	siril_close_dialog("starnet_dialog");
 }
+#endif
 
 /*** adjusters **/
 void on_spin_starnet_stride_value_changed(GtkSpinButton *button, gpointer user_data) {
