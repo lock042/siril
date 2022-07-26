@@ -331,6 +331,7 @@ flatpak-nightly:
       - ".flatpak-builder/downloads"
       - ".flatpak-builder/git"
   needs: []
+  allow_failure: true
   
 
 appimage-nightly:
