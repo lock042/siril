@@ -28,6 +28,7 @@
 #include <iomanip>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/photo/photo.hpp>
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
@@ -67,6 +68,7 @@ WORD *fits_to_bgrbgr_ushort(fits *image) {
 	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
 	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
 		bgrbgr[i + 0] = image->pdata[BLAYER][j];
+	fprintf(stdout,"%u %d\n", i, image->pdata[1][j]);
 		bgrbgr[i + 1] = image->pdata[GLAYER][j];
 		bgrbgr[i + 2] = image->pdata[RLAYER][j];
 	}
@@ -228,6 +230,38 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 	image->naxes[0] = image->rx;
 	image->naxes[1] = image->ry;
 	invalidate_stats_from_fit(image);
+	return 0;
+}
+
+int cvNLMDenoiseMono(fits *image, int toX, int toY, float h_lum) {
+	Mat in, out;
+	void *bgr = NULL;
+	int retval;
+
+	// Convert to Mat
+	retval = image_to_Mat(image, &in, &out, &bgr, toX, toY);
+	if (retval)
+		return retval;
+
+	std::vector<float> h = {h_lum};
+	fastNlMeansDenoising(in, out, h, 7, 21, NORM_L1);
+
+	retval = Mat_to_image(image, &in, &out, bgr, toX, toY);
+
+	return retval;
+}
+
+int cvNLMDenoiseWORD(WORD *array_in, WORD *array_out, int toX, int toY, float lum) {
+	Mat in, out;
+	int retval;
+
+	in = Mat(toY, toX, CV_16UC1, array_in);
+	out = Mat(toY, toX, CV_16UC1, array_out);
+
+	// Different h parameters for L and AB channels i.a.w. OpenCV.org docs recommendation
+	std::vector<float> h = {lum};
+	fastNlMeansDenoising(in, out, h, 7, 21, NORM_L1);
+
 	return 0;
 }
 
@@ -793,7 +827,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	outC.at<double>(0,0) = outCx;
 	outC.at<double>(1,0) = outCy;
 	inC.at<double>(0,0) = inCx;
-	inC.at<double>(1,0) = inCy;	
+	inC.at<double>(1,0) = inCy;
 
 	for (int i = 0; i < n; i++) {
 		out.at<double>(0,i) -= outCx;
@@ -900,7 +934,7 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 	S2.at<double>(1, 2) = -(double)h * 0.5;
 
 	// get rot matrix about origin {0, 0}
-	Mat r = getRotationMatrix2D(pt, angle, 1.0); 
+	Mat r = getRotationMatrix2D(pt, angle, 1.0);
 	Mat H = Mat::eye(3, 3, CV_64FC1);
 	r.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
 	// std::cout << H << std::endl;

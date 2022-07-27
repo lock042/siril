@@ -84,6 +84,7 @@ src_files = [
   'filters/median.c',
   'filters/mtf.c',
   'filters/ght.c',
+  'filters/nlmdenoise.c',
   'filters/rgradient.c',
   'filters/saturation.c',
   'filters/scnr.c',

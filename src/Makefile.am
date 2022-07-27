@@ -143,6 +143,8 @@ siril_common_SOURCES = \
 	filters/mtf.h \
 	filters/ght.c \
 	filters/ght.h \
+	filters/nlmdenoise.c \
+	filters/nlmdenoise.h \
 	filters/rgradient.c \
 	filters/rgradient.h \
 	filters/saturation.c \

@@ -33,6 +33,10 @@ unsigned char *cvCalculH(s_star *star_array_img,
 
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation);
 
+int cvNLMDenoiseMono(fits *image, int toX, int toY, float h_lum);
+
+int cvNLMDenoiseWORD(WORD *array_in, WORD *array_out, int toX, int toY, float lum);
+
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
 int cvClahe(fits *image, double clip_limit, int size);

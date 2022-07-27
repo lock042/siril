@@ -74,6 +74,7 @@
 #include "filters/mtf.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
+#include "filters/nlmdenoise.h"
 #include "filters/saturation.h"
 #include "filters/scnr.h"
 #include "filters/starnet.h"
@@ -1071,6 +1072,33 @@ int process_clahe(int nb) {
 	args->tileSize = size;
 
 	start_in_new_thread(clahe, args);
+
+	return CMD_OK;
+}
+
+int process_nlmdenoise(int nb) {
+	if (nb < 1)
+	return CMD_WRONG_N_ARG;
+
+	int h_lum = (int) g_ascii_strtod(word[1], NULL);
+	if ((h_lum < 0) || (h_lum > 65535)) {
+		siril_log_message(_("h_L must be between 0 and 65535. Suggested starting point is 100-200.\n"));
+		return CMD_ARG_ERROR;
+	}
+	int h_AB = h_lum;
+	if (nb > 1) {
+		h_AB = (int) g_ascii_strtod(word[2],NULL);
+		if ((h_AB < 0) || (h_AB > 65535)) {
+			siril_log_message(_("h_AB must be between 0 and 65535. Suggested default is 100-400.\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	NLMDenoise_data *args = malloc(sizeof(NLMDenoise_data));
+	args->image = &gfit;
+	args->h_lum = h_lum;
+	args->h_AB = h_AB;
+	start_in_new_thread(nlmdenoise, args);
 
 	return CMD_OK;
 }
