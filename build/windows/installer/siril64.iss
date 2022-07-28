@@ -26,6 +26,7 @@ Compression=lzma
 SolidCompression=yes
 ChangesAssociations=yes
 ArchitecturesInstallIn64BitMode=x64
+DisableDirPage=yes
 
 WizardImageFile=windows-installer-intro-big.bmp
 WizardImageStretch=yes
