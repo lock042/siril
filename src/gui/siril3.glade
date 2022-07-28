@@ -467,6 +467,13 @@ Uncheck if images come from a monochrome sensor.</property>
       </object>
     </child>
   </object>
+  <object class="GtkAdjustment" id="adj_ab_inspector_panel">
+    <property name="lower">127</property>
+    <property name="upper">1024</property>
+    <property name="value">256</property>
+    <property name="step-increment">10</property>
+    <property name="page-increment">100</property>
+  </object>
   <object class="GtkAdjustment" id="adj_background_smoothing">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -22299,8 +22306,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         <property name="column-spacing">6</property>
         <child>
           <object class="GtkDrawingArea" id="left_top">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_left_top_draw" swapped="no"/>
@@ -22312,8 +22319,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="center_top">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_center_top_draw" swapped="no"/>
@@ -22325,8 +22332,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="right_top">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_right_top_draw" swapped="no"/>
@@ -22338,8 +22345,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="left_center">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_left_center_draw" swapped="no"/>
@@ -22351,8 +22358,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="center_center">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_center_center_draw" swapped="no"/>
@@ -22364,8 +22371,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="right_center">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_right_center_draw" swapped="no"/>
@@ -22377,8 +22384,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="left_bottom">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_left_bottom_draw" swapped="no"/>
@@ -22390,8 +22397,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="center_bottom">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_center_bottom_draw" swapped="no"/>
@@ -22403,8 +22410,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
         </child>
         <child>
           <object class="GtkDrawingArea" id="right_bottom">
-            <property name="width-request">200</property>
-            <property name="height-request">200</property>
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <signal name="draw" handler="on_right_bottom_draw" swapped="no"/>
@@ -25320,6 +25327,106 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
+                      <object class="GtkLabel" id="label5">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Analysis Tools</property>
+                        <property name="xalign">0</property>
+                        <style>
+                          <class name="title"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame" id="frame2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="valign">start</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignment2">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="valign">center</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=1 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
+                                <property name="column-homogeneous">True</property>
+                                <child>
+                                  <object class="GtkSpinButton" id="spinpanel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Defines the size of the panel used for the mosaic. This size is expressed in pixels. The higher you set the value, the more stars you will see, but at a lower resolution.</property>
+                                    <property name="halign">start</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="adjustment">adj_ab_inspector_panel</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">256</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Panel size (px):</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="label7">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Aberration Inspector&lt;/b&gt;</property>
+                            <property name="use-markup">True</property>
+                            <property name="single-line-mode">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="name">page1</property>
+                    <property name="title" translatable="yes">Analysis Tools</property>
+                    <property name="position">5</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">10</property>
+                    <child>
                       <object class="GtkLabel" id="label4">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -25485,7 +25592,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p4</property>
                     <property name="title" translatable="yes">Scripts</property>
-                    <property name="position">5</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
                 <child>
@@ -25806,7 +25913,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p5</property>
                     <property name="title" translatable="yes">User Interface</property>
-                    <property name="position">6</property>
+                    <property name="position">7</property>
                   </packing>
                 </child>
                 <child>
@@ -25956,7 +26063,7 @@ Configuring a memory amount larger than what is available on your system may res
                   <packing>
                     <property name="name">preferences_p6</property>
                     <property name="title" translatable="yes">Performances</property>
-                    <property name="position">7</property>
+                    <property name="position">8</property>
                   </packing>
                 </child>
                 <child>
@@ -26310,7 +26417,7 @@ Configuring a memory amount larger than what is available on your system may res
                   <packing>
                     <property name="name">preferences_p7</property>
                     <property name="title" translatable="yes">Miscellaneous</property>
-                    <property name="position">8</property>
+                    <property name="position">9</property>
                   </packing>
                 </child>
               </object>

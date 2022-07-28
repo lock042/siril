@@ -93,6 +93,10 @@ struct phot_config {
 	int minval, maxval;	// consider pixels outside this range as invalid for photometry
 };
 
+struct analysis_config {
+	int mosaic_panel;
+};
+
 struct debayer_config {
 	gboolean open_debayer;			// debayer images being opened
 	gboolean use_bayer_header;		// use the pattern given in the file header
@@ -218,6 +222,7 @@ struct pref_struct {
 	struct gui_config gui;
 	struct debayer_config debayer;
 	struct phot_config phot_set;
+	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;
 };

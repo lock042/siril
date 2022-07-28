@@ -295,6 +295,8 @@ void apply_tilt_to_sequence(struct tilt_data *tilt_args) {
 
 /**** show edges features **********/
 
+#define WIDGET_SIZE 127;
+
 static cairo_surface_t *edge_surface = NULL;
 int image_width = -1;
 int image_height = -1;
@@ -330,6 +332,11 @@ static void set_edge_square(gchar **panel, gboolean recompute) {
 			edge_surface = NULL;
 			return;
 		}
+		double scale = com.pref.analysis.mosaic_panel / WIDGET_SIZE;
+		if (scale < 1.0) scale = 1.0;
+		cairo_surface_set_device_scale(edge_surface, scale, scale);
+		image_width = (int) ((double)image_width / scale);
+		image_height = (int) ((double) image_height / scale);
 	}
 
 	for (int i = 0; i < G_N_ELEMENTS(edge_w); i++)
