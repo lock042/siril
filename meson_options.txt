@@ -69,7 +69,7 @@ option('libconfig',
 
 option('criterion',
  type : 'boolean',
- value : 'true',
+ value : 'false',
  description: 'build with criterion support'
 )
 
