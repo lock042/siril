@@ -17,7 +17,8 @@ meson ${BUILDDIR} \
     --prefix=${PREFIX} \
     --buildtype=release \
     -Drelocatable-bundle=yes \
-    -Denable-libcurl=yes
+    -Denable-libcurl=yes \
+    -Dlibconfig=true
 
 
 ninja -C ${BUILDDIR} -j$(nproc)

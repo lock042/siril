@@ -42,7 +42,17 @@ srcInclude  = include_directories('src')
 
 warnings = []
 
-enable_openmp = get_option('openmp')
+enable_openmp    = get_option('openmp')
+enable_libraw    = get_option('libraw')
+enable_libtiff   = get_option('libtiff')
+enable_libjpeg   = get_option('libjpeg')
+enable_libpng    = get_option('libpng')
+enable_libheif   = get_option('libheif')
+enable_ffms2     = get_option('ffms2')
+enable_ffmpeg    = get_option('ffmpeg')
+enable_libconfig = get_option('libconfig')
+enable_criterion = get_option('criterion')
+enable_wcslib    = get_option('wcslib')
 
 # General version
 siril_version = meson.project_version()
@@ -272,33 +282,72 @@ if enable_openmp
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
   else
-  openmp_dep = dependency('openmp', required : false)
+  openmp_dep = dependency('openmp', required : true)
   endif
 else
   message('OpenMP disabled')
 endif
 
-libraw_dep = dependency('libraw', required : false)
-libtiff_dep = dependency('libtiff-4', required : false)
-libjpeg_dep = dependency('libjpeg', required : false)
-libpng_dep = dependency('libpng', required : false, version: '>= 1.6.0')
-libheif_dep = dependency('libheif', required : false)
-ffms2_dep = dependency('ffms2', required : false)
-ffmpeg = [
-  dependency('libavformat', required : false),
-  dependency('libavcodec', required : false),
-  dependency('libavutil', version : '>= 55.20', required : false),
-  dependency('libswscale', required : false),
-  dependency('libswresample', required : false)
-]
+libraw_dep = no_dep
+if enable_libraw
+  libraw_dep = dependency('libraw', required : true)
+endif
+
+libtiff_dep = no_dep
+if enable_libtiff
+  libtiff_dep = dependency('libtiff-4', required : true)
+endif
+
+libjpeg_dep = no_dep
+if enable_libjpeg
+  libjpeg_dep = dependency('libjpeg', required : true)
+endif
+
+libpng_dep = no_dep
+if enable_libpng
+  libpng_dep = dependency('libpng', required : true, version: '>= 1.6.0')
+endif
+
+libheif_dep = no_dep
+if enable_libheif
+  libheif_dep = dependency('libheif', required : true)
+endif
+
+ffms2_dep = no_dep
+if enable_ffms2
+  ffms2_dep = dependency('ffms2', required : true)
+endif
+
+ffmpeg = []
+if enable_ffmpeg
+  ffmpeg = [
+    dependency('libavformat', required : true),
+    dependency('libavcodec', required : true),
+    dependency('libavutil', version : '>= 55.20', required : true),
+    dependency('libswscale', required : true),
+    dependency('libswresample', required : true)
+  ]
+endif
+
 libcurl_dep = no_dep
 if enable_libcurl
-  libcurl_dep = dependency('libcurl', required : false)
+  libcurl_dep = dependency('libcurl', required : true)
 endif
-libconfig_dep = dependency('libconfig', required : false)
-criterion_dep = dependency('criterion', required : false)
 
-wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : false)
+libconfig_dep = no_dep
+if enable_libconfig
+  libconfig_dep = dependency('libconfig', required : true)
+endif
+
+criterion_dep = no_dep
+if enable_criterion
+  criterion_dep = dependency('criterion', required : true)
+endif
+
+wcslib_dep = no_dep
+if enable_wcslib
+  wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true)
+endif
 
 ################################################################################
 # Configuration
@@ -361,7 +410,6 @@ if libconfig_dep.found()
   conf_data.set('HAVE_LIBCONFIG', true, description : 'Using libconfig.')
 else
   conf_data.set('HAVE_LIBCONFIG', false, description : 'Using libconfig.')
-  warning('libconfig not found. Old configuration file will not be read.')
 endif
 
 if gsl_dep.found()
@@ -381,42 +429,36 @@ if libraw_dep.found()
   conf_data.set('HAVE_LIBRAW', true, description : 'Using RAW images.')
 else 
   conf_data.set('HAVE_LIBRAW', false, description : 'Using RAW images.')
-  warning('libraw not found. Not using RAW importer.')
 endif
 
 if libtiff_dep.found()
   conf_data.set('HAVE_LIBTIFF', true, description : 'Using TIFF images.')
 else 
   conf_data.set('HAVE_LIBTIFF', false, description : 'Using TIFF images.')
-  warning('libtiff-4 not found. Not using TIFF importer.')
 endif
 
 if libjpeg_dep.found()
   conf_data.set('HAVE_LIBJPEG', true, description : 'Using JPEG images.')
 else 
   conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
-  warning('libjpeg not found. Not using JPEG importer.')
 endif
 
 if libpng_dep.found()
   conf_data.set('HAVE_LIBPNG', true, description : 'Using PNG images.')
 else 
   conf_data.set('HAVE_LIBPNG', false, description : 'Using PNG images.')
-  warning('libpng not found. Not using PNG importer.')
 endif
 
 if libheif_dep.found()
   conf_data.set('HAVE_LIBHEIF', true, description : 'Using HEIF.')
 else 
   conf_data.set('HAVE_LIBHEIF', false, description : 'Using HEIF.')
-  warning('libheif not found. Not using HEIF importer.')
 endif
 
 ffmpeg_found = false
 foreach dep : ffmpeg
   if not dep.found()
     ffmpeg_found = false
-    warning('An FFmpeg library (' + dep.name() + ') not found or too old. Not using film export formats.')
     break
   else
     ffmpeg_found = true
@@ -428,7 +470,6 @@ if ffms2_dep.found()
   conf_data.set('HAVE_FFMS2', true, description : 'Using FFMS.')
 else 
   conf_data.set('HAVE_FFMS2', false, description : 'Using FFMS.')
-  warning('ffms2 not found. Not using FFMS.')
 endif
 
 if libcurl_dep.found()
@@ -448,7 +489,6 @@ if wcslib_dep.found()
 endif
 else 
   conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
-  warning('wcslib not found. Not using WCS API.')
 endif
 
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
@@ -563,6 +603,7 @@ summary(
     'FFMPEG'    : ffmpeg_found,
     'libcurl'   : libcurl_dep.found(),
     'wcslib'    : wcslib_dep.found(),
+    'libconfig' : libconfig_dep.found(),
     'criterion' : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
