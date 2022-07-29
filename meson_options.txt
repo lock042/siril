@@ -12,9 +12,69 @@ option('openmp',
  description: 'build with OpenMP support'
 )
 
+option('libraw',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with LibRaw support'
+)
+
+option('libtiff',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with TIFF support'
+)
+
+option('libjpeg',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with JPEG support'
+)
+
+option('libpng',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with PNG support'
+)
+
+option('libheif',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with HEIF support'
+)
+
+option('ffms2',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with FFMS2 support'
+)
+
+option('ffmpeg',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with FFmpeg support'
+)
+
 option('enable-libcurl',
  type: 'combo', 
  value: 'platform-default',
  description: 'Use libcurl instead of GIO',
  choices: [ 'yes', 'no', 'platform-default' ]
+)
+
+option('libconfig',
+ type : 'boolean',
+ value : 'false',
+ description: 'build with libconfig support'
+)
+
+option('criterion',
+ type : 'boolean',
+ value : 'false',
+ description: 'build with criterion support'
+)
+
+option('wcslib',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with WCSLIB support'
 )
