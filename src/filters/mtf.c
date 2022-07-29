@@ -24,7 +24,7 @@
 #include "algos/statistics.h"
 
 
-void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params) {
+void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
 
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
@@ -36,7 +36,7 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params) {
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t i = 0; i < ndata; i++) {
 			float pxl = from->data[i] * invnorm;
@@ -46,7 +46,7 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params) {
 	}
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t i = 0; i < ndata; i++) {
 			to->fdata[i] = MTFp(from->fdata[i], params);
