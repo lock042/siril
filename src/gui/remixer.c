@@ -442,7 +442,10 @@ int imoper_scaled(fits *a, fits *b, image_operator oper, float factor) {
 		}
 	}
 	if (a->type == DATA_USHORT) {
-		fit_replace_buffer(a, float_buffer_to_ushort(result, n), DATA_USHORT);
+		for (size_t i = 0; i < n ; i++)
+			a->data[i] = float_to_ushort_range(result[i]);
+		free(result);
+		result = NULL;
 	} else invalidate_stats_from_fit(a);
 	return 0;
 }

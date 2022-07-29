@@ -326,7 +326,10 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 			result[i] = 0.0f;
 	}
 	if (a->type == DATA_USHORT) {
-		fit_replace_buffer(a, result, DATA_FLOAT);
+		for (size_t i = 0; i < n ; i++)
+			a->data[i] = float_to_ushort_range(result[i]);
+		free(result);
+		result = NULL;
 	} else invalidate_stats_from_fit(a);
 	return 0;
 }
