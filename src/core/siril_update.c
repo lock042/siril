@@ -21,6 +21,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#ifdef HAVE_JSON_GLIB
 #include <json-glib/json-glib.h>
 
 #ifdef HAVE_LIBCURL
@@ -714,4 +715,5 @@ void siril_check_updates(gboolean verbose) {
 	g_file_load_contents_async(siril_versions, NULL, siril_check_updates_callback, GINT_TO_POINTER(verbose));
 	g_object_unref(siril_versions);
 }
+#endif
 #endif
