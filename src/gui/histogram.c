@@ -106,18 +106,17 @@ static void histo_startup() {
 		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
 }
 
-static void histo_close(gboolean revert) {
+static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	if (revert) {
-		set_cursor_waiting(TRUE);
 
 		for (int i = 0; i < gfit.naxes[2]; i++) {
 			set_histogram(hist_backup[i], i);
 			hist_backup[i] = NULL;
 		}
-		if (!copy_backup_to_gfit()) {
+		if (!copy_backup_to_gfit() && update_image_if_needed) {
+			set_cursor_waiting(TRUE);
 			notify_gfit_modified();
 		}
-		set_cursor_waiting(FALSE);
 	}
 
 	// free data
@@ -131,12 +130,12 @@ static void histo_recompute() {
 
 	if (invocation == HISTO_STRETCH) {
 		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
-		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params);
+		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (double) _LP, .SP = (double) _SP, .HP = (double) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel};
 		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
-		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params);
+		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params, TRUE);
 	}
 	notify_gfit_modified();
 }
@@ -509,7 +508,7 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 				displayed_values = NULL;
 			}
 			PRINT_ALLOC_ERR;
-			histo_close(TRUE);
+			histo_close(TRUE, TRUE);
 			return;
 		}
 		displayed_values = tmp;
@@ -778,14 +777,14 @@ void update_gfit_histogram_if_needed() {
 static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct mtf_data *m_args = (struct mtf_data*) args->user;
-	apply_linked_mtf_to_fits(fit, fit, m_args->params);
+	apply_linked_mtf_to_fits(fit, fit, m_args->params, FALSE);
 	return 0;
 }
 
 static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
-	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, m_args->compute_params);
+	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, m_args->compute_params, FALSE);
 	return 0;
 }
 
@@ -836,7 +835,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(TRUE);
+	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
 }
@@ -844,7 +843,7 @@ void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(TRUE);
+	histo_close(TRUE, TRUE);
 	histo_startup();
 	set_cursor_waiting(FALSE);
 }
@@ -884,8 +883,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		 * It is better to first close the window as it is a liveview tool
 		 * TODO: could we improve this behavior?
 		 */
-			reset_cursors_and_values();
-			histo_close(TRUE);
+			histo_close(TRUE, FALSE);
 			siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
@@ -904,8 +902,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		 * It is better to first close the window as it is a liveview tool
 		 * TODO: could we improve this behavior?
 		 */
-			reset_cursors_and_values();
-			histo_close(TRUE);
+			histo_close(TRUE, FALSE);
 			siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
@@ -940,7 +937,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 void apply_histo_cancel() {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(TRUE);
+	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 }
 
@@ -1075,7 +1072,7 @@ void toggle_histogram_window_visibility(int _invocation) {
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);
 		reset_cursors_and_values();
-		histo_close(TRUE);
+		histo_close(TRUE, TRUE);
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("histogram_dialog");
 	} else {

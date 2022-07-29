@@ -31,6 +31,6 @@ int GHTsetup(ght_compute_params* compute_params, double B, double D, double LP, 
 
 double GHT(double in, double B, double D, double LP, double SP, double HP, double BP, int stretchtype, ght_compute_params compute_params);
 double GHTp(double in, ght_params params, ght_compute_params compute_params);
-void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params_ght, ght_compute_params compute_params);
+void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params_ght, ght_compute_params compute_params, gboolean multithreaded);
 
 #endif

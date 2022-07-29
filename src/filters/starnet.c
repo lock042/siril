@@ -368,7 +368,7 @@ gpointer do_starnet(gpointer p) {
 	find_linked_midtones_balance_default(&workingfit, &params);
 	if (args->linear) {
 		siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
-		apply_linked_mtf_to_fits(&workingfit, &workingfit, params);
+		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Upscale if needed
