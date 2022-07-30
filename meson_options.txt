@@ -12,6 +12,12 @@ option('openmp',
  description: 'build with OpenMP support'
 )
 
+option('json_glib',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with json glib support'
+)
+
 option('libraw',
  type : 'boolean',
  value : 'true',

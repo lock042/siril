@@ -43,6 +43,7 @@ srcInclude  = include_directories('src')
 warnings = []
 
 enable_openmp    = get_option('openmp')
+enable_json_glib = get_option('json_glib')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
 enable_libjpeg   = get_option('libjpeg')
@@ -238,7 +239,6 @@ exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 fftw3f_dep = dependency('fftw3f', required : true)
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
-json_glib = dependency('json-glib-1.0', version: '>=1.2.6')
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
 opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
 
@@ -286,6 +286,11 @@ if enable_openmp
   endif
 else
   message('OpenMP disabled')
+endif
+
+json_glib_dep = no_dep
+if enable_json_glib
+  json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 endif
 
 libraw_dep = no_dep
@@ -425,6 +430,12 @@ else
   conf_data.set('HAVE_GSL_2', 0, description : 'Use GSL 2.')
 endif
 
+if json_glib_dep.found()
+  conf_data.set('HAVE_JSON_GLIB', true, description : 'Using json glib')
+else
+  conf_data.set('HAVE_JSON_GLIB', false, description : 'Using json glib')
+endif
+
 if libraw_dep.found()
   conf_data.set('HAVE_LIBRAW', true, description : 'Using RAW images.')
 else 
@@ -506,7 +517,6 @@ externals_dep = declare_dependency(
     dbghelp,
     m_dep,
     glib_dep,
-    json_glib,
     gio_dep,
     gio_platform_dep,
     gtk_dep,
@@ -520,6 +530,7 @@ externals_dep = declare_dependency(
     libconfig_dep,
     fftw3f_dep,
     cfitsio_dep,
+    json_glib_dep,
     libraw_dep,
     libtiff_dep,
     libjpeg_dep,
@@ -594,6 +605,7 @@ summary(
 
 summary(
   {
+    'json glib' : json_glib_dep.found(),
     'libraw'    : libraw_dep.found(),
     'TIFF'      : libtiff_dep.found(),
     'JPEG'      : libjpeg_dep.found(),
