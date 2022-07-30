@@ -126,9 +126,6 @@ case "$host_os" in
     ;;
 esac
 
-dnl Check for json-glib
-PKG_CHECK_MODULES(JSON_GLIB, json-glib-1.0 >= 1.2.6)
-
 dnl check libexiv2
 PKG_CHECK_MODULES(EXIV2, exiv2 >= 0.25)
 
@@ -266,6 +263,11 @@ dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, [wcslib],
 		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
 		  AC_MSG_WARN([wcslib not found. Not using WCS API.]))
+
+dnl Check for json-glib
+PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
+		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
+		  AC_MSG_WARN([json-glib not found. not using automatic update.]))
 
 dnl check libconfig
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],

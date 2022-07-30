@@ -122,7 +122,9 @@ void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+#ifdef HAVE_JSON_GLIB
 	siril_check_updates(TRUE);
+#endif
 }
 
 static gboolean is_extended = FALSE;

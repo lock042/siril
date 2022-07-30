@@ -39,7 +39,11 @@ preferences pref_init = {
 	.memory_amount = 10,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
+#ifdef HAVE_JSON_GLIB
 	.check_update = !SIRIL_UNSTABLE,
+#else
+	.check_update = FALSE,
+#endif
 	.lang = 0,
 	.swap_dir = NULL,
 	.focal = 1000,

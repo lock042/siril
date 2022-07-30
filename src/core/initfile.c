@@ -235,9 +235,13 @@ static int readinitfile_libconfig(gchar *path) {
 		if (config_setting_lookup_bool(misc_setting, "remember_winpos", &com.pref.gui.remember_windows) == CONFIG_FALSE) {
 			com.pref.gui.remember_windows = TRUE;
 		}
+#ifdef HAVE_JSON_GLIB
 		if (config_setting_lookup_bool(misc_setting, "check_update_at_startup", &com.pref.check_update) == CONFIG_FALSE) {
 			com.pref.check_update = TRUE;
 		}
+#else
+		com.pref.check_update = FALSE;
+#endif
 		if (config_setting_lookup_float(misc_setting, "font_scale", &com.pref.gui.font_scale) == CONFIG_FALSE) {
 			com.pref.gui.font_scale = 100.0;
 		}
@@ -423,7 +427,9 @@ int readinitfile(char *path) {
 		return 1;
 	}
 	g_free(fname);
-
+#ifndef HAVE_JSON_GLIB
+	com.pref.check_update = FALSE;
+#endif
 	return read_keyfile(kf);
 }
 
