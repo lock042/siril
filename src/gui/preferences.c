@@ -545,7 +545,12 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_16bit ? 0 : 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
+#ifdef HAVE_JSON_GLIB
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
+#else
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), FALSE);
+	gtk_widget_set_sensitive(lookup_widget("miscAskUpdateStartup"), FALSE);
+#endif
 }
 
 static void dump_ui_to_global_var() {
