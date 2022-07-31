@@ -16,7 +16,6 @@ int	process_boxselect(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);
-int	process_crazy_photo(int nb);
 int	process_clahe(int nb);
 int	process_clear(int nb);
 int	process_clearstar(int nb);

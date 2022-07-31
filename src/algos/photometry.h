@@ -51,6 +51,4 @@ void print_psf_error_summary(gint *code_sums);
 
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph);
 
-gpointer crazy_photo_worker(gpointer arg);
-
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */
