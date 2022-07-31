@@ -2633,6 +2633,31 @@ int process_light_curve(int nb) {
 	return 0;
 }
 
+int process_crazy_photo(int nb) {
+	/*int index;
+	if (!sequence_has_wcs(&com.seq, &index)) {
+		siril_log_message(_("Plate solve the first or reference image first\n"));
+		return CMD_FOR_PLATE_SOLVED;
+	}*/
+	// check that registration exists for one layer at least
+	int layer = -1;
+	if (com.seq.regparam) {
+		for (int i = 0; i < com.seq.nb_layers; i++) {
+			if (com.seq.regparam[i]) {
+				layer = i;
+				break;
+			}
+		}
+	}
+	if (layer == -1) {
+		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+
+	start_in_new_thread(crazy_photo_worker, GINT_TO_POINTER(layer));
+	return 0;
+}
+
 int process_seq_crop(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {

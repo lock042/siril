@@ -301,6 +301,443 @@ void print_psf_error_summary(gint *code_sums) {
 	g_free(str);
 }
 
+/********************** PSF analysis for all stars in the image ****************/
+
+struct all_stars_struct {
+	int ref_image;		// index of the image used to find stars below
+	regdata *regparam;
+	psf_star **stars_in_ref;// non-saturated stars in first image, provider by peaker
+	int nbstars;		// number of stars in stars_in_ref
+	//siril_wcs **coords;	// their equatorial J2000 coords		TODO
+
+	gint *valid_counts;	// allocated to nbstars size, number of images a star is valid in
+	int validity_thresh;	// the threshold in number of images where a star is valid to then use it
+
+	psf_star ***photo;	// measurements: array of stars per image, only valid or NULL
+
+	int min_number_of_ref;	// minimum allowed number of reference stars to be considered calibrated
+	double mag_delta_lim;	// the value around a mag to create a valid range for reference stars
+	int distance_thresh;	// upper threshold for pixel distance between a star and its reference
+	int **reference_stars;	// indices of reference stars found for each star
+	BYTE *ref_stars_count;	// number of reference stars for each star, size of *reference_stars
+
+	gboolean use_gnuplot;	// if FALSE, just create data files
+};
+
+int all_stars_psf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads) {
+	struct all_stars_struct *asargs = (struct all_stars_struct *)args->user;
+	asargs->photo[out_index] = calloc(asargs->nbstars, sizeof(psf_star *));
+	if (!asargs->photo[out_index]) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	Homography Href = asargs->regparam[asargs->ref_image].H;
+	struct phot_config *ps = phot_set_adjusted_for_image(fit);
+
+	// save the date for X axis (seqpsf does that too)
+	if (!args->seq->imgparam[index].date_obs) {
+		if (fit->date_obs)
+			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
+		else if (fit->date)
+			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date);
+	}
+
+	int nb_valid = 0;
+	psf_error errors[PSF_ERR_MAX_VALUE] = { 0 };
+	for (int i = 0; i < asargs->nbstars; i++) {
+		psf_star *star = asargs->stars_in_ref[i];
+		struct phot_config phot_set;
+		Homography H = asargs->regparam[index].H;
+		rectangle area = compute_dynamic_area_for_psf(star, ps, &phot_set, H, Href);
+		if (enforce_area_in_image(&area, args->seq, index)) {
+			errors[PSF_ERR_OUT_OF_WINDOW]++;
+			continue;
+		}
+
+		psf_error error;
+		psf_star *phot_psf = psf_get_minimisation(fit, 0, &area, FALSE, TRUE, &phot_set, FALSE, &error);
+		if (phot_psf) {
+			errors[error]++;
+			if (phot_psf->phot_is_valid && phot_psf->SNR > 5.0) {
+				g_atomic_int_inc(&asargs->valid_counts[i]);
+				asargs->photo[out_index][i] = phot_psf;
+				nb_valid++;
+			}
+			else free_psf(phot_psf);
+		}
+	}
+	if (nb_valid < (asargs->nbstars * 2 / 3))
+		print_psf_error_summary((gint*)errors);
+	siril_debug_print("Got %d stars with valid photometry in image %d\n", nb_valid, index);
+	free(ps);
+	return 0;
+}
+
+int all_stars_psf_finalize_hook(struct generic_seq_args *args) {
+	struct all_stars_struct *asargs = (struct all_stars_struct *)args->user;
+	int nb_useful_stars = 0;
+	for (int i = 0; i < asargs->nbstars; i++) {
+		siril_debug_print("star %d was valid in %d images (%.1f %%, rel mag: %.1f)\n",
+				i, asargs->valid_counts[i],
+				asargs->valid_counts[i] / (double)args->seq->selnum * 100.0,
+				asargs->stars_in_ref[i]->mag);
+		if (asargs->valid_counts[i] > asargs->validity_thresh)
+			nb_useful_stars++;
+	}
+	siril_log_message(_("%d stars had a valid photometry throughout the sequence (on at least %d images)\n"), nb_useful_stars, asargs->validity_thresh);
+	return 0;
+}
+
+int all_stars_psf(sequence *seq, int layer, struct all_stars_struct *asargs) {
+	struct generic_seq_args *args = create_default_seqargs(seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = seq->selnum;
+	args->image_hook = all_stars_psf_image_hook;
+	args->finalize_hook = all_stars_psf_finalize_hook;
+	args->description = "all stars PSF";
+	args->already_in_a_thread = TRUE;
+
+	asargs->valid_counts = calloc(asargs->nbstars, sizeof(gint));
+	asargs->photo = malloc(seq->selnum * sizeof(psf_star **));
+	asargs->reference_stars = calloc(asargs->nbstars, sizeof(int *));
+	asargs->ref_stars_count = malloc(asargs->nbstars * sizeof(BYTE));
+	if (!asargs->valid_counts || !asargs->photo || !asargs->reference_stars || !asargs->ref_stars_count) {
+		PRINT_ALLOC_ERR;
+		free(asargs->valid_counts);
+		free(asargs->photo);
+		free(asargs->reference_stars);
+		free(asargs->ref_stars_count);
+		return -1;
+	}
+	args->user = asargs;
+
+	return GPOINTER_TO_INT(generic_sequence_worker(args));
+}
+
+struct ref_star {
+	int distance;	// in pixels
+	int index;	// in asargs->stars
+};
+
+int star_distance_cmp(const void *a, const void *b) {
+	struct ref_star *s1 = (struct ref_star *)a;
+	struct ref_star *s2 = (struct ref_star *)b;
+	if (s1->distance > s2->distance)
+		return 1;
+	if (s1->distance < s2->distance)
+		return -1;
+	return 0;
+}
+
+static int pixel_distance(psf_star *s1, psf_star *s2) {
+	double dx = s1->xpos - s2->xpos;
+	double dy = s1->ypos - s2->ypos;
+	return round_to_int(sqrt(dx * dx + dy * dy));
+}
+
+int find_reference_stars(struct all_stars_struct *asargs) {
+	struct ref_star *ref_candidates = malloc(asargs->nbstars * sizeof(struct ref_star));
+	if (!ref_candidates) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	for (int i = 0; i < asargs->nbstars; i++) {
+		/* for each star, find a list of stars of similar magnitude and not too
+		 * far in the image if possible. With WCS and a catalogue/request, we
+		 * could filter out the variable stars too */
+		if (asargs->valid_counts[i] < asargs->validity_thresh) {
+			asargs->reference_stars[i] = NULL;
+			asargs->ref_stars_count[i] = 0;
+			continue;
+		}
+		psf_star *star = asargs->stars_in_ref[i];
+		int nb_refs = 0;
+		for (int j = 0; j < asargs->nbstars; j++) {
+			if (i == j) continue;
+			if (asargs->valid_counts[j] < asargs->validity_thresh)
+				continue;
+			psf_star *ref = asargs->stars_in_ref[j];
+			// mag here is the estimate, not a photometric measure, but always available
+			if (fabs(ref->mag - star->mag) < asargs->mag_delta_lim) {
+				ref_candidates[nb_refs].index = j;
+				ref_candidates[nb_refs].distance = pixel_distance(ref, star);
+				nb_refs++;
+			}
+		}
+
+		if (nb_refs < asargs->min_number_of_ref) {
+			asargs->reference_stars[i] = NULL;
+			asargs->ref_stars_count[i] = 0;
+			siril_debug_print("star %d didn't have enough valid reference stars\n", i);
+			continue;
+		}
+		int kept_refs = min(MAX_REF_STARS, nb_refs);
+		asargs->reference_stars[i] = malloc(kept_refs * sizeof(int));
+		if (!asargs->reference_stars[i]) {
+			asargs->ref_stars_count[i] = 0;
+			PRINT_ALLOC_ERR;
+			break;
+		}
+		// sort by distance and keep the MAX_REF_STARS best
+		qsort(ref_candidates, nb_refs, sizeof(struct ref_star), star_distance_cmp);
+		int k = 0;
+		for (int j = 0; j < nb_refs; j++) {
+			if (ref_candidates[j].distance <= asargs->distance_thresh || j < asargs->min_number_of_ref) {
+				asargs->reference_stars[i][k] = ref_candidates[j].index;
+				k++;
+				if (k >= MAX_REF_STARS)
+					break;
+			}
+		}
+		asargs->ref_stars_count[i] = k;
+		siril_debug_print("found %d reference stars for star %d\n", k, i);
+	}
+	free(ref_candidates);
+	return 0;
+}
+
+static int create_light_curve_asargs(sequence *seq, struct all_stars_struct *asargs, int star_to_plot);
+
+gpointer crazy_photo_worker(gpointer arg) {
+	int reglayer = GPOINTER_TO_INT(arg);
+	int layer;
+	if (com.headless)
+		layer = 0;
+	else layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+
+	// 1. detect stars
+	image im = { .fit = &gfit, .from_seq = &com.seq, .index_in_seq = com.seq.current };
+
+	int nbstars = 0;
+	rectangle *selection = NULL;
+	if (com.selection.w != 0 && com.selection.h != 0)
+		selection = &com.selection;
+	psf_star **stars = peaker(&im, layer, &com.pref.starfinder_conf, &nbstars, selection, FALSE, FALSE, -1, com.max_thread);
+	if (!stars) {
+		siril_log_message(_("Cannot run photometry analysis if stars are not found\n"));
+		return GINT_TO_POINTER(1);
+	}
+
+	// 2. run seqpsf on all non-saturated
+	psf_star **photo_stars = malloc((nbstars + 1) * sizeof(psf_star*));
+	if (!photo_stars) {
+		PRINT_ALLOC_ERR;
+		return GINT_TO_POINTER(1);
+	}
+	// filter them a little first, only not saturated
+	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	if (!ps) return GINT_TO_POINTER(1);
+	int valid_candidates = 0;
+	for (int i = 0; i < nbstars; i++) {
+		if (stars[i]->A + stars[i]->B > ps->maxval) {
+			free_psf(stars[i]);
+			continue;
+		}
+		// magnitude check? SNR check? we don't have reliable photometric info yet
+		photo_stars[valid_candidates++] = stars[i];
+	}
+	photo_stars[valid_candidates] = NULL;	// for display as com.stars
+	free(stars);
+	photo_stars = realloc(photo_stars, (valid_candidates + 1) * sizeof(psf_star*));
+	siril_log_message(_("Found %d photometry candidates in %s, channel #%d\n"), valid_candidates,
+			selection ? _("selection") : _("image"), layer);
+	if (valid_candidates > 5) {
+		clear_stars_list(FALSE);
+		com.stars = photo_stars;
+	} else {
+		siril_log_message(_("Not enough stars found in the reference image to do a photometry analysis\n"));
+		return GINT_TO_POINTER(1);
+	}
+
+	struct all_stars_struct asargs = {
+		.ref_image = com.seq.current,
+		.regparam = com.seq.regparam[reglayer],
+		.stars_in_ref = photo_stars,
+		.nbstars = valid_candidates,
+		.valid_counts = NULL,
+		.validity_thresh = com.seq.selnum * 4 / 5,
+		.photo = NULL,
+		.min_number_of_ref = 5,
+		.mag_delta_lim = 0.6,
+		.distance_thresh = com.seq.rx / 2,
+		.reference_stars = NULL,
+		.ref_stars_count = NULL,
+	};
+	int retval = all_stars_psf(&com.seq, layer, &asargs);
+	if (retval)
+		return GINT_TO_POINTER(retval);
+
+	// 3. magic happens
+	find_reference_stars(&asargs);
+	asargs.use_gnuplot = gnuplot_is_available();
+
+	for (int i = 0; i < asargs.nbstars; i++) {
+		// filter down references based on common availability along the sequence?
+
+		// make a light curve
+		create_light_curve_asargs(&com.seq, &asargs, i);
+	}
+
+	free(asargs.valid_counts);
+	for (int i = 0; i < com.seq.selnum; i++) {
+		if (asargs.photo[i]) {
+			for (int j = 0; j < asargs.nbstars; j++) {
+				if (asargs.photo[i][j])
+					free_psf(asargs.photo[i][j]);
+			}
+			free(asargs.photo[i]);
+		}
+	}
+	free(asargs.photo);
+	for (int i = 0; i < asargs.nbstars; i++)
+		free(asargs.reference_stars[i]);
+	free(asargs.reference_stars);
+	free(asargs.ref_stars_count);
+	return NULL;
+}
+
+/************************** headless light curves ***************************
+ * light curves were historically made in gui/plot.c by filling the kplot data
+ * structure with X and Y data then calling a function that will identify the
+ * data in all plots, calibrate the data using the reference stars and produce
+ * a .dat file and a plot calling gnuplot.
+ * Then new_light_curve() was made to do the same processing but without using
+ * the kplot structure and not relying on GUI, but still with the input data in
+ * sequence->photometry, as provided by seqpsf.
+ * Here we pass directly the sequence and psf_star data in the asargs struct,
+ * do the same kind of calibration and generate the .dat file.
+ ****************************************************************************/
+struct photo_data_point {
+	double julian_date;
+	double mag;
+	double mag_err;
+};
+
+static int write_photometry_data_file(const char *filename, struct photo_data_point *points, int nb_points, int julian0, gboolean use_gnuplot, gchar *target_descr);
+
+static int create_light_curve_asargs(sequence *seq, struct all_stars_struct *asargs, int star_to_plot) {
+	if (!asargs->reference_stars[star_to_plot])
+		return 1;
+	struct photo_data_point *points = malloc(seq->selnum * sizeof(struct photo_data_point));
+	if (!points) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	double min_date = DBL_MAX;
+	int j = 0;	// index in 'points'
+	for (int i = 0; i < seq->selnum; i++) {
+		if (!seq->imgparam[i].date_obs)	// useless if not dated
+			continue;
+		double julian;
+		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
+		if (seq->exposure) {
+			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure / 2.0);
+			julian = date_time_to_Julian(new_dt);
+			g_date_time_unref(new_dt);
+		} else {
+			julian = date_time_to_Julian(tsi);
+		}
+		if (julian < min_date)
+			min_date = julian;
+		// X axis: value is 'julian'
+
+		if (!asargs->photo[i][star_to_plot])
+			continue;
+		double mag = asargs->photo[i][star_to_plot]->mag;
+		double err = asargs->photo[i][star_to_plot]->s_mag;
+
+		double cmag = 0.0, cerr = 0.0;
+		int ref, nb_ref = asargs->ref_stars_count[star_to_plot];
+
+		for (ref = 0; ref < nb_ref; ref++) {
+			int ref_index = asargs->reference_stars[star_to_plot][ref];
+			if (!asargs->photo[i][ref_index])
+				break;
+			if (!asargs->photo[i][ref_index]->phot_is_valid) {
+				siril_debug_print("Invalid photometry in phot\n");
+				return 1;
+			}
+
+			double rmag = asargs->photo[i][ref_index]->mag;
+			double rerr = asargs->photo[i][ref_index]->s_mag;
+			/* inversion of Pogson's law: Flux = 10^(-0.4 * mag) */
+			cmag += pow(10, -0.4 * rmag);
+			cerr += rerr;
+		}
+		/* we consider an image to be invalid if all references are not valid,
+		 * because it changes the mean otherwise and makes nonsense data */
+		if (ref != nb_ref)
+			continue;
+
+		/* Converting back to magnitude */
+		cmag = -2.5 * log10(cmag / nb_ref);
+		cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
+
+		mag -= cmag;
+		err = fmin(9.999, sqrt(err * err + cerr * cerr));
+
+		// Y axis: value is mag, error is err
+		points[j].julian_date = julian;
+		points[j].mag = mag;
+		points[j].mag_err = err;
+		j++;
+
+		g_date_time_unref(tsi);
+	}
+
+	gchar *plot_file = g_strdup_printf("plot_%05d.dat", star_to_plot);
+	gchar *star_descr = g_strdup_printf("Light curve of star %d", star_to_plot);
+	int retval = write_photometry_data_file(plot_file, points, j, (int)min_date, asargs->use_gnuplot, star_descr);
+	if (retval > 0)
+		asargs->use_gnuplot = FALSE;
+	g_free(star_descr);
+	g_free(plot_file);
+	free(points);
+	return retval;
+}
+
+static int write_photometry_data_file(const char *filename, struct photo_data_point *points, int nb_points, int julian0, gboolean use_gnuplot, gchar *target_descr) {
+	if (nb_points < 1)
+		return -2;
+
+	FILE *fd = g_fopen(filename, "w");
+	if (!fd) {
+		perror("creating data file");
+		return -1;
+	}
+
+	fprintf(fd, "# %s\n", target_descr);
+	fprintf(fd, "# julian_date magnitude error_bar_of_mag\n");
+
+	for (int i = 0; i < nb_points; i++) {
+		fprintf(fd, "%f\t%f\t%f\n", points[i].julian_date, points[i].mag, points[i].mag_err);
+		//fprintf(fileHandle, "%14.6f %8.6f %8.6f\n", x[i], y[i], yerr[i]);
+	}
+
+	fclose(fd);
+
+	if (use_gnuplot) {
+		gnuplot_ctrl *gplot = gnuplot_init();
+		if (gplot) {
+			/* Plotting light curve */
+			gchar *title = g_strdup_printf("Light curve of star %s", target_descr);
+			gnuplot_set_title(gplot, title);
+			gchar *xlabel = g_strdup_printf("Julian date (+ %d)", julian0);
+			gnuplot_set_xlabel(gplot, xlabel);
+			gnuplot_reverse_yaxis(gplot);
+			gnuplot_setstyle(gplot, "errorbars");
+			gchar *image_name = replace_ext(filename, ".png");
+			gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
+			siril_log_message(_("%s has been generated.\n"), image_name);
+			g_free(image_name);
+			g_free(title);
+			g_free(xlabel);
+		}
+		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+	}
+	return 0;
+}
+
 /****************** making a light curve from sequence-stored data ****************/
 /* contrary to light_curve() in gui/plot.c, this one does not use preprocessed data and the
  * kplot data structure. It only uses data stored in the sequence, in seq->photometry, which is
