@@ -707,7 +707,7 @@ int process_linstretch(int nb) {
 	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, 0.0, 0.0, 0.0, 0.0, STRETCH_LINEAR);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -765,7 +765,7 @@ int process_ght(int nb) {
 	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_NORMAL);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -824,7 +824,7 @@ int process_invght(int nb) {
 	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_INVERSE);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -876,7 +876,7 @@ int process_modasinh(int nb) {
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_ASINH);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -928,7 +928,7 @@ int process_invmodasinh(int nb) {
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_INVASINH);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1428,7 +1428,7 @@ int process_mtf(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	apply_linked_mtf_to_fits(&gfit, &gfit, params);
+	apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1466,7 +1466,7 @@ int process_autostretch(int nb) {
 	if (linked) {
 		struct mtf_params params;
 		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
-		apply_linked_mtf_to_fits(&gfit, &gfit, params);
+		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
 	} else {
 		struct mtf_params params[3];
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
@@ -2800,6 +2800,11 @@ int process_tilt(int nb) {
 		set_cursor_waiting(FALSE);
 	}
 
+	return CMD_OK;
+}
+
+int process_inspector(int nb) {
+	compute_ccd_edges();
 	return CMD_OK;
 }
 

@@ -1424,6 +1424,8 @@ void redraw(remap_type doremap) {
 			}
 			if (gfit.naxis == 3)
 				remaprgb();
+			/* redraw the 9-panel mosaic dialog if needed */
+			redraw_ccd_edges();
 			break;
 		default:
 			siril_debug_print("UNKNOWN REMAP\n\n");

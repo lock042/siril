@@ -492,6 +492,10 @@ static gpointer export_sequence(gpointer ptr) {
 				retval = mp4_add_frame(mp4_file, destfit);
 				break;
 #endif
+			default:
+				fprintf(stderr, "Case not handled, should not happen.\n");
+				seqwriter_release_memory();
+				goto free_and_reset_progress_bar;
 		}
 		if (retval) {
 			seqwriter_release_memory();

@@ -39,7 +39,7 @@ xx/xx/22
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
-* Fixed selected area for flat autonormalisation calc
+* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 
 siril 1.0.4
 XX/XX/22

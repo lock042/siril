@@ -156,6 +156,8 @@ static int exec_prog(const char **argv)
 	HANDLE hProcess;
 	int nExitCode = STILL_ACTIVE;
 	int fdStdOut;
+	double value = 0;
+	gboolean has_started = FALSE;
 
 	if (_pipe(pipe_fds, 0x100, O_TEXT)) {
 		perror("pipe creation error");
@@ -179,6 +181,7 @@ static int exec_prog(const char **argv)
 				double value = g_ascii_strtod(buf, NULL);
 				if (value != 0.0 && value == value) { //
 					set_progress_bar_data("Running Starnet++", (value / 100));
+					if (!has_started) has_started = TRUE;
 				}
 			}
 			if(!GetExitCodeProcess(hProcess,(unsigned long*)&nExitCode))
@@ -190,6 +193,7 @@ static int exec_prog(const char **argv)
 		siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
  		return -1;
  	}
+	if (!has_started) return -1;
  	return 0;
 }
 #endif
@@ -252,6 +256,10 @@ gpointer do_starnet(gpointer p) {
 	gchar starlesstif[pathmax];
 	gchar starlessfit[pathmax];
 	gchar starmaskfit[pathmax];
+#ifdef _WIN32
+	gchar qtemptif[pathmax];
+	gchar qstarlesstif[pathmax];
+#endif
 	char *imagenoext;
 	char *imagenoextorig;
 	gchar starnetsuffix[10] = "_starnet";
@@ -368,7 +376,7 @@ gpointer do_starnet(gpointer p) {
 	find_linked_midtones_balance_default(&workingfit, &params);
 	if (args->linear) {
 		siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
-		apply_linked_mtf_to_fits(&workingfit, &workingfit, params);
+		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Upscale if needed
@@ -406,6 +414,17 @@ gpointer do_starnet(gpointer p) {
 	if (args->customstride) my_argv[3] = args->stride;
 	// *** Call starnet++ *** //
 #ifdef _WIN32
+	// add quotes around full path in case there are spaces
+	memset(qtemptif, 0, sizeof(qtemptif));
+	strcat(qtemptif, "\"");
+	strcat(qtemptif, temptif);
+	strcat(qtemptif, "\"");
+	my_argv[1] = qtemptif;
+	memset(qstarlesstif, 0, sizeof(qstarlesstif));
+	strcat(qstarlesstif, "\"");
+	strcat(qstarlesstif,  starlesstif);
+	strcat(qstarlesstif,"\"");
+	my_argv[2] = qstarlesstif;
 	retval = exec_prog_win32(my_argv);
 #else
 	retval = exec_prog(my_argv);

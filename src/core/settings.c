@@ -39,7 +39,11 @@ preferences pref_init = {
 	.memory_amount = 10,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
+#ifdef HAVE_JSON_GLIB
 	.check_update = !SIRIL_UNSTABLE,
+#else
+	.check_update = FALSE,
+#endif
 	.lang = 0,
 	.swap_dir = NULL,
 	.focal = 1000,
@@ -135,6 +139,9 @@ preferences pref_init = {
 		.minval = 0.0,
 		.maxval = 60000.0,
 	},
+	.analysis = {
+		.mosaic_panel = 256,
+	},
 	.stack = {
 		.method = 0,
 		.normalisation_method = ADDITIVE_SCALING,
@@ -217,6 +224,8 @@ struct settings_access all_settings[] = {
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
+
+	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 
 	{ "compression", "enabled", STYPE_BOOL, N_("FITS compression enabled"), &com.pref.comp.fits_enabled },
 	{ "compression", "method", STYPE_INT, N_("FITS compression method"), &com.pref.comp.fits_method, { .range_int = { 0, 3 } } },

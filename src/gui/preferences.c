@@ -145,6 +145,10 @@ static void update_photometry_preferences() {
 	com.pref.phot_set.maxval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")));
 }
 
+static void update_analysis_preferences() {
+	com.pref.analysis.mosaic_panel = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")));
+}
+
 static void update_scripts_preferences() {
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
 	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
@@ -512,11 +516,14 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);
 
 	/* tab 6 */
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")), pref->analysis.mosaic_panel);
+
+	/* tab 7 */
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 
-	/* tab 7 */
+	/* tab 8 */
 	siril_language_fill_combo(pref->lang);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_theme")), pref->gui.combo_theme);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")), pref->gui.font_scale);
@@ -525,20 +532,25 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->gui.show_thumbnails);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
 
-	/* tab 8 */
+	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->mem_mode == AMOUNT);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->memory_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")), pref->memory_amount);
 
-	/* tab 9 */
+	/* tab 10 */
 	initialize_path_directory(pref->swap_dir);
 	initialize_starnet_directory(pref->starnet_dir);
 	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext == NULL ? ".fit" : pref->ext);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_16bit ? 0 : 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
+#ifdef HAVE_JSON_GLIB
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
+#else
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), FALSE);
+	gtk_widget_set_sensitive(lookup_widget("miscAskUpdateStartup"), FALSE);
+#endif
 }
 
 static void dump_ui_to_global_var() {
@@ -552,14 +564,16 @@ static void dump_ui_to_global_var() {
 	/* tab 4 */
 	update_prepro_preferences();
 	/* tab 5 */
-	update_photometry_preferences();
+	update_analysis_preferences();
 	/* tab 6 */
-	update_scripts_preferences();
+	update_photometry_preferences();
 	/* tab 7 */
-	update_user_interface_preferences();
+	update_scripts_preferences();
 	/* tab 8 */
-	update_performances_preferences();
+	update_user_interface_preferences();
 	/* tab 9 */
+	update_performances_preferences();
+	/* tab 10 */
 	update_misc_preferences();
 }
 

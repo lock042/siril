@@ -442,7 +442,9 @@ int imoper_scaled(fits *a, fits *b, image_operator oper, float factor) {
 		}
 	}
 	if (a->type == DATA_USHORT) {
-		fit_replace_buffer(a, float_buffer_to_ushort(result, n), DATA_USHORT);
+		for (size_t i = 0; i < n ; i++)
+			a->data[i] = float_to_ushort_range(result[i]);
+		free(result);
 	} else invalidate_stats_from_fit(a);
 	return 0;
 }
@@ -467,25 +469,25 @@ int remixer() {
 
 	// Process left image
 	if (left_loaded && (left_changed || leftBP_changed)) {
-		apply_linked_ght_to_fits(&fit_left, &fit_left_calc, params_left, cp_left);
+		apply_linked_ght_to_fits(&fit_left, &fit_left_calc, params_left, cp_left, TRUE);
 	}
 		// Now do the linear BP shift, if needed. The only parameter that matters is BP so
 		// we just need to change the stretch type, no need to recompute params.
 	if (left_loaded && (leftBP_changed || (left_changed && leftBP != 0.0))) {
 		params_left.stretchtype = STRETCH_LINEAR;
-		apply_linked_ght_to_fits(&fit_left_calc, &fit_left_calc, params_left, cp_left);
+		apply_linked_ght_to_fits(&fit_left_calc, &fit_left_calc, params_left, cp_left, TRUE);
 		leftBP_changed = FALSE;
 	}
 	left_changed = FALSE;
 
 	// Process right image
 	if (right_loaded && (right_changed || rightBP_changed)) {
-		apply_linked_ght_to_fits(&fit_right, &fit_right_calc, params_right, cp_right);
+		apply_linked_ght_to_fits(&fit_right, &fit_right_calc, params_right, cp_right, TRUE);
 	}
 		// As above, BP shift if required.
 	if (right_loaded && (rightBP_changed || (right_changed && rightBP != 0.0))) {
 		params_right.stretchtype = STRETCH_LINEAR;
-		apply_linked_ght_to_fits(&fit_right_calc, &fit_right_calc, params_right, cp_right);
+		apply_linked_ght_to_fits(&fit_right_calc, &fit_right_calc, params_right, cp_right, TRUE);
 		rightBP_changed = FALSE;
 	}
 	right_changed = FALSE;
@@ -511,7 +513,7 @@ int remixer() {
 	if (finalstretch != 0.0) {
 		ght_compute_params cp_final = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 		ght_params params_final = { (finalstretch - 5.0), 4.0, 0.0, 0.0, 1.0, 0.0, STRETCH_PAYNE_NORMAL, COL_HUMANLUM };
-		apply_linked_ght_to_fits(&gfit, &gfit, params_final, cp_final);
+		apply_linked_ght_to_fits(&gfit, &gfit, params_final, cp_final, TRUE);
 	}
 	// If 16bit preference is set, check the images are 16bit
 	if (com.pref.force_16bit && gfit.type == DATA_FLOAT)
