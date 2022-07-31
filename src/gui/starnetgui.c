@@ -74,17 +74,17 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), FALSE);
 	if (!com.pref.starnet_dir || g_access(com.pref.starnet_dir, R_OK)) {
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-		gtk_label_set_text(label_starnetinfo, "Starnet++ installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
+		gtk_label_set_text(label_starnetinfo, _("Starnet++ installation directory not set.\nMust be configured in Preferences / Miscellaneous."));
 	} else
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 
 #ifndef HAVE_LIBTIFF
 	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-	gtk_label_set_text(label_starnetinfo, "Starnet++ unavailable: requires Siril to be compiled with libtiff support.");
+	gtk_label_set_text(label_starnetinfo, _("Starnet++ unavailable: requires Siril to be compiled with libtiff support."));
 #endif
 
 	if (!starnet_executablecheck()) {
-		gtk_label_set_text(label_starnetinfo, "No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration.");
+		gtk_label_set_text(label_starnetinfo, _("No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration."));
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 	} else {
 		gtk_label_set_text(label_starnetinfo, "");
@@ -173,7 +173,12 @@ void on_toggle_starnet_stretch_toggled(GtkToggleButton *button, gpointer user_da
 }
 
 void on_toggle_starnet_synthstar_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkLabel *label_starnetinfo = GTK_LABEL(lookup_widget("label_starnetinfo"));
 	sgui_synthstar = gtk_toggle_button_get_active(button);
+	if (sgui_synthstar)
+		gtk_label_set_text(label_starnetinfo, _("Note: intensive care should be considered a last resort for stars that can't be fixed any other way. It may not replace all stars and is quite likely to produce bad results on images with densely packed stars such as globular clusters. It will not replace star spikes. It will work better on linear images than stretched ones. Ideally the cause of bad stars should be rectified and the data re-collected, but for images where re-shooting is not an option intensive care may help to salavage a usable image. Good luck!"));
+	else
+		gtk_label_set_text(label_starnetinfo, "");
 	if (sgui_synthstar && !sgui_starmask) {
 		sgui_starmask = TRUE;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask")), sgui_starmask);
@@ -194,7 +199,7 @@ void on_toggle_starnet_upsample_toggled(GtkToggleButton *button, gpointer user_d
 
 void on_toggle_starnet_starmask_toggled(GtkToggleButton *button, gpointer user_data) {
 	sgui_starmask = gtk_toggle_button_get_active(button);
-		if (sgui_follow_on && !sgui_starmask) {
+	if (sgui_follow_on && !sgui_starmask) {
 		sgui_follow_on = FALSE;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_postremix")), sgui_follow_on);
 	}
