@@ -2541,7 +2541,7 @@ static int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const 
 	return !target_acquired;
 }
 
-static gboolean sequence_drifs(sequence *seq, int reglayer, int threshold) {
+static gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 	double orig_x = (double)(seq->rx / 2);
 	double orig_y = (double)(seq->ry / 2);
 	for (int i = 0; i < seq->number; i++) {
@@ -2582,7 +2582,8 @@ int process_light_curve(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	sequence_drifs(seq, layer, seq->rx / 4);
+	if (sequence_drifts(seq, layer, seq->rx / 4))
+		return CMD_GENERIC_ERROR;
 
 	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
 
