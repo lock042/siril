@@ -49,6 +49,21 @@ void initialize_photometric_param();
 const char *psf_error_to_string(psf_error err);
 void print_psf_error_summary(gint *code_sums);
 
+/* light curves */
+
+struct light_curve_args {
+	rectangle *areas;	// the first is the variable star's area
+	int nb;
+	sequence *seq;
+	int layer;
+	char *target_descr;
+	gboolean display_graph;	// if true, show it, if false, generate png
+};
+
+gpointer light_curve_worker(gpointer arg);
+
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph);
+
+int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, fits *first);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

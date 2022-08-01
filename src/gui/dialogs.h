@@ -13,12 +13,11 @@ typedef enum {
 } DialogType;
 
 struct _SirilDialogEntry {
-	gchar *identifier;
+	gchar *identifier;	// the identifier from the glade file if defined in it, or any if not
+	GtkWidget *(*get_window)(void);	// if not defined in glade, this is a getter for the window
 	DialogType type;
-
 	gboolean has_preview;
-
-	void (*apply_function)(void);
+	void (*apply_function)(void);	// if has_preview
 };
 
 void siril_open_dialog(gchar *id);

@@ -943,7 +943,7 @@ static int siril_fits_move_first_image(fitsfile* fp) {
 		}
 	} while (!status);
 
-	siril_debug_print("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
+	//siril_debug_print("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
 	return status;
 }
 

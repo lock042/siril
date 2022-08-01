@@ -590,3 +590,7 @@ void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("split_cfa_dialog");
 }
+
+void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("nina_light_curve");
+}

@@ -81,4 +81,6 @@ void fix_selnum(sequence *seq, gboolean warn);
 
 gboolean sequence_has_wcs(sequence *seq, int *index);
 
+gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
+
 #endif

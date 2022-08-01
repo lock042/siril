@@ -1558,7 +1558,7 @@ gboolean enforce_area_in_image(rectangle *area, sequence *seq, int index) {
  */
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
-	struct seqpsf_data *data = malloc(sizeof(struct seqpsf_data));
+	struct seqpsf_data *data = calloc(1, sizeof(struct seqpsf_data));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		return -1;
@@ -1567,7 +1567,9 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
-	struct phot_config *ps = phot_set_adjusted_for_image(fit);
+	struct phot_config *ps = NULL;
+	if (spsfargs->for_photometry)
+		ps = phot_set_adjusted_for_image(fit);
 	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry,
 			spsfargs->for_photometry, ps, TRUE, &error);
 	free(ps);
@@ -1641,7 +1643,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		struct seqpsf_data *data = iterator->data;
 
 		/* check exposure consistency */
-		if (seq->exposure > 0.0 && seq->exposure != data->exposure &&
+		if (seq->exposure > 0.0 && data->psf && seq->exposure != data->exposure &&
 				!displayed_warning) {
 			siril_log_color_message(_("Star analysis does not give consistent results when exposure changes across the sequence.\n"), "red");
 			displayed_warning = TRUE;
@@ -1944,3 +1946,24 @@ gboolean sequence_has_wcs(sequence *seq, int *index) {
 	return FALSE;
 }
 
+gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
+	if (!seq->regparam[reglayer]) {
+		siril_debug_print("Sequence drift could not be checked as sequence has no regdata on layer %d\n", reglayer);
+		return FALSE;
+	}
+	double orig_x = (double)(seq->rx / 2);
+	double orig_y = (double)(seq->ry / 2);
+	for (int i = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl)
+			continue;
+		double x = orig_x, y = orig_y;
+		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H);
+		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
+		if (dist > threshold) {
+			siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), "salmon", (int)dist, i);
+			return TRUE;
+		}
+	}
+	siril_debug_print("no heavy drift detected\n");
+	return FALSE;
+}
