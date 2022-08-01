@@ -2568,12 +2568,14 @@ int process_findstar(int nb) {
 		args->im.index_in_seq = -1;
 	}
 	args->starfile = NULL;
+	args->max_stars_fitted = 0;
 	for (int i = 1; i < nb; i++) {
 		char *current = word[i], *value;
 		if (g_str_has_prefix(current, "-out=")) {
 			value = current + 5;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 			/* Make sure path exists */
@@ -2581,6 +2583,7 @@ int process_findstar(int nb) {
 			if (g_mkdir_with_parents(dirname, 0755) < 0) {
 				siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
 				g_free(dirname);
+				free(args);
 				return CMD_GENERIC_ERROR;
 			}
 			g_free(dirname);
@@ -2600,8 +2603,26 @@ int process_findstar(int nb) {
 				else continue;
 			}
 			args->layer = layer;
+		} else if (g_str_has_prefix(word[i], "-maxstars=")) {
+			char *current = word[i], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				free(args);
+				return CMD_ARG_ERROR;
+			}
+			gchar *end;
+			int max_stars = g_ascii_strtoull(value, &end, 10);
+			if (end == value || max_stars > MAX_STARS_FITTED || max_stars < MIN_STARS_FITTED) {
+				// limiting values to avoid too long computation or too low number of candidates
+				siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
+				free(args);
+				return CMD_ARG_ERROR;
+			}
+			args->max_stars_fitted = max_stars;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}

@@ -807,7 +807,8 @@ gpointer findstar(gpointer p) {
 	rectangle *selection = NULL;
 	if (com.selection.w != 0 && com.selection.h != 0)
 		selection = &com.selection;
-	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars, selection, TRUE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	gboolean limit_stars = (args->max_stars_fitted > 0);
+	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars, selection, TRUE, limit_stars, args->max_stars_fitted, com.max_thread);
 	if (stars) {
 		clear_stars_list(FALSE);
 		com.stars = stars;
