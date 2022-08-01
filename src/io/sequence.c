@@ -1512,7 +1512,7 @@ gboolean sequence_is_rgb(sequence *seq) {
 gboolean enforce_area_in_image(rectangle *area, sequence *seq, int index) {
 	gboolean has_crossed = FALSE;
 	// need to check against current image size in case not the same as seq->rx/ry
-	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx; 
+	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx;
 	int ry = (seq->is_variable) ? seq->imgparam[index].ry : seq->ry;
 	if (area->x < 0) {
 		area->x = 0;

@@ -666,6 +666,32 @@ struct generic_seq_args *create_default_seqargs(sequence *seq) {
 	return args;
 }
 
+gpointer generic_sequence_metadata_worker(gpointer arg) {
+	struct generic_seq_metadata_args *args = (struct generic_seq_metadata_args *)arg;
+	struct timeval t_start, t_end;
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	for (int frame = 0; frame < args->seq->number; frame++) {
+		fits fit = { 0 };
+		//if (seq_read_frame_metadata(args->seq, i, &fit))
+		//	return 1;
+		if (seq_open_image(args->seq, frame))
+			return GINT_TO_POINTER(1);
+		if (args->seq->type == SEQ_REGULAR)
+			args->image_hook(args, args->seq->fptr[frame], frame);
+		else args->image_hook(args, args->seq->fitseq_file->fptr, frame);
+		seq_close_image(args->seq, frame);
+		clearfits(&fit);
+	}
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	free_sequence(args->seq, TRUE);
+	g_free(args->key);
+	free(args);
+	siril_add_idle(end_generic, NULL);
+	return 0;
+}
+
 /********** per-image threading **********/
 /* convention: call the variable threading if it can be MULTI_THREADED, call it
  * threads if it contains the other values, so the number of threads.

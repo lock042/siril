@@ -121,6 +121,7 @@
 #define STR_SEQEXTRACTHA N_("Same command as EXTRACT_HA but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"Ha_\" unless otherwise specified with option <b>-prefix=</b>")
 #define STR_SEQEXTRACTGREEN N_("Same command as EXTRACT_GREEN but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"Green_\" unless otherwise specified with option <b>-prefix=</b>")
 #define STR_SEQEXTRACTHAOIII N_("Same command as EXTRACT_HAOIII but for the sequence <b>sequencename</b>.\n\nThe output sequences names start with the prefixes \"Ha_\" and \"OIII_\"")
+#define STR_SEQHEADER N_("Prints the FITS header value for the given key for all images in the sequence")
 #define STR_SEQFIND_COSME N_("Same command as FIND_COSME but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"cc_\" unless otherwise specified with <b>-prefix=</b> option")
 #define STR_SEQFIND_COSME_CFA N_("Same command as FIND_COSME_CFA but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"cc_\" unless otherwise specified with <b>-prefix=</b> option")
 #define STR_SEQMTF N_("Same command as MTF but for the sequence <b>sequencename</b>.\n\nThe output sequence name starts with the prefix \"mtf_\" unless otherwise specified with <b>-prefix=</b> option")
