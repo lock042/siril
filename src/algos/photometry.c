@@ -504,7 +504,7 @@ static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 	return 1;
 }
 
-int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, fits *first) {
+int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, gboolean use_comp1, gboolean use_comp2, fits *first) {
 	/* The file is a CSV with these fields:
 	 * Type,Name,HFR,xPos,yPos,AvgBright,MaxBright,Background,Ra,Dec
 	 *
@@ -594,6 +594,11 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 			// user catalogue for annotations, or a local database
 		}
 		else if (!strcasecmp(type, "comp1")) {
+			if (!use_comp1) {
+				siril_debug_print("ignoring comp1 star\n");
+				g_strfreev(tokens);
+				continue;
+			}
 			gchar *end1, *end2;
 			double ra = g_ascii_strtod(tokens[ra_index], &end1);
 			double dec = g_ascii_strtod(tokens[dec_index], &end2);
@@ -615,6 +620,11 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
 		}
 		else if (!strcasecmp(type, "comp2")) {
+			if (!use_comp2) {
+				siril_debug_print("ignoring comp2 star\n");
+				g_strfreev(tokens);
+				continue;
+			}
 			gchar *end1, *end2;
 			double ra = g_ascii_strtod(tokens[ra_index], &end1);
 			double dec = g_ascii_strtod(tokens[dec_index], &end2);
@@ -654,7 +664,7 @@ static gboolean end_light_curve_worker(gpointer p) {
 	drawPlot();
 	notify_new_photometry();	// switch to and update plot tab
 	redraw(REDRAW_OVERLAY);
-	end_generic(NULL);
+	return end_generic(NULL);
 }
 
 gpointer light_curve_worker(gpointer arg) {

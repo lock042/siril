@@ -53,10 +53,10 @@ void print_psf_error_summary(gint *code_sums);
 
 struct light_curve_args {
 	rectangle *areas;	// the first is the variable star's area
-	int nb;
+	int nb;			// number of areas
 	sequence *seq;
 	int layer;
-	char *target_descr;
+	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
 };
 
@@ -64,6 +64,6 @@ gpointer light_curve_worker(gpointer arg);
 
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph);
 
-int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, fits *first);
+int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, gboolean use_comp1, gboolean use_comp2, fits *first);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

@@ -925,13 +925,17 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	drawPlot();
 }
 
-void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
+void clear_all_photometry_and_plot() {
 	for (int i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 		free_photometry_set(&com.seq, i);
 	}
 	reset_plot();
 	clear_stars_list(TRUE);
 	drawPlot();
+}
+
+void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
+	clear_all_photometry_and_plot();
 }
 
 void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {

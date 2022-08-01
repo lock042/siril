@@ -2363,7 +2363,7 @@ int process_light_curve(int nb) {
 			free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
-		if (parse_nina_stars_file_using_WCS(args, word[3]+11, &first)) {
+		if (parse_nina_stars_file_using_WCS(args, word[3]+11, TRUE, TRUE, &first)) {
 			free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
