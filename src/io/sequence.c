@@ -1309,6 +1309,15 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 	if (free_seq_too)	free(seq);
 }
 
+void free_photometry_set(sequence *seq, int set) {
+	for (int j = 0; j < seq->number; j++) {
+		if (seq->photometry[set][j])
+			free_psf(seq->photometry[set][j]);
+	}
+	free(seq->photometry[set]);
+	seq->photometry[set] = NULL;
+}
+
 gboolean sequence_is_loaded() {
 	return (com.seq.seqname != NULL && com.seq.imgparam != NULL);
 }
@@ -1628,8 +1637,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));
 	photometry_index = i;
 
-	GSList *iterator;
-	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
+	for (GSList *iterator = spsfargs->list; iterator; iterator = iterator->next) {
 		struct seqpsf_data *data = iterator->data;
 
 		/* check exposure consistency */
@@ -1660,7 +1668,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 
 		/* the idle below won't be called, we free data here */
 		if (spsfargs->list)
-			g_slist_free(spsfargs->list);
+			g_slist_free_full(spsfargs->list, free);
 		free(spsfargs);
 		free_sequence(seq, TRUE);
 	}
@@ -1696,7 +1704,7 @@ gboolean end_seqpsf(gpointer p) {
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
 			}
-			else write_to_regdata = TRUE;
+			else write_to_regdata = !seq->regparam[layer];
 		}
 	}
 
@@ -1745,7 +1753,7 @@ gboolean end_seqpsf(gpointer p) {
 
 proper_ending:
 	if (spsfargs->list)
-		g_slist_free(spsfargs->list);
+		g_slist_free_full(spsfargs->list, free);
 	free(spsfargs);
 
 	if (seq == &com.seq && !args->already_in_a_thread && !com.script)

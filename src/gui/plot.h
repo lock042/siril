@@ -26,13 +26,13 @@
 void reset_plot();
 void drawPlot();
 void notify_new_photometry();
-void free_photometry_set(sequence *seq, int set);
 
 /* for one curve */
 typedef struct plot_data_struct {
 	double *julian, *frame;
 	struct kpair *data, *err;
 	int nb;		// number of points in the plot (= number of images)
+
 	struct plot_data_struct *next;
 } pldata;
 
@@ -61,12 +61,5 @@ enum registration_source {
 	r_QUALITY,
 	r_FRAME
 };
-
-/* for headless light curve generation */
-void generate_magnitude_data(sequence *seq, int dataset, pldata *plot);
-int light_curve(pldata *plot, sequence *seq, gchar *filename);
-
-pldata *alloc_plot_data(int size);
-void free_plot_data(pldata *plot);
 
 #endif /* SRC_GUI_PLOT_H_ */

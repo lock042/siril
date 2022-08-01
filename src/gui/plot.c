@@ -248,10 +248,10 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	plot->nb = j;
 }
 
-static void set_x_photometry_values(sequence *seq, pldata *plot, int i, int j) {
-	if (seq->imgparam[i].date_obs) {
+static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
+	if (seq->imgparam[image_index].date_obs) {
 		double julian;
-		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
+		GDateTime *tsi = g_date_time_ref(seq->imgparam[image_index].date_obs);
 		if (seq->exposure > 0.0) {
 			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
 			julian = date_time_to_Julian(new_dt);
@@ -260,21 +260,22 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int i, int j) {
 			julian = date_time_to_Julian(tsi);
 		}
 
-		plot->julian[j] = julian - (double)julian0;
+		plot->julian[point_index] = julian - (double)julian0;
 
 		g_date_time_unref(tsi);
 	} else {
-		plot->julian[j] = (double) i + 1; // should not happen.
+		plot->julian[point_index] = (double) image_index + 1; // should not happen
+		siril_debug_print("no DATE-OBS information for frame %d\n", image_index);
 	}
-	plot->frame[j] = (double) i + 1;
+	plot->frame[point_index] = (double) image_index + 1;
 
 	if (julian0 && force_Julian) {
-		plot->data[j].x = plot->julian[j];
+		plot->data[point_index].x = plot->julian[point_index];
 	} else {
-		plot->data[j].x = plot->frame[j];
+		plot->data[point_index].x = plot->frame[point_index];
 	}
 
-	plot->err[j].x = plot->data[j].x;
+	plot->err[point_index].x = plot->data[point_index].x;
 }
 
 static void build_photometry_dataset(sequence *seq, int dataset, int size,
@@ -300,12 +301,13 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 					julian0 = (int) date_time_to_Julian(ts0);
 				}
 				g_date_time_unref(ts0);
+				siril_debug_print("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
-				xlabel = calloc(XLABELSIZE, sizeof(char));
+				xlabel = malloc(XLABELSIZE * sizeof(char));
 				g_snprintf(xlabel, XLABELSIZE, "(JD) %d +", julian0);
 			} else {
-				xlabel = g_strdup(_("Frames"));
+				xlabel = _("Frames");
 			}
 		}
 		set_x_photometry_values(seq, plot, i, j);
@@ -514,6 +516,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 
 	free(vmag);
+	free(err);
 	free(x);
 	free(real_x);
 	return 0;
@@ -609,7 +612,8 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 	return 0;
 }
 
-void free_plot_data(pldata *plot) {
+void free_plot_data() {
+	pldata *plot = plot_data;
 	while (plot) {
 		pldata *next = plot->next;
 		free(plot->julian);
@@ -621,6 +625,7 @@ void free_plot_data(pldata *plot) {
 	}
 	julian0 = 0;
 	xlabel = NULL;
+	plot_data = NULL;
 }
 
 static void set_sensitive(GtkCellLayout *cell_layout,
@@ -734,8 +739,7 @@ void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void reset_plot() {
-	free_plot_data(plot_data);
-	plot_data = NULL;
+	free_plot_data();
 	int layer;
 	if (sourceCombo) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
@@ -792,8 +796,7 @@ void drawPlot() {
 	validate_combos();
 
 	seq = &com.seq;
-	if (plot_data)
-		free_plot_data(plot_data);
+	free_plot_data();
 
 	if (seq->reference_image == -1)
 		ref_image = 0;
@@ -905,15 +908,6 @@ void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	save_dialog(".dat", light_curve);
 	set_cursor_waiting(FALSE);
-}
-
-void free_photometry_set(sequence *seq, int set) {
-	for (int j = 0; j < seq->number; j++) {
-		if (seq->photometry[set][j])
-			free(seq->photometry[set][j]);
-	}
-	free(seq->photometry[set]);
-	seq->photometry[set] = NULL;
 }
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
