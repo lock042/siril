@@ -410,7 +410,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 			continue;
 		++nbImages;
 		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (seq->photometry[ref][i]->phot_is_valid)
+			if (seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid)
 				ref_valid_count[ref]++;
 		}
 	}
@@ -459,7 +459,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
 		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (ref_valid[ref] && seq->photometry[ref][i]->phot_is_valid) {
+			if (ref_valid[ref] && seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid) {
 				/* variable data, inversion of Pogson's law
 				 * Flux = 10^(-0.4 * mag)
 				 */

@@ -136,7 +136,7 @@ preferences pref_init = {
 		.outer = 30.0,
 		.aperture = 10.0,
 		.force_radius = FALSE,
-		.minval = 0.0,
+		.minval = -500.0,
 		.maxval = 60000.0,
 	},
 	.analysis = {
