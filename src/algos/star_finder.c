@@ -808,7 +808,8 @@ gpointer findstar(gpointer p) {
 	if (com.selection.w != 0 && com.selection.h != 0)
 		selection = &com.selection;
 	gboolean limit_stars = (args->max_stars_fitted > 0);
-	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars, selection, TRUE, limit_stars, args->max_stars_fitted, com.max_thread);
+	int threads = check_threading(&args->threading);
+	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars, selection, TRUE, limit_stars, args->max_stars_fitted, threads);
 	if (stars) {
 		clear_stars_list(FALSE);
 		com.stars = stars;
@@ -823,6 +824,10 @@ gpointer findstar(gpointer p) {
 
 	return GINT_TO_POINTER(retval);
 }
+
+// int findstar_hook(struct starfinder_data *args) {
+
+// }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
 	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;

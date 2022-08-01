@@ -2549,37 +2549,13 @@ int process_fill2(int nb){
 	return CMD_OK;
 }
 
-int process_findstar(int nb) {
-	int layer;
-	if (!com.script) {
-		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
-	} else {
-		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
-	}
-
-	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
-	args->layer = layer;
-	args->im.fit = &gfit;
-	if (sequence_is_loaded() && com.seq.current >= 0) {
-		args->im.from_seq = &com.seq;
-		args->im.index_in_seq = com.seq.current;
-	} else {
-		args->im.from_seq = NULL;
-		args->im.index_in_seq = -1;
-	}
-
-	// initializing args
-	args->starfile = NULL;
-	args->max_stars_fitted = 0;
-	args->forcepx = FALSE;
-
-	for (int i = 1; i < nb; i++) {
+cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
+	for (int i = start; i < nb; i++) {
 		char *current = word[i], *value;
 		if (g_str_has_prefix(current, "-out=")) {
 			value = current + 5;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				free(args);
 				return CMD_ARG_ERROR;
 			}
 			/* Make sure path exists */
@@ -2587,7 +2563,6 @@ int process_findstar(int nb) {
 			if (g_mkdir_with_parents(dirname, 0755) < 0) {
 				siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
 				g_free(dirname);
-				free(args);
 				return CMD_GENERIC_ERROR;
 			}
 			g_free(dirname);
@@ -2612,7 +2587,6 @@ int process_findstar(int nb) {
 			value = current + 10;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				free(args);
 				return CMD_ARG_ERROR;
 			}
 			gchar *end;
@@ -2620,7 +2594,6 @@ int process_findstar(int nb) {
 			if (end == value || max_stars > MAX_STARS_FITTED || max_stars < MIN_STARS_FITTED) {
 				// limiting values to avoid too long computation or too low number of candidates
 				siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
-				free(args);
 				return CMD_ARG_ERROR;
 			}
 			args->max_stars_fitted = max_stars;
@@ -2628,15 +2601,88 @@ int process_findstar(int nb) {
 			args->forcepx = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
-			free(args);
 			return CMD_ARG_ERROR;
 		}
+	}
+	return CMD_OK;
+}
+
+int process_findstar(int nb) {
+	int layer;
+	if (!com.script) {
+		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+	} else {
+		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
+	}
+
+	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	args->layer = layer;
+	args->im.fit = &gfit;
+	if (sequence_is_loaded() && com.seq.current >= 0) {
+		args->im.from_seq = &com.seq;
+		args->im.index_in_seq = com.seq.current;
+	} else {
+		args->im.from_seq = NULL;
+		args->im.index_in_seq = -1;
+	}
+
+	// initializing args
+	args->starfile = NULL;
+	args->max_stars_fitted = 0;
+	args->forcepx = FALSE;
+	args->threading = MULTI_THREADED;
+
+	cmd_errors argparsing = parse_findstar(args, 1, nb);
+
+	if (argparsing) {
+		if (args->starfile) g_free(args->starfile);
+		free(args);
+		return argparsing;
 	}
 
 	start_in_new_thread(findstar, args);
 
 	return CMD_OK;
 }
+
+// int process_seq_findstar(int nb) {
+// 	sequence *seq = load_sequence(word[1], NULL);
+// 	if (!seq)
+// 		return CMD_SEQUENCE_NOT_FOUND;
+
+// 	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+// 	int layer;
+// 	if (!com.script) {
+// 		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+// 	} else {
+// 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
+// 	}
+// 	// initializing findstar args
+// 	args->layer = layer;
+// 	args->im.fit = NULL;
+// 	args->im.from_seq = &com.seq;
+// 	args->im.index_in_seq = -1;
+// 	args->starfile = NULL;
+// 	args->max_stars_fitted = 0;
+// 	args->forcepx = FALSE;
+// 	args->threading = SINGLE_THREADED;
+
+// 	cmd_errors argparsing = parse_findstar(args, 2, nb);
+
+// 	if (argparsing) {
+// 		if (args->starfile) g_free(args->starfile);
+// 		free(args);
+// 		return argparsing;
+// 	}
+
+// 	struct generic_seq_args *seq_findstar_args = malloc(sizeof(struct generic_seq_args));
+// 	seq_findstar_args->seq = seq;
+// 	seq_findstar_args->image_hook = findstar;
+// 	seq_findstar_args->user = args;
+// 	start_in_new_thread(generic_sequence_findstar_worker, seq_findstar_args);
+// 	return 0;
+// }
+
 
 int process_findhot(int nb){
 	if (gfit.naxes[2] != 1) {

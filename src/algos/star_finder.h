@@ -17,6 +17,7 @@ struct starfinder_data {
 	int max_stars_fitted;
 	gchar *starfile;
 	gboolean forcepx;
+	threading_type threading;
 };
 
 struct star_candidate_struct {
