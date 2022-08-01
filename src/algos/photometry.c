@@ -32,6 +32,8 @@
 #include "io/sequence.h"
 #include "opencv/opencv.h"
 #include "gui/PSF_list.h"
+#include "gui/plot.h"
+#include "gui/image_display.h"
 #include "io/gnuplot_i.h"
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
@@ -648,6 +650,13 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	return !target_acquired;
 }
 
+static gboolean end_light_curve_worker(gpointer p) {
+	drawPlot();
+	notify_new_photometry();	// switch to and update plot tab
+	redraw(REDRAW_OVERLAY);
+	end_generic(NULL);
+}
+
 gpointer light_curve_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
@@ -679,7 +688,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (args->seq != &com.seq)
 		free_sequence(args->seq, TRUE);
 	free(args);
-	siril_add_idle(end_generic, NULL);
+	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
 }
 

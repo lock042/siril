@@ -75,7 +75,7 @@
 typedef unsigned char BYTE;	// default type for image display data
 typedef unsigned short WORD;	// default type for internal image data
 
-#define MAX_REF_STARS 30	// uchar
+#define MAX_REF_STARS 20	// uchar
 #define MAX_SEQPSF MAX_REF_STARS// max number of stars for which seqpsf can be run
 				// if we use seqpsf for the light curve, we must allow as many as MAX_REF_STARS
 

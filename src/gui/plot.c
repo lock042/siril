@@ -1230,6 +1230,8 @@ void notify_new_photometry() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 }
 
+/* copied from subprojects/kplot/draw.c, in which the max is 7, not MAX_SEQPSF.
+ * We assign the same color to all others */
 static void set_colors(struct kplotcfg *cfg) {
 	int i;
 	cfg->clrsz = MAX_SEQPSF;
@@ -1237,6 +1239,11 @@ static void set_colors(struct kplotcfg *cfg) {
 	for (i = 0; i < cfg->clrsz; i++) {
 		cfg->clrs[i].type = KPLOTCTYPE_RGBA;
 		cfg->clrs[i].rgba[3] = 1.0;
+		if (i > 6) {
+			cfg->clrs[i].rgba[0] = 0x00;
+			cfg->clrs[i].rgba[1] = 0xaa;
+			cfg->clrs[i].rgba[2] = 0xbb;
+		}
 	}
 	cfg->clrs[0].rgba[0] = 0x94 / 255.0;
 	cfg->clrs[0].rgba[1] = 0x04 / 255.0;
