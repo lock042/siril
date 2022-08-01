@@ -15,6 +15,7 @@ struct starfinder_data {
 	image im;
 	int layer;
 	int max_stars_fitted;
+	gchar *starfile;
 };
 
 struct star_candidate_struct {

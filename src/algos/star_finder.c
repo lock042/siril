@@ -802,7 +802,7 @@ static gboolean end_findstar(gpointer p) {
 
 gpointer findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
-
+	int retval = 0;
 	int nbstars = 0;
 	rectangle *selection = NULL;
 	if (com.selection.w != 0 && com.selection.h != 0)
@@ -814,10 +814,13 @@ gpointer findstar(gpointer p) {
 	}
 	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
 			selection ? _("selection") : _("image"), args->layer);
+	if (args->starfile && save_list(args->starfile)) {
+		retval = 1;
+	}
 
 	siril_add_idle(end_findstar, args);
 
-	return GINT_TO_POINTER(0);
+	return GINT_TO_POINTER(retval);
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {

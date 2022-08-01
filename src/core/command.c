@@ -2549,10 +2549,16 @@ int process_fill2(int nb){
 	return CMD_OK;
 }
 
-int process_findstar(int nb){
-	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+int process_findstar(int nb) {
+	int layer;
+	if (!com.script) {
+		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+	} else {
+		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
+	}
 
 	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	args->layer = layer;
 	args->im.fit = &gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		args->im.from_seq = &com.seq;
@@ -2561,7 +2567,44 @@ int process_findstar(int nb){
 		args->im.from_seq = NULL;
 		args->im.index_in_seq = -1;
 	}
-	args->layer = layer;
+	args->starfile = NULL;
+	for (int i = 1; i < nb; i++) {
+		char *current = word[i], *value;
+		if (g_str_has_prefix(current, "-out=")) {
+			value = current + 5;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				return CMD_ARG_ERROR;
+			}
+			/* Make sure path exists */
+			gchar *dirname = g_path_get_dirname(value);
+			if (g_mkdir_with_parents(dirname, 0755) < 0) {
+				siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+				g_free(dirname);
+				return CMD_GENERIC_ERROR;
+			}
+			g_free(dirname);
+			args->starfile = g_strdup(value);
+			siril_debug_print("Findstar: saving at %s\n", args->starfile);
+		} else if (g_str_has_prefix(word[i], "-layer=")) {
+			if (args->im.fit->naxes[2] == 1) {  // handling mono case
+				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
+				continue;
+			}
+			value = current + 7;
+			gchar *end;
+			int layer = g_ascii_strtoull(value, &end, 10);
+			if (end == value || layer < 0 || layer > 2) {
+				siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
+				if (end == value) break;
+				else continue;
+			}
+			args->layer = layer;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
+	}
 
 	start_in_new_thread(findstar, args);
 

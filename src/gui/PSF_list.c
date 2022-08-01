@@ -307,7 +307,7 @@ static void remove_all_stars(){
 	redraw(REDRAW_OVERLAY);
 }
 
-static int save_list(gchar *filename) {
+int save_list(gchar *filename) {
 	int i = 0;
 	if (!com.stars)
 		return 1;
