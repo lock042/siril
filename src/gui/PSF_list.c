@@ -307,7 +307,7 @@ static void remove_all_stars(){
 	redraw(REDRAW_OVERLAY);
 }
 
-int save_list(gchar *filename) {
+int save_list(gchar *filename, gboolean forcepx) {
 	int i = 0;
 	if (!com.stars)
 		return 1;
@@ -328,7 +328,7 @@ int save_list(gchar *filename) {
 		return 1;
 	}
 
-	gchar *buffer = g_strdup_printf("star#\tlayer\tB\tA\tX\tY\tFWHMx [%s]\tFWHMy [%s]\tangle\tRMSE\tmag%s", com.stars[0]->units,com.stars[0]->units,SIRIL_EOL);
+	gchar *buffer = g_strdup_printf("star#\tlayer\tB\tA\tX\tY\tFWHMx [%s]\tFWHMy [%s]\tangle\tRMSE\tmag%s", (forcepx) ? "px" : com.stars[0]->units,(forcepx) ? "px" : com.stars[0]->units,SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 		g_warning("%s\n", error->message);
 		g_free(buffer);
@@ -339,7 +339,7 @@ int save_list(gchar *filename) {
 	}
 	g_free(buffer);
 	if (com.stars[0]) {
-		is_in_arcsec = com.stars[0]->fwhmx_arcsec > 0;
+		is_in_arcsec = ((com.stars[0]->fwhmx_arcsec > 0) && (!forcepx));
 	}
 	while (com.stars[i]) {
 		if (is_in_arcsec) { 
@@ -399,7 +399,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file);
+		save_list(file, FALSE);
 
 		g_free(file);
 	}

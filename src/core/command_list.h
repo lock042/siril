@@ -75,7 +75,7 @@ static command commands[] = {
 	{"find_cosme", 2, "find_cosme cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"find_cosme_cfa", 2, "find_cosme_cfa cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA | REQ_CMD_NO_THREAD},
 	{"find_hot", 3, "find_hot filename cold_sigma hot_sigma", process_findhot, STR_FIND_HOT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"findstar", 0, "findstar [-out=] [-layer=] [-maxstars=]", process_findstar, STR_FINDSTAR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"findstar", 0, "findstar [-out=] [-layer=] [-maxstars=] [-forcepx]", process_findstar, STR_FINDSTAR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"fix_xtrans", 0, "fix_xtrans", process_fix_xtrans, STR_FIXXTRANS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_FOR_MONO},
 	{"fixbanding", 2, "fixbanding amount sigma", process_fixbanding, STR_FIXBANDING, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fmedian", 2, "fmedian ksize modulation", process_fmedian, STR_FMEDIAN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},

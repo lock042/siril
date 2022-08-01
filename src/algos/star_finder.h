@@ -16,6 +16,7 @@ struct starfinder_data {
 	int layer;
 	int max_stars_fitted;
 	gchar *starfile;
+	gboolean forcepx;
 };
 
 struct star_candidate_struct {

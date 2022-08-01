@@ -2567,8 +2567,12 @@ int process_findstar(int nb) {
 		args->im.from_seq = NULL;
 		args->im.index_in_seq = -1;
 	}
+
+	// initializing args
 	args->starfile = NULL;
 	args->max_stars_fitted = 0;
+	args->forcepx = FALSE;
+
 	for (int i = 1; i < nb; i++) {
 		char *current = word[i], *value;
 		if (g_str_has_prefix(current, "-out=")) {
@@ -2620,6 +2624,8 @@ int process_findstar(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			args->max_stars_fitted = max_stars;
+		} else if (!strcmp(current, "-forcepx")) {
+			args->forcepx = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
 			free(args);
