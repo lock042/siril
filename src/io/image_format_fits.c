@@ -98,10 +98,6 @@ static void read_fits_date_obs_header(fits *fit) {
 		}
 	}
 
-	if (date_obs[0] == '\0') {
-		status = 0;
-		fits_read_key(fit->fptr, TSTRING, "DATE", &date_obs, NULL, &status);
-	}
 	fit->date_obs = FITS_date_to_date_time(date_obs);
 }
 
