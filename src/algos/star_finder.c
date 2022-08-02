@@ -847,6 +847,10 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 		args->im.index_in_seq = -1;
 	}
 	args->layer = layer;
+	args->max_stars_fitted = 0;
+	args->starfile = NULL;
+	args->forcepx = FALSE;
+	args->threading = MULTI_THREADED;
 
 	start_in_new_thread(findstar, args);
 }
