@@ -1212,7 +1212,7 @@ static void update_ylabel() {
  * on_DrawingPlot_draw because it may not be called if the panel is hidden, but
  * the circles in the main image display still use these colors.
  */
-static void init_plot_colors() {
+void init_plot_colors() {
 	struct kplotcfg cfgplot;
 	set_colors(&cfgplot);
 	/* copy graph colours for star highlight */

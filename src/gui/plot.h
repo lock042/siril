@@ -27,6 +27,7 @@ void clear_all_photometry_and_plot();
 void reset_plot();
 void drawPlot();
 void notify_new_photometry();
+void init_plot_colors();
 
 /* for one curve */
 typedef struct plot_data_struct {
