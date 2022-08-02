@@ -3709,6 +3709,33 @@ int process_seq_stat(int nb) {
 	return CMD_OK;
 }
 
+int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int index) {
+	char str[FLEN_VALUE] = { 0 };
+	int status = 0;
+	fits_read_keyword(fptr, args->key, str, NULL, &status);
+	if (status)
+		strcpy(str, "not found");
+	siril_log_message(_("Image %d, %s = %s\n"), index, args->key, str);
+	return status;
+}
+
+int process_seq_header(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+	if (seq->type != SEQ_REGULAR && seq->type != SEQ_FITSEQ) {
+		siril_log_message(_("This command can only run for FITS images\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	struct generic_seq_metadata_args *args = malloc(sizeof(struct generic_seq_metadata_args));
+	args->seq = seq;
+	args->key = g_strdup(word[2]);
+	args->image_hook = header_hook;
+	start_in_new_thread(generic_sequence_metadata_worker, args);
+	return 0;
+}
+
 int process_convertraw(int nb) {
 	GDir *dir;
 	GError *error = NULL;

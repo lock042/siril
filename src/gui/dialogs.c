@@ -150,12 +150,3 @@ void siril_close_preview_dialogs() {
 		}
 	}
 }
-
-void siril_close_all_standard_dialogs() {
-	for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
-		GtkWidget *w = get_widget_by_index(i);
-		if (gtk_widget_get_visible(w) && (!entries[i].has_preview)) {
-			gtk_widget_hide(w);
-		}
-	}
-}
