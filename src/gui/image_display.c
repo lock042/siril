@@ -855,6 +855,7 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_move_to(cr, (len / 2) * 2.0, -0.1 * len);
 	cairo_rotate(cr, -angleE);
 	cairo_show_text(cr, "E");
+	cairo_stroke(cr);
 	cairo_restore(cr); // restore the original transform
 }
 
@@ -1123,6 +1124,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_move_to(cr, dx, dy);
 				cairo_text_extents(cr, tag, &te2);
 				cairo_show_text(cr, tag);
+				cairo_stroke(cr);
 				cairo_restore(cr); // restore the orginal transform
 			} else {
 				g_free(tag);

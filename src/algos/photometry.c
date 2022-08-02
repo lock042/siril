@@ -689,6 +689,9 @@ gpointer light_curve_worker(gpointer arg) {
 			}
 			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"), star_index);
 		}
+
+		if (args->seq == &com.seq)
+			queue_redraw(REDRAW_OVERLAY);
 	}
 
 	/* analyse data and create the light curve */
