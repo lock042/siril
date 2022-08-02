@@ -448,7 +448,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				gnuplot_reverse_yaxis(gplot);
 				gnuplot_setstyle(gplot, "errorbars");
 				if (display_graph) {
-					gnuplot_plot_xyyerr(gplot, date, vmag, err, nb_valid_images, "relative magnitude");
+					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
 				} else {
 					gchar *image_name = replace_ext(filename, ".png");
 					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);

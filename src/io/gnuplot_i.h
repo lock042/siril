@@ -301,7 +301,8 @@ void gnuplot_plot_xyyerr(
 	    double          *   y,
 	    double          *   yerr,
 	    int                 n,
-	    char            *   title
+	    char            *   title,
+	    int			x_offset /* the entire part of julian date, useful for plotting */
 	) ;
 
 
@@ -470,7 +471,9 @@ int gnuplot_write_xyyerr_dat(
 /* plot from an existing file */
 void gnuplot_plot_xyyerr_from_datfile(
     gnuplot_ctrl * handle,
-    const char   * datfile
+    const char   * datfile,
+    char         * title,
+    int            x_offset
 );
 
 void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,

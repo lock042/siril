@@ -335,6 +335,7 @@ the_end:
 		args->retval = 1;
 	}
 
+	int retval = args->retval;	// so we can free args if needed in the idle
 	if (args->already_in_a_thread) {
 		if (args->idle_function)
 			args->idle_function(args);
@@ -343,7 +344,7 @@ the_end:
 			siril_add_idle(args->idle_function, args);
 		else siril_add_idle(end_generic_sequence, args);
 	}
-	return GINT_TO_POINTER(args->retval);
+	return GINT_TO_POINTER(retval);
 }
 
 // default idle function (in GTK main thread) to run at the end of the generic sequence processing
