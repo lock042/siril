@@ -42,7 +42,7 @@ int draw_sensor_tilt(fits *fit);
 
 void apply_tilt_to_sequence(struct tilt_data *tilt_args);
 
-void compute_ccd_edges();
-void redraw_ccd_edges();
+void compute_aberration_inspector();
+void redraw_aberration_inspector();
 
 #endif /* SRC_ALGOS_CCD_INSPECTOR_H_ */

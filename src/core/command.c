@@ -2381,7 +2381,7 @@ int process_tilt(int nb) {
 }
 
 int process_inspector(int nb) {
-	compute_ccd_edges();
+	compute_aberration_inspector();
 	return CMD_OK;
 }
 
