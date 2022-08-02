@@ -312,32 +312,31 @@ static char *edge_w[] = {
 		"right_bottom"
 };
 
-static void set_edge_square(gchar **panel, gboolean recompute) {
+static void set_edge_square(gchar **panel) {
 	int cvport = gfit.naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
 
 	struct image_view *view = &gui.view[cvport];
 
-	if (recompute)
-		siril_open_dialog("edge_dialog");
-
-	if (edge_surface && recompute)
+	siril_open_dialog("edge_dialog");
+	if (edge_surface)
 		cairo_surface_destroy(edge_surface);
-	if (recompute) {
-		image_width = gfit.rx;
-		image_height = gfit.ry;
-		edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
 
-		if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
-			cairo_surface_destroy(edge_surface);
-			edge_surface = NULL;
-			return;
-		}
-		double scale = com.pref.analysis.mosaic_panel / WIDGET_SIZE;
-		if (scale < 1.0) scale = 1.0;
-		cairo_surface_set_device_scale(edge_surface, scale, scale);
-		image_width = (int) ((double)image_width / scale);
-		image_height = (int) ((double) image_height / scale);
+	image_width = gfit.rx;
+	image_height = gfit.ry;
+	/* New surface as we modify it */
+	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
+
+	if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(edge_surface);
+		edge_surface = NULL;
+		return;
 	}
+	double scale = com.pref.analysis.mosaic_panel / WIDGET_SIZE;
+	if (scale < 1.0) scale = 1.0;
+	cairo_surface_set_device_scale(edge_surface, scale, scale);
+	image_width = (int) ((double)image_width / scale);
+	image_height = (int) ((double) image_height / scale);
+
 
 	for (int i = 0; i < G_N_ELEMENTS(edge_w); i++)
 		gtk_widget_queue_draw(lookup_widget(panel[i]));
@@ -469,15 +468,13 @@ gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	return FALSE;
 }
 
-void compute_ccd_edges() {
+void compute_aberration_inspector() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		set_edge_square(edge_w, TRUE);
+		set_edge_square(edge_w);
 	}
 }
 
-void redraw_ccd_edges() {
+void redraw_aberration_inspector() {
 	if (!gtk_widget_is_visible(lookup_widget("edge_dialog"))) return;
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		set_edge_square(edge_w, FALSE);
-	}
+	compute_aberration_inspector();
 }
