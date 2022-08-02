@@ -58,6 +58,7 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), use_comp1);
 	gtk_container_add(GTK_CONTAINER(content_area), use_comp2);
 	gtk_container_add(GTK_CONTAINER(content_area), use_gnuplotGUI);
+	gtk_widget_show_all(GTK_WIDGET(content_area));
 }
 
 // the public getter
