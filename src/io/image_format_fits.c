@@ -97,6 +97,7 @@ static void read_fits_date_obs_header(fits *fit) {
 			g_snprintf(date_obs, sizeof(date_obs), "%04d-%02d-%02dT%s", year, month, day, ut_start);
 		}
 	}
+
 	fit->date_obs = FITS_date_to_date_time(date_obs);
 }
 
@@ -274,12 +275,12 @@ void read_fits_header(fits *fit) {
 	 */
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
+	gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->data_max), NULL, &status);
-	gboolean not_from_siril = g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
 
-	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || (fit->bitpix == DOUBLE_IMG)) {
+	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
 		if (status == KEY_NO_EXIST) {
 			float mini, maxi;
 			fit_stats(fit, &mini, &maxi);
@@ -942,7 +943,7 @@ static int siril_fits_move_first_image(fitsfile* fp) {
 		}
 	} while (!status);
 
-	siril_debug_print("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
+	//siril_debug_print("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
 	return status;
 }
 
@@ -1755,13 +1756,20 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
 				fit->bitpix, fit->data, layer, area);
 	} else {
-		if (fit->bitpix == FLOAT_IMG) {
+		if (fit->bitpix == FLOAT_IMG || fit->bitpix == DOUBLE_IMG) {
+			char str[FLEN_VALUE] = { 0 };
+			status = 0;
+			fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
+			gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
+
 			status = 0;
 			fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
-			if (status == KEY_NO_EXIST) {
-				float mini, maxi;
-				fit_stats(fit, &mini, &maxi);
-				fit->data_max = (double) maxi;
+			if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
+				if (status == KEY_NO_EXIST) {
+					float mini, maxi;
+					fit_stats(fit, &mini, &maxi);
+					fit->data_max = (double) maxi;
+				}
 			}
 		}
 

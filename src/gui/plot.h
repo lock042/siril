@@ -23,15 +23,18 @@
 
 #include "core/siril.h"
 
+void clear_all_photometry_and_plot();
 void reset_plot();
 void drawPlot();
 void notify_new_photometry();
-void free_photometry_set(sequence *seq, int set);
+void init_plot_colors();
 
+/* for one curve */
 typedef struct plot_data_struct {
 	double *julian, *frame;
 	struct kpair *data, *err;
-	int nb;
+	int nb;		// number of points in the plot (= number of images)
+
 	struct plot_data_struct *next;
 } pldata;
 
@@ -60,7 +63,5 @@ enum registration_source {
 	r_QUALITY,
 	r_FRAME
 };
-
-gchar *siril_win_get_gnuplot_path();
 
 #endif /* SRC_GUI_PLOT_H_ */

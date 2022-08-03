@@ -333,7 +333,9 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		return;
 	if (!(com.selection.h && com.selection.w))
 		return;
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, NULL);
+	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, ps, TRUE, NULL);
+	free(ps);
 	if (!result)
 		return;
 
@@ -587,4 +589,8 @@ void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("split_cfa_dialog");
+}
+
+void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("nina_light_curve");
 }

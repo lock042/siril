@@ -80,11 +80,6 @@ static struct preprocessing_data *prepro = NULL;
 static gboolean first_stacking_result = TRUE;
 static imstats *refimage_stats[3] = { NULL };
 
-typedef enum {
-	BOOL_NOT_SET,
-	BOOL_TRUE,
-	BOOL_FALSE
-} super_bool;
 static super_bool use_demosaicing = BOOL_NOT_SET;
 
 static gpointer live_stacker(gpointer arg);

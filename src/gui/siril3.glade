@@ -3167,12 +3167,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="upper">65535</property>
     <property name="value">65535</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">300</property>
   </object>
   <object class="GtkAdjustment" id="adjminpxval">
+    <property name="lower">-65535</property>
     <property name="upper">65535</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
     <property name="lower">1</property>
@@ -3185,14 +3186,14 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="upper">0.90</property>
     <property name="value">0.5</property>
     <property name="step-increment">0.10</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.25</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_threshold">
     <property name="lower">0.01</property>
     <property name="upper">15</property>
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.5</property>
   </object>
   <object class="GtkAdjustment" id="adjustment-finalstretch">
     <property name="upper">4</property>
@@ -19548,6 +19549,22 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
                                                     <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="nina_button">
+                                                    <property name="label" translatable="yes">NINA exoplanet</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
+						    <property name="action-name">win.nina_light_curve</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">4</property>
                                                   </packing>
                                                 </child>
                                               </object>

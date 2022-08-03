@@ -46,7 +46,7 @@
 #include "algos/PSF.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "gui/gnuplot_i/gnuplot_i.h"
+#include "io/gnuplot_i.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
 
@@ -80,61 +80,40 @@ void on_plotComboX_changed(GtkComboBox *box, gpointer user_data);
 
 
 static const gchar *photometry_labels[] = {
-		N_("FWHM"),
-		N_("Roundness"),
-		N_("Amplitude"),
-		N_("Magnitude"),
-		N_("Background"),
-		N_("X Position"),
-		N_("Y Position"),
-		N_("SNR")
+	N_("FWHM"),
+	N_("Roundness"),
+	N_("Amplitude"),
+	N_("Magnitude"),
+	N_("Background"),
+	N_("X Position"),
+	N_("Y Position"),
+	N_("SNR")
 };
 
 static const gchar *registration_labels[] = {
-		N_("FWHM"),
-		N_("Roundness"),
-		N_("wFWHM"),
-		N_("Background"),
-		N_("# Stars"),
-		N_("X Position"),
-		N_("Y Position"),
-		N_("Quality"),
-		N_("Frame"),
+	N_("FWHM"),
+	N_("Roundness"),
+	N_("wFWHM"),
+	N_("Background"),
+	N_("# Stars"),
+	N_("X Position"),
+	N_("Y Position"),
+	N_("Quality"),
+	N_("Frame"),
 };
 
-static pldata *alloc_plot_data(int size) {
-	pldata *plot = calloc(1, sizeof(pldata));
-	if (!plot) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
+pldata *alloc_plot_data(int size) {
+	pldata *plot = malloc(sizeof(pldata));
 	plot->frame = calloc(size, sizeof(double));
-	if (!plot->frame) {
-		PRINT_ALLOC_ERR;
-		free(plot);
-		return NULL;
-	}
 	plot->julian = calloc(size, sizeof(double));
-	if (!plot->julian) {
-		PRINT_ALLOC_ERR;
-		free(plot->frame);
-		free(plot);
-		return NULL;
-	}
 	plot->data = calloc(size, sizeof(struct kpair));
-	if (!plot->data) {
-		PRINT_ALLOC_ERR;
-		free(plot->frame);
-		free(plot->julian);
-		free(plot);
-		return NULL;
-	}
 	plot->err = calloc(size, sizeof(struct kpair));
-	if (!plot->err) {
+	if (!plot || !plot->frame || !plot->julian || !plot->data || !plot->err) {
 		PRINT_ALLOC_ERR;
 		free(plot->frame);
 		free(plot->julian);
 		free(plot->data);
+		free(plot->err);
 		free(plot);
 		return NULL;
 	}
@@ -269,33 +248,34 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	plot->nb = j;
 }
 
-static void set_x_photometry_values(sequence *seq, pldata *plot, int i, int j) {
-	if (seq->imgparam[i].date_obs) {
+static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
+	if (seq->imgparam[image_index].date_obs) {
 		double julian;
-		GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
-		if (seq->exposure) {
-			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure / 2.0);
+		GDateTime *tsi = g_date_time_ref(seq->imgparam[image_index].date_obs);
+		if (seq->exposure > 0.0) {
+			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
 			julian = date_time_to_Julian(new_dt);
 			g_date_time_unref(new_dt);
 		} else {
 			julian = date_time_to_Julian(tsi);
 		}
 
-		plot->julian[j] = julian - (double) julian0;
+		plot->julian[point_index] = julian - (double)julian0;
 
 		g_date_time_unref(tsi);
 	} else {
-		plot->julian[j] = (double) i + 1; // should not happen.
+		plot->julian[point_index] = (double) image_index + 1; // should not happen
+		siril_debug_print("no DATE-OBS information for frame %d\n", image_index);
 	}
-	plot->frame[j] = (double) i + 1;
+	plot->frame[point_index] = (double) image_index + 1;
 
 	if (julian0 && force_Julian) {
-		plot->data[j].x = plot->julian[j];
+		plot->data[point_index].x = plot->julian[point_index];
 	} else {
-		plot->data[j].x = plot->frame[j];
+		plot->data[point_index].x = plot->frame[point_index];
 	}
 
-	plot->err[j].x = plot->data[j].x;
+	plot->err[point_index].x = plot->data[point_index].x;
 }
 
 static void build_photometry_dataset(sequence *seq, int dataset, int size,
@@ -313,20 +293,21 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		if (!julian0 && !xlabel) {
 			if (seq->imgparam[i].date_obs) {
 				GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
-				if (seq->exposure) {
-					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure / 2.0);
+				if (seq->exposure > 0.0) {
+					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure * 0.5);
 					julian0 = (int) date_time_to_Julian(new_dt);
 					g_date_time_unref(new_dt);
 				} else {
 					julian0 = (int) date_time_to_Julian(ts0);
 				}
 				g_date_time_unref(ts0);
+				siril_debug_print("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
-				xlabel = calloc(XLABELSIZE, sizeof(char));
+				xlabel = malloc(XLABELSIZE * sizeof(char));
 				g_snprintf(xlabel, XLABELSIZE, "(JD) %d +", julian0);
 			} else {
-				xlabel = g_strdup(_("Frames"));
+				xlabel = _("Frames");
 			}
 		}
 		set_x_photometry_values(seq, plot, i, j);
@@ -388,55 +369,13 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 			ref.x = plot->data[j].x;
 			ref.y = plot->data[j].y;
 		}
-		if ((i == seq->current) & com.seq.imgparam[i].incl) {
+		if (i == seq->current && com.seq.imgparam[i].incl) {
 			curr.x = plot->data[j].x;
 			curr.y = plot->data[j].y;
 		}
 		j++;
 	}
 	plot->nb = j;
-}
-
-#ifdef _WIN32
-static const gchar *possible_path[] = { "C:\\PROGRA~1\\gnuplot\\bin\\gnuplot.exe", "C:\\msys64\\mingw64\\bin\\gnuplot.exe" };
-static const gchar *gnuplot_path = NULL;
-
-/* returns true if the gnuplot.exe exists in the wanted folder */
-static gboolean gnuplot_is_available() {
-	size_t size, i = 0;
-	gboolean found = FALSE;
-
-	size = sizeof(possible_path) / sizeof(gchar*);
-	do {
-		found = g_file_test(possible_path[i], G_FILE_TEST_EXISTS);
-		i++;
-	} while (i < size && !found);
-
-	if (found)
-		gnuplot_path = possible_path[i - 1];
-
-	return found;
-}
-#else
-/* returns true if the command gnuplot is available */
-static gboolean gnuplot_is_available() {
-	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", siril_win_get_gnuplot_path());
-
-	int retval = system(str);
-	g_free(str);
-	if (WIFEXITED(retval))
-		return 0 == WEXITSTATUS(retval);
-	return FALSE;
-}
-#endif
-
-gchar *siril_win_get_gnuplot_path() {
-#ifdef _WIN32
-	gchar *str = g_strdup_printf("\"%s -persist\"", gnuplot_path);
-	return str;
-#else
-	return "gnuplot";
-#endif
 }
 
 static double get_error_for_time(pldata *plot, double time) {
@@ -450,26 +389,54 @@ static double get_error_for_time(pldata *plot, double time) {
 	return 0.0;
 }
 
-
-static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
+// call after having filled the plot data of the multiple stars with either
+// generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
+// the first will be the target
+int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0, ret = 0;
 	double *vmag, *err, *x, *real_x;
-
-	if (!gnuplot_is_available()) {
-		char *msg = siril_log_message(_("Please consider to install it before "
-				"trying to plot a graph of a variable star.\n"));
-
-		siril_message_dialog( GTK_MESSAGE_WARNING, _("Gnuplot is unavailable"), msg);
+	gboolean use_gnuplot = gnuplot_is_available();
+	if (!use_gnuplot) {
+		siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
+	}
+	if (!seq->photometry[0]) {
+		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		return -1;
 	}
 
-	/* get number of data */
+	/* get number of valid frames for each star */
+	int ref_valid_count[MAX_SEQPSF] = { 0 };
+	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
 	for (i = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
+		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+			if (seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid)
+				ref_valid_count[ref]++;
+		}
 	}
+	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1)
 		return -1;
+
+	int nb_ref_stars = 0;
+	// select reference stars that are only available at least 3/4 of the time
+	for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+		ref_valid[ref] = ref_valid_count[ref] >= nbImages * 3 / 4;
+		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", ref, ref_valid_count[ref], nbImages, ref_valid[ref] ? "including" : "discarding");
+		if (ref_valid[ref])
+			nb_ref_stars++;
+	}
+
+	if (nb_ref_stars == 0) {
+		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		return -1;
+	}
+	if (nb_ref_stars < 1)
+		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
+	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
+
 	vmag = calloc(nbImages, sizeof(double));
 	err = calloc(nbImages, sizeof(double));
 	x = calloc(nbImages, sizeof(double));
@@ -485,7 +452,7 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 		double cmag = 0.0, cerr = 0.0;
 
 		x[j] = plot->data[j].x;			// relative date
-		real_x[j] = x[j] + (double) julian0;	// absolute date
+		real_x[j] = x[j] + (double)julian0;	// absolute date
 		vmag[j] = plot->data[j].y;		// magnitude
 		err[j] = get_error_for_time(plot, x[j]);// error of the magnitude
 
@@ -493,8 +460,8 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 		pldata *cur_plot = plot->next;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-			if (seq->photometry[r][i]->phot_is_valid) {
+		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+			if (ref_valid[ref] && seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid) {
 				/* variable data, inversion of Pogson's law
 				 * Flux = 10^(-0.4 * mag)
 				 */
@@ -505,47 +472,51 @@ static int lightCurve(pldata *plot, sequence *seq, gchar *filename) {
 			cur_plot = cur_plot->next;
 		}
 		/* Converting back to magnitude */
-		if (nb_ref > 0) {
+		if (nb_ref == nb_ref_stars) {
+			/* we consider an image to be invalid if all references are not valid,
+			 * because it changes the mean otherwise and makes nonsense data */
 			cmag = -2.5 * log10(cmag / nb_ref);
 			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
 
 			vmag[j] = vmag[j] - cmag;
 			err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
+			j++;
 		}
-		j++;
 	}
+	int nb_valid_images = j;
+
+	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
 
 	/*  data are computed, now plot the graph. */
 
-	/* First, close the graph if already exists */
-	if (gplot != NULL) {
-		gnuplot_close(gplot);
-	}
+	if (use_gnuplot) {
+		/* First, close the graph if already exists */
+		if (gplot != NULL) {
+			gnuplot_close(gplot);
+		}
 
-	if ((gplot = gnuplot_init()) == NULL) {
-		free(vmag);
-		free(err);
-		free(x);
-		free(real_x);
-		return -1;
+		if ((gplot = gnuplot_init())) {
+			/* Plotting light curve */
+			gnuplot_set_title(gplot, _("Light Curve"));
+			gnuplot_set_xlabel(gplot, xlabel);
+			gnuplot_reverse_yaxis(gplot);
+			gnuplot_setstyle(gplot, "errorbars");
+			gnuplot_plot_xyyerr(gplot, x, vmag, err, nb_valid_images, "", 0);
+		}
+		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 	}
-
-	/* Plotting light curve */
-	gnuplot_set_title(gplot, _("Light Curve"));
-	gnuplot_set_xlabel(gplot, xlabel);
-	gnuplot_reverse_yaxis(gplot);
-	gnuplot_setstyle(gplot, "errorbars");
-	gnuplot_plot_xyyerr(gplot, x, vmag, err, nbImages, "");
 
 	/* Exporting data in a dat file */
-	ret = gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nbImages, "JD_UT V-C err");
-	if (!ret) {
-		siril_log_message(_("%s has been saved.\n"), filename);
+	if ((ret = gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, "JD_UT V-C err"))) {
+		if (com.script)
+			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
+		else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 	} else {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
+		siril_log_message(_("%s has been saved.\n"), filename);
 	}
 
 	free(vmag);
+	free(err);
 	free(x);
 	free(real_x);
 	return 0;
@@ -641,32 +612,27 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 	return 0;
 }
 
-static void free_plot_data() {
+void free_plot_data() {
 	pldata *plot = plot_data;
 	while (plot) {
 		pldata *next = plot->next;
-		if (plot->julian)
-			free(plot->julian);
-		if (plot->frame)
-			free(plot->frame);
-		if (plot->data)
-			free(plot->data);
-		if (plot->err)
-			free(plot->err);
+		free(plot->julian);
+		free(plot->frame);
+		free(plot->data);
+		free(plot->err);
 		free(plot);
 		plot = next;
 	}
-	plot_data = NULL;
 	julian0 = 0;
-	if (xlabel) {
-		xlabel = NULL;
-	}
+	xlabel = NULL;
+	plot_data = NULL;
 }
+
 static void set_sensitive(GtkCellLayout *cell_layout,
-			GtkCellRenderer *cell,
-			GtkTreeModel *tree_model,
-			GtkTreeIter *iter,
-			gpointer data) {
+		GtkCellRenderer *cell,
+		GtkTreeModel *tree_model,
+		GtkTreeIter *iter,
+		gpointer data) {
 	gboolean sensitive = TRUE;
 
 	if (!use_photometry) {
@@ -675,9 +641,13 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (index) {
 			if (!is_fwhm) {
-				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY || index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
+				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY ||
+						index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
 			} else {
-				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM || index[0] == r_WFWHM || index[0] == r_ROUNDNESS || index[0] == r_BACKGROUND || index[0] == r_NBSTARS || index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
+				sensitive = (index[0] == r_FRAME || index[0] == r_FWHM ||
+						index[0] == r_WFWHM || index[0] == r_ROUNDNESS ||
+						index[0] == r_BACKGROUND || index[0] == r_NBSTARS ||
+						index[0] == r_X_POSITION || index[0] == r_Y_POSITION);
 			}
 		}
 		gtk_tree_path_free(path);
@@ -788,7 +758,7 @@ void reset_plot() {
 	}
 }
 
-static int compare(const void *a, const void *b) {
+static int comparex(const void *a, const void *b) {
 	struct kpair datax_a = * ((struct kpair *) a);
 	struct kpair datax_b = * ((struct kpair *) b);
 
@@ -826,8 +796,7 @@ void drawPlot() {
 	validate_combos();
 
 	seq = &com.seq;
-	if (plot_data)
-		free_plot_data();
+	free_plot_data();
 
 	if (seq->reference_image == -1)
 		ref_image = 0;
@@ -862,7 +831,7 @@ void drawPlot() {
 			}
 
 			build_photometry_dataset(seq, i, seq->number, ref_image, plot);
-			qsort(plot->data, plot->nb, sizeof(struct kpair), compare);
+			qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
 			update_seqlist(reglayer);
@@ -937,17 +906,8 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	save_dialog(".dat", lightCurve);
+	save_dialog(".dat", light_curve);
 	set_cursor_waiting(FALSE);
-}
-
-void free_photometry_set(sequence *seq, int set) {
-	for (int j = 0; j < seq->number; j++) {
-		if (seq->photometry[set][j])
-			free(seq->photometry[set][j]);
-	}
-	free(seq->photometry[set]);
-	seq->photometry[set] = NULL;
 }
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
@@ -965,13 +925,17 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	drawPlot();
 }
 
-void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
+void clear_all_photometry_and_plot() {
 	for (int i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 		free_photometry_set(&com.seq, i);
 	}
 	reset_plot();
 	clear_stars_list(TRUE);
 	drawPlot();
+}
+
+void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
+	clear_all_photometry_and_plot();
 }
 
 void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
@@ -1248,7 +1212,7 @@ static void update_ylabel() {
  * on_DrawingPlot_draw because it may not be called if the panel is hidden, but
  * the circles in the main image display still use these colors.
  */
-static void init_plot_colors() {
+void init_plot_colors() {
 	struct kplotcfg cfgplot;
 	set_colors(&cfgplot);
 	/* copy graph colours for star highlight */
@@ -1270,6 +1234,8 @@ void notify_new_photometry() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 }
 
+/* copied from subprojects/kplot/draw.c, in which the max is 7, not MAX_SEQPSF.
+ * We assign the same color to all others */
 static void set_colors(struct kplotcfg *cfg) {
 	int i;
 	cfg->clrsz = MAX_SEQPSF;
@@ -1277,6 +1243,11 @@ static void set_colors(struct kplotcfg *cfg) {
 	for (i = 0; i < cfg->clrsz; i++) {
 		cfg->clrs[i].type = KPLOTCTYPE_RGBA;
 		cfg->clrs[i].rgba[3] = 1.0;
+		if (i > 6) {
+			cfg->clrs[i].rgba[0] = 0x00;
+			cfg->clrs[i].rgba[1] = 0xaa;
+			cfg->clrs[i].rgba[2] = 0xbb;
+		}
 	}
 	cfg->clrs[0].rgba[0] = 0x94 / 255.0;
 	cfg->clrs[0].rgba[1] = 0x04 / 255.0;
@@ -1471,3 +1442,4 @@ void on_menu_plot_show_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		sequence_list_select_row_from_index(index - 1, TRUE);
 	}
 }
+

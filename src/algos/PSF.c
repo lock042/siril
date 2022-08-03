@@ -369,7 +369,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_erro
 		status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
 	} while (status == GSL_CONTINUE && iter < MAX_ITER_NO_ANGLE);
 	if (error) {
-		if (status != GSL_CONTINUE)
+		if (status != GSL_SUCCESS)
 			*error = PSF_ERR_DIVERGED;
 		else *error = PSF_NO_ERR;
 	}
@@ -432,7 +432,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_erro
  * NULL if the number of parameters is => to the pixel number.
  * This should not happen because this case is already treated by the
  * minimiz_no_angle function */
-static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_photometry, double gain, gboolean force_radius, gboolean verbose, psf_error *error) {
+static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose, psf_error *error) {
 	size_t i, j;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
@@ -488,6 +488,11 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_ph
 			break;
 		status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
 	} while (status == GSL_CONTINUE && iter < MAX_ITER_ANGLE);
+	if (error) {
+		if (status != GSL_SUCCESS)
+			*error = PSF_ERR_DIVERGED;
+		else *error = PSF_NO_ERR;
+	}
 
 #if HAVE_GSL_1
 	gsl_multifit_covar(s->J, 0.0, covar);
@@ -530,7 +535,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_ph
 	psf_angle->units = "px";
 	// Photometry
 	if (for_photometry)
-		psf_angle->phot = getPhotometryData(z, psf_angle, gain, force_radius, verbose, error);
+		psf_angle->phot = getPhotometryData(z, psf_angle, phot_set, verbose, error);
 	else {
 		psf_angle->phot = NULL;
 		psf_angle->phot_is_valid = FALSE;
@@ -572,7 +577,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, psf_star *psf, gboolean for_ph
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, TRUE, NULL);
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, NULL, TRUE, NULL);
 	if (result == NULL) {
 		*roundness = 0.0;
 		return 0.0;
@@ -588,12 +593,14 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
 /* Computes the FWHM on data in the selection rectangle of image fit.
  * Selection rectangle is passed as third argument.
  * Return value is a structure, type psf_star, that has to be freed after use.
+ * verbose is used in photometry only, to inform that inner is too small for example
  */
-psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
-		gboolean for_photometry, gboolean force_radius,
-		gboolean verbose, psf_error *error) {
+psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean fit_angle,
+		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		psf_error *error) {
 	int stridefrom, i, j;
 	psf_star *result;
+	if (error) *error = PSF_NO_ERR;
 	double bg = background(fit, layer, area, SINGLE_THREADED);
 	if (bg == 1.0) {
 		if (error) *error = PSF_ERR_INVALID_IMAGE;
@@ -635,8 +642,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		return NULL;
 	}
 
-	double gain = get_camera_gain(fit);
-	result = psf_global_minimisation(z, bg, TRUE, for_photometry, gain, force_radius, verbose, error);
+	result = psf_global_minimisation(z, bg, fit_angle, for_photometry, phot_set, verbose, error);
 	if (result) {
 		fwhm_to_arcsec_if_needed(fit, result);
 		result->layer = layer;
@@ -646,57 +652,67 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 }
 
 /* This function is the global minimisation. Every call to the minimisation
- * must come over here. It will check if the difference between Sx and Sy is
- * larger than or equal to 0.01 pixel.
- * In this case, Dynamic PSF fits additional angle parameter which is the
- * rotation angle of the X axis with respect to the centroid coordinates: so,
- * by design we set Sx>Sy.
+ * must come over here.
+ * If fit_angle, it will check if the difference between Sx and Sy is larger
+ * than or equal to 0.01 pixel. In this case, Dynamic PSF fits additional angle
+ * parameter which is the rotation angle of the X axis with respect to the
+ * centroid coordinates: so, by design we set Sx>Sy.
  * If the difference is smaller OR if fit_Angle is equal to FALSE (in the case
  * of the star_finder algorithm), no angle parameter is fitted.
  * The function returns NULL if values look bizarre.
+ * The photometry config is only required if for_photometry is TRUE.
+ * Error can be reported if error is provided, giving a reason for the failure
+ * of the minimisation.
  */
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, 
-		gboolean fit_angle, gboolean for_photometry, double gain,
-		gboolean force_radius, gboolean verbose, psf_error *error) {
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, gboolean fit_angle,
+		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		psf_error *error) {
 	psf_star *psf;
 	if (error) *error = PSF_NO_ERR;
+	gboolean photometry_computed = FALSE;
 
 	// To compute good starting values, we first compute with no angle
 	if ((psf = psf_minimiz_no_angle(z, bg, error))) {
-		if (fit_angle) {
-			/* This next check is to avoid possible angle divergence
+		if (fit_angle && fabs(psf->sx - psf->sy) > EPSILON) {
+			/* The  check above is to avoid possible angle divergence
 			 * when sx and sy are too close (star is quite round).
-			 * However, in this case we need to compute photometry if needed
 			 */
-			if ((fabs(psf->sx - psf->sy) < EPSILON)) {
-				// Photometry
-				if (for_photometry && (!error || *error == PSF_NO_ERR)) {
-					psf->phot = getPhotometryData(z, psf, gain, force_radius, verbose, error);
-					if (psf->phot) {
-						psf->mag = psf->phot->mag;
-						psf->s_mag = psf->phot->s_mag;
-						psf->SNR = psf->phot->SNR;
-						psf->phot_is_valid = psf->phot->valid;
-					}
-					else {
-						psf->phot_is_valid = FALSE;
-						psf->s_mag = 9.999;
-						psf->SNR = 0;
-					}
-				} else {
-					psf->phot = NULL;
-					psf->phot_is_valid = FALSE;
-				}
-			} else {
-				psf_star *tmp_psf;
-				if (!(tmp_psf = psf_minimiz_angle(z, psf, for_photometry, gain, force_radius, verbose, error))) {
-					free_psf(psf);
-					return NULL;
-				}
+			psf_star *tmp_psf;
+			if (!(tmp_psf = psf_minimiz_angle(z, psf, for_photometry, phot_set, verbose, error))) {
 				free_psf(psf);
-				psf = tmp_psf;
+				return NULL;
+			}
+			free_psf(psf);
+			psf = tmp_psf;
+			photometry_computed = TRUE;
+		}
+
+		/* We quickly test the result. If it is bad we return NULL */
+		if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
+				psf->fwhmx <= 0.0 || psf->fwhmy <= 0.0) {
+			free_psf(psf);
+			if (error && *error == PSF_NO_ERR)
+				*error = PSF_ERR_DIVERGED;
+			return NULL;
+		}
+
+		// Photometry
+		if (for_photometry && !photometry_computed &&
+				(!error || *error == PSF_NO_ERR || *error == PSF_ERR_DIVERGED)) {
+			psf->phot = getPhotometryData(z, psf, phot_set, verbose, error);
+			if (psf->phot) {
+				psf->mag = psf->phot->mag;
+				psf->s_mag = psf->phot->s_mag;
+				psf->SNR = psf->phot->SNR;
+				psf->phot_is_valid = psf->phot->valid;
+			}
+			else {
+				psf->phot_is_valid = FALSE;
+				psf->s_mag = 9.999;
+				psf->SNR = 0;
 			}
 		}
+
 		// Solve symmetry problem in order to have Sx>Sy in any case !!!
 		if (psf->sy > psf->sx) {
 			SWAPD(psf->sx, psf->sy);
@@ -706,15 +722,6 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg,
 					psf->angle -= 90.0;
 				else psf->angle += 90.0;
 			}
-		}
-
-		/* We quickly test the result. If it is bad we return NULL */
-		if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
-				psf->fwhmx <= 0.0 || psf->fwhmy <= 0.0) {
-			free_psf(psf);
-			psf = NULL;
-			if (error && *error == PSF_NO_ERR)
-				*error = PSF_ERR_DIVERGED;
 		}
 	}
 	/* When the first minimization gives NULL value, it's probably because the selected
@@ -781,8 +788,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 	g_free(coordinates);
 }
 
-
-/* If the pixel pitch and the focal length are known and filled in the 
+/* If the pixel pitch and the focal length are known and filled in the
  * setting box, we convert FWHM in pixel to arcsec by multiplying
  * the FWHM value with the sampling value */
 void fwhm_to_arcsec_if_needed(fits* fit, psf_star *result) {

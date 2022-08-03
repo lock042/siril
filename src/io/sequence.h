@@ -30,6 +30,7 @@ int	get_index_and_basename(const char *filename, char **basename, int *index, in
 void	remove_prefixed_sequence_files(sequence *seq, const char *prefix);
 void	initialize_sequence(sequence *seq, gboolean is_zeroed);
 void	free_sequence(sequence *seq, gboolean free_seq_too);
+void	free_photometry_set(sequence *seq, int set);
 void	sequence_free_preprocessing_data(sequence *seq);
 void	close_sequence(int loading_another);
 gboolean sequence_is_loaded();
@@ -41,7 +42,8 @@ typedef enum {
 } framing_mode;
 
 struct seqpsf_args {
-	gboolean for_registration;
+	gboolean for_photometry;
+	super_bool allow_use_as_regdata;
 	framing_mode framing;
 
 	/* The seqpsf result for each image, list of seqpsf_data */
@@ -66,7 +68,7 @@ gboolean sequence_is_rgb(sequence *seq);
 gboolean	enforce_area_in_image(rectangle *area, sequence *seq, int index);
 
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
-		framing_mode framing, gboolean run_in_thread);
+		framing_mode framing, gboolean run_in_thread, gboolean no_GUI);
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads);
 void free_reference_image();
 
@@ -76,5 +78,9 @@ void	update_export_crop_label();
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB);
 
 void fix_selnum(sequence *seq, gboolean warn);
+
+gboolean sequence_has_wcs(sequence *seq, int *index);
+
+gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
 
 #endif

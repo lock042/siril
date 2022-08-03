@@ -1296,6 +1296,16 @@ void remove_spaces_from_str(gchar *s) {
 	} while((*s++ = *d++));
 }
 
+/**
+ * Removing trailing carriage return and newline characters in-place
+ * @param the string that will be modified, allocation unchanged
+ */
+void remove_trailing_eol(char *str) {
+	int i = strlen(str) - 1;
+	while (i >= 0 && (str[i] == '\r' || str[i] == '\n'))
+		str[i--] = '\0';
+}
+
 gboolean string_is_a_number(const char *str) {
 	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
 		return FALSE;
