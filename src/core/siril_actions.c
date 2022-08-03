@@ -442,7 +442,7 @@ void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	compute_ccd_edges();
+	compute_aberration_inspector();
 }
 
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
