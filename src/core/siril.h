@@ -75,7 +75,9 @@
 typedef unsigned char BYTE;	// default type for image display data
 typedef unsigned short WORD;	// default type for internal image data
 
-#define MAX_SEQPSF 7	// max number of stars for which seqpsf can be run
+#define MAX_REF_STARS 20	// uchar
+#define MAX_SEQPSF MAX_REF_STARS// max number of stars for which seqpsf can be run
+				// if we use seqpsf for the light curve, we must allow as many as MAX_REF_STARS
 
 #define CMD_HISTORY_SIZE 50	// size of the command line history
 
@@ -163,25 +165,21 @@ typedef enum {
 
 #define INDEX_MAX 65535		// maximum index for images
 
-typedef struct imdata imgdata;
-typedef struct registration_data regdata;
 typedef struct sequ sequence;
-typedef struct single_image single;
-typedef struct wcs_struct wcs_info;
-typedef struct dft_struct dft_info;
 typedef struct ffit fits;
 typedef struct guiinf guiinfo;
 typedef struct cominf cominfo;
-typedef struct image_stats imstats;
-typedef struct point_struct point;
-typedef struct pointf_struct pointf;
-typedef struct pointi_struct pointi;
 typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
 typedef struct tilt_struct sensor_tilt;
-typedef struct regframe_struct regframe;
 
 /* global structures */
+
+typedef enum {
+	BOOL_NOT_SET = -1,
+	BOOL_FALSE = 0,
+	BOOL_TRUE = 1,
+} super_bool;
 
 /* same order as in the combo box 'comboExport' */
 typedef enum {
@@ -232,7 +230,8 @@ typedef enum {
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
-typedef enum { SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
+typedef enum {
+	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
 #ifdef HAVE_FFMS2
 	SEQ_AVI,
 #endif
@@ -253,14 +252,24 @@ typedef enum {
 } compression_mode;
 
 /* image data, exists once for each image */
-struct imdata {
+typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
 	int rx, ry;
-};
+} imgdata;
 
-typedef struct Homo {
+/* this structure is used to characterize the statistics of the image */
+typedef struct {
+	long total,	// number of pixels
+	     ngoodpix;	// number of non-zero pixels
+	double mean, median, sigma, avgDev, mad, sqrtbwmv,
+	       location, scale, min, max, normValue, bgnoise;
+
+	atomic_int* _nb_refs;	// reference counting for data management
+} imstats;
+
+typedef struct {
 	double h00, h01, h02;
 	double h10, h11, h12;
 	double h20, h21, h22;
@@ -269,7 +278,7 @@ typedef struct Homo {
 } Homography;
 
 /* registration data, exists once for each image and each layer */
-struct registration_data {
+typedef struct {
 	psf_star *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
 	float weighted_fwhm;	// used to exclude spurious images.
@@ -279,7 +288,7 @@ struct registration_data {
 	int number_of_stars;
 
 	Homography H;
-};
+} regdata;
 
 /* see explanation about sequence and single image management in io/sequence.c */
 
@@ -332,22 +341,22 @@ struct sequ {
 	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
 	gboolean reg_invalidated; // a flag to detect if regframe can be plotted
 
-	psf_star **photometry[MAX_SEQPSF];// psf for multiple stars for all images
+	psf_star **photometry[MAX_SEQPSF+1];// psf for multiple stars for all images
 	int reference_star;	// reference star for apparent magnitude (index of photometry)
 	double reference_mag;	// reference magnitude for the reference star
 	double photometry_colors[MAX_SEQPSF][3]; // colors for each photometry curve
 };
 
 /* this struct is used to manage data associated with a single image loaded, outside a sequence */
-struct single_image {
+typedef struct {
 	char *filename;		// the name of the file
 	gboolean fileexist;// flag of existing file
 	char *comment;		// comment on how the file got there (user load, result...)
 	int nb_layers;		// number of layers embedded in each image file
 	fits *fit;		// the fits is still gfit, but a reference doesn't hurt
-};
+} single;
 
-struct wcs_struct {
+typedef struct {
 	double equinox;
 	double crpix[2];
 	double crval[2];
@@ -359,13 +368,13 @@ struct wcs_struct {
 	double dec;
 	gboolean pltsolvd;
 	char pltsolvd_comment[FLEN_COMMENT];
-};
+} wcs_info;
 
-struct dft_struct {
+typedef struct {
 	double norm[3];			// Normalization value
 	char type[FLEN_VALUE];		// spectrum, phase
 	char ord[FLEN_VALUE];		// regular, centered
-};
+} dft_info;
 
 typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
@@ -442,17 +451,17 @@ struct ffit {
 	GSList *history;	// Former HISTORY comments of FITS file
 };
 
-struct point_struct {
+typedef struct {
 	double x, y;
-};
+} point;
 
-struct pointf_struct {
+typedef struct {
 	float x, y;
-};
+} pointf;
 
-struct pointi_struct {
+typedef struct {
 	int x, y;
-};
+} pointi;
 
 struct historic_struct {
 	char *filename;
@@ -591,16 +600,6 @@ void* childhandle;			// For Windows, handle of a child process
 #else
 pid_t childpid;				// For other OSes, PID of a child process
 #endif
-};
-
-/* this structure is used to characterize the statistics of the image */
-struct image_stats {
-	long total,	// number of pixels
-	     ngoodpix;	// number of non-zero pixels
-	double mean, median, sigma, avgDev, mad, sqrtbwmv,
-	       location, scale, min, max, normValue, bgnoise;
-
-	atomic_int* _nb_refs;	// reference counting for data management
 };
 
 #ifndef MAIN

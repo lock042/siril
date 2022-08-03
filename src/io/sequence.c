@@ -68,6 +68,7 @@
 #include "algos/quality.h"
 #include "algos/statistics.h"
 #include "algos/geometry.h"
+#include "algos/siril_wcs.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 #include "opencv/opencv.h"
@@ -1308,6 +1309,15 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 	if (free_seq_too)	free(seq);
 }
 
+void free_photometry_set(sequence *seq, int set) {
+	for (int j = 0; j < seq->number; j++) {
+		if (seq->photometry[set][j])
+			free_psf(seq->photometry[set][j]);
+	}
+	free(seq->photometry[set]);
+	seq->photometry[set] = NULL;
+}
+
 gboolean sequence_is_loaded() {
 	return (com.seq.seqname != NULL && com.seq.imgparam != NULL);
 }
@@ -1548,7 +1558,7 @@ gboolean enforce_area_in_image(rectangle *area, sequence *seq, int index) {
  */
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
-	struct seqpsf_data *data = malloc(sizeof(struct seqpsf_data));
+	struct seqpsf_data *data = calloc(1, sizeof(struct seqpsf_data));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		return -1;
@@ -1557,12 +1567,18 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, !spsfargs->for_registration, com.pref.phot_set.force_radius, TRUE, &error);
+	struct phot_config *ps = NULL;
+	if (spsfargs->for_photometry)
+		ps = phot_set_adjusted_for_image(fit);
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry,
+			spsfargs->for_photometry, ps, TRUE, &error);
+	free(ps);
 	if (data->psf) {
 		/* for photometry ? */
-		if (!spsfargs->for_registration) {
-			if (data->psf->s_mag > 9.0) {
-				siril_log_color_message(_("Photometry analysis failed for image %d\n"), "salmon", index);
+		if (spsfargs->for_photometry) {
+			if (data->psf->s_mag > 9.0 || !data->psf->phot_is_valid) {
+				siril_log_color_message(_("Photometry analysis failed for image %d (%s)\n"),
+						"salmon", index, psf_error_to_string(error));
 			}
 		}
 
@@ -1578,20 +1594,19 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 			//fprintf(stdout, "moving area to %d, %d\n", args->area.x, args->area.y);
 		}
 
-		if (!args->seq->imgparam[index].date_obs && fit->date_obs) {
+		if (!args->seq->imgparam[index].date_obs && fit->date_obs)
 			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
-		}
 		data->exposure = fit->exposure;
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
 			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
-						" error %d (use a larger area?)\n"),
-					"red", index, area->x, area->y, error);
+						" error %s (use a larger area?)\n"),
+					"red", index, area->x, area->y, psf_error_to_string(error));
 		} else {
 			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
-					" error %d (use 'follow star' option?)\n"),
-				"red", index, area->x, area->y, error);
+					" error %s (use 'follow star' option?)\n"),
+				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
 
@@ -1611,7 +1626,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	int photometry_index = 0;
 	gboolean displayed_warning = FALSE;
 
-	if (args->retval || spsfargs->for_registration)
+	if (args->retval || !spsfargs->for_photometry)
 		return 0;
 
 	int i;
@@ -1620,15 +1635,15 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		free_photometry_set(seq, 0);
 		i = 0;
 	}
+	else seq->photometry[i+1] = NULL;
 	seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));
 	photometry_index = i;
 
-	GSList *iterator;
-	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
+	for (GSList *iterator = spsfargs->list; iterator; iterator = iterator->next) {
 		struct seqpsf_data *data = iterator->data;
 
-		/* check exposure consistency (only obtained when !for_registration) */
-		if (seq->exposure > 0.0 && seq->exposure != data->exposure &&
+		/* check exposure consistency */
+		if (seq->exposure > 0.0 && data->psf && seq->exposure != data->exposure &&
 				!displayed_warning) {
 			siril_log_color_message(_("Star analysis does not give consistent results when exposure changes across the sequence.\n"), "red");
 			displayed_warning = TRUE;
@@ -1638,7 +1653,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		// for photometry use: store data in seq->photometry
 		seq->photometry[photometry_index][data->image_index] = data->psf;
 	}
-	if (com.headless) {
+	if (com.headless && !args->already_in_a_thread) {
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
 		for (int j = 0; j < seq->number; j++) {
@@ -1655,7 +1670,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 
 		/* the idle below won't be called, we free data here */
 		if (spsfargs->list)
-			g_slist_free(spsfargs->list);
+			g_slist_free_full(spsfargs->list, free);
 		free(spsfargs);
 		free_sequence(seq, TRUE);
 	}
@@ -1667,39 +1682,40 @@ gboolean end_seqpsf(gpointer p) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	sequence *seq = args->seq;
 	int layer = args->layer_for_partial;
-	gboolean write_to_regdata = FALSE;
-	gboolean duplicate_for_regdata = FALSE, dont_stop_thread;
-	gboolean saveregdata = TRUE;
+	gboolean write_to_regdata, duplicate_for_regdata;
 
 	if (args->retval)
 		goto proper_ending;
 
-	if (spsfargs->for_registration || !seq->regparam[layer]) {
-
-		gboolean has_any_regdata = FALSE;
-		for (int i = 0; i < seq->nb_layers; i++)
-			has_any_regdata = has_any_regdata || seq->regparam[i];
-
-		if (!spsfargs->for_registration && !seq->regparam[layer]) {
-			if (has_any_regdata) {
-				// TODO - shouldn't we handle the headless case here?
-				saveregdata = siril_confirm_dialog(_("No registration data stored for this layer"),
+	if (!spsfargs->for_photometry) {
+		write_to_regdata = TRUE;
+		duplicate_for_regdata = FALSE;
+	} else {
+		// for photometry data was saved in seq.photometry before, so we duplicate
+		duplicate_for_regdata = TRUE;
+		if (spsfargs->allow_use_as_regdata == BOOL_FALSE)
+			write_to_regdata = FALSE;
+		else if (spsfargs->allow_use_as_regdata == BOOL_TRUE)
+			write_to_regdata = TRUE;
+		else {
+			gboolean has_any_regdata = FALSE;
+			for (int i = 0; i < seq->nb_layers; i++)
+				has_any_regdata = has_any_regdata || seq->regparam[i];
+			if (!seq->regparam[layer] && has_any_regdata) {
+				write_to_regdata = siril_confirm_dialog(_("No registration data stored for this layer"),
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
-				duplicate_for_regdata = saveregdata;
-			} else {
-				duplicate_for_regdata = TRUE;
 			}
+			else write_to_regdata = !seq->regparam[layer];
 		}
-		if (saveregdata) check_or_allocate_regparam(seq, layer);
-		write_to_regdata = saveregdata;
-		seq->needs_saving = saveregdata;
 	}
 
-	GSList *iterator;
-	for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
-		struct seqpsf_data *data = iterator->data;
-		if (write_to_regdata) {
+	if (write_to_regdata) {
+		check_or_allocate_regparam(seq, layer);
+		seq->needs_saving = TRUE;
+		GSList *iterator;
+		for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
+			struct seqpsf_data *data = iterator->data;
 			seq->regparam[layer][data->image_index].fwhm_data =
 				duplicate_for_regdata ? duplicate_psf(data->psf) : data->psf;
 			if (data->psf) {
@@ -1715,34 +1731,37 @@ gboolean end_seqpsf(gpointer p) {
 		}
 	}
 
-	if (com.seq.needs_saving)
-		writeseqfile(&com.seq);
+	if (seq->needs_saving)
+		writeseqfile(seq);
 
-	set_fwhm_star_as_star_list_with_layer(seq, layer);
+	if (seq == &com.seq) {
+		set_fwhm_star_as_star_list_with_layer(seq, layer);
 
-	if (!args->already_in_a_thread) {
-		/* do here all GUI-related items, because it runs in the main thread.
-		 * Most of these things are already done in end_register_idle
-		 * in case seqpsf is called for registration. */
-		// update the list in the GUI
-		if (seq->type != SEQ_INTERNAL) {
-			update_seqlist(layer);
-			fill_sequence_list(seq, layer, FALSE);
+		if (!args->already_in_a_thread) {
+			/* do here all GUI-related items, because it runs in the main thread.
+			 * Most of these things are already done in end_register_idle
+			 * in case seqpsf is called for registration. */
+			// update the list in the GUI
+			if (seq->type != SEQ_INTERNAL) {
+				update_seqlist(layer);
+				fill_sequence_list(seq, layer, FALSE);
+			}
+			set_layers_for_registration();	// update display of available reg data
+			drawPlot();
+			notify_new_photometry();	// switch to and update plot tab
+			redraw(REDRAW_OVERLAY);
 		}
-		set_layers_for_registration();	// update display of available reg data
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
 	}
 
 proper_ending:
-	dont_stop_thread = args->already_in_a_thread;
 	if (spsfargs->list)
-		g_slist_free(spsfargs->list);
+		g_slist_free_full(spsfargs->list, free);
 	free(spsfargs);
-	adjust_sellabel();
 
-	if (dont_stop_thread) {
+	if (seq == &com.seq && !args->already_in_a_thread && !com.script)
+		adjust_sellabel();
+
+	if (args->already_in_a_thread) {
 		// we must not call stop_processing_thread() here
 		return FALSE;
 	} else {
@@ -1753,9 +1772,10 @@ proper_ending:
 
 /* process PSF for the given sequence, on the given layer, the area of the
  * image selection (com.selection), as a threaded operation or not.
+ * expects seq->current to be valid
  */
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
-		framing_mode framing, gboolean run_in_thread) {
+		framing_mode framing, gboolean run_in_thread, gboolean no_GUI) {
 
 	if (framing == REGISTERED_FRAME && !layer_has_usable_registration(seq, layer))
 		framing = ORIGINAL_FRAME;
@@ -1768,7 +1788,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	struct generic_seq_args *args = create_default_seqargs(seq);
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 
-	spsfargs->for_registration = for_registration;
+	spsfargs->for_photometry = !for_registration;
+	spsfargs->allow_use_as_regdata = no_GUI ? BOOL_FALSE : BOOL_NOT_SET;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
 
@@ -1894,3 +1915,55 @@ void fix_selnum(sequence *seq, gboolean warn) {
 	}
 }
 
+gboolean sequence_has_wcs(sequence *seq, int *index) {
+	int refimage = sequence_find_refimage(seq);
+	int indices[3];
+	indices[0] = refimage;
+	indices[1] = 0;
+	int first_included_image = -1;
+	for (int i = 0; i < seq->number; i++)
+		if (seq->imgparam[i].incl) {
+			first_included_image = i;
+			break;
+		}
+	if (first_included_image == 0 || first_included_image == refimage)
+		indices[2] = -1;
+	else indices[2] = first_included_image;
+
+	for (int i = 0; i < 3; i++) {
+		fits fit = { 0 };
+		if (indices[i] >= 0 && seq->imgparam[indices[i]].incl &&
+				!seq_read_frame_metadata(seq, indices[i], &fit)) {
+			if (has_wcs(&fit)) {
+				if (index)
+					*index = indices[i];
+				clearfits(&fit);
+				return TRUE;
+			}
+			clearfits(&fit);
+		}
+	}
+	return FALSE;
+}
+
+gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
+	if (!seq->regparam[reglayer]) {
+		siril_debug_print("Sequence drift could not be checked as sequence has no regdata on layer %d\n", reglayer);
+		return FALSE;
+	}
+	double orig_x = (double)(seq->rx / 2);
+	double orig_y = (double)(seq->ry / 2);
+	for (int i = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl)
+			continue;
+		double x = orig_x, y = orig_y;
+		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H);
+		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
+		if (dist > threshold) {
+			siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), "salmon", (int)dist, i);
+			return TRUE;
+		}
+	}
+	siril_debug_print("no heavy drift detected\n");
+	return FALSE;
+}

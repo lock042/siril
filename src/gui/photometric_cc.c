@@ -36,6 +36,7 @@
 #include "core/OS_utils.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
+#include "algos/statistics_float.h"
 #include "algos/photometry.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
@@ -171,81 +172,6 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
-static float Qn0(const float sorted_data[], const size_t stride, const size_t n) {
-	const size_t wsize = n * (n - 1) / 2;
-	const size_t n_2 = n / 2;
-	const size_t k = ((n_2 + 1) * n_2) / 2;
-	size_t idx = 0;
-
-	if (n < 2)
-		return (0.0);
-
-	float *work = malloc(wsize * sizeof(float));
-	if (!work) {
-		PRINT_ALLOC_ERR;
-		return -1.0f;
-	}
-
-	for (size_t i = 0; i < n; ++i) {
-		for (size_t j = i + 1; j < n; ++j)
-			work[idx++] = fabsf(sorted_data[i] - sorted_data[j]);
-	}
-
-	quicksort_f(work, idx);
-	float Qn = work[k - 1];
-
-	free(work);
-	return Qn;
-}
-
-static float siril_stats_robust_mean(const float sorted_data[],
-		const size_t stride, const size_t size, double *deviation) {
-	float mx = (float) gsl_stats_float_median_from_sorted_data(sorted_data, stride, size);
-	float qn0 = Qn0(sorted_data, 1, size);
-	if (qn0 < 0)
-		return -1.0f;
-	float sx = 2.2219f * qn0;
-	float *x, mean;
-	int i, j;
-
-	x = malloc(size * sizeof(float));
-	if (!x) {
-		PRINT_ALLOC_ERR;
-		return -1.0f;
-	}
-
-	for (i = 0, j = 0; i < size; ++i) {
-		if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
-			x[j++] = sorted_data[i];
-		}
-	}
-	siril_debug_print("keeping %d samples on %zu for the robust mean (mx: %f, sx: %f)\n", j, size, mx, sx);
-	/* not enough stars, try something anyway */
-	if (j < 5) {
-		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);
-	} else {
-		mean = (float) gsl_stats_float_mean(x, stride, j);
-	}
-	free(x);
-
-	/* compute the deviation of the mean against the values */
-	if (deviation) {
-		double dev = 0.0;
-		int inliers = 0;
-		for (i = 0, j = 0; i < size; ++i) {
-			if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
-				dev += fabsf(sorted_data[i] - mean);
-				inliers++;
-			}
-		}
-		if (inliers)
-			*deviation = dev / inliers;
-		else *deviation = 1.0;
-	}
-
-	return mean;
-}
-
 static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float kw[], int n_channel) {
 	float *data[3];
 	data[RED] = malloc(sizeof(float) * nb_stars);
@@ -267,6 +193,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	siril_log_message(str);
 	g_free(str);
 
+	struct phot_config *ps = phot_set_adjusted_for_image(fit);
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
@@ -292,7 +219,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		gboolean no_phot = FALSE;
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, com.pref.phot_set.force_radius, FALSE, &error);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, FALSE, TRUE, ps, FALSE, &error);
 			g_atomic_int_inc(errors+error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
@@ -321,8 +248,14 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		g_atomic_int_inc(&ngood);
 	}
-	if (!get_thread_run())
+
+	free(ps);
+	if (!get_thread_run()) {
+		free(data[RED]);
+		free(data[GREEN]);
+		free(data[BLUE]);
 		return 1;
+	}
 	int excl = nb_stars - ngood;
 	str = ngettext("%d star excluded from the calculation\n", "%d stars excluded from the calculation\n", excl);
 	str = g_strdup_printf(str, excl);
@@ -699,8 +632,7 @@ int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_star
 			}
 
 			double x, y;
-			wcs2pix(fit, ra, dec, &x, &y);
-			if (x >= 0.0 && y >= 0.0 && x < fit->rx && y < fit->ry) {
+			if (!wcs2pix(fit, ra, dec, &x, &y)) {
 				stars[nb_stars].x = x;
 				stars[nb_stars].y = fit->ry - y - 1;
 				stars[nb_stars].mag = Vmag;
