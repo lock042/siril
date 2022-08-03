@@ -44,6 +44,7 @@ static const SirilDialogEntry entries[] =
 	{"crop_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"deconvolution_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_deconv_cancel},
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"edge_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"extract_channel_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
@@ -63,6 +64,7 @@ static const SirilDialogEntry entries[] =
 	{"settings_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"seqlist_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"split_cfa_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"starnet_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
