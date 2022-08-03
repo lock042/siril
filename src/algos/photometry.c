@@ -514,7 +514,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	 * We just need this and Ra,Dec. xPos and yPos are in pixels, but we'll use wcs2pix
 	 * to get them with our plate solve and our star fitting.
 	 */
-	FILE *fd = fopen(file_path, "r");
+	FILE *fd = g_fopen(file_path, "r");
 	if (!fd) {
 		siril_log_message(_("Could not open file %s: %s\n"), file_path, strerror(errno));
 		return 1;
