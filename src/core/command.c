@@ -2631,6 +2631,7 @@ int process_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->forcepx = FALSE;
 	args->threading = MULTI_THREADED;
+	args->update_GUI = TRUE;
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
 
@@ -2640,49 +2641,43 @@ int process_findstar(int nb) {
 		return argparsing;
 	}
 
-	start_in_new_thread(findstar, args);
+	start_in_new_thread(findstar_worker, args);
 
 	return CMD_OK;
 }
 
-// int process_seq_findstar(int nb) {
-// 	sequence *seq = load_sequence(word[1], NULL);
-// 	if (!seq)
-// 		return CMD_SEQUENCE_NOT_FOUND;
+int process_seq_findstar(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
 
-// 	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
-// 	int layer;
-// 	if (!com.script) {
-// 		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
-// 	} else {
-// 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
-// 	}
-// 	// initializing findstar args
-// 	args->layer = layer;
-// 	args->im.fit = NULL;
-// 	args->im.from_seq = &com.seq;
-// 	args->im.index_in_seq = -1;
-// 	args->starfile = NULL;
-// 	args->max_stars_fitted = 0;
-// 	args->forcepx = FALSE;
-// 	args->threading = SINGLE_THREADED;
+	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	int layer;
+	if (!com.script) {
+		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+	} else {
+		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
+	}
+	// initializing findstar args
+	args->layer = layer;
+	args->im.fit = NULL;
+	args->im.from_seq = seq;
+	args->im.index_in_seq = -1;
+	args->max_stars_fitted = 0;
+	args->forcepx = FALSE;
+	args->update_GUI = FALSE;
 
-// 	cmd_errors argparsing = parse_findstar(args, 2, nb);
+	cmd_errors argparsing = parse_findstar(args, 2, nb);
 
-// 	if (argparsing) {
-// 		if (args->starfile) g_free(args->starfile);
-// 		free(args);
-// 		return argparsing;
-// 	}
+	if (argparsing) {
+		if (args->starfile) g_free(args->starfile);
+		free(args);
+		return argparsing;
+	}
 
-// 	struct generic_seq_args *seq_findstar_args = malloc(sizeof(struct generic_seq_args));
-// 	seq_findstar_args->seq = seq;
-// 	seq_findstar_args->image_hook = findstar;
-// 	seq_findstar_args->user = args;
-// 	start_in_new_thread(generic_sequence_findstar_worker, seq_findstar_args);
-// 	return 0;
-// }
-
+	apply_findstar_to_sequence(args);
+	return 0;
+}
 
 int process_findhot(int nb){
 	if (gfit.naxes[2] != 1) {

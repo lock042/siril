@@ -18,6 +18,7 @@ struct starfinder_data {
 	gchar *starfile;
 	gboolean forcepx;
 	threading_type threading;
+	gboolean update_GUI;	// FALSE for sequence operation
 };
 
 struct star_candidate_struct {
@@ -54,6 +55,7 @@ void free_fitted_stars(psf_star **stars);
 int count_stars(psf_star **stars);
 void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B);
 float filtered_FWHM_average(psf_star **stars, int nb);
-gpointer findstar(gpointer p);
+void apply_findstar_to_sequence(struct starfinder_data *findstar_args);
+gpointer findstar_worker(gpointer p);
 
 #endif

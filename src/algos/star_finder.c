@@ -800,7 +800,39 @@ static gboolean end_findstar(gpointer p) {
 	return FALSE;
 }
 
-gpointer findstar(gpointer p) {
+int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
+
+	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
+	curr_findstar_args->im.index_in_seq = i;
+	curr_findstar_args->im.fit = fit;
+	curr_findstar_args->starfile = g_strdup_printf("%s_%d.lst", args->seq->seqname, i);
+	curr_findstar_args->threading = threads;
+
+	int retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
+
+	g_free(curr_findstar_args->starfile);
+	return retval;
+}
+
+void apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
+	struct generic_seq_args *args = create_default_seqargs(findstar_args->im.from_seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = args->seq->selnum;
+	args->image_hook = findstar_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("FindStar");
+	args->has_output = FALSE;
+	args->load_new_sequence = FALSE;
+	args->user = findstar_args;
+	//TODO: missing end_hook, is it needed? end_generic() will be called
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
+// for a single image
+gpointer findstar_worker(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 	int retval = 0;
 	int nbstars = 0;
@@ -809,25 +841,24 @@ gpointer findstar(gpointer p) {
 		selection = &com.selection;
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
-	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars, selection, TRUE, limit_stars, args->max_stars_fitted, threads);
-	if (stars) {
+	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
+			selection, TRUE, limit_stars, args->max_stars_fitted, threads);
+
+	if (args->update_GUI && stars) {
 		clear_stars_list(FALSE);
 		com.stars = stars;
 	}
 	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
 			selection ? _("selection") : _("image"), args->layer);
-	if (args->starfile && save_list(args->starfile, args->forcepx)) {
+	if (args->starfile && save_list(args->starfile, args->forcepx, stars)) {
 		retval = 1;
 	}
 
-	siril_add_idle(end_findstar, args);
+	if (args->update_GUI)
+		siril_add_idle(end_findstar, args);
 
 	return GINT_TO_POINTER(retval);
 }
-
-// int findstar_hook(struct starfinder_data *args) {
-
-// }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
 	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
@@ -851,6 +882,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->starfile = NULL;
 	args->forcepx = FALSE;
 	args->threading = MULTI_THREADED;
+	args->update_GUI = TRUE;
 
-	start_in_new_thread(findstar, args);
+	start_in_new_thread(findstar_worker, args);
 }

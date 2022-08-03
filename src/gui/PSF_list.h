@@ -7,7 +7,7 @@
 void refresh_star_list(psf_star **);
 void clear_stars_list(gboolean refresh_GUI);
 void pick_a_star();
-int save_list(gchar *filename, gboolean forcepx);
+int save_list(gchar *filename, gboolean forcepx, psf_star **stars);
 
 void popup_psf_result(psf_star *result, rectangle *area);
 
