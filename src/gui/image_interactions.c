@@ -443,7 +443,10 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
 				if (area.x - area.w > 0 && area.x + area.w < gfit.rx
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
-					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, com.pref.phot_set.force_radius, TRUE, NULL);
+
+					struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, TRUE, ps, TRUE, NULL);
+					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
 						if (gfit.top_down)

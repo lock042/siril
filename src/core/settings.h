@@ -90,7 +90,9 @@ struct phot_config {
 	double outer;		// Outer radius of the annulus used to measure local background.
 	double aperture;	// flux aperture
 	gboolean force_radius;	// force the aperture radius value
-	int minval, maxval;	// consider pixels outside this range as invalid for photometry
+	double minval, maxval;	// consider pixels outside this range as invalid for photometry
+				// minval and maxval are stored as int, but adapted to image type
+				// when used, so normalized to 1 for float, hence the double type
 };
 
 struct analysis_config {

@@ -546,7 +546,9 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	qsort(candidates, nb_candidates, sizeof(starc), star_cmp_by_mag_est);
 
 	int round = 0;
-	siril_debug_print("limiting stars (%d) to %d for %d candidates\n", limit_nbstars, maxstars, nb_candidates);
+	if (limit_nbstars)
+		siril_debug_print("limiting stars to %d for %d candidates\n", maxstars, nb_candidates);
+	else siril_debug_print("not limiting stars for %d candidates\n", nb_candidates);
 	int number_per_round = limit_nbstars ? maxstars + maxstars / 4 : nb_candidates;
 	int lower_limit_for_this_round, upper_limit;
 	do {
@@ -582,7 +584,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				}
 			}
 
-			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, 1.0, FALSE, FALSE, NULL);
+			psf_star *cur_star = psf_global_minimisation(z, candidates[candidate].B, FALSE, FALSE, NULL, FALSE, NULL);
 			gsl_matrix_free(z);
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
@@ -649,7 +651,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	gboolean already_found = FALSE;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE, FALSE);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, NULL, TRUE, NULL);
 	if (!result)
 		return NULL;
 	/* We do not check if it's matching with the "reject_star()" criteria.

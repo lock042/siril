@@ -263,8 +263,8 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_rgradient_selection_clicked(GtkButton *button, gpointer user_data) {
 	if (com.selection.h && com.selection.w) {
-		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, FALSE, TRUE, NULL);
-		if (result != NULL) {
+		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, FALSE, NULL, TRUE, NULL);
+		if (result) {
 			gchar *x0 = g_strdup_printf("%.3lf", result->x0 + com.selection.x);
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_xc")), x0);
 			gchar *y0 = g_strdup_printf("%.3lf", com.selection.y + com.selection.h - result->y0);

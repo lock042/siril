@@ -855,6 +855,7 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_move_to(cr, (len / 2) * 2.0, -0.1 * len);
 	cairo_rotate(cr, -angleE);
 	cairo_show_text(cr, "E");
+	cairo_stroke(cr);
 	cairo_restore(cr); // restore the original transform
 }
 
@@ -872,12 +873,11 @@ static label_point *new_label_point(double height, const double *pix1, const dou
 	return pt;
 }
 
-static int has_pole(fits *fit, double width, double height) {
-	double x, y;
-	wcs2pix(fit, 0., 90., &x, &y);
-	if ((x >= 0.) && (x <= width) && (y >= 0.) && (y <= height)) return 1;
-	wcs2pix(fit, 0., -90., &x, &y);
-	if ((x >= 0.) && (x <= width) && (y >= 0.) && (y <= height)) return -1;
+static int has_pole(fits *fit) {
+	if (!wcs2pix(fit, 0., 90., NULL, NULL))
+		return 1;
+	if (!wcs2pix(fit, 0., -90., NULL, NULL))
+		return -1;
 	return 0;
 }
 
@@ -946,7 +946,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
 	const double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
 	int pixtype[4] = { 1, 0, 1, 0 }; // y, x, y, x
-	int polesign = has_pole(fit, width, height);
+	int polesign = has_pole(fit);
 
 	/* calculate DEC step size */
 	if (range > 16.0) {
@@ -1003,9 +1003,9 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_line_to(cr, x2, y2);
 				cairo_stroke(cr);
 			}
-				// check crossing
+			// check crossing
 			if (!(((xa >= 0) && (ya >= 0) && (xa < width) && (ya < height))
-				&& ((xb >= 0) && (yb >= 0) && (xb < width) && (yb < height)))) {
+						&& ((xb >= 0) && (yb >= 0) && (xb < width) && (yb < height)))) {
 				for (int k = 0; k < 4; k ++) {
 					if (get_line_intersection(xa, ya, xb, yb, pixbox[k][0], pixbox[k][1], pixbox[k+1][0], pixbox[k+1][1], NULL, NULL)) {
 						world[0] = di;
@@ -1124,6 +1124,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_move_to(cr, dx, dy);
 				cairo_text_extents(cr, tag, &te2);
 				cairo_show_text(cr, tag);
+				cairo_stroke(cr);
 				cairo_restore(cr); // restore the orginal transform
 			} else {
 				g_free(tag);
@@ -1176,10 +1177,8 @@ static void draw_annotates(const draw_data_t* dd) {
 
 		radius = radius / resolution / 60.0;
 
-		wcs2pix(&gfit, world_x, world_y, &x, &y);
-		y = height - y;
-
-		if (x > 0 && x < width && y > 0 && y < height) {
+		if (!wcs2pix(&gfit, world_x, world_y, &x, &y)) {
+			y = height - y - 1;
 			point offset = {10, -10};
 			if (radius < 0) {
 				// objects we don't have an accurate location (LdN, Sh2)
@@ -1278,7 +1277,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	int activelayer = gtk_combo_box_get_active(seqcombo);
 	if (!layer_has_registration(&com.seq, activelayer)) return;
 	if (com.seq.reg_invalidated) return;
-	int min, max; 
+	int min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
 	if (max <= -1) return;
 
@@ -1428,7 +1427,7 @@ void redraw(remap_type doremap) {
 			if (gfit.naxis == 3)
 				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
-			redraw_ccd_edges();
+			redraw_aberration_inspector();
 			break;
 		default:
 			siril_debug_print("UNKNOWN REMAP\n\n");

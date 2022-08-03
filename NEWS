@@ -16,6 +16,7 @@ v1.2.0 mmm dd, 2022
 * Added a new threading mechanism for per-image improved performance
 * Added star selection from coordinates to seqpsf and star tracking with homography
 * Added headless light curve creation from a list of star equatorial coordinates
+* Added star list importing from the NINA exoplanet plugin for light curve creation
 * Added relaxed mode for star detection for particularly bad images
 * Added crop to selection to the rotation geometric transform
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
@@ -33,11 +34,13 @@ v1.2.0 mmm dd, 2022
 * Added shortcuts for astrometry (regular and photometric correction)
 * Added option "full" to export all possible stats in seqstat command
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
+* Added more reporting on online object search, avoiding duplicates in catalogues
 * Replaced generalized hyperbolic transform stretch method by more general algorithms
 * Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
+* Fixed photometry analysis of stars with negative pixels around them
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 
 v1.0.4 XX XX, 2022

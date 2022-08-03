@@ -1633,7 +1633,9 @@ int process_set_mag(int nb) {
 			return CMD_SELECTION_ERROR;
 		}
 		psf_error error;
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, &error);
+		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, FALSE, TRUE, ps, TRUE, &error);
+		free(ps);
 		if (result) {
 			found = TRUE;
 			mag = result->mag;
@@ -1655,7 +1657,7 @@ int process_set_mag(int nb) {
 int process_set_photometry(int nb) {
 	if (nb > 0) {
 		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0;
-		int min = -1, max = -1, force = -1;
+		int min = -65536, max = -1, force = -1;
 		gboolean error = FALSE;
 		for (int i = 1; i < nb; i++) {
 			char *arg = word[i], *end;
@@ -1687,7 +1689,7 @@ int process_set_photometry(int nb) {
 			}
 			else if (g_str_has_prefix(arg, "-min_val=")) {
 				arg += 9;
-				min = g_ascii_strtoull(arg, &end, 10);
+				min = g_ascii_strtoll(arg, &end, 10);
 				if (arg == end) error = TRUE;
 				else if (min >= 65535) error = TRUE;
 			}
@@ -1749,18 +1751,18 @@ int process_set_photometry(int nb) {
 			com.pref.phot_set.force_radius = TRUE;
 		if (gain > 0.0)
 			com.pref.phot_set.gain = gain;
-		if (min >= 0) {
+		if (min >= -65536) {
 			if (max > 0) {
 				if (min < max) {
-					com.pref.phot_set.minval = min;
-					com.pref.phot_set.maxval = max;
+					com.pref.phot_set.minval = (double)min;
+					com.pref.phot_set.maxval = (double)max;
 				} else {
 					siril_log_message(_("minimum value must be smaller than the maximum\n"));
 					error = TRUE;
 				}
 			} else {
-				if (min < com.pref.phot_set.maxval) {
-					com.pref.phot_set.minval = min;
+				if ((double)min < com.pref.phot_set.maxval) {
+					com.pref.phot_set.minval = (double)min;
 				} else {
 					siril_log_message(_("minimum value must be smaller than the maximum\n"));
 					error = TRUE;
@@ -1780,7 +1782,7 @@ int process_set_photometry(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%d, %d[\n"),
+	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
 			com.pref.phot_set.inner,
 			com.pref.phot_set.outer,
 			com.pref.phot_set.aperture,
@@ -2114,7 +2116,9 @@ int process_psf(int nb){
 	}
 
 	psf_error error;
-	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, &error);
+	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, TRUE, ps, TRUE, &error);
+	free(ps);
 	if (result) {
 		psf_display_result(result, &com.selection);
 		free_psf(result);
@@ -2146,63 +2150,142 @@ int process_seq_tilt(int nb) {
 	return CMD_OK;
 }
 
-/* seqpsf [sequencename channel [-at=x,y]] */
-int process_seq_psf(int nb) {
-	if (com.script && nb < 2) {
-		siril_log_message(_("arguments are not optional when called from script: sequence name and channel number\n"));
-		return CMD_ARG_ERROR;
-	}
-	if (!com.headless && !sequence_is_loaded()) {
-		return CMD_NOT_FOR_SINGLE;
-	}
-	if (nb < 3) {
-		if (com.selection.w > 300 || com.selection.h > 300){
-			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-			return CMD_SELECTION_ERROR;
-		}
-		if (com.selection.w <= 0 || com.selection.h <= 0){
-			if (com.headless)
-				siril_log_message(_("Select an area using the boxselect command first\n"));
-			else siril_log_message(_("Select an area first\n"));
-			return CMD_SELECTION_ERROR;
-		}
-	} else if (g_str_has_prefix(word[3], "-at=")) {
-		gchar *arg = word[3] + 4, *end;
-		int x = g_ascii_strtoull(arg, &end, 10);
-		if (end == arg) return CMD_ARG_ERROR;
+int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area, gchar **target_descr) {
+	rectangle area;
+	if (g_str_has_prefix(arg, "-at=") || g_str_has_prefix(arg, "-refat=")) {
+		gchar *value, *end;
+		if (arg[1] == 'a')
+			value = arg + 4;
+		else value = arg + 7;
+		int x = g_ascii_strtoull(value, &end, 10);
+		if (end == value) return CMD_ARG_ERROR;
 		if (*end != ',') return CMD_ARG_ERROR;
 		end++;
-		arg = end;
-		int y = g_ascii_strtoull(arg, &end, 10);
-		if (end == arg) return CMD_ARG_ERROR;
+		value = end;
+		int y = g_ascii_strtoull(value, &end, 10);
+		if (end == value) return CMD_ARG_ERROR;
 
 		double start = 1.5 * com.pref.phot_set.outer;
 		double size = 3 * com.pref.phot_set.outer;
 
-		com.selection.x = x - start;
-		com.selection.y = y - start;
-		com.selection.w = size;
-		com.selection.h = size;
-		if (com.selection.x < 0 || com.selection.y < 0 ||
-				com.selection.h <= 0 || com.selection.w <= 0)
+		area.x = x - start;
+		area.y = y - start;
+		area.w = size;
+		area.h = size;
+		if (area.x < 0 || area.y < 0 ||
+				area.h <= 0 || area.w <= 0 ||
+				area.x + area.w >= first->rx ||
+				area.y + area.h >= first->ry) {
+			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
 			return CMD_ARG_ERROR;
-	}
+		}
 
-	if (!com.headless && nb < 2 && gui.cvport >= MAXGRAYVPORT) {
-		siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
-		return CMD_GENERIC_ERROR;
+		if (enforce_area_in_image(&area, seq, 0)) {
+			siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
+			return CMD_SELECTION_ERROR;
+		}
+		if (target_descr && arg[1] != 'a')
+			*target_descr = g_strdup_printf("at %d, %d", x, y);
+	}
+	else if (g_str_has_prefix(arg, "-wcs=") || g_str_has_prefix(arg, "-refwcs=")) {
+		char *value;
+		if (arg[1] == 'w')
+			value = arg + 5;
+		else value = arg + 8;
+		char *sep = strchr(value, ',');
+		if (!sep) {
+			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+		*sep++ = '\0';
+		char *end;
+		double ra = g_ascii_strtod(value, &end);
+		if (end == value) {
+			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+		double dec = g_ascii_strtod(sep, &end);
+		if (end == sep) {
+			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+
+		if (!has_wcs(first)) {
+			siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
+			return CMD_FOR_PLATE_SOLVED;
+		}
+		double x, y;
+		if (wcs2pix(first, ra, dec, &x, &y)) {
+			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+			return CMD_ARG_ERROR;
+		}
+		y = first->ry - y - 1;
+		double start = 1.5 * com.pref.phot_set.outer;
+		double size = 3 * com.pref.phot_set.outer;
+		area.x = x - start;
+		area.y = y - start;
+		area.w = size;
+		area.h = size;
+		if (area.x < 0 || area.y < 0 ||
+				area.h <= 0 || area.w <= 0 ||
+				area.x + area.w >= first->rx ||
+				area.y + area.h >= first->ry) {
+			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
+			return CMD_ARG_ERROR;
+		}
+		siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), x, y);
+		if (target_descr && arg[1] != 'a')
+			*target_descr = g_strdup_printf("at %f, %f", ra, dec);
+	}
+	else {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), arg);
+		return CMD_ARG_ERROR;
+	}
+	*seqpsf_area = area;
+	return CMD_OK;
+}
+
+/* seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }] */
+int process_seq_psf(int nb) {
+	if (com.script && nb < 4) {
+		siril_log_message(_("Arguments are not optional when called from a script\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (!com.headless && !sequence_is_loaded() && nb < 4) {
+		siril_log_message(_("Arguments are optional only if a sequence is already loaded and selection around a star made\n"));
+		return CMD_ARG_ERROR;
 	}
 
 	sequence *seq;
 	int layer;
-	if (nb < 2) {
+	if (nb < 4) {
 		seq = &com.seq;
 		layer = gui.cvport;
+
+		if (gui.cvport >= MAXGRAYVPORT) {
+			siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
+			return CMD_GENERIC_ERROR;
+		}
+		if (com.selection.w > 300 || com.selection.h > 300) {
+			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+			return CMD_SELECTION_ERROR;
+		}
+		if (com.selection.w <= 0 || com.selection.h <= 0) {
+			siril_log_message(_("Select an area first\n"));
+			return CMD_SELECTION_ERROR;
+		}
 	} else {
 		seq = load_sequence(word[1], NULL);
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
+		fits first = { 0 };
+		if (seq_read_frame_metadata(seq, 0, &first)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+		seq->current = 0;
+
 		gchar *end;
 		layer = g_ascii_strtoull(word[2], &end, 10);
 		if (end == word[2] || layer >= seq->nb_layers) {
@@ -2210,11 +2293,13 @@ int process_seq_psf(int nb) {
 			free_sequence(seq, TRUE);
 			return CMD_ARG_ERROR;
 		}
-	}
-	rectangle area = com.selection;
-	if (enforce_area_in_image(&area, seq, 0)) {
-		siril_log_message(_("Selection was not completely inside the first image of the sequence, aborting.\n"));
-		return CMD_SELECTION_ERROR;
+
+		rectangle area;
+		if (parse_star_position_arg(word[3], seq, &first, &area, NULL)) {
+			free_sequence(seq, TRUE);
+			return 1;
+		}
+		com.selection = area;
 	}
 
 	framing_mode framing = REGISTERED_FRAME;
@@ -2230,8 +2315,82 @@ int process_seq_psf(int nb) {
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	seqpsf(seq, layer, FALSE, FALSE, framing, TRUE);
-	return CMD_OK;
+	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, FALSE);
+}
+
+// light_curve sequencename channel { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
+int process_light_curve(int nb) {
+	sequence *seq;
+	int layer;
+
+	seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
+	int refimage = 0;
+	gboolean seq_has_wcs;
+	if ((seq_has_wcs = sequence_has_wcs(seq, &refimage)))
+		seq->reference_image = refimage;
+	seq->current = refimage;	// seqpsf computes transformations from current
+
+	gchar *end;
+	layer = g_ascii_strtoull(word[2], &end, 10);
+	if (end == word[2] || layer >= seq->nb_layers) {
+		siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
+		free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+
+	if (sequence_drifts(seq, layer, seq->rx / 4))
+		return CMD_GENERIC_ERROR;
+
+	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
+
+	/* we have a sequence and channel, now we iterate with seqpsf on the list of stars */
+	if (g_str_has_prefix(word[3], "-ninastars=")) {
+		char *file = word[3] + 11;
+		if (file[0] == '\0') {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			return 1;
+		}
+		if (!seq_has_wcs) {
+			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
+			return CMD_FOR_PLATE_SOLVED;
+		}
+
+		fits first = { 0 };
+		if (seq_read_frame_metadata(seq, refimage, &first)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+		if (parse_nina_stars_file_using_WCS(args, word[3]+11, TRUE, TRUE, &first)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+	} else {
+		fits first = { 0 };
+		if (seq_read_frame_metadata(seq, refimage, &first)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+		args->areas = malloc((nb - 3) * sizeof(rectangle));
+		for (int arg_index = 3; arg_index < nb; arg_index++) {
+			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3], &args->target_descr)) {
+				free_sequence(seq, TRUE);
+				return CMD_ARG_ERROR;;
+			}
+		}
+		args->nb = nb - 3;
+	}
+	args->seq = seq;
+	args->layer = layer;
+	args->display_graph = FALSE;
+	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
+
+	// TODO: display stars if sequence is current and not headless
+
+	start_in_new_thread(light_curve_worker, args);
+	return 0;
 }
 
 int process_seq_crop(int nb) {
@@ -2381,7 +2540,7 @@ int process_tilt(int nb) {
 }
 
 int process_inspector(int nb) {
-	compute_ccd_edges();
+	compute_aberration_inspector();
 	return CMD_OK;
 }
 
@@ -4230,7 +4389,7 @@ int process_seq_applyreg(int nb) {
 
 	// check that registration exists for one layer at least
 	int layer = -1;
-	if (seq->regparam){
+	if (seq->regparam) {
 		for (int i = 0; i < seq->nb_layers; i++) {
 			if (seq->regparam[i]) {
 				layer = i;

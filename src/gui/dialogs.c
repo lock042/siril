@@ -30,52 +30,68 @@
 #include "filters/wavelets.h"
 
 #include "gui/dialogs.h"
+#include "nina_light_curve.h"
 
 static const SirilDialogEntry entries[] =
 {
-		{"asinh_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
-		{"background_extraction_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
-		{"canon_fixbanding_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"CLAHE_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
-		{"composition_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"color_calibration", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"cosmetic_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"crop_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"deconvolution_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_deconv_cancel},
-		{"dialog_FFT", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"edge_dialog", INFORMATION_DIALOG, FALSE, NULL},
-		{"extract_channel_dialog", OTHER_DIALOG, FALSE, NULL},
-		{"extract_wavelets_layers_dialog", OTHER_DIALOG, FALSE, NULL},
-		{"file_information", INFORMATION_DIALOG, FALSE, NULL},
-		{"histogram_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
-		{"ImagePlateSolver_Dial", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"linearmatch_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"Median_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"pixel_math_dialog", OTHER_DIALOG, FALSE, NULL},
-		{"resample_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"rgradient_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"rotation_dialog", IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-		{"satu_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
-		{"SCNR_dialog", IMAGE_PROCESSING_DIALOG,  FALSE, NULL},
-		{"search_objects", SEARCH_ENTRY_DIALOG, FALSE, NULL},
-		{"settings_window", INFORMATION_DIALOG, FALSE, NULL},
-		{"seqlist_dialog", INFORMATION_DIALOG, FALSE, NULL},
-		{"split_cfa_dialog", OTHER_DIALOG, FALSE, NULL},
-		{"stars_list_window", INFORMATION_DIALOG, FALSE, NULL},
-		{"StatWindow", INFORMATION_DIALOG, FALSE, NULL},
-		{"wavelets_dialog", IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
+	{"asinh_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
+	{"background_extraction_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
+	{"canon_fixbanding_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
+	{"composition_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"crop_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"deconvolution_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_deconv_cancel},
+	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"edge_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"extract_channel_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
+	{"ImagePlateSolver_Dial", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
+	{"pixel_math_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"resample_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"rgradient_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"rotation_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"satu_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
+	{"SCNR_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"search_objects", NULL, SEARCH_ENTRY_DIALOG, FALSE, NULL},
+	{"settings_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"seqlist_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"split_cfa_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
 };
 
 static SirilDialogEntry get_entry_by_id(gchar *id) {
 	int i;
-	SirilDialogEntry retvalue = {NULL, NO_DIALOG, FALSE, NULL};
+	SirilDialogEntry empty = {NULL, NULL, NO_DIALOG, FALSE, NULL};
 
 	for (i = 0; i < G_N_ELEMENTS(entries); i++) {
 		if (!g_ascii_strcasecmp(id, entries[i].identifier)) {
 			return entries[i];
 		}
 	}
-	return retvalue;
+	return empty;
+}
+
+static GtkWidget *get_widget_by_id(gchar *id) {
+	SirilDialogEntry entry = get_entry_by_id(id);
+	if (entry.get_window)
+		return entry.get_window();
+	return lookup_widget(entry.identifier);
+}
+
+static GtkWidget *get_widget_by_index(int index) {
+	SirilDialogEntry entry = entries[index];
+	if (entry.get_window)
+		return entry.get_window();
+	return lookup_widget(entry.identifier);
 }
 
 static gboolean check_escape(GtkWidget *widget, GdkEventKey *event,
@@ -90,11 +106,12 @@ static gboolean check_escape(GtkWidget *widget, GdkEventKey *event,
 void siril_open_dialog(gchar *id) {
 	gint x, y;
 	gboolean win_already_shown = FALSE;
-	GtkWindow *win = GTK_WINDOW(gtk_builder_get_object(gui.builder, id));
+	SirilDialogEntry entry = get_entry_by_id(id);
+	GtkWindow *win = GTK_WINDOW(get_widget_by_id(id));
 
-	if (get_entry_by_id(id).type != INFORMATION_DIALOG) {
+	if (entry.type != INFORMATION_DIALOG) {
 		for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
-			GtkWidget *w = lookup_widget(entries[i].identifier);
+			GtkWidget *w = get_widget_by_index(i);
 			if (gtk_widget_get_visible(w) && entries[i].type != INFORMATION_DIALOG) {
 				win_already_shown = TRUE;
 				gtk_window_get_position(GTK_WINDOW(w), &x, &y);
@@ -105,7 +122,7 @@ void siril_open_dialog(gchar *id) {
 			}
 		}
 	}
-	if (get_entry_by_id(id).type == SEARCH_ENTRY_DIALOG) {
+	if (entry.type == SEARCH_ENTRY_DIALOG) {
 		g_signal_connect(win, "key_press_event", G_CALLBACK(check_escape), NULL);
 	}
 
@@ -120,12 +137,12 @@ void siril_open_dialog(gchar *id) {
 }
 
 void siril_close_dialog(gchar *id) {
-	gtk_widget_hide(lookup_widget(id));
+	gtk_widget_hide(get_widget_by_id(id));
 }
 
 void siril_close_preview_dialogs() {
 	for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
-		GtkWidget *w = lookup_widget(entries[i].identifier);
+		GtkWidget *w = get_widget_by_index(i);
 		if (gtk_widget_get_visible(w) && (entries[i].has_preview)) {
 			entries[i].apply_function();
 			gtk_widget_hide(w);

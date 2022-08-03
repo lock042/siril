@@ -56,7 +56,54 @@
 #ifndef pclose
 #define pclose(f) _pclose(f)
 #endif /*pclose*/
+
+static const gchar *possible_path[] = { "C:\\PROGRA~1\\gnuplot\\bin\\gnuplot.exe", "C:\\msys64\\mingw64\\bin\\gnuplot.exe" };
+static const gchar *gnuplot_path = NULL;
+
 #endif /*_WIN32*/
+
+/*********************** finding gnuplot first **********************/
+static gchar *siril_get_gnuplot_path() {
+#ifdef _WIN32
+	gchar *str = g_strdup_printf("\"%s -persist\"", gnuplot_path);
+	return str;
+#else
+	return g_strdup("gnuplot");
+#endif
+}
+
+#ifdef _WIN32
+
+/* returns true if the gnuplot.exe exists in the wanted folder */
+gboolean gnuplot_is_available() {
+	size_t size, i = 0;
+	gboolean found = FALSE;
+
+	size = sizeof(possible_path) / sizeof(gchar*);
+	do {
+		found = g_file_test(possible_path[i], G_FILE_TEST_EXISTS);
+		i++;
+	} while (i < size && !found);
+
+	if (found)
+		gnuplot_path = possible_path[i - 1];
+
+	return found;
+}
+#else
+/* returns true if the command gnuplot is available */
+gboolean gnuplot_is_available() {
+	gchar *path = siril_get_gnuplot_path();
+	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", path);
+	g_free(path);
+
+	int retval = system(str);
+	g_free(str);
+	if (WIFEXITED(retval))
+		return 0 == WEXITSTATUS(retval);
+	return FALSE;
+}
+#endif
 
 /*---------------------------------------------------------------------------
                                 Defines
@@ -86,7 +133,7 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle);
  * @param tmp_filename
  * @param title
  */
-void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title);
+void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset);
 
 /*---------------------------------------------------------------------------
                             Function codes
@@ -151,15 +198,13 @@ gnuplot_ctrl * gnuplot_init(void)
     gnuplot_setstyle(handle, "points") ;
     handle->ntmp = 0 ;
 
-    char *path = siril_win_get_gnuplot_path();
+    gchar *path = siril_get_gnuplot_path();
     handle->gnucmd = siril_popen(path, "w");
-#ifdef _WIN32
-    free(path);
-#endif
+    g_free(path);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
-        free(handle) ;
-        return NULL ;
+        free(handle);
+        return NULL;
     }
 
     for (i=0;i<GP_MAX_TMP_FILES; i++)
@@ -449,7 +494,7 @@ void gnuplot_plot_x(
     }
     fclose(tmpfd) ;
 
-    gnuplot_plot_atmpfile(handle,tmpfname,title);
+    gnuplot_plot_atmpfile(handle,tmpfname,title,0);
     return ;
 }
 
@@ -514,7 +559,7 @@ void gnuplot_plot_xy(
     }
     fclose(tmpfd) ;
 
-    gnuplot_plot_atmpfile(handle,tmpfname,title);
+    gnuplot_plot_atmpfile(handle,tmpfname,title,0);
     return ;
 }
 
@@ -542,7 +587,8 @@ void gnuplot_plot_xyyerr(
     double          *   y,
     double          *   yerr,
     int                 n,
-    char            *   title
+    char            *   title,
+    int			x_offset /* the entire part of julian date, useful for plotting */
 )
 {
     int     i ;
@@ -566,11 +612,20 @@ void gnuplot_plot_xyyerr(
     }
     fclose(tmpfd) ;
 
-    gnuplot_plot_atmpfile(handle,tmpfname,title);
+    gnuplot_plot_atmpfile(handle,tmpfname,title, x_offset);
     return ;
 }
 
 
+void gnuplot_plot_xyyerr_from_datfile(
+    gnuplot_ctrl * handle,
+    const char   * datfile,
+    char         * title,
+    int            x_offset
+)
+{
+    gnuplot_plot_atmpfile(handle, datfile, title, x_offset);
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -784,44 +839,29 @@ int gnuplot_write_xy_dat(
     return 0;
 }
 
-int gnuplot_write_xyyerr_dat(
-    char const *        fileName,
-    double const    *   x,
-    double const    *   y,
-    double const    *   yerr,
-    int                 n,
-    char const      *   title)
-{
-    int     i ;
-    FILE*   fileHandle;
+int gnuplot_write_xyyerr_dat(char const *fileName, double const *x,
+		double const *y, double const *yerr, int n, char const *title) {
+	if (!fileName || !x || !y || !yerr || n < 1) {
+		return -1;
+	}
 
-    if (fileName==NULL || x==NULL || y==NULL || yerr==NULL || (n<1))
-    {
-        return -1;
-    }
+	FILE *fileHandle = g_fopen(fileName, "w");
+	if (!fileHandle) {
+		perror("creating data file");
+		return -1;
+	}
 
-    fileHandle = g_fopen(fileName, "w");
+	// Write Comment.
+	if (title)
+		fprintf(fileHandle, "# %s\n", title);
 
-    if (fileHandle == NULL)
-    {
-        return -1;
-    }
+	/* Write data to this file  */
+	for (int i=0; i<n; i++) {
+		fprintf(fileHandle, "%14.6f %8.6f %8.6f\n", x[i], y[i], yerr[i]);
+	}
 
-    // Write Comment.
-    if (title != NULL)
-    {
-        fprintf(fileHandle, "# %s\n", title) ;
-    }
-
-    /* Write data to this file  */
-    for (i=0 ; i<n; i++)
-    {
-        fprintf(fileHandle, "%14.6f %8.6f %8.6f\n", x[i], y[i], yerr[i]) ;
-    }
-
-    fclose(fileHandle) ;
-
-    return 0;
+	fclose(fileHandle);
+	return 0;
 }
 
 int gnuplot_write_multi_csv(
@@ -927,15 +967,28 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
     return tmp_filename;
 }
 
-void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title)
+void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset)
 {
     char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
-    gnuplot_cmd(handle, "%s \"%s\" title \"%s\" with %s", cmd, tmp_filename,
-                  title, handle->pstyle) ;
+    gnuplot_cmd(handle, "%s \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s",
+		   cmd, tmp_filename, x_offset, title, handle->pstyle);
     handle->nplots++ ;
     return ;
 }
 
+void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
+		char const *curve_title, int offset, char const* png_filename)
+{
+    gnuplot_cmd(handle, "set term png size 800,600");
+    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+
+    if (curve_title && curve_title[0] != '\0')
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename,
+			    offset, curve_title, handle->pstyle);
+    else
+	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
+			    handle->pstyle);
+}
 
 /* vim: set ts=4 et sw=4 tw=75 */

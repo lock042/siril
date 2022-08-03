@@ -122,7 +122,7 @@ static void bswap_stardata(deepStarData *stardata) {
 /* returns the complete list of stars for a catalogue's list of trixels */
 static int read_trixels_from_catalogue(const char *path, double ra, double dec, double radius, deepStarData **trixel_stars, uint32_t *trixel_nb_stars) {
 	siril_debug_print("reading data from catalogue %s\n", path);
-	FILE *f = fopen(path, "rb");
+	FILE *f = g_fopen(path, "rb");
 	if (!f) {
 		siril_log_message(_("Could not open local NOMAD catalogue\n"));
 		return 1;
