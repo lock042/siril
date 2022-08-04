@@ -34,6 +34,7 @@
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels
 	double *fsum[3];	// the new image's channels, for float input image
+	GList *list_date; // list of date of every FITS file
 	double livetime;	// sum of the exposures
 	int reglayer;		// layer used for registration data
 	int ref_image;		// reference image index in the stacked sequence
@@ -77,6 +78,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	ssdata->livetime = 0.0;
+	ssdata->list_date = NULL;
 	return ST_OK;
 }
 
@@ -84,12 +86,18 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	struct sum_stacking_data *ssdata = args->user;
 	int shiftx = 0, shifty = 0, nx, ny, x, y, layer;
 	size_t ii, pixel = 0;	// index in sum[0]
+	/* we get some metadata at the same time: date, exposure ... */
 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
 	ssdata->livetime += fit->exposure;
 	
+	if (fit->date_obs) {
+		GDateTime *date = g_date_time_ref(fit->date_obs);
+		ssdata->list_date = g_list_prepend(ssdata->list_date, new_date_item(date, fit->exposure));
+	}
+
 	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
 		double scale = args->seq->upscale_at_stacking;
 		double dx, dy;
@@ -182,6 +190,8 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	fit->livetime = ssdata->livetime;
 	fit->stackcnt = args->nb_filtered_images;
 	nbdata = args->seq->ry * args->seq->rx;
+	compute_date_time_keywords(ssdata->list_date, fit);
+	g_list_free_full(ssdata->list_date, (GDestroyNotify) free_list_date);
 
 	if (ssdata->output_32bits) {
 		if (ssdata->input_32bits) {

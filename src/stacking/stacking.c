@@ -27,6 +27,7 @@
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
+#include "core/siril_date.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -630,6 +631,61 @@ int find_refimage_in_indices(const int *indices, int nb, int ref) {
 			return i;
 	}
 	return -1;
+}
+
+void free_list_date(gpointer data) {
+	DateEvent *item = (DateEvent *)data;
+	g_date_time_unref(item->date_obs);
+	g_slice_free(DateEvent, item);
+}
+
+DateEvent* new_date_item(GDateTime *dt, gdouble exposure) {
+	DateEvent *item = g_slice_new(DateEvent);
+	item->exposure = exposure;
+	item->date_obs = dt;
+	return item;
+}
+
+static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
+	const DateEvent *dt1 = (const DateEvent *) a;
+	const DateEvent *dt2 = (const DateEvent *) b;
+
+	return g_date_time_compare(dt1->date_obs, dt2->date_obs);
+}
+
+/* computes the observation date (beginning) and the start of exposure (same
+ * but in julian date) and end of exposure (start of last shot + exposure time)
+ */
+void compute_date_time_keywords(GList *list_date, fits *fit) {
+	if (!list_date)
+		return;
+	GDateTime *date_obs;
+	gdouble start, end;
+	/* First we want to sort the list */
+	list_date = g_list_sort(list_date, (GCompareFunc) list_date_compare);
+
+	/* go to the first stacked image and get needed values */
+	list_date = g_list_first(list_date);
+	date_obs = g_date_time_ref(((DateEvent *)list_date->data)->date_obs);
+	start = date_time_to_Julian(((DateEvent *)list_date->data)->date_obs);
+
+	/* go to the last stacked image and get needed values
+	 * This time we need to add the exposure to the date_obs
+	 * to exactly retrieve the end of the exposure
+	 */
+	list_date = g_list_last(list_date);
+	gdouble last_exp = ((DateEvent *)list_date->data)->exposure;
+	GDateTime *last_date = ((DateEvent *)list_date->data)->date_obs;
+	GDateTime *corrected_last_date = g_date_time_add_seconds(last_date, (gdouble) last_exp);
+
+	end = date_time_to_Julian(corrected_last_date);
+
+	g_date_time_unref(corrected_last_date);
+
+	/* we address the computed values to the keywords */
+	fit->date_obs = date_obs;
+	fit->expstart = start;
+	fit->expend = end;
 }
 
 /****************************************************************/
