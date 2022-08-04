@@ -25,7 +25,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <dbghelp.h>
-#else
+#elif HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
 
