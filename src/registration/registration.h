@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 7
+#define NUMBER_OF_METHODS 8
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -63,11 +63,11 @@ struct registration_args {
 	gboolean cumul;			// cumul reg data with previous one
 	int min_pairs;			// Minimum number of star pairs for success
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
-	transformation_type type;   // Use affine transform  or homography
-	float percent_moved; // for KOMBAT algorithm
+	transformation_type type;	// Use affine transform  or homography
+	float percent_moved;		// for KOMBAT algorithm
 
 	/* data for generated sequence, for star alignment registration */
-	gboolean no_output;	// write transformation to .seq
+	gboolean no_output;		// write transformation to .seq
 	int new_total;                  // remaining images after registration
 	imgdata *imgparam;		// imgparam for the new sequence
 	regdata *regparam;		// regparam for the new sequence
@@ -75,7 +75,7 @@ struct registration_args {
 	gboolean load_new_sequence;	// load the new sequence if success
 	const gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
-	framing_type framing; // used by seqapplyreg to determine framing
+	framing_type framing;		// used by seqapplyreg to determine framing
 };
 
 /* used to register a registration method */
@@ -98,9 +98,11 @@ struct registration_method * get_selected_registration_method();
 int register_shift_dft(struct registration_args *args);
 int register_shift_fwhm(struct registration_args *args);
 int register_star_alignment(struct registration_args *args);
+int register_multi_step_global(struct registration_args *regargs);
 int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
+
 void reset_3stars();
 void _3stars_check_registration_ready();
 gboolean _3stars_check_selection();

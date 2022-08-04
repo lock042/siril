@@ -326,13 +326,11 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 					"red", MIN_RATIO_INLIERS, filenum);
 				free_fitted_stars(stars);
 				return 1;
-			break;
 			case SIMILARITY_TRANSFORMATION:
 				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
 					"red", MIN_RATIO_INLIERS, filenum);
 				free_fitted_stars(stars);
 				return 1;
-			break;
 			case AFFINE_TRANSFORMATION:
 				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
 					"red", MIN_RATIO_INLIERS, filenum);
@@ -684,5 +682,163 @@ static void print_alignment_results(Homography H, int filenum, float FWHMx, floa
 	siril_log_message(_("dy:%+*.2f px\n"), 15, shift.y);
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
+}
+
+/********************** the new multi-step registration ***********************/
+/* This is a modification of the global registration without output, separating
+ * the two main steps of finding stars and computing the transforms to add an
+ * extra step in the middle:
+* 1. finding stars
+* 2. searching for the best image and set it as reference
+* 3. compute the transforms and store them in regparams
+*/
+
+int register_multi_step_global(struct registration_args *regargs) {
+	int retvalue = 1;
+	// 1. finding stars
+	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
+	sf_args->im.from_seq = regargs->seq;
+	sf_args->layer = regargs->layer;
+	sf_args->max_stars_fitted = regargs->max_stars_candidates;
+	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
+	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
+	sf_args->forcepx = TRUE;
+	sf_args->update_GUI = FALSE;
+	sf_args->already_in_thread = TRUE;
+	float *fwhm = NULL, *roundness = NULL, *B = NULL;
+	if (!sf_args->stars || !sf_args->nb_stars) {
+		PRINT_ALLOC_ERR;
+		goto free_all;
+	}
+	if (apply_findstar_to_sequence(sf_args)) {
+		siril_debug_print("finding stars failed\n");
+		goto free_all;
+	}
+
+	// 2. searching for the best image and set it as reference
+	fwhm = calloc(regargs->seq->number, sizeof(float));
+	roundness = calloc(regargs->seq->number, sizeof(float));
+	B = calloc(regargs->seq->number, sizeof(float));
+	if (!fwhm || !roundness || !B) {
+		PRINT_ALLOC_ERR;
+		goto free_all;
+	}
+
+	float min_fwhm = FLT_MAX;
+	int min_index = -1;
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!sf_args->stars[i])
+			continue;
+		float FWHMx, FWHMy;
+		char *units;
+		FWHM_average(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i);
+		fwhm[i] = FWHMx;
+		roundness[i] = FWHMy/FWHMx;
+		/* here we have for each image: average FWHM, roundness of average FWHMs,
+		 * average B, number of stars.
+		 * TODO: What do we do to find the best image?
+		 * For now we take the best FWHM, but we should include some framing checks too
+		 */
+		if (fwhm[i] < min_fwhm) {
+			min_fwhm = fwhm[i];
+			min_index = i;
+		}
+	}
+
+	regargs->seq->reference_image = min_index;
+	int reffilenum = regargs->seq->imgparam[min_index].filenum;	// for display purposes
+	siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
+	int nb_ref_stars = sf_args->nb_stars[min_index];
+
+	// 3. compute the transforms and store them in regparams
+	regdata *current_regdata = star_align_get_current_regdata(regargs);
+	for (int i = 0; i < regargs->seq->number; i++) {
+		Homography H = { 0 };
+		if (i == regargs->seq->reference_image) {
+			cvGetEye(&H);
+		} else {
+			if (!sf_args->stars[i])
+				continue;
+			// code copied from the main registration function star_align_image_hook
+			// TODO: extract in a function usable here and in star_align_image_hook
+			double scale_min = 0.9;
+			double scale_max = 1.1;
+			int attempt = 1;
+			int nobj = 0;
+			while (retvalue && attempt < NB_OF_MATCHING_TRY) {
+				retvalue = new_star_match(sf_args->stars[i],
+						sf_args->stars[regargs->seq->reference_image],
+						sf_args->nb_stars[i], nobj,
+						scale_min, scale_max, &H, FALSE, NULL, NULL, regargs->type,
+						NULL, NULL);
+				if (attempt == 1) {
+					scale_min = -1.0;
+					scale_max = -1.0;
+				} else {
+					nobj += 50;
+				}
+				attempt++;
+			}
+			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
+			if (retvalue) {
+				siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
+						"red", attempt, filenum);
+			}
+			else if (H.Inliers < regargs->min_pairs) {
+				siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
+						"red", H.Inliers, filenum);
+				retvalue = 1;
+			}
+			else if (((double)H.Inliers / (double)H.pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
+				switch (regargs->type) {
+					case SHIFT_TRANSFORMATION:
+						siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
+								"red", MIN_RATIO_INLIERS, filenum);
+						retvalue = 1;
+						break;
+					case SIMILARITY_TRANSFORMATION:
+						siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
+								"red", MIN_RATIO_INLIERS, filenum);
+						retvalue = 1;
+						break;
+					case AFFINE_TRANSFORMATION:
+						siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
+								"red", MIN_RATIO_INLIERS, filenum);
+						retvalue = 1;
+						break;
+					case HOMOGRAPHY_TRANSFORMATION:
+						siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
+								"salmon", MIN_RATIO_INLIERS, filenum);
+						break;
+					default:
+						printf("Should not happen\n");
+				}
+			}
+			if (retvalue)
+				goto free_all;
+
+		}
+
+		current_regdata[i].roundness = roundness[i];
+		current_regdata[i].fwhm = fwhm[i];
+		current_regdata[i].weighted_fwhm = 2 * fwhm[i]
+			* ((double)nb_ref_stars - (double)H.Inliers)
+			/ (double)nb_ref_stars + fwhm[i];
+		current_regdata[i].background_lvl = B[i];
+		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
+		current_regdata[i].H = H;
+	}
+
+	// all done?
+free_all:
+	for (int i = 0; i < regargs->seq->number; i++)
+		free_fitted_stars(sf_args->stars[i]);
+	free(sf_args->stars);
+	free(sf_args->nb_stars);
+	free(sf_args);
+	free(fwhm);
+	free(roundness);
+	free(B);
+	return retvalue;
 }
 

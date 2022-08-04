@@ -15,10 +15,14 @@ struct starfinder_data {
 	image im;
 	int layer;
 	int max_stars_fitted;
-	gchar *starfile;
+	gboolean save_to_file;	// generate starfile if TRUE and in sequence
+	gchar *starfile;	// save to file if not NULL
+	psf_star ***stars;	// save to pointer if not NULL
+	int *nb_stars;		// number of stars in stars if not NULL
 	gboolean forcepx;
 	threading_type threading;
 	gboolean update_GUI;	// FALSE for sequence operation
+	gboolean already_in_thread;
 };
 
 struct star_candidate_struct {
@@ -55,7 +59,7 @@ void free_fitted_stars(psf_star **stars);
 int count_stars(psf_star **stars);
 void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B);
 float filtered_FWHM_average(psf_star **stars, int nb);
-void apply_findstar_to_sequence(struct starfinder_data *findstar_args);
+int apply_findstar_to_sequence(struct starfinder_data *findstar_args);
 gpointer findstar_worker(gpointer p);
 
 #endif

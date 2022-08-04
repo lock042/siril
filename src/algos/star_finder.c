@@ -809,9 +809,15 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
-	char root[255];
-	if(!fit_sequence_get_image_filename(args->seq, i, root, FALSE)) return 1;
-	curr_findstar_args->starfile = g_strdup_printf("%s.lst", root);
+	if (findstar_args->save_to_file) {
+		char root[255];
+		if(!fit_sequence_get_image_filename(args->seq, i, root, FALSE)) return 1;
+		curr_findstar_args->starfile = g_strdup_printf("%s.lst", root);
+	}
+	if (findstar_args->stars && findstar_args->nb_stars) {
+		curr_findstar_args->stars = findstar_args->stars + i;
+		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
+	}
 	curr_findstar_args->threading = threads;
 
 	int retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
@@ -821,7 +827,7 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	return retval;
 }
 
-void apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
+int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	struct generic_seq_args *args = create_default_seqargs(findstar_args->im.from_seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = args->seq->selnum;
@@ -832,7 +838,10 @@ void apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	args->load_new_sequence = FALSE;
 	args->user = findstar_args;
 
+	if (findstar_args->already_in_thread)
+		return GPOINTER_TO_INT(generic_sequence_worker(args));
 	start_in_new_thread(generic_sequence_worker, args);
+	return 0;
 }
 
 // for a single image
@@ -858,6 +867,13 @@ gpointer findstar_worker(gpointer p) {
 		retval = 1;
 	}
 
+	if (args->stars && args->nb_stars) {
+		*args->stars = stars;
+		*args->nb_stars = nbstars;
+	}
+	else if (args->update_GUI)
+		free_fitted_stars(stars);
+
 	if (args->update_GUI)
 		siril_add_idle(end_findstar, args);
 
@@ -872,7 +888,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	}
 	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
 
-	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	args->im.fit = &gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		args->im.from_seq = &com.seq;

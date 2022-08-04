@@ -2774,7 +2774,7 @@ int process_findstar(int nb) {
 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
 	}
 
-	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	args->layer = layer;
 	args->im.fit = &gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
@@ -2810,7 +2810,7 @@ int process_seq_findstar(int nb) {
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 
-	struct starfinder_data *args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
 	if (!com.script) {
 		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;

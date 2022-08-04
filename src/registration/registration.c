@@ -81,7 +81,8 @@ static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the si
 		"the timestamp of each images and the global shift of the object between the first and the last image."),
 		N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to apply previously computed registration data "
 		"stored in the sequence file. The interpolation method and simplified drizzle can be selected in the Output Registration section and it can be applied "
-		"on selected images only, to avoid saving unnecessary images.")
+		"on selected images only, to avoid saving unnecessary images."),
+		N_("UNDOCUMENTED TOP SECRET PROJECT")
 };
 
 static char *reg_frame_registration[] = {
@@ -136,6 +137,8 @@ void initialize_registration_methods() {
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
+	reg_methods[i++] = new_reg_method(_("The New Global Star Alignment (deep-sky)"),
+			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i] = NULL;
 
 	tip = g_string_new ("");
