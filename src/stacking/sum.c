@@ -34,7 +34,7 @@
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels
 	double *fsum[3];	// the new image's channels, for float input image
-	GList *list_date; // list of date of every FITS file
+	GList *list_date; // list of dates of every FITS file
 	double livetime;	// sum of the exposures
 	int reglayer;		// layer used for registration data
 	int ref_image;		// reference image index in the stacked sequence
