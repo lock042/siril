@@ -809,12 +809,15 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
-	curr_findstar_args->starfile = g_strdup_printf("%s_%d.lst", args->seq->seqname, i);
+	char root[255];
+	if(!fit_sequence_get_image_filename(args->seq, i, root, FALSE)) return 1;
+	curr_findstar_args->starfile = g_strdup_printf("%s.lst", root);
 	curr_findstar_args->threading = threads;
 
 	int retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 
 	g_free(curr_findstar_args->starfile);
+	g_free(curr_findstar_args);
 	return retval;
 }
 
@@ -828,7 +831,6 @@ void apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	args->has_output = FALSE;
 	args->load_new_sequence = FALSE;
 	args->user = findstar_args;
-	//TODO: missing end_hook, is it needed? end_generic() will be called
 
 	start_in_new_thread(generic_sequence_worker, args);
 }
@@ -844,7 +846,7 @@ gpointer findstar_worker(gpointer p) {
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
-			selection, TRUE, limit_stars, args->max_stars_fitted, threads);
+			selection, args->update_GUI, limit_stars, args->max_stars_fitted, threads);
 
 	if (args->update_GUI && stars) {
 		clear_stars_list(FALSE);
@@ -852,7 +854,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
 			selection ? _("selection") : _("image"), args->layer);
-	if (args->starfile && save_list(args->starfile, args->forcepx, stars)) {
+	if (args->starfile && save_list(args->starfile, args->forcepx, stars, args->update_GUI)) {
 		retval = 1;
 	}
 

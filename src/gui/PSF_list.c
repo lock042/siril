@@ -307,7 +307,7 @@ static void remove_all_stars(){
 	redraw(REDRAW_OVERLAY);
 }
 
-int save_list(gchar *filename, gboolean forcepx, psf_star **stars) {
+int save_list(gchar *filename, gboolean forcepx, psf_star **stars, gboolean verbose) {
 	int i = 0;
 	if (!stars)
 		return 1;
@@ -367,7 +367,7 @@ int save_list(gchar *filename, gboolean forcepx, psf_star **stars) {
 		i++;
 		g_free(buffer);
 	}
-	siril_log_message(_("The file %s has been created.\n"), filename);
+	if (verbose) siril_log_message(_("The file %s has been created.\n"), filename);
 	g_object_unref(output_stream);
 	g_object_unref(file);
 
@@ -399,7 +399,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, FALSE, com.stars);
+		save_list(file, FALSE, com.stars, TRUE);
 
 		g_free(file);
 	}
