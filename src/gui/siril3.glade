@@ -5988,11 +5988,6 @@ enter a visible wavelength in nm</property>
       <action-widget response="0">extract_channel_button_ok</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkImage" id="eyedrop">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/eyedropper.svg</property>
-  </object>
   <object class="GtkDialog" id="file_information">
     <property name="width-request">400</property>
     <property name="can-focus">False</property>
@@ -12950,22 +12945,17 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkToolbar" id="eyedropper_toolbar">
+                          <object class="GtkButton" id="eyedropper_button">
                             <property name="visible">True</property>
-                            <property name="can-focus">False</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
                             <child>
-                              <object class="GtkToolButton" id="eyedropper_SP">
+                              <object class="GtkImage" id="eyedropper">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Set SP to the average of the current selection.</property>
-                                <property name="use-underline">True</property>
-                                <property name="icon-widget">eyedrop</property>
-                                <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
+                                <property name="pixbuf">pixmaps/eyedropper.svg</property>
                               </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">True</property>
-                              </packing>
                             </child>
                           </object>
                           <packing>
@@ -19558,7 +19548,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
-						    <property name="action-name">win.nina_light_curve</property>
+                                                    <property name="action-name">win.nina_light_curve</property>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>

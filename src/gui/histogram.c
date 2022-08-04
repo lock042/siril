@@ -977,7 +977,7 @@ void setup_histo_dialog() {
 
 			// Hide UI elements not required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), FALSE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), FALSE);
 			// Make visible the UI elements required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), TRUE);
@@ -995,7 +995,7 @@ void setup_ght_dialog() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), FALSE);
 			// Make visible and configure the GHT controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), TRUE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			gchar *image;
 			GtkWidget *w;
 			if (com.pref.gui.combo_theme == 0) {
@@ -1005,7 +1005,7 @@ void setup_ght_dialog() {
 				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
 				w = gtk_image_new_from_file(image);
 			}
-			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("eyedropper_SP")), w);
+			gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_button")), w);
 			gtk_widget_show(w);
 			g_free(image);
 			// Set default parameters
@@ -1035,7 +1035,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), TRUE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), FALSE);
 
 			break;
 		case STRETCH_PAYNE_NORMAL:
@@ -1046,7 +1046,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 
 			break;
 		case STRETCH_ASINH:
@@ -1057,7 +1057,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			break;
 
 			// This should resize the window to the smallest size that fits the visible widgets
@@ -1302,7 +1302,7 @@ void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	notify_update((gpointer) param);
 }
 
-void on_eyedropper_SP_clicked(GtkToggleButton *togglebutton, gpointer user_data) {
+void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	int chan, channels = get_preview_gfit_backup()->naxes[2];
