@@ -581,8 +581,8 @@ void reset_controls_and_values() {
 	// Set left_type, right_type, left_colour, right_colour;
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), 0);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), 0);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), 0);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), 0);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_INDEP);
 	set_notify_block(FALSE);
 }
 
