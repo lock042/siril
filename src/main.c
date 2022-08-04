@@ -333,7 +333,7 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 		if (ext && !strncmp(ext, "seq", 4)) {
 			gchar *sequence_dir = g_path_get_dirname(path);
 			if (!siril_change_dir(sequence_dir, NULL)) {
-				if (check_seq(FALSE)) {
+				if (check_seq()) {
 					siril_log_message(_("No sequence `%s' found.\n"), path);
 				} else {
 					set_seq(path);

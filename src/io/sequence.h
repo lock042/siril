@@ -9,7 +9,7 @@
 void populate_seqcombo(const gchar *realname);
 int	read_single_sequence(char *realname, image_type imagetype);
 int	seqsetnum(int image_number);
-int	check_seq(int recompute_stats);
+int	check_seq();
 int	seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit);
 int	set_seq(const char *);
 char *	seq_get_image_filename(sequence *seq, int index, char *name_buf);
@@ -82,5 +82,7 @@ void fix_selnum(sequence *seq, gboolean warn);
 gboolean sequence_has_wcs(sequence *seq, int *index);
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
+
+void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel);
 
 #endif

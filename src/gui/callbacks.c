@@ -1661,9 +1661,8 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 }
 
 struct checkSeq_filter_data {
-	int force;
+//	int force;
 	int retvalue;
-	GtkToggleButton *forceButton;
 };
 
 static gboolean end_checkSeq(gpointer p) {
@@ -1671,8 +1670,6 @@ static gboolean end_checkSeq(gpointer p) {
 	stop_processing_thread();
 
 	/* it's better to uncheck the force button each time it is used */
-	if (args->force)
-		gtk_toggle_button_set_active(args->forceButton, FALSE);
 	if (args->retvalue)
 		update_sequences_list(NULL);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -1685,16 +1682,13 @@ static gboolean end_checkSeq(gpointer p) {
 static gpointer checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
 
-	if (!check_seq(args->force))
+	if (!check_seq())
 		args->retvalue = 1;
 	siril_add_idle(end_checkSeq, args);
 	return GINT_TO_POINTER(0);
 }
 
 void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *forceButton = (GtkToggleButton *)user_data;
-	int force = gtk_toggle_button_get_active(forceButton);
-
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
@@ -1706,8 +1700,6 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 
 	struct checkSeq_filter_data *args = malloc(sizeof(struct checkSeq_filter_data));
 
-	args->force = force;
-	args->forceButton = forceButton;
 	args->retvalue = 0;
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(checkSeq, args);
@@ -1754,4 +1746,18 @@ void on_checkbutton_auto_evaluate_toggled(GtkToggleButton *button,
 		gpointer user_data) {
 	GtkWidget *entry = (GtkWidget *)user_data;
 	gtk_widget_set_sensitive(entry, !gtk_toggle_button_get_active(button));
+}
+
+void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
+	gboolean cleanreg = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_reg")));
+	gboolean cleanstat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_stat")));
+	gboolean cleansel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_sel")));
+
+	if (cleanreg || cleanstat || cleansel) {
+		clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
+		drawPlot();
+		update_stack_interface(TRUE);
+		adjust_sellabel();
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
+	}
 }

@@ -77,7 +77,7 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 					if (!strncmp(src_ext, "seq", 4)) {
 						gchar *sequence_dir = g_path_get_dirname(filename);
 						if (!siril_change_dir(sequence_dir, NULL)) {
-							if (check_seq(FALSE)) {
+							if (check_seq()) {
 								siril_log_message(_("No sequence `%s' found.\n"), filename);
 							} else {
 								set_seq(filename);

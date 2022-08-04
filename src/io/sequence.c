@@ -194,7 +194,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
  * given in the GUI or when searching for sequences.
  * force clears the stats in the seqfile.
  */
-int check_seq(int recompute_stats) {
+int check_seq() {
 	int curidx, fixed;
 	GDir *dir;
 	GError *error = NULL;
@@ -312,7 +312,7 @@ int check_seq(int recompute_stats) {
 			}
 			siril_debug_print(_("sequence %d, found: %d to %d\n"),
 					i + 1, sequences[i]->beg, sequences[i]->end);
-			if (!buildseqfile(sequences[i], recompute_stats) && retval)
+			if (!buildseqfile(sequences[i], 0) && retval)
 				retval = 0;	// at least one succeeded to be created
 			free_sequence(sequences[i], TRUE);
 		}
@@ -1966,4 +1966,46 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 	}
 	siril_debug_print("no heavy drift detected\n");
 	return FALSE;
+}
+
+void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel) {
+	if (cleanreg && seq->regparam) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam[i]) {
+				free(seq->regparam[i]);
+				seq->regparam[i] = NULL;
+				siril_log_message(_("Registration data cleared for layer %d\n"), i);
+			}
+		}
+	}
+	if (cleanreg && seq->regparam_bkp) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam_bkp[i]) {
+				free(seq->regparam_bkp[i]);
+				seq->regparam_bkp[i] = NULL;
+				siril_log_message(_("Registration (back-up) data cleared for layer %d\n"), i);
+			}
+		}
+	}
+	if (cleanstat && seq->stats) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			clear_stats(seq, i);
+			siril_log_message(_("Statistics data cleared for layer %d\n"), i);
+		}
+	}
+	if (cleanstat && seq->stats_bkp) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			clear_stats_bkp(seq, i);
+			siril_log_message(_("Statistics data (back-up) cleared for layer %d\n"), i);
+		}
+	}
+	if (cleansel && seq->imgparam) {
+		for (int i = 0; i < seq->number; i++) {
+			seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
+		}
+		fix_selnum(seq, TRUE);
+	}
+	// unsetting ref image
+	seq->reference_image = -1;
+	writeseqfile(seq);
 }
