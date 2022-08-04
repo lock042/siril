@@ -694,7 +694,6 @@ static void print_alignment_results(Homography H, int filenum, float FWHMx, floa
 */
 
 int register_multi_step_global(struct registration_args *regargs) {
-	int retvalue = 1;
 	// 1. finding stars
 	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
 	sf_args->im.from_seq = regargs->seq;
@@ -711,7 +710,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		goto free_all;
 	}
 	if (apply_findstar_to_sequence(sf_args)) {
-		siril_debug_print("finding stars failed\n");
+		siril_debug_print("finding stars failed\n");	// aborted probably
 		goto free_all;
 	}
 
@@ -724,10 +723,17 @@ int register_multi_step_global(struct registration_args *regargs) {
 		goto free_all;
 	}
 
+	int failed = 0;		// number of images to fail registration at any step
 	float min_fwhm = FLT_MAX;
 	int min_index = -1;
 	for (int i = 0; i < regargs->seq->number; i++) {
-		if (!sf_args->stars[i])
+		if (!sf_args->stars[i]) {
+			// star finder failed, we exclude the frame from the sequence
+			regargs->seq->imgparam[i].incl = FALSE;
+			failed++;
+			continue;
+		}
+		if (!regargs->process_all_frames && regargs->seq->imgparam[i].incl)
 			continue;
 		float FWHMx, FWHMy;
 		char *units;
@@ -753,6 +759,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// 3. compute the transforms and store them in regparams
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!regargs->process_all_frames && regargs->seq->imgparam[i].incl)
+			continue;
 		Homography H = { 0 };
 		if (i == regargs->seq->reference_image) {
 			cvGetEye(&H);
@@ -765,8 +773,9 @@ int register_multi_step_global(struct registration_args *regargs) {
 			double scale_max = 1.1;
 			int attempt = 1;
 			int nobj = 0;
-			while (retvalue && attempt < NB_OF_MATCHING_TRY) {
-				retvalue = new_star_match(sf_args->stars[i],
+			int failure = 1;
+			while (failure && attempt < NB_OF_MATCHING_TRY) {
+				failure = new_star_match(sf_args->stars[i],
 						sf_args->stars[regargs->seq->reference_image],
 						sf_args->nb_stars[i], nobj,
 						scale_min, scale_max, &H, FALSE, NULL, NULL, regargs->type,
@@ -780,31 +789,31 @@ int register_multi_step_global(struct registration_args *regargs) {
 				attempt++;
 			}
 			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
-			if (retvalue) {
+			if (failure) {
 				siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
 						"red", attempt, filenum);
 			}
 			else if (H.Inliers < regargs->min_pairs) {
 				siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
 						"red", H.Inliers, filenum);
-				retvalue = 1;
+				failure = 1;
 			}
 			else if (((double)H.Inliers / (double)H.pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
 				switch (regargs->type) {
 					case SHIFT_TRANSFORMATION:
 						siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
 								"red", MIN_RATIO_INLIERS, filenum);
-						retvalue = 1;
+						failure = 1;
 						break;
 					case SIMILARITY_TRANSFORMATION:
 						siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
 								"red", MIN_RATIO_INLIERS, filenum);
-						retvalue = 1;
+						failure = 1;
 						break;
 					case AFFINE_TRANSFORMATION:
 						siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
 								"red", MIN_RATIO_INLIERS, filenum);
-						retvalue = 1;
+						failure = 1;
 						break;
 					case HOMOGRAPHY_TRANSFORMATION:
 						siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
@@ -814,9 +823,11 @@ int register_multi_step_global(struct registration_args *regargs) {
 						printf("Should not happen\n");
 				}
 			}
-			if (retvalue)
-				goto free_all;
-
+			if (failure) {
+				regargs->seq->imgparam[i].incl = FALSE;
+				failed++;
+				continue;
+			}
 		}
 
 		current_regdata[i].roundness = roundness[i];
@@ -829,7 +840,11 @@ int register_multi_step_global(struct registration_args *regargs) {
 		current_regdata[i].H = H;
 	}
 
-	// all done?
+	// images may have been excluded but selnum wasn't updated
+	fix_selnum(regargs->seq, FALSE);
+	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->seq->selnum);
+	clear_stars_list(FALSE);
+
 free_all:
 	for (int i = 0; i < regargs->seq->number; i++)
 		free_fitted_stars(sf_args->stars[i]);
@@ -839,6 +854,6 @@ free_all:
 	free(fwhm);
 	free(roundness);
 	free(B);
-	return retvalue;
+	return 0;
 }
 
