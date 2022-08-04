@@ -21,6 +21,9 @@
 #define ANSI_COLOR_RED     "\e[1m\x1b[31m"
 #define ANSI_COLOR_RESET   "\x1b[0m\e[0m"
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <signal.h>
 #ifdef _WIN32
 #include <windows.h>
