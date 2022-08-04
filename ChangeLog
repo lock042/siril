@@ -20,6 +20,7 @@ xx/xx/22
 * Added star list importing from the NINA exoplanet plugin for light curve creation
 * Added relaxed mode for star detection for particularly bad images
 * Added crop to selection to the rotation geometric transform
+* Added a way to clean sequence file in the sequence tab (see also command seqclean)
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored registration and added Apply Existing Registration method

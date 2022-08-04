@@ -1753,7 +1753,7 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 	gboolean cleanstat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_stat")));
 	gboolean cleansel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_sel")));
 
-	if (cleanreg || cleanstat || cleansel) {
+	if ((cleanreg || cleanstat || cleansel) && sequence_is_loaded()) {
 		clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
 		drawPlot();
 		update_stack_interface(TRUE);
