@@ -23,6 +23,7 @@ src/algos/star_finder.c
 src/algos/statistics.c
 src/algos/statistics_float.c
 src/algos/transform.c
+src/algos/search_objects.c
 src/compositing/align_rgb.c
 src/compositing/compositing.c
 src/compositing/filters.c
@@ -62,8 +63,8 @@ src/filters/scnr.c
 src/filters/starnet.c
 src/filters/wavelets.c
 src/gui/about_dialog.c
-src/gui/astrometry_solver.c
 src/gui/annotations_pref.c
+src/gui/astrometry_solver.c
 src/gui/callbacks.c
 src/gui/conversion.c
 src/gui/dialog_preview.c
@@ -82,6 +83,7 @@ src/gui/preferences.c
 src/gui/progress_and_log.c
 src/gui/PSF_list.c
 src/gui/registration_preview.c
+src/gui/remixer.c
 src/gui/save_dialog.c
 src/gui/script_menu.c
 src/gui/sequence_list.c
@@ -92,6 +94,7 @@ src/gui/siril_preview.c
 src/gui/starnetgui.c
 src/gui/statistics_list.c
 src/gui/utils.c
+src/io/catalogues.c
 src/io/conversion.c
 src/io/films.c
 src/io/fits_sequence.c
