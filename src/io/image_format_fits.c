@@ -285,6 +285,7 @@ void read_fits_header(fits *fit) {
 			float mini, maxi;
 			fit_stats(fit, &mini, &maxi);
 			fit->data_max = (double) maxi;
+			fit->data_min = (double) mini;
 		}
 	}
 
@@ -878,7 +879,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
-static void convert_floats(int bitpix, float *data, size_t nbdata) {
+static void convert_floats(int bitpix, float *data, size_t nbdata, double max, double min) {
 	size_t i;
 	switch (bitpix) {
 		case BYTE_IMG:
@@ -896,6 +897,10 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 				data[i] = (32768.f + data[i]) * INV_USHRT_MAX_SINGLE;
 			}
 			break;
+		case FLOAT_IMG:
+			for (i = 0; i < nbdata; i++) {
+				data[i] = (min + data[i]) / max;
+			}
 	}
 }
 
@@ -1064,7 +1069,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 				&status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				|| fit->bitpix == BYTE_IMG) || fit->data_max > 2.0) { // needed for some FLOAT_IMG
-			convert_floats(fit->bitpix, fit->fdata, nbdata);
+			convert_floats(fit->bitpix, fit->fdata, nbdata, fit->data_max, fit->data_min);
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
@@ -1085,6 +1090,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area) {
 	double data_max = -1.0;
+	double data_min = 0.0;
 	int datatype;
 	BYTE *data8;
 	long *pixels_long;
@@ -1142,7 +1148,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata);
+				convert_floats(bitpix, dest, nbdata, data_max, data_min);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -1769,6 +1775,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 					float mini, maxi;
 					fit_stats(fit, &mini, &maxi);
 					fit->data_max = (double) maxi;
+					fit->data_min = (double) mini;
 				}
 			}
 		}
