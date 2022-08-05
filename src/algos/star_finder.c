@@ -863,7 +863,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
 			selection ? _("selection") : _("image"), args->layer);
-	if (args->starfile && save_list(args->starfile, args->forcepx, stars, args->update_GUI)) {
+	if (args->starfile && save_list(args->starfile, args->forcepx, stars, &com.pref.starfinder_conf, args->update_GUI)) {
 		retval = 1;
 	}
 

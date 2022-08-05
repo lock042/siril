@@ -307,7 +307,14 @@ static void remove_all_stars(){
 	redraw(REDRAW_OVERLAY);
 }
 
-int save_list(gchar *filename, gboolean forcepx, psf_star **stars, gboolean verbose) {
+#define HANDLE_WRITE_ERR \
+	g_warning("%s\n", error->message); \
+	g_clear_error(&error); \
+	g_object_unref(output_stream); \
+	g_object_unref(file); \
+	return 1
+
+int save_list(gchar *filename, gboolean forcepx, psf_star **stars, star_finder_params *sf, gboolean verbose) {
 	int i = 0;
 	if (!stars)
 		return 1;
@@ -318,54 +325,52 @@ int save_list(gchar *filename, gboolean forcepx, psf_star **stars, gboolean verb
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
 			G_FILE_CREATE_NONE, NULL, &error);
 
-	if (output_stream == NULL) {
-		if (error != NULL) {
-			g_warning("%s\n", error->message);
+	if (!output_stream) {
+		if (error) {
+			siril_log_message(_("Cannot save star list %s: %s\n"), filename, error->message);
 			g_clear_error(&error);
-			fprintf(stderr, "save_list: Cannot save star list\n");
 		}
 		g_object_unref(file);
 		return 1;
 	}
 
-	gchar *buffer = g_strdup_printf("star#\tlayer\tB\tA\tX\tY\tFWHMx [%s]\tFWHMy [%s]\tangle\tRMSE\tmag%s", (forcepx) ? "px" : stars[0]->units,(forcepx) ? "px" : stars[0]->units,SIRIL_EOL);
-	if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
-		g_warning("%s\n", error->message);
-		g_free(buffer);
-		g_clear_error(&error);
-		g_object_unref(output_stream);
-		g_object_unref(file);
-		return 1;
+	char buffer[300];
+	int len = snprintf(buffer, 300, "# star list created using the following parameters:%s", SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
 	}
-	g_free(buffer);
+	len = snprintf(buffer, 300, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d%s",
+			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	len = snprintf(buffer, 300, "# star#\tlayer\tB\tA\tX\tY\tFWHMx [%s]\tFWHMy [%s]\tangle\tRMSE\tmag%s",
+			(forcepx) ? "px" : stars[0]->units, (forcepx) ? "px" : stars[0]->units, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
 	if (stars[0]) {
 		is_in_arcsec = ((stars[0]->fwhmx_arcsec > 0) && (!forcepx));
 	}
 	while (stars[i]) {
 		if (is_in_arcsec) { 
-			buffer = g_strdup_printf(
+			len = snprintf(buffer, 300,
 					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
 					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
 					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx_arcsec,
 					stars[i]->fwhmy_arcsec, stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
 		} else {
-			buffer = g_strdup_printf(
+			len = snprintf(buffer, 300,
 					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
 					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
 					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
 					stars[i]->fwhmy, stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
 		}
 
-		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
-			g_warning("%s\n", error->message);
-			g_free(buffer);
-			g_clear_error(&error);
-			g_object_unref(output_stream);
-			g_object_unref(file);
-			return 1;
+		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+			HANDLE_WRITE_ERR;
 		}
 		i++;
-		g_free(buffer);
 	}
 	if (verbose) siril_log_message(_("The file %s has been created.\n"), filename);
 	g_object_unref(output_stream);
@@ -399,7 +404,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, FALSE, com.stars, TRUE);
+		save_list(file, FALSE, com.stars, &com.pref.starfinder_conf, TRUE);
 
 		g_free(file);
 	}
