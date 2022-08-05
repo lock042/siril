@@ -899,7 +899,7 @@ static void convert_floats(int bitpix, float *data, size_t nbdata, double max, d
 			break;
 		case FLOAT_IMG:
 			for (i = 0; i < nbdata; i++) {
-				data[i] = (min + data[i]) / max;
+				data[i] = (data[i] - min) / (max - min);
 			}
 	}
 }
