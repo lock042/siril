@@ -2313,32 +2313,39 @@ int process_light_curve(int nb) {
 		char *file = word[3] + 11;
 		if (file[0] == '\0') {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			free(args);
 			return 1;
 		}
 		if (!seq_has_wcs) {
 			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
+			free(args);
 			return CMD_FOR_PLATE_SOLVED;
 		}
 
 		fits first = { 0 };
 		if (seq_read_frame_metadata(seq, refimage, &first)) {
 			free_sequence(seq, TRUE);
+			free(args);
 			return CMD_GENERIC_ERROR;
 		}
 		if (parse_nina_stars_file_using_WCS(args, word[3]+11, TRUE, TRUE, &first)) {
 			free_sequence(seq, TRUE);
+			free(args);
 			return CMD_GENERIC_ERROR;
 		}
 	} else {
 		fits first = { 0 };
 		if (seq_read_frame_metadata(seq, refimage, &first)) {
 			free_sequence(seq, TRUE);
+			free(args);
 			return CMD_GENERIC_ERROR;
 		}
 		args->areas = malloc((nb - 3) * sizeof(rectangle));
 		for (int arg_index = 3; arg_index < nb; arg_index++) {
 			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3], &args->target_descr)) {
 				free_sequence(seq, TRUE);
+				free(args->areas);
+				free(args);
 				return CMD_ARG_ERROR;;
 			}
 		}

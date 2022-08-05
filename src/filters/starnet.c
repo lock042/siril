@@ -156,7 +156,6 @@ static int exec_prog(const char **argv)
 	HANDLE hProcess;
 	int nExitCode = STILL_ACTIVE;
 	int fdStdOut;
-	double value = 0;
 	gboolean has_started = FALSE;
 
 	if (_pipe(pipe_fds, 0x100, O_TEXT)) {

@@ -393,7 +393,7 @@ static double get_error_for_time(pldata *plot, double time) {
 // generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
-	int i, j, nbImages = 0, ret = 0;
+	int i, j, nbImages = 0;
 	double *vmag, *err, *x, *real_x;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
@@ -411,9 +411,9 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
-		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid)
-				ref_valid_count[ref]++;
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+			if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid)
+				ref_valid_count[r]++;
 		}
 	}
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
@@ -422,10 +422,10 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 
 	int nb_ref_stars = 0;
 	// select reference stars that are only available at least 3/4 of the time
-	for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-		ref_valid[ref] = ref_valid_count[ref] >= nbImages * 3 / 4;
-		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", ref, ref_valid_count[ref], nbImages, ref_valid[ref] ? "including" : "discarding");
-		if (ref_valid[ref])
+	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+		ref_valid[r] = ref_valid_count[r] >= nbImages * 3 / 4;
+		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", r, ref_valid_count[r], nbImages, ref_valid[r] ? "including" : "discarding");
+		if (ref_valid[r])
 			nb_ref_stars++;
 	}
 
@@ -460,8 +460,8 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		pldata *cur_plot = plot->next;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (ref_valid[ref] && seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid) {
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
 				/* variable data, inversion of Pogson's law
 				 * Flux = 10^(-0.4 * mag)
 				 */
@@ -507,7 +507,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 
 	/* Exporting data in a dat file */
-	if ((ret = gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, "JD_UT V-C err"))) {
+	if ((gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, "JD_UT V-C err"))) {
 		if (com.script)
 			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
 		else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));

@@ -625,7 +625,7 @@ void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 	notify_update((gpointer) param);
 }
 
-int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, const fits* _fit_right) {
+int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, const fits* _fit_right) {
 	invocation = _invocation;
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);

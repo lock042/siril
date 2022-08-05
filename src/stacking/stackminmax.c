@@ -47,7 +47,7 @@ int stack_addmin(struct stacking_args *args) {
 static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	WORD *final_pixel[3];
 	float *ffinal_pixel[3];
-	double livetime;
+	double livetime = 0.0;
 	GList *list_date = NULL; // list of dates of every FITS file
 	//double exposure = 0.0;
 	gboolean is_float = TRUE; // init only for warning
