@@ -314,7 +314,7 @@ static void remove_all_stars(){
 	g_object_unref(file); \
 	return 1
 
-int save_list(gchar *filename, gboolean forcepx, psf_star **stars, star_finder_params *sf, gboolean verbose) {
+int save_list(gchar *filename, gboolean forcepx, int max_stars_fitted, psf_star **stars, star_finder_params *sf, gboolean verbose) {
 	int i = 0;
 	if (!stars)
 		return 1;
@@ -339,8 +339,8 @@ int save_list(gchar *filename, gboolean forcepx, psf_star **stars, star_finder_p
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 300, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d%s",
-			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks, SIRIL_EOL);
+	len = snprintf(buffer, 300, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d max_stars=%d%s",
+			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks, max_stars_fitted, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
@@ -404,7 +404,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, FALSE, com.stars, &com.pref.starfinder_conf, TRUE);
+		save_list(file, FALSE, MAX_STARS, com.stars, &com.pref.starfinder_conf, TRUE);
 
 		g_free(file);
 	}
