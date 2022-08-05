@@ -108,7 +108,7 @@ pldata *alloc_plot_data(int size) {
 	plot->julian = calloc(size, sizeof(double));
 	plot->data = calloc(size, sizeof(struct kpair));
 	plot->err = calloc(size, sizeof(struct kpair));
-	if (!plot || !plot->frame || !plot->julian || !plot->data || !plot->err) {
+	if (!plot->frame || !plot->julian || !plot->data || !plot->err) {
 		PRINT_ALLOC_ERR;
 		free(plot->frame);
 		free(plot->julian);
@@ -1361,6 +1361,10 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	static GtkMenuItem *menu_item = NULL;
 	static GtkMenuItem *menu_item2 = NULL;
 
+	if (!event) {
+		return;
+	}
+
 	double index, val, ypos;
 	gboolean getvals = get_index_of_frame(event->x, event->y, TRUE, &index, &val, &ypos);
 	if (!getvals) return;
@@ -1376,15 +1380,8 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
 #else
-	int button, event_time;
-
-	if (event) {
-		button = event->button;
-		event_time = event->time;
-	} else {
-		button = 0;
-		event_time = gtk_get_current_event_time();
-	}
+	int button = event->button;
+	int event_time = event->time;
 
 	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
 			event_time);

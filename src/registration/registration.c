@@ -926,10 +926,13 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* we temporary save value as keep_noout_state will be changed in the callback */
 	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
-	if ((method->method_ptr == &register_comet) || (method->method_ptr == &register_kombat) || (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_shift_dft)) {
+	if (method && ((method->method_ptr == &register_comet) ||
+			(method->method_ptr == &register_kombat) ||
+			(method->method_ptr == &register_shift_fwhm) ||
+			(method->method_ptr == &register_shift_dft))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
-	} else if (method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
+	} else if (method && method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 	} else {
