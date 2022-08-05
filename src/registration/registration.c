@@ -878,7 +878,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
 
 	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
-		if (method->method_ptr == &register_star_alignment) {
+		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
 		} else if (method->method_ptr == &register_comet) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);

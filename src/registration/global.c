@@ -704,6 +704,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->forcepx = TRUE;
 	sf_args->update_GUI = FALSE;
 	sf_args->already_in_thread = TRUE;
+	sf_args->save_to_file = TRUE; // TODO: maybe this could be an option . Needed for debugging purposes
 	float *fwhm = NULL, *roundness = NULL, *B = NULL;
 	if (!sf_args->stars || !sf_args->nb_stars) {
 		PRINT_ALLOC_ERR;
