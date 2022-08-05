@@ -16705,6 +16705,8 @@ Colour image target also applies to the debayer result for conversion.</property
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">This button clears selection, registration and/or statistics data stored in the loaded sequence. You can specify to clear only registration, statistics and/or selection with the button on the right.
+</property>
                                                             <signal name="clicked" handler="on_clean_sequence_button_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
@@ -16719,7 +16721,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Open recent images (only FITS and SER files)</property>
+                                                            <property name="tooltip-text" translatable="yes">You can specify to clear only registration, statistics and/or selection by checking the option you want.</property>
                                                             <property name="use-popover">False</property>
                                                             <property name="popover">menu_seq_clean</property>
                                                             <child>

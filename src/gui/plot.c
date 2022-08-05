@@ -1391,7 +1391,7 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 #endif
 	gchar *str = g_strdup_printf(_("Exclude Frame %d"), (int)index);
 	gtk_menu_item_set_label(menu_item, str);
-	gchar*str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
+	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
 	gtk_menu_item_set_label(menu_item2, str2);
 
 	g_free(str);

@@ -1754,10 +1754,22 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 	gboolean cleansel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_sel")));
 
 	if ((cleanreg || cleanstat || cleansel) && sequence_is_loaded()) {
-		clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
-		drawPlot();
-		update_stack_interface(TRUE);
-		adjust_sellabel();
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
+		GString *warning = g_string_new(_("This erases the following data, and there's no possible undo:\n"));
+		if (cleanreg) warning = g_string_append(warning, _("\n- Registration"));
+		if (cleanstat) warning = g_string_append(warning, _("\n- Statistics"));
+		if (cleansel) warning = g_string_append(warning, _("\n- Selection"));
+
+		gchar *str = g_string_free(warning, FALSE);
+
+		gboolean clear = siril_confirm_dialog(_("Clear Sequence Data?"), str, _("Clear Data"));
+		g_free(str);
+
+		if (clear) {
+			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
+			drawPlot();
+			update_stack_interface(TRUE);
+			adjust_sellabel();
+			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
+		}
 	}
 }
