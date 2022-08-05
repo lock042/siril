@@ -178,45 +178,7 @@ int process_seq_clean(int nb) {
 		cleansel = TRUE;
 	}
 
-	if (cleanreg && seq->regparam) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			if (seq->regparam[i]) {
-				free(seq->regparam[i]);
-				seq->regparam[i] = NULL;
-				siril_log_message(_("Registration data cleared for layer %d\n"), i);
-			}
-		}
-	}
-	if (cleanreg && seq->regparam_bkp) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			if (seq->regparam_bkp[i]) {
-				free(seq->regparam_bkp[i]);
-				seq->regparam_bkp[i] = NULL;
-				siril_log_message(_("Registration (back-up) data cleared for layer %d\n"), i);
-			}
-		}
-	}
-	if (cleanstat && seq->stats) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			clear_stats(seq, i);
-			siril_log_message(_("Statistics data cleared for layer %d\n"), i);
-		}
-	}
-	if (cleanstat && seq->stats_bkp) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			clear_stats_bkp(seq, i);
-			siril_log_message(_("Statistics data (back-up) cleared for layer %d\n"), i);
-		}
-	}
-	if (cleansel && seq->imgparam) {
-		for (int i = 0; i < seq->number; i++) {
-			seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
-		}
-		fix_selnum(seq, TRUE);
-	}
-	// unsetting ref image
-	seq->reference_image = -1;
-	writeseqfile(seq);
+	clean_sequence(seq, cleanreg, cleanstat, cleansel);
 	free_sequence(seq, FALSE);
 	return CMD_OK;
 }
@@ -2351,32 +2313,39 @@ int process_light_curve(int nb) {
 		char *file = word[3] + 11;
 		if (file[0] == '\0') {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			free(args);
 			return 1;
 		}
 		if (!seq_has_wcs) {
 			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
+			free(args);
 			return CMD_FOR_PLATE_SOLVED;
 		}
 
 		fits first = { 0 };
 		if (seq_read_frame_metadata(seq, refimage, &first)) {
 			free_sequence(seq, TRUE);
+			free(args);
 			return CMD_GENERIC_ERROR;
 		}
 		if (parse_nina_stars_file_using_WCS(args, word[3]+11, TRUE, TRUE, &first)) {
 			free_sequence(seq, TRUE);
+			free(args);
 			return CMD_GENERIC_ERROR;
 		}
 	} else {
 		fits first = { 0 };
 		if (seq_read_frame_metadata(seq, refimage, &first)) {
 			free_sequence(seq, TRUE);
+			free(args);
 			return CMD_GENERIC_ERROR;
 		}
 		args->areas = malloc((nb - 3) * sizeof(rectangle));
 		for (int arg_index = 3; arg_index < nb; arg_index++) {
 			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3], &args->target_descr)) {
 				free_sequence(seq, TRUE);
+				free(args->areas);
+				free(args);
 				return CMD_ARG_ERROR;;
 			}
 		}
@@ -4814,7 +4783,7 @@ static gpointer stackall_worker(gpointer garg) {
 	com.script = TRUE;
 
 	siril_log_message(_("Looking for sequences in current working directory...\n"));
-	if (check_seq(FALSE) || (dir = g_dir_open(com.wd, 0, &error)) == NULL) {
+	if (check_seq() || (dir = g_dir_open(com.wd, 0, &error)) == NULL) {
 		siril_log_message(_("Error while searching sequences or opening the directory.\n"));
 		if (error) {
 			fprintf(stderr, "stackall: %s\n", error->message);

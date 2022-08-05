@@ -161,7 +161,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		g_free(basename);
 
 		// replace active sequence by upscaled
-		if (check_seq(0)) {	// builds the new .seq
+		if (check_seq()) {	// builds the new .seq
 			free(seqname);
 			return 1;
 		}

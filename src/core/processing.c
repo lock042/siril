@@ -355,7 +355,7 @@ gboolean end_generic_sequence(gpointer p) {
 			args->new_seq_prefix && !args->retval) {
 		gchar *basename = g_path_get_basename(args->seq->seqname);
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
-		check_seq(0);
+		check_seq();
 		update_sequences_list(seqname);
 		free(seqname);
 		g_free(basename);

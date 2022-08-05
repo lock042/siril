@@ -545,7 +545,7 @@ static gboolean end_convert_idle(gpointer p) {
 				sprintf(converted_seqname, "%s.seq", args->destroot);
 			}
 		}
-		check_seq(0);
+		check_seq();
 		if (converted_seqname) {
 			update_sequences_list(converted_seqname);
 			free(converted_seqname);

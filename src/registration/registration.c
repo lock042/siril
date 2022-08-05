@@ -1210,7 +1210,7 @@ static gboolean end_register_idle(gpointer p) {
 			set_layers_for_registration();	// update display of available reg data
 		}
 		else {
-			check_seq(0);
+			check_seq();
 			update_sequences_list(args->new_seq_name);
 		}
 	}

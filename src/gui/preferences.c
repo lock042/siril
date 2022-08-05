@@ -97,15 +97,14 @@ static void update_astrometry_preferences() {
 }
 
 static void update_prepro_preferences() {
-	if (com.pref.prepro.bias_lib) {
+	if (com.pref.prepro.bias_lib)
 		g_free(com.pref.prepro.bias_lib);
-		com.pref.prepro.bias_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib")));
-	}
+
+	com.pref.prepro.bias_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_bias_lib")));
 	com.pref.prepro.use_bias_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias")));
 
-	if (com.pref.prepro.bias_synth) {
+	if (com.pref.prepro.bias_synth)
 		g_free(com.pref.prepro.bias_synth);
-	}
 	const gchar *entry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("bias_synth_entry")));
 
 	if (entry) {
@@ -113,15 +112,16 @@ static void update_prepro_preferences() {
 		com.pref.prepro.use_bias_synth = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias_bis")));
 	}
 
-	if (com.pref.prepro.dark_lib) {
+	if (com.pref.prepro.dark_lib)
 		g_free(com.pref.prepro.dark_lib);
-		com.pref.prepro.dark_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib")));
-	}
+
+	com.pref.prepro.dark_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_dark_lib")));
 	com.pref.prepro.use_dark_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark")));
-	if (com.pref.prepro.flat_lib) {
+
+	if (com.pref.prepro.flat_lib)
 		g_free(com.pref.prepro.flat_lib);
-		com.pref.prepro.flat_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib")));
-	}
+
+	com.pref.prepro.flat_lib = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_flat_lib")));
 	com.pref.prepro.use_flat_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")));
 
 	com.pref.prepro.xtrans_af.x = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_x"))), NULL, 10);

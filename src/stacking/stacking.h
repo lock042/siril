@@ -102,6 +102,11 @@ struct stacking_configuration {
 	gboolean apply_nbstack_weights;
 };
 
+typedef struct {
+	GDateTime *date_obs;
+	gdouble exposure;
+} DateEvent;
+
 
 /*
  * ESD test statistic data.
@@ -172,5 +177,10 @@ void remove_tmp_drizzle_files(struct stacking_args *args);
 	/* rejection_float.c */
 
 int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, guint64 crej[2]);
+
+	/* keeping metadata */
+void free_list_date(gpointer data);
+DateEvent* new_date_item(GDateTime *dt, gdouble exposure);
+void compute_date_time_keywords(GList *list_date, fits *fit);
 
 #endif

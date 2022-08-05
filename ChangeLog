@@ -20,6 +20,7 @@ xx/xx/22
 * Added star list importing from the NINA exoplanet plugin for light curve creation
 * Added relaxed mode for star detection for particularly bad images
 * Added crop to selection to the rotation geometric transform
+* Added a way to clean sequence file in the sequence tab (see also command seqclean)
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored registration and added Apply Existing Registration method
@@ -42,6 +43,7 @@ xx/xx/22
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
 * Fixed photometry analysis of stars with negative pixels around them
+* Fixed dates keywords in sum and min/max algorithms
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 
 siril 1.0.4

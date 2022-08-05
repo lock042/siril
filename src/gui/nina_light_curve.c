@@ -15,8 +15,8 @@ static GtkWidget *use_gnuplotGUI = NULL;
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data);
 
 static void build_the_dialog() {
-	dialog = gtk_dialog_new_with_buttons("Light curve with NINA star list", NULL,
-			0, "_OK", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
+	dialog = gtk_dialog_new_with_buttons(_("Light curve with NINA star list"), NULL,
+			0, _("_OK"), GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
 	// the GtkDialog::response signal with the corresponding response ID
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
@@ -39,11 +39,11 @@ static void build_the_dialog() {
 	use_comp1 = gtk_check_button_new_with_label(_("Use comparative stars selected for their color"));
 	use_comp2 = gtk_check_button_new_with_label(_("Use comparative stars selected by the AAVSO"));
 	use_gnuplotGUI = gtk_check_button_new_with_label(_("Display the light curve"));
-	g_object_set(G_OBJECT(use_comp1), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(use_comp1), "margin-right", 15, NULL);
-	g_object_set(G_OBJECT(use_comp2), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(use_comp2), "margin-right", 15, NULL);
-	g_object_set(G_OBJECT(use_gnuplotGUI), "margin", 15, NULL);
+	g_object_set(G_OBJECT(use_comp1), "margin-left", 6, NULL);
+	g_object_set(G_OBJECT(use_comp1), "margin-right", 6, NULL);
+	g_object_set(G_OBJECT(use_comp2), "margin-left", 6, NULL);
+	g_object_set(G_OBJECT(use_comp2), "margin-right", 6, NULL);
+	g_object_set(G_OBJECT(use_gnuplotGUI), "margin", 6, NULL);
 	gtk_widget_set_tooltip_text(use_comp1, _("Color similar to the target mean they will get extincted the same way by the changing atmosphere"));
 	gtk_widget_set_tooltip_text(use_comp2, _("The AAVSO gives stars that are know to not be variable"));
 	gtk_widget_set_tooltip_text(use_gnuplotGUI, _("if not checked, a PNG image of the graph will be generated instead (if gnuplot is available, for both cases)"));
