@@ -2794,6 +2794,7 @@ int process_seq_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->forcepx = FALSE;
 	args->update_GUI = FALSE;
+	args->save_to_file = TRUE;
 
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 
