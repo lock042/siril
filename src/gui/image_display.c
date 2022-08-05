@@ -65,6 +65,7 @@ struct mtf_params stf[3];
 /* widgets for draw_reg_data*/
 GtkComboBox *seqcombo;
 GtkToggleButton *drawframe;
+static GtkWidget *rotation_dlg = NULL;
 
 static void invalidate_image_render_cache(int vport);
 
@@ -551,13 +552,56 @@ static void draw_main_image(const draw_data_t* dd) {
 	}
 }
 
+gboolean get_context_rotation_matrix(double rotation, cairo_matrix_t *transform, gboolean invert) {
+	if (rotation == 0.) return FALSE;
+	double dx = (double)com.selection.x + (double)com.selection.w * 0.5;
+	double dy = (double)com.selection.y + (double)com.selection.h * 0.5;
+	cairo_matrix_init_translate(transform, dx, dy);
+	cairo_matrix_rotate(transform, rotation * DEGTORAD);
+	cairo_matrix_translate(transform, -dx, -dy);
+	if (invert) return (cairo_matrix_invert(transform) == CAIRO_STATUS_SUCCESS);
+	return TRUE;
+}
+
+static void rotate_context(cairo_t *cr, double rotation) {
+	cairo_matrix_t transform;
+	if (!get_context_rotation_matrix(rotation, &transform, FALSE)) return;
+	cairo_transform(cr, &transform);
+}
+
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
+		if ((com.selection.x + com.selection.w > gfit.rx) ||
+		(com.selection.y + com.selection.h > gfit.ry)) {
+			rectangle area = {0, 0, gfit.rx, gfit.ry};
+			memcpy(&com.selection, &area, sizeof(rectangle));
+		}
+		if (!rotation_dlg) rotation_dlg = lookup_widget("rotation_dialog");
 		cairo_t *cr = dd->cr;
 		static double dash_format[] = { 4.0, 2.0 };
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 		cairo_set_dash(cr, dash_format, 2, 0);
 		cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+		cairo_save(cr); // save the original transform
+		if (gtk_widget_is_visible(rotation_dlg)) {
+			double dashes2[]={5.0, 5.0};
+			cairo_set_dash(cr, dashes2, 2, 0);
+			cairo_set_line_width(cr, 0.5 / dd->zoom);
+			cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
+						(double) com.selection.w, (double) com.selection.h);
+			cairo_stroke(cr);
+			cairo_set_line_width(cr, 3. / dd->zoom);
+			cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
+			rotate_context(cr, -gui.rotation); // cairo is positive CW while opencv is positive CCW
+			
+			// draw a circle at top left corner to visualize rots larger than 90
+			double size = 10. / dd->zoom;
+			cairo_set_dash(cr, NULL, 0, 0);
+			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * M_PI);
+			cairo_stroke_preserve(cr);
+			cairo_fill(cr);
+			cairo_set_dash(cr, dash_format, 2, 0);
+		}
 		cairo_rectangle(cr, (double) com.selection.x, (double) com.selection.y,
 						(double) com.selection.w, (double) com.selection.h);
 		cairo_stroke(cr);
@@ -578,7 +622,7 @@ static void draw_selection(const draw_data_t* dd) {
 		}
 
 		// display a mini cross when the selection is being dragged
-		if (gui.freezeX && gui.freezeY) {
+		if ((gui.freezeX && gui.freezeY) || gtk_widget_is_visible(rotation_dlg)) {
 			cairo_set_line_width(cr, 1.0 / dd->zoom);
 			point selection_center = { com.selection.x + (double)com.selection.w / 2.,
 				com.selection.y + (double)com.selection.h / 2. };
@@ -588,6 +632,7 @@ static void draw_selection(const draw_data_t* dd) {
 			cairo_line_to(cr, selection_center.x + 5 / dd->zoom, selection_center.y);
 			cairo_stroke(cr);
 		}
+		cairo_restore(cr); // restore the original transform
 	}
 }
 
@@ -810,6 +855,7 @@ static void draw_compass(const draw_data_t* dd) {
 	cairo_move_to(cr, (len / 2) * 2.0, -0.1 * len);
 	cairo_rotate(cr, -angleE);
 	cairo_show_text(cr, "E");
+	cairo_stroke(cr);
 	cairo_restore(cr); // restore the original transform
 }
 
@@ -827,12 +873,11 @@ static label_point *new_label_point(double height, const double *pix1, const dou
 	return pt;
 }
 
-static int has_pole(fits *fit, double width, double height) {
-	double x, y;
-	wcs2pix(fit, 0., 90., &x, &y);
-	if ((x >= 0.) && (x <= width) && (y >= 0.) && (y <= height)) return 1;
-	wcs2pix(fit, 0., -90., &x, &y);
-	if ((x >= 0.) && (x <= width) && (y >= 0.) && (y <= height)) return -1;
+static int has_pole(fits *fit) {
+	if (!wcs2pix(fit, 0., 90., NULL, NULL))
+		return 1;
+	if (!wcs2pix(fit, 0., -90., NULL, NULL))
+		return -1;
 	return 0;
 }
 
@@ -901,7 +946,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
 	const double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
 	int pixtype[4] = { 1, 0, 1, 0 }; // y, x, y, x
-	int polesign = has_pole(fit, width, height);
+	int polesign = has_pole(fit);
 
 	/* calculate DEC step size */
 	if (range > 16.0) {
@@ -958,9 +1003,9 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_line_to(cr, x2, y2);
 				cairo_stroke(cr);
 			}
-				// check crossing
+			// check crossing
 			if (!(((xa >= 0) && (ya >= 0) && (xa < width) && (ya < height))
-				&& ((xb >= 0) && (yb >= 0) && (xb < width) && (yb < height)))) {
+						&& ((xb >= 0) && (yb >= 0) && (xb < width) && (yb < height)))) {
 				for (int k = 0; k < 4; k ++) {
 					if (get_line_intersection(xa, ya, xb, yb, pixbox[k][0], pixbox[k][1], pixbox[k+1][0], pixbox[k+1][1], NULL, NULL)) {
 						world[0] = di;
@@ -1079,6 +1124,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_move_to(cr, dx, dy);
 				cairo_text_extents(cr, tag, &te2);
 				cairo_show_text(cr, tag);
+				cairo_stroke(cr);
 				cairo_restore(cr); // restore the orginal transform
 			} else {
 				g_free(tag);
@@ -1131,10 +1177,8 @@ static void draw_annotates(const draw_data_t* dd) {
 
 		radius = radius / resolution / 60.0;
 
-		wcs2pix(&gfit, world_x, world_y, &x, &y);
-		y = height - y;
-
-		if (x > 0 && x < width && y > 0 && y < height) {
+		if (!wcs2pix(&gfit, world_x, world_y, &x, &y)) {
+			y = height - y - 1;
 			point offset = {10, -10};
 			if (radius < 0) {
 				// objects we don't have an accurate location (LdN, Sh2)
@@ -1233,7 +1277,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	int activelayer = gtk_combo_box_get_active(seqcombo);
 	if (!layer_has_registration(&com.seq, activelayer)) return;
 	if (com.seq.reg_invalidated) return;
-	int min, max; 
+	int min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
 	if (max <= -1) return;
 
@@ -1382,6 +1426,8 @@ void redraw(remap_type doremap) {
 			}
 			if (gfit.naxis == 3)
 				remaprgb();
+			/* redraw the 9-panel mosaic dialog if needed */
+			redraw_aberration_inspector();
 			break;
 		default:
 			siril_debug_print("UNKNOWN REMAP\n\n");

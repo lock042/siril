@@ -368,6 +368,7 @@ static int save_list(gchar *filename) {
 		g_free(buffer);
 	}
 	siril_log_message(_("The file %s has been created.\n"), filename);
+	g_object_unref(output_stream);
 	g_object_unref(file);
 
 	return 0;

@@ -335,6 +335,7 @@ the_end:
 		args->retval = 1;
 	}
 
+	int retval = args->retval;	// so we can free args if needed in the idle
 	if (args->already_in_a_thread) {
 		if (args->idle_function)
 			args->idle_function(args);
@@ -343,7 +344,7 @@ the_end:
 			siril_add_idle(args->idle_function, args);
 		else siril_add_idle(end_generic_sequence, args);
 	}
-	return GINT_TO_POINTER(args->retval);
+	return GINT_TO_POINTER(retval);
 }
 
 // default idle function (in GTK main thread) to run at the end of the generic sequence processing
@@ -354,7 +355,7 @@ gboolean end_generic_sequence(gpointer p) {
 			args->new_seq_prefix && !args->retval) {
 		gchar *basename = g_path_get_basename(args->seq->seqname);
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
-		check_seq(0);
+		check_seq();
 		update_sequences_list(seqname);
 		free(seqname);
 		g_free(basename);
@@ -664,6 +665,32 @@ struct generic_seq_args *create_default_seqargs(sequence *seq) {
 	args->upscale_ratio = 1.0;
 	args->parallel = TRUE;
 	return args;
+}
+
+gpointer generic_sequence_metadata_worker(gpointer arg) {
+	struct generic_seq_metadata_args *args = (struct generic_seq_metadata_args *)arg;
+	struct timeval t_start, t_end;
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	for (int frame = 0; frame < args->seq->number; frame++) {
+		fits fit = { 0 };
+		//if (seq_read_frame_metadata(args->seq, i, &fit))
+		//	return 1;
+		if (seq_open_image(args->seq, frame))
+			return GINT_TO_POINTER(1);
+		if (args->seq->type == SEQ_REGULAR)
+			args->image_hook(args, args->seq->fptr[frame], frame);
+		else args->image_hook(args, args->seq->fitseq_file->fptr, frame);
+		seq_close_image(args->seq, frame);
+		clearfits(&fit);
+	}
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	free_sequence(args->seq, TRUE);
+	g_free(args->key);
+	free(args);
+	siril_add_idle(end_generic, NULL);
+	return 0;
 }
 
 /********** per-image threading **********/

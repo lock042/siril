@@ -33,17 +33,18 @@
 #include "annotate.h"
 
 #define USER_CATALOGUE "user-catalogue.txt"
+#define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec
 
-static GSList *siril_catalogue_list = NULL;
+static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
 static gboolean show_catalog(int catalog);
 
 static const gchar *cat[] = {
-		"messier.txt",
-		"ngc.txt",
-		"ic.txt",
-		"ldn.txt",
-		"sh2.txt",
-		"stars.txt"
+	"messier.txt",
+	"ngc.txt",
+	"ic.txt",
+	"ldn.txt",
+	"sh2.txt",
+	"stars.txt"
 };
 
 struct _CatalogObjects {
@@ -71,11 +72,29 @@ static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 	return object;
 }
 
-static gboolean is_inside(fits *fit, double ra, double dec) {
-	double x, y;
+static const char *cat_index_to_name(int index) {
+	switch (index) {
+		case 0:
+			return "Messier";
+		case 1:
+			return "NGC";
+		case 2:
+			return "IC";
+		case 3:
+			return "LDN";
+		case 4:
+			return "Sh2";
+		case 5:
+			return "stars";
+		case 6:
+			return "user";
+		default:
+			return "(undefined)";
+	}
+}
 
-	if (wcs2pix(fit, ra, dec, &x, &y)) return FALSE;
-	return (x > 0 && x < fit->rx && y > 0 && y < fit->ry);
+static gboolean is_inside(fits *fit, double ra, double dec) {
+	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
 }
 
 static gint object_compare(gconstpointer *a, gconstpointer *b) {
@@ -84,19 +103,20 @@ static gint object_compare(gconstpointer *a, gconstpointer *b) {
 
 	if (!s1->alias) return 1;
 
-	gchar **token = g_strsplit(s1->alias, "/", -1);
-	guint nargs = g_strv_length(token);
-
-	if (nargs == 1)
+	if (!strchr(s1->alias, '/'))
 		return g_strcmp0(s1->alias, s2->code);
-	else {
-		for (int i = 0; i < nargs; i++) {
-			if (!g_strcmp0(token[i], s2->code)) {
-				return 0;
-			}
+
+	gchar **token = g_strsplit(s1->alias, "/", -1);
+	guint i = 0;
+	while (token[i]) {
+		if (!g_strcmp0(token[i], s2->code)) {
+			g_strfreev(token);
+			return 0;
 		}
-		return 1;
+		i++;
 	}
+	g_strfreev(token);
+	return 1;
 }
 
 /**
@@ -198,36 +218,36 @@ static gboolean is_catalogue_loaded() {
 }
 
 typedef struct {
-	char *greek;			// Greek letter of stars
-	char *latin;			// Greek letter written in Latin
+	const char *greek;		// Greek letter of stars
+	const char *latin;		// Greek letter written in Latin
 } GreekLetters;
 
 static GreekLetters convert_to_greek[] = {
-        { "\u03b1", "alf" },
-        { "\u03b2", "bet" },
-        { "\u03b3", "gam" },
-        { "\u03b4", "del" },
-        { "\u03b5", "eps" },
-        { "\u03b6", "zet" },
-        { "\u03b7", "eta" },
-        { "\u03b8", "tet" },
-        { "\u03b9", "iot" },
-        { "\u03ba", "kap" },
-        { "\u03bb", "lam" },
-        { "\u03bc", "mu." },
-        { "\u03bd", "nu." },
-        { "\u03be", "ksi" },
-        { "\u03bf", "omi" },
-        { "\u03c0", "pi." },
-        { "\u03c1", "rho" },
-        { "\u03c3", "sig" },
-        { "\u03c4", "tau" },
-        { "\u03c5", "ups" },
-        { "\u03c6", "phi" },
-        { "\u03c7", "chi" },
-        { "\u03c8", "psi" },
-        { "\u03c9", "ome" },
-		{ NULL, NULL }
+	{ "\u03b1", "alf" },
+	{ "\u03b2", "bet" },
+	{ "\u03b3", "gam" },
+	{ "\u03b4", "del" },
+	{ "\u03b5", "eps" },
+	{ "\u03b6", "zet" },
+	{ "\u03b7", "eta" },
+	{ "\u03b8", "tet" },
+	{ "\u03b9", "iot" },
+	{ "\u03ba", "kap" },
+	{ "\u03bb", "lam" },
+	{ "\u03bc", "mu." },
+	{ "\u03bd", "nu." },
+	{ "\u03be", "ksi" },
+	{ "\u03bf", "omi" },
+	{ "\u03c0", "pi." },
+	{ "\u03c1", "rho" },
+	{ "\u03c3", "sig" },
+	{ "\u03c4", "tau" },
+	{ "\u03c5", "ups" },
+	{ "\u03c6", "phi" },
+	{ "\u03c7", "chi" },
+	{ "\u03c8", "psi" },
+	{ "\u03c9", "ome" },
+	{ NULL, NULL }
 };
 
 static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
@@ -338,7 +358,21 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
 
-	/* TODO: check for the object first to avoid duplicates */
+	/* check for the object first to avoid duplicates */
+	GSList *cur = siril_catalogue_list;
+	double ra = siril_world_cs_get_alpha(wcs);
+	double dec = siril_world_cs_get_delta(wcs);
+	while (cur) {
+		CatalogObjects *obj = cur->data;
+		if (fabs(obj->ra - ra) < CATALOG_DIST_EPSILON &&
+				fabs(obj->dec - dec) < CATALOG_DIST_EPSILON) {
+			siril_log_message(_("The object was already found in the %s catalog under the name %s, not adding it again\n"), cat_index_to_name(obj->catalogue), obj->code);
+			return;
+		}
+
+		cur = cur->next;
+	}
+
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
 			NULL, NULL, cat_size);
@@ -406,7 +440,7 @@ static gboolean show_catalog(int catalog) {
 void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	int confirm = siril_confirm_dialog(_("Catalogue deletion"),
 			_("You are about to purge user catalogue. This means the file containing the manually added objects will be deleted. "
-					"This operation cannot be undone."), _("Purge Catalogue"));
+				"This operation cannot be undone."), _("Purge Catalogue"));
 	if (!confirm) {
 		return;
 	}

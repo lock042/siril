@@ -231,7 +231,8 @@ static void _3stars_free_results() {
 static int _3stars_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
-	spsfargs->for_registration = TRUE; // if false, photometry is computed
+	spsfargs->for_photometry = FALSE;
+	spsfargs->allow_use_as_regdata = BOOL_FALSE;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));

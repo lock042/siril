@@ -31,6 +31,7 @@
 #include "algos/noise.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
+#include "algos/ccd-inspector.h"
 #include "compositing/compositing.h"
 #include "gui/about_dialog.h"
 #include "gui/utils.h"
@@ -50,6 +51,8 @@
 #include "livestacking/livestacking.h"
 #include "gui/registration_preview.h"
 #include "registration/registration.h"
+#include "gui/remixer.h"
+
 #include "siril_actions.h"
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -119,7 +122,9 @@ void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+#ifdef HAVE_JSON_GLIB
 	siril_check_updates(TRUE);
+#endif
 }
 
 static gboolean is_extended = FALSE;
@@ -328,7 +333,9 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		return;
 	if (!(com.selection.h && com.selection.w))
 		return;
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, com.pref.phot_set.force_radius, TRUE, NULL);
+	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, ps, TRUE, NULL);
+	free(ps);
 	if (!result)
 		return;
 
@@ -434,6 +441,10 @@ void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	evaluate_noise_in_image();
 }
 
+void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	compute_aberration_inspector();
+}
+
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("file_information");
 }
@@ -507,7 +518,11 @@ void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (com.selection.w == 0 || com.selection.h == 0) {
+		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
+	}
 	siril_open_dialog("rotation_dialog");
+	redraw(REDRAW_OVERLAY);
 }
 
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -564,10 +579,18 @@ void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpoint
 	open_compositing_window();
 }
 
+void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	toggle_remixer_window_visibility(CALL_FROM_MENU, NULL, NULL);
+}
+
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("pixel_math_dialog");
 }
 
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("split_cfa_dialog");
+}
+
+void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("nina_light_curve");
 }

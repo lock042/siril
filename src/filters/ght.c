@@ -373,7 +373,7 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 	return 0;
 }
 
-void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params) {
+void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params, gboolean multithreaded) {
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -391,14 +391,13 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 //			params.B, params.D, params.LP, params.SP, params.HP);
 	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params.B, params.D, params.LP, params.SP, params.HP, params.stretchtype);
-
 	if (from->type == DATA_USHORT) {
 		double norm = get_normalized_value(from);
 		double invnorm = 1.0f / norm;
 		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
 //			siril_log_message(_("Luminance stretch (16bit)\n"));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
 				double r = (double)from->pdata[RLAYER][i] * invnorm;
@@ -413,7 +412,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 		} else {
 //			siril_log_message(_("Independent stretch (16bit)\n"));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0; i < ndata; i++) {
 				double pxl = (double)from->data[i] * invnorm;
@@ -424,7 +423,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
 //			siril_log_message(_("Luminance stretch (32bit)\n"));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
 				double r = (double)from->fpdata[RLAYER][i];
@@ -439,7 +438,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 		} else {
 //			siril_log_message(_("Independent stretch (32bit)\n"));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0; i < ndata; i++) {
 				to->fdata[i] = (from->fdata[i] == 0.0) ? 0.0 : min(1.0, max(0.0, GHTp(from->fdata[i], params, compute_params)));

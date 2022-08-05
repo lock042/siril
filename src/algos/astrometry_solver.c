@@ -1027,33 +1027,17 @@ void flip_bottom_up_astrometry_data(fits *fit) {
 	print_updated_wcs_data(fit);
 }
 
-void flip_left_right_astrometry_data(fits *fit) {
-	/* flip pc matrix */
-	fit->wcsdata.pc[0][0] = -fit->wcsdata.pc[0][0];
-	fit->wcsdata.pc[1][0] = -fit->wcsdata.pc[1][0];
-
-	/* update crpix */
-	fit->wcsdata.crpix[0] = fit->rx - fit->wcsdata.crpix[0];
-
-	print_updated_wcs_data(fit);
-}
-
-void rotate_astrometry_data(fits *fit, point center, double angle, gboolean cropped) {
+void reframe_astrometry_data(fits *fit, Homography H) {
 	double pc1_1, pc1_2, pc2_1, pc2_2;
 	point refpointout;
-
-	const double2 sincosval = xsincos(angle * DEGTORAD);
-	double sa, ca;
-	sa = sincosval.x;
-	ca = sincosval.y;
-
-	pc1_1 =  ca * fit->wcsdata.pc[0][0] + sa * fit->wcsdata.pc[0][1];
-	pc1_2 = -sa * fit->wcsdata.pc[0][0] + ca * fit->wcsdata.pc[0][1];
-	pc2_1 =  ca * fit->wcsdata.pc[1][0] + sa * fit->wcsdata.pc[1][1];
-	pc2_2 = -sa * fit->wcsdata.pc[1][0] + ca * fit->wcsdata.pc[1][1];
+	
+	pc1_1 = H.h00 * fit->wcsdata.pc[0][0] + H.h01 * fit->wcsdata.pc[0][1];
+	pc1_2 = H.h10 * fit->wcsdata.pc[0][0] + H.h11 * fit->wcsdata.pc[0][1];
+	pc2_1 = H.h00 * fit->wcsdata.pc[1][0] + H.h01 * fit->wcsdata.pc[1][1];
+	pc2_2 = H.h10 * fit->wcsdata.pc[1][0] + H.h11 * fit->wcsdata.pc[1][1];
 
 	point refpointin = {fit->wcsdata.crpix[0], fit->wcsdata.crpix[1]};
-	cvRotateImageRefPoint(fit, center, angle, cropped, refpointin, &refpointout);
+	cvTransformImageRefPoint(H, refpointin, &refpointout);
 
 	fit->wcsdata.pc[0][0] = pc1_1;
 	fit->wcsdata.pc[0][1] = pc1_2;
@@ -1063,18 +1047,6 @@ void rotate_astrometry_data(fits *fit, point center, double angle, gboolean crop
 	fit->wcsdata.crpix[1] = refpointout.y;
 
 	print_updated_wcs_data(fit);
-}
-
-void crop_astrometry_data(fits *fit, point shift) {
-	fit->wcsdata.crpix[0] -= shift.x;
-	fit->wcsdata.crpix[1] -= shift.y;
-
-	print_updated_wcs_data(fit);
-	load_WCS_from_memory(fit); //need to update before pix2wcs - will be called once again by the crop function to update ra/dec
-
-	center2wcs(fit, &fit->wcsdata.ra, &fit->wcsdata.dec);
-	if (fit->wcsdata.ra != -1.)
-		update_coords(); //to have plate solve window well-centered in case of subsequent call
 }
 
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]) {
@@ -1514,6 +1486,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		// first checking if there is a selection or if the full field is to be used
 		if (com.selection.w != 0 && com.selection.h != 0) {
 			memcpy(&croparea, &com.selection, sizeof(rectangle));
+			siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
 		} else {
 			croparea.x = 0;
 			croparea.y = 0;

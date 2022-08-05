@@ -670,3 +670,4 @@ gint strcompare(gconstpointer *a, gconstpointer *b) {
 
 	return result;
 }
+

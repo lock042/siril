@@ -19,6 +19,7 @@
  */
 
 #include <criterion/criterion.h>
+#include <math.h>
 #include "core/siril_world_cs.h"
 
 
@@ -36,26 +37,26 @@
 int test_parsing() {
 	SirilWorldCS *ecs = siril_world_cs_new_from_objct_ra_dec("02:13:42.6", "-4:0:36");
 	CHECK(ecs, "did not parse with colon separator\n");
-	CHECK(abs(siril_world_cs_get_alpha(ecs) - 33.4275) < 0.00001, "bad alpha parse\n");
-	CHECK(abs(siril_world_cs_get_delta(ecs) - -4.01) < 0.00001, "bad delta parse\n");
+	CHECK(fabs(siril_world_cs_get_alpha(ecs) - 33.4275) < 0.00001, "bad alpha parse\n");
+	CHECK(fabs(siril_world_cs_get_delta(ecs) - -4.01) < 0.00001, "bad delta parse\n");
 	siril_world_cs_unref(ecs);
 
 	ecs = siril_world_cs_new_from_objct_ra_dec("02 13 42.6", "-4 0 36");
 	CHECK(ecs, "did not parse with space separator\n");
-	CHECK(abs(siril_world_cs_get_alpha(ecs) - 33.4275) < 0.00001, "bad alpha parse\n");
-	CHECK(abs(siril_world_cs_get_delta(ecs) - -4.01) < 0.00001, "bad delta parse\n");
+	CHECK(fabs(siril_world_cs_get_alpha(ecs) - 33.4275) < 0.00001, "bad alpha parse\n");
+	CHECK(fabs(siril_world_cs_get_delta(ecs) - -4.01) < 0.00001, "bad delta parse\n");
 	siril_world_cs_unref(ecs);
 
 	ecs = siril_world_cs_new_from_objct_ra_dec("33.4275", "-4.01");
 	CHECK(ecs, "did not parse decimal\n");
-	CHECK(abs(siril_world_cs_get_alpha(ecs) - 33.4275) < 0.00001, "bad alpha parse\n");
-	CHECK(abs(siril_world_cs_get_delta(ecs) - -4.01) < 0.00001, "bad delta parse\n");
+	CHECK(fabs(siril_world_cs_get_alpha(ecs) - 33.4275) < 0.00001, "bad alpha parse\n");
+	CHECK(fabs(siril_world_cs_get_delta(ecs) - -4.01) < 0.00001, "bad delta parse\n");
 	siril_world_cs_unref(ecs);
 
 	ecs = siril_world_cs_new_from_objct_ra_dec("0", "4:00:36");
 	CHECK(ecs, "did not parse decimal\n");
-	CHECK(abs(siril_world_cs_get_alpha(ecs)) < 0.00000001, "bad alpha parse\n");
-	CHECK(abs(siril_world_cs_get_delta(ecs) - 4.01) < 0.00001, "bad delta parse\n");
+	CHECK(fabs(siril_world_cs_get_alpha(ecs)) < 0.00000001, "bad alpha parse\n");
+	CHECK(fabs(siril_world_cs_get_delta(ecs) - 4.01) < 0.00001, "bad delta parse\n");
 	siril_world_cs_unref(ecs);
 
 	return 0;

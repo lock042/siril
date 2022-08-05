@@ -20,108 +20,112 @@
 
 #include <gtk/gtk.h>
 #include "core/siril_actions.h"
+#include "gui/nina_light_curve.h"
 
 static GActionEntry win_entries[] = {
-		{ "close", close_action_activate },
-		{ "undo", undo_action_activate },
-		{ "redo", redo_action_activate },
-		{ "scripts", scripts_action_activate },
-		{ "updates", updates_action_activate },
-		{ "full-screen", full_screen_activated},
-		{ "hide-show-toolbar", toolbar_activate },
-		{ "shortcuts", keyboard_shortcuts_activated},
-		{ "cwd", cwd_action_activate },
-		{ "livestacking", livestacking_action_activate },
-		{ "panel", panel_activate },
+	{ "close", close_action_activate },
+	{ "undo", undo_action_activate },
+	{ "redo", redo_action_activate },
+	{ "scripts", scripts_action_activate },
+	{ "updates", updates_action_activate },
+	{ "full-screen", full_screen_activated},
+	{ "hide-show-toolbar", toolbar_activate },
+	{ "shortcuts", keyboard_shortcuts_activated},
+	{ "cwd", cwd_action_activate },
+	{ "livestacking", livestacking_action_activate },
+	{ "panel", panel_activate },
 
-		{ "conversion", tab_conversion_activate },
-		{ "sequence", tab_sequence_activate },
-		{ "registration", tab_registration_activate },
-		{ "prepro", tab_prepro_activate },
-		{ "plot", tab_plot_activate },
-		{ "stacking", tab_stacking_activate },
-		{ "logs", tab_logs_activate }
+	{ "conversion", tab_conversion_activate },
+	{ "sequence", tab_sequence_activate },
+	{ "registration", tab_registration_activate },
+	{ "prepro", tab_prepro_activate },
+	{ "plot", tab_plot_activate },
+	{ "stacking", tab_stacking_activate },
+	{ "logs", tab_logs_activate }
 };
 
 static GActionEntry image_entries[] = {
-		{ "bit-depth", NULL },
-		{ "zoom-out", zoom_out_activate },
-		{ "zoom-in", zoom_in_activate },
-		{ "zoom-fit", zoom_fit_activate, NULL, "true", change_zoom_fit_state },
-		{ "zoom-one", zoom_one_activate },
-		{ "negative-view", negative_view_activate, NULL, "false", negative_view_state },
-		{ "color-map", color_map_activate, NULL, "false", color_map_state },
-		{ "chain-chan", chain_channels_activate, NULL, "true", chain_channels_state_change },
-		{ "snapshot", snapshot_action_activate },
-		{ "clipboard", clipboard_action_activate },
-		{ "fits-header", image_fits_header_activate },
-		{ "statistics", statistics_activate },
-		{ "evaluate-noise", noise_activate },
-		{ "astrometry", astrometry_activate },
-		{ "photometry", photometry_activate, NULL, "false", photometry_state },
-		{ "image-information", image_information_activate },
-		{ "dyn-psf", dyn_psf_activate },
-		{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
-		{ "wcs-grid", wcs_grid_activate, NULL, "false", wcs_grid_state },
-		{ "search-object", search_object_activate },
-		{ "seq-list", seq_list_activate },
-		{ "regframe", regframe_activate , NULL, "true", regframe_state }
+	{ "bit-depth", NULL },
+	{ "zoom-out", zoom_out_activate },
+	{ "zoom-in", zoom_in_activate },
+	{ "zoom-fit", zoom_fit_activate, NULL, "true", change_zoom_fit_state },
+	{ "zoom-one", zoom_one_activate },
+	{ "negative-view", negative_view_activate, NULL, "false", negative_view_state },
+	{ "color-map", color_map_activate, NULL, "false", color_map_state },
+	{ "chain-chan", chain_channels_activate, NULL, "true", chain_channels_state_change },
+	{ "snapshot", snapshot_action_activate },
+	{ "clipboard", clipboard_action_activate },
+	{ "fits-header", image_fits_header_activate },
+	{ "statistics", statistics_activate },
+	{ "evaluate-noise", noise_activate },
+	{ "ccd-inspector", ccd_inspector_activate },
+	{ "astrometry", astrometry_activate },
+	{ "photometry", photometry_activate, NULL, "false", photometry_state },
+	{ "image-information", image_information_activate },
+	{ "dyn-psf", dyn_psf_activate },
+	{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
+	{ "wcs-grid", wcs_grid_activate, NULL, "false", wcs_grid_state },
+	{ "search-object", search_object_activate },
+	{ "seq-list", seq_list_activate },
+	{ "regframe", regframe_activate , NULL, "true", regframe_state }
 };
 
 static GActionEntry selection_entries[] = {
-		{ "pickstar", pick_star_activate },
-		{ "psf", psf_activate },
-		{ "crop", crop_activate }
+	{ "pickstar", pick_star_activate },
+	{ "psf", psf_activate },
+	{ "crop", crop_activate }
 };
 
 static GActionEntry selection_sequence_entries[] = {
-		{ "seq-psf", seq_psf_activate },
-		{ "seq-crop", seq_crop_activate }
+	{ "seq-psf", seq_psf_activate },
+	{ "seq-crop", seq_crop_activate }
 };
 
 static GActionEntry rgb_processing_entries[] = {
-		{ "remove-green-processing", remove_green_activate },
-		{ "saturation-processing", saturation_activate },
-		{ "color-calib-processing", color_calib_activate },
-		{ "pcc-processing", pcc_activate },
-		{ "split-channel-processing", split_channel_activate }
+	{ "remove-green-processing", remove_green_activate },
+	{ "saturation-processing", saturation_activate },
+	{ "color-calib-processing", color_calib_activate },
+	{ "pcc-processing", pcc_activate },
+	{ "split-channel-processing", split_channel_activate }
 };
 
 static GActionEntry any_processing_entries[] = {
-		{ "negative-processing", negative_activate },
-		{ "histo-processing", histo_activate },
-		{ "payne-processing", payne_activate },
-		{ "fix-banding-processing", fix_banding_activate },
-		{ "cosmetic-processing", cosmetic_activate },
-		{ "background-extr-processing", background_extr_activate }
+	{ "negative-processing", negative_activate },
+	{ "histo-processing", histo_activate },
+	{ "payne-processing", payne_activate },
+	{ "fix-banding-processing", fix_banding_activate },
+	{ "cosmetic-processing", cosmetic_activate },
+	{ "background-extr-processing", background_extr_activate }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
-		{ "split-cfa-processing", split_cfa_activate }
+	{ "split-cfa-processing", split_cfa_activate }
 };
 
 static GActionEntry single_processing_entries[] = {
-		{ "asinh-processing", asinh_activate },
-		{ "deconvolution-processing", deconvolution_activate },
-		{ "resample-processing", resample_activate },
-		{ "rotation-processing", rotation_activate },
-		{ "rotation90-processing", rotation90_activate },
-		{ "rotation270-processing", rotation270_activate },
-		{ "mirrorx-processing", mirrorx_activate },
-		{ "mirrory-processing", mirrory_activate },
-		{ "wavelets-processing", wavelets_activate },
-		{ "starnet-processing", starnet_activate },
-		{ "split-wavelets-processing", split_wavelets_activate },
-		{ "medianfilter-processing", medianfilter_activate },
-		{ "rgradient-processing", rgradient_activate },
-		{ "clahe-processing", clahe_activate },
-		{ "linearmatch-processing", linearmatch_activate }
+	{ "asinh-processing", asinh_activate },
+	{ "deconvolution-processing", deconvolution_activate },
+	{ "resample-processing", resample_activate },
+	{ "rotation-processing", rotation_activate },
+	{ "rotation90-processing", rotation90_activate },
+	{ "rotation270-processing", rotation270_activate },
+	{ "mirrorx-processing", mirrorx_activate },
+	{ "mirrory-processing", mirrory_activate },
+	{ "wavelets-processing", wavelets_activate },
+	{ "starnet-processing", starnet_activate },
+	{ "split-wavelets-processing", split_wavelets_activate },
+	{ "medianfilter-processing", medianfilter_activate },
+	{ "rgradient-processing", rgradient_activate },
+	{ "clahe-processing", clahe_activate },
+	{ "linearmatch-processing", linearmatch_activate }
 };
 
 static GActionEntry none_processing_entries[] = {
-		{ "fft-processing", fft_activate },
-		{ "rgb-compositing-processing", rgb_compositing_activate },
-		{ "pixel-math", pixel_math_activate }
+	{ "fft-processing", fft_activate },
+	{ "rgb-compositing-processing", rgb_compositing_activate },
+	{ "star-remix-processing", star_remix_activate },
+	{ "pixel-math", pixel_math_activate },
+	{ "nina_light_curve", nina_lc_activate }
 };
 
 static void _siril_window_enable_action_group(GActionMap *map,
@@ -150,6 +154,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"clipboard",
 		"statistics",
 		"evaluate-noise",
+		"ccd-inspector",
 		"astrometry",
 		"photometry",
 		"image-information",
@@ -228,6 +233,7 @@ void siril_window_enable_none_proc_actions(GtkApplicationWindow *window, gboolea
 	static const gchar *none_processing_actions[] = {
 		"fft-processing",
 		"rgb-compositing-processing",
+		"star-remix-processing",
 		"pixel-math",
 		NULL,
 	};

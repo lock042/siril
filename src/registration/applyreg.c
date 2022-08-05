@@ -61,7 +61,7 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 
 static gboolean compute_framing(struct registration_args *regargs) {
 	// validity of matrices has already been checked before this call
-	// and null matrices ahve been discarded
+	// and null matrices have been discarded
 	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	Homography Hshift = {0};
 	cvGetEye(&Hshift);
@@ -175,7 +175,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 		default:
 			return FALSE;
 	}
-	multH(Href, Hshift, &Htransf);
+	cvMultH(Href, Hshift, &Htransf);
 	rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
 	ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
 	return TRUE;

@@ -304,25 +304,13 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
+#ifdef HAVE_JSON_GLIB
 		/* Check for update */
-		if (com.pref.check_update)
+		if (com.pref.check_update) {
 			siril_check_updates(FALSE);
-#if 0 //we need to think about it
-		/* see https://gitlab.gnome.org/GNOME/gtk/issues/2342 */
-		NSEvent *focusevent;
-		g_warning("workaround for the GTK3 #2342 bug");
-		focusevent = [NSEvent
-			otherEventWithType: NSEventTypeAppKitDefined
-			location: NSZeroPoint
-			modifierFlags: 0x40
-			timestamp: 0
-			windowNumber: 0
-			context: nil
-			subtype: NSEventSubtypeApplicationActivated
-			data1: 0
-			data2: 0];
-
-		[NSApp postEvent:focusevent atStart:YES];
+		}
+#else
+		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
 #endif
 	}
 
@@ -345,7 +333,7 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 		if (ext && !strncmp(ext, "seq", 4)) {
 			gchar *sequence_dir = g_path_get_dirname(path);
 			if (!siril_change_dir(sequence_dir, NULL)) {
-				if (check_seq(FALSE)) {
+				if (check_seq()) {
 					siril_log_message(_("No sequence `%s' found.\n"), path);
 				} else {
 					set_seq(path);

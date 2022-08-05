@@ -40,6 +40,7 @@
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
+#include "gui/remixer.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
@@ -58,6 +59,8 @@
 #include <errno.h>
 
 #include "starnet.h"
+
+#ifdef HAVE_LIBTIFF
 
 // Check maximum path length - OSes except for Windows
 #ifndef _WIN32
@@ -153,6 +156,7 @@ static int exec_prog(const char **argv)
 	HANDLE hProcess;
 	int nExitCode = STILL_ACTIVE;
 	int fdStdOut;
+	gboolean has_started = FALSE;
 
 	if (_pipe(pipe_fds, 0x100, O_TEXT)) {
 		perror("pipe creation error");
@@ -176,6 +180,7 @@ static int exec_prog(const char **argv)
 				double value = g_ascii_strtod(buf, NULL);
 				if (value != 0.0 && value == value) { //
 					set_progress_bar_data("Running Starnet++", (value / 100));
+					if (!has_started) has_started = TRUE;
 				}
 			}
 			if(!GetExitCodeProcess(hProcess,(unsigned long*)&nExitCode))
@@ -187,6 +192,7 @@ static int exec_prog(const char **argv)
 		siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
  		return -1;
  	}
+	if (!has_started) return -1;
  	return 0;
 }
 #endif
@@ -219,6 +225,13 @@ gboolean starnet_executablecheck() {
 	}
 }
 
+gboolean end_and_call_remixer(gpointer p)
+{
+	struct remixargs *blendargs = (remixargs *) p;
+	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
+	return end_generic(NULL);
+}
+
 /* Starnet++v2 star removal routine */
 
 gpointer do_starnet(gpointer p) {
@@ -242,6 +255,10 @@ gpointer do_starnet(gpointer p) {
 	gchar starlesstif[pathmax];
 	gchar starlessfit[pathmax];
 	gchar starmaskfit[pathmax];
+#ifdef _WIN32
+	gchar qtemptif[pathmax];
+	gchar qstarlesstif[pathmax];
+#endif
 	char *imagenoext;
 	char *imagenoextorig;
 	gchar starnetsuffix[10] = "_starnet";
@@ -358,7 +375,7 @@ gpointer do_starnet(gpointer p) {
 	find_linked_midtones_balance_default(&workingfit, &params);
 	if (args->linear) {
 		siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
-		apply_linked_mtf_to_fits(&workingfit, &workingfit, params);
+		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Upscale if needed
@@ -396,6 +413,17 @@ gpointer do_starnet(gpointer p) {
 	if (args->customstride) my_argv[3] = args->stride;
 	// *** Call starnet++ *** //
 #ifdef _WIN32
+	// add quotes around full path in case there are spaces
+	memset(qtemptif, 0, sizeof(qtemptif));
+	strcat(qtemptif, "\"");
+	strcat(qtemptif, temptif);
+	strcat(qtemptif, "\"");
+	my_argv[1] = qtemptif;
+	memset(qstarlesstif, 0, sizeof(qstarlesstif));
+	strcat(qstarlesstif, "\"");
+	strcat(qstarlesstif,  starlesstif);
+	strcat(qstarlesstif,"\"");
+	my_argv[2] = qstarlesstif;
 	retval = exec_prog_win32(my_argv);
 #else
 	retval = exec_prog(my_argv);
@@ -422,6 +450,7 @@ gpointer do_starnet(gpointer p) {
 		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
 	}
+
 	// Downscale again if needed
 	if (args->upscale) {
 		siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
@@ -500,6 +529,15 @@ gpointer do_starnet(gpointer p) {
 	free(com.uniq->filename);
 	com.uniq->filename = strdup(_(starlessfit));
 
+	if (args->follow_on) {
+		struct remixargs *blendargs;
+		blendargs = calloc(1, sizeof(struct remixargs));
+		blendargs->fit1 = calloc(1, sizeof(fits));
+		blendargs->fit2 = calloc(1, sizeof(fits));
+		copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+		copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+		siril_add_idle(end_and_call_remixer, blendargs);
+	}
 
 	CLEANUP:
 	retval = g_chdir(currentdir);
@@ -519,7 +557,9 @@ gpointer do_starnet(gpointer p) {
 	free(currentdir);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	notify_gfit_modified();
-
+	if (!args->follow_on)
+		notify_gfit_modified();
+	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
+#endif

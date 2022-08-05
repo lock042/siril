@@ -58,7 +58,7 @@ static command commands[] = {
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
-	{"dumpheader", 0, "dumpheader", process_dumpheader, STR_DUMPHEADER, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"dumpheader", 0, "dumpheader", process_dumpheader, STR_DUMPHEADER, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE, REQ_CMD_NONE},
@@ -92,12 +92,14 @@ static command commands[] = {
 	/* commands open filename and current image */
 	{"iadd", 1, "iadd filename", process_imoper, STR_IADD, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"idiv", 1, "idiv filename", process_imoper, STR_IDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"light_curve", 3, "light_curve sequencename channel { -ninastars=file | { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...}", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
 	{"linstretch", 1, "linstretch BP", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -164,10 +166,11 @@ static command commands[] = {
 	{"seqcosme", 2, "seqcosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME, TRUE, REQ_CMD_NONE},
 	{"seqcosme_cfa", 2, "seqcosme_cfa sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqcrop", 5, "seqcrop sequencename x y width height [-prefix=]", process_seq_crop, STR_SEQCROP, TRUE, REQ_CMD_NO_THREAD},
+	{"seqheader", 2, "seqheader sequencename keyword", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME, TRUE, REQ_CMD_NONE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
-	{"seqpsf", 0, "seqpsf [sequencename channel [-at=x,y]]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
+	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqstat", 2, "seqstat sequencename output [option]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE, REQ_CMD_NONE},

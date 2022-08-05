@@ -32,14 +32,14 @@ struct tilt_data {
 	gboolean draw_polygon;
 	int nbstars;
 	float m, m1, m2, m3, m4, mr1, mr2;
-
 };
-
-typedef struct tilt_struct sensor_tilt;
 
 void clear_sensor_tilt();
 int draw_sensor_tilt(fits *fit);
 
 void apply_tilt_to_sequence(struct tilt_data *tilt_args);
+
+void compute_aberration_inspector();
+void redraw_aberration_inspector();
 
 #endif /* SRC_ALGOS_CCD_INSPECTOR_H_ */

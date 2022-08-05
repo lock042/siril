@@ -98,13 +98,13 @@ static void update_theme_button(const gchar *button_name, const gchar *path) {
 }
 
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data) {
-	/*Only surveys the name of the opened item vs the clipboard containt and change the color accoringly*/
+	/*Only surveys the name of the opened item vs the clipboard content and change the color accoringly*/
 
-	GtkLabel *label_name_of_seq = NULL; 
+	GtkLabel *label_name_of_seq = NULL;
 	const char *format_green = "<span foreground=\"green\">%s</span>";
 	const char *format_white = "<span foreground=\"white\">%s</span>";
 	char *markup;
-	
+
 	label_name_of_seq = GTK_LABEL(lookup_widget("label_name_of_seq"));
 
 	/* Get the clipboard object */
@@ -116,7 +116,7 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 
 	/* Set the right color*/
 	if (single_image_is_loaded()) {
-		gchar *filename = g_path_get_basename(com.uniq->filename);	
+		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
 			markup = g_markup_printf_escaped (format_green, "Image:");
 			gtk_label_set_markup(label_name_of_seq, markup);
@@ -128,7 +128,7 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 
 
 	if (sequence_is_loaded()) {
-		gchar *seq_basename = g_path_get_basename(com.seq.seqname);	
+		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
 			markup = g_markup_printf_escaped (format_green, "Sequence:");
 			gtk_label_set_markup(label_name_of_seq, markup);
@@ -141,6 +141,8 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 }
 
 void launch_clipboard_survey() {
+	if (com.script)
+		return;
 	GtkClipboard *clipboard = NULL;
 
 	/* Get the clipboard object */
@@ -823,7 +825,7 @@ int set_layers_for_registration() {
 	/* Already initialized or default selection to channel with data */
 	else
 		gtk_combo_box_set_active(GTK_COMBO_BOX(cbbt_layers), reminder);
-	
+
 	return reminder;
 }
 
@@ -1659,9 +1661,8 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 }
 
 struct checkSeq_filter_data {
-	int force;
+//	int force;
 	int retvalue;
-	GtkToggleButton *forceButton;
 };
 
 static gboolean end_checkSeq(gpointer p) {
@@ -1669,8 +1670,6 @@ static gboolean end_checkSeq(gpointer p) {
 	stop_processing_thread();
 
 	/* it's better to uncheck the force button each time it is used */
-	if (args->force)
-		gtk_toggle_button_set_active(args->forceButton, FALSE);
 	if (args->retvalue)
 		update_sequences_list(NULL);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -1683,16 +1682,13 @@ static gboolean end_checkSeq(gpointer p) {
 static gpointer checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
 
-	if (!check_seq(args->force))
+	if (!check_seq())
 		args->retvalue = 1;
 	siril_add_idle(end_checkSeq, args);
 	return GINT_TO_POINTER(0);
 }
 
 void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *forceButton = (GtkToggleButton *)user_data;
-	int force = gtk_toggle_button_get_active(forceButton);
-
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
@@ -1704,8 +1700,6 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 
 	struct checkSeq_filter_data *args = malloc(sizeof(struct checkSeq_filter_data));
 
-	args->force = force;
-	args->forceButton = forceButton;
 	args->retvalue = 0;
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(checkSeq, args);
@@ -1752,4 +1746,30 @@ void on_checkbutton_auto_evaluate_toggled(GtkToggleButton *button,
 		gpointer user_data) {
 	GtkWidget *entry = (GtkWidget *)user_data;
 	gtk_widget_set_sensitive(entry, !gtk_toggle_button_get_active(button));
+}
+
+void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
+	gboolean cleanreg = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_reg")));
+	gboolean cleanstat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_stat")));
+	gboolean cleansel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_sel")));
+
+	if ((cleanreg || cleanstat || cleansel) && sequence_is_loaded()) {
+		GString *warning = g_string_new(_("This erases the following data, and there's no possible undo:\n"));
+		if (cleanreg) warning = g_string_append(warning, _("\n- Registration"));
+		if (cleanstat) warning = g_string_append(warning, _("\n- Statistics"));
+		if (cleansel) warning = g_string_append(warning, _("\n- Selection"));
+
+		gchar *str = g_string_free(warning, FALSE);
+
+		gboolean clear = siril_confirm_dialog(_("Clear Sequence Data?"), str, _("Clear Data"));
+		g_free(str);
+
+		if (clear) {
+			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
+			drawPlot();
+			update_stack_interface(TRUE);
+			adjust_sellabel();
+			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
+		}
+	}
 }

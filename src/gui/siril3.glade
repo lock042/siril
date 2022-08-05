@@ -467,6 +467,13 @@ Uncheck if images come from a monochrome sensor.</property>
       </object>
     </child>
   </object>
+  <object class="GtkAdjustment" id="adj_ab_inspector_panel">
+    <property name="lower">127</property>
+    <property name="upper">1024</property>
+    <property name="value">256</property>
+    <property name="step-increment">10</property>
+    <property name="page-increment">100</property>
+  </object>
   <object class="GtkAdjustment" id="adj_background_smoothing">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -2274,24 +2281,6 @@ If the parameters is null, so no filter is apply at all.</property>
             <property name="row-spacing">10</property>
             <property name="column-spacing">6</property>
             <child>
-              <object class="GtkCheckButton" id="toggle_starnet_upsample">
-                <property name="label" translatable="yes">Upsample x2</property>
-                <property name="name">toggle_starnet_scale</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, the image will be upsampled by a factor of 2 before running Starnet++. This improves performance on very tight stars but quadruples processing time and may impair performance on very large stars. The image is rescaled to the original size on completion.</property>
-                <property name="halign">start</property>
-                <property name="hexpand">True</property>
-                <property name="draw-indicator">True</property>
-                <signal name="toggled" handler="on_toggle_starnet_upsample_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkCheckButton" id="toggle_starnet_stretch">
                 <property name="label" translatable="yes">Pre-stretch linear image</property>
                 <property name="name">toggle_starnet_stretch</property>
@@ -2344,7 +2333,7 @@ If the parameters is null, so no filter is apply at all.</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -2355,6 +2344,7 @@ If the parameters is null, so no filter is apply at all.</property>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="xpad">8</property>
                     <property name="label" translatable="yes">Stride</property>
                   </object>
                   <packing>
@@ -2378,17 +2368,51 @@ If the parameters is null, so no filter is apply at all.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_postremix">
+                <property name="label" translatable="yes">Recompose stars on completion</property>
+                <property name="name">toggle_starnet_starmask</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If selected, on completion of the star removal process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="hexpand">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_starnet_postremix_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
                 <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkCheckButton" id="toggle_starnet_upsample">
+                <property name="label" translatable="yes">Upsample x2</property>
+                <property name="name">toggle_starnet_scale</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If selected, the image will be upsampled by a factor of 2 before running Starnet++. This improves performance on very tight stars but quadruples processing time and may impair performance on very large stars. The image is rescaled to the original size on completion.</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_starnet_upsample_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -2402,7 +2426,7 @@ If the parameters is null, so no filter is apply at all.</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
             <property name="can-focus">False</property>
-            <property name="label"> 
+            <property name="label">
 </property>
           </object>
           <packing>
@@ -3143,12 +3167,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="upper">65535</property>
     <property name="value">65535</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">300</property>
   </object>
   <object class="GtkAdjustment" id="adjminpxval">
+    <property name="lower">-65535</property>
     <property name="upper">65535</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
     <property name="lower">1</property>
@@ -3161,14 +3186,19 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="upper">0.90</property>
     <property name="value">0.5</property>
     <property name="step-increment">0.10</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.25</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_threshold">
     <property name="lower">0.01</property>
     <property name="upper">15</property>
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment-finalstretch">
+    <property name="upper">4</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="lower">1</property>
@@ -4090,7 +4120,44 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_payneBL">
+    <property name="lower">-5</property>
+    <property name="upper">15</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneBPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneBPR">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneBR">
+    <property name="lower">-5</property>
+    <property name="upper">15</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_payneD">
+    <property name="upper">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneD1">
+    <property name="upper">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneDL">
+    <property name="upper">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneDR">
     <property name="upper">10</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
@@ -4101,12 +4168,58 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="step-increment">0.001</property>
     <property name="page-increment">0.01</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_payneHP1">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneHPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneHPR">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_payneLP">
     <property name="upper">1</property>
     <property name="step-increment">0.001</property>
     <property name="page-increment">0.01</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_payneLP1">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneLPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneLPR">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_payneSP">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneSP1">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneSPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneSPR">
     <property name="upper">1</property>
     <property name="step-increment">0.001</property>
     <property name="page-increment">0.01</property>
@@ -4923,6 +5036,12 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_remix_master">
+    <property name="upper">1</property>
+    <property name="value">0.5</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_satu">
     <property name="lower">-1</property>
@@ -5869,11 +5988,6 @@ enter a visible wavelength in nm</property>
       <action-widget response="0">extract_channel_button_ok</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkImage" id="eyedrop">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/eyedropper.svg</property>
-  </object>
   <object class="GtkDialog" id="file_information">
     <property name="width-request">400</property>
     <property name="can-focus">False</property>
@@ -6498,6 +6612,10 @@ Modifying parameters in this windows afterward will void the colour balance, and
       <pattern>*.fits</pattern>
       <pattern>*.fts</pattern>
       <pattern>*.fits.fz</pattern>
+      <pattern>*.FIT</pattern>
+      <pattern>*.FITS</pattern>
+      <pattern>*.FTS</pattern>
+      <pattern>*.FITS.FZ</pattern>
     </patterns>
   </object>
   <object class="GtkDialog" id="dialog_FFT">
@@ -6762,6 +6880,1479 @@ Modifying parameters in this windows afterward will void the colour balance, and
       <action-widget response="0">button_fft_close</action-widget>
       <action-widget response="0">button_fft_apply</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkDialog" id="dialog_star_remix">
+    <property name="name">starnet_dialog</property>
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Star Recomposition</property>
+    <property name="resizable">False</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="delete-event" handler="on_remix_cancel_clicked" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="remixer_help_button">
+                <property name="label" translatable="yes">Help</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Show basic tips on how to use the various parameters.</property>
+                <signal name="clicked" handler="on_remixer_help_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="remix_advanced">
+                <property name="label" translatable="yes">Advanced</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Show advanced stretch options</property>
+                <signal name="clicked" handler="on_remix_advanced_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="remix_reset">
+                <property name="label" translatable="yes">Reset</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Resets parameters to default values</property>
+                <signal name="clicked" handler="on_remix_reset_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="remix_cancel">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Close current window</property>
+                <signal name="clicked" handler="on_remix_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="remix_apply">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Apply the current image recomposition</property>
+                <signal name="clicked" handler="on_remix_apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <!-- n-columns=2 n-rows=3 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">16</property>
+                <child>
+                  <object class="GtkBox" id="box_ghtcontrols1">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="valign">start</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkFileChooserButton" id="remix_filechooser_right">
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select a starless image for recomposing with a star mask.
+While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
+                        <property name="create-folders">False</property>
+                        <property name="filter">filefilter_fits</property>
+                        <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_remix_filechooser_right_file_set" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkExpander">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="expanded">True</property>
+                        <child>
+                          <object class="GtkDrawingArea" id="remix_histo_right">
+                            <property name="width-request">300</property>
+                            <property name="height-request">150</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <signal name="draw" handler="redraw_remix_histo_right" swapped="no"/>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Expands to show a mini histogram and transfer function display for the star image</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
+                            <property name="label" translatable="yes">Star Histogram</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtStretchTypecontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Type of stretch</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="remix_type_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Select type of stretch. Generalised hyperbolic stretch performs a hyperbolic stretch with parameters for stretch strength, local intensity, symmetry point, and shadow and highlight preservation regions. Modified arcsinh stretch performs an arcsinh stretch with additional parameters for symmetry point, lowlight and highlight preservation. The inverse hyperbolic and arcsinh stretches are also available.</property>
+                            <property name="hexpand">True</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">Generalised hyperbolic transform</item>
+                              <item translatable="yes">Inverse generalised hyperbolic transform</item>
+                              <item translatable="yes">Modified arcsinh transform</item>
+                              <item translatable="yes">Inverse modified arcsinh transform</item>
+                            </items>
+                            <signal name="changed" handler="on_remix_type_right_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtColourmodelcontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Colour stretch model</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="remix_colour_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="hexpand">True</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">Independent channel values</item>
+                              <item translatable="yes">Human weighted luminance</item>
+                              <item translatable="yes">Even weighted luminance</item>
+                            </items>
+                            <signal name="changed" handler="on_remix_colour_right_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtDcontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payne1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Stretch factor (ln(D+1))</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_D_right">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. Increasing D increases the intensity of stars in the resulting composition.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneDR</property>
+                                <property name="digits">3</property>
+                                <signal name="value-changed" handler="on_spin_remix_D_right_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_D_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. Increasing D increases the intensity of stars in the resulting composition.</property>
+                            <property name="adjustment">adjustment_payneDR</property>
+                            <property name="digits">3</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtBcontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payn1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Local stretch intensity (b)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_B_right">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. Increasing b will increase the intensity of stars with peak brightness above SP, but may bloat their PSF; it will reduce the intensity of stars below SP.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.500</property>
+                                <property name="adjustment">adjustment_payneBR</property>
+                                <property name="digits">3</property>
+                                <signal name="value-changed" handler="on_spin_remix_B_right_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_B_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. Increasing b will increase the intensity of stars with peak brightness above SP, but may bloat their PSF; it will reduce the intensity of stars below SP.</property>
+                            <property name="adjustment">adjustment_payneBR</property>
+                            <property name="digits">3</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtSPcontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=3 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payneS1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Symmetry point (SP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_SP_right">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused. For star recomposition, increasing SP reduces the intensity of stars with peak brightness below SP and therefore the amount of stars that show in the resulting composition.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.00000</property>
+                                <property name="progress-fraction">0.01</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneSPR</property>
+                                <property name="digits">5</property>
+                                <signal name="value-changed" handler="on_spin_remix_SP_right_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="eyedropper_SP_right">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Allows setting SP from the current selection. This is best suited for use with the background image, where it can effectively pick out faint detail above the background. It is not generally useful with the star mask image.</property>
+                                <signal name="clicked" handler="on_eyedropper_SP_right_clicked" swapped="no"/>
+                                <child>
+                                  <object class="GtkImage" id="eyedrop1">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="pixbuf">pixmaps/eyedropper.svg</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_SP_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused. For star recomposition, increasing SP reduces the intensity of stars with peak brightness below SP and therefore the amount of stars that show in the resulting composition.</property>
+                            <property name="adjustment">adjustment_payneSPR</property>
+                            <property name="digits">6</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">8</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtLPcontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payneL1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Shadow protection point (LP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_LP_right">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.00000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneLPR</property>
+                                <property name="digits">5</property>
+                                <signal name="value-changed" handler="on_spin_remix_LP_right_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_LP_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                            <property name="adjustment">adjustment_payneLPR</property>
+                            <property name="digits">5</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">10</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtHPcontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payneH1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Highlight protection point (HP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_HP_right">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. The star mask HP can be set to quite a low value to prevent bloat of brighter stars.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">1.00000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneHPR</property>
+                                <property name="digits">5</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_remix_HP_right_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_HP_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This can be set to quite a low value in star recomposition mode to prevent bloat of brighter stars while boosting the brightness of fainter ones.</property>
+                            <property name="adjustment">adjustment_payneHPR</property>
+                            <property name="digits">5</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">12</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtBPcontrols1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Black Point (BP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_BP_right">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                                <property name="halign">end</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.00000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneBPR</property>
+                                <property name="digits">5</property>
+                                <signal name="value-changed" handler="on_spin_remix_BP_right_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_BP_right">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                            <property name="adjustment">adjustment_payneBPR</property>
+                            <property name="digits">5</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">14</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_ghtcontrols2">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="valign">start</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkFileChooserButton" id="remix_filechooser_left">
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select a starless image for recomposing with a star mask.
+While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
+                        <property name="create-folders">False</property>
+                        <property name="filter">filefilter_fits</property>
+                        <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_remix_filechooser_left_file_set" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkExpander">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="expanded">True</property>
+                        <child>
+                          <object class="GtkDrawingArea" id="remix_histo_left">
+                            <property name="width-request">300</property>
+                            <property name="height-request">150</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <signal name="draw" handler="redraw_remix_histo_left" swapped="no"/>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Expands to show a mini histogram and transfer function display for the background image.</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
+                            <property name="label" translatable="yes">Background Histogram</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtStretchTypecontrols3">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Type of stretch</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="remix_type_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Select type of stretch. Generalised hyperbolic stretch performs a hyperbolic stretch with parameters for stretch strength, local intensity, symmetry point, and shadow and highlight preservation regions. Modified arcsinh stretch performs an arcsinh stretch with additional parameters for symmetry point, lowlight and highlight preservation. The inverse hyperbolic and arcsinh stretches are also available.</property>
+                            <property name="hexpand">True</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">Generalised hyperbolic transform</item>
+                              <item translatable="yes">Inverse generalised hyperbolic transform</item>
+                              <item translatable="yes">Modified arcsinh transform</item>
+                              <item translatable="yes">Inverse modified arcsinh transform</item>
+                            </items>
+                            <signal name="changed" handler="on_remix_type_left_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtColourmodelcontrols2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Colour stretch model</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="remix_colour_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="hexpand">True</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">Independent channel values</item>
+                              <item translatable="yes">Human weighted luminance</item>
+                              <item translatable="yes">Even weighted luminance</item>
+                            </items>
+                            <signal name="changed" handler="on_remix_colour_left_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtDcontrols2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payne2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Stretch factor (ln(D+1))</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_D_left">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneDL</property>
+                                <property name="digits">3</property>
+                                <signal name="value-changed" handler="on_spin_remix_D_left_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_D_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                            <property name="adjustment">adjustment_payneDL</property>
+                            <property name="digits">3</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtBcontrols2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payn2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Local stretch intensity (b)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_B_left">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.500</property>
+                                <property name="adjustment">adjustment_payneBL</property>
+                                <property name="digits">3</property>
+                                <signal name="value-changed" handler="on_spin_remix_B_left_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_B_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
+                            <property name="adjustment">adjustment_payneBL</property>
+                            <property name="digits">3</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtSPcontrols2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=3 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payneS2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Symmetry point (SP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_SP_left">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.00000</property>
+                                <property name="progress-fraction">0.01</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneSPL</property>
+                                <property name="digits">5</property>
+                                <signal name="value-changed" handler="on_spin_remix_SP_left_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="eyedropper_SP_left">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">This dropper allows you to set the background stretch symmetry point  based on the average value of  the current selection. This helps in picking out faint detail above the dark background.</property>
+                                <signal name="clicked" handler="on_eyedropper_SP_left_clicked" swapped="no"/>
+                                <child>
+                                  <object class="GtkImage" id="eyedrop2">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="pixbuf">pixmaps/eyedropper.svg</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_SP_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
+                            <property name="adjustment">adjustment_payneSPL</property>
+                            <property name="digits">6</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">8</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtLPcontrols2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payneL2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Shadow protection point (LP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_LP_left">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.00000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneLPL</property>
+                                <property name="digits">5</property>
+                                <signal name="value-changed" handler="on_spin_remix_LP_left_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_LP_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                            <property name="adjustment">adjustment_payneLPL</property>
+                            <property name="digits">5</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">10</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtHPcontrols2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label_payneH2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Highlight protection point (HP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_HP_left">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP. This parameter is generally of limited use for starless backgrounds but is very effective on the star mask for preventing star bloat.</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">1.00000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneHPL</property>
+                                <property name="digits">5</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_remix_HP_left_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_HP_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP. This parameter is generally of limited use for starless backgrounds but is very effective on the star mask for preventing star bloat.</property>
+                            <property name="adjustment">adjustment_payneHPL</property>
+                            <property name="digits">5</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">12</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ghtBPcontrols2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Black Point (BP)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_remix_BP_left">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                                <property name="halign">end</property>
+                                <property name="width-chars">10</property>
+                                <property name="text">0.00000</property>
+                                <property name="progress-pulse-step">0.01</property>
+                                <property name="adjustment">adjustment_payneBPL</property>
+                                <property name="digits">5</property>
+                                <signal name="value-changed" handler="on_spin_remix_BP_left_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_remix_BP_left">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                            <property name="adjustment">adjustment_payneBPL</property>
+                            <property name="digits">5</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">14</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="ypad">4</property>
+                    <property name="label" translatable="yes">Background Stretch Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                      <attribute name="size" value="12288"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="ypad">4</property>
+                    <property name="label" translatable="yes">Star Stretch Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                      <attribute name="size" value="12288"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mastermixer">
+                    <property name="can-focus">True</property>
+                    <property name="adjustment">adjustment_remix_master</property>
+                    <signal name="value-changed" handler="on_spin_mastermixer_value_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_finalstretch">
+                    <property name="can-focus">True</property>
+                    <property name="adjustment">adjustment-finalstretch</property>
+                    <signal name="value-changed" handler="on_spin_finalstretch_value_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="label" translatable="yes">Crossfader</property>
+                <property name="justify">center</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="remixer_mastermixer">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Crossfade between the two independently stretched images and normalise the result. Putting the slider all the way to the left givs 100% background, 0% stars; putting the slider all the way to the right gives 0% background, 100% stars.</property>
+                <property name="adjustment">adjustment_remix_master</property>
+                <property name="round-digits">1</property>
+                <property name="draw-value">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox" id="finalstretch-control">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Overall Stretch</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="blender_finalstretch">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This slider applies a gentle final stretch tothe result. This can  be used to increase shadow brightness, if needed, after using the crossfader.</property>
+                <property name="vexpand">True</property>
+                <property name="adjustment">adjustment-finalstretch</property>
+                <property name="value-pos">right</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="GtkDialog" id="linearmatch_dialog">
     <property name="width-request">400</property>
@@ -9670,131 +11261,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
-          <object class="GtkModelButton" id="info_menu_back_to_main">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="text" translatable="yes">Image Information</property>
-            <property name="menu-name">main</property>
-            <property name="inverted">True</property>
-            <property name="centered">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_dynamic_psf">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.dyn-psf</property>
-            <property name="text" translatable="yes">Dynamic PSF...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack-type">end</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_astrometry">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.astrometry</property>
-            <property name="text" translatable="yes">Image Plate Solver...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_statistics">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.statistics</property>
-            <property name="text" translatable="yes">Statistics...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_noise_estimation">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.evaluate-noise</property>
-            <property name="text" translatable="yes">Noise Estimation</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_informations">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.image-information</property>
-            <property name="text" translatable="yes">Information...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_headers">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.fits-header</property>
-            <property name="text" translatable="yes">FITS Header...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">7</property>
-          </packing>
-        </child>
-      </object>
-      <packing>
-        <property name="submenu">image_information_menu</property>
-        <property name="position">1</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="border-width">4</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child>
           <object class="GtkModelButton" id="info_image">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -9903,6 +11369,144 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
       </object>
       <packing>
         <property name="submenu">main</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="border-width">4</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkModelButton" id="info_menu_back_to_main">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Image Information</property>
+            <property name="menu-name">main</property>
+            <property name="inverted">True</property>
+            <property name="centered">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_astrometry">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.astrometry</property>
+            <property name="text" translatable="yes">Image Plate Solver...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_statistics">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.statistics</property>
+            <property name="text" translatable="yes">Statistics...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_noise_estimation">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.evaluate-noise</property>
+            <property name="text" translatable="yes">Noise Estimation</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_ccd_inspector">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.ccd-inspector</property>
+            <property name="text" translatable="yes">Aberration Inspector</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_informations">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.image-information</property>
+            <property name="text" translatable="yes">Information...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_headers">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.fits-header</property>
+            <property name="text" translatable="yes">FITS Header...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">7</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_dynamic_psf">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.dyn-psf</property>
+            <property name="text" translatable="yes">Dynamic PSF...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">8</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">image_information_menu</property>
         <property name="position">2</property>
       </packing>
     </child>
@@ -10010,6 +11614,62 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
       </object>
     </child>
   </object>
+  <object class="GtkPopover" id="menu_seq_clean">
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkCheckButton" id="seq_clean_reg">
+            <property name="label" translatable="yes">Registration</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="seq_clean_stat">
+            <property name="label" translatable="yes">Statistics</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="seq_clean_sel">
+            <property name="label" translatable="yes">Selection</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkMenu" id="menugray">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -10093,6 +11753,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="can-focus">False</property>
         <property name="action-name">win.statistics</property>
         <property name="label" translatable="yes">Statistics...</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_gray_ccd_inspector">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.ccd-inspector</property>
+        <property name="label" translatable="yes">Aberration Inspector</property>
         <property name="use-underline">True</property>
       </object>
     </child>
@@ -10314,6 +11983,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
         <property name="can-focus">False</property>
         <property name="action-name">win.seq-crop</property>
         <property name="label" translatable="yes">Crop Sequence...</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_gray_rotateandcrop">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.rotation-processing</property>
+        <property name="label" translatable="yes">Rotate&amp;Crop</property>
         <property name="use-underline">True</property>
       </object>
     </child>
@@ -11050,13 +12728,13 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Select type of stretch. Linear performs a simple linear stretch to a new black point. Generalised hyperbolic stretch performs a hyperbolic stretch with parameters for stretch strength, local intensity, symmetry point, and shadow and highlight preservation regions. Modified arcsinh stretch performs an arcsinh stretch with additional parameters for symmetry point, lowlight and highlight preservation. The inverse hyperbolic and arcsinh stretches are also available, useful for working in negative space.</property>
                             <property name="hexpand">True</property>
-                            <property name="active">1</property>
+                            <property name="active">0</property>
                             <items>
-                              <item translatable="yes">Linear transform</item>
                               <item translatable="yes">Generalised hyperbolic transform</item>
                               <item translatable="yes">Inverse generalised hyperbolic transform</item>
                               <item translatable="yes">Modified arcsinh transform</item>
                               <item translatable="yes">Inverse modified arcsinh transform</item>
+                              <item translatable="yes">Linear stretch (BP shift)</item>
                             </items>
                             <signal name="changed" handler="on_payneType_changed" swapped="no"/>
                           </object>
@@ -11100,11 +12778,11 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
                             <property name="hexpand">True</property>
-                            <property name="active">1</property>
+                            <property name="active">0</property>
                             <items>
+                              <item translatable="yes">Independent channel values</item>
                               <item translatable="yes">Human weighted luminance</item>
                               <item translatable="yes">Even weighted luminance</item>
-                              <item translatable="yes">Independent channel values</item>
                             </items>
                             <signal name="changed" handler="on_payne_colour_stretch_model_changed" swapped="no"/>
                           </object>
@@ -11323,22 +13001,17 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkToolbar" id="eyedropper_toolbar">
+                          <object class="GtkButton" id="eyedropper_button">
                             <property name="visible">True</property>
-                            <property name="can-focus">False</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
                             <child>
-                              <object class="GtkToolButton" id="eyedropper_SP">
+                              <object class="GtkImage" id="eyedropper">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Set SP to the average of the current selection.</property>
-                                <property name="use-underline">True</property>
-                                <property name="icon-widget">eyedrop</property>
-                                <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
+                                <property name="pixbuf">pixmaps/eyedropper.svg</property>
                               </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">True</property>
-                              </packing>
                             </child>
                           </object>
                           <packing>
@@ -12557,6 +14230,20 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_extract_remix">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.star-remix-processing</property>
+            <property name="text" translatable="yes">Star Recomposition...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">24</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -12564,7 +14251,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">24</property>
+            <property name="position">25</property>
           </packing>
         </child>
         <child>
@@ -12578,7 +14265,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">25</property>
+            <property name="position">26</property>
           </packing>
         </child>
       </object>
@@ -12701,7 +14388,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="action-name">win.rotation-processing</property>
-            <property name="text" translatable="yes">Rotation...</property>
+            <property name="text" translatable="yes">Rotate&amp;Crop</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -12895,6 +14582,305 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
     <property name="value">10</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
+  </object>
+  <object class="GtkDialog" id="remixer_help">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Star Recomposition Help</property>
+    <property name="default-width">750</property>
+    <property name="type-hint">dialog</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="width-request">750</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="remixer_help_okay">
+                <property name="label" translatable="yes">OK</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_remixer_help_okay_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="margin-start">8</property>
+            <property name="margin-end">8</property>
+            <property name="margin-top">4</property>
+            <property name="margin-bottom">4</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Suggested Star Reduction Workflow</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                  <attribute name="size" value="13312"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">1. &lt;b&gt;The simple controls are likely all you need.&lt;/b&gt;
+&lt;i&gt;The advanced controls option enables the full set of options included in the Generalised Hyperbolic Stretch transformations tool, for each image, but the simple controls have been selected to offer the most useful options for many uses.
+You can examine the workings of each option in detail using the histogram displays, which displays mini histogram views for each input image, showing the before and after histograms for each channel and the stretch transfer function.&lt;/i&gt;</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">2. Work left to right and mostly top to bottom. Start with the controls for the starless image:</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin-start">16</property>
+                <property name="label" translatable="yes">• Push the &lt;b&gt;Crossfader&lt;/b&gt; slider over to the left and use the &lt;b&gt;D slider&lt;/b&gt; to stretch up the details of the nebulosity.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">16</property>
+                <property name="label" translatable="yes">• Next, use the &lt;b&gt;B and SP controls&lt;/b&gt; to focus the stretch. Try selecting an area of faint nebulosity or the diffuse arm of a galaxy (you have to select using one of the single colour tabs rather than the RGB preview tab) and then using the &lt;b&gt;eyedropper tool&lt;/b&gt; to set &lt;b&gt;SP&lt;/b&gt; to the average pixel value of this area, and then moving the &lt;b&gt;B&lt;/b&gt; slider up until the detail looks nicely defined.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">&lt;i&gt;Using B in combination with SP will also suppress background noise that is fainter than the SP value, so the background selection that you used to set SP from will stand out more from the general sky background.&lt;/i&gt;</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">3. Once you have the starless background looking good it's time to start work on the star mask: move the &lt;b&gt;Crossfader&lt;/b&gt; slider back towards the middle.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">&lt;i&gt;Go easy with the star mask stretch controls. In order to reduce the stars compared with the original image, you need to stretch the stars less than the background.&lt;/i&gt;</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">16</property>
+                <property name="label" translatable="yes">• Try a moderate value for both the &lt;b&gt;D and B&lt;/b&gt; controls (1.0 - 2.0 is often a good starting point): this will boost faint stars while not over-stretching bright ones.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">8</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">16</property>
+                <property name="label" translatable="yes">• At this point you can also use the &lt;b&gt;HP control&lt;/b&gt; to protect star peaks from saturation bloat: try bringing it down as low as 0.3-0.4.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin-start">16</property>
+                <property name="label" translatable="yes">• Boosting the faint stars may seem odd, but now by using the &lt;b&gt;SP slider&lt;/b&gt; you can quite nicely control the amount of stars that show in the combined image.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">&lt;i&gt;You can achieve different star blends using different combinations of the controls on the right-hand side - just don't overdo it, too much stretching of the stars can result in them looking worse than before doing star removal.&lt;/i&gt;</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">4. You can further adjust the &lt;b&gt;Crossfader&lt;/b&gt; and &lt;b&gt;Overall Stretch&lt;/b&gt; controls to adjust the relative prominence of the stars and the background.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">16</property>
+                <property name="label" translatable="yes">• &lt;i&gt;The &lt;b&gt;Crossfader&lt;/b&gt; tool works in the same way as the crossfader on a mixing desk: it adjusts the contribution of each input while keeping the overall level the same. With the slider all the way to the left, the result is 100% background and 0% stars; with it all the way to the right, the result is 0% background and 100% stars. This ensures that pixel values cannot be pushed into clipping when combining the two images.&lt;/i&gt;</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">13</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">16</property>
+                <property name="label" translatable="yes">• If the crossfader is used to increase the prominence of the stars in the final image, the brightness of the background will be reduced. This can be readjusted using the &lt;b&gt;Overall Stretch&lt;/b&gt; control which applies a subtle stretch to gently boost the shadows.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">14</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="GtkImage" id="removefilter2">
     <property name="visible">True</property>
@@ -13144,7 +15130,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
     <property name="height-request">200</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
-    <property name="title" translatable="yes">Rotation</property>
+    <property name="title" translatable="yes">Rotate&amp;Crop</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
@@ -13231,6 +15217,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                 <property name="climb-rate">0.01</property>
                 <property name="digits">2</property>
                 <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spin_rotation_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -13269,6 +15256,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="halign">end</property>
             <property name="active">True</property>
             <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_checkbutton_rotation_crop_toggled" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -14691,13 +16679,75 @@ Colour image target also applies to the debayer result for conversion.</property
                                                     <property name="orientation">vertical</property>
                                                     <property name="spacing">5</property>
                                                     <child>
-                                                      <object class="GtkComboBoxText" id="sequence_list_combobox">
+                                                      <object class="GtkBox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <signal name="changed" handler="on_seqproc_entry_changed" swapped="no"/>
+                                                        <property name="spacing">6</property>
+                                                        <child>
+                                                          <object class="GtkComboBoxText" id="sequence_list_combobox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <signal name="changed" handler="on_seqproc_entry_changed" swapped="no"/>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child>
+                                                            <object class="GtkButton" id="clean_sequence_button">
+                                                            <property name="label" translatable="yes">Clean Sequence</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">This button clears selection, registration and/or statistics data stored in the loaded sequence. You can specify to clear only registration, statistics and/or selection with the button on the right.
+</property>
+                                                            <signal name="clicked" handler="on_clean_sequence_button_clicked" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkMenuButton" id="clean_seq_menu">
+                                                            <property name="name">recent-button</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">You can specify to clear only registration, statistics and/or selection by checking the option you want.</property>
+                                                            <property name="use-popover">False</property>
+                                                            <property name="popover">menu_seq_clean</property>
+                                                            <child>
+                                                            <object class="GtkImage">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="icon-name">pan-down-symbolic</property>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
                                                       </object>
                                                       <packing>
-                                                        <property name="expand">True</property>
+                                                        <property name="expand">False</property>
                                                         <property name="fill">True</property>
                                                         <property name="position">0</property>
                                                       </packing>
@@ -14715,7 +16765,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Search current directory for sequences of FITS images, SER or film videos.</property>
                                                             <property name="use-underline">True</property>
-                                                            <signal name="clicked" handler="on_checkseqbutton_clicked" object="checkforceseq" swapped="no"/>
+                                                            <signal name="clicked" handler="on_checkseqbutton_clicked" swapped="no"/>
                                                             <style>
                                                             <class name="suggested-action"/>
                                                             </style>
@@ -14724,25 +16774,6 @@ Colour image target also applies to the debayer result for conversion.</property
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">0</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <object class="GtkCheckButton" id="checkforceseq">
-                                                            <property name="label" translatable="yes">Force .seq recomputation</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">By default, Siril takes the data from seq file if already computed. However you can force Siril to recompute the file if some changes have not been taken into account.
-This button will be automatically unchecked after being used.
-
-WARNING: it will erase all registration and statistics data.</property>
-                                                            <property name="halign">end</property>
-                                                            <property name="draw-indicator">True</property>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
                                                           </packing>
                                                         </child>
                                                         <child>
@@ -17609,6 +19640,22 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="position">3</property>
                                                   </packing>
                                                 </child>
+                                                <child>
+                                                  <object class="GtkButton" id="nina_button">
+                                                    <property name="label" translatable="yes">NINA exoplanet</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
+                                                    <property name="action-name">win.nina_light_curve</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">4</property>
+                                                  </packing>
+                                                </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -18282,7 +20329,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
-&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
+&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">all</item>
@@ -18393,7 +20440,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
-&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
+&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">all</item>
@@ -18515,7 +20562,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
-&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or ECC registrations)</property>
+&lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">all</item>
@@ -20349,6 +22396,139 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
     <action-widgets>
       <action-widget response="0">button_data_ok</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkApplicationWindow" id="edge_dialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Aberration Inspector</property>
+    <property name="resizable">False</property>
+    <property name="transient-for">control_window</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child>
+      <!-- n-columns=3 n-rows=3 -->
+      <object class="GtkGrid">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="row-spacing">6</property>
+        <property name="column-spacing">6</property>
+        <child>
+          <object class="GtkDrawingArea" id="left_top">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_left_top_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_top">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_center_top_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_top">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_right_top_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">2</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_center">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_left_center_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_center">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_center_center_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_center">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_right_center_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">2</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_bottom">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_left_bottom_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_bottom">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_center_bottom_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_bottom">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <signal name="draw" handler="on_right_bottom_draw" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left-attach">2</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="GtkAdjustment" id="upWhiteColorCalibAdj">
     <property name="upper">1</property>
@@ -23253,6 +25433,106 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
+                      <object class="GtkLabel" id="label5">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Analysis Tools</property>
+                        <property name="xalign">0</property>
+                        <style>
+                          <class name="title"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame" id="frame2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="valign">start</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment" id="alignment2">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="valign">center</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=1 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
+                                <property name="column-homogeneous">True</property>
+                                <child>
+                                  <object class="GtkSpinButton" id="spinpanel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Defines the size of the panel used for the mosaic. This size is expressed in pixels. The higher you set the value, the more stars you will see, but at a lower resolution.</property>
+                                    <property name="halign">start</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="adjustment">adj_ab_inspector_panel</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">256</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Panel size (px):</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="label7">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Aberration Inspector&lt;/b&gt;</property>
+                            <property name="use-markup">True</property>
+                            <property name="single-line-mode">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="name">page1</property>
+                    <property name="title" translatable="yes">Analysis Tools</property>
+                    <property name="position">5</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">10</property>
+                    <child>
                       <object class="GtkLabel" id="label4">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -23418,7 +25698,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p4</property>
                     <property name="title" translatable="yes">Scripts</property>
-                    <property name="position">5</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
                 <child>
@@ -23739,7 +26019,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                   <packing>
                     <property name="name">preferences_p5</property>
                     <property name="title" translatable="yes">User Interface</property>
-                    <property name="position">6</property>
+                    <property name="position">7</property>
                   </packing>
                 </child>
                 <child>
@@ -23889,7 +26169,7 @@ Configuring a memory amount larger than what is available on your system may res
                   <packing>
                     <property name="name">preferences_p6</property>
                     <property name="title" translatable="yes">Performances</property>
-                    <property name="position">7</property>
+                    <property name="position">8</property>
                   </packing>
                 </child>
                 <child>
@@ -24243,7 +26523,7 @@ Configuring a memory amount larger than what is available on your system may res
                   <packing>
                     <property name="name">preferences_p7</property>
                     <property name="title" translatable="yes">Miscellaneous</property>
-                    <property name="position">8</property>
+                    <property name="position">9</property>
                   </packing>
                 </child>
               </object>

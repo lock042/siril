@@ -47,6 +47,8 @@ int stack_addmin(struct stacking_args *args) {
 static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	WORD *final_pixel[3];
 	float *ffinal_pixel[3];
+	double livetime = 0.0;
+	GList *list_date = NULL; // list of dates of every FITS file
 	//double exposure = 0.0;
 	gboolean is_float = TRUE; // init only for warning
 	size_t nbdata = 0;
@@ -158,7 +160,12 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 #endif
 
 		/* Summing the exposure */
-		//exposure += fit.exposure;
+		livetime += fit.exposure;
+
+		if (fit.date_obs) {
+			GDateTime *date = g_date_time_ref(fit.date_obs);
+			list_date = g_list_prepend(list_date, new_date_item(date, fit.exposure));
+		}
 
 		/* stack current image */
 		size_t i = 0;	// index in final_pixel[0]
@@ -227,7 +234,10 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		import_metadata_from_serfile(args->seq->ser_file, result);
 		result->orig_bitpix = result->bitpix = (args->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	}
-	gfit.stackcnt = args->nb_images_to_stack;
+	result->stackcnt = args->nb_images_to_stack;
+	result->livetime = livetime;
+	compute_date_time_keywords(list_date, result);
+	g_list_free_full(list_date, (GDestroyNotify) free_list_date);
 
 free_and_reset_progress_bar:
 	if (retval) {

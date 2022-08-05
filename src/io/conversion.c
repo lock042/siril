@@ -545,7 +545,7 @@ static gboolean end_convert_idle(gpointer p) {
 				sprintf(converted_seqname, "%s.seq", args->destroot);
 			}
 		}
-		check_seq(0);
+		check_seq();
 		if (converted_seqname) {
 			update_sequences_list(converted_seqname);
 			free(converted_seqname);
@@ -568,6 +568,13 @@ gpointer convert_thread_worker(gpointer p) {
 	args->retval = 0;
 	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok();
 	args->make_link &= allow_symlink;
+	if (args->make_link && com.pref.comp.fits_enabled) {
+		/* of course if input files are already compressed with the same
+		 * algorithm, that's a problem, but it's not very likely to happen */
+		siril_log_message(_("Not using symbolic links because FITS compression is enabled\n"));
+		args->make_link = FALSE;
+	}
+
 	if (args->multiple_output && args->output_type != SEQ_SER && args->output_type != SEQ_FITSEQ) {
 		siril_log_message(_("disabling incompatible multiple output option in conversion\n"));
 		args->multiple_output = FALSE;

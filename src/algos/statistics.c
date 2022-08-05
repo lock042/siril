@@ -50,6 +50,10 @@
 #include "statistics_float.h"
 #include "core/OS_utils.h"
 
+// uncomment to debug statistics
+#undef siril_debug_print
+#define siril_debug_print(fmt, ...) { }
+
 /* Activating nullcheck will treat pixels with 0 value as null and remove them
  * from stats computation. This can be useful when a large area is black, but
  * this shouldn't happen often. Maybe we could detect it instead of hardcoding

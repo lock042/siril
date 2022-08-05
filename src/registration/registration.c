@@ -681,7 +681,7 @@ int register_shift_fwhm(struct registration_args *args) {
 	 * images to register, which provides FWHM but also star coordinates */
 	// TODO: detect that it was already computed, and don't do it again
 	// -> should be done at a higher level and passed in the args
-	if (seqpsf(args->seq, args->layer, TRUE, args->process_all_frames, framing, FALSE))
+	if (seqpsf(args->seq, args->layer, TRUE, args->process_all_frames, framing, FALSE, FALSE))
 		return 1;
 
 	// regparam is managed in seqpsf idle function already
@@ -926,10 +926,13 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* we temporary save value as keep_noout_state will be changed in the callback */
 	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
-	if ((method->method_ptr == &register_comet) || (method->method_ptr == &register_kombat) || (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_shift_dft)) {
+	if (method && ((method->method_ptr == &register_comet) ||
+			(method->method_ptr == &register_kombat) ||
+			(method->method_ptr == &register_shift_fwhm) ||
+			(method->method_ptr == &register_shift_dft))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
-	} else if (method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
+	} else if (method && method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 	} else {
@@ -1207,7 +1210,7 @@ static gboolean end_register_idle(gpointer p) {
 			set_layers_for_registration();	// update display of available reg data
 		}
 		else {
-			check_seq(0);
+			check_seq();
 			update_sequences_list(args->new_seq_name);
 		}
 	}

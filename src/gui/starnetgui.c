@@ -35,6 +35,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
+#include "gui/remixer.h"
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
 #include "core/undo.h"
@@ -44,6 +45,7 @@ static gboolean sgui_customstride;
 static gboolean sgui_starmask;
 static gboolean sgui_upscale;
 static gboolean sgui_linear;
+static gboolean sgui_follow_on;
 static double sgui_starnet_stride;
 
 static void starnet_startup() {
@@ -51,6 +53,7 @@ static void starnet_startup() {
 	sgui_customstride = FALSE;
 	sgui_upscale = FALSE;
 	sgui_starmask = TRUE;
+	sgui_follow_on = FALSE;
 	sgui_starnet_stride = 256.0;
 }
 
@@ -59,6 +62,7 @@ static void starnet_startup() {
 void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
+	GtkToggleButton *toggle_starnet_followon = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_postremix"));
 	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
@@ -75,7 +79,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 	gtk_label_set_text(label_starnetinfo, "Starnet++ unavailable: requires Siril to be compiled with libtiff support.");
 #endif
-
+#ifdef HAVE_LIBTIFF
 	if (!starnet_executablecheck()) {
 		gtk_label_set_text(label_starnetinfo, "No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration.");
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
@@ -83,10 +87,11 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 		gtk_label_set_text(label_starnetinfo, "");
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 	}
-
+#endif
 	starnet_startup();
 
 	set_notify_block(TRUE);
+	gtk_toggle_button_set_active(toggle_starnet_followon, sgui_follow_on);
 	gtk_toggle_button_set_active(toggle_starnet_stretch, sgui_linear);
 	gtk_toggle_button_set_active(toggle_starnet_upsample, sgui_upscale);
 	gtk_toggle_button_set_active(toggle_starnet_starmask, sgui_starmask);
@@ -103,6 +108,7 @@ void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("starnet_dialog");
 }
 
+#ifdef HAVE_LIBTIFF
 void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
@@ -131,9 +137,11 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	sprintf(starnet_args->stride, "%d", (int) sgui_starnet_stride);
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
+	starnet_args->follow_on = sgui_follow_on;
 	start_in_new_thread(do_starnet, starnet_args);
 	siril_close_dialog("starnet_dialog");
 }
+#endif
 
 /*** adjusters **/
 void on_spin_starnet_stride_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -158,6 +166,13 @@ void on_toggle_starnet_customstride_toggled(GtkToggleButton *button, gpointer us
 void on_toggle_starnet_stretch_toggled(GtkToggleButton *button, gpointer user_data) {
 	sgui_linear = gtk_toggle_button_get_active(button);
 }
+void on_toggle_starnet_postremix_toggled(GtkToggleButton *button, gpointer user_data) {
+	sgui_follow_on = gtk_toggle_button_get_active(button);
+	if (sgui_follow_on && !sgui_starmask) {
+		sgui_starmask = TRUE;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask")), sgui_starmask);
+	}
+}
 
 void on_toggle_starnet_upsample_toggled(GtkToggleButton *button, gpointer user_data) {
 	sgui_upscale = gtk_toggle_button_get_active(button);
@@ -165,4 +180,10 @@ void on_toggle_starnet_upsample_toggled(GtkToggleButton *button, gpointer user_d
 
 void on_toggle_starnet_starmask_toggled(GtkToggleButton *button, gpointer user_data) {
 	sgui_starmask = gtk_toggle_button_get_active(button);
+		if (sgui_follow_on && !sgui_starmask) {
+		sgui_follow_on = FALSE;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_postremix")), sgui_follow_on);
+	}
+
+
 }

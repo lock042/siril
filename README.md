@@ -28,7 +28,6 @@ For compilation, these tools are needed in addition to the base development pack
 
 Then, mandatory build dependencies:
  * **GTK+ 3**, (>= 3.20) as GUI toolkit
- * **json-glib-1.0**, (>= 1.2.6) as GUI toolkit
  * **cfitsio** for FITS image read and write
  * **fftw3** for Fourier transforms
  * **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
@@ -42,6 +41,7 @@ formats are handled internally, like BMP, PPM and SER, some require external
 libraries or programs listed below. Libraries need to be present at compilation
 time, or their support won't be included.
 
+ * **json-glib-1.0**, (>= 1.2.6) for Siril update check
  * **libraw** for DSLR RAW files import
  * **libffms2** for films import (any format supported by ffmpeg)
  * **libtiff** (>= 4) for TIFF format support
@@ -116,7 +116,7 @@ of the current version for other packages that could be available.
 Building SIRIL for macOS
 ------------------------
 We provide a dmg installer on the [website](https://www.siril.org/download/),
-but you can also install SIRIL from source using homebrew.
+but you can also install SIRIL from sources using homebrew.
 
     brew install siril
 

@@ -579,7 +579,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 	}
 
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
-		if (check_seq(FALSE)) {
+		if (check_seq()) {
 			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);
 			g_free(file);
 			g_free(altfile);

@@ -64,7 +64,7 @@ static double invxpos = -1.0;
 static double histo_color_r[] = { 1.0, 0.0, 0.0, 0.0 };
 static double histo_color_g[] = { 0.0, 1.0, 0.0, 0.0 };
 static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
-static float graph_height = 0.f;	// the max value of all bins
+// static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
 
 static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
@@ -106,18 +106,17 @@ static void histo_startup() {
 		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
 }
 
-static void histo_close(gboolean revert) {
+static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	if (revert) {
-		set_cursor_waiting(TRUE);
 
 		for (int i = 0; i < gfit.naxes[2]; i++) {
 			set_histogram(hist_backup[i], i);
 			hist_backup[i] = NULL;
 		}
-		if (!copy_backup_to_gfit()) {
+		if (!copy_backup_to_gfit() && update_image_if_needed) {
+			set_cursor_waiting(TRUE);
 			notify_gfit_modified();
 		}
-		set_cursor_waiting(FALSE);
 	}
 
 	// free data
@@ -131,12 +130,12 @@ static void histo_recompute() {
 
 	if (invocation == HISTO_STRETCH) {
 		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
-		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params);
+		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (double) _LP, .SP = (double) _SP, .HP = (double) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel};
 		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
-		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params);
+		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params, TRUE);
 	}
 	notify_gfit_modified();
 }
@@ -368,9 +367,9 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 			cairo_line_to(cr, k, height * (1 - y));
 		}
 	} else if (invocation == GHT_STRETCH) {
+		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 		for (k = 0; k < width + 1; k++) {
 			float x = k / (float) width;
-			GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 			float y = (float) GHT((double) x, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, compute_params);
 			cairo_line_to(cr, k, height * (1 - y));
 		}
@@ -378,7 +377,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 	cairo_stroke(cr);
 }
 
-static void draw_grid(cairo_t *cr, int width, int height) {
+void draw_grid(cairo_t *cr, int width, int height) {
 	double dash_format[] = { 1.0, 1.0 };
 
 	cairo_set_line_width(cr, 1.0);
@@ -427,7 +426,7 @@ static void draw_grid(cairo_t *cr, int width, int height) {
 }
 
 // erase image and redraw the background color and grid
-static void erase_histo_display(cairo_t *cr, int width, int height) {
+void erase_histo_display(cairo_t *cr, int width, int height) {
 	gboolean drawGrid, drawCurve;
 	// clear all with background color
 	cairo_set_source_rgb(cr, 0, 0, 0);
@@ -471,7 +470,7 @@ static void draw_slider(cairo_t *cr, int width, int height, int xpos) {
 	cairo_stroke(cr);
 }
 
-static void display_scale(cairo_t *cr, int width, int height) {
+void display_scale(cairo_t *cr, int width, int height) {
 	draw_gradient(cr, width, height);
 	if (invocation == HISTO_STRETCH) {
 		float delta = ((_highlights - _shadows) * _midtones) + _shadows;
@@ -485,7 +484,7 @@ static void display_scale(cairo_t *cr, int width, int height) {
 */	}
 }
 
-static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
+void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 		int height, double zoomH, double zoomV, gboolean isOrig) {
 	if (width <= 0) return;
 	int current_bin;
@@ -509,7 +508,7 @@ static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int widt
 				displayed_values = NULL;
 			}
 			PRINT_ALLOC_ERR;
-			histo_close(TRUE);
+			histo_close(TRUE, TRUE);
 			return;
 		}
 		displayed_values = tmp;
@@ -527,6 +526,7 @@ static void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int widt
 
 	// first loop builds the bins and finds the maximum
 	i = 0;
+	float graph_height = 0.f;
 	current_bin = 0;
 	do {
 		float bin_val = 0.f;
@@ -657,7 +657,7 @@ static void reset_cursors_and_values() {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
 	}
-	graph_height = 0.f;
+//	graph_height = 0.f;
 	_init_clipped_pixels();
 	_initialize_clip_text();
 	_update_entry_text();
@@ -777,14 +777,14 @@ void update_gfit_histogram_if_needed() {
 static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct mtf_data *m_args = (struct mtf_data*) args->user;
-	apply_linked_mtf_to_fits(fit, fit, m_args->params);
+	apply_linked_mtf_to_fits(fit, fit, m_args->params, FALSE);
 	return 0;
 }
 
 static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
-	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, m_args->compute_params);
+	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, m_args->compute_params, FALSE);
 	return 0;
 }
 
@@ -807,7 +807,6 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	if (height == 1)
 		return FALSE;
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
-	graph_height = 0.0;
 
 	for (i = 0; i < MAXVPORT; i++) {
 		if (com.layers_hist[i]
@@ -836,7 +835,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(TRUE);
+	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
 }
@@ -844,7 +843,7 @@ void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(TRUE);
+	histo_close(TRUE, TRUE);
 	histo_startup();
 	set_cursor_waiting(FALSE);
 }
@@ -884,8 +883,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		 * It is better to first close the window as it is a liveview tool
 		 * TODO: could we improve this behavior?
 		 */
-			reset_cursors_and_values();
-			histo_close(TRUE);
+			histo_close(TRUE, FALSE);
 			siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
@@ -904,8 +902,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		 * It is better to first close the window as it is a liveview tool
 		 * TODO: could we improve this behavior?
 		 */
-			reset_cursors_and_values();
-			histo_close(TRUE);
+			histo_close(TRUE, FALSE);
 			siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
@@ -940,7 +937,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 void apply_histo_cancel() {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(TRUE);
+	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 }
 
@@ -980,7 +977,7 @@ void setup_histo_dialog() {
 
 			// Hide UI elements not required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), FALSE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), FALSE);
 			// Make visible the UI elements required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), TRUE);
@@ -998,7 +995,7 @@ void setup_ght_dialog() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), FALSE);
 			// Make visible and configure the GHT controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), TRUE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			gchar *image;
 			GtkWidget *w;
 			if (com.pref.gui.combo_theme == 0) {
@@ -1008,7 +1005,7 @@ void setup_ght_dialog() {
 				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
 				w = gtk_image_new_from_file(image);
 			}
-			gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget("eyedropper_SP")), w);
+			gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_button")), w);
 			gtk_widget_show(w);
 			g_free(image);
 			// Set default parameters
@@ -1038,7 +1035,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), TRUE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), FALSE);
 
 			break;
 		case STRETCH_PAYNE_NORMAL:
@@ -1049,7 +1046,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 
 			break;
 		case STRETCH_ASINH:
@@ -1060,7 +1057,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols")), FALSE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_toolbar")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			break;
 
 			// This should resize the window to the smallest size that fits the visible widgets
@@ -1075,7 +1072,7 @@ void toggle_histogram_window_visibility(int _invocation) {
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);
 		reset_cursors_and_values();
-		histo_close(TRUE);
+		histo_close(TRUE, TRUE);
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("histogram_dialog");
 	} else {
@@ -1305,7 +1302,7 @@ void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	notify_update((gpointer) param);
 }
 
-void on_eyedropper_SP_clicked(GtkToggleButton *togglebutton, gpointer user_data) {
+void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	int chan, channels = get_preview_gfit_backup()->naxes[2];

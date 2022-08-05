@@ -81,6 +81,7 @@ void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
@@ -111,8 +112,10 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

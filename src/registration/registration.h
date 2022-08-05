@@ -87,9 +87,9 @@ struct registration_method {
 };
 
 /* used to draw framing in image_display */
-struct regframe_struct {
+typedef struct {
 	point pt[4];
-};
+} regframe;
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing

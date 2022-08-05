@@ -90,7 +90,13 @@ struct phot_config {
 	double outer;		// Outer radius of the annulus used to measure local background.
 	double aperture;	// flux aperture
 	gboolean force_radius;	// force the aperture radius value
-	int minval, maxval;	// consider pixels outside this range as invalid for photometry
+	double minval, maxval;	// consider pixels outside this range as invalid for photometry
+				// minval and maxval are stored as int, but adapted to image type
+				// when used, so normalized to 1 for float, hence the double type
+};
+
+struct analysis_config {
+	int mosaic_panel;
 };
 
 struct debayer_config {
@@ -219,6 +225,7 @@ struct pref_struct {
 	struct gui_config gui;
 	struct debayer_config debayer;
 	struct phot_config phot_set;
+	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;
 };

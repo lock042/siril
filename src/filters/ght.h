@@ -1,15 +1,15 @@
 #ifndef _GHT_H_
 #define _GHT_H_
 
-#define STRETCH_LINEAR 0
-#define STRETCH_PAYNE_NORMAL 1
-#define STRETCH_PAYNE_INVERSE 2
-#define STRETCH_ASINH 3
-#define STRETCH_INVASINH 4
+#define STRETCH_PAYNE_NORMAL 0
+#define STRETCH_PAYNE_INVERSE 1
+#define STRETCH_ASINH 2
+#define STRETCH_INVASINH 3
+#define STRETCH_LINEAR 4
 
-#define COL_HUMANLUM 0
-#define COL_EVENLUM 1
-#define COL_INDEP 2
+#define COL_INDEP 0
+#define COL_HUMANLUM 1
+#define COL_EVENLUM 2
 
 #include <math.h>
 #include "core/siril.h"
@@ -31,6 +31,6 @@ int GHTsetup(ght_compute_params* compute_params, double B, double D, double LP, 
 
 double GHT(double in, double B, double D, double LP, double SP, double HP, double BP, int stretchtype, ght_compute_params compute_params);
 double GHTp(double in, ght_params params, ght_compute_params compute_params);
-void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params_ght, ght_compute_params compute_params);
+void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params_ght, ght_compute_params compute_params, gboolean multithreaded);
 
 #endif

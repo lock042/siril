@@ -167,8 +167,6 @@ siril_common_SOURCES = \
 	gui/dialogs.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
-	gui/gnuplot_i/gnuplot_i.c \
-	gui/gnuplot_i/gnuplot_i.h \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/image_display.c \
@@ -180,6 +178,8 @@ siril_common_SOURCES = \
 	gui/menu_gray_psf.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/nina_light_curve.c \
+	gui/nina_light_curve.h \
 	gui/open_dialog.c \
 	gui/open_dialog.h \
 	gui/photometric_cc.c \
@@ -193,6 +193,8 @@ siril_common_SOURCES = \
 	gui/PSF_list.h \
 	gui/PSF_list.c \
 	gui/registration_preview.c \
+	gui/remixer.c \
+	gui/remixer.h \
 	gui/save_dialog.c \
 	gui/save_dialog.h \
 	gui/script_menu.c \
@@ -226,6 +228,8 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gnuplot_i.c \
+	io/gnuplot_i.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \

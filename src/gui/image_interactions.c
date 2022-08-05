@@ -42,6 +42,9 @@
 
 mouse_status_enum mouse_status;
 
+// caching widgets
+static GtkWidget *rotation_dlg = NULL, *histo_dlg = NULL;
+
 /* mouse callbacks */
 static double margin_size = 10;
 
@@ -53,13 +56,12 @@ static gboolean is_over_the_left_side_of_sel(pointi zoomed, double zoom) {
 				&& zoomed.y < com.selection.y + com.selection.h + s)
 			return TRUE;
 	}
-
 	return FALSE;
 }
 
 static gboolean is_over_the_right_side_of_sel(pointi zoomed, double zoom) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
+	int s = round_to_int(margin_size / zoom);
 	if (zoomed.x > com.selection.x + com.selection.w - s
 				&& zoomed.x < com.selection.x + com.selection.w + s) {
 		if (zoomed.y > com.selection.y - s
@@ -71,7 +73,7 @@ static gboolean is_over_the_right_side_of_sel(pointi zoomed, double zoom) {
 
 static gboolean is_over_the_bottom_of_sel(pointi zoomed, double zoom) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
+	int s = round_to_int(margin_size / zoom);
 	if (zoomed.y > com.selection.y + com.selection.h - s
 				&& zoomed.y < com.selection.y + com.selection.h + s) {
 		if (zoomed.x > com.selection.x - s
@@ -83,7 +85,7 @@ static gboolean is_over_the_bottom_of_sel(pointi zoomed, double zoom) {
 
 static gboolean is_over_the_top_of_sel(pointi zoomed, double zoom) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
+	int s = round_to_int(margin_size / zoom);
 	if (zoomed.y > com.selection.y - s && zoomed.y < com.selection.y + s) {
 		if (zoomed.x > com.selection.x - s
 				&& zoomed.x < com.selection.x + com.selection.w + s)
@@ -94,7 +96,7 @@ static gboolean is_over_the_top_of_sel(pointi zoomed, double zoom) {
 
 static gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 	if (com.selection.w == 0 && com.selection.h == 0) return FALSE;
-	double s = margin_size / zoom;
+	int s = round_to_int(margin_size / zoom);
 	if (zoomed.x >= com.selection.x + s && zoomed.x <= com.selection.x + com.selection.w - s) {
 		if (zoomed.y >= com.selection.y + s && zoomed.y <= com.selection.y + com.selection.h - s)
 			return TRUE;
@@ -320,6 +322,10 @@ void enforce_ratio_and_clamp() {
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 
+	if (!rotation_dlg) {
+		rotation_dlg = lookup_widget("rotation_dialog");
+		histo_dlg = lookup_widget("histogram_dialog");
+	}
 	/* when double clicking on drawing area (if no images loaded)
 	 * you can load an image This feature is in GIMP and I really
 	 * love it: lazy world :).
@@ -437,7 +443,10 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
 				if (area.x - area.w > 0 && area.x + area.w < gfit.rx
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
-					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, com.pref.phot_set.force_radius, TRUE, NULL);
+
+					struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, TRUE, ps, TRUE, NULL);
+					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
 						if (gfit.top_down)
@@ -505,7 +514,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.x = zoomed.x;
 					com.selection.w = gui.start.x - zoomed.x;
 				}
-				if (com.selection.w == 0)
+				if (com.selection.w == 0 && gtk_widget_is_visible(histo_dlg))
 					com.selection.w = 1;
 			}
 			if (!gui.freezeY) {
@@ -516,9 +525,15 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.y = zoomed.y;
 					com.selection.h = gui.start.y - zoomed.y;
 				}
-				if (com.selection.h == 0)
+				if (com.selection.h == 0 && gtk_widget_is_visible(histo_dlg))
 					com.selection.h = 1;
 			}
+			// never let selection be null if rotation_dlg is visible
+			// reinstate full image instead
+			if (!gui.freezeX && com.selection.w == 0 && gtk_widget_is_visible(rotation_dlg))
+				com.selection.w = gfit.rx;
+			if (!gui.freezeY && com.selection.h == 0 && gtk_widget_is_visible(rotation_dlg))
+				com.selection.h = gfit.ry;
 
 			if (gui.freezeX && gui.freezeY) { // Move selection
 				com.selection.x = (zoomed.x - gui.start.x) + gui.origin.x;
@@ -576,6 +591,10 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
+	if (!rotation_dlg) {
+		rotation_dlg = lookup_widget("rotation_dialog");
+		histo_dlg = lookup_widget("histogram_dialog");
+	}
 	if ((!single_image_is_loaded() && !sequence_is_loaded())
 			|| gfit.type == DATA_UNSUPPORTED) {
 		return FALSE;
@@ -739,13 +758,14 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 			set_cursor("cell");
 		} else {
+			// The order matters if the selection is so small that edge detection overlaps
+			// and need to be the same as in the on_drawingarea_button_press_event()
+			gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
+			gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
+			gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
+			gboolean top = is_over_the_top_of_sel(zoomed, zoom);
+
 			if (!gui.drawing && !gui.translating) {
-				// The order matters if the selection is so small that edge detection overlaps
-				// and need to be the same as in the on_drawingarea_button_press_event()
-				gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
-				gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
-				gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
-				gboolean top = is_over_the_top_of_sel(zoomed, zoom);
 				if (bottom && right) {
 					set_cursor("se-resize");
 				} else if (top && right) {
@@ -768,7 +788,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					set_cursor("crosshair");
 				}
 			} else {
-				if ((event->state & get_primary()) || is_inside_of_sel(zoomed, zoom)) {
+				if ((event->state & get_primary()) || (is_inside_of_sel(zoomed, zoom))) {
 					set_cursor("all-scroll");
 				} else {
 					set_cursor("crosshair");

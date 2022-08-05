@@ -73,6 +73,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	delete_selected_area();
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
+	/* It is better to close all other dialog. Indeed, some dialog are not compatible with all images */
 	display_filename();
 	update_zoom_label();
 	update_display_fwhm();
@@ -403,6 +404,7 @@ static gboolean end_gfit_operation() {
 
 	redraw(REMAP_ALL);	// queues a redraw if !com.script
 	redraw_previews();	// queues redraws if !com.script
+
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
 }
