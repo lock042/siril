@@ -525,6 +525,10 @@ static int compute_nb_images_fit_mem(fits *fit);
 static void print_reader(struct reader_data *reader);
 static void print_writer(struct writer_data *writer);
 
+static void init_report(struct _convert_data *args);
+static void report_file_conversion(struct _convert_data *args, struct readwrite_data *rwarg);
+static void write_conversion_report(struct _convert_data *args);
+
 static gboolean end_convert_idle(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	struct timeval t_end;
@@ -585,6 +589,7 @@ gpointer convert_thread_worker(gpointer p) {
 		seqwriter_set_max_active_blocks(initial_wqueue_limit);
 	}
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
+	init_report(args);
 
 	/* remove the target .seq to avoid errors */
 	gchar *seqname = replace_ext(args->destroot, ".seq");
@@ -626,6 +631,7 @@ gpointer convert_thread_worker(gpointer p) {
 		struct readwrite_data *rwarg = malloc(sizeof(struct readwrite_data));
 		rwarg->reader = reader;
 		rwarg->writer = writer;
+		report_file_conversion(args, rwarg);
 		if (!g_thread_pool_push(pool, rwarg, NULL)) {
 			siril_log_message(_("Failed to queue image conversion task, aborting"));
 			break;
@@ -653,6 +659,7 @@ gpointer convert_thread_worker(gpointer p) {
 		if (convert.nb_input_images == convert.converted_images)
 			siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+		write_conversion_report(args);
 	}
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
@@ -1285,3 +1292,47 @@ static void print_writer(struct writer_data *writer) {
 				writer->seq_count->close_sequence_after_write ? " (close after write)" : "");
 	else siril_debug_print("O> writer: %s\n", writer->filename);
 }
+
+static void init_report(struct _convert_data *args) {
+	args->report = malloc(args->total * sizeof(char *));
+}
+
+static void report_file_conversion(struct _convert_data *args, struct readwrite_data *rwarg) {
+	gchar *str = NULL;
+	if (rwarg->reader->filename) {
+		if (rwarg->writer->filename) {
+			str = g_strdup_printf("%s -> %s\n", rwarg->reader->filename, rwarg->writer->filename);
+		}
+		else if (rwarg->writer->fitseq) {
+			str = g_strdup_printf("%s -> %s image %d\n", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index);
+		}
+		else if (rwarg->writer->ser) {
+			str = g_strdup_printf("%s -> %s image %d\n", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index);
+		}
+	}
+	if (str) {
+		args->report[args->report_length++] = str;
+	}
+}
+
+static void write_conversion_report(struct _convert_data *args) {
+	if (args->report_length <= 0)
+		return;
+	gchar *filename;
+	if (g_str_has_suffix(args->destroot, "_"))
+		filename = g_strdup_printf("%sconversion.txt", args->destroot);
+	else filename = g_strdup_printf("%s_conversion.txt", args->destroot);
+	FILE *fd = g_fopen(filename, "w+");
+	g_free(filename);
+	if (!fd)
+		return;
+
+	for (int i = 0; i < args->report_length; i++)
+		if (fputs(args->report[i], fd) == EOF)
+			break;
+
+	for (int i = 0; i < args->report_length; i++)
+		g_free(args->report[i]);
+	fclose(fd);
+}
+
