@@ -802,7 +802,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// 3. compute the transforms and store them in regparams
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	for (int i = 0; i < regargs->seq->number; i++) {
-		if (!regargs->process_all_frames && regargs->seq->imgparam[i].incl)
+		if (!regargs->process_all_frames && !regargs->seq->imgparam[i].incl)
 			continue;
 		Homography H = { 0 };
 		if (i == regargs->seq->reference_image) {
