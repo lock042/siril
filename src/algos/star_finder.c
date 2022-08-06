@@ -25,6 +25,7 @@
 #include <math.h>
 #include <locale.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_statistics.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -38,6 +39,7 @@
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
+#include "algos/sorting.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -756,6 +758,32 @@ void free_fitted_stars(psf_star **stars) {
 	free(stars);
 }
 
+psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbfilteredstars) {
+	int i = 0;
+	int nb = 0;
+	while (stars && stars[i])
+		if (stars[i++]->A >= threshold) nb++;
+	*nbfilteredstars = nb;
+	if (nb == 0) {
+		free_fitted_stars(stars);
+		return NULL;
+	}
+	psf_star **filtered_stars = new_fitted_stars(nb);
+	i = 0;
+	nb = 0;
+	while (stars && stars[i]) {
+		if (stars[i]->A >= threshold) {
+			filtered_stars[nb] = new_psf_star();
+			memcpy(filtered_stars[nb], stars[i], sizeof(psf_star));
+			nb++;
+		}
+		i++;
+	}
+	filtered_stars[nb] = NULL;
+	free_fitted_stars(stars);
+	return filtered_stars;
+}
+
 void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B) {
 	*FWHMx = 0.0f;
 	*FWHMy = 0.0f;
@@ -773,6 +801,36 @@ void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **u
 		*B = (float)(b / (double)nb);
 	}
 }
+
+void FWHM_stats(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B, float *Acut, double Acutp) {
+	*FWHMx = 0.0f;
+	*FWHMy = 0.0f;
+	*B = 0.0f;
+	*Acut = 0.0f;
+	if (stars && stars[0]) {
+		double fwhmx = 0.0, fwhmy = 0.0, b = 0.0;
+		*units = stars[0]->units;
+		for (int i = 0; i < nb; i++) {
+			fwhmx += stars[i]->fwhmx;
+			fwhmy += stars[i]->fwhmy;
+			b += stars[i]->B;
+		}
+		*FWHMx = (float)(fwhmx / (double)nb);
+		*FWHMy = (float)(fwhmy / (double)nb);
+		*B = (float)(b / (double)nb);
+
+		float *A = malloc(nb * sizeof(float));
+		if (!A) {
+			PRINT_ALLOC_ERR;
+		}
+		for (int i = 0; i < nb; i++)
+			A[i] = stars[i]->A;
+		quicksort_f(A, nb);
+		*Acut = (float)gsl_stats_float_quantile_from_sorted_data(A, 1, nb, Acutp);
+		g_free(A);
+	}
+}
+
 
 float filtered_FWHM_average(psf_star **stars, int nb) {
 	if (!stars || !stars[0])
@@ -871,7 +929,7 @@ gpointer findstar_worker(gpointer p) {
 		*args->stars = stars;
 		*args->nb_stars = nbstars;
 	}
-	else if (args->update_GUI)
+	else if (!args->update_GUI)
 		free_fitted_stars(stars);
 
 	if (args->update_GUI)

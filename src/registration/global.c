@@ -44,6 +44,7 @@
 #include "opencv/opencv.h"
 
 # define MIN_RATIO_INLIERS 30 //percentage of inliers after transformation fitting (shift, affine or homography)
+# define AMPLITUDE_CUT 0.05
 
 /* TODO:
  * check usage of openmp in functions called by these ones (to be disabled)
@@ -705,7 +706,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->update_GUI = FALSE;
 	sf_args->already_in_thread = TRUE;
 	sf_args->save_to_file = TRUE; // TODO: maybe this could be an option . Needed for debugging purposes
-	float *fwhm = NULL, *roundness = NULL, *B = NULL;
+	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL;
+
 	if (!sf_args->stars || !sf_args->nb_stars) {
 		PRINT_ALLOC_ERR;
 		goto free_all;
@@ -718,15 +720,17 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// 2. searching for the best image and set it as reference
 	fwhm = calloc(regargs->seq->number, sizeof(float));
 	roundness = calloc(regargs->seq->number, sizeof(float));
+	A = calloc(regargs->seq->number, sizeof(float));
 	B = calloc(regargs->seq->number, sizeof(float));
-	if (!fwhm || !roundness || !B) {
+	Acut = calloc(regargs->seq->number, sizeof(float));
+	if (!fwhm || !roundness || !B || !A) {
 		PRINT_ALLOC_ERR;
 		goto free_all;
 	}
-
+	int maxstars = 0;
 	int failed = 0;		// number of images to fail registration at any step
-	float min_fwhm = FLT_MAX;
-	int min_index = -1;
+	int best_index = -1;
+	float bestscore = FLT_MAX;
 	for (int i = 0; i < regargs->seq->number; i++) {
 		if (!sf_args->stars[i]) {
 			// star finder failed, we exclude the frame from the sequence
@@ -738,24 +742,63 @@ int register_multi_step_global(struct registration_args *regargs) {
 			continue;
 		float FWHMx, FWHMy;
 		char *units;
-		FWHM_average(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i);
+		// FWHM_average(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i);
+		FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B + i, Acut + i, AMPLITUDE_CUT);
 		fwhm[i] = FWHMx;
 		roundness[i] = FWHMy/FWHMx;
-		/* here we have for each image: average FWHM, roundness of average FWHMs,
-		 * average B, number of stars.
-		 * TODO: What do we do to find the best image?
-		 * For now we take the best FWHM, but we should include some framing checks too
-		 */
-		if (fwhm[i] < min_fwhm) {
-			min_fwhm = fwhm[i];
-			min_index = i;
+		if (sf_args->nb_stars[i] > maxstars) maxstars = sf_args->nb_stars[i];
+	}
+	
+	if (maxstars == sf_args->max_stars_fitted) {
+		siril_log_message(_("The number of stars has capped, readapting threshold and filtering\n"));
+		float Athreshold = 0.0f;
+		// Determine the updated A threshold
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!regargs->seq->imgparam[i].incl) continue;
+			if (sf_args->nb_stars[i] == sf_args->max_stars_fitted && Acut[i] > Athreshold) Athreshold = Acut[i];
+		}
+		// Filter the whole series against new amplitude threshold
+		maxstars = maxstars * (1 - AMPLITUDE_CUT);
+
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!regargs->seq->imgparam[i].incl) continue;
+			sf_args->stars[i] = filter_stars_by_amplitude(sf_args->stars[i], Athreshold, &sf_args->nb_stars[i]);
+			if (!sf_args->stars) {
+				regargs->seq->imgparam[i].incl = FALSE;
+				failed++;
+				continue;
+			}
+			float FWHMx, FWHMy;
+			float score;
+			char *units;
+			FWHM_average(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i);
+			score  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			fwhm[i] = FWHMx;
+			roundness[i] = FWHMy/FWHMx;
+			if (score < bestscore) {
+				bestscore = score;
+				best_index = i;
+			} 
+		}
+	} else {
+		float bestscore = FLT_MAX;
+		float FWHMx;
+		float score;
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!regargs->seq->imgparam[i].incl) continue;
+			FWHMx = fwhm[i];
+			score  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			if (score < bestscore) {
+				bestscore = score;
+				best_index = i;
+			} 
 		}
 	}
-
-	regargs->seq->reference_image = min_index;
-	int reffilenum = regargs->seq->imgparam[min_index].filenum;	// for display purposes
+	
+	regargs->seq->reference_image = best_index;
+	int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
 	siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
-	int nb_ref_stars = sf_args->nb_stars[min_index];
+	int nb_ref_stars = sf_args->nb_stars[best_index];
 
 	// 3. compute the transforms and store them in regparams
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
@@ -834,7 +877,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		current_regdata[i].roundness = roundness[i];
 		current_regdata[i].fwhm = fwhm[i];
 		current_regdata[i].weighted_fwhm = 2 * fwhm[i]
-			* ((double)nb_ref_stars - (double)H.Inliers)
+			* ((double)nb_ref_stars - sf_args->nb_stars[i])
 			/ (double)nb_ref_stars + fwhm[i];
 		current_regdata[i].background_lvl = B[i];
 		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
@@ -855,6 +898,8 @@ free_all:
 	free(fwhm);
 	free(roundness);
 	free(B);
+	free(A);
+	free(Acut);
 	return 0;
 }
 
