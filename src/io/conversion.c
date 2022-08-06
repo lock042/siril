@@ -1295,19 +1295,20 @@ static void print_writer(struct writer_data *writer) {
 
 static void init_report(struct _convert_data *args) {
 	args->report = malloc(args->total * sizeof(char *));
+	args->report_length = 0;
 }
 
 static void report_file_conversion(struct _convert_data *args, struct readwrite_data *rwarg) {
 	gchar *str = NULL;
 	if (rwarg->reader->filename) {
 		if (rwarg->writer->filename) {
-			str = g_strdup_printf("%s -> %s\n", rwarg->reader->filename, rwarg->writer->filename);
+			str = g_strdup_printf("'%s' -> '%s'%s", rwarg->reader->filename, rwarg->writer->filename, SIRIL_EOL);
 		}
 		else if (rwarg->writer->fitseq) {
-			str = g_strdup_printf("%s -> %s image %d\n", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index);
+			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index, SIRIL_EOL);
 		}
 		else if (rwarg->writer->ser) {
-			str = g_strdup_printf("%s -> %s image %d\n", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index);
+			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index, SIRIL_EOL);
 		}
 	}
 	if (str) {
