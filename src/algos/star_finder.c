@@ -868,7 +868,7 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
 	if (findstar_args->save_to_file) {
-		char root[255];
+		char root[256];
 		if(!fit_sequence_get_image_filename(args->seq, i, root, FALSE)) return 1;
 		curr_findstar_args->starfile = g_strdup_printf("%s.lst", root);
 	}

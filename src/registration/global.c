@@ -738,7 +738,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			failed++;
 			continue;
 		}
-		if (!regargs->process_all_frames && regargs->seq->imgparam[i].incl)
+		if (!regargs->process_all_frames && !regargs->seq->imgparam[i].incl)
 			continue;
 		float FWHMx, FWHMy;
 		char *units;
@@ -781,7 +781,6 @@ int register_multi_step_global(struct registration_args *regargs) {
 			} 
 		}
 	} else {
-		float bestscore = FLT_MAX;
 		float FWHMx;
 		float score;
 		for (int i = 0; i < regargs->seq->number; i++) {
@@ -794,7 +793,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			} 
 		}
 	}
-	
+
 	regargs->seq->reference_image = best_index;
 	int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
 	siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
