@@ -50,6 +50,7 @@ siril 1.0.4
 XX/XX/22
 * Fixed selected area for flat autonormalisation calc
 * Fixed wrong initialization in polynomial background extraction
+* Fixed cold pixels rejection in GESDT stacking
 
 siril 1.0.3
 06/28/22
