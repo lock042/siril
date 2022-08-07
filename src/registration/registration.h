@@ -65,6 +65,7 @@ struct registration_args {
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
 	transformation_type type;	// Use affine transform  or homography
 	float percent_moved;		// for KOMBAT algorithm
+	gboolean two_pass;		// use the two-pass computation to find a good ref image
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean no_output;		// write transformation to .seq

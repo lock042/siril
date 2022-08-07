@@ -4149,17 +4149,9 @@ int process_register(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
-	/* getting the selected registration method */
-	method = malloc(sizeof(struct registration_method));
-	method->name = strdup(_("Global Star Alignment (deep-sky)"));
-	method->method_ptr = &register_star_alignment;
-	method->sel = REQUIRES_NO_SELECTION;
-	method->type = REGTYPE_DEEPSKY;
-
 	reg_args = calloc(1, sizeof(struct registration_args));
 
 	/* filling the arguments for registration */
-	reg_args->func = method->method_ptr;
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->process_all_frames = TRUE;
@@ -4179,6 +4171,9 @@ int process_register(int nb) {
 		if (!strcmp(word[i], "-drizzle")) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
+			reg_args->no_output = TRUE;
+		} else if (!strcmp(word[i], "-2pass")) {
+			reg_args->two_pass = TRUE;
 			reg_args->no_output = TRUE;
 		} else if (!strcmp(word[i], "-selected")) {
 			reg_args->process_all_frames = FALSE;
@@ -4305,6 +4300,19 @@ int process_register(int nb) {
 		}
 	}
 
+	/* getting the selected registration method */
+	method = malloc(sizeof(struct registration_method));
+	if (reg_args->two_pass) {
+		method->name = _("Two-Pass Global Star Alignment (deep-sky)");
+		method->method_ptr = &register_multi_step_global;
+	} else {
+		method->name = _("Global Star Alignment (deep-sky)");
+		method->method_ptr = &register_star_alignment;
+	}
+	method->sel = REQUIRES_NO_SELECTION;
+	method->type = REGTYPE_DEEPSKY;
+	reg_args->func = method->method_ptr;
+
 	// testing free space
 	if (!reg_args->no_output) {
 		// first, remove the files that we are about to create
@@ -4344,7 +4352,7 @@ int process_register(int nb) {
 
 terminate_register_on_error:
 	g_free(reg_args);
-	g_free(method);
+	free(method);
 	return CMD_ARG_ERROR;
 }
 

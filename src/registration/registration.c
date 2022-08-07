@@ -129,6 +129,8 @@ void initialize_registration_methods() {
 			&register_3stars, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Global Star Alignment (deep-sky)"),
 			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[i++] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
+			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
 			&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("KOMBAT (planetary surfaces or full disk)"),
@@ -137,8 +139,6 @@ void initialize_registration_methods() {
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
-	reg_methods[i++] = new_reg_method(_("The New Global Star Alignment (deep-sky)"),
-			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i] = NULL;
 
 	tip = g_string_new ("");
