@@ -1132,7 +1132,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	/* We check that available disk space is enough when
 	the registration method produces a new sequence
 	*/
-	if (!reg_args->no_output) {
+	if (!reg_args->no_output && method->method_ptr == register_star_alignment) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
