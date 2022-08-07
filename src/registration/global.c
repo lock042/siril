@@ -705,6 +705,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->forcepx = TRUE;
 	sf_args->update_GUI = FALSE;
 	sf_args->already_in_thread = TRUE;
+	sf_args->process_all_images = regargs->process_all_frames;
 	sf_args->save_to_file = TRUE; // TODO: maybe this could be an option . Needed for debugging purposes
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL;
 
@@ -730,7 +731,6 @@ int register_multi_step_global(struct registration_args *regargs) {
 	int maxstars = 0;
 	int failed = 0;		// number of images to fail registration at any step
 	int best_index = -1;
-	float bestscore = FLT_MAX;
 	for (int i = 0; i < regargs->seq->number; i++) {
 		if (!sf_args->stars[i]) {
 			// star finder failed, we exclude the frame from the sequence
@@ -748,7 +748,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 		roundness[i] = FWHMy/FWHMx;
 		if (sf_args->nb_stars[i] > maxstars) maxstars = sf_args->nb_stars[i];
 	}
-	
+
+	float bestscore = FLT_MAX;
 	if (maxstars == sf_args->max_stars_fitted) {
 		siril_log_message(_("The number of stars has capped, readapting threshold and filtering\n"));
 		float Athreshold = 0.0f;
@@ -778,7 +779,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			if (score < bestscore) {
 				bestscore = score;
 				best_index = i;
-			} 
+			}
 		}
 	} else {
 		float FWHMx;
@@ -790,7 +791,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			if (score < bestscore) {
 				bestscore = score;
 				best_index = i;
-			} 
+			}
 		}
 	}
 

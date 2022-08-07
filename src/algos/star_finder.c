@@ -887,8 +887,10 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 
 int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	struct generic_seq_args *args = create_default_seqargs(findstar_args->im.from_seq);
-	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = args->seq->selnum;
+	if (!findstar_args->process_all_images) {
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = args->seq->selnum;
+	}
 	args->image_hook = findstar_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("FindStar");
@@ -907,6 +909,8 @@ gpointer findstar_worker(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 	int retval = 0;
 	int nbstars = 0;
+	//struct timeval t_start, t_end;
+	//gettimeofday(&t_start, NULL);
 	rectangle *selection = NULL;
 	if (com.selection.w != 0 && com.selection.h != 0)
 		selection = &com.selection;
@@ -934,6 +938,10 @@ gpointer findstar_worker(gpointer p) {
 
 	if (args->update_GUI)
 		siril_add_idle(end_findstar, args);
+	/*gettimeofday(&t_end, NULL);
+	gchar *msg = g_strdup_printf("findstar for image %d", args->im.index_in_seq);
+	show_time_msg(t_start, t_end, msg);
+	g_free(msg);*/
 
 	return GINT_TO_POINTER(retval);
 }

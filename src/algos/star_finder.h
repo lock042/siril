@@ -22,6 +22,7 @@ struct starfinder_data {
 	gboolean forcepx;
 	threading_type threading;
 	gboolean update_GUI;	// FALSE for sequence operation
+	gboolean process_all_images;	// for sequence operation
 	gboolean already_in_thread;
 };
 
