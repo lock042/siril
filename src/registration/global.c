@@ -210,7 +210,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	} else {
 		sadata->fitted_stars = nb_stars;
 	}
-	FWHM_average(sadata->refstars, sadata->fitted_stars, &FWHMx, &FWHMy, &units, &B);
+	FWHM_stats(sadata->refstars, sadata->fitted_stars, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
@@ -342,7 +342,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 
 
-		FWHM_average(stars, nbpoints, &FWHMx, &FWHMy, &units, &B);
+		FWHM_stats(stars, nbpoints, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		free_fitted_stars(stars);
 #ifdef _OPENMP
 #pragma omp critical
@@ -697,7 +697,6 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->max_stars_fitted = regargs->max_stars_candidates;
 	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
 	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
-	sf_args->forcepx = TRUE;
 	sf_args->update_GUI = FALSE;
 	sf_args->already_in_thread = TRUE;
 	sf_args->process_all_images = !regargs->filters.filter_included;
@@ -737,7 +736,6 @@ int register_multi_step_global(struct registration_args *regargs) {
 			continue;
 		float FWHMx, FWHMy;
 		char *units;
-		// FWHM_average(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i);
 		FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B + i, Acut + i, AMPLITUDE_CUT);
 		fwhm[i] = FWHMx;
 		roundness[i] = FWHMy/FWHMx;
@@ -767,7 +765,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			float FWHMx, FWHMy;
 			float score;
 			char *units;
-			FWHM_average(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i);
+			FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i, NULL, 0.);
 			score  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
 			fwhm[i] = FWHMx;
 			roundness[i] = FWHMy/FWHMx;

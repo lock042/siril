@@ -19,7 +19,6 @@ struct starfinder_data {
 	gchar *starfile;	// save to file if not NULL
 	psf_star ***stars;	// save to pointer if not NULL
 	int *nb_stars;		// number of stars in stars if not NULL
-	gboolean forcepx;
 	threading_type threading;
 	gboolean update_GUI;	// FALSE for sequence operation
 	gboolean process_all_images;	// for sequence operation
@@ -58,7 +57,6 @@ void sort_stars_by_mag(psf_star **stars, int total);
 psf_star **new_fitted_stars(size_t n);
 void free_fitted_stars(psf_star **stars);
 int count_stars(psf_star **stars);
-void FWHM_average(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B);
 void FWHM_stats(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B, float *Acut, double Acutp);
 psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbfilteredstars);
 float filtered_FWHM_average(psf_star **stars, int nb);

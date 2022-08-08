@@ -314,10 +314,9 @@ static void remove_all_stars(){
 	g_object_unref(file); \
 	return 1
 
-int save_list(gchar *filename, gboolean forcepx, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, gboolean verbose) {
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, gboolean verbose) {
 	int i = 0;
 	GError *error = NULL;
-	gboolean is_in_arcsec = FALSE;
 
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
@@ -348,32 +347,20 @@ int save_list(gchar *filename, gboolean forcepx, int max_stars_fitted, psf_star 
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	char *unit = (forcepx || !stars) ? "px" : stars[0]->units;
 	len = snprintf(buffer, 300,
-			"# star#\tlayer\tB\tA\tX\tY\tFWHMx [%s]\tFWHMy [%s]\tangle\tRMSE\tmag%s",
-			unit, unit, SIRIL_EOL);
+			"# star#\tlayer\tB\tA\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag%s",
+			SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
 	if (stars) {
-		if (stars[0]) {
-			is_in_arcsec = ((stars[0]->fwhmx_arcsec > 0) && (!forcepx));
-		}
 		while (stars[i]) {
-			if (is_in_arcsec) {
-				len = snprintf(buffer, 300,
-						"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
-						i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
-						stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx_arcsec,
-						stars[i]->fwhmy_arcsec, stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
-			} else {
-				len = snprintf(buffer, 300,
-						"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
-						i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
-						stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
-						stars[i]->fwhmy, stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
-			}
-
+			len = snprintf(buffer, 300,
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
+					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
+					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
+					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
+					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
 		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 			HANDLE_WRITE_ERR;
 		}
@@ -412,7 +399,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, FALSE, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, TRUE);
+		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, TRUE);
 
 		g_free(file);
 	}

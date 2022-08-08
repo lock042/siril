@@ -2725,8 +2725,6 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 				return CMD_ARG_ERROR;
 			}
 			args->max_stars_fitted = max_stars;
-		} else if (!strcmp(current, "-forcepx")) {
-			args->forcepx = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
 			return CMD_ARG_ERROR;
@@ -2757,7 +2755,6 @@ int process_findstar(int nb) {
 	// initializing args
 	args->starfile = NULL;
 	args->max_stars_fitted = 0;
-	args->forcepx = FALSE;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
 
@@ -2792,7 +2789,6 @@ int process_seq_findstar(int nb) {
 	args->im.from_seq = seq;
 	args->im.index_in_seq = -1;
 	args->max_stars_fitted = 0;
-	args->forcepx = FALSE;
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
 
