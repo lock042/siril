@@ -2,6 +2,7 @@
 #define STACKING_H_
 
 #include "core/processing.h"
+#include "core/sequence_filtering.h"
 
 //#define STACK_DEBUG
 
@@ -96,8 +97,7 @@ struct stacking_configuration {
 	gboolean lite_norm;
 	normalization norm;
 	int number_of_loaded_sequences;
-	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p, f_bkg, f_bkg_p, f_nbstars, f_nbstars_p; // on if >0
-	gboolean filter_included;
+	struct seq_filter_config filters;
 	gboolean apply_noise_weights;
 	gboolean apply_nbstack_weights;
 };

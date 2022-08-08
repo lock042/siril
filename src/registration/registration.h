@@ -52,7 +52,7 @@ struct registration_args {
 	registration_function func;	// the registration function
 	sequence *seq;			// the sequence to register
 	int reference_image;		// reference image index
-	gboolean process_all_frames;	// all frames of the sequence (opposite of selected frames)
+	struct seq_filter_config filters; // parsed image filters (.filter_included always used)
 	int layer;			// layer of images on which the registration is computed
 	int retval;			// retval of func
 	gboolean run_in_thread;		// true if the registration was run in a thread
@@ -66,6 +66,8 @@ struct registration_args {
 	transformation_type type;	// Use affine transform  or homography
 	float percent_moved;		// for KOMBAT algorithm
 	gboolean two_pass;		// use the two-pass computation to find a good ref image
+	seq_image_filter filtering_criterion; // the filter, only used by seqapplyreg
+	double filtering_parameter;	// and its parameter
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean no_output;		// write transformation to .seq

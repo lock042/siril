@@ -60,41 +60,49 @@ static gboolean keep_noout_state = FALSE;
 
 #undef DEBUG
 
-static char *tooltip_text[] = { N_("<b>One Star Registration</b>: This is the simplest method to register deep-sky images. "
+static char *tooltip_text[] = {
+	N_("<b>One Star Registration</b>: This is the simplest method to register deep-sky images. "
 		"Because only one star is concerned for register, images are aligned using shifting "
 		"(at a fraction of pixel). No rotation or scaling are performed. "
 		"Shifts at pixel precision are saved in seq file."),
-		N_("<b>Two or Three Stars Registration</b>: This method looks like the one star registration except one need to select "
-		"two or three stars. This is very useful for field with a few stars."),
-		N_("<b>Global Star Alignment</b>: This is a more powerful and accurate algorithm (but also slower) "
-		"to perform deep-sky images. The global matching is based on triangle similarity method for automatically "
-		"identify common stars in each image. "
-		"A new sequence is created with the prefix of your choice (r_ by default)."),
-		N_("<b>Image Pattern Alignment</b>: This is a simple registration by translation method "
-		"using cross correlation in the spatial domain. This method is fast and is used to register "
-		"planetary movies. It can also be used for some deep-sky images registration. "
+	N_("<b>Two or Three Stars Registration</b>: This method looks like the one star registration "
+		"except one need to select two or three stars. This is very useful for field with a "
+		"few stars."),
+	N_("<b>Global Star Alignment</b>: This is a more powerful and accurate algorithm (but also "
+		"slower) to perform deep-sky images. The global matching is based on triangle "
+		"similarity method for automatically identify common stars in each image. A new "
+		"sequence is created with the prefix of your choice (r_ by default)."),
+	N_("<b>Two-Pass Global Star Alignment</b>: The global star alignment is done in two passes, "
+		"allowing the reference frame to be chosen from detected star information instead of "
+		"automatically choosing the first frame of the sequence."),
+	N_("<b>Image Pattern Alignment</b>: This is a simple registration by translation method "
+		"using cross correlation in the spatial domain. This method is fast and is used to "
+		"register planetary movies. It can also be used for some deep-sky images registration. "
 		"Shifts at pixel precision are saved in seq file."),
-		N_("<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on images and"
-		" to align them accordingly. Only translation is taken into account yet."),
-		N_("<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet and asteroid registration. It is necessary to have timestamps "
-		"stored in FITS header and to load a sequence of star aligned images. This methods makes a translation of a certain number of pixels depending on "
-		"the timestamp of each images and the global shift of the object between the first and the last image."),
-		N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to apply previously computed registration data "
-		"stored in the sequence file. The interpolation method and simplified drizzle can be selected in the Output Registration section and it can be applied "
-		"on selected images only, to avoid saving unnecessary images."),
-		N_("UNDOCUMENTED TOP SECRET PROJECT")
+	N_("<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on images and to "
+		"align them accordingly. Only translation is taken into account yet."),
+	N_("<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet and asteroid "
+		"registration. It is necessary to have timestamps stored in FITS header and to load a "
+		"sequence of star aligned images. This methods makes a translation of a certain number "
+		"of pixels depending on the timestamp of each images and the global shift of the "
+		"object between the first and the last image."),
+	N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to "
+		"apply previously computed registration data stored in the sequence file. The "
+		"interpolation method and simplified drizzle can be selected in the Output "
+		"Registration section and it can be applied on selected images only, to avoid saving "
+		"unnecessary images.")
 };
 
 static char *reg_frame_registration[] = {
-		"framing-default.svg",
-		"framing-max.svg",
-		"framing-min.svg",
-		"framing-cog.svg"
+	"framing-default.svg",
+	"framing-max.svg",
+	"framing-min.svg",
+	"framing-cog.svg"
 };
 
 /*Possible values for max stars combo box
 Needs to be consistent with list in comboreg_maxstars*/
-static int maxstars_values[] = {100, 200, 500, 1000, 2000};
+static int maxstars_values[] = { 100, 200, 500, 1000, 2000 };
 
 int register_kombat(struct registration_args *args);
 
@@ -228,10 +236,10 @@ int register_shift_dft(struct registration_args *args) {
 	size = args->selection.w;
 	sqsize = size * size;
 
-	if (args->process_all_frames)
-		nb_frames = (float) args->seq->number;
-	else
+	if (args->filters.filter_included)
 		nb_frames = (float) args->seq->selnum;
+	else
+		nb_frames = (float) args->seq->number;
 
 	if (args->seq->regparam[args->layer]) {
 		siril_log_message(
@@ -342,7 +350,7 @@ int register_shift_dft(struct registration_args *args) {
 			continue;
 		}
 		if (frame == ref_image) continue;
-		if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
+		if (args->filters.filter_included && !args->seq->imgparam[frame].incl)
 			continue;
 
 		fits fit = { 0 };
@@ -523,10 +531,11 @@ int register_kombat(struct registration_args *args) {
 	    	args->seq->regparam[args->layer] = current_regdata;
 	}
 
-	if (args->process_all_frames)
-		nb_frames = (float) args->seq->number;
-	else
+
+	if (args->filters.filter_included)
 		nb_frames = (float) args->seq->selnum;
+	else
+		nb_frames = (float) args->seq->number;
 
 	/* loading reference frame */
 	ref_idx = sequence_find_refimage(args->seq);
@@ -585,7 +594,7 @@ int register_kombat(struct registration_args *args) {
 				continue;
 			}
 
-			if (!args->process_all_frames && !args->seq->imgparam[frame].incl)
+			if (args->filters.filter_included && !args->seq->imgparam[frame].incl)
 				continue;
 
 			fits cur_fit = { 0 };
@@ -684,15 +693,15 @@ int register_shift_fwhm(struct registration_args *args) {
 	 * images to register, which provides FWHM but also star coordinates */
 	// TODO: detect that it was already computed, and don't do it again
 	// -> should be done at a higher level and passed in the args
-	if (seqpsf(args->seq, args->layer, TRUE, args->process_all_frames, framing, FALSE, FALSE))
+	if (seqpsf(args->seq, args->layer, TRUE, !args->filters.filter_included, framing, FALSE, FALSE))
 		return 1;
 
 	// regparam is managed in seqpsf idle function already
 	current_regdata = args->seq->regparam[args->layer];
 
-	if (args->process_all_frames)
-		nb_frames = (float)args->seq->number;
-	else nb_frames = (float)args->seq->selnum;
+	if (args->filters.filter_included)
+		nb_frames = (float)args->seq->selnum;
+	else nb_frames = (float)args->seq->number;
 
 	/* loading reference frame */
 	ref_image = sequence_find_refimage(args->seq);
@@ -712,7 +721,7 @@ int register_shift_fwhm(struct registration_args *args) {
 	for (frame = 0; frame < args->seq->number; frame++) {
 		if (args->run_in_thread && !get_thread_run())
 			break;
-		if (!args->process_all_frames && !args->seq->imgparam[frame].incl) {
+		if (args->filters.filter_included && !args->seq->imgparam[frame].incl) {
 			// current_regdata was set with identity matrices
 			// need to return null matcices for unselected frames
 			SetNullH(&current_regdata[frame].H);
@@ -790,9 +799,8 @@ void on_comboreg_sel_all_combobox_changed(GtkComboBox *box, gpointer user_data) 
 	update_reg_interface(TRUE);
 }
 
-/* for now, the sequence argument is used only when executing a script */
 int get_registration_layer(sequence *seq) {
-	if (!com.script) {
+	if (!com.script && seq == &com.seq) {
 		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		int reglayer = gtk_combo_box_get_active(registbox);
 		if (!seq || !seq->regparam || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
@@ -1102,7 +1110,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
-	reg_all_sel_box= GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
@@ -1118,7 +1126,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
-	reg_args->process_all_frames = !gtk_combo_box_get_active(reg_all_sel_box);
+	reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION) {
@@ -1136,7 +1144,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
-		int nb_frames = reg_args->process_all_frames ? reg_args->seq->number : reg_args->seq->selnum;
+		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;

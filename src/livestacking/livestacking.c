@@ -440,7 +440,6 @@ static int start_global_registration(sequence *seq) {
 	reg_args.func = &register_star_alignment; // TODO: ability to choose a method
 	reg_args.seq = seq;
 	reg_args.reference_image = 0;
-	reg_args.process_all_frames = TRUE;
 	reg_args.layer = (seq->nb_layers == 3) ? 1 : 0;
 	reg_args.run_in_thread = FALSE;
 	reg_args.follow_star = FALSE;
@@ -460,7 +459,7 @@ static int start_global_registration(sequence *seq) {
 		return 1;*/
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
-	if (!reg_args.process_all_frames) {
+	if (reg_args.filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = seq->selnum;
 	}
@@ -727,7 +726,7 @@ static gpointer live_stacker(gpointer arg) {
 		clean_end_stacking(&stackparam);
 		free_sequence(&r_seq, FALSE);
 		free(stackparam.image_indices);
-		free(stackparam.description);
+		g_free(stackparam.description);
 
 		if (retval) {
 			gchar *str = g_strdup_printf(_("Stacking failed for image %d"), index);

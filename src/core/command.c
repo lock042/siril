@@ -4154,7 +4154,6 @@ int process_register(int nb) {
 	/* filling the arguments for registration */
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
-	reg_args->process_all_frames = TRUE;
 	reg_args->follow_star = FALSE;
 	reg_args->matchSelection = FALSE;
 	reg_args->no_output = FALSE;
@@ -4176,7 +4175,7 @@ int process_register(int nb) {
 			reg_args->two_pass = TRUE;
 			reg_args->no_output = TRUE;
 		} else if (!strcmp(word[i], "-selected")) {
-			reg_args->process_all_frames = FALSE;
+			reg_args->filters.filter_included = TRUE;
 		} else if (g_str_has_prefix(word[i], "-transf=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -4318,7 +4317,7 @@ int process_register(int nb) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
-		int nb_frames = reg_args->process_all_frames ? reg_args->seq->number : reg_args->seq->selnum;
+		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
 		if (reg_args->x2upscale)
 			size *= 4;
@@ -4356,6 +4355,116 @@ terminate_register_on_error:
 	return CMD_ARG_ERROR;
 }
 
+// returns 1 if arg was parsed
+static int parse_filter_args(char *current, struct seq_filter_config *arg) {
+	char *value;
+	if (g_str_has_prefix(current, "-filter-fwhm=")) {
+		value = strchr(current, '=') + 1;
+		if (value[0] != '\0') {
+			char *end;
+			float val = strtof(value, &end);
+			if (end == value) {
+				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+				return CMD_ARG_ERROR;
+			}
+			if (*end == '%')
+				arg->f_fwhm_p = val;
+			else arg->f_fwhm = val;
+		} else {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
+	} else if (g_str_has_prefix(current, "-filter-wfwhm=")) {
+		value = strchr(current, '=') + 1;
+		if (value[0] != '\0') {
+			char *end;
+			float val = strtof(value, &end);
+			if (end == value) {
+				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+				return CMD_ARG_ERROR;
+			}
+			if (*end == '%')
+				arg->f_wfwhm_p = val;
+			else arg->f_wfwhm = val;
+		} else {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
+	} else if (g_str_has_prefix(current, "-filter-round=") ||
+			g_str_has_prefix(current, "-filter-roundness=")) {
+		value = strchr(current, '=') + 1;
+		if (value[0] != '\0') {
+			char *end;
+			float val = strtof(value, &end);
+			if (end == value) {
+				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+				return CMD_ARG_ERROR;
+			}
+			if (*end == '%')
+				arg->f_round_p = val;
+			else arg->f_round = val;
+		} else {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
+	} else if (g_str_has_prefix(current, "-filter-qual=") ||
+			g_str_has_prefix(current, "-filter-quality=")) {
+		value = strchr(current, '=') + 1;
+		if (value[0] != '\0') {
+			char *end;
+			float val = strtof(value, &end);
+			if (end == value) {
+				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+				return CMD_ARG_ERROR;
+			}
+			if (*end == '%')
+				arg->f_quality_p = val;
+			else arg->f_quality = val;
+		} else {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
+	} else if (g_str_has_prefix(current, "-filter-bkg=") ||
+			g_str_has_prefix(current, "-filter-background=")) {
+		value = strchr(current, '=') + 1;
+		if (value[0] != '\0') {
+			char *end;
+			float val = strtof(value, &end);
+			if (end == value) {
+				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+				return CMD_ARG_ERROR;
+			}
+			if (*end == '%')
+				arg->f_bkg_p = val;
+			else arg->f_bkg = val;
+		} else {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
+	} else if (g_str_has_prefix(current, "-filter-nbstars=")) {
+		value = strchr(current, '=') + 1;
+		if (value[0] != '\0') {
+			char *end;
+			float val = strtof(value, &end);
+			if (end == value) {
+				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
+				return CMD_ARG_ERROR;
+			}
+			if (*end == '%')
+				arg->f_nbstars_p = val;
+			else arg->f_nbstars = val;
+		} else {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+			return CMD_ARG_ERROR;
+		}
+	} else if (g_str_has_prefix(current, "-filter-incl") ||
+			g_str_has_prefix(current, "-filter-included")) {
+		arg->filter_included = TRUE;
+	}
+	else return 0;
+	return 1;
+}
+
 int process_seq_applyreg(int nb) {
 	struct registration_args *reg_args = NULL;
 
@@ -4384,7 +4493,6 @@ int process_seq_applyreg(int nb) {
 	reg_args->func = &register_apply_reg;
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
-	reg_args->process_all_frames = TRUE;
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
@@ -4396,8 +4504,6 @@ int process_seq_applyreg(int nb) {
 	for (int i = 2; i < nb; i++) {
 		if (!strcmp(word[i], "-drizzle")) {
 			reg_args->x2upscale = TRUE;
-		} else if (g_str_has_prefix(word[i], "-selected")) {
-			reg_args->process_all_frames = FALSE;
 		} else if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -4478,8 +4584,9 @@ int process_seq_applyreg(int nb) {
 				continue;
 			}
 			reg_args->layer = layer2;
-		}
-		else {
+		} else if (parse_filter_args(word[i], &reg_args->filters)) {
+			;
+		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 			goto terminate_register_on_error;
 		}
@@ -4558,108 +4665,8 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				else if (!strcmp(value, "mulscale"))
 					arg->norm = MULTIPLICATIVE_SCALING;
 			}
-		} else if (g_str_has_prefix(current, "-filter-fwhm=")) {
-			value = strchr(current, '=') + 1;
-			if (value[0] != '\0') {
-				char *end;
-				float val = strtof(value, &end);
-				if (end == value) {
-					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
-					return CMD_ARG_ERROR;
-				}
-				if (*end == '%')
-					arg->f_fwhm_p = val;
-				else arg->f_fwhm = val;
-			} else {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(current, "-filter-wfwhm=")) {
-			value = strchr(current, '=') + 1;
-			if (value[0] != '\0') {
-				char *end;
-				float val = strtof(value, &end);
-				if (end == value) {
-					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
-					return CMD_ARG_ERROR;
-				}
-				if (*end == '%')
-					arg->f_wfwhm_p = val;
-				else arg->f_wfwhm = val;
-			} else {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(current, "-filter-round=") ||
-				g_str_has_prefix(current, "-filter-roundness=")) {
-			value = strchr(current, '=') + 1;
-			if (value[0] != '\0') {
-				char *end;
-				float val = strtof(value, &end);
-				if (end == value) {
-					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
-					return CMD_ARG_ERROR;
-				}
-				if (*end == '%')
-					arg->f_round_p = val;
-				else arg->f_round = val;
-			} else {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(current, "-filter-qual=") ||
-				g_str_has_prefix(current, "-filter-quality=")) {
-			value = strchr(current, '=') + 1;
-			if (value[0] != '\0') {
-				char *end;
-				float val = strtof(value, &end);
-				if (end == value) {
-					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
-					return CMD_ARG_ERROR;
-				}
-				if (*end == '%')
-					arg->f_quality_p = val;
-				else arg->f_quality = val;
-			} else {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(current, "-filter-bkg=") ||
-				g_str_has_prefix(current, "-filter-background=")) {
-			value = strchr(current, '=') + 1;
-			if (value[0] != '\0') {
-				char *end;
-				float val = strtof(value, &end);
-				if (end == value) {
-					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
-					return CMD_ARG_ERROR;
-				}
-				if (*end == '%')
-					arg->f_bkg_p = val;
-				else arg->f_bkg = val;
-			} else {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(current, "-filter-nbstars=")) {
-			value = strchr(current, '=') + 1;
-			if (value[0] != '\0') {
-				char *end;
-				float val = strtof(value, &end);
-				if (end == value) {
-					siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
-					return CMD_ARG_ERROR;
-				}
-				if (*end == '%')
-					arg->f_nbstars_p = val;
-				else arg->f_nbstars = val;
-			} else {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(current, "-filter-incl") ||
-				g_str_has_prefix(current, "-filter-included")) {
-			arg->filter_included = TRUE;
+		} else if (parse_filter_args(current, &arg->filters)) {
+			;
 		} else if (g_str_has_prefix(current, "-out=")) {
 			if (out_allowed) {
 				value = current + 5;
@@ -4695,90 +4702,89 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 }
 
 static int stack_one_seq(struct stacking_configuration *arg) {
-	int retval = -1;
 	sequence *seq = readseqfile(arg->seqfile);
-	if (seq != NULL) {
-		struct stacking_args args = { 0 };
-		gchar *error = NULL;
-		if (seq_check_basic_data(seq, FALSE) == -1) {
-			free(seq);
-			return CMD_GENERIC_ERROR;
-		}
-		siril_log_message(_("Stacking sequence %s\n"), seq->seqname);
-		args.seq = seq;
-		args.ref_image = sequence_find_refimage(seq);
-		// the three below: used only if method is average w/ rejection
-		if (arg->method == stack_mean_with_rejection && (arg->sig[0] != 0.0 || arg->sig[1] != 0.0)) {
-			args.sig[0] = arg->sig[0];
-			args.sig[1] = arg->sig[1];
-			args.type_of_rejection = arg->type_of_rejection;
-		} else {
-			args.type_of_rejection = NO_REJEC;
-			siril_log_message(_("Not using rejection for stacking\n"));
-		}
-		args.coeff.offset = NULL;
-		args.coeff.mul = NULL;
-		args.coeff.scale = NULL;
-		if (!arg->force_no_norm &&
-				(arg->method == stack_median || arg->method == stack_mean_with_rejection))
-			args.normalize = arg->norm;
-		else args.normalize = NO_NORM;
-		args.method = arg->method;
-		args.force_norm = FALSE;
-		args.output_norm = arg->output_norm;
-		args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
-		args.apply_noise_weights = arg->apply_noise_weights;
-		args.apply_nbstack_weights = arg->apply_nbstack_weights;
-		args.equalizeRGB = arg->equalizeRGB;
-		args.lite_norm = arg->lite_norm;
-
-		// manage filters
-		if (convert_stack_data_to_filter(arg, &args) ||
-				setup_filtered_data(&args)) {
-			free_sequence(seq, TRUE);
-			return CMD_GENERIC_ERROR;
-		}
-		args.description = describe_filter(seq, args.filtering_criterion, args.filtering_parameter);
-		args.use_32bit_output = evaluate_stacking_should_output_32bits(args.method,
-			args.seq, args.nb_images_to_stack, &error);
-		if (error) {
-			siril_log_color_message(error, "red");
-			free_sequence(seq, TRUE);
-			return CMD_GENERIC_ERROR;
-		}
-
-		if (!arg->result_file) {
-			char filename[256];
-			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
-				g_str_has_suffix(seq->seqname, "-") ? "" : "_";
-			snprintf(filename, 256, "%s%sstacked%s",
-					seq->seqname, suffix, com.pref.ext);
-			arg->result_file = g_strdup(filename);
-		}
-
-		main_stack(&args);
-
-		retval = args.retval;
-		clean_end_stacking(&args);
-		free_sequence(seq, TRUE);
-		free(args.image_indices);
-		free(args.description);
-
-		if (!retval) {
-			bgnoise_async(&args.result, TRUE);
-			if (savefits(arg->result_file, &args.result)) {
-				siril_log_color_message(_("Could not save the stacking result %s\n"),
-						"red", arg->result_file);
-				retval = 1;
-			}
-			else ++arg->number_of_loaded_sequences;
-			bgnoise_await();
-		}
-		clearfits(&args.result);
-
-	} else {
+	if (!seq) {
 		siril_log_message(_("No sequence `%s' found.\n"), arg->seqfile);
+		return -1;
 	}
+	struct stacking_args args = { 0 };
+	gchar *error = NULL;
+	if (seq_check_basic_data(seq, FALSE) == -1) {
+		free(seq);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("Stacking sequence %s\n"), seq->seqname);
+	args.seq = seq;
+	args.ref_image = sequence_find_refimage(seq);
+	// the three below: used only if method is average w/ rejection
+	if (arg->method == stack_mean_with_rejection && (arg->sig[0] != 0.0 || arg->sig[1] != 0.0)) {
+		args.sig[0] = arg->sig[0];
+		args.sig[1] = arg->sig[1];
+		args.type_of_rejection = arg->type_of_rejection;
+	} else {
+		args.type_of_rejection = NO_REJEC;
+		siril_log_message(_("Not using rejection for stacking\n"));
+	}
+	args.coeff.offset = NULL;
+	args.coeff.mul = NULL;
+	args.coeff.scale = NULL;
+	if (!arg->force_no_norm &&
+			(arg->method == stack_median || arg->method == stack_mean_with_rejection))
+		args.normalize = arg->norm;
+	else args.normalize = NO_NORM;
+	args.method = arg->method;
+	args.force_norm = FALSE;
+	args.output_norm = arg->output_norm;
+	args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
+	args.apply_noise_weights = arg->apply_noise_weights;
+	args.apply_nbstack_weights = arg->apply_nbstack_weights;
+	args.equalizeRGB = arg->equalizeRGB;
+	args.lite_norm = arg->lite_norm;
+
+	// manage filters
+	if (convert_parsed_filter_to_filter(&arg->filters, seq,
+				&args.filtering_criterion, &args.filtering_parameter) ||
+			setup_filtered_data(&args)) {
+		free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+	args.description = describe_filter(seq, args.filtering_criterion, args.filtering_parameter);
+	args.use_32bit_output = evaluate_stacking_should_output_32bits(args.method,
+			args.seq, args.nb_images_to_stack, &error);
+	if (error) {
+		siril_log_color_message(error, "red");
+		free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+
+	if (!arg->result_file) {
+		char filename[256];
+		char *suffix = g_str_has_suffix(seq->seqname, "_") ||
+			g_str_has_suffix(seq->seqname, "-") ? "" : "_";
+		snprintf(filename, 256, "%s%sstacked%s",
+				seq->seqname, suffix, com.pref.ext);
+		arg->result_file = g_strdup(filename);
+	}
+
+	main_stack(&args);
+
+	int retval = args.retval;
+	clean_end_stacking(&args);
+	free_sequence(seq, TRUE);
+	free(args.image_indices);
+	g_free(args.description);
+
+	if (!retval) {
+		bgnoise_async(&args.result, TRUE);
+		if (savefits(arg->result_file, &args.result)) {
+			siril_log_color_message(_("Could not save the stacking result %s\n"),
+					"red", arg->result_file);
+			retval = 1;
+		}
+		else ++arg->number_of_loaded_sequences;
+		bgnoise_await();
+	}
+	clearfits(&args.result);
 	return retval;
 }
 
@@ -4828,13 +4834,7 @@ int process_stackall(int nb) {
 	struct stacking_configuration *arg;
 
 	arg = calloc(1, sizeof(struct stacking_configuration));
-	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
-	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
-	arg->filter_included = FALSE; arg->norm = NO_NORM; arg->force_no_norm = FALSE;
-	arg->equalizeRGB = FALSE;
-	arg->lite_norm = FALSE;
-	arg->apply_noise_weights = FALSE;
-	arg->apply_nbstack_weights = FALSE;
+	arg->norm = NO_NORM;
 
 	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-incl[uded]]
 	// stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]
@@ -4942,15 +4942,7 @@ static gpointer stackone_worker(gpointer garg) {
 
 int process_stackone(int nb) {
 	struct stacking_configuration *arg = calloc(1, sizeof(struct stacking_configuration));
-	arg->f_fwhm = -1.f; arg->f_fwhm_p = -1.f; arg->f_round = -1.f;
-	arg->f_round_p = -1.f; arg->f_quality = -1.f; arg->f_quality_p = -1.f;
-	arg->filter_included = FALSE;
 	arg->norm = NO_NORM;
-	arg->force_no_norm = FALSE;
-	arg->equalizeRGB = FALSE;
-	arg->lite_norm = FALSE;
-	arg->apply_noise_weights = FALSE;
-	arg->apply_nbstack_weights = FALSE;
 
 	sequence *seq = load_sequence(word[1], &arg->seqfile);
 	if (!seq)

@@ -940,7 +940,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 			&stackparam.filtering_criterion, &stackparam.filtering_parameter);
 
 	if (stackparam.description)
-		free(stackparam.description);
+		g_free(stackparam.description);
 	stackparam.description = describe_filter(stackparam.seq,
 			stackparam.filtering_criterion, stackparam.filtering_parameter);
 
@@ -966,7 +966,7 @@ static void stacking_args_deep_copy(struct stacking_args *from, struct stacking_
 	// sequence is not duplicated
 	to->image_indices = malloc(from->nb_images_to_stack * sizeof(int));
 	memcpy(to->image_indices, from->image_indices, from->nb_images_to_stack * sizeof(int));
-	to->description = strdup(from->description);
+	to->description = g_strdup(from->description);
 	// output_filename is not duplicated, can be changed until the last minute
 }
 

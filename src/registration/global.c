@@ -585,7 +585,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 
 int register_star_alignment(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
-	if (!regargs->process_all_frames) {
+	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
@@ -705,7 +705,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->forcepx = TRUE;
 	sf_args->update_GUI = FALSE;
 	sf_args->already_in_thread = TRUE;
-	sf_args->process_all_images = regargs->process_all_frames;
+	sf_args->process_all_images = !regargs->filters.filter_included;
 	sf_args->save_to_file = TRUE; // TODO: maybe this could be an option . Needed for debugging purposes
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL;
 
@@ -738,7 +738,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			failed++;
 			continue;
 		}
-		if (!regargs->process_all_frames && !regargs->seq->imgparam[i].incl)
+		if (regargs->filters.filter_included && !regargs->seq->imgparam[i].incl)
 			continue;
 		float FWHMx, FWHMy;
 		char *units;
@@ -803,7 +803,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// 3. compute the transforms and store them in regparams
 	regdata *current_regdata = star_align_get_current_regdata(regargs);
 	for (int i = 0; i < regargs->seq->number; i++) {
-		if (!regargs->process_all_frames && !regargs->seq->imgparam[i].incl)
+		if (regargs->filters.filter_included && !regargs->seq->imgparam[i].incl)
 			continue;
 		Homography H = { 0 };
 		if (i == regargs->seq->reference_image) {
