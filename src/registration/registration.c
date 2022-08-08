@@ -771,8 +771,6 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	com.pref.gui.reg_settings = index;
 	reset_3stars();
 	update_reg_interface(TRUE);
-	if (index != (NUMBER_OF_METHODS - 1))
-		writeinitfile();
 }
 
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
@@ -838,6 +836,217 @@ gboolean layer_has_usable_registration(sequence *seq, int layer) {
 	return TRUE;
 }
 
+/****************************************************************/
+
+#define MAX_FILTERS 5
+static struct filtering_tuple regfilters[MAX_FILTERS] = { NULL };
+
+static void update_filters_registration();
+
+void on_regsel_changed(GtkComboBox *widget, gpointer user_data) {
+	update_filters_registration();
+}
+
+void on_regspinbut_percent_change(GtkSpinButton *spinbutton, gpointer user_data) {
+	update_filters_registration();
+}
+
+void on_filter_add4_clicked(GtkButton *button, gpointer user_data){
+	gtk_widget_set_visible(lookup_widget("combofilter5"), TRUE);
+	gtk_widget_set_visible(lookup_widget("stackspin5"), TRUE);
+	gtk_widget_set_visible(lookup_widget("filter_add5"), TRUE);
+	gtk_widget_set_visible(lookup_widget("filter_rem5"), TRUE);
+	gtk_widget_set_visible(lookup_widget("labelfilter5"), TRUE);
+	update_filters_registration();
+}
+
+void on_filter_add5_clicked(GtkButton *button, gpointer user_data){
+	gtk_widget_set_visible(lookup_widget("combofilter6"), TRUE);
+	gtk_widget_set_visible(lookup_widget("stackspin6"), TRUE);
+	gtk_widget_set_visible(lookup_widget("filter_rem6"), TRUE);
+	gtk_widget_set_visible(lookup_widget("labelfilter6"), TRUE);
+	update_filters_registration();
+}
+
+void on_filter_rem5_clicked(GtkButton *button, gpointer user_data){
+	gtk_widget_set_visible(lookup_widget("combofilter5"), FALSE);
+	gtk_widget_set_visible(lookup_widget("stackspin5"), FALSE);
+	gtk_widget_set_visible(lookup_widget("filter_add5"), FALSE);
+	gtk_widget_set_visible(lookup_widget("filter_rem5"), FALSE);
+	gtk_widget_set_visible(lookup_widget("labelfilter5"), FALSE);
+	update_filters_registration();
+}
+
+void on_filter_rem6_clicked(GtkButton *button, gpointer user_data){
+	gtk_widget_set_visible(lookup_widget("combofilter6"), FALSE);
+	gtk_widget_set_visible(lookup_widget("stackspin6"), FALSE);
+	gtk_widget_set_visible(lookup_widget("filter_rem6"), FALSE);
+	gtk_widget_set_visible(lookup_widget("labelfilter6"), FALSE);
+	update_filters_registration();
+}
+
+static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
+		double *filtering_parameter) {
+	int filter, guifilter, channel = 0, type;
+	double percent = 0.0;
+	static GtkComboBox *filter_combo[3] = { NULL };
+	static GtkAdjustment *stackadj[3] = { NULL };
+	static GtkWidget *spin[3] = { NULL };
+	if (!spin[0]) {
+		spin[0] = lookup_widget("stackspin4");
+		spin[1] = lookup_widget("stackspin5");
+		spin[2] = lookup_widget("stackspin6");
+		stackadj[0] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[0]));
+		stackadj[1] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[1]));
+		stackadj[2] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[2]));
+		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter4"));
+		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter5"));
+		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter6"));
+	}
+	for (filter = 0, guifilter = 0; guifilter < 3; guifilter++) {
+		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[guifilter]))) {
+			continue;
+		}
+
+		type = gtk_combo_box_get_active(filter_combo[guifilter]);
+		if (type != ALL_IMAGES && type != SELECTED_IMAGES) {
+			channel = get_registration_layer(&com.seq);
+			percent = gtk_adjustment_get_value(stackadj[guifilter]);
+		}
+
+		switch (type) {
+			default:
+			case ALL_IMAGES:
+				regfilters[filter].filter = seq_filter_all;
+				regfilters[filter].param = 0.0;
+				gtk_widget_set_visible(spin[guifilter], FALSE);
+				break;
+			case SELECTED_IMAGES:
+				regfilters[filter].filter = seq_filter_included;
+				regfilters[filter].param = 0.0;
+				gtk_widget_set_visible(spin[guifilter], FALSE);
+				break;
+			case BEST_PSF_IMAGES:
+				regfilters[filter].filter = seq_filter_fwhm;
+				regfilters[filter].param = compute_highest_accepted_fwhm(
+						&com.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_WPSF_IMAGES:
+				regfilters[filter].filter = seq_filter_weighted_fwhm;
+				regfilters[filter].param = compute_highest_accepted_weighted_fwhm(
+						&com.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_ROUND_IMAGES:
+				regfilters[filter].filter = seq_filter_roundness;
+				regfilters[filter].param = compute_lowest_accepted_roundness(
+						&com.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_BKG_IMAGES:
+				regfilters[filter].filter = seq_filter_background;
+				regfilters[filter].param = compute_highest_accepted_background(
+						&com.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_NBSTARS_IMAGES:
+				regfilters[filter].filter = seq_filter_nbstars;
+				regfilters[filter].param = compute_lowest_accepted_nbstars(
+						&com.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_QUALITY_IMAGES:
+				regfilters[filter].filter = seq_filter_quality;
+				regfilters[filter].param = compute_lowest_accepted_quality(
+						&com.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+		}
+		filter++;
+	}
+	regfilters[filter].filter = NULL;
+
+	if (filter == 1) {
+		*filtering_criterion = regfilters[0].filter;
+		*filtering_parameter = regfilters[0].param;
+	} else {
+		*filtering_criterion = create_multiple_filter_from_list(regfilters);
+		*filtering_parameter = 0.0;
+	}
+}
+
+static void update_filter_label(seq_image_filter filtering_criterion, double filtering_parameter) {
+	static GtkComboBox *filter_combo[3] = { NULL };
+	static GtkLabel *filter_label[3] = { NULL };
+	static GtkLabel *result_label = NULL;
+	if (!filter_combo[0]) {
+		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter4"));
+		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter5"));
+		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter6"));
+		filter_label[0] = GTK_LABEL(lookup_widget("labelfilter4"));
+		filter_label[1] = GTK_LABEL(lookup_widget("labelfilter5"));
+		filter_label[2] = GTK_LABEL(lookup_widget("labelfilter6"));
+		result_label = GTK_LABEL(lookup_widget("regfilter_label"));
+	}
+
+	for (int filter = 0; filter < 3; filter++) {
+		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[filter]))) {
+			break;
+		}
+
+		int type = gtk_combo_box_get_active(filter_combo[filter]);
+		double param = regfilters[filter].param;
+		gchar *filter_str;
+		if (param == DBL_MIN || param == DBL_MAX || param == 0.0) {
+			if (type == ALL_IMAGES || type == SELECTED_IMAGES)
+				filter_str = g_strdup("");
+			else filter_str = g_strdup("N/A");
+		} else {
+			switch (type) {
+			default:
+			case ALL_IMAGES:
+			case SELECTED_IMAGES:
+				filter_str = g_strdup("");
+				break;
+			case BEST_PSF_IMAGES:
+			case BEST_WPSF_IMAGES:
+				filter_str = g_strdup_printf("< %.2lf", param);
+				break;
+			case BEST_BKG_IMAGES :
+				filter_str = (param < 1.) ? g_strdup_printf("< %.5lf", param) : g_strdup_printf("< %d", (int)param);
+				break;
+			case BEST_ROUND_IMAGES:
+			case BEST_QUALITY_IMAGES:
+				filter_str = g_strdup_printf("> %.3lf", param);
+				break;
+			case BEST_NBSTARS_IMAGES:
+				filter_str = g_strdup_printf("> %d", (int)param);
+				break;
+			}
+		}
+		gtk_label_set_text(filter_label[filter], filter_str);
+		g_free(filter_str);
+	}
+
+	int nb_images_to_stack = compute_nb_filtered_images(&com.seq,
+			filtering_criterion, filtering_parameter);
+	gchar *labelbuffer = g_strdup_printf(_("Registering %d images of the %d of the sequence"),
+			nb_images_to_stack, com.seq.number);
+	gtk_label_set_text(result_label, labelbuffer);
+	g_free(labelbuffer);
+}
+
+static void update_filters_registration() {
+	if (!sequence_is_loaded())
+		return;
+	siril_debug_print("updating registration filters GUI\n");
+	seq_image_filter criterion;
+	double param;
+	get_reg_sequence_filtering_from_gui(&criterion, &param);
+	update_filter_label(criterion, param);
+}
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -855,7 +1064,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
 		follow = lookup_widget("followStarCheckButton");
-		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+		reg_all_sel_box = GTK_COMBO_BOX(lookup_widget("reg_sel_all_combobox"));
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
 		cumul_data = lookup_widget("check_button_comet");
@@ -879,6 +1088,13 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* getting the selected registration method */
 	method = get_selected_registration_method();
 
+	/* show the appropriate frame selection widgets */
+	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
+	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
+	gtk_widget_set_visible(lookup_widget("seq_filters_box_reg"), isapplyreg);
+	if (isapplyreg)
+		update_filters_registration();
+
 	/* number of registered image */
 	nb_images_reg = gtk_combo_box_get_active(reg_all_sel_box) == 0 ? com.seq.number : com.seq.selnum;
 
@@ -901,7 +1117,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars || method->method_ptr == &register_shift_fwhm) {
-			ready = _3stars_check_selection(); // cehcks that the right image is loaded based on doall and dofollow
+			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
 		}
 		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
@@ -1126,7 +1342,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
-	reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION) {
@@ -1136,6 +1351,12 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 #endif
+	if (method->method_ptr == register_apply_reg) {
+		get_reg_sequence_filtering_from_gui(
+				&reg_args->filtering_criterion, &reg_args->filtering_parameter);
+	} else {
+		reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
+	}
 
 	/* We check that available disk space is enough when
 	the registration method produces a new sequence

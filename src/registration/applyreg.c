@@ -560,7 +560,10 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	/* compute_framing uses the filtered list of images, so we compute the filter here */
-	if (convert_parsed_filter_to_filter(&regargs->filters, regargs->seq, &regargs->filtering_criterion, &regargs->filtering_parameter)) {
+	if (!regargs->filtering_criterion &&
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter)) {
 		return FALSE;
 	}
 	int nb_frames = compute_nb_filtered_images(regargs->seq,

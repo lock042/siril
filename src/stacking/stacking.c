@@ -824,10 +824,8 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 }
 
 static void update_filter_label() {
-	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
-	static GtkLabel *filter_label[] = {NULL, NULL, NULL};
-	gchar *filter_str;
-
+	static GtkComboBox *filter_combo[3] = { NULL };
+	static GtkLabel *filter_label[3] = { NULL };
 	if (!filter_combo[0]) {
 		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
 		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
@@ -844,6 +842,7 @@ static void update_filter_label() {
 
 		int type = gtk_combo_box_get_active(filter_combo[filter]);
 		double param = stackfilters[filter].param;
+		gchar *filter_str;
 		if (param == DBL_MIN || param == DBL_MAX || param == 0.0) {
 			if (type == ALL_IMAGES || type == SELECTED_IMAGES)
 				filter_str = g_strdup("");
