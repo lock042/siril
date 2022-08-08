@@ -860,6 +860,106 @@ static gboolean end_findstar(gpointer p) {
 	return FALSE;
 }
 
+/* looks for the list file, tries to load it, returns 1 on success */
+static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
+	FILE *fd = g_fopen(filename, "r");
+	if (!fd)
+		return 0;
+	siril_debug_print("star list file %s found, checking...\n", filename);
+	char buffer[300];
+	gboolean params_ok = FALSE, file_in_px = TRUE, read_failure = FALSE;
+	star_finder_params *sf = &com.pref.starfinder_conf;
+	int star = 0, nb_stars = -1;
+	while (fgets(buffer, 300, fd)) {
+		if (buffer[0] != '#' && !params_ok)
+			return 0;
+		if (!strncmp(buffer, "# ", 2)) {
+			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) {
+				siril_debug_print("nb stars: %d\n", nb_stars);
+				if (nb_stars > 0 && sfargs->stars) {
+					*sfargs->stars = malloc((nb_stars + 1) * sizeof(struct psf_star *));
+					if (!(*sfargs->stars)) {
+						PRINT_ALLOC_ERR;
+						read_failure = TRUE;
+						break;
+					}
+				}
+			}
+		}
+		if (!strncmp(buffer, "# sigma=", 8)) {
+			star_finder_params fparams = { 0 };
+			int fmax_stars;
+			// TODO: check px or arcsec?
+			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d auto_adjust=%d relax=%d max_stars=%d",
+						&fparams.sigma, &fparams.roundness, &fparams.radius,
+						&fparams.adjust, &fparams.relax_checks, &fmax_stars) != 6) {
+				read_failure = TRUE;
+				break;
+			}
+			params_ok = fparams.sigma == sf->sigma && fparams.roundness == sf->roundness &&
+				fparams.radius == sf->radius && fparams.adjust == sf->adjust &&
+				fparams.relax_checks == sf->relax_checks &&
+				(fmax_stars == sfargs->max_stars_fitted ||
+				 sfargs->max_stars_fitted > nb_stars);
+			siril_debug_print("params check: %d\n", params_ok);
+			if (!params_ok) {
+				read_failure = TRUE;
+				break;
+			}
+			if (!sfargs->stars) // if cannot store them, no need to read them
+				break;
+		}
+		else if (!strncmp(buffer, "# star#\t", 8)) {
+			char *str = strchr(buffer, '[');
+			file_in_px = !strncmp(str + 1, "px", 2);
+		}
+		if (buffer[0] == '#' || buffer[0] == '\0')
+			continue;
+
+		if (star >= nb_stars) {
+			siril_debug_print("more star in the list than reported\n");
+			read_failure = TRUE;
+			break;
+		}
+
+		psf_star *s = new_psf_star();
+		memset(s, 0, sizeof(psf_star));
+		int fi, tokens;
+		if (file_in_px) {
+			tokens = sscanf(buffer,
+					"%d\t%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%le\t%lf",
+					&fi, &s->layer, &s->B, &s->A, &s->xpos, &s->ypos,
+					&s->fwhmx_arcsec, &s->fwhmy_arcsec, &s->angle,
+					&s->rmse, &s->mag);
+		} else {
+			tokens = sscanf(buffer,
+					"%d\t%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%le\t%lf",
+					&fi, &s->layer, &s->B, &s->A, &s->xpos, &s->ypos,
+					&s->fwhmx, &s->fwhmy, &s->angle, &s->rmse, &s->mag);
+		}
+		if (tokens != 11) {
+			siril_debug_print("malformed line: %s", buffer);
+			read_failure = TRUE;
+			break;
+		}
+		if (fi != star + 1)
+			siril_debug_print("star index mismatch\n");
+		(*sfargs->stars)[star++] = s;
+		(*sfargs->stars)[star] = NULL;
+	}
+	if (!read_failure) {
+		siril_debug_print("found %d stars with same settings in %s\n", star, filename);
+		*sfargs->nb_stars = star;
+	} else {
+		if (sfargs->stars) {
+			free(*sfargs->stars);
+			(*sfargs->stars) = NULL;
+		}
+	}
+	fclose(fd);
+	return !read_failure;
+}
+
 int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
@@ -867,21 +967,29 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
-	if (findstar_args->save_to_file) {
-		char root[256];
-		if(!fit_sequence_get_image_filename(args->seq, i, root, FALSE)) return 1;
-		curr_findstar_args->starfile = g_strdup_printf("%s.lst", root);
-	}
 	if (findstar_args->stars && findstar_args->nb_stars) {
 		curr_findstar_args->stars = findstar_args->stars + i;
 		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
 	}
 	curr_findstar_args->threading = threads;
 
-	int retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
+	// build the star list file name in all cases to try reading it
+	char root[256];
+	if (!fit_sequence_get_image_filename(args->seq, i, root, FALSE)) {
+		free(curr_findstar_args);
+		return 1;
+	}
+	gchar *star_filename = g_strdup_printf("%s.lst", root);
 
-	g_free(curr_findstar_args->starfile);
-	g_free(curr_findstar_args);
+	if (findstar_args->save_to_file)
+		curr_findstar_args->starfile = star_filename;
+
+	int retval = 0;
+	if (!check_star_list(star_filename, curr_findstar_args))
+		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
+
+	g_free(star_filename);
+	free(curr_findstar_args);
 	return retval;
 }
 
@@ -925,7 +1033,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
 			selection ? _("selection") : _("image"), args->layer);
-	if (args->starfile && save_list(args->starfile, args->forcepx, args->max_stars_fitted, stars, &com.pref.starfinder_conf, args->update_GUI)) {
+	if (args->starfile && save_list(args->starfile, args->forcepx, args->max_stars_fitted, stars, nbstars, &com.pref.starfinder_conf, args->update_GUI)) {
 		retval = 1;
 	}
 

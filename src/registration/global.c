@@ -46,11 +46,6 @@
 # define MIN_RATIO_INLIERS 30 //percentage of inliers after transformation fitting (shift, affine or homography)
 # define AMPLITUDE_CUT 0.05
 
-/* TODO:
- * check usage of openmp in functions called by these ones (to be disabled)
- * compact and clarify console output
- */
-
 static void create_output_sequence_for_global_star(struct registration_args *args);
 static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units);
 
