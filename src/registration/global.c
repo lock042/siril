@@ -44,7 +44,8 @@
 #include "opencv/opencv.h"
 
 # define MIN_RATIO_INLIERS 30 //percentage of inliers after transformation fitting (shift, affine or homography)
-# define AMPLITUDE_CUT 0.05
+# define AMPLITUDE_CUT 0.05 // percentile to clip the lower tail of amplitudes distribtion when filtering out stars for 2pass reg
+# define MAX_SHIFT_RATIO 0.25 // max ratio of image rx for ref image offset from sequence cog
 
 static void create_output_sequence_for_global_star(struct registration_args *args);
 static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units);
@@ -682,6 +683,89 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
+static void compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, int *failed, float *fwhm, float *roundness, float *B) {
+	regdata *current_regdata = star_align_get_current_regdata(regargs);
+	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (regargs->filters.filter_included && !regargs->seq->imgparam[i].incl)
+			continue;
+		Homography H = { 0 };
+		if (i == regargs->seq->reference_image) {
+			cvGetEye(&H);
+		} else {
+			if (!sf_args->stars[i])
+				continue;
+
+			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
+			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
+					sf_args->nb_stars[i], regargs, filenum, &H);
+
+			if (not_matched) {
+				regargs->seq->imgparam[i].incl = FALSE;
+				*failed = *failed + 1;
+				continue;
+			}
+			print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
+		}
+
+		current_regdata[i].roundness = roundness[i];
+		current_regdata[i].fwhm = fwhm[i];
+		current_regdata[i].weighted_fwhm = 2 * fwhm[i]
+			* ((double)nb_ref_stars - sf_args->nb_stars[i])
+			/ (double)nb_ref_stars + fwhm[i];
+		current_regdata[i].background_lvl = B[i];
+		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
+		current_regdata[i].H = H;
+	}
+}
+
+static void compute_dist(struct registration_args *regargs, double *dist) {
+	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+	Homography Hshift = {0};
+	Homography Htransf = {0};
+	cvGetEye(&Hshift);
+	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	int x0, y0, n;
+	double cogx, cogy;
+
+	point center = { 0 };
+	center.x =  (double)rx * 0.5;
+	center.y =  (double)ry * 0.5;
+
+	cogx = 0.;
+	cogy = 0;
+	n = 0;
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!regargs->seq->imgparam[i].incl) continue;
+		point currcenter;
+		memcpy(&currcenter, &center, sizeof(point));
+		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[regargs->layer][i].H, Href);
+		cogx += currcenter.x;
+		cogy += currcenter.y;
+		n++;
+	}
+	cogx /= (double)n;
+	cogy /= (double)n;
+	x0 = (int)(cogx - (double)rx * 0.5);
+	y0 = (int)(cogy - (double)ry * 0.5);
+	Hshift.h02 = (double)x0;
+	Hshift.h12 = (double)y0;
+	siril_debug_print("cog at (%3.2f, %3.2f)\n", Hshift.h02, Hshift.h12);
+	cvMultH(Href, Hshift, &Htransf);
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!regargs->seq->imgparam[i].incl) continue;
+		point currcenter;
+		double dx, dy;
+		memcpy(&currcenter, &center, sizeof(point));
+		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[regargs->layer][i].H, Htransf);
+		dx = currcenter.x - center.x;
+		dy = currcenter.y - center.y;
+		dist[i] = sqrt(dx * dx + dy * dy);
+	}
+
+}
+
 /********************** the new multi-step registration ***********************/
 /* This is a modification of the global registration without output, separating
  * the two main steps of finding stars and computing the transforms to add an
@@ -704,6 +788,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->process_all_images = !regargs->filters.filter_included;
 	sf_args->save_to_file = !regargs->no_starlist;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL;
+	double *dist = NULL;
+
 
 	if (!sf_args->stars || !sf_args->nb_stars) {
 		PRINT_ALLOC_ERR;
@@ -793,40 +879,47 @@ int register_multi_step_global(struct registration_args *regargs) {
 	regargs->seq->reference_image = best_index;
 	int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
 	siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
-	int nb_ref_stars = sf_args->nb_stars[best_index];
 
 	// 3. compute the transforms and store them in regparams
-	regdata *current_regdata = star_align_get_current_regdata(regargs);
-	for (int i = 0; i < regargs->seq->number; i++) {
-		if (regargs->filters.filter_included && !regargs->seq->imgparam[i].incl)
-			continue;
-		Homography H = { 0 };
-		if (i == regargs->seq->reference_image) {
-			cvGetEye(&H);
-		} else {
-			if (!sf_args->stars[i])
-				continue;
+	compute_transform(regargs, sf_args, &failed, fwhm, roundness, B);
 
-			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
-			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
-					sf_args->nb_stars[i], regargs, filenum, &H);
-
-			if (not_matched) {
-				regargs->seq->imgparam[i].incl = FALSE;
-				failed++;
-				continue;
+	// 4. check distance to cog
+	dist = calloc(regargs->seq->number, sizeof(double));
+	if (!dist) {
+		PRINT_ALLOC_ERR;
+		goto free_all;
+	}
+	compute_dist(regargs, dist);
+	//if larger than cog, we recompute a score accoutning for the distance
+	double allowable_dist = (double)regargs->seq->imgparam[regargs->reference_image].rx * MAX_SHIFT_RATIO;
+	if (dist[best_index] > allowable_dist) {
+		siril_log_message(_("After sequence alignement, image %d is too far from the sequence cog, recomputing\n"), reffilenum);
+		siril_debug_print(_("Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"), dist[best_index], allowable_dist);
+		float FWHMx;
+		float score;
+		bestscore = FLT_MAX;
+		int new_best_index = -1;
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!regargs->seq->imgparam[i].incl) continue;
+			FWHMx = fwhm[i];
+			// images are now scored ONLY if they are within allowable distance from cog
+			score  = (sf_args->nb_stars[i] >= maxstars / 2 && dist[i] < allowable_dist) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx: FLT_MAX;
+			if (score < bestscore) {
+				bestscore = score;
+				new_best_index = i;
 			}
-			print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
 		}
-
-		current_regdata[i].roundness = roundness[i];
-		current_regdata[i].fwhm = fwhm[i];
-		current_regdata[i].weighted_fwhm = 2 * fwhm[i]
-			* ((double)nb_ref_stars - sf_args->nb_stars[i])
-			/ (double)nb_ref_stars + fwhm[i];
-		current_regdata[i].background_lvl = B[i];
-		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
-		current_regdata[i].H = H;
+		if (new_best_index != best_index && new_best_index > -1) { // do not recompute if none or same is found (same should not happen)
+			regargs->seq->reference_image = new_best_index;
+			int reffilenum = regargs->seq->imgparam[new_best_index].filenum;	// for display purposes
+			siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
+			// back to 3. compute the transforms and store them in regparams
+			compute_transform(regargs, sf_args, &failed, fwhm, roundness, B);
+		} else {
+			siril_log_message(_("Could not find a better frame, keeping image %d as the reference for the sequence\n"), reffilenum);
+		}
+	} else {
+		siril_log_message(_("After sequence alignment, we find that image %d is %2.1fpx away from sequence cog, i.e. within allowable bounds\n"), reffilenum, dist[best_index]);
 	}
 
 	// images may have been excluded but selnum wasn't updated
