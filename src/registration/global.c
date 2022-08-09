@@ -700,7 +700,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->update_GUI = FALSE;
 	sf_args->already_in_thread = TRUE;
 	sf_args->process_all_images = !regargs->filters.filter_included;
-	sf_args->save_to_file = TRUE; // TODO: maybe this could be an option . Needed for debugging purposes
+	sf_args->save_to_file = !regargs->no_starlist;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL;
 
 	if (!sf_args->stars || !sf_args->nb_stars) {

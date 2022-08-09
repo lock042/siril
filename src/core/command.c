@@ -4170,6 +4170,8 @@ int process_register(int nb) {
 		} else if (!strcmp(word[i], "-2pass")) {
 			reg_args->two_pass = TRUE;
 			reg_args->no_output = TRUE;
+		} else if (!strcmp(word[i], "-nostarlist")) {
+			reg_args->no_starlist = TRUE;
 		} else if (!strcmp(word[i], "-selected")) {
 			reg_args->filters.filter_included = TRUE;
 		} else if (g_str_has_prefix(word[i], "-transf=")) {
@@ -4307,6 +4309,9 @@ int process_register(int nb) {
 	method->sel = REQUIRES_NO_SELECTION;
 	method->type = REGTYPE_DEEPSKY;
 	reg_args->func = method->method_ptr;
+
+	if (reg_args->no_starlist && !reg_args->two_pass)
+		siril_log_message(_("The -nostarlist option has an effect only when -2pass is used, ignoring\n"));
 
 	// testing free space
 	if (!reg_args->no_output) {

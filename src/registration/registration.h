@@ -66,8 +66,9 @@ struct registration_args {
 	transformation_type type;	// Use affine transform  or homography
 	float percent_moved;		// for KOMBAT algorithm
 	gboolean two_pass;		// use the two-pass computation to find a good ref image
-	seq_image_filter filtering_criterion; // the filter, only used by seqapplyreg
-	double filtering_parameter;	// and its parameter
+	seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
+	double filtering_parameter;	// and its parameter (seqapplyreg only)
+	gboolean no_starlist;		// disable star list creation (2pass only)
 
 	/* data for generated sequence, for star alignment registration */
 	gboolean no_output;		// write transformation to .seq
@@ -76,7 +77,7 @@ struct registration_args {
 	regdata *regparam;		// regparam for the new sequence
 	const gchar *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
-	const gchar *new_seq_name;
+	gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
 	framing_type framing;		// used by seqapplyreg to determine framing
 };
