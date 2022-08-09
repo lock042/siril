@@ -222,6 +222,62 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	return star_align_prepare_results(args);
 }
 
+static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+	double scale_min = 0.9;
+	double scale_max = 1.1;
+	int attempt = 1;
+	int nobj = 0;
+	int failure = 1;
+	/* make a loop with different tries in order to align the two sets of data */
+	while (failure && attempt < NB_OF_MATCHING_TRY) {
+		failure = new_star_match(stars, ref_stars, nb_stars, nobj,
+				scale_min, scale_max, H, FALSE, NULL, NULL, regargs->type,
+				NULL, NULL);
+		if (attempt == 1) {
+			scale_min = -1.0;
+			scale_max = -1.0;
+		} else {
+			nobj += 50;
+		}
+		attempt++;
+	}
+	if (failure) {
+		siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
+				"red", attempt, filenum);
+	}
+	else if (H->Inliers < regargs->min_pairs) {
+		siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
+				"red", H->Inliers, filenum);
+		failure = 1;
+	}
+	else if (((double)H->Inliers / (double)H->pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
+		switch (regargs->type) {
+			case SHIFT_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
+						"red", MIN_RATIO_INLIERS, filenum);
+				failure = 1;
+				break;
+			case SIMILARITY_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
+						"red", MIN_RATIO_INLIERS, filenum);
+				failure = 1;
+				break;
+			case AFFINE_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
+						"red", MIN_RATIO_INLIERS, filenum);
+				failure = 1;
+				break;
+			case HOMOGRAPHY_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
+						"salmon", MIN_RATIO_INLIERS, filenum);
+				break;
+			default:
+				printf("Should not happen\n");
+		}
+	}
+	return failure;
+}
+
 /* reads the image, searches for stars in it, tries to match them with
  * reference stars, computes the homography matrix, applies it on the image,
  * possibly up-scales the image and stores registration data */
@@ -229,9 +285,6 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int nbpoints, nb_stars = 0;
-	int retvalue;
-	int nobj = 0;
-	int attempt = 1;
 	float FWHMx, FWHMy, B;
 	char *units;
 	Homography H = { 0 };
@@ -287,67 +340,16 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			nbpoints = nb_stars;
 		}
 
-		/* make a loop with different tries in order to align the two sets of data */
-		double scale_min = 0.9;
-		double scale_max = 1.1;
-		retvalue = 1;
-		while (retvalue && attempt < NB_OF_MATCHING_TRY) {
-			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj,
-					scale_min, scale_max, &H, FALSE, NULL, NULL, regargs->type,
-					NULL, NULL);
-			if (attempt == 1) {
-				scale_min = -1.0;
-				scale_max = -1.0;
-			} else {
-				nobj += 50;
-			}
-			attempt++;
-		}
-		if (retvalue) {
-			siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
-					"red", attempt, filenum);
-			free_fitted_stars(stars);
-			return 1;
-		}
-		if (H.Inliers < regargs->min_pairs) {
-			siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
-					"red", H.Inliers, filenum);
-			free_fitted_stars(stars);
-			return 1;
-		}
-		if (((double)H.Inliers / (double)H.pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
-			switch (regargs->type) {
-			case SHIFT_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
-					"red", MIN_RATIO_INLIERS, filenum);
-				free_fitted_stars(stars);
-				return 1;
-			case SIMILARITY_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
-					"red", MIN_RATIO_INLIERS, filenum);
-				free_fitted_stars(stars);
-				return 1;
-			case AFFINE_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
-					"red", MIN_RATIO_INLIERS, filenum);
-				free_fitted_stars(stars);
-				return 1;
-			case HOMOGRAPHY_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
-					"salmon", MIN_RATIO_INLIERS, filenum);
-				break;
-			default:
-				printf("Should not happen\n");
-			}
-		}
-
-
-		FWHM_stats(stars, nbpoints, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+		int not_matched = star_match_and_checks(sadata->refstars, stars, nbpoints, regargs, filenum, &H);
+		if (!not_matched)
+			FWHM_stats(stars, nbpoints, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		free_fitted_stars(stars);
+		if (not_matched)
+			return 1;
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-		print_alignment_results(H, filenum, FWHMx, FWHMy, units);
+		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, units);
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
 		sadata->current_regdata[in_index].fwhm = FWHMx;
@@ -647,7 +649,7 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	free_sequence(&seq, FALSE);
 }
 
-static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units) {
+static void print_alignment_results(Homography H, int filenum, float fwhm, float roundness, char *units) {
 	double rotation, scale, scaleX, scaleY;
 	point shift;
 	double inliers;
@@ -669,15 +671,15 @@ static void print_alignment_results(Homography H, int filenum, float FWHMx, floa
 
 	/* Rotation */
 	rotation = atan2(H.h01, H.h00) * 180 / M_PI;
-	siril_log_message(_("rotation:%+*.3f deg\n"), 9, rotation);
+	siril_log_message(_("rotation:%+*.3f deg\n"), 10, rotation);
 
 	/* Translation */
 	shift.x = -H.h02;
 	shift.y = -H.h12;
 	siril_log_message(_("dx:%+*.2f px\n"), 15, shift.x);
 	siril_log_message(_("dy:%+*.2f px\n"), 15, shift.y);
-	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
-	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
+	siril_log_message(_("FWHM:%*.2f %s\n"), 13, fwhm, units);
+	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
 /********************** the new multi-step registration ***********************/
@@ -804,67 +806,17 @@ int register_multi_step_global(struct registration_args *regargs) {
 		} else {
 			if (!sf_args->stars[i])
 				continue;
-			// code copied from the main registration function star_align_image_hook
-			// TODO: extract in a function usable here and in star_align_image_hook
-			double scale_min = 0.9;
-			double scale_max = 1.1;
-			int attempt = 1;
-			int nobj = 0;
-			int failure = 1;
-			while (failure && attempt < NB_OF_MATCHING_TRY) {
-				failure = new_star_match(sf_args->stars[i],
-						sf_args->stars[regargs->seq->reference_image],
-						sf_args->nb_stars[i], nobj,
-						scale_min, scale_max, &H, FALSE, NULL, NULL, regargs->type,
-						NULL, NULL);
-				if (attempt == 1) {
-					scale_min = -1.0;
-					scale_max = -1.0;
-				} else {
-					nobj += 50;
-				}
-				attempt++;
-			}
+
 			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
-			if (failure) {
-				siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
-						"red", attempt, filenum);
-			}
-			else if (H.Inliers < regargs->min_pairs) {
-				siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
-						"red", H.Inliers, filenum);
-				failure = 1;
-			}
-			else if (((double)H.Inliers / (double)H.pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
-				switch (regargs->type) {
-					case SHIFT_TRANSFORMATION:
-						siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
-								"red", MIN_RATIO_INLIERS, filenum);
-						failure = 1;
-						break;
-					case SIMILARITY_TRANSFORMATION:
-						siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
-								"red", MIN_RATIO_INLIERS, filenum);
-						failure = 1;
-						break;
-					case AFFINE_TRANSFORMATION:
-						siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
-								"red", MIN_RATIO_INLIERS, filenum);
-						failure = 1;
-						break;
-					case HOMOGRAPHY_TRANSFORMATION:
-						siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
-								"salmon", MIN_RATIO_INLIERS, filenum);
-						break;
-					default:
-						printf("Should not happen\n");
-				}
-			}
-			if (failure) {
+			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
+					sf_args->nb_stars[i], regargs, filenum, &H);
+
+			if (not_matched) {
 				regargs->seq->imgparam[i].incl = FALSE;
 				failed++;
 				continue;
 			}
+			print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
 		}
 
 		current_regdata[i].roundness = roundness[i];
