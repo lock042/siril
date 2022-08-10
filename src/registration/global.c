@@ -211,7 +211,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	} else {
 		sadata->fitted_stars = nb_stars;
 	}
-	FWHM_stats(sadata->refstars, sadata->fitted_stars, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+	FWHM_stats(sadata->refstars, sadata->fitted_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
@@ -343,7 +343,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		int not_matched = star_match_and_checks(sadata->refstars, stars, nbpoints, regargs, filenum, &H);
 		if (!not_matched)
-			FWHM_stats(stars, nbpoints, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+			FWHM_stats(stars, nbpoints, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		free_fitted_stars(stars);
 		if (not_matched)
 			return 1;
@@ -824,7 +824,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			continue;
 		float FWHMx, FWHMy;
 		char *units;
-		FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B + i, Acut + i, AMPLITUDE_CUT);
+		FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], regargs->seq->bitpix, &FWHMx, &FWHMy, &units, B + i, Acut + i, AMPLITUDE_CUT);
 		fwhm[i] = FWHMx;
 		roundness[i] = FWHMy/FWHMx;
 		if (sf_args->nb_stars[i] > maxstars) maxstars = sf_args->nb_stars[i];
@@ -853,7 +853,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			float FWHMx, FWHMy;
 			float score;
 			char *units;
-			FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], &FWHMx, &FWHMy, &units, B+i, NULL, 0.);
+			FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], regargs->seq->bitpix, &FWHMx, &FWHMy, &units, B+i, NULL, 0.);
 			score  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
 			fwhm[i] = FWHMx;
 			roundness[i] = FWHMy/FWHMx;

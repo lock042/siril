@@ -208,6 +208,8 @@ static void display_PSF(psf_star **result) {
 		double FWHMx = 0.0, FWHMy = 0.0, B = 0.0, A = 0.0, r = 0.0, angle = 0.0,
 				rmse = 0.0;
 		gboolean unit_is_arcsec;
+		int n = 0;
+		double normvalue = (gfit.bitpix == FLOAT_IMG) ? 1.0 : (gfit.bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE :  USHRT_MAX_DOUBLE;
 
 		while (result[i]) {
 			double fwhmx, fwhmy;
@@ -220,29 +222,31 @@ static void display_PSF(psf_star **result) {
 						_("Stars FWHM must have the same units."));
 				return;
 			}
-
-			B += result[i]->B;
-			A += result[i]->A;
-			FWHMx += fwhmx;
-			FWHMy += fwhmy;
-			angle += result[i]->angle;
-			rmse += result[i]->rmse;
+			if (result[i]->B + result[i]->A < normvalue) {
+				B += result[i]->B;
+				A += result[i]->A;
+				FWHMx += fwhmx;
+				FWHMy += fwhmy;
+				angle += result[i]->angle;
+				rmse += result[i]->rmse;
+				n++;
+				}
 			i++;
 		}
-		if (i <= 0) return;
+		if (i <= 0 || n <= 0) return;
 		/* compute average */
-		B = B / (double)i;
-		A = A / (double)i;
-		FWHMx = FWHMx / (double)i;
-		FWHMy = FWHMy / (double)i;
+		B = B / (double)n;
+		A = A / (double)n;
+		FWHMx = FWHMx / (double)n;
+		FWHMy = FWHMy / (double)n;
 		r = FWHMy / FWHMx;
-		angle = angle / (double)i;
-		rmse = rmse / (double)i;
+		angle = angle / (double)n;
+		rmse = rmse / (double)n;
 
 		msg = g_strdup_printf(_("Average Gaussian PSF\n\n"
-				"N:\t%d stars\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
+				"N:\t%d stars (%d saturated and excluded)\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
 				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
-				i, B, A, FWHMx, result[0]->units, FWHMy,
+				i, i - n, B, A, FWHMx, result[0]->units, FWHMy,
 				result[0]->units, r, angle, rmse);
 		show_data_dialog(msg, _("Average Star Data"), "stars_list_window", NULL);
 		g_free(msg);

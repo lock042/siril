@@ -784,21 +784,26 @@ psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbf
 	return filtered_stars;
 }
 
-void FWHM_stats(psf_star **stars, int nb, float *FWHMx, float *FWHMy, char **units, float *B, float *Acut, double Acutp) {
+void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy, char **units, float *B, float *Acut, double Acutp) {
 	*FWHMx = 0.0f;
 	*FWHMy = 0.0f;
 	*B = 0.0f;
+	int n = 0;
 	if (stars && stars[0]) {
+		double normvalue = (bitpix == FLOAT_IMG) ? 1.0 : (bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE :  USHRT_MAX_DOUBLE;
 		double fwhmx = 0.0, fwhmy = 0.0, b = 0.0;
 		*units = stars[0]->units;
 		for (int i = 0; i < nb; i++) {
-			fwhmx += stars[i]->fwhmx;
-			fwhmy += stars[i]->fwhmy;
-			b += stars[i]->B;
+			if (stars[i]->A + stars[i]->B < normvalue) { // removing saturated stars
+				fwhmx += stars[i]->fwhmx;
+				fwhmy += stars[i]->fwhmy;
+				b += stars[i]->B;
+				n++;
+			}
 		}
-		*FWHMx = (float)(fwhmx / (double)nb);
-		*FWHMy = (float)(fwhmy / (double)nb);
-		*B = (float)(b / (double)nb);
+		*FWHMx = (float)(fwhmx / (double)n);
+		*FWHMy = (float)(fwhmy / (double)n);
+		*B = (float)(b / (double)n);
 
 		if (Acut) {
 			float *A = malloc(nb * sizeof(float));
