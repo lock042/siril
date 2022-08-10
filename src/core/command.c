@@ -130,7 +130,7 @@ int process_load(int nb){
 
 	int retval = open_single_image(filename);
 	launch_clipboard_survey();
-	return (retval < 0);
+	return retval;
 }
 
 int process_dumpheader(int nb) {
