@@ -128,6 +128,7 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 		if (args->bias_level < FLT_MAX) { // an offset level has been defined
 			ret = soper(raw, args->bias_level, OPER_SUB, args->allow_32bit_output);
 		} else ret = imoper(raw, args->bias, OPER_SUB, args->allow_32bit_output);
+		strcat(raw->calstat, "B");
 	}
 
 	/* if dark optimization, the master-dark has already been subtracted */
@@ -138,6 +139,7 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 		fprintf(stdout, "after dark: min=%f, max=%f\n", raw->mini, raw->maxi);
 		invalidate_stats_from_fit(raw);
 #endif
+		strcat(raw->calstat, "D");
 	}
 
 	if (!ret && args->use_flat) {
@@ -149,6 +151,7 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 		fprintf(stdout, "after flat: min=%f, max=%f\n", raw->mini, raw->maxi);
 		invalidate_stats_from_fit(raw);
 #endif
+		strcat(raw->calstat, "F");
 	}
 
 	return ret;
@@ -182,6 +185,8 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args) {
 			ret = imoper(raw, &dark_tmp, OPER_SUB, args->allow_32bit_output);
 	}
 	clearfits(&dark_tmp);
+	strcat(raw->calstat, "D");
+
 	return ret;
 }
 

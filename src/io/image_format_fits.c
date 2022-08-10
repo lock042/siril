@@ -1297,6 +1297,11 @@ void save_fits_header(fits *fit) {
 				"Order of the rows in image array", &status);
 	}
 
+	status = 0;
+	if (fit->calstat[0] != '\0')
+		fits_update_key(fit->fptr, TSTRING, "CALSTAT", &(fit->calstat),
+				"calibration state", &status);
+
 	/*******************************************************************
 	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
 	 * ******************** AND DATES **********************************
@@ -2378,6 +2383,7 @@ int copy_fits_metadata(fits *from, fits *to) {
 	strncpy(to->observer, from->observer, FLEN_VALUE);
 	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE);
 	strncpy(to->row_order, from->row_order, FLEN_VALUE);
+	strncpy(to->calstat, from->calstat, FLEN_VALUE);
 
 	to->bayer_xoffset = from->bayer_xoffset;
 	to->bayer_yoffset = from->bayer_yoffset;
