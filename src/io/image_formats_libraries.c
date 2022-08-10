@@ -601,7 +601,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	return retval;
 }
 
-static void get_tif_data_from_ui(gchar **description, gchar **copyright, gboolean *embeded_icc) {
+void get_tif_data_from_ui(gchar **description, gchar **copyright, gboolean *embeded_icc) {
 	if (!com.script && !com.headless) {
 		/*******************************************************************
 		 * If the user saves a tif from the graphical menu, he can set
@@ -633,15 +633,13 @@ static void get_tif_data_from_ui(gchar **description, gchar **copyright, gboolea
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 
-int savetif(const char *name, fits *fit, uint16_t bitspersample){
+int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc){
 	int retval = 0;
 	float norm;
-	gchar *description = NULL, *copyright = NULL;
 	gchar *filename = g_strdup(name);
 	uint32_t profile_len = 0;
 	const unsigned char *profile;
 	gboolean write_ok = TRUE;
-	gboolean embeded_icc = TRUE;
 
 	if (!g_str_has_suffix(filename, ".tif") && (!g_str_has_suffix(filename, ".tiff"))) {
 		filename = str_append(&filename, ".tif");
@@ -657,7 +655,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 	const uint32_t width = (uint32_t) fit->rx;
 	const uint32_t height = (uint32_t) fit->ry;
 	
-	get_tif_data_from_ui(&description, &copyright, &embeded_icc);
 
 	/*******************************************************************/
 

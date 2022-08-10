@@ -470,7 +470,7 @@ static gpointer export_sequence(gpointer ptr) {
 #ifdef HAVE_LIBTIFF
 			case EXPORT_TIFF:
 				snprintf(dest, 255, "%s%05d", args->basename, i + 1);
-				retval = savetif(dest, destfit, 16);
+				retval = savetif(dest, destfit, 16, NULL, com.pref.copyright, TRUE);
 				break;
 #endif
 			case EXPORT_SER:
