@@ -43,7 +43,8 @@ int readpic(const char *name, fits *fit);
 /****************** image_formats_libraries.h ******************/
 #ifdef HAVE_LIBTIFF
 int readtif(const char *name, fits *fit, gboolean force_float);
-int savetif(const char *name, fits *fit, uint16_t bitspersample);
+void get_tif_data_from_ui(gchar **description, gchar **copyright, gboolean *embeded_icc);
+int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc);
 #endif
 
 #ifdef HAVE_LIBJPEG

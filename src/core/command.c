@@ -246,7 +246,7 @@ int process_savetif(int nb){
 		bitspersample = 32;
 	gchar *filename = g_strdup_printf("%s.tif", word[1]);
 	set_cursor_waiting(TRUE);
-	savetif(filename, &gfit, bitspersample);
+	savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
 	set_cursor_waiting(FALSE);
 	g_free(filename);
 	return 0;
