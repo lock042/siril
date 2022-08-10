@@ -752,7 +752,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 
 			memcpy(w_stack, stack, N * sizeof(WORD));
 			memset(rejected, 0, N * sizeof(int));
-
+			int cold = 0;
 			for (int iter = 0, size = N; iter < max_outliers; iter++, size--) {
 				float Gstat;
 				int max_index = 0;
@@ -760,7 +760,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				grubbs_stat(w_stack, size, &Gstat, &max_index);
 				out[iter].out = check_G_values(Gstat, args->critical_value[iter + removed]);
 				out[iter].x = w_stack[max_index];
-				out[iter].i = max_index;
+				out[iter].i = (max_index == 0) ? cold++ : max_index;
 				remove_element(w_stack, max_index, size);
 			}
 			confirm_outliers(out, max_outliers, median, rejected, crej);
