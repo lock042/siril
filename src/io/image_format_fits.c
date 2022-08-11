@@ -292,6 +292,10 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TSTRING, "ROWORDER", &(fit->row_order), NULL,
 			&status);
 
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "CALSTAT", &(fit->calstat), NULL,
+			&status);
+
 	/*******************************************************************
 	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
 	 * ****************************************************************/
@@ -528,6 +532,8 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->binning_y = g_ascii_strtoull(value, NULL, 10);
 		} else if (g_str_has_prefix(card, "ROWORDER=")) {
 			copy_string_key(fit->row_order, value);
+		} else if (g_str_has_prefix(card, "CALSTAT=")) {
+			copy_string_key(fit->calstat, value);
 		} else if (g_str_has_prefix(card, "INSTRUME=")) {
 			copy_string_key(fit->instrume, value);
 		} else if (g_str_has_prefix(card, "TELESCOP=")) {
