@@ -360,6 +360,18 @@ static gboolean is_pm_use_rgb_button_checked() {
 	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pm_use_rgb_button")));
 }
 
+static void update_metadata() {
+	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
+	int j = 0;
+	for (int i = 0; i < MAX_IMAGES ; i++)
+		if (var_fit[i].rx > 0)
+			f[j++] = &var_fit[i];
+	f[j] = NULL;
+
+	merge_fits_headers_to_result2(&gfit, f);
+	free(f);
+}
+
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -431,6 +443,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 		/* Create new image */
 		clearfits(&gfit);
 		copyfits(args->fit, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		update_metadata();
 
 		com.seq.current = UNRELATED_IMAGE;
 		com.uniq = calloc(1, sizeof(single));
