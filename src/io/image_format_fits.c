@@ -2366,11 +2366,12 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->binning_x = from->binning_x;
 	to->binning_y = from->binning_y;
 
-	// date is the file creation date, automatically set on save
-	//if (from->date)
-	//	to->date = g_date_time_ref(from->date);
-	if (from->date_obs)
+	// 'date' is the file creation date, automatically set on save
+	if (from->date_obs) {
+		if (to->date_obs)
+			g_date_time_unref(to->date_obs);
 		to->date_obs = g_date_time_ref(from->date_obs);
+	}
 	strncpy(to->filter, from->filter, FLEN_VALUE);
 	strncpy(to->image_type, from->image_type, FLEN_VALUE);
 	strncpy(to->object, from->object, FLEN_VALUE);
