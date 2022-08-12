@@ -216,7 +216,7 @@ int process_satu(int nb){
 	args->input = &gfit;
 	args->output = &gfit;
 	args->for_preview = FALSE;
-	siril_log_message(_("Applying saturation enhancement of %d%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
+	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
 
 	set_cursor_waiting(TRUE);
 	return GPOINTER_TO_INT(enhance_saturation(args));
