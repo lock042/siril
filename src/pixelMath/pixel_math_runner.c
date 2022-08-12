@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "algos/siril_wcs.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/dialog_preview.h"
@@ -369,6 +370,7 @@ static void update_metadata() {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
+	load_WCS_from_memory(&gfit);
 	free(f);
 }
 
