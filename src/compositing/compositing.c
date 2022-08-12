@@ -30,6 +30,7 @@
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "algos/colors.h"
+#include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -496,6 +497,7 @@ static void update_metadata() {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
+	load_WCS_from_memory(&gfit);
 	free(f);
 }
 
@@ -585,11 +587,11 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		clearfits(&layers[layer]->the_fit);
 		return;
 	}
-	update_metadata();
 
 	// enable the color balance finalization button
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
+	update_metadata();
 	update_MenuItem();
 }
 

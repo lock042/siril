@@ -51,8 +51,9 @@ gboolean has_wcs(fits *fit) {
 
 // deal with cases where wcsdata is not NULL but members are set to 0
 gboolean has_wcsdata(fits *fit) {
-	if ((fit->wcsdata.crval[0] == 0.0 && fit->wcsdata.crval[1] == 0.0)) return FALSE;
-		return TRUE;
+	if ((fit->wcsdata.crval[0] == 0.0 && fit->wcsdata.crval[1] == 0.0))
+		return FALSE;
+	return TRUE;
 }
 
 
@@ -111,15 +112,13 @@ gboolean load_WCS_from_memory(fits *fit) {
 	fit->wcslib->latpole = fit->wcsdata.crval[1];
 
 	if ((status = wcsset(fit->wcslib)) != 0) {
-	/* here we do not want to use free_wcs because
-	 * we want to keep original header, just in case */
-#ifdef HAVE_WCSLIB
-	if (fit->wcslib) {
-		if (!wcsfree(fit->wcslib))
-			free(fit->wcslib);
-		fit->wcslib = NULL;
-	}
-#endif
+		/* here we do not want to use free_wcs because
+		 * we want to keep original header, just in case */
+		if (fit->wcslib) {
+			if (!wcsfree(fit->wcslib))
+				free(fit->wcslib);
+			fit->wcslib = NULL;
+		}
 		siril_debug_print("wcsset error %d: %s.\n", status, wcs_errmsg[status]);
 		return FALSE;
 	}
