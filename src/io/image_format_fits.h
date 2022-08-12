@@ -25,7 +25,7 @@ int siril_fits_compress(fits *f);
 int save_opened_fits(fits *f);
 int savefits(const char*, fits*);
 int copyfits(fits *from, fits *to, unsigned char oper, int layer);
-int copy_fits_metadata(fits *from, fits *to);
+void copy_fits_metadata(fits *from, fits *to);
 int copy_fits_from_file(char *source, char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
 int save1fits32(const char *filename, fits *fit, int layer);
@@ -61,5 +61,8 @@ void report_fits_error(int status);
 
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
 int check_loaded_fits_params(fits *ref, ...);
+
+void merge_fits_headers_to_result2(fits *result, fits **f);
+void merge_fits_headers_to_result(fits *result, fits *f1, ...);
 
 #endif
