@@ -3038,26 +3038,21 @@ int check_loaded_fits_params(fits *ref, ...) {
 	return retval;
 }
 
-// NULL-terminated list of fits, given with decreasing importance
-// HISTORY is not managed, neither is some conflicting information
-void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
-	if (!f1) return;
-	va_list ap;
-	va_start(ap, f1);
-	fits *current;
-
+// f is NULL-terminated and not empty
+void merge_fits_headers_to_result2(fits *result, fits **f) {
 	/* copy all from the first */
-	copy_fits_metadata(f1, result);
+	copy_fits_metadata(f[0], result);
 
 	/* then refine the variable fields */
-	gboolean found_WCS = has_wcsdata(f1);
+	gboolean found_WCS = has_wcsdata(f[0]);
 	GDateTime *date_obs = result->date_obs;	// already referenced
-	double expstart = f1->expstart;
-	double expend = f1->expend;
+	double expstart = f[0]->expstart;
+	double expend = f[0]->expend;
 	int image_count = 1;
-	double exposure = f1->exposure;
+	double exposure = f[0]->exposure;
 
-	while ((current = va_arg(ap, fits *))) {
+	fits *current;
+	while ((current = f[image_count])) {
 		// take the first WCS information we find
 		if (!found_WCS && has_wcsdata(current)) {
 			result->wcsdata = current->wcsdata;
@@ -3092,33 +3087,31 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 	result->date_obs = date_obs;
 	result->expstart = expstart;
 	result->expend = expend;
-
-#if 0
-	// list of metadata from ffit
-	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
-	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
-	char row_order[FLEN_VALUE];
-	GDateTime *date, *date_obs;
-	double expstart, expend;
-	char filter[FLEN_VALUE];		// FILTER key
-	char image_type[FLEN_VALUE];		// IMAGETYP key
-	char object[FLEN_VALUE];		// OBJECT key
-	char instrume[FLEN_VALUE];		// INSTRUME key
-	char telescop[FLEN_VALUE];		// TELESCOP key
-	char observer[FLEN_VALUE];		// OBSERVER key
-	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
-	int bayer_xoffset, bayer_yoffset;
-	/* data obtained from FITS or RAW files */
-	double focal_length, iso_speed, exposure, aperture, ccd_temp;
-	double livetime;		// total exposure
-	guint stackcnt;			// number of stacked frame
-	double cvf;			// Conversion factor (e-/adu)
-	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
-
-	/* Plate Solving data */
-	wcs_info wcsdata;		// data from the header
-
-	GSList *history;	// Former HISTORY comments of FITS file
-#endif
-	va_end(ap);
 }
+
+// NULL-terminated list of fits, given with decreasing importance
+// HISTORY is not managed, neither is some conflicting information
+void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
+	if (!f1) return;
+	// converting variadic to array of args
+	va_list ap;
+	va_start(ap, f1);
+	int nb_fits = 1;
+	fits *current;
+	while ((current = va_arg(ap, fits *)))
+		nb_fits++;
+	va_end(ap);
+	fits **array = malloc((nb_fits + 1) * sizeof(fits *));
+
+	va_start(ap, f1);
+	int i = 0;
+	array[i++] = f1;
+	while ((current = va_arg(ap, fits *)))
+		array[i++] = current;
+	va_end(ap);
+	array[i] = NULL;
+
+	merge_fits_headers_to_result2(result, array);
+	free(array);
+}
+

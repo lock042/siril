@@ -62,6 +62,7 @@ void report_fits_error(int status);
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
 int check_loaded_fits_params(fits *ref, ...);
 
+void merge_fits_headers_to_result2(fits *result, fits **f);
 void merge_fits_headers_to_result(fits *result, fits *f1, ...);
 
 #endif
