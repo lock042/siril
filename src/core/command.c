@@ -216,7 +216,7 @@ int process_satu(int nb){
 	args->input = &gfit;
 	args->output = &gfit;
 	args->for_preview = FALSE;
-	siril_log_message(_("Applying saturation enhancement of %d%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
+	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
 
 	set_cursor_waiting(TRUE);
 	return GPOINTER_TO_INT(enhance_saturation(args));
@@ -5470,6 +5470,7 @@ int process_rgbcomp(int nb) {
 			return CMD_WRONG_N_ARG;
 		}
 
+		gboolean had_an_rgb_image = FALSE;
 		fits l = { 0 };
 		if (readfits(lum_file, &l, NULL, TRUE)) return CMD_INVALID_IMAGE;
 		if (readfits(word[2], &r, NULL, TRUE)) { clearfits(&l); return CMD_INVALID_IMAGE; }
@@ -5478,13 +5479,20 @@ int process_rgbcomp(int nb) {
 			extract_fits(&r, &g, 1, FALSE);
 			extract_fits(&r, &b, 2, FALSE);
 			keep_only_first_channel(&r);
+			had_an_rgb_image = TRUE;
 			next_arg = 3;
 		} else {
 			if (nb < 5) {
 				return CMD_WRONG_N_ARG;
 			}
-			if (readfits(word[3], &g, NULL, TRUE)) { clearfits(&l); clearfits(&r); return CMD_INVALID_IMAGE; }
-			if (readfits(word[4], &b, NULL, TRUE)) { clearfits(&l); clearfits(&r); clearfits(&g); return CMD_INVALID_IMAGE; }
+			if (readfits(word[3], &g, NULL, TRUE)) {
+				clearfits(&l); clearfits(&r);
+				return CMD_INVALID_IMAGE;
+			}
+			if (readfits(word[4], &b, NULL, TRUE)) {
+				clearfits(&l); clearfits(&r); clearfits(&g);
+				return CMD_INVALID_IMAGE;
+			}
 			next_arg = 5;
 		}
 
@@ -5499,6 +5507,11 @@ int process_rgbcomp(int nb) {
 			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
+		if (had_an_rgb_image)
+			merge_fits_headers_to_result(rgbptr, &l, &r, NULL);
+		else merge_fits_headers_to_result(rgbptr, &l, &r, &g, &b, NULL);
+		rgbptr->history = g_slist_append(rgbptr->history, strdup("LRGB composition"));
+
 		size_t nbpix = l.naxes[0] * l.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
 			gdouble h, s, el, rd, gd, bd;
@@ -5525,6 +5538,8 @@ int process_rgbcomp(int nb) {
 			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
+		merge_fits_headers_to_result(rgbptr, &r, &g, &b, NULL);
+		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
 			rgb.fpdata[RLAYER][i] = r.fdata[i];

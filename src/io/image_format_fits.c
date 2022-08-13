@@ -1488,7 +1488,7 @@ void save_fits_header(fits *fit) {
 	}
 
 	/*******************************************************************
-	 * ******************** PROGRAMM KEYWORDS **************************
+	 * ********************** PROGRAM KEYWORD **************************
 	 * ****************************************************************/
 
 	status = 0;
@@ -2371,16 +2371,18 @@ void keep_only_first_channel(fits *fit) {
 }
 
 /* copy non-mandatory keywords from 'from' to 'to' */
-int copy_fits_metadata(fits *from, fits *to) {
+void copy_fits_metadata(fits *from, fits *to) {
 	to->pixel_size_x = from->pixel_size_x;
 	to->pixel_size_y = from->pixel_size_y;
 	to->binning_x = from->binning_x;
 	to->binning_y = from->binning_y;
 
-	if (from->date)
-		to->date = g_date_time_ref(from->date);
-	if (from->date_obs)
+	// 'date' is the file creation date, automatically set on save
+	if (from->date_obs) {
+		if (to->date_obs)
+			g_date_time_unref(to->date_obs);
 		to->date_obs = g_date_time_ref(from->date_obs);
+	}
 	strncpy(to->filter, from->filter, FLEN_VALUE);
 	strncpy(to->image_type, from->image_type, FLEN_VALUE);
 	strncpy(to->object, from->object, FLEN_VALUE);
@@ -2412,8 +2414,6 @@ int copy_fits_metadata(fits *from, fits *to) {
 	//wcssub()?
 #endif
 	// copy from->history?
-
-	return 0;
 }
 
 int copy_fits_from_file(char *source, char *destination) {
@@ -3050,3 +3050,81 @@ int check_loaded_fits_params(fits *ref, ...) {
 	va_end(args);
 	return retval;
 }
+
+// f is NULL-terminated and not empty
+void merge_fits_headers_to_result2(fits *result, fits **f) {
+	/* copy all from the first */
+	copy_fits_metadata(f[0], result);
+
+	/* then refine the variable fields */
+	gboolean found_WCS = has_wcsdata(f[0]);
+	GDateTime *date_obs = result->date_obs;	// already referenced
+	double expstart = f[0]->expstart;
+	double expend = f[0]->expend;
+	int image_count = 1;
+	double exposure = f[0]->exposure;
+
+	fits *current;
+	while ((current = f[image_count])) {
+		// take the first WCS information we find
+		if (!found_WCS && has_wcsdata(current)) {
+			result->wcsdata = current->wcsdata;
+			found_WCS = TRUE;
+		}
+		// set date_obs, the date of obs start, to the earliest found
+		if (g_date_time_compare(date_obs, current->date_obs) == 1) {
+			g_date_time_unref(date_obs);
+			date_obs = g_date_time_ref(current->date_obs);
+		}
+		// set exposure start to the earliest found
+		if (expstart > current->expstart)
+			expstart = current->expstart;
+		// set exposure end to the latest found
+		if (expend < current->expend)
+			expend = current->expend;
+		// do not store conflicting filter information
+		if (strcmp(result->filter, current->filter))
+			strcpy(result->filter, "mixed");
+		// add the exposure times and number of stacked images
+		result->stackcnt += current->stackcnt;
+		result->livetime += current->livetime;
+		// average exposure
+		exposure += current->exposure;
+
+		/* to add if one day we keep FITS comments: discrepencies in
+		 * various fields like exposure, instrument, observer,
+		 * telescope, ... */
+		image_count++;
+	}
+	result->exposure = exposure / image_count;
+	result->date_obs = date_obs;
+	result->expstart = expstart;
+	result->expend = expend;
+}
+
+// NULL-terminated list of fits, given with decreasing importance
+// HISTORY is not managed, neither is some conflicting information
+void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
+	if (!f1) return;
+	// converting variadic to array of args
+	va_list ap;
+	va_start(ap, f1);
+	int nb_fits = 1;
+	fits *current;
+	while ((current = va_arg(ap, fits *)))
+		nb_fits++;
+	va_end(ap);
+	fits **array = malloc((nb_fits + 1) * sizeof(fits *));
+
+	va_start(ap, f1);
+	int i = 0;
+	array[i++] = f1;
+	while ((current = va_arg(ap, fits *)))
+		array[i++] = current;
+	va_end(ap);
+	array[i] = NULL;
+
+	merge_fits_headers_to_result2(result, array);
+	free(array);
+}
+

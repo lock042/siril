@@ -281,7 +281,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 #ifdef HAVE_WCSLIB
-	if (image->wcslib) {
+	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
@@ -334,7 +334,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	show_time(t_start, t_end);
 
 #ifdef HAVE_WCSLIB
-	if (image->wcslib) {
+	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
@@ -418,7 +418,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 		mirrorx_float(fit, verbose);
 	}
 #ifdef HAVE_WCSLIB
-	if (fit->wcslib) {
+	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h11 = -1.;
@@ -446,7 +446,7 @@ void mirrory(fits *fit, gboolean verbose) {
 	}
 
 #ifdef HAVE_WCSLIB
-	if (fit->wcslib) {
+	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h00 = -1.;
@@ -550,7 +550,7 @@ int crop(fits *fit, rectangle *bounds) {
 		return -1;
 	}
 #ifdef HAVE_WCSLIB
-	if (fit->wcslib) {
+	if (has_wcs(fit)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
