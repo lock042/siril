@@ -687,7 +687,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	} else {
 		if (i < MAX_STARS) {
 			result->xpos = result->x0 + com.selection.x - 0.5;
-			result->ypos = com.selection.y + com.selection.h - result->y0 - 0.5;
+			result->ypos = com.selection.y + com.selection.h - result->y0 + 0.5;
 			psf_star **newstars = realloc(com.stars, (i + 2) * sizeof(psf_star *));
 			if (!newstars)
 				PRINT_ALLOC_ERR;
