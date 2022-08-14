@@ -569,8 +569,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 				cur_star->layer = layer;
 				int result_index = g_atomic_int_add(&nbstars, 1);
-				cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
-				cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
+				cur_star->xpos = (x - R) + cur_star->x0 - 0.5;
+				cur_star->ypos = (y - R) + cur_star->y0 - 0.5;
 				results[result_index] = cur_star;
 				//fprintf(stdout, "%03d: %11f %11f %f\n",
 				//		result_index, cur_star->xpos, cur_star->ypos, cur_star->mag);
