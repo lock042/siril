@@ -142,6 +142,9 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 		return 1;
 	}
 	fclose(f);
+	free(cat->indices);
+	free(cat->de);
+	free(cat);
 	return 0;
 }
 
@@ -158,11 +161,14 @@ static int get_projected_stars_from_local_catalogue(const char *path, double ra,
 		return 1;
 	}
 
-	GDateTime *dt = g_date_time_new_now_utc();
-	gdouble jd = date_time_to_Julian(dt);
-	g_date_time_unref(dt);
-	double J2000 = 2451545.0;
-	double jmillenia = (jd - J2000) / 365250.;
+	double jmillenia;
+	if (use_proper_motion) {
+		GDateTime *dt = g_date_time_new_now_utc();
+		gdouble jd = date_time_to_Julian(dt);
+		g_date_time_unref(dt);
+		double J2000 = 2451545.0;
+		jmillenia = (jd - J2000) / 365250.;
+	}
 	int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
 
 	int j = 0;
@@ -196,6 +202,7 @@ static int get_projected_stars_from_local_catalogue(const char *path, double ra,
 		//siril_debug_print("star at %f,\t%f,\tV=%.2f B=%.2f\timage coords (%.1f, %.1f)\tpm (%hd, %hd) mas/yr\n", star_ra, star_dec, Vmag, Bmag, (*stars)[j].x, (*stars)[j].y, trixel_stars[i].dRA, trixel_stars[i].dDec);
 	}
 	*nb_stars = j;
+	free(trixel_stars);
 
 	return 0;
 }
@@ -634,7 +641,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 			uint32_t j = 0;
 			int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
 			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
-				deepStarData *cat_stars  = catalogue_stars[catalogue];
+				deepStarData *cat_stars = catalogue_stars[catalogue];
 				uint32_t cat_nb_stars = catalogue_nb_stars[catalogue];
 
 				for (uint32_t i = 0; i < cat_nb_stars ; i++) {
@@ -665,6 +672,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 					(*stars)[j] = *sdd;
 					j++;
 				}
+				free(catalogue_stars[catalogue]);
 			}
 
 			*nb_stars = j;
@@ -766,8 +774,11 @@ gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius
 				for_photometry, &stars, &nb_stars))
 		return NULL;
 	siril_debug_print("got %u stars from local catalogues\n", nb_stars);
-	if (project_local_catalog(stars, nb_stars, center_ra, center_dec, fproj, 1))
+	if (project_local_catalog(stars, nb_stars, center_ra, center_dec, fproj, 1)) {
+		free(stars);
 		return NULL;
+	}
+	free(stars);
 	foutput = g_file_get_path(fproj);
 	g_object_unref(fproj);
 

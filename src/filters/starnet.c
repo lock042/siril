@@ -389,7 +389,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Save current stretched image as working 16-bit TIFF (post initial stretch if the image was linear)
-	if (savetif(temptif, &workingfit, 16)) {
+	if (savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, TRUE)) {
 		siril_log_color_message(_("Error: unable to save working TIFF of original image...\n"), "red");
 		goto CLEANUP;
 	}

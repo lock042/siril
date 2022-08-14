@@ -199,7 +199,8 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_float(photometry_setting, "outer-radius", &com.pref.phot_set.outer);
 		config_setting_lookup_float(photometry_setting, "aperture-radius", &com.pref.phot_set.aperture);
 		config_setting_lookup_bool(photometry_setting, "force-radius", &com.pref.phot_set.force_radius);
-		config_setting_lookup_float(photometry_setting, "minval", &com.pref.phot_set.minval);
+		//config_setting_lookup_float(photometry_setting, "minval", &com.pref.phot_set.minval);
+		// we don't want to keep this old value ^ in the new version because it's now negative by default
 		config_setting_lookup_float(photometry_setting, "maxval", &com.pref.phot_set.maxval);
 		if (com.pref.phot_set.inner == 0.0 || com.pref.phot_set.outer == 0.0) {
 			initialize_photometric_param();

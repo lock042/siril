@@ -419,6 +419,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
 	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
+	get_tif_data_from_ui(&args->description, &args->copyright, &args->embeded_icc);
 #endif
 	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
 	args->filename = gtk_entry_get_text(args->entry);
@@ -456,7 +457,7 @@ static gpointer mini_save_dialog(gpointer p) {
 #endif
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			args->retval = savetif(args->filename, &gfit, args->bitspersamples);
+			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->embeded_icc);
 			break;
 #endif
 #ifdef HAVE_LIBPNG

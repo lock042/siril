@@ -1153,7 +1153,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* we temporary save value as keep_noout_state will be changed in the callback */
 	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
-	
+
 	if (method && ((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_fwhm) ||

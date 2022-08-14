@@ -5,6 +5,9 @@
 struct savedial_data {
 	GtkEntry *entry;
 	gint bitspersamples;
+	char *description;
+	char *copyright;
+	gboolean embeded_icc;
 	gint quality;
 	const gchar *filename;
 	int bitpix;
