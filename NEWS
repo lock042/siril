@@ -2,6 +2,7 @@ v1.0.4 XX XX, 2022
 * Fixed selected area for flat autonormalisation calc
 * Fixed wrong initialization in polynomial background extraction
 * Fixed cold pixels rejection in GESDT stacking
+* Fixed x and y position in PSF and star detection
 
 v1.0.3 June 28, 2022
 
