@@ -592,8 +592,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				if (star_invalidated <= accepted_level) {
 					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 					cur_star->layer = layer;
-					cur_star->xpos = (x - R) + cur_star->x0 - 1.0;
-					cur_star->ypos = (y - R) + cur_star->y0 - 1.0;
+					cur_star->xpos = (x - R) + cur_star->x0 - 0.5;
+					cur_star->ypos = (y - R) + cur_star->y0 - 0.5; // this is not +0.5 because the image is already flipped
 #if DEBUG_STAR_DETECTION
 					if (star_invalidated > SF_OK)
 						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, errmsg);
