@@ -74,6 +74,9 @@ struct stacking_args {
 
 	gboolean apply_noise_weights;	/* enable weights */
 	gboolean apply_nbstack_weights;	/* enable weights */
+	gboolean apply_wfwhm_weights; /* enable weights */
+	gboolean apply_nbstars_weights; /* enable weights */
+
 	double *weights; 		/* computed weights for each (layer, image)*/
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean lite_norm;		/* enable lightweight (med,mad) normalization */
@@ -100,6 +103,8 @@ struct stacking_configuration {
 	struct seq_filter_config filters;
 	gboolean apply_noise_weights;
 	gboolean apply_nbstack_weights;
+	gboolean apply_wfwhm_weights;
+	gboolean apply_nbstars_weights;
 };
 
 typedef struct {

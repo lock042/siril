@@ -4621,10 +4621,26 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else if (arg->apply_nbstack_weights) {
+			} else if (arg->apply_nbstack_weights || arg->apply_wfwhm_weights || arg->apply_nbstars_weights) {
 				siril_log_message(_("Only one weighting method can be used\n"));
 			} else {
 				arg->apply_noise_weights = TRUE;
+			}
+		} else if (!strcmp(current, "-weight_from_wfwhm")) {
+			if (!rej_options_allowed) {
+				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->apply_nbstack_weights || arg->apply_noise_weights || arg->apply_nbstars_weights) {
+				siril_log_message(_("Only one weighting method can be used\n"));
+			} else {
+				arg->apply_wfwhm_weights = TRUE;
+			}
+		} else if (!strcmp(current, "-weight_from_nbstars")) {
+			if (!rej_options_allowed) {
+				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->apply_nbstack_weights || arg->apply_noise_weights || arg->apply_wfwhm_weights) {
+				siril_log_message(_("Only one weighting method can be used\n"));
+			} else {
+				arg->apply_nbstars_weights = TRUE;
 			}
 		} else if (!strcmp(current, "-rgb_equal")) {
 			if (!rej_options_allowed) {
@@ -4639,7 +4655,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else if (arg->apply_noise_weights) {
+			} else if (arg->apply_noise_weights || arg->apply_wfwhm_weights || arg->apply_nbstars_weights) {
 				siril_log_message(_("Only one weighting method can be used\n"));
 			} else {
 				arg->apply_nbstack_weights = TRUE;
@@ -4739,6 +4755,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
 	args.apply_noise_weights = arg->apply_noise_weights;
 	args.apply_nbstack_weights = arg->apply_nbstack_weights;
+	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
+	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 	args.equalizeRGB = arg->equalizeRGB;
 	args.lite_norm = arg->lite_norm;
 

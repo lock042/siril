@@ -50,7 +50,7 @@
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
 	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
-	FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
+	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
 
 #define MAX_FILTERS 5
