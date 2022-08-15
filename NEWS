@@ -46,11 +46,13 @@ v1.2.0 mmm dd, 2022
 * Fixed FITS header preservation on RGB composition
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 
-v1.0.4 XX XX, 2022
+v1.0.4 September 02, 2022
 XX/XX/22
 * Fixed selected area for flat autonormalisation calc
 * Fixed wrong initialization in polynomial background extraction
 * Fixed cold pixels rejection in GESDT stacking
+* Fixed x and y position in PSF and star detection
+* Added dropper icon to set SP easily in GHT tool
 
 v1.0.3 June 28, 2022
 

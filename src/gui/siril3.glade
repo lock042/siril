@@ -13005,6 +13005,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">This dropper allows you to set the background stretch symmetry point  based on the average value of  the current selection. This helps in picking out faint detail above the dark background.</property>
                             <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
                             <child>
                               <object class="GtkImage" id="eyedropper">

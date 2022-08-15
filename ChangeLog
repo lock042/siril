@@ -48,10 +48,12 @@ xx/xx/22
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 
 siril 1.0.4
-XX/XX/22
+09/02/22
 * Fixed selected area for flat autonormalisation calc
 * Fixed wrong initialization in polynomial background extraction
 * Fixed cold pixels rejection in GESDT stacking
+* Fixed x and y position in PSF and star detection
+* Added dropper icon to set SP easily in GHT tool
 
 siril 1.0.3
 06/28/22
