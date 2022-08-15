@@ -49,6 +49,7 @@ xx/xx/22
 
 siril 1.0.4
 09/02/22
+
 * Fixed selected area for flat autonormalisation calc
 * Fixed wrong initialization in polynomial background extraction
 * Fixed cold pixels rejection in GESDT stacking
@@ -57,6 +58,7 @@ siril 1.0.4
 
 siril 1.0.3
 06/28/22
+
 * Fixed memory leak in PixelMath
 * Fixed memory leak in SER preview
 * Fixed error in seqsubsky
