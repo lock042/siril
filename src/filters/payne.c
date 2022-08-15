@@ -22,9 +22,11 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_app_dirs.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "gui/image_display.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -454,6 +456,20 @@ void on_payne_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_spin_button_set_value(spin_black_p, payne_black_value);
 	gtk_spin_button_set_increments(spin_black_p, 0.001, 0.01);
 	set_notify_block(FALSE);
+	
+	
+	gchar *image;
+	GtkWidget *w;
+	if (com.pref.combo_theme == 0) {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper_dark.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	} else {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	}
+	gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_button")), w);
+	gtk_widget_show(w);
+	
 
 	payne_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("payne_preview")));
 
@@ -599,4 +615,40 @@ void on_payne_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		notify_update((gpointer) param);
 	}
 	payne_show_preview = !payne_show_preview;
+}
+
+void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_payneHP"));
+	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_payneLP"));
+	int chan, channels = get_preview_gfit_backup()->naxes[2];
+	imstats* stats[3];
+	double ref = 0;
+	if (!com.selection.w || !com.selection.h) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the point or area to set SP"));
+		return;
+	}
+	for (chan = 0; chan < get_preview_gfit_backup()->naxes[2]; chan++) {
+		stats[chan] = statistics(NULL, -1, get_preview_gfit_backup(), chan, &com.selection, STATS_BASIC, TRUE);
+		if (!stats[chan]) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return;
+		}
+		ref += stats[chan]->mean;
+		free_stats(stats[chan]);
+	}
+	ref /= channels;
+	payne_SP = ref;
+	if (payne_SP < payne_LP) {
+		gtk_spin_button_set_value(spin_LP, payne_SP);
+	}
+	if (payne_SP > payne_HP) {
+		gtk_spin_button_set_value(spin_HP, payne_SP);
+	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_payneSP")),payne_SP);
+
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = payne_update_preview;
+	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	notify_update((gpointer) param);
 }

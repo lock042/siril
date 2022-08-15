@@ -4091,6 +4091,28 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="spacing">5</property>
+            <child type="center">
+              <object class="GtkButton" id="eyedropper_button">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">This dropper allows you to set the background stretch symmetry point  based on the average value of  the current selection. This helps in picking out faint detail above the dark background.</property>
+                <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
+                <child>
+                  <object class="GtkImage" id="eyedropper">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="pixbuf">pixmaps/eyedropper.svg</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
             <child>
               <object class="GtkLabel" id="label1124">
                 <property name="visible">True</property>
@@ -4152,6 +4174,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="spacing">5</property>
             <child>
               <object class="GtkLabel" id="label1114">
                 <property name="visible">True</property>

@@ -4,6 +4,7 @@ XX/XX/22
 * Fixed wrong initialization in polynomial background extraction
 * Fixed cold pixels rejection in GESDT stacking
 * Fixed x and y position in PSF and star detection
+* Added dropper icon to set SP easily in GHT tool
 
 siril 1.0.3
 06/28/22
