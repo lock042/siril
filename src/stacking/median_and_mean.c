@@ -1187,6 +1187,9 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			goto free_and_close;
 		}
 	}
+	if (args->apply_nbstack_weights) {
+		siril_log_message(_("Computing weights based on number of stacked images...\n"));
+	}
 
 	siril_log_message(_("Starting stacking...\n"));
 	if (is_mean)

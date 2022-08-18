@@ -20528,22 +20528,43 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="stack_weight_button">
-                                                            <property name="label" translatable="yes">Weighted</property>
+                                                            <object class="GtkComboBoxText" id="comboweighing">
                                                             <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">When checked, this option weights each image of the stack, giving more importance to frames with lower background noise.</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">Four methods of weighing are available:
+
+&lt;b&gt;Number of stars&lt;/b&gt; weighs individual frames based on number of stars computed during registration step.
+
+&lt;b&gt;Weighted FWHM&lt;/b&gt; weighs individual frames based on wFWHM computed during registration step.
+
+&lt;b&gt;Noise&lt;/b&gt; weighs individual frames based on background noise values.
+
+&lt;b&gt;Number of images&lt;/b&gt; weighs individual frames based on their integration time.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">None</item>
+                                                            <item translatable="yes">Number of stars</item>
+                                                            <item translatable="yes">Weighed FWHM</item>
+                                                            <item translatable="yes">Noise</item>
+                                                            <item translatable="yes">Number of images</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="label_weighing">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
+                                                            <property name="label" translatable="yes">Weighing:</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
                                                             <property name="top-attach">1</property>
                                                             </packing>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
                                                             </child>
                                                             <child>
                                                             <placeholder/>

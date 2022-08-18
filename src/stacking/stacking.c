@@ -182,9 +182,9 @@ gpointer stack_function_handler(gpointer p) {
  * function is not reentrant but can be called again after it has returned and the thread is running */
 static void start_stacking() {
 	gchar *error = NULL;
-	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL;
+	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *weight_button = NULL, *fast_norm = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *fast_norm = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
@@ -196,11 +196,11 @@ static void start_stacking() {
 		sigSpin[1] = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
 		rejec_combo = GTK_COMBO_BOX(lookup_widget("comborejection"));
 		norm_combo = GTK_COMBO_BOX(lookup_widget("combonormalize"));
+		weighing_combo = GTK_COMBO_BOX(lookup_widget("comboweighing"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
 		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
-		weight_button = GTK_TOGGLE_BUTTON(lookup_widget("stack_weight_button"));
 	}
 
 	if (get_thread_run()) {
@@ -218,7 +218,10 @@ static void start_stacking() {
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
-	stackparam.apply_noise_weights = gtk_toggle_button_get_active(weight_button) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_noise_weights = (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_nbstars_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
+	stackparam.apply_wfwhm_weights = (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
+	stackparam.apply_nbstack_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 
@@ -478,11 +481,9 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
 	GtkWidget *widgetnormalize = lookup_widget("combonormalize");
 	GtkWidget *force_norm = lookup_widget("checkforcenorm");
-	GtkWidget *use_weight = lookup_widget("stack_weight_button");
 	GtkWidget *fast_norm = lookup_widget("checkfastnorm");
 	gtk_widget_set_sensitive(force_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 	gtk_widget_set_sensitive(fast_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
-	gtk_widget_set_sensitive(use_weight, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 }
 
 void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_data) {

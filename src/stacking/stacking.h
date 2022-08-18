@@ -40,6 +40,14 @@ typedef enum {
 	BEST_QUALITY_IMAGES
 } stackType;
 
+typedef enum {
+	NO_WEIGHT,
+	NBSTARS_WEIGHT,
+	WFWHM_WEIGHT,
+	NOISE_WEIGHT,
+	NBSTACK_WEIGHT
+} weighingType;
+
 struct normalization_coeff {
 	double *offset;
 	double *mul;
