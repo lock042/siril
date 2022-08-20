@@ -1125,7 +1125,8 @@ gpointer match_catalog(gpointer p) {
 	} else {
 		stars = com.stars;
 		if (com.stars)
-			while (com.stars[n_fit++]);
+			while (com.stars[n_fit])
+				n_fit++;
 	}
 	CHECK_FOR_CANCELLATION;
 
