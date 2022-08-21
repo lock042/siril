@@ -383,7 +383,7 @@ static void add_object_in_tree_view(const gchar *object) {
 		if (!has_nonzero_coords()) {
 			g_free(result);
 			set_cursor_waiting(FALSE);
-			siril_log_color_message(_("No catalog\n"), "red");
+			siril_log_color_message(_("No object found\n"), "red");
 			return;
 		}
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
