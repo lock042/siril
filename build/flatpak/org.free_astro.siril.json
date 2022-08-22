@@ -201,9 +201,9 @@
             ],
             "sources": [
                 {
-                    "type": "archive",
-                    "url": "https://github.com/FFMS/ffms2/archive/2.40.tar.gz",
-                    "sha256": "82e95662946f3d6e1b529eadbd72bed196adfbc41368b2d50493efce6e716320"
+                    "type": "git",
+                    "url": "https://github.com/FFMS/ffms2.git",
+                    "commit": "ff61bca13e2c5fb99c0450620c9244f415ec29c4"
                 }
             ]
         },
