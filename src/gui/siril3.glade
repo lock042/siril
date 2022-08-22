@@ -7129,7 +7129,8 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                           <object class="GtkComboBoxText" id="remix_colour_right">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.
+Note that luminance based models are not generally invertible.</property>
                             <property name="hexpand">True</property>
                             <property name="active">0</property>
                             <items>
@@ -7732,7 +7733,8 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                           <object class="GtkComboBoxText" id="remix_colour_left">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.
+Note that luminance based models are not generally invertible.</property>
                             <property name="hexpand">True</property>
                             <property name="active">0</property>
                             <items>
