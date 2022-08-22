@@ -286,8 +286,8 @@ flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
   only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /CI-flatpak/ || $CI_COMMIT_TAG != null || $CI_PIPELINE_SOURCE == "schedule"
-  image: 'registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:master'
+      - $CI_COMMIT_MESSAGE =~ /CI-flatpak/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /flatpak/ || $CI_PIPELINE_SOURCE == "schedule"
+  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-master'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.free_astro.siril.json"
