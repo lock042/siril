@@ -418,6 +418,7 @@ struct ffit {
 	char observer[FLEN_VALUE];		// OBSERVER key
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
+	double airmass;                   // relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
 	double livetime;		// total exposure
