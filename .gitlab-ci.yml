@@ -297,7 +297,7 @@ flatpak-nightly:
     BUNDLE: "org.free_astro.siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - flatpak-builder --stop-at=${FLATPAK_MODULE} flatpak_app ${MANIFEST_PATH} 1>/dev/null
+    - flatpak-builder --stop-at=${FLATPAK_MODULE} flatpak_app ${MANIFEST_PATH} > flatpak-builder.log 2>&1
     # Make sure to keep this in sync with the Flatpak manifest, all arguments
     # are passed except the config-args because we build it ourselves
     - flatpak build flatpak_app ./autogen.sh --prefix=/app
@@ -322,6 +322,8 @@ flatpak-nightly:
     expose_as: "Get Flatpak bundle here"
     when: always
     paths:
+      - flatpak-builder.log
+      - '.flatpak-builder/build/ffms2/'
       - "${BUNDLE}"
       - "repo/"
     expire_in: 1 week
