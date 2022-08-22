@@ -989,7 +989,7 @@ void setup_histo_dialog() {
 }
 
 void setup_ght_dialog() {
-			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),"Generalised Hyperbolic Transformations");
+			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),"Generalised Hyperbolic Stretch Transformations");
 			// Hide the histogram controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), FALSE);
