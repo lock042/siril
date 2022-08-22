@@ -322,7 +322,7 @@ flatpak-nightly:
     expose_as: "Get Flatpak bundle here"
     when: always
     paths:
-      - '.flatpak-builder/build/ffms2/'
+      - '.flatpak-builder/build/ffms2-1/'
       - '.flatpak-builder/build/${FLATPAK_MODULE}/_flatpak_build/meson-logs/meson-log.txt'
       - "${BUNDLE}"
       - "repo/"
