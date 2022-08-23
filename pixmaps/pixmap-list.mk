@@ -6,6 +6,8 @@ pixmaps = \
 	curve.svg \
 	export.svg \
 	export_dark.svg \
+	eyedropper.svg \
+	eyedropper_dark.svg \
 	g.svg \
 	grid.svg \
 	histo.svg \
