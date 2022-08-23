@@ -355,7 +355,7 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 		c->a1 = 0.0;
 		c->b1 = D * pow((D * D * (SP - LP) * (SP - LP) + 1),-0.5)*c->q;
 		c->a2 = -c->q0 * c->q;
-		c->b2 = c->q;
+		c->b2 = -c->q;
 		c->c2 = -D;
 		c->d2 = D * D;
 		c->e2 = SP;
