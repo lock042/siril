@@ -357,8 +357,15 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 	// draw curve
 	int k;
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_line_width(cr, 1.0);
 	cairo_set_source_rgb(cr, 0.98, 0.5, 0.45);
+
+	// Draw x=y
+	cairo_set_line_width(cr,0.25);
+	cairo_move_to(cr,0,height);
+	cairo_line_to(cr, width, 0);
+	cairo_stroke(cr);
+
+	cairo_set_line_width(cr, 1.0);
 
 	if (invocation == HISTO_STRETCH) {
 		for (k = 0; k < width + 1; k++) {
@@ -973,7 +980,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 }
 
 void setup_histo_dialog() {
-			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),"Histogram Transformation");
+			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),_("Histogram Transformation"));
 
 			// Hide UI elements not required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), FALSE);
@@ -989,7 +996,7 @@ void setup_histo_dialog() {
 }
 
 void setup_ght_dialog() {
-			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),"Generalised Hyperbolic Transformations");
+			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),_("Generalised Hyperbolic Stretch Transformations"));
 			// Hide the histogram controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), FALSE);
