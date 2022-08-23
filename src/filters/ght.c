@@ -124,11 +124,11 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 		if (D == 0.0) {
 			out = in;
 		} else if (in < LP) {
-			out = c.b1 * in;
+			out = c.a1 + c.b1 * in;
 		} else if (in < SP) {
-			out = c.a2 + c.b2 * log(c.c2 + (in - c.e2) + pow(c.d2 * (in - c.e2) * (in - c.e2) + 1, 0.5));
+			out = c.a2 + c.b2 * log(c.c2 * (in - c.e2) + sqrt(c.d2 * (in - c.e2) * (in - c.e2) + 1));
 		} else if (in < HP) {
-			out = c.a3 + c.b3 * log(c.c3 * (in - c.e3) + pow(c.d3 * (in - c.e3) * (in - c.e3) + 1, 0.5));
+			out = c.a3 + c.b3 * log(c.c3 * (in - c.e3) + sqrt(c.d3 * (in - c.e3) * (in - c.e3) + 1));
 		} else {
 			out = c.a4 + c.b4 * in;
 		}
@@ -334,7 +334,7 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 		c->a1 = 0.0;
 		c->b1 = D * pow((D * D * (SP - LP) * (SP - LP) + 1),-0.5)*c->q;
 		c->a2 = -c->q0 * c->q;
-		c->b2 = c->q;
+		c->b2 = -c->q;
 		c->c2 = -D;
 		c->d2 = D * D;
 		c->e2 = SP;
@@ -355,7 +355,7 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 		c->a1 = 0.0;
 		c->b1 = D * pow((D * D * (SP - LP) * (SP - LP) + 1),-0.5)*c->q;
 		c->a2 = -c->q0 * c->q;
-		c->b2 = c->q;
+		c->b2 = -c->q;
 		c->c2 = -D;
 		c->d2 = D * D;
 		c->e2 = SP;
