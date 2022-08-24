@@ -297,13 +297,7 @@ flatpak-nightly:
     BUNDLE: "org.free_astro.siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - flatpak-builder --verbose --stop-at=${FLATPAK_MODULE} flatpak_app ${MANIFEST_PATH} 1>/dev/null
-    # Make sure to keep this in sync with the Flatpak manifest, all arguments
-    # are passed except the config-args because we build it ourselves
-    - flatpak build flatpak_app ./autogen.sh --prefix=/app
-    - flatpak build flatpak_app make
-    - flatpak build flatpak_app make install
-    - flatpak-builder --finish-only --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH}
+    - flatpak-builder --verbose --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH} 1>/dev/null
     # TODO: Run automatic tests inside the Flatpak env
     # - >
     #   xvfb-run -a -s "-screen 0 1024x768x24"
