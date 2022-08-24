@@ -281,6 +281,9 @@
         {
             "name": "siril",
             "buildsystem": "meson",
+            "config-opts": [
+                "--buildtype=release"
+            ],
             "post-install": [
                 "sed -i s/text-x-seq/${FLATPAK_ID}.text-x-seq/ ${FLATPAK_DEST}/share/mime/packages/siril.xml",
                 "mv ${FLATPAK_DEST}/share/mime/packages/siril.xml ${FLATPAK_DEST}/share/mime/packages/${FLATPAK_ID}.xml",
