@@ -203,7 +203,7 @@
                 {
                     "type": "git",
                     "url": "https://github.com/FFMS/ffms2.git",
-                    "commit": "ff61bca13e2c5fb99c0450620c9244f415ec29c4"
+                    "branch": "master"
                 }
             ]
         },
@@ -290,8 +290,7 @@
                 {
                     "type": "git",
                     "url": "https://gitlab.com/free-astro/siril.git",
-                    "tag": "1.0.0",
-                    "commit": "fe3c5959f03bbfc0514997054b355d350d093b46"
+                    "branch": "master"
                 }
             ]
         }
