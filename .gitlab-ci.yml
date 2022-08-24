@@ -297,19 +297,7 @@ flatpak-nightly:
     BUNDLE: "org.free_astro.siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - flatpak-builder --verbose --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH} 1>/dev/null
-    # TODO: Run automatic tests inside the Flatpak env
-    # - >
-    #   xvfb-run -a -s "-screen 0 1024x768x24"
-    #   flatpak build
-    #   --env=LANG=C.UTF-8
-    #   --env=NO_AT_BRIDGE=1
-    #   ${TEST_BUILD_ARGS}
-    #   flatpak_app
-    #   dbus-run-session
-    #   meson test -C _build --no-stdsplit --print-errorlogs ${TEST_RUN_ARGS}
-
-    # Generate a Flatpak bundle
+    - flatpak-builder --verbose --disable-rofiles-fuse --ccache --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH} 1>/dev/null
     - flatpak build-bundle repo ${BUNDLE} --runtime-repo=${RUNTIME_REPO} ${APP_ID} ${BRANCH}
   artifacts:
     name: "Flatpak artifacts"
@@ -324,6 +312,8 @@ flatpak-nightly:
     paths:
       - ".flatpak-builder/downloads"
       - ".flatpak-builder/git"
+      - ".flatpak-builder/cache"
+      - ".flatpak-builder/ccache"
   needs: []
   allow_failure: true
   
