@@ -456,6 +456,13 @@ void read_fits_header(fits *fit) {
 	/* so now, fill the wcslib structure */
 	load_WCS_from_file(fit);
 
+	/**
+	 * Others
+	 */
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->airmass), NULL, &status);
+
 	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************
 	 * ****************************************************************/
@@ -617,6 +624,8 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 		} else if (g_str_has_prefix(card, "PLTSOLVD=")) {
 			fit->wcsdata.pltsolvd = !g_strcmp0(value, "T") ? TRUE : FALSE;
 			strncpy(fit->wcsdata.pltsolvd_comment, comment, FLEN_COMMENT);
+		} else if (g_str_has_prefix(card, "AIRMASS")) {
+			fit->airmass = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "DFTNORM0=")) {
 			fit->dft.norm[0] = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "DFTNORM1=")) {
@@ -1434,6 +1443,15 @@ void save_fits_header(fits *fit) {
 	if (fit->cvf > 0.)
 		fits_update_key(fit->fptr, TDOUBLE, "CVF", &(fit->cvf),
 				"Conversion factor (e-/adu)", &status);
+
+	/**
+	 * others
+	 */
+
+	status = 0;
+	if (fit->airmass > 0.)
+		fits_update_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->airmass),
+				"Airmass", &status);
 
 	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************
@@ -2395,6 +2413,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->cvf = from->cvf;
 	to->key_gain = from->key_gain;
 	to->key_offset = from->key_offset;
+	to->airmass = from->airmass;
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
