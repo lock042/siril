@@ -204,6 +204,9 @@ static void init_toggles() {
 		toggles[0] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolRed"));
 		toggles[1] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGreen"));
 		toggles[2] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolBlue"));
+		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
+		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
+		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
 		toggles[3] = NULL;
 		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
 		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
@@ -219,7 +222,7 @@ static void set_histo_toggles_names() {
 	init_toggles();
 
 	if (gfit.naxis == 2) {
-		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Monochrome channel"));
+		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Toggles whether to apply the stretch to the monochrome channel"));
 		GtkWidget *w;
 		if (com.pref.gui.combo_theme == 0) {
 			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "monochrome_dark.svg", NULL);
