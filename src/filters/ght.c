@@ -374,6 +374,7 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params, gboolean multithreaded) {
+	const gboolean do_channel[3] = {params.do_red, params.do_green, params.do_blue};
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -382,7 +383,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 	double factor_green = 0.7152;
 	double factor_blue = 0.0722;
 	// If only working with selected channels, colour mode is forced to independent
-	if (!(params.do_red && params.do_green && params.do_blue))
+	if (!(do_channel[0] && do_channel[1] && do_channel[2]))
 		params.payne_colourstretchmodel = COL_INDEP;
 	if (params.payne_colourstretchmodel == COL_EVENLUM) {
 		factor_red = 1.0/3.0;
@@ -414,27 +415,17 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 			}
 		} else {
 //			siril_log_message(_("Independent stretch (16bit)\n"));
+			for (size_t chan = 0; chan < from->naxes[2]; chan++) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-			for (size_t i = 0; i < layersize; i++) {
-				if (params.do_red) {
-					double r = (double)from->pdata[RLAYER][i] * invnorm;
-					to->pdata[RLAYER][i] = (r == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(r, params, compute_params))));
-				} else
-					to->pdata[RLAYER][i] = from->pdata[RLAYER][i];
-				if (params.do_green) {
-					double g = (double)from->pdata[GLAYER][i] * invnorm;
-					to->pdata[GLAYER][i] = (g == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(g, params, compute_params))));
-				} else
-					to->pdata[GLAYER][i] = from->pdata[GLAYER][i];
-
-				if (params.do_blue) {
-					double b = (double)from->pdata[BLAYER][i] * invnorm;
-					to->pdata[BLAYER][i] = (b == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(b, params, compute_params))));
-				} else
-					to->pdata[BLAYER][i] = from->pdata[BLAYER][i];
-
+				for (size_t i = 0; i < layersize; i++) {
+					if (do_channel[chan]) {
+						double x = (double)from->pdata[chan][i] * invnorm;
+						to->pdata[RLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(x, params, compute_params))));
+					} else
+						to->pdata[chan][i] = from->pdata[chan][i];
+				}
 			}
 		}
 	} else if (from->type == DATA_FLOAT) {
@@ -455,28 +446,17 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 			}
 		} else {
 //			siril_log_message(_("Independent stretch (32bit)\n"));
+			for (size_t chan=0; chan < from->naxes[2]; chan++) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-			for (size_t i = 0; i < layersize; i++) {
-				if (params.do_red) {
-					double r = (double)from->fpdata[RLAYER][i];
-					to->fpdata[RLAYER][i] = (r == 0.0) ? 0.0 : (float)min(1.0, max(0.0, GHTp(r, params, compute_params)));
-				} else
-					to->fpdata[RLAYER][i] = from->fpdata[RLAYER][i];
-
-				if (params.do_green) {
-					double g = (double)from->fpdata[GLAYER][i];
-					to->fpdata[GLAYER][i] = (g == 0.0) ? 0.0 : (float)min(1.0, max(0.0, GHTp(g, params, compute_params)));
-				} else
-					to->fpdata[GLAYER][i] = from->fpdata[GLAYER][i];
-
-				if (params.do_blue) {
-					double b = (double)from->fpdata[BLAYER][i];
-					to->fpdata[BLAYER][i] = (b == 0.0) ? 0.0 : (float)min(1.0, max(0.0, GHTp(b, params, compute_params)));
-				} else
-					to->fpdata[BLAYER][i] = from->fpdata[BLAYER][i];
-
+				for (size_t i = 0; i < layersize; i++) {
+					if (do_channel[chan]) {
+						double x = (double)from->fpdata[chan][i];
+						to->fpdata[chan][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, GHTp(x, params, compute_params)));
+					} else
+						to->fpdata[chan][i] = from->fpdata[chan][i];
+				}
 			}
 		}
 	}
