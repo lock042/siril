@@ -689,6 +689,11 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
 	int nb_aligned = 0;
+	omp_lock_t writelock;
+	omp_init_lock(&writelock);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
 	for (int i = 0; i < regargs->seq->number; i++) {
 		if (!included[i])
 			continue;
@@ -705,7 +710,13 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 				included[i] = FALSE;
 				continue;
 			}
+#ifdef _OPENMP
+			omp_set_lock(&writelock);
+#endif
 			print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
+#ifdef _OPENMP
+			omp_unset_lock(&writelock);
+#endif
 			nb_aligned++;
 		}
 
@@ -718,6 +729,9 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
 		current_regdata[i].H = H;
 	}
+#ifdef _OPENMP
+	omp_destroy_lock(&writelock);
+#endif
 	return nb_aligned;
 }
 
@@ -815,14 +829,18 @@ int register_multi_step_global(struct registration_args *regargs) {
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
 	gboolean *meaningful = NULL; 
-
+	int retval = 0;
+	struct timeval t_start, t_end;
 
 	if (!sf_args->stars || !sf_args->nb_stars) {
 		PRINT_ALLOC_ERR;
+		retval = 1;
 		goto free_all;
 	}
+	gettimeofday(&t_start, NULL);
 	if (apply_findstar_to_sequence(sf_args)) {
 		siril_debug_print("finding stars failed\n");	// aborted probably
+		retval = 1;
 		goto free_all;
 	}
 
@@ -839,6 +857,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	dist = calloc(regargs->seq->number, sizeof(float));
 	if (!fwhm || !roundness || !B || !A || !included || !tmp_included || !meaningful || !scores || !dist) {
 		PRINT_ALLOC_ERR;
+		retval = 1;
 		goto free_all;
 	}
 	int maxstars = 0;
@@ -1009,6 +1028,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 	fix_selnum(regargs->seq, FALSE);
 	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->seq->selnum);
 	clear_stars_list(FALSE);
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
 
 free_all:
 	for (int i = 0; i < regargs->seq->number; i++)
@@ -1026,6 +1047,6 @@ free_all:
 	free(meaningful);
 	free(scores);
 	free(dist);
-	return 0; // TODO: shoudn't we use a retval to differentiate sucess from failures?
+	return retval;
 }
 
