@@ -4,6 +4,7 @@ v1.0.4 September 02, 2022
 * Fixed wrong initialization in polynomial background extraction
 * Fixed cold pixels rejection in GESDT stacking
 * Fixed x and y position in PSF and star detection
+* Fixed RGB pixel display where Green and Blue were swapped
 * Added dropper icon to set SP easily in GHT tool
 
 v1.0.3 June 28, 2022
