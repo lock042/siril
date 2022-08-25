@@ -689,8 +689,6 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
 	int nb_aligned = 0;
-	omp_lock_t writelock;
-	omp_init_lock(&writelock);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -711,12 +709,9 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 				continue;
 			}
 #ifdef _OPENMP
-			omp_set_lock(&writelock);
+#pragma omp critical
 #endif
 			print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
-#ifdef _OPENMP
-			omp_unset_lock(&writelock);
-#endif
 			nb_aligned++;
 		}
 
@@ -729,9 +724,6 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
 		current_regdata[i].H = H;
 	}
-#ifdef _OPENMP
-	omp_destroy_lock(&writelock);
-#endif
 	return nb_aligned;
 }
 
