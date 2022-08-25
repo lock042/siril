@@ -100,6 +100,9 @@ static void clear_hist_backup() {
 }
 
 static void histo_startup() {
+	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
+	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
+	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
 	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();

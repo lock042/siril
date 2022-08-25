@@ -1383,6 +1383,9 @@ int process_mtf(int nb) {
 	params.shadows = g_ascii_strtod(word[1], &end1);
 	params.midtones = g_ascii_strtod(word[2], &end2);
 	params.highlights = g_ascii_strtod(word[3], &end3);
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
 	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
 			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
 			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
