@@ -293,7 +293,7 @@
                 {
                     "type": "git",
                     "url": "https://gitlab.com/free-astro/siril.git",
-                    "branch": "master"
+                    "branch": "1.0"
                 }
             ]
         }
