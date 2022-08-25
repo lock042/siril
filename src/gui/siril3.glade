@@ -12311,7 +12311,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="name">histoToolRed</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Red channel</property>
+                        <property name="tooltip-text" translatable="yes">Toggles whether the stretch applies to the red channel</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
@@ -12329,7 +12329,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="name">histoToolGreen</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Green channel</property>
+                        <property name="tooltip-text" translatable="yes">Toggles whether the stretch applies to the green channel</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
@@ -12347,7 +12347,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="name">histoToolBlue</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Blue channel</property>
+                        <property name="tooltip-text" translatable="yes">Toggles whether the stretch applies to the blue channel</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
@@ -12391,7 +12391,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       <object class="GtkToggleToolButton" id="histoToolCurve">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Show MTF curve</property>
+                        <property name="tooltip-text" translatable="yes">Show transfer curve plus the line y=x</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
