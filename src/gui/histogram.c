@@ -841,6 +841,12 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
+	if (gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2])) {
+		_stretchtype = COL_INDEP;
+		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
+		siril_log_message(_("Not all colour channels are selected: setting colour stretch model to Independent channel values\n"));
+	}
+
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1412,7 +1418,12 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
-	_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
+	if (!(gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2]))) {
+		_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
+	} else {
+		_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
+		gtk_combo_box_set_active(combo, COL_INDEP);
+	}
 	set_cursor_waiting(TRUE);
 	histo_update_preview();
 	set_cursor_waiting(FALSE);
