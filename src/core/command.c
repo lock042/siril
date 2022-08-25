@@ -666,7 +666,7 @@ int process_linstretch(int nb) {
 		siril_log_message(_("Black Point BP must be between 0 and 1\n"));
 	}
 	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP};
+	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP, TRUE, TRUE, TRUE};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, 0.0, 0.0, 0.0, 0.0, STRETCH_LINEAR);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -724,7 +724,7 @@ int process_ght(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel};
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel, TRUE, TRUE, TRUE};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_NORMAL);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -783,7 +783,7 @@ int process_invght(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel};
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel, TRUE, TRUE, TRUE};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_INVERSE);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -835,7 +835,7 @@ int process_modasinh(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel};
+	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel, TRUE, TRUE, TRUE};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_ASINH);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -887,7 +887,7 @@ int process_invmodasinh(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel};
+	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel, TRUE, TRUE, TRUE};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_INVASINH);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -3428,6 +3428,9 @@ int process_seq_mtf(int nb) {
 	args->params.shadows = g_ascii_strtod(word[2], &end1);
 	args->params.midtones = g_ascii_strtod(word[3], &end2);
 	args->params.highlights = g_ascii_strtod(word[4], &end3);
+	args->params.do_red = TRUE;
+	args->params.do_green = TRUE;
+	args->params.do_blue = TRUE;
 	if (end1 == word[2] || end2 == word[3] || end3 == word[4] ||
 			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
