@@ -842,10 +842,11 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
 	if (gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2])) {
-		if (!(_payne_colourstretchmodel == COL_INDEP))
-			siril_log_message(_("Not all colour channels are selected: setting colour stretch model to Independent channel values\n"));
-		_payne_colourstretchmodel = COL_INDEP;
-		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
+		if (_payne_colourstretchmodel == COL_HUMANLUM) {
+			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
+			_payne_colourstretchmodel = COL_EVENLUM;
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_EVENLUM);
+		}
 	}
 
 	update_histo_mtf();
@@ -1419,13 +1420,13 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
-	if (!(gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2]))) {
-		_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
-	} else {
-		if (gtk_combo_box_get_active(combo) != COL_INDEP)
-			siril_log_message(_("Not all colour channels are selected. Stretching will operate on colour channels independently.\n"));
-		gtk_combo_box_set_active(combo, COL_INDEP);
-		_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
+	_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
+	if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
+		if (_payne_colourstretchmodel == COL_HUMANLUM) {
+			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
+		gtk_combo_box_set_active(combo, COL_EVENLUM);
+		_payne_colourstretchmodel = COL_EVENLUM;
+		}
 	}
 	set_cursor_waiting(TRUE);
 	histo_update_preview();
