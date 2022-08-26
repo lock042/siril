@@ -12778,7 +12778,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           <object class="GtkComboBoxText" id="combo_payne_colour_stretch_model">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel. Note: human-weighted luminance is not allowed if less than 3 colour channels are selected as it doesn't make sense.</property>
                             <property name="hexpand">True</property>
                             <property name="active">0</property>
                             <items>
