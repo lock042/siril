@@ -399,7 +399,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 		double norm = get_normalized_value(from);
 		double invnorm = 1.0f / norm;
 		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
-			siril_log_message(_("Luminance stretch (16bit)\n"));
+//			siril_log_message(_("Luminance stretch (16bit)\n"));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -414,7 +414,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 				to->pdata[BLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, b * (z / x))));
 			}
 		} else {
-			siril_log_message(_("Independent stretch (16bit)\n"));
+//			siril_log_message(_("Independent stretch (16bit)\n"));
 			for (size_t chan = 0; chan < from->naxes[2]; chan++) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
@@ -430,7 +430,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 		}
 	} else if (from->type == DATA_FLOAT) {
 		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
-			siril_log_message(_("Luminance stretch (32bit)\n"));
+//			siril_log_message(_("Luminance stretch (32bit)\n"));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -445,7 +445,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 				to->fpdata[BLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, b * (z / x)));
 			}
 		} else {
-			siril_log_message(_("Independent stretch (32bit)\n"));
+//			siril_log_message(_("Independent stretch (32bit)\n"));
 			for (size_t chan=0; chan < from->naxes[2]; chan++) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
