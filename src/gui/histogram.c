@@ -1339,7 +1339,7 @@ void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
-	int chan, channels = get_preview_gfit_backup()->naxes[2];
+	int chan;
 	imstats* stats[3];
 	double ref = 0;
 	if (!com.selection.w || !com.selection.h) {
