@@ -12182,13 +12182,19 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
             <property name="spacing">5</property>
+            <property name="baseline-position">top</property>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">5</property>
+                <property name="baseline-position">top</property>
                 <child>
                   <object class="GtkToolbar" id="histoToolbar1">
                     <property name="visible">True</property>
@@ -12271,18 +12277,27 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="height-request">300</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="valign">end</property>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
                     <property name="hscrollbar-policy">always</property>
                     <property name="overlay-scrolling">False</property>
                     <child>
                       <object class="GtkViewport" id="viewport1">
+                        <property name="width-request">-1</property>
+                        <property name="height-request">-1</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
                         <child>
                           <object class="GtkDrawingArea" id="drawingarea_histograms">
+                            <property name="width-request">-1</property>
+                            <property name="height-request">-1</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
                             <signal name="button-press-event" handler="on_drawingarea_histograms_button_press_event" swapped="no"/>
                             <signal name="button-release-event" handler="on_drawingarea_histograms_button_release_event" swapped="no"/>
                             <signal name="draw" handler="redraw_histo" swapped="no"/>
@@ -12294,7 +12309,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
+                    <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
                   </packing>
@@ -12693,7 +12708,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
               <object class="GtkBox" id="box_ghtcontrols">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="halign">end</property>
                 <property name="valign">start</property>
+                <property name="hexpand">False</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">5</property>
                 <child>
@@ -12701,6 +12718,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="halign">end</property>
                     <property name="row-spacing">5</property>
                     <property name="column-spacing">5</property>
                     <child>
@@ -12804,7 +12822,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
@@ -12821,7 +12839,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">2</property>
                   </packing>
                 </child>
@@ -12889,7 +12907,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">4</property>
                   </packing>
                 </child>
@@ -12957,7 +12975,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">6</property>
                   </packing>
                 </child>
@@ -13047,7 +13065,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">8</property>
                   </packing>
                 </child>
@@ -13115,7 +13133,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">10</property>
                   </packing>
                 </child>
@@ -13184,7 +13202,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">12</property>
                   </packing>
                 </child>
@@ -13253,14 +13271,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">14</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
+                <property name="fill">False</property>
+                <property name="pack-type">end</property>
                 <property name="position">1</property>
               </packing>
             </child>
