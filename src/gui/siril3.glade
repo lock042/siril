@@ -12413,6 +12413,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
                         <property name="icon-widget">histo-orig</property>
+                        <property name="active">True</property>
                         <signal name="toggled" handler="on_histo_toggled" swapped="no"/>
                       </object>
                       <packing>
