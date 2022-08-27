@@ -4357,10 +4357,12 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="show-tabs">False</property>
                 <property name="show-border">False</property>
                 <child>
-                  <!-- n-columns=2 n-rows=1 -->
+                  <!-- n-columns=2 n-rows=2 -->
                   <object class="GtkGrid" id="grid6">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">6</property>
                     <child>
                       <object class="GtkBox" id="box34">
                         <property name="visible">True</property>
@@ -4566,7 +4568,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
@@ -4598,7 +4600,6 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                       <object class="GtkTextView" id="Description_txt">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="wrap-mode">word</property>
                                         <property name="accepts-tab">False</property>
                                         <property name="monospace">True</property>
                                         <style>
@@ -4678,7 +4679,24 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_type_of_tiff">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item translatable="yes">ASTRO-TIFF</item>
+                          <item translatable="yes">Standard TIFF</item>
+                        </items>
+                        <signal name="changed" handler="on_combo_type_of_tiff_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
                         <property name="top-attach">0</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                   </object>
