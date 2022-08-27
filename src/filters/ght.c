@@ -405,16 +405,18 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
 				double L[3] = {0.0, 0.0, 0.0};
-				for (size_t chan = 0; chan < from->naxes[2] ; chan++)
+				for (size_t chan = 0; chan < 3 ; chan++)
 					L[chan] = (double) from->pdata[chan][i] * invnorm;
 				double x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
 				double z = GHTp(x, params, compute_params);
 				for (size_t chan = 0; chan < 3 ; chan++) {
 					if (do_channel[chan])
 						to->pdata[chan][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, L[chan] * (z / x))));
-					else
-						to->pdata[chan][i] = from->pdata[chan][i];
 				}
+			}
+			for (size_t chan = 0 ; chan < 3; chan++) {
+				if (!do_channel[chan])
+					memcpy(to->pdata[chan], from->pdata[chan], layersize * sizeof(WORD));
 			}
 		} else {
 			for (size_t chan = 0; chan < from->naxes[2]; chan++) {
@@ -436,7 +438,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
-			double L[3] = {0.0, 0.0, 0.0};;
+			double L[3] = {0.0, 0.0, 0.0};
 				for (size_t chan = 0; chan < 3 ; chan++)
 					L[chan] = (double)from->fpdata[chan][i];
 				double x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
@@ -444,8 +446,12 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 				for (size_t chan = 0; chan < 3 ; chan++)
 					if (do_channel[chan])
 						to->fpdata[chan][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, L[chan] * (z / x)));
-					else to->fpdata[chan][i] = from->fpdata[chan][i];
 			}
+			for (size_t chan = 0 ; chan < 3; chan++) {
+				if (!do_channel[chan])
+					memcpy(to->fpdata[chan], from->fpdata[chan], layersize * sizeof(float));
+			}
+
 		} else {
 			for (size_t chan=0; chan < from->naxes[2]; chan++) {
 				if (do_channel[chan]) {

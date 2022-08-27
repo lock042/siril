@@ -42,14 +42,14 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t j = 0; j < from->naxes[2] ; j++) {
-			for (size_t i = 0; i < layersize; i++) {
-				if (do_channel[j]) {
+			if (do_channel[j]) {
+				for (size_t i = 0; i < layersize; i++) {
 					float pxl = from->pdata[j][i] * invnorm;
 					float mtf = MTFp(pxl, params);
 					to->pdata[j][i] = roundf_to_WORD(mtf * norm);
-				} else
-					to->pdata[j][i] = from->pdata[j][i];
-			}
+				}
+			} else
+				memcpy(to->pdata[j], from->pdata[j], layersize * sizeof(WORD));
 		}
 	}
 	else if (from->type == DATA_FLOAT) {
@@ -57,12 +57,12 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t j = 0; j < from->naxes[2] ; j++) {
-			for (size_t i = 0; i < layersize; i++) {
-				if (do_channel[j]) {
+			if (do_channel[j]) {
+				for (size_t i = 0; i < layersize; i++) {
 					to->fpdata[j][i] = MTFp(from->fpdata[j][i], params);
-				} else
-					to->fpdata[j][i] = from->fpdata[j][i];
-			}
+				}
+			} else
+				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
 		}
 	}
 	else return;
@@ -211,44 +211,45 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		float invnorm = 1.0f / norm;
 #ifdef _OPENMP
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
-			if (do_channel[chan])
+			if (do_channel[chan]) {
 				siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
 				params[chan].shadows, params[chan].midtones, params[chan].highlights);
-			for (size_t i = 0; i < ndata; i++) {
-				if (do_channel[chan]) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
+#endif
+				for (size_t i = 0; i < ndata; i++) {
 					float pxl = (float)from->pdata[chan][i] * invnorm;
 					float mtf = MTFp(pxl, params[chan]);
 					to->pdata[chan][i] = roundf_to_WORD(mtf * norm);
-				} else
-					to->pdata[chan][i] = from->pdata[chan][i];
-			}
+				}
+			} else
+				memcpy(to->pdata[chan], from->pdata[chan], ndata * sizeof(WORD));
 		}
 	}
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
-			if (do_channel[chan])
+			if (do_channel[chan]) {
 				siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
 				params[chan].shadows, params[chan].midtones, params[chan].highlights);
-			for (size_t i = 0; i < ndata; i++) {
-				if (do_channel[chan]) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
+#endif
+				for (size_t i = 0; i < ndata; i++) {
 					to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
-				} else
-					to->fpdata[chan][i] = from->fpdata[chan][i];
-			}
+				}
+			} else
+				memcpy(to->fpdata[chan], from->fpdata[chan], ndata * sizeof(float));
 		}
 	}
 	else return;
 
 	invalidate_stats_from_fit(to);
 }
-
 
 int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float target_bg, struct mtf_params *results) {
 	int i, invertedChannels = 0;
