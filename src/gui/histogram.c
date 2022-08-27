@@ -825,12 +825,13 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
 
 	for (i = 0; i < MAXVPORT; i++) {
-		if (com.layers_hist[i]
-				&& (!toggles[i] || gtk_toggle_tool_button_get_active(toggles[i]))) {
+		if (com.layers_hist[i]) {
 			if (gtk_toggle_tool_button_get_active(toggleOrig)) {
 				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE);
 			}
-			display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+			if (!toggles[i] || gtk_toggle_tool_button_get_active(toggles[i])) {
+				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+			}
 		}
 	}
 	display_scale(cr, width, height);
