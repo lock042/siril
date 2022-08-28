@@ -450,8 +450,6 @@ struct ffit {
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
 
 	GSList *history;	// Former HISTORY comments of FITS file
-
-	GHashTable *keywords;
 };
 
 typedef struct {
