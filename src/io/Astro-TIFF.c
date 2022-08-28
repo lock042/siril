@@ -257,6 +257,10 @@ char *AstroTiff_build_header(fits *fit) {
 		siril_string_append_unsigned(str, fit->stackcnt, "STACKCNT", "Stack frames");
 	if (fit->livetime > 0.0)
 		siril_string_append_double(str, fit->livetime, "LIVETIME", "Exposure time after deadtime correction");
+	if (fit->expstart > 0.0)
+		siril_string_append_double(str, fit->expstart, "EXPSTART", "Exposure start time (standard Julian date)");
+	if (fit->expend > 0.0)
+		siril_string_append_double(str, fit->expend, "EXPEND", "Exposure end time (standard Julian date)");
 	if (fit->filter[0] !='\0')
 		siril_string_append_str(str, fit->filter, "FILTER", "Active filter name");
 	if (fit->image_type[0] !='\0')
@@ -274,8 +278,18 @@ char *AstroTiff_build_header(fits *fit) {
 	if (fit->key_offset > 0)
 		siril_string_append_int(str, fit->key_offset, "OFFSET", "Camera offset");
 
-	if (fit->wcsdata.equinox > 0.0)
+	if (fit->wcsdata.equinox > 0.0) {
+		siril_string_append_str(str, "RA---TAN", "CTYPE1", "Coordinate type for the first axis");
+		siril_string_append_str(str, "DEC--TAN", "CTYPE2", "Coordinate type for the second axis");
+		siril_string_append_str(str, "deg", "CUNIT1", "Unit of coordinates");
+		siril_string_append_str(str, "deg", "CUNIT2", "Unit of coordinates");
 		siril_string_append_double(str, fit->wcsdata.equinox, "EQUINOX", "Equatorial equinox");
+	}
+	/* Needed for Aladin compatibility */
+	if (fit->naxes[2] == 3 && com.pref.rgb_aladin) {
+		siril_string_append_str(str, "RGB", "CTYPE3", "RGB image");
+	}
+
 	if (fit->wcsdata.objctra[0] !='\0')
 		siril_string_append_str(str, fit->wcsdata.objctra, "OBJCTRA", "Image center Right Ascension (hms)");
 	if (fit->wcsdata.ra > 0.0)

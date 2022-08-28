@@ -581,6 +581,10 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->stackcnt = g_ascii_strtoull(value, NULL, 10);
 		} else if (g_str_has_prefix(card, "LIVETIME=")) {
 			fit->livetime = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "EXPSTART=")) {
+			fit->expstart = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "EXPEND  =")) {
+			fit->expend = g_ascii_strtod(value, NULL);
 		} else if (siril_str_has_prefix(card, FILTER)) {
 			copy_string_key(fit->filter, value);
 		} else if (siril_str_has_prefix(card, IMAGETYP)) {
