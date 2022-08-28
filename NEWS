@@ -38,8 +38,7 @@ v1.2.0 mmm dd, 2022
 * Added more reporting on online object search, avoiding duplicates in catalogues
 * Replaced generalized hyperbolic transform stretch method by more general algorithms
 * Added improved graphical interface to hyperbolic stretches
-* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools,
-  allowing stretching only selected channels (this is useful in NB workflows etc.)
+* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
 * Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
