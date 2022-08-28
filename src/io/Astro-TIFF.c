@@ -98,15 +98,6 @@ static void siril_string_append_logical(GString *str, char *value, const char *k
 		g_string_append_printf(str, "%s\n", card);
 }
 
-static void siril_string_append_comment(GString *str, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	fits_make_key(key, NULL, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
 static void siril_string_append_float(GString *str, float value, const char *key, const char *comment) {
 	char valstring[FLEN_VALUE];
 	char card[FLEN_CARD] = { 0 };
@@ -340,21 +331,43 @@ char *AstroTiff_build_header(fits *fit) {
 	if (fit->dft.norm[2] > 0)
 		siril_string_append_double(str, fit->dft.norm[2], "DFTNORM2", "Normalisation value for channel 2");
 	if (fit->dft.ord[0] !='\0') {
-		char comment[FLEN_COMMENT];
+		char comment[FLEN_COMMENT] = { 0 };
 		if (fit->dft.ord[0] == 'C')
-			strcpy(comment, "Low spatial freq. are located at image center");
+			strncpy(comment, "Low spatial freq. are located at image center", FLEN_COMMENT);
 		else if (fit->dft.ord[0] == 'R')
-			strcpy(comment, "High spatial freq. are located at image center");
+			strncpy(comment, "High spatial freq. are located at image center", FLEN_COMMENT);
 		siril_string_append_str(str, fit->dft.ord, "DFTORD", comment);
 	}
 	if (fit->dft.type[0] !='\0') {
-		char comment[FLEN_COMMENT];
+		char comment[FLEN_COMMENT] = { 0 };
 
 		if (fit->dft.type[0] == 'S')
-			strcpy(comment, "Module of a Discrete Fourier Transform");
+			strncpy(comment, "Module of a Discrete Fourier Transform", FLEN_COMMENT);
 		else if (fit->dft.type[0] == 'P')
-			strcpy(comment, "Phase of a Discrete Fourier Transform");
+			strncpy(comment, "Phase of a Discrete Fourier Transform", FLEN_COMMENT);
 		siril_string_append_str(str, fit->dft.type, "DFTTYPE", comment);
+	}
+
+	/** write history **/
+	status = 0;
+	if (fit->history) {
+		GSList *list;
+		for (list = fit->history; list; list = list->next) {
+			char history[FLEN_COMMENT] = { 0 };
+			strncpy(history, (char *)list->data, FLEN_COMMENT);
+			g_string_append_printf(str, "HISTORY %s\n", history);
+		}
+	}
+
+	status = 0;
+	if (com.history) {
+		for (int i = 0; i < com.hist_display; i++) {
+			if (com.history[i].history[0] != '\0') {
+				char history[FLEN_COMMENT] = { 0 };
+				strncpy(history, com.history[i].history, FLEN_COMMENT);
+				g_string_append_printf(str, "HISTORY %s\n", history);
+			}
+		}
 	}
 
 
