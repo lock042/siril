@@ -438,7 +438,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
-			double L[3] = {0.0, 0.0, 0.0};
+				double L[3] = {0.0, 0.0, 0.0};
 				for (size_t chan = 0; chan < 3 ; chan++)
 					L[chan] = (double)from->fpdata[chan][i];
 				double x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];

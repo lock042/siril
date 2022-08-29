@@ -1522,6 +1522,29 @@ int process_mtf(int nb) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
 		return CMD_ARG_ERROR;
 	}
+	if (word[4]) {
+		if (!strcmp(word[4], "R")) {
+			params.do_green = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "G")) {
+			params.do_red = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "B")) {
+			params.do_green = FALSE;
+			params.do_red = FALSE;
+		}
+		if (!strcmp(word[4], "RG")) {
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "RB")) {
+			params.do_green = FALSE;
+		}
+		if (!strcmp(word[4], "GB")) {
+			params.do_red = FALSE;
+		}
+	}
 
 	apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
 

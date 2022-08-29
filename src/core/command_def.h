@@ -72,7 +72,7 @@
 #define STR_MERGE N_("Merges several sequences into one")
 #define STR_MIRRORX N_("Flips the image about the vertical axis")
 #define STR_MIRRORY N_("Flips the image about the horizontal axis")
-#define STR_MTF N_("Applies midtones transfer function to the current loaded image.\n\nThree parameters are needed, <b>low</b>, <b>midtones</b> and <b>high</b> where midtones balance parameter defines a nonlinear histogram stretch in the [0,1] range")
+#define STR_MTF N_("Applies midtones transfer function to the current loaded image.\n\nThree parameters are needed, <b>low</b>, <b>midtones</b> and <b>high</b> where midtones balance parameter defines a nonlinear histogram stretch in the [0,1] range.\nOptionally the parameter <b>[channels]</b> may be used to specify the channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The default is all channels.")
 
 #define STR_NEG N_("Shows the negative view of the current image")
 #define STR_NEW N_("Creates a new image filled with zeros with a size of <b>width</b> x <b>height</b>.\n\nThe image is in 32-bit format, and it contains <b>nb_channel</b> channels, <b>nb_channel</b> being 1 or 3. It is not saved, but displayed and can be saved afterwards")
