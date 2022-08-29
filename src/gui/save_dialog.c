@@ -34,6 +34,7 @@
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -177,24 +178,34 @@ static void set_description_in_TIFF() {
 
 	gtk_text_buffer_get_bounds(tbuf, &itStart, &itEnd);
 	gtk_text_buffer_delete(tbuf, &itStart, &itEnd);
-	/* History already written in header */
-	if (gfit.history) {
-		GSList *list;
-		for (list = gfit.history; list; list = list->next) {
-			gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-			gtk_text_buffer_insert(tbuf, &itEnd, (gchar *)list->data, -1);
-			gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-			gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
-		}
-	}
-	/* New history */
-	if (com.history) {
-		for (int i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0') {
+
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
+		gchar *astro_tiff = AstroTiff_build_header(&gfit);
+		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+		gtk_text_buffer_insert(tbuf, &itEnd, astro_tiff, -1);
+		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+		gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
+		g_free(astro_tiff);
+	} else {
+		/* History already written in header */
+		if (gfit.history) {
+			GSList *list;
+			for (list = gfit.history; list; list = list->next) {
 				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-				gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
+				gtk_text_buffer_insert(tbuf, &itEnd, (gchar *)list->data, -1);
 				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 				gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
+			}
+		}
+		/* New history */
+		if (com.history) {
+			for (int i = 0; i < com.hist_display; i++) {
+				if (com.history[i].history[0] != '\0') {
+					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+					gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
+					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+					gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
+				}
 			}
 		}
 	}
@@ -213,8 +224,6 @@ static void prepare_savepopup() {
 	}
 
 	GtkWindow *parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
-
-	gtk_window_set_transient_for(GTK_WINDOW(savepopup), parent);
 
 	switch (type_of_image) {
 	case TYPEBMP:
@@ -244,6 +253,8 @@ static void prepare_savepopup() {
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
 		tab = PAGE_FITS;
 	}
+
+	gtk_window_set_transient_for(GTK_WINDOW(savepopup), parent);
 
 	gtk_widget_set_visible(savetxt, FALSE);
 	gtk_notebook_set_current_page(notebookFormat, tab);
@@ -419,7 +430,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
 	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
-	get_tif_data_from_ui(&args->description, &args->copyright, &args->embeded_icc);
+	get_tif_data_from_ui(&gfit, &args->description, &args->copyright, &args->embeded_icc);
 #endif
 	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
 	args->filename = gtk_entry_get_text(args->entry);
@@ -851,4 +862,8 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 
 	gtk_scrolled_window_set_min_content_height(scrolled_window, height);
 	gtk_scrolled_window_set_min_content_width(scrolled_window, width);
+}
+
+void on_combo_type_of_tiff_changed(GtkComboBox* box, gpointer user_data) {
+	set_description_in_TIFF();
 }
