@@ -7,6 +7,7 @@ RUN apt-get update -qyy \
         unzip \
         hicolor-icon-theme \
         git \
+        glib-networking \
         intltool \
         libexiv2-dev \
         libgtk-3-dev \
