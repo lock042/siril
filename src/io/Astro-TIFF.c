@@ -173,7 +173,7 @@ static void siril_string_append_long(GString *str, long value, const char *key, 
  *
  */
 
-char *AstroTiff_build_header(fits *fit) {
+gchar *AstroTiff_build_header(fits *fit) {
 	double bscale = 1.0, bzero = 0.0;
 	int status = 0;
 	GString *str = g_string_new(NULL);

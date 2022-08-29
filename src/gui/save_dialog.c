@@ -180,12 +180,12 @@ static void set_description_in_TIFF() {
 	gtk_text_buffer_delete(tbuf, &itStart, &itEnd);
 
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
-		char *astro_tiff = AstroTiff_build_header(&gfit);
+		gchar *astro_tiff = AstroTiff_build_header(&gfit);
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 		gtk_text_buffer_insert(tbuf, &itEnd, astro_tiff, -1);
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 		gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
-		free(astro_tiff);
+		g_free(astro_tiff);
 	} else {
 		/* History already written in header */
 		if (gfit.history) {

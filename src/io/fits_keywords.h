@@ -17,11 +17,40 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_IO_ASTRO_TIFF_H_
-#define SRC_IO_ASTRO_TIFF_H_
+#ifndef SRC_IO_FITS_KEYWORDS_H_
+#define SRC_IO_FITS_KEYWORDS_H_
 
-#include "core/siril.h"
+typedef struct kkey key;
 
-gchar *AstroTiff_build_header(fits *fit);
+enum key_type {
+	KEY_MANDATORY,
+	KEY_STANDARD,
+	KEY_EXTENDED,
+	KEY_COMMENT,
+	KEY_HISTORY,
+	KEY_SIRIL
+};
 
-#endif /* SRC_IO_ASTRO_TIFF_H_ */
+struct fits_keywords {
+	const char *key;	// key name
+	enum key_type ktype; //
+	int type; // type of the FITS keyword
+	const char *desc;	// short description
+	union {			// allowed values range
+		char *str_value;
+		double value;
+	};
+};
+
+struct kkey {
+	char object[FLEN_VALUE];		// OBJECT key
+	char instrume[FLEN_VALUE];		// INSTRUME key
+	char telescop[FLEN_VALUE];		// TELESCOP key
+	char observer[FLEN_VALUE];		// OBSERVER key
+};
+
+void add_keyword(GHashTable *hash, const char *key, gpointer value);
+char *get_keyword_key_value_str(GHashTable *hash, const char *key);
+double get_keyword_key_value_double(GHashTable *hash, const char *key);
+
+#endif /* SRC_IO_FITS_KEYWORDS_H_ */

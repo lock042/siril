@@ -620,8 +620,6 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 			gtk_text_buffer_get_start_iter(desbuf, &itDebut);
 			gtk_text_buffer_get_end_iter(desbuf, &itFin);
 			*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
-//			gtk_text_buffer_get_bounds(desbuf, &itDebut, &itFin);
-//			gtk_text_buffer_delete(desbuf, &itDebut, &itFin);
 		}
 
 		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
@@ -629,8 +627,6 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
 		gtk_text_buffer_get_end_iter(copybuf, &itFin);
 		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
-//		gtk_text_buffer_get_bounds(copybuf, &itDebut, &itFin);
-//		gtk_text_buffer_delete(copybuf, &itDebut, &itFin);
 
 		GtkToggleButton *icc_toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_icc_profile"));
 		*embeded_icc = gtk_toggle_button_get_active(icc_toggle);
