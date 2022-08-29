@@ -88,6 +88,7 @@ src/gui/siril_intro.c
 src/gui/siril_preview.c
 src/gui/statistics_list.c
 src/gui/utils.c
+src/io/Astro-TIFF.c
 src/io/catalogues.c
 src/io/conversion.c
 src/io/films.c
