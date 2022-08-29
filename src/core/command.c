@@ -3599,6 +3599,27 @@ int process_seq_mtf(int nb) {
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
+				if (!strcmp(word[i], "R")) {
+					args->params.do_green = FALSE;
+					args->params.do_blue = FALSE;
+				}
+				if (!strcmp(word[i], "G")) {
+					args->params.do_red = FALSE;
+					args->params.do_blue = FALSE;
+				}
+				if (!strcmp(word[i], "B")) {
+					args->params.do_green = FALSE;
+					args->params.do_red = FALSE;
+				}
+				if (!strcmp(word[i], "RG")) {
+					args->params.do_blue = FALSE;
+				}
+				if (!strcmp(word[i], "RB")) {
+					args->params.do_green = FALSE;
+				}
+				if (!strcmp(word[i], "GB")) {
+					args->params.do_red = FALSE;
+				}
 				if (g_str_has_prefix(word[i], "-prefix=")) {
 					char *current = word[i], *value;
 					value = current + 8;
