@@ -141,7 +141,7 @@ LIBS="$siril_save_LIBS"
 AC_MSG_RESULT($have_glib_networking)
 
 if test "x$have_glib_networking" = "xno"; then
-  AC_MSG_NOTICE([glib-networking not found]),
+  AC_MSG_NOTICE(([glib-networking not found]),
       [Test for glib-networking failed. This is required.])
 elif test "x$have_glib_networking" != "xyes"; then
   warning_glib_networking="
