@@ -141,6 +141,12 @@ gboolean load_WCS_from_file(fits* fit) {
 	if ((fit->wcsdata.crpix[0] == 0) && (fit->wcsdata.crpix[1] == 0)) {
 		return FALSE;
 	}
+	/* another sanity check, because at this stage we must have a valid pc matrix
+	 * hence this function must be called in load_wcs_keywords
+	 */
+	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
+		return FALSE;
+	}
 
 	if (fit->wcslib) {
 		free_wcs(fit);
