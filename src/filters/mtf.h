@@ -5,6 +5,7 @@
 
 struct mtf_params {
 	float midtones, shadows, highlights;
+	gboolean do_red, do_green, do_blue;
 };
 
 /* Auto-stretch parameters */

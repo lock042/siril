@@ -374,74 +374,96 @@ int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, do
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params, gboolean multithreaded) {
+	const gboolean do_channel[3] = {params.do_red, params.do_green, params.do_blue};
+	int active_channels = 3;
+	for (size_t i=0;i<3;i++)
+		if (!do_channel[i])
+			active_channels--;
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
-	const size_t ndata = from->naxes[0] * from->naxes[1] * from->naxes[2];
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
 	double factor_red = 0.2126;
 	double factor_green = 0.7152;
 	double factor_blue = 0.0722;
+	// If only working with selected channels, colour mode is forced to independent
+	if (!(do_channel[0] && do_channel[1] && do_channel[2]))
+		if (params.payne_colourstretchmodel == COL_HUMANLUM)
+			params.payne_colourstretchmodel = COL_EVENLUM;
 	if (params.payne_colourstretchmodel == COL_EVENLUM) {
-		factor_red = 1.0/3.0;
-		factor_green = 1.0/3.0;
-		factor_blue = 1.0/3.0;
+		factor_red = 1.0/active_channels;
+		factor_green = 1.0/active_channels;
+		factor_blue = 1.0/active_channels;
 	}
-
-//	siril_log_message(_("Applying GHT with values %lf, %lf, %lf, %lf, %lf\n"),
-//			params.B, params.D, params.LP, params.SP, params.HP);
 	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params.B, params.D, params.LP, params.SP, params.HP, params.stretchtype);
 	if (from->type == DATA_USHORT) {
 		double norm = get_normalized_value(from);
 		double invnorm = 1.0f / norm;
 		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
-//			siril_log_message(_("Luminance stretch (16bit)\n"));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
-				double r = (double)from->pdata[RLAYER][i] * invnorm;
-				double g = (double)from->pdata[GLAYER][i] * invnorm;
-				double b = (double)from->pdata[BLAYER][i] * invnorm;
-				double x = factor_red * r + factor_green * g + factor_blue * b;
+				double L[3] = {0.0, 0.0, 0.0};
+				for (size_t chan = 0; chan < 3 ; chan++)
+					L[chan] = (double) from->pdata[chan][i] * invnorm;
+				double x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
 				double z = GHTp(x, params, compute_params);
-				to->pdata[RLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, r * (z / x))));
-				to->pdata[GLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, g * (z / x))));
-				to->pdata[BLAYER][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, b * (z / x))));
+				for (size_t chan = 0; chan < 3 ; chan++) {
+					if (do_channel[chan])
+						to->pdata[chan][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, L[chan] * (z / x))));
+				}
+			}
+			for (size_t chan = 0 ; chan < 3; chan++) {
+				if (!do_channel[chan])
+					memcpy(to->pdata[chan], from->pdata[chan], layersize * sizeof(WORD));
 			}
 		} else {
-//			siril_log_message(_("Independent stretch (16bit)\n"));
+			for (size_t chan = 0; chan < from->naxes[2]; chan++) {
+				if (do_channel[chan]) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-			for (size_t i = 0; i < ndata; i++) {
-				double pxl = (double)from->data[i] * invnorm;
-				to->data[i] = (pxl == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(pxl, params, compute_params))));
+					for (size_t i = 0; i < layersize; i++) {
+						double x = (double)from->pdata[chan][i] * invnorm;
+						to->pdata[chan][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(x, params, compute_params))));
+					}
+				} else
+					memcpy(to->pdata[chan], from->pdata[chan], layersize * sizeof(WORD));
 			}
 		}
 	} else if (from->type == DATA_FLOAT) {
 		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
-//			siril_log_message(_("Luminance stretch (32bit)\n"));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
-				double r = (double)from->fpdata[RLAYER][i];
-				double g = (double)from->fpdata[GLAYER][i];
-				double b = (double)from->fpdata[BLAYER][i];
-				double x = factor_red * r + factor_green * g + factor_blue * b;
+				double L[3] = {0.0, 0.0, 0.0};
+				for (size_t chan = 0; chan < 3 ; chan++)
+					L[chan] = (double)from->fpdata[chan][i];
+				double x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
 				double z = GHTp(x, params, compute_params);
-				to->fpdata[RLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, r * (z / x)));
-				to->fpdata[GLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, g * (z / x)));
-				to->fpdata[BLAYER][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, b * (z / x)));
+				for (size_t chan = 0; chan < 3 ; chan++)
+					if (do_channel[chan])
+						to->fpdata[chan][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, L[chan] * (z / x)));
 			}
+			for (size_t chan = 0 ; chan < 3; chan++) {
+				if (!do_channel[chan])
+					memcpy(to->fpdata[chan], from->fpdata[chan], layersize * sizeof(float));
+			}
+
 		} else {
-//			siril_log_message(_("Independent stretch (32bit)\n"));
+			for (size_t chan=0; chan < from->naxes[2]; chan++) {
+				if (do_channel[chan]) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-			for (size_t i = 0; i < ndata; i++) {
-				to->fdata[i] = (from->fdata[i] == 0.0) ? 0.0 : min(1.0, max(0.0, GHTp(from->fdata[i], params, compute_params)));
+					for (size_t i = 0; i < layersize; i++) {
+						double x = (double)from->fpdata[chan][i];
+						to->fpdata[chan][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, GHTp(x, params, compute_params)));
+					}
+				} else
+					memcpy(to->fpdata[chan], from->fpdata[chan], layersize * sizeof(float));
 			}
 		}
 	}
