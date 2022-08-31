@@ -372,6 +372,9 @@ gpointer do_starnet(gpointer p) {
 	// shadows but generally by less than 0.001% of pixels. The result of starnet using
 	// this stretch is much better than either asinh or GHT stretches.
 	struct mtf_params params;
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
 	find_linked_midtones_balance_default(&workingfit, &params);
 	if (args->linear) {
 		siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
