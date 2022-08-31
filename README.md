@@ -27,13 +27,18 @@ For compilation, these tools are needed in addition to the base development pack
  * **cmake**
 
 Then, mandatory build dependencies:
- * **GTK+ 3**, (>= 3.20) as GUI toolkit
+ * **glib-2.0** (>= 2.56.0) Glib Convenience Library
+ * **glib-networking** for SSL/TLS protocole access
+ * **GTK+ 3** (>= 3.20) as GUI toolkit
  * **cfitsio** for FITS image read and write
  * **fftw3** for Fourier transforms
  * **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
  * **A C++ compiler** for opencv code and avi exporter
  * **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possbile without some shift-only registration)
  * **exiv2** to manage image metadata
+ 
+ 
+ * **libcurl** for web interaction. Useless on GNU-Linux but MUST be installed on macOS and Windows platform as GIO is broken
 
 SIRIL works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file
@@ -49,7 +54,6 @@ time, or their support won't be included.
  * **libheif** for HEIF format files import
  * **libpng** (>= 1.6) for PNG format support
  * **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
- * **libcurl** for web interaction. Useless on GNU-Linux MUST be installed on macOS and Windows platform as GIO is broken
  * **wcslib** for some astrometry utilities
  * **gnuplot** for photometry graphs output
  * **libconfig** (>= 1.4) to read old configuration files (not used since 1.1)
